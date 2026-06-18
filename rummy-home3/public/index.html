@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Password - Rummy Score Keeper</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Reset Your Password</h1>
+        
+        <div id="message"></div>
+        
+        <div id="resetForm">
+            <div class="form-group">
+                <label for="password">New Password:</label>
+                <input type="password" id="password" placeholder="Enter your new password" minlength="6">
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password:</label>
+                <input type="password" id="confirmPassword" placeholder="Confirm your new password" minlength="6">
+            </div>
+            
+            <button onclick="resetPassword()" id="resetButton">Reset Password</button>
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            Resetting password...
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase client
+        // Replace these with your actual Supabase URL and anon key
+        const supabaseUrl = 'https://your-project.supabase.co'
+        const supabaseKey = 'your-anon-key'
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+
+        function showMessage(text, type = 'info') {
+            const messageDiv = document.getElementById('message')
+            messageDiv.innerHTML = `<div class="message ${type}">${text}</div>`
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none'
+            document.getElementById('resetForm').style.display = show ? 'none' : 'block'
+        }
+
+        async function resetPassword() {
+            const password = document.getElementById('password').value
+            const confirmPassword = document.getElementById('confirmPassword').value
+            
+            // Validation
+            if (!password || !confirmPassword) {
+                showMessage('Please fill in both password fields.', 'error')
+                return
+            }
+            
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters long.', 'error')
+                return
+            }
+            
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match.', 'error')
+                return
+            }
+            
+            showLoading(true)
+            
+            try {
+                const { error } = await supabase.auth.updateUser({ 
+                    password: password 
+                })
+                
+                if (error) {
+                    showMessage('Error: ' + error.message, 'error')
+                } else {
+                    showMessage('Password updated successfully! You can now return to the app and login with your new password.', 'success')
+                    document.getElementById('resetForm').style.display = 'none'
+                }
+            } catch (error) {
+                showMessage('An unexpected error occurred. Please try again.', 'error')
+            } finally {
+                showLoading(false)
+            }
+        }
+
+        // Check if we have a valid session
+        async function checkSession() {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession()
+                
+                if (error) {
+                    showMessage('Error checking session: ' + error.message, 'error')
+                    return
+                }
+                
+                if (!session) {
+                    showMessage('No valid session found. Please use the reset link from your email.', 'error')
+                    document.getElementById('resetForm').style.display = 'none'
+                }
+            } catch (error) {
+                showMessage('Error checking session. Please try again.', 'error')
+            }
+        }
+
+        // Initialize the page
+        checkSession()
+    </script>
+</body>
+</html> 
