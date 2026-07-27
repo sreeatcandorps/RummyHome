@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Card, Text, Switch, Button, TextInput, Divider, useTheme } from 'react-native-paper';
+import { Card, Text, Switch, Button, TextInput, useTheme } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storage } from '@/utils/storage';
 import { authService } from '@/services/auth';
 import { router } from 'expo-router';
 import { Player } from '@/types/player';
-import { Game } from '@/types/game';
 
 interface Settings {
   winningCondition: 'lowest' | 'highest';
@@ -55,7 +54,7 @@ export default function Settings() {
   const resetData = async () => {
     Alert.alert(
       'Reset Data',
-      'Are you sure you want to reset all data? This cannot be undone.',
+      'This only clears local cache on this device. Your Supabase account and games are not deleted.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -68,7 +67,7 @@ export default function Settings() {
                 storage.savePlayers([]),
                 AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)),
               ]);
-              Alert.alert('Success', 'All data has been reset');
+              Alert.alert('Success', 'Local cache has been reset');
             } catch (error) {
               Alert.alert('Error', 'Failed to reset data');
             }
@@ -98,10 +97,18 @@ export default function Settings() {
       <Card style={styles.section}>
         <Card.Content>
           <Text variant="titleMedium" style={styles.sectionTitle}>
-            Account Management
+            Account
           </Text>
-          
-          <Button 
+
+          {currentPlayer ? (
+            <View style={styles.playerInfo}>
+              <Text variant="bodyLarge">{currentPlayer.name}</Text>
+              <Text style={styles.muted}>Role: {currentPlayer.role === 'admin' ? 'App admin' : 'Player'}</Text>
+              {currentPlayer.email ? <Text style={styles.muted}>{currentPlayer.email}</Text> : null}
+            </View>
+          ) : null}
+
+          <Button
             mode="outlined"
             onPress={() => router.push('/profile')}
             style={styles.button}
@@ -109,12 +116,12 @@ export default function Settings() {
           >
             View Profile
           </Button>
-          
-          <Button 
+
+          <Button
             mode="contained"
             onPress={handleLogout}
             style={styles.button}
-            textColor="red"
+            buttonColor={theme.colors.error}
             icon="logout"
           >
             Logout
@@ -125,11 +132,20 @@ export default function Settings() {
       <Card style={styles.section}>
         <Card.Content>
           <Text variant="titleMedium" style={styles.sectionTitle}>
-            Game Rules
+            Game Rules (local preferences)
           </Text>
-          
+          <Text style={styles.help}>
+            These preferences are stored on this phone only. Live games currently use the stake/pool
+            defaults from the game screen, not these toggles yet.
+          </Text>
+
           <View style={styles.setting}>
-            <Text>Winning Condition</Text>
+            <View style={styles.settingText}>
+              <Text>Lowest score wins</Text>
+              <Text style={styles.muted}>
+                On = typical Rummy (lowest total wins). Off = highest total wins.
+              </Text>
+            </View>
             <Switch
               value={settings.winningCondition === 'lowest'}
               onValueChange={(value) =>
@@ -140,7 +156,7 @@ export default function Settings() {
               }
             />
           </View>
-          
+
           <View style={styles.setting}>
             <Text>Max Score</Text>
             <TextInput
@@ -178,9 +194,12 @@ export default function Settings() {
           <Text variant="titleMedium" style={styles.sectionTitle}>
             App Settings
           </Text>
-          
+
           <View style={styles.setting}>
-            <Text>Dark Mode</Text>
+            <View style={styles.settingText}>
+              <Text>Dark Mode</Text>
+              <Text style={styles.muted}>Saved locally; theme wiring comes in the UI overhaul.</Text>
+            </View>
             <Switch
               value={settings.darkMode}
               onValueChange={(value) =>
@@ -197,78 +216,20 @@ export default function Settings() {
       <Card style={styles.section}>
         <Card.Content>
           <Text variant="titleMedium" style={styles.sectionTitle}>
-            Data Management
+            Data
           </Text>
-          
-          <Button 
+
+          <Button
             mode="outlined"
             onPress={resetData}
             style={styles.button}
-            textColor="red"
+            textColor={theme.colors.error}
             icon="delete"
           >
-            Reset All Data
+            Reset Local Cache
           </Button>
         </Card.Content>
       </Card>
-
-      <Button 
-        mode="contained" 
-        onPress={async () => {
-          const adminPlayer = {
-            id: 'admin-id',
-            name: 'Admin',
-            email: 'admin@test.com',
-            role: 'admin' as const,
-            gamesPlayed: 0,
-            gamesWon: 0
-          };
-          await storage.savePlayers([adminPlayer]);
-          await storage.setCurrentPlayer(adminPlayer.id);
-          alert('Admin account created - please restart the app');
-        }}
-        style={styles.button}
-      >
-        Restore Admin Account
-      </Button>
-
-      <Button 
-        mode="contained" 
-        onPress={async () => {
-          const currentPlayer = await storage.getCurrentPlayer();
-          const players = await storage.getPlayers();
-          alert(`Current Player: ${currentPlayer}\nTotal Players: ${players.length}`);
-        }}
-        style={[styles.button, { marginTop: 8 }]}
-      >
-        Check Current State
-      </Button>
-
-      {currentPlayer && (
-        <View style={styles.playerInfo}>
-          <Text>Current Player: {currentPlayer.name}</Text>
-          <Text>Role: {currentPlayer.role}</Text>
-          <Text>Email: {currentPlayer.email}</Text>
-        </View>
-      )}
-
-      {currentPlayer?.role === 'admin' && (
-        <Card style={styles.section}>
-          <Card.Content>
-            <Text variant="titleMedium">Admin Actions</Text>
-            <Button 
-              mode="contained" 
-              onPress={async () => {
-                await storage.saveGames([]);
-                alert('Games cleared - start fresh');
-              }}
-              style={styles.button}
-            >
-              Clear Games
-            </Button>
-          </Card.Content>
-        </Card>
-      )}
     </ScrollView>
   );
 }
@@ -282,25 +243,37 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
+    marginBottom: 12,
+  },
+  help: {
+    color: '#666',
     marginBottom: 16,
+    lineHeight: 18,
   },
   setting: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    gap: 12,
+  },
+  settingText: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  muted: {
+    color: '#666',
+    fontSize: 12,
+    marginTop: 2,
   },
   input: {
     width: 100,
   },
   button: {
     marginTop: 8,
-    marginBottom: 16,
   },
   playerInfo: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    marginBottom: 12,
+    gap: 2,
   },
 });

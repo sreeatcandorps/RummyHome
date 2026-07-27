@@ -55,9 +55,9 @@ Default test users:
 
 | Email | Passcode |
 | --- | ---: |
-| player1@rummyhome.test | 123456 |
-| player2@rummyhome.test | 123456 |
-| player3@rummyhome.test | 123456 |
+| player1@rummyhome.com | 123456 |
+| player2@rummyhome.com | 123456 |
+| player3@rummyhome.com | 123456 |
 
 Use any of these on the login screen in Expo Go.
 
@@ -66,8 +66,31 @@ To make an admin account, create/sign in as a user, then in Supabase SQL Editor 
 ```sql
 update public.profiles
 set role = 'app_admin'
-where email = 'player1@rummyhome.test';
+where email = 'player1@rummyhome.com';
 ```
+
+## Automated Coverage
+
+```bash
+cd rummy-home3
+npm run test:nightly
+```
+
+Runs:
+
+1. Env validation
+2. TypeScript check
+3. Unit tests (scoring + auth errors)
+4. Auth smoke (`test:smoke`)
+5. Game-flow smoke (`test:game-flow`) — create users, create game, add round, undo, complete, history
+
+## Phone Checklist After Automation
+
+1. Reload Expo Go so dashboard shows **New Game** for every signed-in user.
+2. Register a second account (or sign in as `player2@rummyhome.com` / `123456` after seeding).
+3. From the first account, create a stake game with both players.
+4. Confirm the share code appears on the game screen.
+5. Add a balanced round, undo, complete, and check Game History.
 
 ## If You See "Network Error"
 
@@ -91,9 +114,10 @@ The app now loads URL polyfills and stores the Supabase session in AsyncStorage,
 | Scoring rules | Yes | `npm test` |
 | TypeScript | Yes | `npm run typecheck` |
 | Supabase signup/login API | Yes | `npm run test:smoke` |
+| Game create / round / undo / complete | Yes | `npm run test:game-flow` |
 | List/seed database users | Yes | `npm run db:list-users`, `npm run db:seed-test-users` |
 | Expo UI on your phone | No | Requires Expo Go on a real device/simulator |
-| Full game flow on device | Partially | Manual smoke checklist in `docs/release-checklist.md` |
+| Full game flow on device | Partially | Manual smoke checklist below |
 
 I cannot run Expo Go on your phone from here. The reliable overnight automation is:
 
@@ -102,18 +126,7 @@ cd rummy-home3
 npm run test:nightly
 ```
 
-That runs env validation, typecheck, unit tests, and Supabase auth smoke tests.
-
-## Manual Phone Smoke Checklist
-
-After automated tests pass:
-
-1. Register a new account with a fresh email and passcode `123456`.
-2. Sign out and sign back in with the same credentials.
-3. Create a stake game with at least two players.
-4. Add a balanced round.
-5. Undo the round.
-6. Complete the game and verify history.
+That runs env validation, typecheck, unit tests, auth smoke, and game-flow smoke.
 
 ## Overnight Test Loop
 

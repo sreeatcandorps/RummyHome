@@ -16,6 +16,7 @@ export type Game = {
   currentRound: number;
   gameType: 'stake' | 'pool';
   settings: GameSettings;
+  shareCode?: string;
 };
 
 export interface Round {

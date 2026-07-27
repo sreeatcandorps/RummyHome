@@ -4,6 +4,7 @@ import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validateRoundScores } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
+import { createUuid, isUuid } from '@/utils/uuid';
 
 type CreateGameInput = {
   playerIds: string[];
@@ -56,6 +57,7 @@ const legacyGameFromServer = (
     currentRound: game.current_round,
     gameType: game.game_type,
     settings: legacySettingsForGameType(game.game_type, game.settings?.expenseEnabled ?? true),
+    shareCode: game.share_code ?? undefined,
   };
 };
 
@@ -86,21 +88,26 @@ export const gamesService = {
       return legacyGame;
     }
 
-    const { data: game, error: gameError } = await supabase
+    const shareCode = makeShareCode();
+    const gameId = createUuid();
+    if (!isUuid(gameId)) {
+      throw new Error('Failed to generate a valid game id.');
+    }
+
+    const { error: gameError } = await supabase
       .from('games')
       .insert({
+        id: gameId,
         created_by: input.createdBy,
         game_type: input.gameType,
         settings,
-        share_code: makeShareCode(),
-      })
-      .select('*')
-      .single();
+        share_code: shareCode,
+      });
 
     if (gameError) throw gameError;
 
     const memberships = input.playerIds.map((profileId, index) => ({
-      game_id: game.id,
+      game_id: gameId,
       profile_id: profileId,
       player_order: index,
       display_number: index + 1,
@@ -111,15 +118,35 @@ export const gamesService = {
     const { error: playersError } = await supabase.from('game_players').insert(memberships);
     if (playersError) throw playersError;
 
-    return legacyGameFromServer(game, [], memberships);
+    const created = await this.getGame(gameId);
+    if (!created) {
+      return legacyGameFromServer(
+        {
+          id: gameId,
+          created_at: new Date().toISOString(),
+          status: 'active',
+          current_round: 1,
+          game_type: input.gameType,
+          settings,
+          share_code: shareCode,
+        },
+        [],
+        memberships,
+      );
+    }
+    return created;
   },
 
-  async listGamesForCurrentUser(currentUserId: string): Promise<Game[]> {
+  async listGamesForCurrentUser(currentUserId: string, options: { limit?: number; includeScores?: boolean } = {}): Promise<Game[]> {
+    const limit = options.limit ?? 50;
+    const includeScores = options.includeScores ?? true;
+
     if (!isSupabaseConfigured) {
       const games = await storage.getGames();
       return games
         .filter((game) => game.players.includes(currentUserId))
-        .sort((a, b) => b.date.localeCompare(a.date));
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .slice(0, limit);
     }
 
     const { data: memberships, error: membershipError } = await supabase
@@ -133,11 +160,18 @@ export const gamesService = {
 
     const { data: games, error } = await supabase
       .from('games')
-      .select('*')
+      .select('*, game_players(profile_id, player_order)')
       .in('id', gameIds)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
     if (error) throw error;
+
+    if (!includeScores) {
+      return (games ?? []).map((game: any) =>
+        legacyGameFromServer(game, [], game.game_players ?? []),
+      );
+    }
 
     return Promise.all((games ?? []).map((game) => this.getGame(game.id))).then((items) =>
       items.filter((game): game is Game => Boolean(game)),

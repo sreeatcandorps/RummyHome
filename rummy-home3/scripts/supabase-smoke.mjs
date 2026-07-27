@@ -6,10 +6,12 @@ loadEnv();
 const url = requireEnv('EXPO_PUBLIC_SUPABASE_URL');
 const key = requireEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
-const supabase = createClient(url, key);
+const supabase = createClient(url, key, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 const formatError = (error) => {
-  if (!error) return 'unknown';
+  if (!error) return 'ok';
   return [error.name, error.message, error.status, error.code].filter(Boolean).join(' | ');
 };
 
@@ -17,14 +19,16 @@ async function main() {
   console.log('Supabase URL:', url);
 
   try {
-    const health = await fetch(`${url}/auth/v1/health`);
+    const health = await fetch(`${url}/auth/v1/health`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
     console.log('Auth health:', health.status, await health.text());
   } catch (error) {
     console.error('Auth health failed:', error.message);
     process.exit(1);
   }
 
-  const testEmail = `smoke+${Date.now()}@rummyhome.test`;
+  const testEmail = `smoke+${Date.now()}@rummyhome.com`;
   const password = '123456';
 
   const signUp = await supabase.auth.signUp({
@@ -58,6 +62,8 @@ async function main() {
   for (const profile of profiles.data ?? []) {
     console.log(`  - ${profile.email ?? '(no email)'} | ${profile.display_name} | ${profile.role}`);
   }
+
+  console.log('\nAuth smoke passed.');
 }
 
 main().catch((error) => {

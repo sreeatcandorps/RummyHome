@@ -63,12 +63,12 @@ export default function ProfileScreen() {
       return;
     }
     
-    if (newPasscode.length !== 4) {
-      setPasscodeError('New passcode must be exactly 4 digits');
+    if (newPasscode.length !== 6) {
+      setPasscodeError('New passcode must be exactly 6 digits');
       return;
     }
     
-    if (!/^\d{4}$/.test(newPasscode)) {
+    if (!/^\d{6}$/.test(newPasscode)) {
       setPasscodeError('New passcode must contain only numbers');
       return;
     }
@@ -369,16 +369,16 @@ export default function ProfileScreen() {
             value={currentPasscode}
             onChangeText={(text) => {
               const numericText = text.replace(/[^0-9]/g, '');
-              if (numericText.length <= 4) {
+              if (numericText.length <= 6) {
                 setCurrentPasscode(numericText);
               }
             }}
             mode="outlined"
             style={styles.modalInput}
             keyboardType="numeric"
-            maxLength={4}
+            maxLength={6}
             secureTextEntry
-            placeholder="Enter current 4-digit passcode"
+            placeholder="Enter current 6-digit passcode"
           />
           
           <TextInput
@@ -386,16 +386,16 @@ export default function ProfileScreen() {
             value={newPasscode}
             onChangeText={(text) => {
               const numericText = text.replace(/[^0-9]/g, '');
-              if (numericText.length <= 4) {
+              if (numericText.length <= 6) {
                 setNewPasscode(numericText);
               }
             }}
             mode="outlined"
             style={styles.modalInput}
             keyboardType="numeric"
-            maxLength={4}
+            maxLength={6}
             secureTextEntry
-            placeholder="Enter new 4-digit passcode"
+            placeholder="Enter new 6-digit passcode"
           />
           
           <TextInput
@@ -403,16 +403,16 @@ export default function ProfileScreen() {
             value={confirmPasscode}
             onChangeText={(text) => {
               const numericText = text.replace(/[^0-9]/g, '');
-              if (numericText.length <= 4) {
+              if (numericText.length <= 6) {
                 setConfirmPasscode(numericText);
               }
             }}
             mode="outlined"
             style={styles.modalInput}
             keyboardType="numeric"
-            maxLength={4}
+            maxLength={6}
             secureTextEntry
-            placeholder="Confirm new 4-digit passcode"
+            placeholder="Confirm new 6-digit passcode"
           />
           
           {passcodeError ? (

@@ -16,6 +16,7 @@ try {
   run('npm run typecheck');
   run('npm test');
   run('node scripts/supabase-smoke.mjs');
+  run('node scripts/game-flow-smoke.mjs');
   console.log(`\nNightly test run passed at ${new Date().toISOString()}`);
 } catch (error) {
   console.error(`\nNightly test run failed at ${new Date().toISOString()}`);

@@ -78,6 +78,27 @@ export const authService = {
     return data.session;
   },
 
+  async refreshSession() {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) throw error;
+    if (data.session?.user) {
+      await storage.setCurrentPlayer(data.session.user.id);
+    }
+    return data.session;
+  },
+
+  /** Refresh when possible so slightly skewed device clocks recover. */
+  async ensureFreshSession() {
+    const session = await this.getSession();
+    if (!session) return null;
+
+    try {
+      return (await this.refreshSession()) ?? session;
+    } catch {
+      return session;
+    }
+  },
+
   async getCurrentUserId() {
     const session = await this.getSession();
     return session?.user.id ?? null;

@@ -7,6 +7,8 @@ import { Player } from '../../../types/player';
 import * as Linking from 'expo-linking';
 import * as SMS from 'expo-sms';
 import * as Contacts from 'expo-contacts';
+import { playersService } from '../../../services/players';
+import { isSupabaseConfigured } from '../../../services/supabase';
 
 export default function PlayersScreen() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -75,7 +77,9 @@ export default function PlayersScreen() {
   }, [players, searchQuery, sortBy]);
 
   const loadPlayers = async () => {
-    const loadedPlayers = await storage.getPlayers();
+    const loadedPlayers = isSupabaseConfigured
+      ? await playersService.listPlayers()
+      : await storage.getPlayers();
     
     // Check for duplicate IDs and fix them
     const uniquePlayers = loadedPlayers.reduce((acc, player, index) => {

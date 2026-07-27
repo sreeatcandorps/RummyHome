@@ -38,5 +38,9 @@ export function formatAuthError(error: unknown): string {
     return 'That email address is not allowed. Try a real email address you can access.';
   }
 
+  if (lower.includes('jwt issued at future')) {
+    return 'Your phone clock appears ahead of the server. Set Date & Time to Automatic, then try again.';
+  }
+
   return message || 'Something went wrong. Please try again.';
 }

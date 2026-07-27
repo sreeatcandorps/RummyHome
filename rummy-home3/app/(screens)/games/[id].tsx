@@ -348,7 +348,7 @@ export default function GameScreen() {
         <Card.Content style={styles.compactGameInfo}>
           <View style={styles.gameInfoRow}>
             <Text variant="titleMedium" style={styles.gameTitle}>
-              Game #{game.id.slice(-6)}
+              {game.shareCode ? `Code ${game.shareCode}` : `Game #${game.id.slice(-6)}`}
             </Text>
             <Text variant="bodySmall" style={styles.gameType}>
               {game.gameType.toUpperCase()}

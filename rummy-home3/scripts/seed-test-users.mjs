@@ -7,9 +7,9 @@ const url = requireEnv('EXPO_PUBLIC_SUPABASE_URL');
 const anonKey = requireEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
 const TEST_USERS = [
-  { email: 'player1@rummyhome.test', password: '123456', displayName: 'Player One' },
-  { email: 'player2@rummyhome.test', password: '123456', displayName: 'Player Two' },
-  { email: 'player3@rummyhome.test', password: '123456', displayName: 'Player Three' },
+  { email: 'player1@rummyhome.com', password: '123456', displayName: 'Player One' },
+  { email: 'player2@rummyhome.com', password: '123456', displayName: 'Player Two' },
+  { email: 'player3@rummyhome.com', password: '123456', displayName: 'Player Three' },
 ];
 
 const supabase = createClient(url, anonKey, {

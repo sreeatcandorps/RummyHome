@@ -152,6 +152,8 @@ create or replace function public.is_app_admin()
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1 from public.profiles
@@ -163,6 +165,8 @@ create or replace function public.is_game_member(target_game_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1 from public.game_players
@@ -176,6 +180,8 @@ create or replace function public.is_game_admin(target_game_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
     select 1 from public.game_players
@@ -214,6 +220,7 @@ on public.games for select
 to authenticated
 using (
   public.is_app_admin()
+  or created_by = auth.uid()
   or public.is_game_member(id)
   or spectator_access = true
 );
@@ -232,7 +239,15 @@ with check (public.is_app_admin() or public.is_game_admin(id) or created_by = au
 create policy "members read game players"
 on public.game_players for select
 to authenticated
-using (public.is_app_admin() or public.is_game_member(game_id));
+using (
+  public.is_app_admin()
+  or public.is_game_member(game_id)
+  or exists (
+    select 1 from public.games
+    where games.id = game_players.game_id
+      and games.created_by = auth.uid()
+  )
+);
 
 create policy "game admins manage game players"
 on public.game_players for all

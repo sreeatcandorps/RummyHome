@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:smoke": "node scripts/supabase-smoke.mjs",
+    "test:game-flow": "node scripts/game-flow-smoke.mjs",
     "test:nightly": "node scripts/nightly-test.mjs",
     "db:list-users": "node scripts/list-users.mjs",
     "db:seed-test-users": "node scripts/seed-test-users.mjs",
