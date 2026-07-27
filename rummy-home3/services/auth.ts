@@ -1,5 +1,6 @@
-import { supabase } from '@/services/supabase';
+import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { ProfileDefaults } from '@/types/database';
+import { Player } from '@/types/player';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
 
@@ -13,6 +14,14 @@ export type Profile = {
   defaultSettings: ProfileDefaults;
   role: 'app_admin' | 'player';
 };
+
+export const profileToPlayer = (profile: Profile): Player => ({
+  id: profile.id,
+  name: profile.displayName,
+  email: profile.email,
+  phone: profile.phone,
+  role: profile.role === 'app_admin' ? 'admin' : 'player',
+});
 
 const toProfile = (row: any): Profile => ({
   id: row.id,
@@ -33,8 +42,8 @@ export const authService = {
     });
 
     if (error) throw error;
-    if (data.user) {
-      await storage.setCurrentPlayer(data.user.id);
+    if (data.session?.user) {
+      await storage.setCurrentPlayer(data.session.user.id);
     }
     return data;
   },
@@ -51,8 +60,8 @@ export const authService = {
     });
 
     if (error) throw error;
-    if (data.user) {
-      await storage.setCurrentPlayer(data.user.id);
+    if (data.session?.user) {
+      await storage.setCurrentPlayer(data.session.user.id);
     }
     return data;
   },
@@ -86,6 +95,19 @@ export const authService = {
 
     if (error) throw error;
     return data ? toProfile(data) : null;
+  },
+
+  async getCurrentPlayer(): Promise<Player | null> {
+    if (isSupabaseConfigured) {
+      const profile = await this.getCurrentProfile();
+      return profile ? profileToPlayer(profile) : null;
+    }
+
+    const playerId = await storage.getCurrentPlayer();
+    if (!playerId) return null;
+
+    const players = await storage.getPlayers();
+    return players.find((player) => player.id === playerId) ?? null;
   },
 
   async updateProfile(profile: Partial<Profile>) {

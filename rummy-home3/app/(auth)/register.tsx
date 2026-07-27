@@ -4,7 +4,8 @@ import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { router } from 'expo-router';
 import { storage } from '../../utils/storage';
 import { authService } from '../../services/auth';
-import { isSupabaseConfigured } from '../../services/supabase';
+import { isSupabaseConfigured, supabase } from '../../services/supabase';
+import { formatAuthError } from '../../utils/authErrors';
 // import * as Location from 'expo-location';
 
 interface SimpleCountry {
@@ -157,39 +158,69 @@ export default function RegisterScreen() {
       const displayName = `${firstName} ${lastName}`;
       const authData = isSupabaseConfigured
         ? await authService.signUp(email, passcode, displayName)
-        : { user: { id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` } };
+        : { user: { id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` }, session: null };
 
       if (!authData.user) throw new Error('Failed to create user');
 
-      const newPlayer = {
-        id: authData.user.id,
-        email: email.trim(),
-        phone: formattedPhone || undefined,
-        name: displayName,
-        gamesPlayed: 0,
-        gamesWon: 0,
-        role: 'player' as const
-      };
+      if (isSupabaseConfigured && authData.session) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            first_name: firstName,
+            last_name: lastName,
+            phone: formattedPhone || null,
+            display_name: displayName,
+            email: email.trim(),
+          })
+          .eq('id', authData.user.id);
 
-      // Store player data
-      const players = await storage.getPlayers();
-      await storage.savePlayers([...players, newPlayer]);
+        if (profileError) {
+          console.warn('Profile update after signup failed:', profileError.message);
+        }
+      }
 
-      // Show success message and redirect
+      if (!isSupabaseConfigured) {
+        const newPlayer = {
+          id: authData.user.id,
+          email: email.trim(),
+          phone: formattedPhone || undefined,
+          name: displayName,
+          gamesPlayed: 0,
+          gamesWon: 0,
+          role: 'player' as const
+        };
+
+        const players = await storage.getPlayers();
+        await storage.savePlayers([...players, newPlayer]);
+      }
+
+      if (isSupabaseConfigured && !authData.session) {
+        Alert.alert(
+          'Confirm Your Email',
+          'Your account was created, but you must confirm your email before you can sign in. Check your inbox, then return here and sign in with your email and 6-digit passcode.',
+          [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+        );
+        return;
+      }
+
+      if (isSupabaseConfigured && authData.session) {
+        Alert.alert(
+          'Account Created Successfully',
+          'You are signed in and ready to play.',
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+        );
+        return;
+      }
+
       Alert.alert(
         'Account Created Successfully',
         'Your account has been created. You can now login using your email and 6-digit passcode.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(auth)/login')
-          }
-        ]
+        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
       );
 
     } catch (err) {
       console.error('Registration error:', err);
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(formatAuthError(err));
     } finally {
       setLoading(false);
     }

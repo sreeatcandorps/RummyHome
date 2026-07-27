@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from 'react-native-paper';
 import { TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { storage } from '@/utils/storage';
+import { authService } from '@/services/auth';
 import { Player } from '@/types/player';
 
 function TabBarIcon(props: {
@@ -24,12 +24,8 @@ export default function TabLayout() {
   }, []);
 
   const loadCurrentPlayer = async () => {
-    const playerId = await storage.getCurrentPlayer();
-    if (playerId) {
-      const players = await storage.getPlayers();
-      const player = players.find(p => p.id === playerId);
-      setCurrentPlayer(player || null);
-    }
+    const player = await authService.getCurrentPlayer();
+    setCurrentPlayer(player);
   };
 
   const getInitials = (name: string) => {

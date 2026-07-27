@@ -1,13 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, Card, useTheme } from 'react-native-paper';
-import { storage } from '@/utils/storage';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { router, useFocusEffect } from 'expo-router';
 import { gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
-import { isSupabaseConfigured } from '@/services/supabase';
 
 type GameStatus = 'active' | 'completed';
 
@@ -23,17 +21,12 @@ export default function GameHistory() {
   );
 
   const loadData = async () => {
-    const playerId = isSupabaseConfigured
-      ? await authService.getCurrentUserId()
-      : await storage.getCurrentPlayer();
-    if (playerId) {
-      const players = await storage.getPlayers();
-      const player = players.find(p => p.id === playerId);
-      setCurrentPlayer(player || null);
+    const player = await authService.getCurrentPlayer();
+    if (!player) return;
 
-      const games = await gamesService.listGamesForCurrentUser(playerId);
-      setGames(games);
-    }
+    setCurrentPlayer(player);
+    const userGames = await gamesService.listGamesForCurrentUser(player.id);
+    setGames(userGames);
   };
 
   const navigateToGame = (gameId: string) => {

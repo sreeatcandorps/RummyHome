@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { storage } from '../../utils/storage';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
+import { formatAuthError } from '../../utils/authErrors';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -65,7 +66,7 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (err) {
       console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(formatAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -109,6 +110,9 @@ export default function LoginScreen() {
             secureTextEntry
             placeholder="Enter your 6-digit passcode"
           />
+          <HelperText type="info" visible={true}>
+            Use the same 6-digit passcode you chose when creating your account.
+          </HelperText>
 
           {error ? (
             <HelperText type="error" visible={!!error}>

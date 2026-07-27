@@ -15,6 +15,7 @@ import {
 } from 'react-native-paper';
 import { router } from 'expo-router';
 import { storage } from '../../utils/storage';
+import { authService } from '../../services/auth';
 import { supabase } from '../../services/supabase';
 import { Player } from '../../types/player';
 
@@ -43,12 +44,8 @@ export default function ProfileScreen() {
 
   const loadCurrentPlayer = async () => {
     try {
-      const playerId = await storage.getCurrentPlayer();
-      if (playerId) {
-        const players = await storage.getPlayers();
-        const player = players.find(p => p.id === playerId);
-        setCurrentPlayer(player || null);
-      }
+      const player = await authService.getCurrentPlayer();
+      setCurrentPlayer(player);
     } catch (error) {
       console.error('Error loading current player:', error);
     } finally {

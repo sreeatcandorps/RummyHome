@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Text, Card, Button, useTheme } from 'react-native-paper';
 import { router, useFocusEffect } from 'expo-router';
 import { storage } from '@/utils/storage';
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [recentGames, setRecentGames] = useState<Game[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
@@ -23,27 +24,40 @@ export default function Dashboard() {
   );
 
   const loadData = async () => {
-    const playerId = isSupabaseConfigured
-      ? await authService.getCurrentUserId()
-      : await storage.getCurrentPlayer();
-    if (playerId) {
+    try {
+      const player = await authService.getCurrentPlayer();
+      if (!player) {
+        setCurrentPlayer(null);
+        return;
+      }
+
+      setCurrentPlayer(player);
+
       const allPlayers = isSupabaseConfigured
         ? await playersService.listPlayers()
         : await storage.getPlayers();
-      const player = allPlayers.find(p => p.id === playerId);
-      setCurrentPlayer(player || null);
       setPlayers(allPlayers);
 
-      if (player) {
-        const games = await gamesService.listGamesForCurrentUser(playerId);
-        setRecentGames(games.slice(0, 5));
-      }
+      const games = await gamesService.listGamesForCurrentUser(player.id);
+      setRecentGames(games.slice(0, 5));
+    } catch (error) {
+      console.error('Dashboard load error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const navigateToGame = (gameId: string) => {
     router.push(`/(screens)/games/${gameId}`);
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   if (!currentPlayer) return null;
 
@@ -291,6 +305,11 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   container: {
     flex: 1,
     padding: 16,

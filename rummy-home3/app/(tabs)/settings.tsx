@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Card, Text, Switch, Button, TextInput, Divider, useTheme } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storage } from '@/utils/storage';
-import { supabase } from '../../services/supabase';
+import { authService } from '@/services/auth';
 import { router } from 'expo-router';
 import { Player } from '@/types/player';
 import { Game } from '@/types/game';
@@ -80,8 +80,7 @@ export default function Settings() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
-      await storage.setCurrentPlayer(null);
+      await authService.signOut();
       router.replace('/(auth)/login');
     } catch (error) {
       console.error('Logout error:', error);
@@ -90,12 +89,8 @@ export default function Settings() {
   };
 
   const loadCurrentPlayer = async () => {
-    const playerId = await storage.getCurrentPlayer();
-    if (playerId) {
-      const players = await storage.getPlayers();
-      const player = players.find(p => p.id === playerId);
-      setCurrentPlayer(player || null);
-    }
+    const player = await authService.getCurrentPlayer();
+    setCurrentPlayer(player);
   };
 
   return (

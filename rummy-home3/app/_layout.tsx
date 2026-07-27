@@ -1,12 +1,12 @@
+import '../polyfills';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useRouter, useSegments } from 'expo-router';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { LoadingProvider } from '@/contexts/LoadingContext';
-// import { HeaderRight } from '@/components/SharedHeader';
-import { storage } from '@/utils/storage';
 import { authService } from '@/services/auth';
-import { isSupabaseConfigured } from '@/services/supabase';
+import { isSupabaseConfigured, supabase } from '@/services/supabase';
+import { storage } from '@/utils/storage';
 
 // Create a custom theme
 const theme = {
@@ -21,6 +21,20 @@ export default function Layout() {
 
   useEffect(() => {
     checkAuth();
+
+    if (!isSupabaseConfigured) return;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        await storage.setCurrentPlayer(session.user.id);
+        router.replace('/(tabs)');
+      } else if (event === 'SIGNED_OUT') {
+        await storage.setCurrentPlayer(null);
+        router.replace('/(auth)/login');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const checkAuth = async () => {
@@ -28,7 +42,6 @@ export default function Layout() {
       const currentPlayer = isSupabaseConfigured
         ? await authService.getCurrentUserId()
         : await getLocalCurrentPlayerId();
-      
       // Only redirect if we're not already on an auth screen
       const inAuthGroup = segments[0] === '(auth)';
       

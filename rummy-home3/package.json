@@ -9,6 +9,10 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
+    "test:smoke": "node scripts/supabase-smoke.mjs",
+    "test:nightly": "node scripts/nightly-test.mjs",
+    "db:list-users": "node scripts/list-users.mjs",
+    "db:seed-test-users": "node scripts/seed-test-users.mjs",
     "doctor": "npx expo-doctor",
     "validate:env": "node ./scripts/validate-env.js"
   },
