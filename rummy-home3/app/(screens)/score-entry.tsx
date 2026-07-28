@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import {
   Button,
-  Card,
   Dialog,
   Icon,
   IconButton,
@@ -21,7 +20,6 @@ import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
 import { storage } from '../../utils/storage';
 import { distributeRummyWinnings } from '../../utils/rummyDistribution';
-import { SectionCard } from '../../components/ui/SectionCard';
 import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
 import { formatGameDateTime, gameIdLabel } from '../../utils/gameDisplay';
 import { formatSupabaseError } from '../../utils/supabaseErrors';
@@ -331,188 +329,175 @@ export default function ScoreEntryScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Enter Scores', headerShown: true }} />
+      <Stack.Screen
+        options={{
+          title: game ? `Enter scores for round ${game.currentRound}` : 'Enter scores',
+          headerShown: true,
+          headerTitleStyle: { fontSize: 17, fontWeight: '600' },
+        }}
+      />
 
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {/* Frozen: the score type must stay visible while the player list scrolls. */}
+        <View style={styles.stickyTop}>
           {game ? (
-            <View style={styles.heading}>
-              <Text variant="titleLarge" style={styles.headingTitle}>
-                Round {game.currentRound}
-              </Text>
-              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                {formatGameDateTime(game.date)}
-              </Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                Game ID {gameIdLabel(game)}
-              </Text>
-            </View>
+            <Text variant="bodySmall" numberOfLines={1} style={{ color: theme.colors.onSurfaceVariant }}>
+              {formatGameDateTime(game.date)} · ID {gameIdLabel(game)}
+            </Text>
           ) : null}
 
-          <SectionCard
-            title="Score type"
-            supportingText="Tap a type, then tap players. With no type selected, tapping a player opens manual entry."
-          >
-            <SegmentedButtons
-              value={selectedType ?? ''}
-              onValueChange={(value) =>
-                setSelectedType((prev) => (prev === value ? null : (value as SelectableType)))
-              }
-              buttons={typeOptions.map((option) => ({
-                value: option.value,
-                label: option.label,
-                style: styles.segment,
-              }))}
-            />
-          </SectionCard>
-
-          <SectionCard
-            title={selectedTypeLabel ? `Select players for ${selectedTypeLabel}` : 'Players'}
-            supportingText={
-              selectedType === 'rummy'
-                ? 'Winners split the remaining points evenly. Tap again to remove someone.'
-                : selectedTypeLabel
-                  ? 'Tap a player to give them this score.'
-                  : 'Tap a player to type an exact score.'
+          <SegmentedButtons
+            value={selectedType ?? ''}
+            onValueChange={(value) =>
+              setSelectedType((prev) => (prev === value ? null : (value as SelectableType)))
             }
-          >
-            <View style={styles.playerList}>
-              {participants.map((participant) => {
-                const value = scoreFor(participant.id);
-                const scoreType = typeFor(participant.id);
-                const isWinner = winners.includes(participant.id);
-                const isPositive = (value ?? 0) > 0;
+            buttons={typeOptions.map((option) => ({
+              value: option.value,
+              label: option.label,
+              style: styles.segment,
+            }))}
+          />
 
-                return (
-                  <TouchableRipple
-                    key={participant.id}
-                    onPress={() => handleParticipantPress(participant)}
-                    borderless
-                    style={[
-                      styles.playerRow,
-                      {
-                        backgroundColor: isPositive
-                          ? theme.colors.primaryContainer
-                          : value !== undefined
-                            ? theme.colors.surfaceVariant
-                            : 'transparent',
-                        borderColor: isWinner ? theme.colors.primary : theme.colors.outlineVariant,
-                      },
-                    ]}
-                  >
-                    <View style={styles.playerRowInner}>
-                      <Icon
-                        source={
-                          participant.isExpense
-                            ? 'receipt'
-                            : isWinner
-                              ? 'trophy'
-                              : value !== undefined
-                                ? 'check-circle'
-                                : 'account-outline'
-                        }
-                        size={22}
-                        color={isPositive ? theme.colors.primary : theme.colors.onSurfaceVariant}
-                      />
+          <Text variant="labelLarge" numberOfLines={1} style={{ color: theme.colors.onSurfaceVariant }}>
+            {selectedTypeLabel
+              ? `Select players for ${selectedTypeLabel}`
+              : 'Tap a player to type an exact score'}
+          </Text>
+        </View>
 
-                      <View style={styles.playerText}>
-                        <Text variant="bodyLarge" numberOfLines={1} style={styles.playerName}>
-                          {participant.name}
-                        </Text>
-                        {scoreType ? (
-                          <Text
-                            variant="labelSmall"
-                            style={{ color: theme.colors.onSurfaceVariant }}
-                          >
-                            {isWinner ? 'Rummy winner' : TYPE_LABELS[scoreType]}
-                          </Text>
-                        ) : null}
-                      </View>
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.playerList}>
+            {participants.map((participant) => {
+              const value = scoreFor(participant.id);
+              const scoreType = typeFor(participant.id);
+              const isWinner = winners.includes(participant.id);
+              const isPositive = (value ?? 0) > 0;
 
-                      <Text
-                        variant="titleMedium"
-                        style={[
-                          styles.playerScore,
-                          {
-                            color: isPositive
-                              ? theme.colors.primary
-                              : value !== undefined
-                                ? theme.colors.onSurface
-                                : theme.colors.outline,
-                          },
-                        ]}
-                      >
-                        {value === undefined ? '—' : signed(value)}
+              return (
+                <TouchableRipple
+                  key={participant.id}
+                  onPress={() => handleParticipantPress(participant)}
+                  borderless
+                  style={[
+                    styles.playerRow,
+                    {
+                      backgroundColor: isPositive
+                        ? theme.colors.primaryContainer
+                        : value !== undefined
+                          ? theme.colors.surfaceVariant
+                          : 'transparent',
+                      borderColor: isWinner ? theme.colors.primary : theme.colors.outlineVariant,
+                    },
+                  ]}
+                >
+                  <View style={styles.playerRowInner}>
+                    <Icon
+                      source={
+                        participant.isExpense
+                          ? 'cash-multiple'
+                          : isWinner
+                            ? 'trophy'
+                            : value !== undefined
+                              ? 'check-circle'
+                              : 'account-outline'
+                      }
+                      size={20}
+                      color={isPositive ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                    />
+
+                    <View style={styles.playerText}>
+                      <Text variant="bodyLarge" numberOfLines={1} style={styles.playerName}>
+                        {participant.name}
                       </Text>
-
-                      <IconButton
-                        icon={value === undefined ? 'pencil-outline' : 'close'}
-                        size={18}
-                        accessibilityLabel={
-                          value === undefined
-                            ? `Enter score for ${participant.name}`
-                            : `Clear score for ${participant.name}`
-                        }
-                        onPress={() =>
-                          value === undefined ? openManualEntry(participant) : clearScore(participant.id)
-                        }
-                      />
+                      {scoreType ? (
+                        <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                          {isWinner ? 'Rummy winner' : TYPE_LABELS[scoreType]}
+                        </Text>
+                      ) : null}
                     </View>
-                  </TouchableRipple>
-                );
-              })}
-            </View>
-          </SectionCard>
+
+                    <Text
+                      variant="titleMedium"
+                      style={[
+                        styles.playerScore,
+                        {
+                          color: isPositive
+                            ? theme.colors.primary
+                            : value !== undefined
+                              ? theme.colors.onSurface
+                              : theme.colors.outline,
+                        },
+                      ]}
+                    >
+                      {value === undefined ? '—' : signed(value)}
+                    </Text>
+
+                    <IconButton
+                      icon={value === undefined ? 'pencil-outline' : 'close'}
+                      size={18}
+                      accessibilityLabel={
+                        value === undefined
+                          ? `Enter score for ${participant.name}`
+                          : `Clear score for ${participant.name}`
+                      }
+                      onPress={() =>
+                        value === undefined ? openManualEntry(participant) : clearScore(participant.id)
+                      }
+                    />
+                  </View>
+                </TouchableRipple>
+              );
+            })}
+          </View>
         </ScrollView>
 
-        <Card
-          mode="contained"
-          style={[styles.bottomBar, { backgroundColor: theme.colors.elevation.level2 }]}
-        >
-          <View style={styles.bottomBarInner}>
-            <View
-              style={[
-                styles.tallyPill,
-                {
-                  backgroundColor: isBalanced
-                    ? theme.colors.primaryContainer
-                    : theme.colors.errorContainer,
-                },
-              ]}
+        <View style={styles.bottomBar}>
+          <View
+            style={[
+              styles.tallyPill,
+              {
+                backgroundColor: isBalanced
+                  ? theme.colors.primaryContainer
+                  : theme.colors.errorContainer,
+              },
+            ]}
+          >
+            <Text
+              variant="titleMedium"
+              style={{
+                fontWeight: '700',
+                color: isBalanced ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
+              }}
             >
-              <Text
-                variant="titleMedium"
-                style={{
-                  fontWeight: '700',
-                  color: isBalanced ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
-                }}
-              >
-                {tally}
-              </Text>
-              <Text
-                variant="labelSmall"
-                style={{
-                  color: isBalanced ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
-                }}
-              >
-                {isBalanced ? 'Balanced' : 'Tally'}
-              </Text>
-            </View>
-
-            <Button
-              mode="contained"
-              onPress={handleSubmit}
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              icon="check"
-              style={styles.submitButton}
-              contentStyle={styles.submitContent}
-              labelStyle={styles.submitLabel}
+              {tally}
+            </Text>
+            <Text
+              variant="labelSmall"
+              style={{
+                color: isBalanced ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
+              }}
             >
-              Submit round
-            </Button>
+              {isBalanced ? 'Balanced' : 'Tally'}
+            </Text>
           </View>
-        </Card>
+
+          <Button
+            mode="contained"
+            onPress={handleSubmit}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+            icon="check"
+            style={styles.submitButton}
+            contentStyle={styles.submitContent}
+            labelStyle={styles.submitLabel}
+          >
+            Submit round
+          </Button>
+        </View>
       </View>
 
       <Portal>
@@ -577,22 +562,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  stickyTop: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  scrollArea: {
+    flex: 1,
+  },
   content: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
-    gap: spacing.lg,
-  },
-  heading: {
-    gap: 2,
-  },
-  headingTitle: {
-    fontWeight: '700',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
   },
   segment: {
     minWidth: 0,
   },
   playerList: {
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   playerRow: {
     borderRadius: radius.md,
@@ -602,7 +589,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    minHeight: 56,
+    minHeight: 50,
     paddingLeft: spacing.md,
     paddingRight: spacing.xs,
   },
@@ -617,26 +604,25 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     fontWeight: '700',
   },
+  // Floats above the rounded bottom edge rather than hugging it.
   bottomBar: {
-    borderRadius: 0,
-  },
-  bottomBarInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.lg,
   },
   tallyPill: {
-    minWidth: 72,
+    width: 76,
+    height: MIN_TOUCH_TARGET,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.full,
   },
   submitButton: {
     flex: 1,
+    borderRadius: radius.full,
   },
   submitContent: {
     height: MIN_TOUCH_TARGET,
