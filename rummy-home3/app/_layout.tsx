@@ -2,17 +2,14 @@ import '../polyfills';
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useRouter, useSegments } from 'expo-router';
-import { PaperProvider, MD3LightTheme } from 'react-native-paper';
+import { PaperProvider } from 'react-native-paper';
 import { LoadingProvider } from '@/contexts/LoadingContext';
 import { authService } from '@/services/auth';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { storage } from '@/utils/storage';
+import { lightTheme } from '@/constants/theme';
 
-// Create a custom theme
-const theme = {
-  ...MD3LightTheme,
-  // Add any custom theme properties here
-};
+const theme = lightTheme;
 
 export default function Layout() {
   const router = useRouter();

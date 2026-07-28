@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, FlatList, ScrollView } from 'react-native';
-import { Text, Card, FAB, IconButton, Searchbar, Menu, Portal, Dialog, TextInput, Button, List } from 'react-native-paper';
+import { Text, Card, FAB, IconButton, Searchbar, Menu, Portal, Dialog, TextInput, Button, List, Avatar } from 'react-native-paper';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import { storage } from '../../../utils/storage';
 import { Player } from '../../../types/player';
@@ -9,6 +9,8 @@ import * as SMS from 'expo-sms';
 import * as Contacts from 'expo-contacts';
 import { playersService } from '../../../services/players';
 import { isSupabaseConfigured } from '../../../services/supabase';
+import { EmptyState } from '../../../components/ui/EmptyState';
+import { radius, spacing } from '../../../constants/theme';
 
 export default function PlayersScreen() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -235,25 +237,42 @@ export default function PlayersScreen() {
 
   const renderPlayer = ({ item }: { item: Player }) => {
     try {
+      const initials = (item.name || '?')
+        .split(' ')
+        .map((word) => word[0])
+        .join('')
+        .toUpperCase()
+        .substring(0, 2);
+
       return (
-        <Card 
+        <Card
+          mode="outlined"
           style={styles.card}
           onPress={() => router.push(`/players/${item.id}`)}
         >
           <Card.Content style={styles.cardContent}>
+            <Avatar.Text size={44} label={initials} />
             <View style={styles.playerInfo}>
-              <Text variant="titleMedium">{item.name || 'Unknown Player'}</Text>
-              <Text variant="bodyMedium">
-                Games: {item.gamesPlayed || 0} | Wins: {item.gamesWon || 0}
+              <Text variant="titleMedium" numberOfLines={1}>
+                {item.name || 'Unknown Player'}
+              </Text>
+              <Text variant="bodySmall" style={styles.playerMeta}>
+                {item.playerCode
+                  ? `Player ID ${item.playerCode}`
+                  : `${item.gamesPlayed || 0} games · ${item.gamesWon || 0} wins`}
               </Text>
             </View>
             <View style={styles.actions}>
               <IconButton
-                icon="pencil"
+                icon="pencil-outline"
+                size={22}
+                accessibilityLabel={`Edit ${item.name}`}
                 onPress={() => router.push(`/players/${item.id}/edit`)}
               />
               <IconButton
-                icon="delete"
+                icon="delete-outline"
+                size={22}
+                accessibilityLabel={`Delete ${item.name}`}
                 onPress={() => {
                   setSelectedPlayer(item);
                   setDeleteDialogVisible(true);
@@ -288,7 +307,9 @@ export default function PlayersScreen() {
           placeholder="Search players"
           onChangeText={setSearchQuery}
           value={searchQuery}
+          mode="bar"
           style={styles.searchBar}
+          inputStyle={styles.searchInput}
         />
         <Menu
           visible={sortMenuVisible}
@@ -296,6 +317,8 @@ export default function PlayersScreen() {
           anchor={
             <IconButton
               icon="sort"
+              size={24}
+              accessibilityLabel="Sort players"
               onPress={() => setSortMenuVisible(true)}
             />
           }
@@ -328,15 +351,23 @@ export default function PlayersScreen() {
         data={filteredPlayers}
         renderItem={renderPlayer}
         keyExtractor={(item, index) => `${item.id}-${index}`}
+        contentContainerStyle={styles.listContent}
         ListEmptyComponent={() => (
-          <Text style={styles.emptyText}>
-            {searchQuery ? 'No matching players found' : 'No players added yet'}
-          </Text>
+          <EmptyState
+            icon="account-group-outline"
+            title={searchQuery ? 'No matching players' : 'No players yet'}
+            message={
+              searchQuery
+                ? 'Try a different name, email, or phone number.'
+                : 'Invite friends so they show up here once they register.'
+            }
+          />
         )}
       />
-      
+
       <FAB
-        icon="plus"
+        icon="account-plus-outline"
+        label="Find players"
         style={styles.fab}
         onPress={() => router.push('/players/new')}
       />
@@ -345,29 +376,27 @@ export default function PlayersScreen() {
         <Dialog
           visible={deleteDialogVisible}
           onDismiss={() => setDeleteDialogVisible(false)}
+          style={styles.dialog}
         >
-          <Dialog.Title>Delete Player</Dialog.Title>
+          <Dialog.Icon icon="delete-outline" />
+          <Dialog.Title style={styles.dialogTitle}>Delete player?</Dialog.Title>
           <Dialog.Content>
-            <Text>Are you sure you want to delete {selectedPlayer?.name}?</Text>
+            <Text variant="bodyMedium">
+              {selectedPlayer?.name} will be removed from this device's local list.
+            </Text>
           </Dialog.Content>
-          <Dialog.Actions>
-            <IconButton
-              icon="close"
-              onPress={() => setDeleteDialogVisible(false)}
-              mode="contained"
-            />
-            <IconButton
-              icon="delete"
-              onPress={handleDeletePlayer}
-              mode="contained"
-            />
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button onPress={() => setDeleteDialogVisible(false)}>Cancel</Button>
+            <Button mode="contained" onPress={handleDeletePlayer}>
+              Delete
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
 
       <Portal>
-        <Dialog visible={addDialogVisible} onDismiss={handleDialogClose}>
-          <Dialog.Title>Add New Player</Dialog.Title>
+        <Dialog visible={addDialogVisible} onDismiss={handleDialogClose} style={styles.dialog}>
+          <Dialog.Title>Add new player</Dialog.Title>
           <Dialog.Content>
             <Button 
               mode="outlined"
@@ -403,9 +432,11 @@ export default function PlayersScreen() {
               keyboardType="phone-pad"
             />
           </Dialog.Content>
-          <Dialog.Actions>
+          <Dialog.Actions style={styles.dialogActions}>
             <Button onPress={() => setAddDialogVisible(false)}>Cancel</Button>
-            <Button onPress={handleAddPlayer}>Add</Button>
+            <Button mode="contained" onPress={handleAddPlayer}>
+              Add
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -448,56 +479,77 @@ export default function PlayersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
     position: 'relative',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    gap: spacing.xs,
+    marginBottom: spacing.lg,
   },
   searchBar: {
     flex: 1,
-    marginRight: 8,
+    borderRadius: radius.full,
+  },
+  searchInput: {
+    minHeight: 0,
+  },
+  listContent: {
+    gap: spacing.md,
+    paddingBottom: 96,
   },
   card: {
-    marginBottom: 8,
+    borderRadius: radius.md,
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: spacing.lg,
+    paddingVertical: spacing.md,
+    minHeight: 76,
   },
   playerInfo: {
     flex: 1,
+    gap: 2,
+  },
+  playerMeta: {
+    opacity: 0.7,
   },
   actions: {
     flexDirection: 'row',
   },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 24,
-    opacity: 0.5,
-  },
   fab: {
     position: 'absolute',
-    margin: 16,
+    margin: spacing.lg,
     right: 0,
     bottom: 0,
-    backgroundColor: '#6200ee',
+    borderRadius: radius.lg,
   },
   input: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   contactButton: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
+  },
+  dialog: {
+    borderRadius: radius.lg,
+  },
+  dialogTitle: {
+    textAlign: 'center',
+  },
+  dialogActions: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
   },
   errorText: {
-    color: 'red',
+    color: '#b3261e',
     textAlign: 'center',
-    marginBottom: 8,
-    padding: 8,
-    backgroundColor: '#ffebee',
-    borderRadius: 4,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: '#f9dedc',
+    borderRadius: radius.sm,
   },
 }); 

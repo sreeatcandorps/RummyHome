@@ -1,86 +1,37 @@
 import { Stack } from 'expo-router';
+import { useTheme } from 'react-native-paper';
 
 export default function ScreensLayout() {
+  const theme = useTheme();
+
   return (
-    <Stack>
-      <Stack.Screen 
-        name="game" 
-        options={{ 
-          title: 'Game',
-          headerShown: true 
-        }} 
-      />
-      <Stack.Screen 
-        name="score-entry" 
-        options={{ 
+    <Stack
+      screenOptions={{
+        headerShown: true,
+        headerStyle: { backgroundColor: theme.colors.surface },
+        headerTintColor: theme.colors.onSurface,
+        headerTitleStyle: { fontSize: 20, fontWeight: '600' },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: theme.colors.background },
+      }}
+    >
+      <Stack.Screen name="game" options={{ title: 'Game' }} />
+      <Stack.Screen
+        name="score-entry"
+        options={{
           title: 'Enter Scores',
-          headerShown: true,
-          presentation: 'modal'
-        }} 
-      />
-      <Stack.Screen 
-        name="profile" 
-        options={{ 
-          title: 'Profile',
-          headerShown: true 
-        }} 
-      />
-      <Stack.Screen
-        name="games/new"
-        options={{
-          title: 'New Game',
-          headerShown: true,
+          presentation: 'modal',
         }}
       />
-      <Stack.Screen
-        name="games/history"
-        options={{
-          title: 'Game History',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="games/[id]"
-        options={{
-          title: 'Game',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="players/index"
-        options={{
-          title: 'Players',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="players/new"
-        options={{
-          title: 'New Player',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="players/search"
-        options={{
-          title: 'Search Players',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="players/[id]"
-        options={{
-          title: 'Player',
-          headerShown: true,
-        }}
-      />
-      <Stack.Screen
-        name="players/[id]/edit"
-        options={{
-          title: 'Edit Player',
-          headerShown: true,
-        }}
-      />
+      <Stack.Screen name="profile" options={{ title: 'Profile' }} />
+      <Stack.Screen name="games/new" options={{ title: 'New Game' }} />
+      <Stack.Screen name="games/history" options={{ title: 'Game History' }} />
+      <Stack.Screen name="games/[id]" options={{ title: 'Game' }} />
+      <Stack.Screen name="players/index" options={{ title: 'Players' }} />
+      <Stack.Screen name="players/new" options={{ title: 'Find Players' }} />
+      <Stack.Screen name="players/search" options={{ title: 'Search Players' }} />
+      <Stack.Screen name="players/[id]" options={{ title: 'Player' }} />
+      <Stack.Screen name="players/[id]/edit" options={{ title: 'Edit Profile' }} />
     </Stack>
   );
 }

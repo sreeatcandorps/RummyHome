@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { TextInput, Button, Text, HelperText, Card } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { TextInput, Button, Text, HelperText, Card, Icon, useTheme } from 'react-native-paper';
 import { router } from 'expo-router';
 import { storage } from '../../utils/storage';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
 import { formatAuthError } from '../../utils/authErrors';
+import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
 
 export default function LoginScreen() {
+  const theme = useTheme();
   const [email, setEmail] = useState('');
   const [passcode, setPasscode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -73,139 +75,168 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="headlineMedium" style={styles.title}>
-            Welcome Back
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Sign in to your Rummy Score Keeper account
-          </Text>
-
-          <TextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            mode="outlined"
-            style={styles.input}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholder="Enter your email"
-          />
-
-          <TextInput
-            label="6-Digit Passcode"
-            value={passcode}
-            onChangeText={(text) => {
-              const numericText = text.replace(/[^0-9]/g, '');
-              if (numericText.length <= 6) {
-                setPasscode(numericText);
-              }
-            }}
-            mode="outlined"
-            style={styles.input}
-            keyboardType="numeric"
-            maxLength={6}
-            secureTextEntry
-            placeholder="Enter your 6-digit passcode"
-          />
-          <HelperText type="info" visible={true}>
-            Use the same 6-digit passcode you chose when creating your account.
-          </HelperText>
-
-          {error ? (
-            <HelperText type="error" visible={!!error}>
-              {error}
-            </HelperText>
-          ) : null}
-
-          <Button
-            mode="contained"
-            onPress={handleEmailLogin}
-            style={styles.button}
-            loading={loading}
-            disabled={loading}
-          >
-            Sign In
-          </Button>
-
-          <Button
-            mode="text"
-            onPress={() => router.push('/(auth)/forgot-password')}
-            style={styles.textButton}
-          >
-            Forgot Passcode?
-          </Button>
-
-          <View style={styles.divider}>
-            <Text variant="bodyMedium" style={styles.dividerText}>
-              Don't have an account?
-            </Text>
+    <KeyboardAvoidingView
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.brand}>
+          <View style={[styles.brandBadge, { backgroundColor: theme.colors.primaryContainer }]}>
+            <Icon source="cards-playing-outline" size={40} color={theme.colors.onPrimaryContainer} />
           </View>
+          <Text variant="headlineMedium" style={styles.brandTitle}>
+            Rummy Home
+          </Text>
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+            Sign in to keep score with your table
+          </Text>
+        </View>
 
-          <Button
-            mode="outlined"
-            onPress={() => router.push('/(auth)/register')}
-            style={styles.button}
-          >
-            Create Account
-          </Button>
+        <Card mode="elevated" style={styles.card}>
+          <Card.Content style={styles.cardContent}>
+            <TextInput
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              mode="outlined"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              left={<TextInput.Icon icon="email-outline" />}
+            />
 
-          <View style={styles.devSection}>
-            <Text variant="bodySmall" style={styles.localModeText}>
-              {isSupabaseConfigured ? 'Supabase auth enabled' : 'Local prototype mode: add Supabase env vars for production auth'}
-            </Text>
-          </View>
-        </Card.Content>
-      </Card>
-    </View>
+            <View>
+              <TextInput
+                label="6-digit passcode"
+                value={passcode}
+                onChangeText={(text) => {
+                  const numericText = text.replace(/[^0-9]/g, '');
+                  if (numericText.length <= 6) {
+                    setPasscode(numericText);
+                  }
+                }}
+                mode="outlined"
+                keyboardType="numeric"
+                maxLength={6}
+                secureTextEntry
+                left={<TextInput.Icon icon="lock-outline" />}
+              />
+              <HelperText type="info" visible>
+                Use the same passcode you chose when creating your account.
+              </HelperText>
+            </View>
+
+            {error ? (
+              <HelperText type="error" visible={!!error}>
+                {error}
+              </HelperText>
+            ) : null}
+
+            <Button
+              mode="contained"
+              onPress={handleEmailLogin}
+              loading={loading}
+              disabled={loading}
+              contentStyle={styles.primaryContent}
+              labelStyle={styles.primaryLabel}
+            >
+              Sign in
+            </Button>
+
+            <Button
+              mode="text"
+              onPress={() => router.push('/(auth)/forgot-password')}
+              contentStyle={styles.secondaryContent}
+            >
+              Forgot passcode?
+            </Button>
+          </Card.Content>
+        </Card>
+
+        <View style={styles.dividerRow}>
+          <View style={[styles.dividerLine, { backgroundColor: theme.colors.outlineVariant }]} />
+          <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+            New here?
+          </Text>
+          <View style={[styles.dividerLine, { backgroundColor: theme.colors.outlineVariant }]} />
+        </View>
+
+        <Button
+          mode="outlined"
+          onPress={() => router.push('/(auth)/register')}
+          icon="account-plus-outline"
+          contentStyle={styles.secondaryContent}
+        >
+          Create account
+        </Button>
+
+        <Text variant="bodySmall" style={[styles.footer, { color: theme.colors.onSurfaceVariant }]}>
+          {isSupabaseConfigured
+            ? 'Secure sign-in enabled'
+            : 'Local prototype mode: add Supabase env vars for production auth'}
+        </Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    padding: 16,
+  },
+  content: {
+    flexGrow: 1,
     justifyContent: 'center',
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  brand: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  brandBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  brandTitle: {
+    fontWeight: '700',
   },
   card: {
-    padding: 20,
+    borderRadius: radius.lg,
   },
-  title: {
-    textAlign: 'center',
-    marginBottom: 8,
+  cardContent: {
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
   },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: 24,
-    opacity: 0.7,
+  primaryContent: {
+    height: 56,
   },
-  input: {
-    marginBottom: 16,
+  primaryLabel: {
+    fontSize: 16,
+    fontWeight: '600',
   },
-  button: {
-    marginTop: 8,
-    marginBottom: 16,
+  secondaryContent: {
+    height: MIN_TOUCH_TARGET,
   },
-  textButton: {
-    marginBottom: 16,
-  },
-  divider: {
-    marginVertical: 16,
+  dividerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.md,
   },
-  dividerText: {
-    opacity: 0.7,
+  dividerLine: {
+    flex: 1,
+    height: 1,
   },
-  devSection: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  localModeText: {
+  footer: {
     textAlign: 'center',
-    opacity: 0.6,
+    marginTop: spacing.sm,
   },
-}); 
+});

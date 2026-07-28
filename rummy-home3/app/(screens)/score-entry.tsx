@@ -1,49 +1,73 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Dimensions } from 'react-native';
-import { Button, Text, Chip, Portal, Modal, Surface, TextInput, IconButton } from 'react-native-paper';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  Button,
+  Card,
+  Dialog,
+  Icon,
+  IconButton,
+  Portal,
+  SegmentedButtons,
+  Text,
+  TextInput,
+  TouchableRipple,
+  useTheme,
+} from 'react-native-paper';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Game } from '../../types/game';
-import { gamesService } from '../../services/games';
+import { ScoreType } from '../../types/database';
+import { EXPENSE_PLAYER_ID, gamesService } from '../../services/games';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
 import { storage } from '../../utils/storage';
-import { validateRoundScores } from '../../utils/scoring';
+import { distributeRummyWinnings } from '../../utils/rummyDistribution';
+import { SectionCard } from '../../components/ui/SectionCard';
+import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
+import { formatGameDateTime, gameIdLabel } from '../../utils/gameDisplay';
+import { formatSupabaseError } from '../../utils/supabaseErrors';
 
-const { width, height } = Dimensions.get('window');
-const isLandscape = width > height;
+const EXPENSE_ID = EXPENSE_PLAYER_ID;
 
-type ScoreType = 'drop' | 'middle_drop' | 'rummy' | 'count' | 'expense';
+type SelectableType = 'drop' | 'middle_drop' | 'rummy';
 
-interface Player {
+type Participant = {
   id: string;
   name: string;
-  selected?: boolean;
-}
+  isExpense?: boolean;
+};
 
-interface PlayerScore {
-  playerId: string;
-  playerName: string;
-  score: number;
-  scoreType?: ScoreType;
-}
+type ScoreEntry = {
+  value: number;
+  scoreType: ScoreType;
+};
 
-const SCORE_TYPES: { type: ScoreType; value: number; label: string }[] = [
-  { type: 'drop', value: -10, label: 'DROP' },
-  { type: 'middle_drop', value: -30, label: 'MD' },
-  { type: 'rummy', value: 0, label: 'RUMMY' },
-];
+const TYPE_LABELS: Record<ScoreType, string> = {
+  drop: 'Drop',
+  middle_drop: 'Middle drop',
+  rummy: 'Rummy',
+  count: 'Count',
+  expense: 'Expense',
+};
+
+const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
 export default function ScoreEntryScreen() {
+  const theme = useTheme();
   const { gameId } = useLocalSearchParams();
+
   const [game, setGame] = useState<Game | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedScoreType, setSelectedScoreType] = useState<ScoreType | null>(null);
-  const [playerScores, setPlayerScores] = useState<PlayerScore[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedType, setSelectedType] = useState<SelectableType | null>(null);
+  const [entries, setEntries] = useState<Record<string, ScoreEntry>>({});
+  const [winners, setWinners] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showManualScoreModal, setShowManualScoreModal] = useState(false);
-  const [manualScorePlayer, setManualScorePlayer] = useState<Player | null>(null);
-  const [manualScoreValue, setManualScoreValue] = useState('');
-  const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set());
+
+  const [manualTarget, setManualTarget] = useState<Participant | null>(null);
+  const [manualDigits, setManualDigits] = useState('');
+  const [manualNegative, setManualNegative] = useState(true);
+
+  const [message, setMessage] = useState<{ title: string; body: string; icon: string } | null>(null);
 
   useEffect(() => {
     loadGameData();
@@ -51,267 +75,199 @@ export default function ScoreEntryScreen() {
 
   const loadGameData = async () => {
     if (!gameId) {
-      Alert.alert('Error', 'No game selected');
-      router.back();
+      setMessage({ title: 'No game selected', body: 'Open a game first, then add a round.', icon: 'alert-circle-outline' });
+      setLoading(false);
       return;
     }
 
-    const currentGame = await gamesService.getGame(String(gameId));
-    
-    if (!currentGame) {
-      Alert.alert('Error', 'Game not found');
-      router.back();
-      return;
-    }
+    try {
+      const currentGame = await gamesService.getGame(String(gameId));
 
-    setGame(currentGame);
-    
-    // Load only players in this game
-    const gamePlayers = await gamesService.listGamePlayers(currentGame.id);
-    setPlayers(gamePlayers);
+      if (!currentGame) {
+        setMessage({ title: 'Game not found', body: 'This game may have been removed.', icon: 'alert-circle-outline' });
+        return;
+      }
 
-    // Initialize player scores with EX player if expense is enabled
-    const initialScores: PlayerScore[] = [];
-    if (currentGame.settings.expense) {
-      // Add EX player with default expense
-      initialScores.push({
-        playerId: 'EX',
-        playerName: 'EX',
-        score: currentGame.settings.expenseAmount || -10,
-          scoreType: 'expense'
-      });
-    }
-    setPlayerScores(initialScores);
-  };
+      setGame(currentGame);
 
-  const handleScoreTypeSelect = (type: ScoreType) => {
-    if (selectedScoreType === type) {
-      // Toggle off if same type is selected
-      setSelectedScoreType(null);
-      setSelectedPlayers(new Set());
-    } else {
-      // Select new type
-      setSelectedScoreType(type);
-      setSelectedPlayers(new Set());
+      const gamePlayers = await gamesService.listGamePlayers(currentGame.id);
+      const roster: Participant[] = gamePlayers.map((player) => ({ id: player.id, name: player.name }));
+
+      if (currentGame.settings.expense) {
+        roster.push({ id: EXPENSE_ID, name: 'Expenses', isExpense: true });
+        const expenseAmount = currentGame.settings.expenseAmount ?? -10;
+        setEntries({ [EXPENSE_ID]: { value: expenseAmount, scoreType: 'expense' } });
+      }
+
+      setParticipants(roster);
+    } catch (error) {
+      setMessage({ title: 'Could not load game', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePlayerSelect = (player: Player) => {
-    if (!selectedScoreType) {
-      // No score type selected - open manual score entry
-      setManualScorePlayer(player);
-      setManualScoreValue('-'); // Start with minus sign
-      setShowManualScoreModal(true);
-      return;
-    }
+  const dropValue = game?.settings.dropAmount ?? -10;
+  const middleDropValue = game?.settings.mdAmount ?? -30;
 
-    if (selectedScoreType === 'rummy') {
-      // For RUMMY, toggle player selection
-      const newSelectedPlayers = new Set(selectedPlayers);
-      
-      if (newSelectedPlayers.has(player.id)) {
-        // Deselect player
-        newSelectedPlayers.delete(player.id);
-        setSelectedPlayers(newSelectedPlayers);
-        
-        // Remove player from scores
-        setPlayerScores(prev => prev.filter(ps => ps.playerId !== player.id));
-      } else {
-        // Select player
-        newSelectedPlayers.add(player.id);
-        setSelectedPlayers(newSelectedPlayers);
-      }
-      
-      // Recalculate distribution for all selected RUMMY players
-      const playersToBalance = Array.from(newSelectedPlayers).map(id => 
-        allAvailablePlayers.find(p => p.id === id)
-      ).filter(Boolean) as Player[];
-      
-      if (playersToBalance.length > 0) {
-        // Calculate total negative score to balance
-        const currentTotal = getTotalTally();
-        const totalToBalance = Math.abs(currentTotal);
-        
-        // Distribute positive score evenly among selected RUMMY players
-        const scorePerPlayer = totalToBalance / playersToBalance.length;
-        
-        playersToBalance.forEach(rummyPlayer => {
-          const existingScoreIndex = playerScores.findIndex(ps => ps.playerId === rummyPlayer.id);
-          
-          if (existingScoreIndex >= 0) {
-            // Update existing score
-            const updatedScores = [...playerScores];
-            updatedScores[existingScoreIndex] = {
-              ...updatedScores[existingScoreIndex],
-              score: scorePerPlayer,
-              scoreType: 'rummy'
-            };
-            setPlayerScores(updatedScores);
-          } else {
-            // Add new score
-            setPlayerScores(prev => [...prev, {
-              playerId: rummyPlayer.id,
-              playerName: rummyPlayer.name,
-              score: scorePerPlayer,
-              scoreType: 'rummy'
-            }]);
-          }
-        });
-      }
-      
-      return;
-    }
+  const typeOptions = useMemo(
+    () => [
+      { value: 'drop' as SelectableType, label: `Drop ${dropValue}` },
+      { value: 'middle_drop' as SelectableType, label: `MD ${middleDropValue}` },
+      { value: 'rummy' as SelectableType, label: 'Rummy' },
+    ],
+    [dropValue, middleDropValue],
+  );
 
-    // For DROP and MD, use the predefined negative values
-    const scoreValue = SCORE_TYPES.find(st => st.type === selectedScoreType)?.value || 0;
-    
-    // Check if player already has a score
-    const existingScoreIndex = playerScores.findIndex(ps => ps.playerId === player.id);
-    
-    if (existingScoreIndex >= 0) {
-      // Update existing score
-      const updatedScores = [...playerScores];
-      updatedScores[existingScoreIndex] = {
-        ...updatedScores[existingScoreIndex],
-        score: scoreValue,
-        scoreType: selectedScoreType
-      };
-      setPlayerScores(updatedScores);
-    } else {
-      // Add new score
-      setPlayerScores(prev => [...prev, {
-        playerId: player.id,
-        playerName: player.name,
-        score: scoreValue,
-        scoreType: selectedScoreType
-      }]);
-    }
+  const entriesTotal = useMemo(
+    () => Object.values(entries).reduce((sum, entry) => sum + entry.value, 0),
+    [entries],
+  );
 
-    // Auto-balance if this is the last player
-    const remainingPlayers = allAvailablePlayers.filter(p => p.id !== player.id);
-    if (remainingPlayers.length === 1) {
-      const lastPlayer = remainingPlayers[0];
-      const currentTotal = getTotalTally() + scoreValue;
-      const balancingScore = -currentTotal; // Make total 0
-      
-      setPlayerScores(prev => [...prev, {
-        playerId: lastPlayer.id,
-        playerName: lastPlayer.name,
-        score: balancingScore,
-        scoreType: 'rummy'
-      }]);
-    }
+  /** Winners evenly share whatever is needed to bring the round back to zero. */
+  const distribution = useMemo(
+    () => distributeRummyWinnings(entriesTotal, winners),
+    [entriesTotal, winners],
+  );
+
+  const scoreFor = useCallback(
+    (participantId: string): number | undefined => {
+      if (winners.includes(participantId)) return distribution[participantId];
+      return entries[participantId]?.value;
+    },
+    [winners, distribution, entries],
+  );
+
+  const typeFor = useCallback(
+    (participantId: string): ScoreType | undefined => {
+      if (winners.includes(participantId)) return 'rummy';
+      return entries[participantId]?.scoreType;
+    },
+    [winners, entries],
+  );
+
+  const tally = useMemo(
+    () =>
+      entriesTotal +
+      winners.reduce((sum, winnerId) => sum + (distribution[winnerId] ?? 0), 0),
+    [entriesTotal, winners, distribution],
+  );
+
+  const scoredCount = Object.keys(entries).length + winners.length;
+  const isBalanced = tally === 0 && winners.length > 0;
+
+  const setEntry = (participantId: string, entry: ScoreEntry) => {
+    setWinners((prev) => prev.filter((id) => id !== participantId));
+    setEntries((prev) => ({ ...prev, [participantId]: entry }));
   };
 
-  const handleRummyScore = (selectedPlayers: Player[]) => {
-    if (selectedPlayers.length === 0) return;
-    
-    const currentTotal = getTotalTally();
-    const balancingScore = Math.abs(currentTotal) / selectedPlayers.length; // Distribute evenly
-    
-    selectedPlayers.forEach(player => {
-      const existingScoreIndex = playerScores.findIndex(ps => ps.playerId === player.id);
-      
-      if (existingScoreIndex >= 0) {
-        // Update existing score
-        const updatedScores = [...playerScores];
-        updatedScores[existingScoreIndex] = {
-          ...updatedScores[existingScoreIndex],
-          score: balancingScore,
-          scoreType: 'rummy'
-        };
-        setPlayerScores(updatedScores);
-      } else {
-        // Add new score
-        setPlayerScores(prev => [...prev, {
-          playerId: player.id,
-          playerName: player.name,
-          score: balancingScore,
-          scoreType: 'rummy'
-        }]);
-      }
+  const clearScore = (participantId: string) => {
+    setWinners((prev) => prev.filter((id) => id !== participantId));
+    setEntries((prev) => {
+      const next = { ...prev };
+      delete next[participantId];
+      return next;
     });
   };
 
-  const handleManualScore = (player: Player) => {
-    setManualScorePlayer(player);
-    setManualScoreValue('');
-    setShowManualScoreModal(true);
+  const toggleWinner = (participantId: string) => {
+    setEntries((prev) => {
+      if (!prev[participantId]) return prev;
+      const next = { ...prev };
+      delete next[participantId];
+      return next;
+    });
+    setWinners((prev) =>
+      prev.includes(participantId)
+        ? prev.filter((id) => id !== participantId)
+        : [...prev, participantId],
+    );
   };
 
-  const handleManualScoreSubmit = () => {
-    if (!manualScorePlayer || !manualScoreValue) return;
-
-    const scoreValue = parseInt(manualScoreValue, 10);
-    if (isNaN(scoreValue)) {
-      Alert.alert('Error', 'Please enter a valid number');
+  const handleParticipantPress = (participant: Participant) => {
+    if (selectedType === 'rummy') {
+      toggleWinner(participant.id);
       return;
     }
 
-    // Check if player already has a score
-    const existingScoreIndex = playerScores.findIndex(ps => ps.playerId === manualScorePlayer.id);
-    
-    if (existingScoreIndex >= 0) {
-      // Update existing score
-      const updatedScores = [...playerScores];
-      updatedScores[existingScoreIndex] = {
-        ...updatedScores[existingScoreIndex],
-        score: scoreValue
-      };
-      setPlayerScores(updatedScores);
-    } else {
-      // Add new score
-      setPlayerScores(prev => [...prev, {
-        playerId: manualScorePlayer.id,
-        playerName: manualScorePlayer.name,
-        score: scoreValue
-      }]);
-    }
-
-    setShowManualScoreModal(false);
-  };
-
-  const handleScoreUpdate = (playerId: string, newScore: number) => {
-    setPlayerScores(prev => prev.map(ps => 
-      ps.playerId === playerId ? { ...ps, score: newScore } : ps
-    ));
-  };
-
-  const handleRemoveScore = (playerId: string) => {
-    setPlayerScores(prev => prev.filter(ps => ps.playerId !== playerId));
-  };
-
-  const calculateRummyScore = (playerId: string): number => {
-    if (!game || !game.scores) return 0;
-    
-    const playerScores = game.scores[playerId] || [];
-    const totalNegative = playerScores.reduce((sum, score) => sum + (score < 0 ? score : 0), 0);
-    
-    // Return positive value to balance the negative
-    return Math.abs(totalNegative);
-  };
-
-  const getTotalTally = (): number => {
-    return playerScores.reduce((sum, ps) => sum + ps.score, 0);
-  };
-
-  const handleSubmitAllScores = async () => {
-    if (!game || playerScores.length === 0) {
-      Alert.alert('Error', 'No scores to submit');
+    if (selectedType === 'drop') {
+      setEntry(participant.id, { value: dropValue, scoreType: 'drop' });
       return;
     }
 
-    const totalTally = getTotalTally();
-    
-    if (totalTally !== 0) {
-      Alert.alert('Invalid Round', `Total tally is ${totalTally}. A round must total 0 before it can be submitted.`);
-    } else {
-      submitScores();
+    if (selectedType === 'middle_drop') {
+      setEntry(participant.id, { value: middleDropValue, scoreType: 'middle_drop' });
+      return;
     }
+
+    openManualEntry(participant);
   };
 
-  const submitScores = async () => {
+  const openManualEntry = (participant: Participant) => {
+    const existing = scoreFor(participant.id);
+    setManualTarget(participant);
+    setManualNegative(existing === undefined ? true : existing <= 0);
+    setManualDigits(existing === undefined ? '' : String(Math.abs(existing)));
+  };
+
+  const closeManualEntry = () => {
+    setManualTarget(null);
+    setManualDigits('');
+    setManualNegative(true);
+  };
+
+  const submitManualEntry = () => {
+    if (!manualTarget) return;
+
+    const magnitude = parseInt(manualDigits || '0', 10);
+    if (Number.isNaN(magnitude)) return;
+
+    if (magnitude === 0 && manualDigits === '') {
+      clearScore(manualTarget.id);
+      closeManualEntry();
+      return;
+    }
+
+    const value = manualNegative ? -magnitude : magnitude;
+    const scoreType: ScoreType = manualTarget.isExpense
+      ? 'expense'
+      : value > 0
+        ? 'rummy'
+        : 'count';
+
+    setEntry(manualTarget.id, { value, scoreType });
+    closeManualEntry();
+  };
+
+  const handleSubmit = async () => {
     if (!game) return;
+
+    if (scoredCount === 0) {
+      setMessage({
+        title: 'Nothing to save',
+        body: 'Give at least one player a score before submitting the round.',
+        icon: 'information-outline',
+      });
+      return;
+    }
+
+    if (winners.length === 0) {
+      setMessage({
+        title: 'Pick a winner',
+        body: 'Select Rummy, then tap everyone who won this round. They split the points so the round balances to zero.',
+        icon: 'trophy-outline',
+      });
+      return;
+    }
+
+    if (tally !== 0) {
+      setMessage({
+        title: 'Round is off by ' + signed(tally),
+        body: 'Every round has to total zero. Adjust a score or add another winner to even it out.',
+        icon: 'scale-balance',
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -324,16 +280,18 @@ export default function ScoreEntryScreen() {
         throw new Error('You must be signed in to submit scores.');
       }
 
-      const scores = playerScores.map((playerScore) => ({
-        playerId: playerScore.playerId === 'EX' ? null : playerScore.playerId,
-        value: playerScore.score,
-        scoreType: playerScore.scoreType ?? 'count',
-      }));
-
-      const validation = validateRoundScores(scores);
-      if (!validation.valid) {
-        throw new Error(validation.error ?? 'Invalid round scores.');
-      }
+      const scores = [
+        ...Object.entries(entries).map(([participantId, entry]) => ({
+          playerId: participantId === EXPENSE_ID ? null : participantId,
+          value: entry.value,
+          scoreType: entry.scoreType,
+        })),
+        ...winners.map((winnerId) => ({
+          playerId: winnerId === EXPENSE_ID ? null : winnerId,
+          value: distribution[winnerId] ?? 0,
+          scoreType: 'rummy' as ScoreType,
+        })),
+      ];
 
       await gamesService.addRound({
         gameId: game.id,
@@ -342,227 +300,270 @@ export default function ScoreEntryScreen() {
         createdBy,
       });
 
-      Alert.alert(
-        'Success',
-        'Scores saved successfully',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      router.back();
     } catch (error) {
       console.error('Score submission error:', error);
-      Alert.alert('Error', `Failed to save scores: ${error}`);
+      setMessage({
+        title: 'Could not save round',
+        body: formatSupabaseError(error),
+        icon: 'alert-circle-outline',
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const renderManualScoreModal = () => (
-    <Portal>
-      <Modal
-        visible={showManualScoreModal}
-        onDismiss={() => setShowManualScoreModal(false)}
-        contentContainerStyle={styles.modal}
-      >
-        <View style={styles.modalContent}>
-          <Text variant="titleLarge" style={styles.modalTitle}>
-            Enter Score for {manualScorePlayer?.name}
-          </Text>
-          
-          <TextInput
-            value={manualScoreValue}
-            onChangeText={setManualScoreValue}
-            keyboardType="numeric"
-            mode="outlined"
-            label="Score"
-            style={styles.modalInput}
-            autoFocus={true}
-            selectTextOnFocus={false}
-            selection={{ start: 1, end: 1 }}
-          />
-          
-          <View style={styles.modalActions}>
-            <Button
-              mode="outlined"
-              onPress={() => setShowManualScoreModal(false)}
-              style={styles.modalButton}
-            >
-              Cancel
-            </Button>
-            <Button
-              mode="contained"
-              onPress={handleManualScoreSubmit}
-              style={styles.modalButton}
-            >
-              Save
-            </Button>
-          </View>
-        </View>
-      </Modal>
-    </Portal>
-  );
+  const selectedTypeLabel = selectedType
+    ? selectedType === 'rummy'
+      ? 'Rummy'
+      : selectedType === 'drop'
+        ? `Drop (${dropValue})`
+        : `Middle drop (${middleDropValue})`
+    : null;
 
-  // Get players that don't have scores yet
-  const availablePlayers = players.filter(player => 
-    !playerScores.some(ps => ps.playerId === player.id)
-  );
-
-  // Add EX player to available players if it's not in scores
-  const exPlayerInScores = playerScores.some(ps => ps.playerId === 'EX');
-  const allAvailablePlayers = exPlayerInScores || !game?.settings.expense ? availablePlayers : [
-    ...availablePlayers,
-    { id: 'EX', name: 'EX' } as Player
-  ];
+  if (loading) {
+    return (
+      <View style={[styles.loading, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <>
-      <Stack.Screen 
-        options={{
-          title: 'Enter Scores',
-          headerShown: true,
-        }} 
-      />
-      <ScrollView style={styles.container}>
-        {/* Game Info Header */}
-        {game && (
-          <Surface style={styles.gameInfoSection} elevation={1}>
-            <Text variant="titleMedium" style={styles.gameInfoTitle}>
-              Game #{game.id.slice(-6)}
-            </Text>
-            <Text variant="bodyMedium" style={styles.roundInfo}>
-              Entering scores for Round {game.currentRound}
-            </Text>
-            <Text variant="bodySmall" style={styles.gameType}>
-              {game.gameType.toUpperCase()} Game
-            </Text>
-          </Surface>
-        )}
+      <Stack.Screen options={{ title: 'Enter Scores', headerShown: true }} />
 
-        {/* Score Type Section */}
-        <Surface style={styles.section} elevation={1}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>Score Type</Text>
-          <View style={styles.scoreTypeButtons}>
-            {SCORE_TYPES.map((scoreType) => (
-              <Button
-                key={scoreType.type}
-                mode={selectedScoreType === scoreType.type ? "contained" : "outlined"}
-                onPress={() => handleScoreTypeSelect(scoreType.type)}
-                style={styles.scoreTypeButton}
-                contentStyle={styles.scoreTypeButtonContent}
-                buttonColor={selectedScoreType === scoreType.type ? '#4CAF50' : undefined}
-              >
-                {scoreType.label} ({scoreType.value})
-              </Button>
-            ))}
-          </View>
-        </Surface>
-
-        {/* Players Section */}
-        <Surface style={styles.section} elevation={1}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>Select Players</Text>
-          
-          {allAvailablePlayers.length === 0 ? (
-            <Text style={styles.emptyMessage}>All players have scores</Text>
-          ) : (
-            <View style={styles.playersGrid}>
-              {allAvailablePlayers.map((player) => (
-                <Surface 
-                  key={player.id} 
-                  style={[
-                    styles.playerCard,
-                    selectedPlayers.has(player.id) && styles.selectedPlayerCard
-                  ]} 
-                  elevation={1}
-                >
-                  <Text 
-                    variant="bodyLarge" 
-                    style={styles.playerName}
-                    onPress={() => handlePlayerSelect(player)}
-                  >
-                    {player.name}
-                  </Text>
-                  {selectedScoreType === 'rummy' && selectedPlayers.has(player.id) && (
-                    <Text variant="bodySmall" style={styles.rummyIndicator}>
-                      RUMMY
-                    </Text>
-                  )}
-                </Surface>
-              ))}
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {game ? (
+            <View style={styles.heading}>
+              <Text variant="titleLarge" style={styles.headingTitle}>
+                Round {game.currentRound}
+              </Text>
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                {formatGameDateTime(game.date)}
+              </Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                Game ID {gameIdLabel(game)}
+              </Text>
             </View>
-          )}
-        </Surface>
+          ) : null}
 
-        {/* Scores Section */}
-        <Surface style={styles.section} elevation={1}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>Scores</Text>
-          
-          {playerScores.length === 0 ? (
-            <Text style={styles.emptyMessage}>No scores entered yet</Text>
-          ) : (
-            <View style={styles.scoresList}>
-              {playerScores.map((playerScore) => (
-                <Surface key={playerScore.playerId} style={styles.scoreCard} elevation={1}>
-                  <View style={styles.scoreCardContent}>
-                    <Text variant="bodyLarge" style={styles.scorePlayerName}>
-                      {playerScore.playerName}
-                    </Text>
-                    <View style={styles.scoreActions}>
-                      <TextInput
-                        value={playerScore.score.toString()}
-                        onChangeText={(text) => {
-                          const newScore = parseInt(text, 10);
-                          if (!isNaN(newScore)) {
-                            handleScoreUpdate(playerScore.playerId, newScore);
-                          }
-                        }}
-                        keyboardType="numeric"
-                        mode="outlined"
-                        style={styles.scoreInput}
-                        dense
+          <SectionCard
+            title="Score type"
+            supportingText="Tap a type, then tap players. With no type selected, tapping a player opens manual entry."
+          >
+            <SegmentedButtons
+              value={selectedType ?? ''}
+              onValueChange={(value) =>
+                setSelectedType((prev) => (prev === value ? null : (value as SelectableType)))
+              }
+              buttons={typeOptions.map((option) => ({
+                value: option.value,
+                label: option.label,
+                style: styles.segment,
+              }))}
+            />
+          </SectionCard>
+
+          <SectionCard
+            title={selectedTypeLabel ? `Select players for ${selectedTypeLabel}` : 'Players'}
+            supportingText={
+              selectedType === 'rummy'
+                ? 'Winners split the remaining points evenly. Tap again to remove someone.'
+                : selectedTypeLabel
+                  ? 'Tap a player to give them this score.'
+                  : 'Tap a player to type an exact score.'
+            }
+          >
+            <View style={styles.playerList}>
+              {participants.map((participant) => {
+                const value = scoreFor(participant.id);
+                const scoreType = typeFor(participant.id);
+                const isWinner = winners.includes(participant.id);
+                const isPositive = (value ?? 0) > 0;
+
+                return (
+                  <TouchableRipple
+                    key={participant.id}
+                    onPress={() => handleParticipantPress(participant)}
+                    borderless
+                    style={[
+                      styles.playerRow,
+                      {
+                        backgroundColor: isPositive
+                          ? theme.colors.primaryContainer
+                          : value !== undefined
+                            ? theme.colors.surfaceVariant
+                            : 'transparent',
+                        borderColor: isWinner ? theme.colors.primary : theme.colors.outlineVariant,
+                      },
+                    ]}
+                  >
+                    <View style={styles.playerRowInner}>
+                      <Icon
+                        source={
+                          participant.isExpense
+                            ? 'receipt'
+                            : isWinner
+                              ? 'trophy'
+                              : value !== undefined
+                                ? 'check-circle'
+                                : 'account-outline'
+                        }
+                        size={22}
+                        color={isPositive ? theme.colors.primary : theme.colors.onSurfaceVariant}
                       />
+
+                      <View style={styles.playerText}>
+                        <Text variant="bodyLarge" numberOfLines={1} style={styles.playerName}>
+                          {participant.name}
+                        </Text>
+                        {scoreType ? (
+                          <Text
+                            variant="labelSmall"
+                            style={{ color: theme.colors.onSurfaceVariant }}
+                          >
+                            {isWinner ? 'Rummy winner' : TYPE_LABELS[scoreType]}
+                          </Text>
+                        ) : null}
+                      </View>
+
+                      <Text
+                        variant="titleMedium"
+                        style={[
+                          styles.playerScore,
+                          {
+                            color: isPositive
+                              ? theme.colors.primary
+                              : value !== undefined
+                                ? theme.colors.onSurface
+                                : theme.colors.outline,
+                          },
+                        ]}
+                      >
+                        {value === undefined ? '—' : signed(value)}
+                      </Text>
+
                       <IconButton
-                        icon="delete"
-                        onPress={() => handleRemoveScore(playerScore.playerId)}
-                        style={styles.removeButton}
-                        size={20}
+                        icon={value === undefined ? 'pencil-outline' : 'close'}
+                        size={18}
+                        accessibilityLabel={
+                          value === undefined
+                            ? `Enter score for ${participant.name}`
+                            : `Clear score for ${participant.name}`
+                        }
+                        onPress={() =>
+                          value === undefined ? openManualEntry(participant) : clearScore(participant.id)
+                        }
                       />
                     </View>
-                  </View>
-                </Surface>
-              ))}
+                  </TouchableRipple>
+                );
+              })}
             </View>
-          )}
-        </Surface>
+          </SectionCard>
+        </ScrollView>
 
-        {/* Tally Section */}
-        <Surface style={styles.section} elevation={1}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>Total Tally</Text>
-          
-          <Surface style={styles.tallyCard} elevation={2}>
-            <Text variant="headlineLarge" style={[
-              styles.tallyValue,
-              { color: getTotalTally() === 0 ? '#28a745' : '#dc3545' }
-            ]}>
-              {getTotalTally()}
-            </Text>
-            <Text variant="bodyMedium" style={styles.tallyDescription}>
-              {getTotalTally() === 0 ? 'Perfect! Round is balanced.' : 'Round is not balanced.'}
-            </Text>
-          </Surface>
-        </Surface>
-
-        {/* Submit Button */}
-        <Button
+        <Card
           mode="contained"
-          onPress={handleSubmitAllScores}
-          style={styles.submitButton}
-          loading={isSubmitting}
-          disabled={playerScores.length === 0 || isSubmitting}
-          contentStyle={styles.submitButtonContent}
+          style={[styles.bottomBar, { backgroundColor: theme.colors.elevation.level2 }]}
         >
-          Submit All Scores
-        </Button>
+          <View style={styles.bottomBarInner}>
+            <View
+              style={[
+                styles.tallyPill,
+                {
+                  backgroundColor: isBalanced
+                    ? theme.colors.primaryContainer
+                    : theme.colors.errorContainer,
+                },
+              ]}
+            >
+              <Text
+                variant="titleMedium"
+                style={{
+                  fontWeight: '700',
+                  color: isBalanced ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
+                }}
+              >
+                {tally}
+              </Text>
+              <Text
+                variant="labelSmall"
+                style={{
+                  color: isBalanced ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
+                }}
+              >
+                {isBalanced ? 'Balanced' : 'Tally'}
+              </Text>
+            </View>
 
-        {renderManualScoreModal()}
-      </ScrollView>
+            <Button
+              mode="contained"
+              onPress={handleSubmit}
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              icon="check"
+              style={styles.submitButton}
+              contentStyle={styles.submitContent}
+              labelStyle={styles.submitLabel}
+            >
+              Submit round
+            </Button>
+          </View>
+        </Card>
+      </View>
+
+      <Portal>
+        <Dialog visible={!!manualTarget} onDismiss={closeManualEntry} style={styles.dialog}>
+          <Dialog.Title style={styles.dialogTitle}>{manualTarget?.name}</Dialog.Title>
+          <Dialog.Content style={styles.dialogContent}>
+            <SegmentedButtons
+              value={manualNegative ? 'minus' : 'plus'}
+              onValueChange={(value) => setManualNegative(value === 'minus')}
+              buttons={[
+                { value: 'minus', label: 'Loses (−)' },
+                { value: 'plus', label: 'Wins (+)' },
+              ]}
+            />
+            <TextInput
+              label="Points"
+              value={manualDigits}
+              onChangeText={(text) => setManualDigits(text.replace(/[^0-9]/g, ''))}
+              keyboardType="number-pad"
+              mode="outlined"
+              autoFocus
+              maxLength={4}
+            />
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Saves as {manualNegative ? '−' : '+'}
+              {manualDigits || '0'}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button onPress={closeManualEntry}>Cancel</Button>
+            <Button mode="contained" onPress={submitManualEntry} disabled={!manualDigits}>
+              Save
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={!!message} onDismiss={() => setMessage(null)} style={styles.dialog}>
+          <Dialog.Icon icon={message?.icon ?? 'information-outline'} />
+          <Dialog.Title style={styles.dialogTitle}>{message?.title}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.dialogBody}>
+              {message?.body}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button mode="contained" onPress={() => setMessage(null)}>
+              Got it
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </>
   );
 }
@@ -570,186 +571,95 @@ export default function ScoreEntryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
-  gameInfoSection: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  gameInfoTitle: {
-    marginBottom: 4,
-    fontSize: 16,
-  },
-  roundInfo: {
-    marginBottom: 4,
-    fontSize: 14,
-  },
-  gameType: {
-    opacity: 0.7,
-    fontSize: 12,
-  },
-  section: {
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-    fontWeight: 'bold',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  selectedTypeChip: {
-    marginLeft: 8,
-  },
-  scoreTypeButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  scoreTypeButton: {
+  loading: {
     flex: 1,
-  },
-  scoreTypeButtonContent: {
-    paddingVertical: 6,
-  },
-  playersGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  playerCard: {
-    width: '48%',
-    borderRadius: 8,
-    padding: 10,
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+  },
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.lg,
+  },
+  heading: {
+    gap: 2,
+  },
+  headingTitle: {
+    fontWeight: '700',
+  },
+  segment: {
+    minWidth: 0,
+  },
+  playerList: {
+    gap: spacing.sm,
+  },
+  playerRow: {
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#dee2e6',
+  },
+  playerRowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: 56,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.xs,
+  },
+  playerText: {
+    flex: 1,
   },
   playerName: {
-    fontWeight: 'bold',
-    marginBottom: 6,
-    textAlign: 'center',
-    fontSize: 14,
-    color: '#495057',
+    fontWeight: '500',
   },
-  playerActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+  playerScore: {
+    minWidth: 56,
+    textAlign: 'right',
+    fontWeight: '700',
   },
-  playerActionButton: {
-    flex: 1,
-    marginHorizontal: 2,
+  bottomBar: {
+    borderRadius: 0,
   },
-  scoresList: {
-    gap: 8,
-  },
-  scoreCard: {
-    borderRadius: 8,
-    padding: 10,
-  },
-  scoreCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  scorePlayerName: {
-    flex: 1,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  scorePlayerInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flex: 1,
-  },
-  scoreValue: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    color: '#4CAF50', // Default color for positive scores
-  },
-  scoreActions: {
+  bottomBarInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
-  scoreInput: {
-    width: 80,
-    height: 40,
-  },
-  removeButton: {
-    padding: 0,
-  },
-  selectedPlayerCard: {
-    borderColor: '#4CAF50',
-    borderWidth: 2,
-    backgroundColor: '#e8f5e8',
-  },
-  tallyCard: {
+  tallyPill: {
+    minWidth: 72,
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 8,
-  },
-  tallyValue: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-    fontSize: 24,
-  },
-  tallyDescription: {
-    opacity: 0.7,
-    fontSize: 12,
-  },
-  modal: {
-    backgroundColor: 'white',
-    padding: 20,
-    margin: 20,
-    borderRadius: 8,
-  },
-  modalContent: {
-    gap: 16,
-  },
-  modalTitle: {
-    textAlign: 'center',
-  },
-  modalInput: {
-    marginBottom: 16,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  modalButton: {
-    flex: 1,
-    marginHorizontal: 4,
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
   },
   submitButton: {
-    marginTop: 8,
-    marginBottom: 16,
+    flex: 1,
   },
-  submitButtonContent: {
-    paddingVertical: 12,
+  submitContent: {
+    height: MIN_TOUCH_TARGET,
   },
-  emptyMessage: {
+  submitLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dialog: {
+    borderRadius: radius.lg,
+  },
+  dialogTitle: {
     textAlign: 'center',
-    opacity: 0.5,
-    padding: 16,
   },
-  rummyIndicator: {
-    marginTop: 4,
-    backgroundColor: '#4CAF50',
-    color: 'white',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 5,
-    fontSize: 12,
-    fontWeight: 'bold',
+  dialogContent: {
+    gap: spacing.md,
   },
-}); 
+  dialogBody: {
+    lineHeight: 20,
+  },
+  dialogActions: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+});

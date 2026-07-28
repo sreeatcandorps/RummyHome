@@ -33,6 +33,7 @@ export type Database = {
           first_name: string | null;
           last_name: string | null;
           display_name: string;
+          player_code: string;
           avatar_url: string | null;
           role: AppRole;
           default_settings: ProfileDefaults;
@@ -44,6 +45,7 @@ export type Database = {
           first_name?: string | null;
           last_name?: string | null;
           display_name: string;
+          player_code?: string;
           avatar_url?: string | null;
           role?: AppRole;
           default_settings?: ProfileDefaults;

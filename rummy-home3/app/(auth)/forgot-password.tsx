@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { TextInput, Button, Text, HelperText, Card } from 'react-native-paper';
+import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { TextInput, Button, Text, HelperText, Card, Icon, useTheme } from 'react-native-paper';
 import { router } from 'expo-router';
 import { supabase } from '../../services/supabase';
+import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
 import 'react-native-url-polyfill/auto'
 
 export default function ForgotPasswordScreen() {
+  const theme = useTheme();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -53,7 +55,7 @@ export default function ForgotPasswordScreen() {
       
       Alert.alert(
         'Passcode Reset Email Sent',
-        'If an account with this email exists, you will receive a passcode reset link. Please check your email and spam folder. Click the link in your email to reset your 4-digit passcode.',
+        'If an account with this email exists, you will receive a passcode reset link. Please check your email and spam folder. Click the link in your email to reset your 6-digit passcode.',
         [
           {
             text: 'OK',
@@ -71,114 +73,157 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>
-        Forgot Passcode?
-      </Text>
-      
-      <Text variant="bodyMedium" style={styles.subtitle}>
-        Enter your email address and we'll send you a link to reset your 4-digit passcode.
-      </Text>
+    <KeyboardAvoidingView
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.header}>
+          <View style={[styles.badge, { backgroundColor: theme.colors.secondaryContainer }]}>
+            <Icon source="lock-reset" size={32} color={theme.colors.onSecondaryContainer} />
+          </View>
+          <Text variant="headlineSmall" style={styles.title}>
+            Forgot passcode?
+          </Text>
+          <Text variant="bodyMedium" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+            Enter your email and we'll send a link to reset your 6-digit passcode.
+          </Text>
+        </View>
 
-      <Text variant="bodySmall" style={styles.note}>
-        Note: For security reasons, we'll send a reset link even if the email doesn't exist in our system.
-      </Text>
+        <Card mode="elevated" style={styles.card}>
+          <Card.Content style={styles.cardContent}>
+            <TextInput
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              mode="outlined"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              disabled={loading}
+              left={<TextInput.Icon icon="email-outline" />}
+              right={email ? <TextInput.Icon icon="close" onPress={() => setEmail('')} /> : undefined}
+            />
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          mode="outlined"
-          style={styles.input}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          disabled={loading}
-          right={<TextInput.Icon icon="close" onPress={() => setEmail('')} />}
-        />
-      </View>
-      
-      {error ? (
-        <HelperText type="error" visible={!!error}>
-          {error}
-        </HelperText>
-      ) : null}
+            {error ? (
+              <HelperText type="error" visible={!!error}>
+                {error}
+              </HelperText>
+            ) : null}
 
-      {success ? (
-        <HelperText type="info" visible={!!success}>
-          Passcode reset email sent successfully!
-        </HelperText>
-      ) : null}
+            {success ? (
+              <HelperText type="info" visible={!!success}>
+                Passcode reset email sent successfully.
+              </HelperText>
+            ) : null}
 
-      <Button 
-        mode="contained" 
-        onPress={handleResetPassword}
-        style={styles.button}
-        loading={loading}
-        disabled={loading}
-      >
-        Send Reset Link
-      </Button>
+            <Button
+              mode="contained"
+              onPress={handleResetPassword}
+              loading={loading}
+              disabled={loading}
+              contentStyle={styles.primaryContent}
+              labelStyle={styles.primaryLabel}
+            >
+              Send reset link
+            </Button>
 
-      <Button 
-        mode="outlined"
-        onPress={clearFields}
-        style={styles.button}
-        disabled={loading}
-      >
-        Clear
-      </Button>
+            <Button
+              mode="text"
+              onPress={clearFields}
+              disabled={loading}
+              contentStyle={styles.secondaryContent}
+            >
+              Clear
+            </Button>
+          </Card.Content>
+        </Card>
 
-      <Button 
-        mode="text"
-        onPress={() => router.push('/(auth)/register')}
-        style={styles.button}
-        disabled={loading}
-      >
-        Don't have an account? Create one
-      </Button>
+        <Text variant="bodySmall" style={[styles.note, { color: theme.colors.onSurfaceVariant }]}>
+          For security, we send a reset link even if the email isn't registered.
+        </Text>
 
-      <Button 
-        mode="text"
-        onPress={() => router.back()}
-        style={styles.button}
-        disabled={loading}
-      >
-        Back to Login
-      </Button>
-    </View>
+        <View style={styles.footerActions}>
+          <Button
+            mode="outlined"
+            onPress={() => router.back()}
+            disabled={loading}
+            icon="arrow-left"
+            contentStyle={styles.secondaryContent}
+            style={styles.footerButton}
+          >
+            Back to login
+          </Button>
+          <Button
+            mode="text"
+            onPress={() => router.push('/(auth)/register')}
+            disabled={loading}
+            contentStyle={styles.secondaryContent}
+            style={styles.footerButton}
+          >
+            Create account
+          </Button>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    padding: 20,
+  },
+  content: {
+    flexGrow: 1,
     justifyContent: 'center',
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  header: {
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  badge: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
   title: {
+    fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 16,
   },
   subtitle: {
     textAlign: 'center',
-    marginBottom: 16,
-    opacity: 0.7,
+    lineHeight: 20,
+    maxWidth: 320,
+  },
+  card: {
+    borderRadius: radius.lg,
+  },
+  cardContent: {
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
+  },
+  primaryContent: {
+    height: 56,
+  },
+  primaryLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryContent: {
+    height: MIN_TOUCH_TARGET,
   },
   note: {
     textAlign: 'center',
-    marginBottom: 24,
-    opacity: 0.6,
-    fontStyle: 'italic',
+    lineHeight: 18,
   },
-  inputContainer: {
-    marginBottom: 16,
+  footerActions: {
+    gap: spacing.sm,
   },
-  input: {
-    marginBottom: 0,
+  footerButton: {
+    width: '100%',
   },
-  button: {
-    marginTop: 8,
-    marginBottom: 16,
-  },
-}); 
+});

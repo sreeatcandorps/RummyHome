@@ -1,18 +1,25 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, Card, useTheme } from 'react-native-paper';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { router, useFocusEffect } from 'expo-router';
 import { gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
-
-type GameStatus = 'active' | 'completed';
+import { Screen } from '@/components/ui/Screen';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { GameListItem } from '@/components/ui/GameListItem';
+import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { spacing } from '@/constants/theme';
 
 export default function GameHistory() {
   const theme = useTheme();
   const [games, setGames] = useState<Game[]>([]);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -20,121 +27,89 @@ export default function GameHistory() {
     }, [])
   );
 
-  const loadData = async () => {
-    const player = await authService.getCurrentPlayer();
-    if (!player) return;
+  const loadData = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    setError(null);
 
-    setCurrentPlayer(player);
-    const userGames = await gamesService.listGamesForCurrentUser(player.id);
-    setGames(userGames);
+    try {
+      const player = await authService.getCurrentPlayer();
+      if (!player) return;
+
+      setCurrentPlayer(player);
+      const userGames = await gamesService.listGamesForCurrentUser(player.id);
+      setGames(userGames);
+    } catch (err) {
+      console.error('History load error:', err);
+      setError(formatSupabaseError(err));
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const navigateToGame = (gameId: string) => {
-    router.push(`/(screens)/games/${gameId}`);
-  };
+  if (loading) {
+    return (
+      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" />
+        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+          Loading your games…
+        </Text>
+      </View>
+    );
+  }
+
+  const activeCount = games.filter((game) => !game.isComplete).length;
 
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.section}>
-        <Card.Content>
-          <Text variant="titleLarge" style={styles.title}>
-            Game History
-          </Text>
-          {games.length > 0 ? (
-            games.map((game, index) => (
-              <TouchableOpacity 
-                key={`history-game-${game.id}-${index}`}
-                onPress={() => navigateToGame(game.id)}
-                activeOpacity={0.7}
-              >
-                <Card 
-                  style={[
-                    styles.gameCard,
-                    { 
-                      borderLeftWidth: 4,
-                      borderLeftColor: game.isComplete 
-                        ? '#9e9e9e'
-                        : theme.colors.primary,
-                      backgroundColor: game.isComplete 
-                        ? '#f5f5f5'
-                        : '#ffffff',
-                      elevation: 1,
-                      marginBottom: 8,
-                    }
-                  ]}
-                >
-                  <Card.Content>
-                    <Text variant="titleMedium">Game #{game.id}</Text>
-                    <Text style={styles.dateText}>
-                      {new Date(game.date).toLocaleString('en-US', { 
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Text>
-                    <View style={styles.infoRow}>
-                      <Text>Players: {game.players?.length || 0}</Text>
-                      <Text> • </Text>
-                      <Text 
-                        style={[
-                          styles.status,
-                          { 
-                            color: game.isComplete 
-                              ? '#9e9e9e'
-                              : theme.colors.primary 
-                          }
-                        ]}
-                      >
-                        {game.isComplete ? 'COMPLETED' : 'ACTIVE'}
-                      </Text>
-                    </View>
-                  </Card.Content>
-                </Card>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text>No games found</Text>
-          )}
-        </Card.Content>
-      </Card>
-    </ScrollView>
+    <Screen
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}
+    >
+      <SectionCard
+        title="Your games"
+        supportingText={
+          games.length > 0 ? `${games.length} total · ${activeCount} still active` : undefined
+        }
+      >
+        {error ? (
+          <EmptyState
+            icon="alert-circle-outline"
+            title="Couldn’t load games"
+            message={error}
+            actionLabel="Retry"
+            onAction={() => loadData(true)}
+          />
+        ) : games.length > 0 ? (
+          <View style={styles.list}>
+            {games.map((game) => (
+              <GameListItem
+                key={game.id}
+                game={game}
+                onPress={() => router.push(`/(screens)/games/${game.id}`)}
+              />
+            ))}
+          </View>
+        ) : (
+          <EmptyState
+            icon="history"
+            title="No games yet"
+            message="Games you create or join will show up here."
+            actionLabel="New Game"
+            onAction={() => router.push('/(screens)/games/new')}
+          />
+        )}
+      </SectionCard>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  centered: {
     flex: 1,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  title: {
-    marginBottom: 16,
-  },
-  gameCard: {
-    marginBottom: 8,
-  },
-  gameHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'center',
+    gap: spacing.md,
   },
-  status: {
-    textTransform: 'capitalize',
-    fontWeight: 'bold',
-  },
-  dateText: {
-    marginVertical: 4,
-    fontSize: 14,
-    color: '#666',  // Slightly muted color for date
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  list: {
+    gap: spacing.md,
   },
 });

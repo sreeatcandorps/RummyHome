@@ -25,9 +25,13 @@ export const settingsForGameType = (gameType: GameType): ProfileDefaults => ({
   gameType,
 });
 
-export const legacySettingsForGameType = (gameType: GameType, expenseEnabled = true): GameSettings => ({
+export const legacySettingsForGameType = (
+  gameType: GameType,
+  expenseEnabled = true,
+  expenseAmount = DEFAULT_PROFILE_SETTINGS.expenseAmount,
+): GameSettings => ({
   expense: expenseEnabled,
-  expenseAmount: DEFAULT_PROFILE_SETTINGS.expenseAmount,
+  expenseAmount,
   dropAmount: gameType === 'stake' ? DEFAULT_PROFILE_SETTINGS.stakeDrop : DEFAULT_PROFILE_SETTINGS.poolDrop,
   mdAmount: gameType === 'stake' ? DEFAULT_PROFILE_SETTINGS.stakeMiddleDrop : DEFAULT_PROFILE_SETTINGS.poolMiddleDrop,
   maxCount: DEFAULT_PROFILE_SETTINGS.maxCount,

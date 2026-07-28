@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { TextInput, Button, Text, HelperText } from 'react-native-paper';
+import { View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { TextInput, Button, Text, HelperText, useTheme } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { storage } from '../../../../utils/storage';
 import { Player } from '../../../../types/player';
 import { authService } from '../../../../services/auth';
 import { isSupabaseConfigured, supabase } from '../../../../services/supabase';
 import { formatSupabaseError } from '../../../../utils/supabaseErrors';
+import { Screen } from '../../../../components/ui/Screen';
+import { SectionCard } from '../../../../components/ui/SectionCard';
+import { MIN_TOUCH_TARGET, spacing } from '../../../../constants/theme';
 
 export default function EditPlayerScreen() {
+  const theme = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -132,91 +136,102 @@ export default function EditPlayerScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>
-        Edit Profile
-      </Text>
-
-      <TextInput
-        label="Display name"
-        value={name}
-        onChangeText={(text) => {
-          setName(text);
-          setError('');
-        }}
-        mode="outlined"
-        style={styles.input}
-        error={!!error && !name.trim()}
-      />
-
-      <TextInput
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        mode="outlined"
-        style={styles.input}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        disabled={isSupabaseConfigured}
-      />
-      {isSupabaseConfigured ? (
-        <HelperText type="info" visible>
-          To change login email, use Change Email on your profile screen.
-        </HelperText>
-      ) : null}
-
-      <TextInput
-        label="Phone"
-        value={phone}
-        onChangeText={setPhone}
-        mode="outlined"
-        style={styles.input}
-        keyboardType="phone-pad"
-      />
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-      <Button
-        mode="contained"
-        onPress={handleUpdatePlayer}
-        style={styles.button}
-        loading={saving}
-        disabled={saving || !!error && error === 'Player not found'}
+    <Screen>
+      <SectionCard
+        title="Your details"
+        supportingText="This name is what other players see in games and invites."
       >
-        Save
-      </Button>
+        <TextInput
+          label="Display name"
+          value={name}
+          onChangeText={(text) => {
+            setName(text);
+            setError('');
+          }}
+          mode="outlined"
+          error={!!error && !name.trim()}
+          left={<TextInput.Icon icon="account-outline" />}
+        />
 
-      <Button mode="outlined" onPress={() => router.back()} style={styles.button}>
-        Cancel
-      </Button>
-    </View>
+        <View>
+          <TextInput
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            mode="outlined"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            disabled={isSupabaseConfigured}
+            left={<TextInput.Icon icon="email-outline" />}
+          />
+          {isSupabaseConfigured ? (
+            <HelperText type="info" visible>
+              To change your login email, use Change Email on the profile screen.
+            </HelperText>
+          ) : null}
+        </View>
+
+        <TextInput
+          label="Phone"
+          value={phone}
+          onChangeText={setPhone}
+          mode="outlined"
+          keyboardType="phone-pad"
+          left={<TextInput.Icon icon="phone-outline" />}
+        />
+
+        {error ? (
+          <HelperText type="error" visible>
+            {error}
+          </HelperText>
+        ) : null}
+      </SectionCard>
+
+      <View style={styles.actions}>
+        <Button
+          mode="contained"
+          onPress={handleUpdatePlayer}
+          loading={saving}
+          disabled={saving || (!!error && error === 'Player not found')}
+          icon="content-save-outline"
+          contentStyle={styles.primaryContent}
+          labelStyle={styles.primaryLabel}
+        >
+          Save changes
+        </Button>
+
+        <Button mode="text" onPress={() => router.back()} contentStyle={styles.secondaryContent}>
+          Cancel
+        </Button>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  centered: {
     flex: 1,
-    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  title: {
-    textAlign: 'center',
-    marginBottom: 24,
+  actions: {
+    gap: spacing.sm,
   },
-  input: {
-    marginBottom: 16,
+  primaryContent: {
+    height: 56,
   },
-  button: {
-    marginTop: 8,
+  primaryLabel: {
+    fontSize: 16,
+    fontWeight: '600',
   },
-  errorText: {
-    color: 'red',
-    marginBottom: 16,
+  secondaryContent: {
+    height: MIN_TOUCH_TARGET,
   },
 });

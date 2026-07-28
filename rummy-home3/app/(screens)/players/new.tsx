@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Linking, Alert, Platform } from 'react-native';
-import { Text, TextInput, Button, List, Avatar, Surface, HelperText } from 'react-native-paper';
+import { View, StyleSheet, Linking, Alert, Platform, ActivityIndicator } from 'react-native';
+import { Text, TextInput, Button, Avatar, HelperText, Icon, useTheme } from 'react-native-paper';
 import { router } from 'expo-router';
 import * as SMS from 'expo-sms';
 import { playersService } from '@/services/players';
 import { Player } from '@/types/player';
 import { isSupabaseConfigured } from '@/services/supabase';
+import { Screen } from '@/components/ui/Screen';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { MIN_TOUCH_TARGET, radius, spacing } from '@/constants/theme';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -17,6 +20,7 @@ function digitsOnly(phone: string) {
 }
 
 export default function FindPlayersScreen() {
+  const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<Player[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -35,7 +39,7 @@ export default function FindPlayersScreen() {
       return;
     }
 
-    if (query.trim().length < 2) {
+    if (query.trim().length < 3) {
       setResults([]);
       return;
     }
@@ -78,14 +82,18 @@ export default function FindPlayersScreen() {
       return;
     }
 
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(INVITE_MESSAGE)}`;
+    const text = encodeURIComponent(INVITE_MESSAGE);
+    // The whatsapp:// scheme opens the standard app directly; wa.me links let
+    // Android offer WhatsApp Business as well.
+    const appUrl = `whatsapp://send?phone=${phone}&text=${text}`;
+    const webUrl = `https://wa.me/${phone}?text=${text}`;
+
     try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (!canOpen) {
-        Alert.alert('WhatsApp not available', 'Install WhatsApp or use Text / email instead.');
+      if (await Linking.canOpenURL(appUrl)) {
+        await Linking.openURL(appUrl);
         return;
       }
-      await Linking.openURL(url);
+      await Linking.openURL(webUrl);
     } catch {
       Alert.alert('Could not open WhatsApp', 'Try Text or Email instead.');
     }
@@ -114,134 +122,189 @@ export default function FindPlayersScreen() {
     }
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text variant="headlineMedium" style={styles.title}>Find Players</Text>
-      <Text variant="bodyMedium" style={styles.subtitle}>
-        Search people who already have a Rummy Home account. To bring someone new in, invite them
-        below — then add them from New Game after they register.
-      </Text>
+  const showNoMatches = searchQuery.trim().length >= 3 && !searching && results.length === 0;
 
-      <Surface style={styles.card} elevation={1}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>Search registered players</Text>
-        <Text variant="bodySmall" style={styles.hint}>
-          Search by name, email, or phone.
-        </Text>
+  return (
+    <Screen>
+      <SectionCard
+        title="Search registered players"
+        supportingText="Look someone up by their exact email, phone number, or player ID."
+      >
         <TextInput
           mode="outlined"
           value={searchQuery}
           onChangeText={handleSearch}
-          placeholder="Name, email, or phone"
+          label="Email, phone, or player ID"
+          autoCapitalize="characters"
+          autoCorrect={false}
           left={<TextInput.Icon icon="account-search" />}
-          style={styles.input}
         />
-        {error ? <HelperText type="error" visible>{error}</HelperText> : null}
-        {searching ? <Text style={styles.hint}>Searching…</Text> : null}
 
-        <View style={styles.results}>
-          {results.map((player) => (
-            <List.Item
-              key={player.id}
-              title={player.name}
-              description={[player.email, player.phone].filter(Boolean).join(' · ') || 'Registered player'}
-              left={(props) => (
+        <View style={styles.privacyNote}>
+          <Icon source="shield-check-outline" size={16} color={theme.colors.onSurfaceVariant} />
+          <Text variant="bodySmall" style={[styles.privacyText, { color: theme.colors.onSurfaceVariant }]}>
+            Names aren’t searchable on purpose. Everyone can find their own player ID under Profile
+            and share it with you.
+          </Text>
+        </View>
+        {error ? (
+          <HelperText type="error" visible>
+            {error}
+          </HelperText>
+        ) : null}
+
+        {searching ? (
+          <View style={styles.searchingRow}>
+            <ActivityIndicator size="small" />
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Searching…
+            </Text>
+          </View>
+        ) : null}
+
+        {results.length > 0 ? (
+          <View style={styles.results}>
+            {results.map((player) => (
+              <View key={player.id} style={styles.resultRow}>
                 <Avatar.Text
-                  {...props}
                   size={40}
                   label={(player.name?.[0] ?? '?').toUpperCase()}
+                  style={{ backgroundColor: theme.colors.secondaryContainer }}
+                  color={theme.colors.onSecondaryContainer}
                 />
-              )}
-            />
-          ))}
-          {searchQuery.trim().length >= 2 && !searching && results.length === 0 ? (
-            <Text style={styles.hint}>
-              No registered players matched “{searchQuery}”. Invite them below if they’re new.
-            </Text>
-          ) : null}
-        </View>
-      </Surface>
+                <View style={styles.resultText}>
+                  <Text variant="bodyLarge" numberOfLines={1}>
+                    {player.name}
+                  </Text>
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: theme.colors.onSurfaceVariant }}
+                    numberOfLines={1}
+                  >
+                    {player.playerCode ? `Player ID ${player.playerCode}` : 'Registered player'}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
-      <Surface style={styles.card} elevation={1}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>Invite someone new</Text>
-        <Text variant="bodySmall" style={styles.hint}>
-          Choose email, WhatsApp, or text. They register in the app, then appear under Select Players.
-        </Text>
+        {showNoMatches ? (
+          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, lineHeight: 18 }}>
+            Nothing matched “{searchQuery}”. Check the spelling, or invite them below if they haven’t
+            signed up yet.
+          </Text>
+        ) : null}
+      </SectionCard>
 
+      <SectionCard
+        title="Invite someone new"
+        supportingText="They register in the app, then appear in the player list when you start a game."
+      >
         <TextInput
           mode="outlined"
-          label="Email (for email invite)"
+          label="Email"
           value={inviteEmail}
           onChangeText={setInviteEmail}
           keyboardType="email-address"
           autoCapitalize="none"
-          style={styles.input}
+          left={<TextInput.Icon icon="email-outline" />}
         />
+        <Button
+          mode="contained"
+          icon="email-fast-outline"
+          onPress={sendEmailInvite}
+          contentStyle={styles.buttonContent}
+        >
+          Invite by email
+        </Button>
+
         <TextInput
           mode="outlined"
-          label="Phone (for WhatsApp / text)"
+          label="Phone with country code"
           value={invitePhone}
           onChangeText={setInvitePhone}
           keyboardType="phone-pad"
-          style={styles.input}
-          placeholder="+1 555 123 4567"
+          left={<TextInput.Icon icon="phone-outline" />}
         />
-        {inviteError ? <HelperText type="error" visible>{inviteError}</HelperText> : null}
+        <View style={styles.inviteRow}>
+          <Button
+            mode="contained-tonal"
+            icon="whatsapp"
+            onPress={sendWhatsAppInvite}
+            style={styles.inviteButton}
+            contentStyle={styles.buttonContent}
+          >
+            WhatsApp
+          </Button>
+          <Button
+            mode="contained-tonal"
+            icon="message-text-outline"
+            onPress={sendTextInvite}
+            style={styles.inviteButton}
+            contentStyle={styles.buttonContent}
+          >
+            Text
+          </Button>
+        </View>
 
-        <Button mode="contained" icon="email" onPress={sendEmailInvite} style={styles.button}>
-          Invite by Email
-        </Button>
-        <Button mode="contained" icon="whatsapp" onPress={sendWhatsAppInvite} style={styles.button}>
-          Invite by WhatsApp
-        </Button>
-        <Button mode="contained" icon="message-text" onPress={sendTextInvite} style={styles.button}>
-          Invite by Text
-        </Button>
-      </Surface>
+        {inviteError ? (
+          <HelperText type="error" visible>
+            {inviteError}
+          </HelperText>
+        ) : null}
+      </SectionCard>
 
-      <Button mode="outlined" onPress={() => router.push('/(screens)/games/new')} style={styles.button}>
+      <Button
+        mode="outlined"
+        icon="cards-playing-outline"
+        onPress={() => router.push('/(screens)/games/new')}
+        contentStyle={styles.buttonContent}
+      >
         Go to New Game
       </Button>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  searchingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  privacyNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  privacyText: {
     flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  title: {
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    marginBottom: 16,
-    color: '#555',
-    lineHeight: 20,
-  },
-  card: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-  },
-  sectionTitle: {
-    marginBottom: 8,
-  },
-  input: {
-    marginBottom: 8,
-  },
-  results: {
-    maxHeight: 240,
-  },
-  hint: {
-    color: '#666',
-    marginBottom: 8,
     lineHeight: 18,
   },
-  button: {
-    marginTop: 8,
+  results: {
+    gap: spacing.xs,
+  },
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    minHeight: 64,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+  },
+  resultText: {
+    flex: 1,
+    gap: 2,
+  },
+  inviteRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  inviteButton: {
+    flex: 1,
+  },
+  buttonContent: {
+    height: MIN_TOUCH_TARGET,
   },
 });

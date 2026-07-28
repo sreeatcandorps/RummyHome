@@ -1,29 +1,27 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
-import { Button, Text, Card, IconButton, Surface, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { Button, Text, Card, Dialog, Divider, Portal, useTheme } from 'react-native-paper';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
-import { gamesService } from '@/services/games';
+import { EXPENSE_PLAYER_ID, gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
+import { radius, spacing } from '@/constants/theme';
+import { formatGameDateTime, gameIdLabel, gameTypeLabel, gameTypeTint } from '@/utils/gameDisplay';
+import { formatSupabaseError } from '@/utils/supabaseErrors';
 
-const { width, height } = Dimensions.get('window');
-const isLandscape = width > height;
+/** Columns flex to fill the width so even 10 players fit without side-scrolling. */
+const ROUND_COLUMN_FLEX = 1.5;
+const TOTAL_COLUMN_FLEX = 1.2;
 
-// Dynamic cell sizing based on orientation
-const getCellWidth = (playerCount: number, currentWidth: number, isLandscape: boolean) => {
-  const padding = isLandscape ? 20 : 40; // Less padding in landscape
-  const availableWidth = currentWidth - padding;
-  const totalColumns = playerCount + 2; // Players + Round + Total
-  
-  // In landscape, we can use smaller minimum width
-  const minWidth = isLandscape ? 40 : 60;
-  const calculatedWidth = availableWidth / totalColumns;
-  
-  return Math.max(minWidth, calculatedWidth);
+const scoreFontSize = (playerCount: number) => {
+  if (playerCount <= 5) return 15;
+  if (playerCount <= 7) return 13;
+  if (playerCount <= 10) return 11;
+  return 10;
 };
 
 export default function GameScreen() {
@@ -32,202 +30,11 @@ export default function GameScreen() {
   const theme = useTheme();
   const [game, setGame] = useState<Game | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [dimensions, setDimensions] = useState({ width, height });
-
-  // Handle orientation changes
-  useEffect(() => {
-    const subscription = Dimensions.addEventListener('change', ({ window }) => {
-      setDimensions(window);
-    });
-
-    return () => subscription?.remove();
-  }, []);
-
-  const isLandscape = dimensions.width > dimensions.height;
-  const cellWidth = getCellWidth(players.length, dimensions.width, isLandscape);
-
-  // Generate styles dynamically based on cellWidth
-  const getStyles = () => StyleSheet.create({
-    container: {
-      flex: 1,
-      padding: isLandscape ? 8 : 16, // Less padding in landscape
-    },
-    gameInfoCard: {
-      marginBottom: 8, // Reduced margin
-      elevation: 2,
-    },
-    compactGameInfo: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: 4, // Reduced padding
-    },
-    gameInfoRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      flex: 1,
-    },
-    gameTitle: {
-      fontWeight: 'bold',
-      fontSize: 16, // Slightly smaller
-    },
-    gameType: {
-      fontWeight: 'bold',
-      color: '#007bff',
-      fontSize: 12, // Smaller font
-    },
-    gameDate: {
-      color: '#666',
-      fontSize: 12, // Smaller font
-    },
-    currentRound: {
-      fontWeight: 'bold',
-      color: '#007bff',
-      fontSize: 12, // Smaller font
-    },
-    playerCount: {
-      fontWeight: 'bold',
-      color: '#28a745',
-      fontSize: 12, // Smaller font
-    },
-    gameStatus: {
-      fontWeight: 'bold',
-      color: '#dc3545',
-      fontSize: 12, // Smaller font
-    },
-    headerRow: {
-      flexDirection: 'row',
-      backgroundColor: '#f8f9fa',
-      borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderColor: '#dee2e6',
-      paddingVertical: isLandscape ? 8 : 4, // Increased padding in landscape for bigger fonts
-    },
-    cell: {
-      width: cellWidth,
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: isLandscape ? 8 : 6, // Increased padding in landscape for bigger fonts
-      borderRightWidth: 1,
-      borderColor: '#dee2e6',
-    },
-    roundHeaderCell: {
-      width: cellWidth * (isLandscape ? 1.3 : 1.2), // Match roundCell width
-      backgroundColor: '#e9ecef',
-    },
-    playerHeaderCell: {
-      width: cellWidth * 1.0,
-      backgroundColor: '#f8f9fa',
-    },
-    totalHeaderCell: {
-      width: cellWidth * (isLandscape ? 1.2 : 1.2), // Match totalCell width
-      backgroundColor: '#e9ecef',
-    },
-    headerText: {
-      fontWeight: 'bold',
-      textAlign: 'center',
-      color: '#495057',
-      fontSize: isLandscape ? 20 : 12, // Double font size in landscape
-    },
-    roundHeaderText: {
-      fontWeight: 'bold',
-      textAlign: 'left',
-      color: '#495057',
-      fontSize: isLandscape ? 20 : 12, // Double font size in landscape
-      paddingLeft: 8,
-    },
-    scoreRow: {
-      flexDirection: 'row',
-      borderBottomWidth: 1,
-      borderColor: '#dee2e6',
-      backgroundColor: '#ffffff',
-      paddingVertical: isLandscape ? 6 : 2, // Increased padding in landscape for bigger fonts
-    },
-    roundCell: {
-      width: cellWidth * (isLandscape ? 1.3 : 1.2), // Increased width in landscape for bigger text
-      alignItems: 'center',
-      backgroundColor: '#f8f9fa',
-    },
-    roundText: {
-      fontWeight: 'bold',
-      color: '#495057',
-      fontSize: isLandscape ? 20 : 12, // Double font size in landscape
-      textAlign: 'left',
-      alignSelf: 'flex-start',
-      paddingLeft: 8,
-    },
-
-    scoreCell: {
-      width: cellWidth * 1.0, // Reduced multiplier
-      alignItems: 'center',
-      backgroundColor: '#ffffff',
-    },
-    scoreText: {
-      textAlign: 'center',
-      fontWeight: '500',
-      fontSize: isLandscape ? 20 : 12, // Double font size in landscape
-    },
-    totalCell: {
-      width: cellWidth * (isLandscape ? 1.2 : 1.2), // Increased width in landscape for bigger text
-      alignItems: 'center',
-      backgroundColor: '#f8f9fa',
-    },
-    totalText: {
-      fontWeight: 'bold',
-      textAlign: 'center',
-      fontSize: isLandscape ? 20 : 12, // Double font size in landscape
-    },
-    totalsRow: {
-      marginTop: 8,
-      borderTopWidth: 2,
-      borderTopColor: '#495057',
-      backgroundColor: '#e9ecef',
-    },
-    totalsLabel: {
-      fontWeight: 'bold',
-      textAlign: 'center',
-      color: '#495057',
-    },
-    totalScoreText: {
-      fontWeight: 'bold',
-      textAlign: 'center',
-      color: '#495057',
-    },
-    actions: {
-      flexDirection: isLandscape ? 'row' : 'column',
-      justifyContent: 'space-around',
-      marginTop: 16,
-      paddingHorizontal: 16,
-    },
-    button: {
-      marginHorizontal: 4,
-      minWidth: 100,
-      marginVertical: isLandscape ? 0 : 4,
-    },
-    tableContainer: {
-      flex: 1,
-      width: '100%',
-    },
-    scrollableContent: {
-      paddingTop: 0, // No padding to align with header
-    },
-    stickyHeader: {
-      backgroundColor: '#f8f9fa',
-      elevation: 2,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 1000,
-    },
-  });
-
-  const styles = getStyles();
+  const [loading, setLoading] = useState(true);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [showCompleteResult, setShowCompleteResult] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     loadGameData();
@@ -251,23 +58,27 @@ export default function GameScreen() {
   const loadGameData = async () => {
     if (typeof id !== 'string') return;
 
-    const [currentGame, gamePlayers] = await Promise.all([
-      gamesService.getGame(id),
-      gamesService.listGamePlayers(id)
-    ]);
+    try {
+      const [currentGame, gamePlayers] = await Promise.all([
+        gamesService.getGame(id),
+        gamesService.listGamePlayers(id)
+      ]);
 
-    if (currentGame) {
-      setGame(currentGame);
-      setPlayers(gamePlayers);
-      
-      // Add EX player if expense is enabled
-      if (currentGame.settings?.expense) {
-        setPlayers(prev => [...prev, { id: 'EX', name: 'EX', role: 'player' } as Player]);
+      if (currentGame) {
+        setGame(currentGame);
+        setPlayers(
+          currentGame.settings?.expense
+            ? [...gamePlayers, { id: EXPENSE_PLAYER_ID, name: 'Expenses', role: 'player' } as Player]
+            : gamePlayers,
+        );
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   const getPlayerInitials = (name: string): string => {
+    if (name === 'Expenses') return 'EXP';
     return name
       .split(' ')
       .map(word => word[0])
@@ -289,9 +100,10 @@ export default function GameScreen() {
   };
 
   const getDealerForRound = (roundIndex: number): string => {
-    if (!players.length) return '';
-    const dealerIndex = roundIndex % players.length;
-    return getPlayerInitials(players[dealerIndex]?.name || '');
+    // Expenses are not a real seat, so they never deal.
+    const seats = players.filter((player) => player.id !== EXPENSE_PLAYER_ID);
+    if (!seats.length) return '';
+    return getPlayerInitials(seats[roundIndex % seats.length]?.name || '');
   };
 
   const getMaxRounds = (): number => {
@@ -301,216 +113,537 @@ export default function GameScreen() {
 
   const handleUndoLastRound = async () => {
     if (!game) return;
-    
+
     const maxRounds = getMaxRounds();
-    
+
     if (maxRounds > 0) {
-      const currentUserId = isSupabaseConfigured
-        ? await authService.getCurrentUserId()
-        : null;
-      const nextGame = await gamesService.undoLastRound(game.id, currentUserId ?? 'local-admin');
-      if (nextGame) setGame(nextGame);
+      try {
+        const currentUserId = isSupabaseConfigured
+          ? await authService.getCurrentUserId()
+          : null;
+        const nextGame = await gamesService.undoLastRound(game.id, currentUserId ?? 'local-admin');
+        if (nextGame) setGame(nextGame);
+      } catch (error) {
+        setActionError(formatSupabaseError(error));
+      }
     }
   };
 
   const handleCompleteGame = async () => {
     if (!game) return;
-    
+
+    setCompleting(true);
     try {
       const updatedGame = await gamesService.completeGame(game.id);
       if (updatedGame) setGame(updatedGame);
-      
-      Alert.alert(
-        'Game Completed',
-        'The game has been marked as complete.',
-        [{ text: 'OK' }]
-      );
+      setShowCompleteConfirm(false);
+      setShowCompleteResult(true);
     } catch (error) {
       console.error('Error completing game:', error);
-      Alert.alert('Error', 'Failed to complete game');
+      setShowCompleteConfirm(false);
+      setActionError(formatSupabaseError(error));
+    } finally {
+      setCompleting(false);
     }
   };
 
-  if (!game || !players.length) {
+  if (loading || !game || !players.length) {
     return (
-      <View style={styles.container}>
-        <Text>Loading game...</Text>
+      <View style={[styles.loading, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" />
+        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+          Loading game…
+        </Text>
       </View>
     );
   }
 
   const maxRounds = getMaxRounds();
+  const tint = gameTypeTint(game.gameType);
+  const fontSize = scoreFontSize(players.length);
+  const rowHeight = players.length > 7 ? 40 : 44;
+
+  const standings = [...players]
+    .filter((player) => player.id !== EXPENSE_PLAYER_ID)
+    .map((player) => ({ player, total: getPlayerTotal(player.id) }))
+    .sort((a, b) => b.total - a.total);
+
+  const cellStyle = {
+    height: rowHeight,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: theme.colors.outlineVariant,
+    paddingHorizontal: 2,
+  };
 
   return (
-    <View style={styles.container}>
-      {/* Game Info Header */}
-      <Card style={styles.gameInfoCard}>
-        <Card.Content style={styles.compactGameInfo}>
-          <View style={styles.gameInfoRow}>
-            <Text variant="titleMedium" style={styles.gameTitle}>
-              {game.shareCode ? `Code ${game.shareCode}` : `Game #${game.id.slice(-6)}`}
-            </Text>
-            <Text variant="bodySmall" style={styles.gameType}>
-              {game.gameType.toUpperCase()}
-            </Text>
-            <Text variant="bodySmall" style={styles.gameDate}>
-              {new Date(game.date).toLocaleDateString()}
-            </Text>
-            <Text variant="bodySmall" style={styles.currentRound}>
-              Round {game.currentRound}
-            </Text>
-            <Text variant="bodySmall" style={styles.playerCount}>
-              {players.length} Players
-            </Text>
-            <Text variant="bodySmall" style={styles.gameStatus}>
-              {game.isComplete ? 'COMPLETED' : 'ACTIVE'}
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <Card mode="contained" style={[styles.infoCard, { backgroundColor: theme.colors.elevation.level2 }]}>
+        <Card.Content style={styles.infoContent}>
+          <Text variant="titleMedium" style={styles.infoTitle} numberOfLines={1}>
+            {formatGameDateTime(game.date)}
+          </Text>
+
+          <View style={styles.metaRow}>
+            <View style={[styles.badge, { backgroundColor: tint.container }]}>
+              <Text variant="labelSmall" style={[styles.badgeText, { color: tint.on }]}>
+                {gameTypeLabel(game.gameType)}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.badge,
+                {
+                  backgroundColor: game.isComplete
+                    ? theme.colors.surfaceVariant
+                    : theme.colors.primaryContainer,
+                },
+              ]}
+            >
+              <Text
+                variant="labelSmall"
+                style={{
+                  color: game.isComplete
+                    ? theme.colors.onSurfaceVariant
+                    : theme.colors.onPrimaryContainer,
+                }}
+              >
+                {game.isComplete ? 'Completed' : `Round ${game.currentRound}`}
+              </Text>
+            </View>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Game ID {gameIdLabel(game)}
             </Text>
           </View>
         </Card.Content>
       </Card>
 
-      <View style={styles.tableContainer}>
-        {/* Fixed Header Row - Player Names */}
-        <View style={[styles.headerRow, styles.stickyHeader]}>
-          <View style={[styles.cell, styles.roundHeaderCell]}>
-            <Text variant="labelSmall" style={styles.roundHeaderText}>Round</Text>
-          </View>
-          <View style={[styles.cell, styles.totalHeaderCell]}>
-            <Text variant="labelSmall" style={styles.headerText}>Total</Text>
-          </View>
-          {players.map(player => (
-            <View key={player.id} style={[styles.cell, styles.playerHeaderCell]}>
-              <Text variant="labelSmall" style={styles.headerText}>
-                {getPlayerInitials(player.name)}
+      {/* A plain View, not a Card: Paper wraps card children in a flexShrink-only
+          container, which collapses the scrollable table to zero height. */}
+      <View
+        style={[
+          styles.tableCard,
+          { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant },
+        ]}
+      >
+        <ScrollView
+          style={styles.tableScroll}
+          stickyHeaderIndices={[0]}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.row, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <View style={[cellStyle, { flex: ROUND_COLUMN_FLEX }]}>
+              <Text style={[styles.headerText, { fontSize: fontSize - 2, color: theme.colors.onSurfaceVariant }]}>
+                Round
               </Text>
             </View>
-          ))}
-        </View>
+            <View style={[cellStyle, { flex: TOTAL_COLUMN_FLEX }]}>
+              <Text style={[styles.headerText, { fontSize: fontSize - 2, color: theme.colors.onSurfaceVariant }]}>
+                Total
+              </Text>
+            </View>
+            {players.map((player) => (
+              <View key={player.id} style={[cellStyle, { flex: 1 }]}>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.headerText, { fontSize: fontSize - 2, color: theme.colors.onSurfaceVariant }]}
+                >
+                  {getPlayerInitials(player.name)}
+                </Text>
+              </View>
+            ))}
+          </View>
 
-        <ScrollView 
-          horizontal={!isLandscape || players.length > 6} 
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={isLandscape && players.length <= 6 ? { width: '100%' } : undefined}
-        >
-          <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollableContent}>
-            {/* Score Rows */}
-            {Array.from({ length: Math.max(maxRounds, 1) }, (_, roundIndex) => {
+          {maxRounds === 0 ? (
+            <View style={styles.emptyTable}>
+              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                No rounds yet. Tap Add Round to score the first hand.
+              </Text>
+            </View>
+          ) : (
+            Array.from({ length: maxRounds }, (_, roundIndex) => {
               const roundNumber = roundIndex + 1;
               const roundTotal = getRoundTotal(roundIndex);
               const dealer = getDealerForRound(roundIndex);
-              
+
               return (
-                <View key={roundIndex} style={styles.scoreRow}>
-                  {/* Round Number and Dealer */}
-                  <View style={[styles.cell, styles.roundCell]}>
-                    <Text variant="bodySmall" style={styles.roundText}>
-                      {roundNumber}, {dealer}
+                <View
+                  key={roundIndex}
+                  style={[
+                    styles.row,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderBottomWidth: StyleSheet.hairlineWidth,
+                      borderBottomColor: theme.colors.outlineVariant,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      cellStyle,
+                      { flex: ROUND_COLUMN_FLEX, backgroundColor: theme.colors.elevation.level1 },
+                    ]}
+                  >
+                    <Text style={[styles.roundText, { fontSize, color: theme.colors.onSurface }]}>
+                      {roundNumber}
                     </Text>
+                    {dealer ? (
+                      <Text
+                        numberOfLines={1}
+                        style={{ fontSize: fontSize - 4, color: theme.colors.onSurfaceVariant }}
+                      >
+                        D: {dealer}
+                      </Text>
+                    ) : null}
                   </View>
 
-                  {/* Round Total */}
-                  <View style={[styles.cell, styles.totalCell]}>
-                    <Text 
-                      variant="bodyMedium" 
+                  <View
+                    style={[
+                      cellStyle,
+                      { flex: TOTAL_COLUMN_FLEX, backgroundColor: theme.colors.elevation.level1 },
+                    ]}
+                  >
+                    <Text
                       style={[
                         styles.totalText,
-                        roundTotal !== 0 && { color: theme.colors.error }
+                        { fontSize, color: roundTotal === 0 ? theme.colors.onSurfaceVariant : theme.colors.error },
                       ]}
                     >
                       {roundTotal}
                     </Text>
                   </View>
 
-                  {/* Player Scores */}
-                  {players.map(player => {
+                  {players.map((player) => {
                     const score = game.scores[player.id]?.[roundIndex] || 0;
                     return (
-                      <View key={player.id} style={[styles.cell, styles.scoreCell]}>
-                        <Text 
-                          variant="bodyMedium" 
+                      <View key={player.id} style={[cellStyle, { flex: 1 }]}>
+                        <Text
+                          numberOfLines={1}
                           style={[
                             styles.scoreText,
-                            score !== 0 && { color: theme.colors.primary }
+                            { fontSize, color: theme.colors.onSurfaceVariant },
+                            score > 0 && { color: theme.colors.primary, fontWeight: '700' },
                           ]}
                         >
-                          {score !== 0 ? score : '-'}
+                          {score !== 0 ? score : '–'}
                         </Text>
                       </View>
                     );
                   })}
                 </View>
               );
-            })}
+            })
+          )}
+        </ScrollView>
 
-            {/* Running Totals Row */}
-            <View style={[styles.scoreRow, styles.totalsRow]}>
-              <View style={[styles.cell, styles.roundCell]}>
-                <Text variant="titleSmall" style={styles.totalsLabel}>TOTAL</Text>
-              </View>
-              <View style={[styles.cell, styles.totalCell]}>
-                <Text variant="titleMedium" style={styles.totalScoreText}>
-                  {players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0)}
+        <View
+          style={[
+            styles.row,
+            styles.totalsRow,
+            {
+              backgroundColor: theme.colors.secondaryContainer,
+              borderTopColor: theme.colors.outline,
+            },
+          ]}
+        >
+          <View style={[cellStyle, { flex: ROUND_COLUMN_FLEX }]}>
+            <Text style={[styles.headerText, { fontSize: fontSize - 2, color: theme.colors.onSecondaryContainer }]}>
+              TOTAL
+            </Text>
+          </View>
+          <View style={[cellStyle, { flex: TOTAL_COLUMN_FLEX }]}>
+            <Text style={[styles.totalText, { fontSize, color: theme.colors.onSecondaryContainer }]}>
+              {players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0)}
+            </Text>
+          </View>
+          {players.map((player) => {
+            const total = getPlayerTotal(player.id);
+            return (
+              <View key={player.id} style={[cellStyle, { flex: 1 }]}>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.totalText, { fontSize, color: theme.colors.onSecondaryContainer }]}
+                >
+                  {total}
                 </Text>
               </View>
-              {players.map(player => {
-                const total = getPlayerTotal(player.id);
-                return (
-                  <View key={player.id} style={[styles.cell, styles.scoreCell]}>
-                    <Text 
-                      variant="titleMedium" 
-                      style={[
-                        styles.totalScoreText,
-                        total !== 0 && { color: theme.colors.primary }
-                      ]}
-                    >
-                      {total}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </ScrollView>
-        </ScrollView>
+            );
+          })}
+        </View>
       </View>
 
-      {/* Action Buttons */}
-      <View style={styles.actions}>
-        {!game.isComplete && (
-          <>
-            <Button 
-              mode="contained" 
+      {!game.isComplete && (
+        <Card
+          mode="contained"
+          style={[styles.actionBar, { backgroundColor: theme.colors.elevation.level2 }]}
+        >
+          <View style={styles.actionBarInner}>
+            <Button
+              mode="outlined"
+              onPress={handleUndoLastRound}
+              disabled={maxRounds === 0}
+              icon="undo"
+              style={styles.sideAction}
+              contentStyle={styles.sideActionContent}
+              labelStyle={styles.sideActionLabel}
+            >
+              Undo
+            </Button>
+
+            <Button
+              mode="contained"
               onPress={() => router.push({
                 pathname: '/(screens)/score-entry',
                 params: { gameId: game.id }
               })}
-              style={styles.button}
               icon="plus"
+              style={styles.primaryAction}
+              contentStyle={styles.primaryActionContent}
+              labelStyle={styles.primaryActionLabel}
             >
               Add Round
             </Button>
 
-            {maxRounds > 0 && (
-              <Button 
-                mode="outlined"
-                onPress={handleUndoLastRound}
-                style={styles.button}
-                icon="undo"
-              >
-                Undo Last Round
-              </Button>
-            )}
-
-            <Button 
+            <Button
               mode="outlined"
-              onPress={handleCompleteGame}
-              style={styles.button}
-              icon="flag-checkered"
+              onPress={() => setShowCompleteConfirm(true)}
+              style={styles.sideAction}
+              contentStyle={styles.sideActionContent}
+              labelStyle={styles.sideActionLabel}
             >
               Complete Game
             </Button>
-          </>
-        )}
-      </View>
+          </View>
+        </Card>
+      )}
+
+      <Portal>
+        <Dialog
+          visible={showCompleteConfirm}
+          onDismiss={() => setShowCompleteConfirm(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Icon icon="flag-checkered" />
+          <Dialog.Title style={styles.dialogTitle}>Complete this game?</Dialog.Title>
+          <Dialog.Content style={styles.dialogContent}>
+            <Text variant="bodyMedium" style={styles.dialogBody}>
+              {maxRounds === 0
+                ? 'No rounds have been scored yet. You can still close the game, but it will have no results.'
+                : `${maxRounds} ${maxRounds === 1 ? 'round' : 'rounds'} will be locked in and no more rounds can be added.`}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button onPress={() => setShowCompleteConfirm(false)}>Keep playing</Button>
+            <Button
+              mode="contained"
+              onPress={handleCompleteGame}
+              loading={completing}
+              disabled={completing}
+            >
+              Complete game
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog
+          visible={showCompleteResult}
+          onDismiss={() => setShowCompleteResult(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Icon icon="trophy-outline" />
+          <Dialog.Title style={styles.dialogTitle}>Game complete</Dialog.Title>
+          <Dialog.Content style={styles.dialogContent}>
+            {standings.length > 0 ? (
+              <View style={styles.standings}>
+                {standings.map((entry, index) => (
+                  <View key={entry.player.id}>
+                    {index > 0 ? <Divider /> : null}
+                    <View style={styles.standingRow}>
+                      <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                        {index + 1}
+                      </Text>
+                      <Text variant="bodyLarge" style={styles.standingName} numberOfLines={1}>
+                        {entry.player.name}
+                      </Text>
+                      <Text
+                        variant="titleMedium"
+                        style={{
+                          color: entry.total > 0 ? theme.colors.primary : theme.colors.onSurfaceVariant,
+                          fontWeight: '700',
+                        }}
+                      >
+                        {entry.total}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <Text variant="bodyMedium">This game was closed with no scores.</Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button onPress={() => setShowCompleteResult(false)}>Stay here</Button>
+            <Button mode="contained" onPress={() => { setShowCompleteResult(false); router.back(); }}>
+              Done
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={!!actionError} onDismiss={() => setActionError(null)} style={styles.dialog}>
+          <Dialog.Icon icon="alert-circle-outline" />
+          <Dialog.Title style={styles.dialogTitle}>Something went wrong</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.dialogBody}>
+              {actionError}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button mode="contained" onPress={() => setActionError(null)}>
+              Got it
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  infoCard: {
+    margin: spacing.md,
+    marginBottom: spacing.sm,
+    borderRadius: radius.md,
+  },
+  infoContent: {
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  infoTitle: {
+    fontWeight: '700',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  badge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+  },
+  badgeText: {
+    fontWeight: '700',
+  },
+  tableCard: {
+    flex: 1,
+    marginHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  tableScroll: {
+    flex: 1,
+  },
+  row: {
+    flexDirection: 'row',
+  },
+  totalsRow: {
+    borderTopWidth: 2,
+  },
+  emptyTable: {
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  headerText: {
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  roundText: {
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  scoreText: {
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  totalText: {
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  actionBar: {
+    borderRadius: 0,
+    marginTop: spacing.md,
+  },
+  actionBarInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  primaryAction: {
+    flex: 1.4,
+  },
+  primaryActionContent: {
+    height: 52,
+  },
+  primaryActionLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginHorizontal: spacing.xs,
+  },
+  sideAction: {
+    flex: 1,
+  },
+  sideActionContent: {
+    height: 52,
+  },
+  sideActionLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
+    marginHorizontal: spacing.xs,
+    marginVertical: 0,
+  },
+  dialog: {
+    borderRadius: radius.lg,
+  },
+  dialogTitle: {
+    textAlign: 'center',
+  },
+  dialogContent: {
+    gap: spacing.md,
+  },
+  dialogBody: {
+    lineHeight: 20,
+  },
+  dialogActions: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  standings: {
+    gap: spacing.xs,
+  },
+  standingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  standingName: {
+    flex: 1,
+  },
+});

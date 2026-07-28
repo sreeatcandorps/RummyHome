@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
-import { Text, Card, Button, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { Text, Button, Card, Icon, useTheme } from 'react-native-paper';
 import { router, useFocusEffect } from 'expo-router';
 import { storage } from '@/utils/storage';
 import { Player } from '@/types/player';
@@ -10,6 +10,11 @@ import { gamesService } from '@/services/games';
 import { playersService } from '@/services/players';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { formatSupabaseError, isClockSkewError } from '@/utils/supabaseErrors';
+import { Screen } from '@/components/ui/Screen';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { GameListItem } from '@/components/ui/GameListItem';
+import { MIN_TOUCH_TARGET, radius, spacing } from '@/constants/theme';
 
 export default function Dashboard() {
   const theme = useTheme();
@@ -27,8 +32,9 @@ export default function Dashboard() {
   );
 
   const loadData = async (isRefresh = false) => {
+    // Keep whatever is already on screen while refetching so returning to the
+    // dashboard never flashes a spinner or an empty state.
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
     setLoadError(null);
 
     try {
@@ -76,7 +82,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -84,11 +90,14 @@ export default function Dashboard() {
 
   if (!currentPlayer) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>{loadError ?? 'Not signed in.'}</Text>
-        <Button mode="contained" onPress={() => router.replace('/(auth)/login')} style={{ marginTop: 16 }}>
-          Go to Login
-        </Button>
+      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <EmptyState
+          icon="account-alert-outline"
+          title="You're signed out"
+          message={loadError ?? 'Sign in to see your games.'}
+          actionLabel="Go to login"
+          onAction={() => router.replace('/(auth)/login')}
+        />
       </View>
     );
   }
@@ -100,212 +109,181 @@ export default function Dashboard() {
     return gameDate.toDateString() === today.toDateString();
   }).length;
 
+  const stats = [
+    { label: 'Active', value: activeGames, icon: 'play-circle-outline' },
+    { label: 'Players', value: players.length, icon: 'account-group-outline' },
+    { label: 'Today', value: gamesToday, icon: 'calendar-today' },
+  ];
+
   return (
-    <ScrollView
-      style={styles.container}
+    <Screen
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}
     >
+      <View style={styles.greeting}>
+        <Text variant="headlineSmall" style={styles.greetingTitle}>
+          Hi {currentPlayer.name.split(' ')[0]}
+        </Text>
+        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+          Start a game or pick up where you left off.
+        </Text>
+      </View>
+
       {loadError ? (
-        <Card style={[styles.section, styles.errorCard]}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.errorTitle}>Couldn’t load everything</Text>
-            <Text style={styles.errorText}>{loadError}</Text>
-            <Button mode="contained" onPress={() => loadData(true)} style={{ marginTop: 12 }}>
+        <Card mode="contained" style={{ backgroundColor: theme.colors.errorContainer, borderRadius: radius.lg }}>
+          <Card.Content style={styles.errorContent}>
+            <Icon source="alert-circle-outline" size={24} color={theme.colors.onErrorContainer} />
+            <View style={styles.errorBody}>
+              <Text variant="titleSmall" style={{ color: theme.colors.onErrorContainer }}>
+                Couldn’t load everything
+              </Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onErrorContainer }}>
+                {loadError}
+              </Text>
+            </View>
+            <Button mode="text" onPress={() => loadData(true)} textColor={theme.colors.onErrorContainer}>
               Retry
             </Button>
           </Card.Content>
         </Card>
       ) : null}
 
-      <Card style={styles.section}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Stats Overview
-          </Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium">{activeGames}</Text>
-              <Text variant="bodyMedium">Active Games</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium">{players.length}</Text>
-              <Text variant="bodyMedium">Players</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium">{gamesToday}</Text>
-              <Text variant="bodyMedium">Games Today</Text>
-            </View>
-          </View>
-        </Card.Content>
-      </Card>
+      <View style={styles.statsRow}>
+        {stats.map((stat) => (
+          <Card key={stat.label} mode="contained" style={styles.statCard}>
+            <Card.Content style={styles.statContent}>
+              <Icon source={stat.icon} size={20} color={theme.colors.primary} />
+              <Text variant="headlineMedium" style={styles.statValue}>
+                {stat.value}
+              </Text>
+              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                {stat.label}
+              </Text>
+            </Card.Content>
+          </Card>
+        ))}
+      </View>
 
-      <Card style={styles.section}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Quick Actions
-          </Text>
-          <View style={styles.actionsContainer}>
-            <View style={styles.actionsRow}>
-              <Button
-                mode="contained"
-                onPress={() => router.push('/(screens)/games/new')}
-                style={styles.actionButton}
-              >
-                New Game
-              </Button>
-              <Button
-                mode="contained"
-                onPress={() => router.push('/(screens)/players/new')}
-                style={styles.actionButton}
-              >
-                Find Players
-              </Button>
-            </View>
-            <View style={styles.actionsRow}>
-              <Button
-                mode="contained"
-                onPress={() => router.push('/(screens)/games/history')}
-                style={styles.actionButton}
-              >
-                Game History
-              </Button>
-              <Button
-                mode="contained"
-                onPress={() => router.push('/(screens)/players')}
-                style={styles.actionButton}
-              >
-                All Players
-              </Button>
-            </View>
-          </View>
-        </Card.Content>
-      </Card>
+      <SectionCard title="Quick actions">
+        <Button
+          mode="contained"
+          icon="plus"
+          onPress={() => router.push('/(screens)/games/new')}
+          contentStyle={styles.primaryAction}
+          labelStyle={styles.primaryActionLabel}
+        >
+          New Game
+        </Button>
 
-      <Card style={styles.section}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Recent Games
-          </Text>
-          {recentGames.length > 0 ? (
-            recentGames.map((game, index) => (
-              <TouchableOpacity
-                key={`recent-game-${game.id}-${index}`}
-                onPress={() => navigateToGame(game.id)}
-                activeOpacity={0.7}
-              >
-                <Card
-                  style={[
-                    styles.gameCard,
-                    {
-                      borderLeftWidth: 4,
-                      borderLeftColor: game.isComplete ? '#9e9e9e' : theme.colors.primary,
-                      backgroundColor: game.isComplete ? '#f5f5f5' : '#ffffff',
-                      elevation: 1,
-                      marginBottom: 8,
-                    },
-                  ]}
-                >
-                  <Card.Content>
-                    <Text variant="titleMedium">
-                      {game.shareCode ? `Code ${game.shareCode}` : `Game #${game.id.slice(-6)}`}
-                    </Text>
-                    <Text style={styles.dateText}>
-                      {new Date(game.date).toLocaleString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Text>
-                    <View style={styles.infoRow}>
-                      <Text>Players: {game.players?.length || 0}</Text>
-                      <Text> • </Text>
-                      <Text
-                        style={[
-                          styles.status,
-                          { color: game.isComplete ? '#9e9e9e' : theme.colors.primary },
-                        ]}
-                      >
-                        {game.isComplete ? 'COMPLETED' : 'ACTIVE'}
-                      </Text>
-                    </View>
-                  </Card.Content>
-                </Card>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text>
-              No games yet. Tap New Game and pick at least one other registered player.
-            </Text>
-          )}
-        </Card.Content>
-      </Card>
-    </ScrollView>
+        <View style={styles.actionGrid}>
+          <Button
+            mode="outlined"
+            icon="account-search-outline"
+            onPress={() => router.push('/(screens)/players/new')}
+            style={styles.gridButton}
+            contentStyle={styles.gridButtonContent}
+          >
+            Find Players
+          </Button>
+          <Button
+            mode="outlined"
+            icon="history"
+            onPress={() => router.push('/(screens)/games/history')}
+            style={styles.gridButton}
+            contentStyle={styles.gridButtonContent}
+          >
+            History
+          </Button>
+          <Button
+            mode="outlined"
+            icon="account-group-outline"
+            onPress={() => router.push('/(screens)/players')}
+            style={styles.gridButton}
+            contentStyle={styles.gridButtonContent}
+          >
+            All Players
+          </Button>
+        </View>
+      </SectionCard>
+
+      <SectionCard title="Recent games">
+        {recentGames.length > 0 ? (
+          <View style={styles.gameList}>
+            {recentGames.map((game) => (
+              <GameListItem key={game.id} game={game} onPress={() => navigateToGame(game.id)} />
+            ))}
+          </View>
+        ) : (
+          <EmptyState
+            title="No games yet"
+            message="Tap New Game and pick at least one other registered player."
+            actionLabel="New Game"
+            onAction={() => router.push('/(screens)/games/new')}
+          />
+        )}
+      </SectionCard>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+  centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
-  container: {
-    flex: 1,
-    padding: 16,
+  greeting: {
+    gap: spacing.xs,
   },
-  section: {
-    marginBottom: 16,
+  greetingTitle: {
+    fontWeight: '600',
   },
-  errorCard: {
-    backgroundColor: '#fff5f5',
-  },
-  errorTitle: {
-    marginBottom: 8,
-    color: '#b00020',
-  },
-  errorText: {
-    color: '#666',
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    marginBottom: 16,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  actionsContainer: {
-    gap: 12,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-  },
-  gameCard: {
-    marginBottom: 8,
-  },
-  status: {
-    textTransform: 'capitalize',
-    fontWeight: 'bold',
-  },
-  dateText: {
-    marginVertical: 4,
-    fontSize: 14,
-    color: '#666',
-  },
-  infoRow: {
+  errorContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  errorBody: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: radius.lg,
+  },
+  statContent: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+  },
+  statValue: {
+    fontWeight: '700',
+  },
+  primaryAction: {
+    height: 56,
+  },
+  primaryActionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  actionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  gridButton: {
+    flexGrow: 1,
+    flexBasis: '45%',
+  },
+  gridButtonContent: {
+    height: MIN_TOUCH_TARGET,
+  },
+  gameList: {
+    gap: spacing.md,
   },
 });

@@ -1,15 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Card, Button, Avatar, Divider, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Share, StyleSheet, View } from 'react-native';
+import { Avatar, Button, Card, Dialog, IconButton, List, Portal, Text, useTheme } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { storage } from '../../../utils/storage';
 import { Player } from '../../../types/player';
+import { playersService } from '../../../services/players';
+import { authService } from '../../../services/auth';
+import { isSupabaseConfigured } from '../../../services/supabase';
+import { Screen } from '../../../components/ui/Screen';
+import { SectionCard } from '../../../components/ui/SectionCard';
+import { EmptyState } from '../../../components/ui/EmptyState';
+import { MIN_TOUCH_TARGET, radius, spacing } from '../../../constants/theme';
 
 export default function PlayerDetailScreen() {
   const theme = useTheme();
   const { id } = useLocalSearchParams();
   const [player, setPlayer] = useState<Player | null>(null);
+  const [isSelf, setIsSelf] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showIdInfo, setShowIdInfo] = useState(false);
 
   useEffect(() => {
     loadPlayer();
@@ -17,9 +26,18 @@ export default function PlayerDetailScreen() {
 
   const loadPlayer = async () => {
     try {
+      if (isSupabaseConfigured) {
+        const [found, currentUserId] = await Promise.all([
+          playersService.getPlayer(String(id)),
+          authService.getCurrentUserId(),
+        ]);
+        setPlayer(found);
+        setIsSelf(!!found && found.id === currentUserId);
+        return;
+      }
+
       const players = await storage.getPlayers();
-      const foundPlayer = players.find(p => p.id === id);
-      setPlayer(foundPlayer || null);
+      setPlayer(players.find((candidate) => candidate.id === id) ?? null);
     } catch (error) {
       console.error('Error loading player:', error);
     } finally {
@@ -27,197 +45,224 @@ export default function PlayerDetailScreen() {
     }
   };
 
+  const sharePlayerId = async () => {
+    if (!player?.playerCode) return;
+
+    try {
+      await Share.share({
+        message: isSelf
+          ? `Add me on Rummy Home. My player ID is ${player.playerCode}.`
+          : `${player.name} on Rummy Home — player ID ${player.playerCode}.`,
+      });
+    } catch (error) {
+      console.error('Share player ID failed:', error);
+    }
+  };
+
+  const getInitials = (name: string) =>
+    name
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
 
   if (!player) {
     return (
-      <View style={styles.container}>
-        <Text>Player not found</Text>
-        <Button onPress={() => router.back()}>Go Back</Button>
-      </View>
+      <Screen>
+        <EmptyState
+          icon="account-question-outline"
+          title="Player not found"
+          message="This player may have been removed."
+          actionLabel="Go back"
+          onAction={() => router.back()}
+        />
+      </Screen>
     );
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content style={styles.headerContent}>
-          <Avatar.Text 
-            size={80} 
+    <Screen>
+      <Card mode="contained" style={[styles.hero, { backgroundColor: theme.colors.elevation.level2 }]}>
+        <Card.Content style={styles.heroContent}>
+          <Avatar.Text
+            size={72}
             label={getInitials(player.name)}
-            style={{ 
-              backgroundColor: player.role === 'admin' 
-                ? theme.colors.error 
-                : theme.colors.primary,
-              marginBottom: 16
+            style={{
+              backgroundColor: player.role === 'admin' ? theme.colors.error : theme.colors.primary,
             }}
           />
-          <Text variant="headlineMedium" style={styles.name}>
+          <Text variant="headlineSmall" style={styles.heroName}>
             {player.name}
           </Text>
-          <Text variant="bodyLarge" style={styles.role}>
-            {player.role === 'admin' ? 'Administrator' : 'Player'}
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+            {player.role === 'admin' ? 'App admin' : 'Player'}
           </Text>
         </Card.Content>
       </Card>
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Contact Information
-          </Text>
-          <Divider style={styles.divider} />
-          
-          {player.email && (
-            <View style={styles.infoRow}>
-              <Text variant="bodyMedium" style={styles.label}>Email:</Text>
-              <Text variant="bodyMedium" style={styles.value}>{player.email}</Text>
-            </View>
-          )}
-          
-          {player.phone && (
-            <View style={styles.infoRow}>
-              <Text variant="bodyMedium" style={styles.label}>Phone:</Text>
-              <Text variant="bodyMedium" style={styles.value}>{player.phone}</Text>
-            </View>
-          )}
-          
-          {!player.email && !player.phone && (
-            <Text variant="bodyMedium" style={styles.noInfo}>
-              No contact information available
+      <Card mode="outlined" style={styles.idCard}>
+        <Card.Content style={styles.idContent}>
+          <View style={styles.idHeader}>
+            <Text variant="titleMedium" style={styles.idTitle}>
+              Player ID
             </Text>
-          )}
-        </Card.Content>
-      </Card>
+            <IconButton
+              icon="information-outline"
+              size={20}
+              accessibilityLabel="What is a player ID?"
+              onPress={() => setShowIdInfo(true)}
+            />
+          </View>
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Game Statistics
-          </Text>
-          <Divider style={styles.divider} />
-          
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
-                {player.gamesPlayed || 0}
+          <View style={styles.idRow}>
+            <View style={[styles.idPill, { backgroundColor: theme.colors.secondaryContainer }]}>
+              <Text variant="headlineSmall" style={[styles.idText, { color: theme.colors.onSecondaryContainer }]}>
+                {player.playerCode ?? '—'}
               </Text>
-              <Text variant="bodyMedium">Games Played</Text>
             </View>
-            
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
-                {player.gamesWon || 0}
-              </Text>
-              <Text variant="bodyMedium">Games Won</Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
-                {player.gamesPlayed && player.gamesWon 
-                  ? Math.round((player.gamesWon / player.gamesPlayed) * 100)
-                  : 0}%
-              </Text>
-              <Text variant="bodyMedium">Win Rate</Text>
-            </View>
+
+            <Button
+              mode="contained-tonal"
+              icon="share-variant"
+              onPress={sharePlayerId}
+              disabled={!player.playerCode}
+              contentStyle={styles.buttonContent}
+            >
+              Share
+            </Button>
           </View>
         </Card.Content>
       </Card>
 
-      <View style={styles.buttonContainer}>
-        <Button 
+      {isSelf && (player.email || player.phone) ? (
+        <SectionCard title="Contact information">
+          {player.email ? (
+            <List.Item
+              title={player.email}
+              description="Email"
+              left={(props) => <List.Icon {...props} icon="email-outline" />}
+              style={styles.infoItem}
+            />
+          ) : null}
+          {player.phone ? (
+            <List.Item
+              title={player.phone}
+              description="Phone"
+              left={(props) => <List.Icon {...props} icon="phone-outline" />}
+              style={styles.infoItem}
+            />
+          ) : null}
+        </SectionCard>
+      ) : null}
+
+      {isSelf ? (
+        <Button
           mode="contained"
+          icon="account-edit-outline"
           onPress={() => router.push(`/players/${player.id}/edit`)}
-          style={styles.button}
+          contentStyle={styles.buttonContent}
         >
-          Edit Player
+          Edit profile
         </Button>
-        
-        <Button 
-          mode="outlined"
-          onPress={() => router.back()}
-          style={styles.button}
-        >
-          Back to Players
-        </Button>
-      </View>
-    </ScrollView>
+      ) : null}
+
+      <Portal>
+        <Dialog visible={showIdInfo} onDismiss={() => setShowIdInfo(false)} style={styles.dialog}>
+          <Dialog.Icon icon="badge-account-horizontal-outline" />
+          <Dialog.Title style={styles.dialogTitle}>About player IDs</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.dialogBody}>
+              Each player has a permanent short ID. Searching by ID is the safest way to add someone
+              to a game, because names are never searchable.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button mode="contained" onPress={() => setShowIdInfo(false)}>
+              Got it
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  centered: {
     flex: 1,
-    padding: 16,
-  },
-  card: {
-    marginBottom: 16,
-  },
-  headerContent: {
     alignItems: 'center',
-    paddingVertical: 24,
+    justifyContent: 'center',
   },
-  name: {
-    marginBottom: 8,
+  hero: {
+    borderRadius: radius.lg,
+  },
+  heroContent: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+  },
+  heroName: {
+    fontWeight: '700',
     textAlign: 'center',
   },
-  role: {
-    opacity: 0.7,
-    textTransform: 'capitalize',
+  idCard: {
+    borderRadius: radius.lg,
   },
-  sectionTitle: {
-    marginBottom: 12,
-    fontWeight: 'bold',
+  idContent: {
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.lg,
+    gap: spacing.sm,
   },
-  divider: {
-    marginBottom: 16,
-  },
-  infoRow: {
+  idHeader: {
     flexDirection: 'row',
-    marginBottom: 12,
-  },
-  label: {
-    fontWeight: 'bold',
-    width: 80,
-  },
-  value: {
-    flex: 1,
-  },
-  noInfo: {
-    fontStyle: 'italic',
-    opacity: 0.7,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  statNumber: {
-    fontWeight: 'bold',
-    marginBottom: 4,
+  idTitle: {
+    fontWeight: '600',
   },
-  buttonContainer: {
-    gap: 12,
-    marginBottom: 24,
+  idRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
-  button: {
-    marginBottom: 8,
+  idPill: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
   },
-}); 
+  idText: {
+    fontWeight: '700',
+    letterSpacing: 4,
+  },
+  infoItem: {
+    paddingHorizontal: 0,
+  },
+  buttonContent: {
+    height: MIN_TOUCH_TARGET,
+  },
+  dialog: {
+    borderRadius: radius.lg,
+  },
+  dialogTitle: {
+    textAlign: 'center',
+  },
+  dialogBody: {
+    lineHeight: 20,
+  },
+  dialogActions: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+});

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { TextInput, Button, Text, HelperText } from 'react-native-paper';
+import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { TextInput, Button, Text, HelperText, Card, useTheme } from 'react-native-paper';
 import { router } from 'expo-router';
 import { storage } from '../../utils/storage';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured, supabase } from '../../services/supabase';
 import { formatAuthError } from '../../utils/authErrors';
+import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
 // import * as Location from 'expo-location';
 
 interface SimpleCountry {
@@ -16,6 +17,7 @@ interface SimpleCountry {
 }
 
 export default function RegisterScreen() {
+  const theme = useTheme();
   const [firstName, setFirstName] = React.useState('');
   const [lastName, setLastName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -41,47 +43,6 @@ export default function RegisterScreen() {
     setSelectedCountry(defaultCountry);
     // detectUserLocation();
   }, []);
-
-  // const detectUserLocation = async () => {
-  //   try {
-  //     setLocationLoading(true);
-      
-  //     // Request location permissions
-  //     const { status } = await Location.requestForegroundPermissionsAsync();
-      
-  //     if (status === 'granted') {
-  //       // Get current location
-  //       const location = await Location.getCurrentPositionAsync({
-  //         accuracy: Location.Accuracy.Low, // Low accuracy is fine for country detection
-  //       });
-
-  //       // Reverse geocode to get country
-  //       const reverseGeocode = await Location.reverseGeocodeAsync({
-  //         latitude: location.coords.latitude,
-  //         longitude: location.coords.longitude,
-  //       });
-
-  //       if (reverseGeocode.length > 0) {
-  //         const countryCode = reverseGeocode[0].isoCountryCode;
-  //         if (countryCode) {
-  //           // Find country by ISO code
-  //           const country = getCountryByCode(countryCode);
-  //           if (country) {
-  //             setSelectedCountry(country);
-  //             setLocationLoading(false);
-  //             return;
-  //           }
-  //         }
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.log('Location detection failed:', error);
-  //   }
-    
-  //   // Fallback to default country
-  //   setSelectedCountry(defaultCountry);
-  //   setLocationLoading(false);
-  // };
 
   const getCountryByCode = (isoCode: string): SimpleCountry | null => {
     // Common countries mapping
@@ -227,178 +188,195 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>
-        Create Account
-      </Text>
+    <KeyboardAvoidingView
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.header}>
+          <Text variant="headlineMedium" style={styles.title}>
+            Create account
+          </Text>
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+            You'll use your email and a 6-digit passcode to sign in.
+          </Text>
+        </View>
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          label="First Name"
-          value={firstName}
-          onChangeText={setFirstName}
-          mode="outlined"
-          style={styles.input}
-          disabled={loading}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          label="Last Name"
-          value={lastName}
-          onChangeText={setLastName}
-          mode="outlined"
-          style={styles.input}
-          disabled={loading}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          mode="outlined"
-          style={styles.input}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          disabled={loading}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          label="6-Digit Passcode"
-          value={passcode}
-          onChangeText={(text) => {
-            const numericText = text.replace(/[^0-9]/g, '');
-            if (numericText.length <= 6) {
-              setPasscode(numericText);
-            }
-          }}
-          mode="outlined"
-          style={styles.input}
-          keyboardType="numeric"
-          maxLength={6}
-          secureTextEntry
-          placeholder="Enter 6-digit passcode"
-          disabled={loading}
-        />
-        <HelperText type="info" visible={true}>
-          Create a 6-digit numeric passcode for easy login
-        </HelperText>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          label="Phone Number (Optional)"
-          value={phone}
-          onChangeText={setPhone}
-          mode="outlined"
-          style={styles.input}
-          keyboardType="phone-pad"
-          disabled={loading}
-        />
-        
-        {selectedCountry && (
-          <View style={styles.countryContainer}>
-            <Text variant="bodyMedium">
-              {selectedCountry.flag} {selectedCountry.name} (+{selectedCountry.callingCode})
+        <Card mode="elevated" style={styles.card}>
+          <Card.Content style={styles.cardContent}>
+            <Text variant="titleSmall" style={styles.groupLabel}>
+              Your name
             </Text>
-          </View>
-        )}
-      </View>
+            <View style={styles.nameRow}>
+              <TextInput
+                label="First name"
+                value={firstName}
+                onChangeText={setFirstName}
+                mode="outlined"
+                disabled={loading}
+                style={styles.nameInput}
+              />
+              <TextInput
+                label="Last name"
+                value={lastName}
+                onChangeText={setLastName}
+                mode="outlined"
+                disabled={loading}
+                style={styles.nameInput}
+              />
+            </View>
 
-      {error ? (
-        <HelperText type="error" visible={!!error}>
-          {error}
-        </HelperText>
-      ) : null}
+            <Text variant="titleSmall" style={styles.groupLabel}>
+              Sign-in details
+            </Text>
+            <TextInput
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              mode="outlined"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              disabled={loading}
+              left={<TextInput.Icon icon="email-outline" />}
+            />
 
-      <Button
-        mode="contained"
-        onPress={handleRegister}
-        style={styles.button}
-        loading={loading}
-        disabled={loading}
-      >
-        Create Account
-      </Button>
+            <View>
+              <TextInput
+                label="6-digit passcode"
+                value={passcode}
+                onChangeText={(text) => {
+                  const numericText = text.replace(/[^0-9]/g, '');
+                  if (numericText.length <= 6) {
+                    setPasscode(numericText);
+                  }
+                }}
+                mode="outlined"
+                keyboardType="numeric"
+                maxLength={6}
+                secureTextEntry
+                disabled={loading}
+                left={<TextInput.Icon icon="lock-outline" />}
+              />
+              <HelperText type="info" visible>
+                Numbers only — this is your quick login code.
+              </HelperText>
+            </View>
 
-      <Button 
-        mode="outlined"
-        onPress={clearFields}
-        style={styles.button}
-        disabled={loading}
-      >
-        Clear
-      </Button>
+            <Text variant="titleSmall" style={styles.groupLabel}>
+              Contact (optional)
+            </Text>
+            <View>
+              <TextInput
+                label="Phone number"
+                value={phone}
+                onChangeText={setPhone}
+                mode="outlined"
+                keyboardType="phone-pad"
+                disabled={loading}
+                left={<TextInput.Icon icon="phone-outline" />}
+              />
+              {selectedCountry && (
+                <HelperText type="info" visible>
+                  {selectedCountry.flag} {selectedCountry.name} (+{selectedCountry.callingCode})
+                </HelperText>
+              )}
+            </View>
 
-      <View style={styles.divider}>
-        <Text variant="bodyMedium" style={styles.dividerText}>
-          Already have an account?
-        </Text>
-      </View>
+            {error ? (
+              <HelperText type="error" visible={!!error}>
+                {error}
+              </HelperText>
+            ) : null}
 
-      <Button
-        mode="text"
-        onPress={() => router.push('/(auth)/login')}
-        style={styles.textButton}
-        disabled={loading}
-      >
-        Sign In Instead
-      </Button>
+            <Button
+              mode="contained"
+              onPress={handleRegister}
+              loading={loading}
+              disabled={loading}
+              contentStyle={styles.primaryContent}
+              labelStyle={styles.primaryLabel}
+            >
+              Create account
+            </Button>
 
-      <Button
-        mode="text"
-        onPress={() => router.back()}
-        style={styles.textButton}
-        disabled={loading}
-      >
-        ← Back to Login
-      </Button>
-    </View>
+            <Button
+              mode="text"
+              onPress={clearFields}
+              disabled={loading}
+              contentStyle={styles.secondaryContent}
+            >
+              Clear form
+            </Button>
+          </Card.Content>
+        </Card>
+
+        <View style={styles.footerRow}>
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+            Already have an account?
+          </Text>
+          <Button
+            mode="text"
+            onPress={() => router.push('/(auth)/login')}
+            disabled={loading}
+            compact
+          >
+            Sign in
+          </Button>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    padding: 20,
+  },
+  content: {
+    flexGrow: 1,
     justifyContent: 'center',
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  header: {
+    gap: spacing.xs,
   },
   title: {
-    textAlign: 'center',
-    marginBottom: 32,
+    fontWeight: '700',
   },
-  inputContainer: {
-    marginBottom: 16,
+  card: {
+    borderRadius: radius.lg,
   },
-  input: {
-    marginBottom: 0,
+  cardContent: {
+    paddingVertical: spacing.lg,
+    gap: spacing.md,
   },
-  countryContainer: {
-    marginTop: 8,
-    paddingHorizontal: 4,
+  groupLabel: {
+    marginTop: spacing.xs,
+    fontWeight: '600',
   },
-  countryLabel: {
-    opacity: 0.7,
+  nameRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
   },
-  button: {
-    marginTop: 8,
-    marginBottom: 16,
+  nameInput: {
+    flex: 1,
   },
-  divider: {
+  primaryContent: {
+    height: 56,
+  },
+  primaryLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryContent: {
+    height: MIN_TOUCH_TARGET,
+  },
+  footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
+    justifyContent: 'center',
+    gap: spacing.xs,
   },
-  dividerText: {
-    textAlign: 'center',
-    paddingHorizontal: 10,
-  },
-  textButton: {
-    marginTop: 16,
-  },
-}); 
+});

@@ -10,6 +10,7 @@ type CreateGameInput = {
   playerIds: string[];
   gameType: GameType;
   expenseEnabled: boolean;
+  expenseAmount?: number;
   createdBy: string;
   settings?: ProfileDefaults;
 };
@@ -20,6 +21,9 @@ type AddRoundInput = {
   scores: RoundScoreInput[];
   createdBy: string;
 };
+
+/** Reserved column key for table expenses, which have no owning player. */
+export const EXPENSE_PLAYER_ID = 'EX';
 
 const SHARE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -41,11 +45,16 @@ const legacyGameFromServer = (
   }, {});
 
   scores.forEach((score) => {
-    if (!score.profile_id) return;
     if (score.rounds?.undone_at) return;
+
+    // Expenses belong to the table, not a player, so they are stored without a
+    // profile and surface under the reserved EXPENSE_PLAYER_ID column.
+    const key = score.profile_id ?? (score.score_type === 'expense' ? EXPENSE_PLAYER_ID : null);
+    if (!key) return;
+
     const index = Math.max((score.rounds?.round_number ?? 1) - 1, 0);
-    if (!scoreMap[score.profile_id]) scoreMap[score.profile_id] = [];
-    scoreMap[score.profile_id][index] = score.value;
+    if (!scoreMap[key]) scoreMap[key] = [];
+    scoreMap[key][index] = score.value;
   });
 
   return {
@@ -56,7 +65,11 @@ const legacyGameFromServer = (
     scores: scoreMap,
     currentRound: game.current_round,
     gameType: game.game_type,
-    settings: legacySettingsForGameType(game.game_type, game.settings?.expenseEnabled ?? true),
+    settings: legacySettingsForGameType(
+      game.game_type,
+      game.settings?.expenseEnabled ?? true,
+      game.settings?.expenseAmount,
+    ),
     shareCode: game.share_code ?? undefined,
   };
 };
@@ -67,9 +80,11 @@ export const gamesService = {
       throw new Error('A game must have between 2 and 20 players.');
     }
 
+    const baseSettings = input.settings ?? settingsForGameType(input.gameType);
     const settings = {
-      ...(input.settings ?? settingsForGameType(input.gameType)),
+      ...baseSettings,
       expenseEnabled: input.expenseEnabled,
+      expenseAmount: input.expenseAmount ?? baseSettings.expenseAmount,
       gameType: input.gameType,
     };
 
@@ -82,7 +97,11 @@ export const gamesService = {
         currentRound: 1,
         isComplete: false,
         gameType: input.gameType,
-        settings: legacySettingsForGameType(input.gameType, input.expenseEnabled),
+        settings: legacySettingsForGameType(
+          input.gameType,
+          input.expenseEnabled,
+          settings.expenseAmount,
+        ),
       };
       await storage.addGame(legacyGame);
       return legacyGame;
@@ -238,9 +257,10 @@ export const gamesService = {
         while (updatedScores[playerId].length <= roundIndex) updatedScores[playerId].push(0);
       });
       input.scores.forEach((score) => {
-        if (!score.playerId) return;
-        if (!updatedScores[score.playerId]) updatedScores[score.playerId] = [];
-        updatedScores[score.playerId][roundIndex] = score.value;
+        const key = score.playerId ?? (score.scoreType === 'expense' ? EXPENSE_PLAYER_ID : null);
+        if (!key) return;
+        if (!updatedScores[key]) updatedScores[key] = [];
+        updatedScores[key][roundIndex] = score.value;
       });
 
       const updatedGame = { ...game, scores: updatedScores, currentRound: input.roundNumber + 1 };

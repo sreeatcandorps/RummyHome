@@ -6,19 +6,46 @@ loadEnv();
 const url = requireEnv('EXPO_PUBLIC_SUPABASE_URL');
 const anonKey = requireEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY');
 
-const TEST_USERS = [
-  { email: 'player1@rummyhome.com', password: '123456', displayName: 'Player One' },
-  { email: 'player2@rummyhome.com', password: '123456', displayName: 'Player Two' },
-  { email: 'player3@rummyhome.com', password: '123456', displayName: 'Player Three' },
-];
+// Player 1 through Player 10: first name is the number, last name is "Player".
+const TEST_USERS = Array.from({ length: 10 }, (_, index) => {
+  const number = index + 1;
+  return {
+    email: `player${number}@rummyhome.com`,
+    password: '123456',
+    displayName: `Player ${number}`,
+    firstName: String(number),
+    lastName: 'Player',
+  };
+});
 
 const supabase = createClient(url, anonKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-async function ensureUser({ email, password, displayName }) {
+async function syncProfile(session, { email, displayName, firstName, lastName }) {
+  if (!session?.user?.id) return;
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      display_name: displayName,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+    })
+    .eq('id', session.user.id);
+
+  if (error) {
+    console.log(`    profile sync failed for ${email}: ${error.message}`);
+  }
+}
+
+async function ensureUser(user) {
+  const { email, password, displayName } = user;
+
   const login = await supabase.auth.signInWithPassword({ email, password });
   if (login.data.session) {
+    await syncProfile(login.data.session, user);
     console.log(`OK  ${email} already exists and can sign in`);
     return { email, password, status: 'existing' };
   }
@@ -35,12 +62,14 @@ async function ensureUser({ email, password, displayName }) {
   }
 
   if (signup.data.session) {
+    await syncProfile(signup.data.session, user);
     console.log(`NEW ${email} created and signed in immediately`);
     return { email, password, status: 'created' };
   }
 
   const retryLogin = await supabase.auth.signInWithPassword({ email, password });
   if (retryLogin.data.session) {
+    await syncProfile(retryLogin.data.session, user);
     console.log(`NEW ${email} created and can sign in`);
     return { email, password, status: 'created' };
   }
@@ -52,7 +81,9 @@ async function ensureUser({ email, password, displayName }) {
 }
 
 async function main() {
-  const health = await fetch(`${url}/auth/v1/health`);
+  const health = await fetch(`${url}/auth/v1/health`, {
+    headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+  });
   console.log('Auth health:', health.status, await health.text());
   console.log('\nSeeding test users...\n');
 

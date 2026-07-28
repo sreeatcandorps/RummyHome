@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Card, Text, Switch, Button, TextInput, useTheme } from 'react-native-paper';
+import { View, StyleSheet, Alert } from 'react-native';
+import { Avatar, Button, Divider, List, Text, Switch, TextInput, useTheme } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { storage } from '@/utils/storage';
 import { authService } from '@/services/auth';
 import { router } from 'expo-router';
 import { Player } from '@/types/player';
+import { Screen } from '@/components/ui/Screen';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { MIN_TOUCH_TARGET, radius, spacing } from '@/constants/theme';
 
 interface Settings {
   winningCondition: 'lowest' | 'highest';
@@ -92,188 +95,213 @@ export default function Settings() {
     setCurrentPlayer(player);
   };
 
+  const getInitials = (name: string) =>
+    name
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.section}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Account
-          </Text>
-
-          {currentPlayer ? (
-            <View style={styles.playerInfo}>
-              <Text variant="bodyLarge">{currentPlayer.name}</Text>
-              <Text style={styles.muted}>Role: {currentPlayer.role === 'admin' ? 'App admin' : 'Player'}</Text>
-              {currentPlayer.email ? <Text style={styles.muted}>{currentPlayer.email}</Text> : null}
-            </View>
-          ) : null}
-
-          <Button
-            mode="outlined"
-            onPress={() => router.push('/profile')}
-            style={styles.button}
-            icon="account"
-          >
-            View Profile
-          </Button>
-
-          <Button
-            mode="contained"
-            onPress={handleLogout}
-            style={styles.button}
-            buttonColor={theme.colors.error}
-            icon="logout"
-          >
-            Logout
-          </Button>
-        </Card.Content>
-      </Card>
-
-      <Card style={styles.section}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Game Rules (local preferences)
-          </Text>
-          <Text style={styles.help}>
-            These preferences are stored on this phone only. Live games currently use the stake/pool
-            defaults from the game screen, not these toggles yet.
-          </Text>
-
-          <View style={styles.setting}>
-            <View style={styles.settingText}>
-              <Text>Lowest score wins</Text>
-              <Text style={styles.muted}>
-                On = typical Rummy (lowest total wins). Off = highest total wins.
+    <Screen>
+      <SectionCard title="Account">
+        {currentPlayer ? (
+          <View style={styles.identityRow}>
+            <Avatar.Text
+              size={48}
+              label={getInitials(currentPlayer.name)}
+              style={{
+                backgroundColor:
+                  currentPlayer.role === 'admin' ? theme.colors.error : theme.colors.primary,
+              }}
+            />
+            <View style={styles.identityText}>
+              <Text variant="titleMedium" numberOfLines={1}>
+                {currentPlayer.name}
+              </Text>
+              {currentPlayer.email ? (
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }} numberOfLines={1}>
+                  {currentPlayer.email}
+                </Text>
+              ) : null}
+              <Text variant="labelSmall" style={{ color: theme.colors.primary }}>
+                {currentPlayer.role === 'admin' ? 'App admin' : 'Player'}
               </Text>
             </View>
-            <Switch
-              value={settings.winningCondition === 'lowest'}
-              onValueChange={(value) =>
-                saveSettings({
-                  ...settings,
-                  winningCondition: value ? 'lowest' : 'highest',
-                })
-              }
-            />
           </View>
+        ) : null}
 
-          <View style={styles.setting}>
-            <Text>Max Score</Text>
-            <TextInput
-              value={settings.maxScore.toString()}
-              onChangeText={(text) =>
-                saveSettings({
-                  ...settings,
-                  maxScore: parseInt(text) || 100,
-                })
-              }
-              keyboardType="numeric"
-              style={styles.input}
-            />
+        <Divider />
+
+        <List.Item
+          title="View profile"
+          description="Stats, contact details, and passcode"
+          left={(props) => <List.Icon {...props} icon="account-circle-outline" />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={() => router.push('/profile')}
+          style={styles.listItem}
+        />
+
+        <Button
+          mode="contained"
+          onPress={handleLogout}
+          buttonColor={theme.colors.errorContainer}
+          textColor={theme.colors.onErrorContainer}
+          icon="logout"
+          contentStyle={styles.buttonContent}
+        >
+          Log out
+        </Button>
+      </SectionCard>
+
+      <SectionCard
+        title="Game rules"
+        supportingText="Stored on this phone only. Live games still use the stake/pool defaults from the game screen."
+      >
+        <View style={styles.switchRow}>
+          <View style={styles.switchText}>
+            <Text variant="bodyLarge">Lowest score wins</Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              On = typical Rummy (lowest total wins). Off = highest total wins.
+            </Text>
           </View>
+          <Switch
+            value={settings.winningCondition === 'lowest'}
+            onValueChange={(value) =>
+              saveSettings({
+                ...settings,
+                winningCondition: value ? 'lowest' : 'highest',
+              })
+            }
+          />
+        </View>
 
-          <View style={styles.setting}>
-            <Text>Round Limit</Text>
-            <TextInput
-              value={settings.roundLimit.toString()}
-              onChangeText={(text) =>
-                saveSettings({
-                  ...settings,
-                  roundLimit: parseInt(text) || 10,
-                })
-              }
-              keyboardType="numeric"
-              style={styles.input}
-            />
+        <Divider />
+
+        <View style={styles.fieldRow}>
+          <View style={styles.switchText}>
+            <Text variant="bodyLarge">Max score</Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Elimination threshold for pool games.
+            </Text>
           </View>
-        </Card.Content>
-      </Card>
-
-      <Card style={styles.section}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            App Settings
-          </Text>
-
-          <View style={styles.setting}>
-            <View style={styles.settingText}>
-              <Text>Dark Mode</Text>
-              <Text style={styles.muted}>Saved locally; theme wiring comes in the UI overhaul.</Text>
-            </View>
-            <Switch
-              value={settings.darkMode}
-              onValueChange={(value) =>
-                saveSettings({
-                  ...settings,
-                  darkMode: value,
-                })
-              }
-            />
-          </View>
-        </Card.Content>
-      </Card>
-
-      <Card style={styles.section}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Data
-          </Text>
-
-          <Button
+          <TextInput
+            value={settings.maxScore.toString()}
+            onChangeText={(text) =>
+              saveSettings({
+                ...settings,
+                maxScore: parseInt(text) || 100,
+              })
+            }
+            keyboardType="numeric"
             mode="outlined"
-            onPress={resetData}
-            style={styles.button}
-            textColor={theme.colors.error}
-            icon="delete"
-          >
-            Reset Local Cache
-          </Button>
-        </Card.Content>
-      </Card>
-    </ScrollView>
+            dense
+            style={styles.numberInput}
+          />
+        </View>
+
+        <View style={styles.fieldRow}>
+          <View style={styles.switchText}>
+            <Text variant="bodyLarge">Round limit</Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Maximum rounds before a game auto-closes.
+            </Text>
+          </View>
+          <TextInput
+            value={settings.roundLimit.toString()}
+            onChangeText={(text) =>
+              saveSettings({
+                ...settings,
+                roundLimit: parseInt(text) || 10,
+              })
+            }
+            keyboardType="numeric"
+            mode="outlined"
+            dense
+            style={styles.numberInput}
+          />
+        </View>
+      </SectionCard>
+
+      <SectionCard title="Appearance">
+        <View style={styles.switchRow}>
+          <View style={styles.switchText}>
+            <Text variant="bodyLarge">Dark mode</Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Saved locally; full theme switching is still coming.
+            </Text>
+          </View>
+          <Switch
+            value={settings.darkMode}
+            onValueChange={(value) =>
+              saveSettings({
+                ...settings,
+                darkMode: value,
+              })
+            }
+          />
+        </View>
+      </SectionCard>
+
+      <SectionCard
+        title="Data"
+        supportingText="Clears cached games and players on this device only."
+        mode="outlined"
+      >
+        <Button
+          mode="outlined"
+          onPress={resetData}
+          textColor={theme.colors.error}
+          icon="delete-outline"
+          contentStyle={styles.buttonContent}
+          style={{ borderColor: theme.colors.error }}
+        >
+          Reset local cache
+        </Button>
+      </SectionCard>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    marginBottom: 12,
-  },
-  help: {
-    color: '#666',
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  setting: {
+  identityRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 12,
+    gap: spacing.lg,
+    paddingBottom: spacing.sm,
   },
-  settingText: {
+  identityText: {
     flex: 1,
-    paddingRight: 8,
-  },
-  muted: {
-    color: '#666',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  input: {
-    width: 100,
-  },
-  button: {
-    marginTop: 8,
-  },
-  playerInfo: {
-    marginBottom: 12,
     gap: 2,
+  },
+  listItem: {
+    paddingHorizontal: 0,
+    minHeight: MIN_TOUCH_TARGET + spacing.md,
+    borderRadius: radius.sm,
+  },
+  buttonContent: {
+    height: MIN_TOUCH_TARGET,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    minHeight: MIN_TOUCH_TARGET,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    minHeight: MIN_TOUCH_TARGET,
+  },
+  switchText: {
+    flex: 1,
+    gap: 2,
+  },
+  numberInput: {
+    width: 96,
   },
 });

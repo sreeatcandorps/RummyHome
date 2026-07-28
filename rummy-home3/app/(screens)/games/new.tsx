@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Button, Text, Checkbox, List, SegmentedButtons, Switch, Searchbar } from 'react-native-paper';
+import {
+  Avatar,
+  Button,
+  Card,
+  Checkbox,
+  Divider,
+  SegmentedButtons,
+  Switch,
+  Searchbar,
+  Text,
+  TextInput,
+  TouchableRipple,
+  useTheme,
+} from 'react-native-paper';
 import { router } from 'expo-router';
 import { storage } from '../../../utils/storage';
 import { Player } from '../../../types/player';
@@ -9,13 +22,26 @@ import { authService } from '../../../services/auth';
 import { playersService } from '../../../services/players';
 import { isSupabaseConfigured } from '../../../services/supabase';
 import { formatSupabaseError } from '../../../utils/supabaseErrors';
+import { SectionCard } from '../../../components/ui/SectionCard';
+import { EmptyState } from '../../../components/ui/EmptyState';
+import { gameTypeColors, MIN_TOUCH_TARGET, radius, spacing } from '../../../constants/theme';
+
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2);
 
 export default function NewGame() {
+  const theme = useTheme();
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [gameType, setGameType] = useState<'stake' | 'pool'>('stake');
   const [expenseEnabled, setExpenseEnabled] = useState(true);
+  const [expenseDigits, setExpenseDigits] = useState('10');
   const [creating, setCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -80,6 +106,7 @@ export default function NewGame() {
         playerIds,
         gameType,
         expenseEnabled,
+        expenseAmount: -Math.abs(parseInt(expenseDigits || '0', 10) || 0),
         createdBy,
       });
 
@@ -103,79 +130,172 @@ export default function NewGame() {
     );
   }, [availablePlayers, currentUserId, searchQuery]);
 
+  const currentUserName = availablePlayers.find((p) => p.id === currentUserId)?.name ?? 'You';
+
+  const renderPlayerRow = (player: Player, isSelf: boolean) => {
+    const checked = isSelf || selectedPlayers.includes(player.id);
+
+    return (
+      <TouchableRipple
+        key={player.id}
+        onPress={isSelf ? undefined : () => togglePlayerSelection(player.id)}
+        disabled={isSelf}
+        style={styles.playerRow}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked, disabled: isSelf }}
+      >
+        <View style={styles.playerRowInner}>
+          <Avatar.Text
+            size={40}
+            label={getInitials(player.name)}
+            style={{
+              backgroundColor: checked ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
+            }}
+            color={checked ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant}
+          />
+          <View style={styles.playerText}>
+            <Text variant="bodyLarge" numberOfLines={1}>
+              {player.name}
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant }}
+              numberOfLines={1}
+            >
+              {isSelf ? 'You (always included)' : player.email ?? 'No email on file'}
+            </Text>
+          </View>
+          <Checkbox.Android
+            status={checked ? 'checked' : 'unchecked'}
+            disabled={isSelf}
+            onPress={isSelf ? undefined : () => togglePlayerSelection(player.id)}
+          />
+        </View>
+      </TouchableRipple>
+    );
+  };
+
   return (
-    <View style={styles.container}>
-      <Text variant="headlineMedium" style={styles.title}>New Game</Text>
-
-      <SegmentedButtons
-        value={gameType}
-        onValueChange={(value) => setGameType(value as 'stake' | 'pool')}
-        buttons={[
-          { value: 'stake', label: 'Stake Game' },
-          { value: 'pool', label: 'Pool Game' },
-        ]}
-        style={styles.gameTypeSelector}
-      />
-
-      <View style={styles.settingRow}>
-        <Text variant="bodyLarge">Expense Enabled</Text>
-        <Switch value={expenseEnabled} onValueChange={setExpenseEnabled} />
-      </View>
-
-      <Text variant="titleMedium" style={styles.subtitle}>Select Players</Text>
-      <Text variant="bodySmall" style={styles.hint}>
-        You are included automatically. Pick at least one other registered player.
-      </Text>
-
-      <Searchbar
-        placeholder="Search by name or email"
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        style={styles.search}
-      />
-
-      <ScrollView style={styles.playerList}>
-        {currentUserId ? (
-          <List.Item
-            title={availablePlayers.find((p) => p.id === currentUserId)?.name ?? 'You'}
-            description="You (required)"
-            left={() => <Checkbox status="checked" disabled />}
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <SectionCard title="Game type">
+          <SegmentedButtons
+            value={gameType}
+            onValueChange={(value) => setGameType(value as 'stake' | 'pool')}
+            buttons={[
+              {
+                value: 'stake',
+                label: 'Stake',
+                icon: 'cash-multiple',
+                checkedColor: gameTypeColors.stake.on,
+                style: gameType === 'stake' ? { backgroundColor: gameTypeColors.stake.container } : undefined,
+              },
+              {
+                value: 'pool',
+                label: 'Pool',
+                icon: 'trophy-outline',
+                checkedColor: gameTypeColors.pool.on,
+                style: gameType === 'pool' ? { backgroundColor: gameTypeColors.pool.container } : undefined,
+              },
+            ]}
           />
-        ) : null}
 
-        {otherPlayers.map((player) => (
-          <List.Item
-            key={player.id}
-            title={player.name}
-            description={player.email}
-            left={() => (
-              <Checkbox
-                status={selectedPlayers.includes(player.id) ? 'checked' : 'unchecked'}
-                onPress={() => togglePlayerSelection(player.id)}
+          <Divider />
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingText}>
+              <Text variant="bodyLarge">Add expense to each round</Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                Charges the table a fixed amount every round.
+              </Text>
+            </View>
+            <Switch value={expenseEnabled} onValueChange={setExpenseEnabled} />
+          </View>
+
+          {expenseEnabled ? (
+            <View style={styles.expenseRow}>
+              <TextInput
+                label="Expense per round"
+                value={expenseDigits}
+                onChangeText={(text) => setExpenseDigits(text.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                mode="outlined"
+                maxLength={4}
+                left={<TextInput.Affix text="−" />}
+                style={styles.expenseInput}
               />
-            )}
-            onPress={() => togglePlayerSelection(player.id)}
-          />
-        ))}
+              <Text variant="bodySmall" style={[styles.expenseHint, { color: theme.colors.onSurfaceVariant }]}>
+                Recorded as −{expenseDigits || '0'} on every round.
+              </Text>
+            </View>
+          ) : null}
+        </SectionCard>
 
-        {otherPlayers.length === 0 ? (
-          <Text style={styles.empty}>
-            {searchQuery.trim()
-              ? `No players match “${searchQuery}”.`
-              : 'No other registered players yet. Ask a friend to sign up, or use player1/player2 test accounts.'}
-          </Text>
-        ) : null}
+        <SectionCard
+          title="Players"
+          supportingText="You are included automatically. Pick at least one other registered player."
+        >
+          <Searchbar
+            placeholder="Search name or email"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            mode="bar"
+            style={{ backgroundColor: theme.colors.surfaceVariant, borderRadius: radius.full }}
+            inputStyle={styles.searchInput}
+          />
+
+          <View style={styles.playerList}>
+            {currentUserId
+              ? renderPlayerRow(
+                  { id: currentUserId, name: currentUserName, role: 'player' } as Player,
+                  true,
+                )
+              : null}
+
+            {otherPlayers.map((player) => renderPlayerRow(player, false))}
+          </View>
+
+          {otherPlayers.length === 0 ? (
+            <EmptyState
+              icon="account-search-outline"
+              title={searchQuery.trim() ? 'No matches' : 'No other players yet'}
+              message={
+                searchQuery.trim()
+                  ? `Nobody matches “${searchQuery}”.`
+                  : 'Ask a friend to sign up, then invite them from Find Players.'
+              }
+              actionLabel={searchQuery.trim() ? undefined : 'Find Players'}
+              onAction={searchQuery.trim() ? undefined : () => router.push('/(screens)/players/new')}
+            />
+          ) : null}
+        </SectionCard>
       </ScrollView>
 
-      <Button
+      <Card
         mode="contained"
-        onPress={startGame}
-        disabled={selectedPlayers.length < 2 || creating}
-        loading={creating}
-        style={styles.button}
+        style={[styles.bottomBar, { backgroundColor: theme.colors.elevation.level2 }]}
       >
-        Start Game ({selectedPlayers.length} players)
-      </Button>
+        <View style={styles.bottomBarInner}>
+          <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+            {selectedPlayers.length} selected
+          </Text>
+          <Button
+            mode="contained"
+            onPress={startGame}
+            disabled={selectedPlayers.length < 2 || creating}
+            loading={creating}
+            icon="play"
+            contentStyle={styles.startButtonContent}
+            labelStyle={styles.startButtonLabel}
+            style={styles.startButton}
+          >
+            Start Game
+          </Button>
+        </View>
+      </Card>
     </View>
   );
 }
@@ -183,42 +303,72 @@ export default function NewGame() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
-  title: {
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  subtitle: {
-    marginTop: 16,
-    marginBottom: 4,
-  },
-  hint: {
-    marginBottom: 8,
-    color: '#666',
-  },
-  search: {
-    marginBottom: 8,
-  },
-  empty: {
-    marginTop: 16,
-    color: '#666',
-    lineHeight: 20,
-  },
-  gameTypeSelector: {
-    marginBottom: 16,
+  scrollContent: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.lg,
   },
   settingRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    minHeight: MIN_TOUCH_TARGET,
+  },
+  settingText: {
+    flex: 1,
+    gap: 2,
+  },
+  searchInput: {
+    minHeight: 0,
+  },
+  expenseRow: {
+    gap: spacing.xs,
+  },
+  expenseInput: {
+    maxWidth: 200,
+  },
+  expenseHint: {
+    lineHeight: 18,
   },
   playerList: {
-    flex: 1,
-    marginBottom: 16,
+    marginHorizontal: -spacing.sm,
   },
-  button: {
-    marginTop: 10,
+  playerRow: {
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+  },
+  playerRowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    minHeight: 64,
+    paddingVertical: spacing.sm,
+  },
+  playerText: {
+    flex: 1,
+    gap: 2,
+  },
+  bottomBar: {
+    borderRadius: 0,
+  },
+  bottomBarInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  startButton: {
+    minWidth: 160,
+  },
+  startButtonContent: {
+    height: 52,
+  },
+  startButtonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

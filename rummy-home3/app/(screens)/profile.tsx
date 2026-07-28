@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { 
-  Text, 
-  Card, 
-  Button, 
-  Avatar, 
-  Divider, 
-  useTheme, 
-  TextInput, 
-  Portal, 
-  Modal, 
+import { View, StyleSheet, Alert, ActivityIndicator, Share } from 'react-native';
+import {
+  Text,
+  Card,
+  Button,
+  Avatar,
+  Divider,
+  useTheme,
+  TextInput,
+  Portal,
+  Dialog,
   HelperText,
-  IconButton
+  IconButton,
+  List,
 } from 'react-native-paper';
 import { router } from 'expo-router';
-import { storage } from '../../utils/storage';
 import { authService } from '../../services/auth';
 import { supabase } from '../../services/supabase';
 import { Player } from '../../types/player';
+import { Screen } from '../../components/ui/Screen';
+import { SectionCard } from '../../components/ui/SectionCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -32,6 +36,8 @@ export default function ProfileScreen() {
   const [passcodeError, setPasscodeError] = useState('');
   const [passcodeLoading, setPasscodeLoading] = useState(false);
   
+  const [showPlayerIdInfo, setShowPlayerIdInfo] = useState(false);
+
   // Change email modal state
   const [showChangeEmail, setShowChangeEmail] = useState(false);
   const [newEmail, setNewEmail] = useState('');
@@ -190,433 +196,441 @@ export default function ProfileScreen() {
       .substring(0, 2);
   };
 
+  const sharePlayerId = async () => {
+    if (!currentPlayer?.playerCode) return;
+
+    try {
+      await Share.share({
+        message: `Add me on Rummy Home. My player ID is ${currentPlayer.playerCode}.`,
+      });
+    } catch (error) {
+      console.error('Share player ID failed:', error);
+    }
+  };
+
+  const closePasscodeDialog = () => {
+    setShowChangePasscode(false);
+    setCurrentPasscode('');
+    setNewPasscode('');
+    setConfirmPasscode('');
+    setPasscodeError('');
+  };
+
+  const closeEmailDialog = () => {
+    setShowChangeEmail(false);
+    setNewEmail('');
+    setEmailError('');
+  };
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
+      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
 
   if (!currentPlayer) {
     return (
-      <View style={styles.container}>
-        <Text>No user profile found</Text>
-        <Button onPress={() => router.replace('/(auth)/login')}>Login</Button>
+      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
+        <EmptyState
+          icon="account-alert-outline"
+          title="No profile found"
+          message="Sign in again to load your profile."
+          actionLabel="Go to login"
+          onAction={() => router.replace('/(auth)/login')}
+        />
       </View>
     );
   }
 
+  const gamesPlayed = currentPlayer.gamesPlayed || 0;
+  const gamesWon = currentPlayer.gamesWon || 0;
+  const winRate = gamesPlayed && gamesWon ? Math.round((gamesWon / gamesPlayed) * 100) : 0;
+
+  const stats = [
+    { label: 'Played', value: `${gamesPlayed}` },
+    { label: 'Won', value: `${gamesWon}` },
+    { label: 'Win rate', value: `${winRate}%` },
+  ];
+
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content style={styles.headerContent}>
-          <Avatar.Text 
-            size={80} 
+    <Screen>
+      <Card
+        mode="contained"
+        style={[styles.hero, { backgroundColor: theme.colors.primaryContainer }]}
+      >
+        <Card.Content style={styles.heroContent}>
+          <Avatar.Text
+            size={88}
             label={getInitials(currentPlayer.name)}
-            style={{ 
-              backgroundColor: currentPlayer.role === 'admin' 
-                ? theme.colors.error 
+            style={{
+              backgroundColor: currentPlayer.role === 'admin'
+                ? theme.colors.error
                 : theme.colors.primary,
-              marginBottom: 16
             }}
           />
-          <Text variant="headlineMedium" style={styles.name}>
+          <Text variant="headlineSmall" style={[styles.heroName, { color: theme.colors.onPrimaryContainer }]}>
             {currentPlayer.name}
           </Text>
-          <Text variant="bodyLarge" style={styles.role}>
+          <Text variant="labelLarge" style={{ color: theme.colors.onPrimaryContainer, opacity: 0.8 }}>
             {currentPlayer.role === 'admin' ? 'Administrator' : 'Player'}
           </Text>
-        </Card.Content>
-      </Card>
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Account Settings
-          </Text>
-          <Divider style={styles.divider} />
-          
-          <Button 
-            mode="outlined"
-            onPress={() => setShowChangePasscode(true)}
-            style={styles.button}
-            icon="lock"
+          <Button
+            mode="contained"
+            onPress={() => router.push(`/players/${currentPlayer.id}/edit`)}
+            icon="account-edit-outline"
+            style={styles.heroButton}
+            contentStyle={styles.buttonContent}
           >
-            Change Passcode
-          </Button>
-          
-          <Button 
-            mode="outlined"
-            onPress={() => setShowChangeEmail(true)}
-            style={styles.button}
-            icon="email"
-          >
-            Change Email
+            Edit profile
           </Button>
         </Card.Content>
       </Card>
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Contact Information
-          </Text>
-          <Divider style={styles.divider} />
-          
-          {currentPlayer.email && (
-            <View style={styles.infoRow}>
-              <Text variant="bodyMedium" style={styles.label}>Email:</Text>
-              <Text variant="bodyMedium" style={styles.value}>{currentPlayer.email}</Text>
-            </View>
-          )}
-          
-          {currentPlayer.phone && (
-            <View style={styles.infoRow}>
-              <Text variant="bodyMedium" style={styles.label}>Phone:</Text>
-              <Text variant="bodyMedium" style={styles.value}>{currentPlayer.phone}</Text>
-            </View>
-          )}
-          
-          {!currentPlayer.email && !currentPlayer.phone && (
-            <Text variant="bodyMedium" style={styles.noInfo}>
-              No contact information available
-            </Text>
-          )}
-        </Card.Content>
-      </Card>
-
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Game Statistics
-          </Text>
-          <Divider style={styles.divider} />
-          
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
-                {currentPlayer.gamesPlayed || 0}
+      <View style={styles.statsRow}>
+        {stats.map((stat) => (
+          <Card key={stat.label} mode="outlined" style={styles.statCard}>
+            <Card.Content style={styles.statContent}>
+              <Text variant="headlineSmall" style={styles.statValue}>
+                {stat.value}
               </Text>
-              <Text variant="bodyMedium">Games Played</Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
-                {currentPlayer.gamesWon || 0}
+              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                {stat.label}
               </Text>
-              <Text variant="bodyMedium">Games Won</Text>
-            </View>
-            
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={styles.statNumber}>
-                {currentPlayer.gamesPlayed && currentPlayer.gamesWon 
-                  ? Math.round((currentPlayer.gamesWon / currentPlayer.gamesPlayed) * 100)
-                  : 0}%
-              </Text>
-              <Text variant="bodyMedium">Win Rate</Text>
-            </View>
-          </View>
-        </Card.Content>
-      </Card>
-
-      <View style={styles.buttonContainer}>
-        <Button 
-          mode="contained"
-          onPress={() => router.push(`/players/${currentPlayer.id}/edit`)}
-          style={styles.button}
-          icon="account-edit"
-        >
-          Edit Profile
-        </Button>
-        
-        <Button 
-          mode="outlined"
-          onPress={() => router.back()}
-          style={styles.button}
-          icon="arrow-left"
-        >
-          Back
-        </Button>
+            </Card.Content>
+          </Card>
+        ))}
       </View>
 
-      {/* Change Passcode Modal */}
-      <Portal>
-        <Modal
-          visible={showChangePasscode}
-          onDismiss={() => setShowChangePasscode(false)}
-          contentContainerStyle={styles.modal}
-        >
-          <View style={styles.modalHeader}>
-            <Text variant="titleLarge" style={styles.modalTitle}>
-              Change Passcode
+      <Card mode="outlined" style={styles.playerIdCard}>
+        <Card.Content style={styles.playerIdContent}>
+          <View style={styles.playerIdHeader}>
+            <Text variant="titleMedium" style={styles.playerIdTitle}>
+              Your player ID
             </Text>
             <IconButton
-              icon="close"
-              size={24}
-              onPress={() => {
-                setShowChangePasscode(false);
-                setCurrentPasscode('');
-                setNewPasscode('');
-                setConfirmPasscode('');
-                setPasscodeError('');
-              }}
+              icon="information-outline"
+              size={20}
+              accessibilityLabel="What is a player ID?"
+              onPress={() => setShowPlayerIdInfo(true)}
             />
           </View>
-          
-          <TextInput
-            label="Current Passcode"
-            value={currentPasscode}
-            onChangeText={(text) => {
-              const numericText = text.replace(/[^0-9]/g, '');
-              if (numericText.length <= 6) {
-                setCurrentPasscode(numericText);
-              }
-            }}
-            mode="outlined"
-            style={styles.modalInput}
-            keyboardType="numeric"
-            maxLength={6}
-            secureTextEntry
-            placeholder="Enter current 6-digit passcode"
-          />
-          
-          <TextInput
-            label="New Passcode"
-            value={newPasscode}
-            onChangeText={(text) => {
-              const numericText = text.replace(/[^0-9]/g, '');
-              if (numericText.length <= 6) {
-                setNewPasscode(numericText);
-              }
-            }}
-            mode="outlined"
-            style={styles.modalInput}
-            keyboardType="numeric"
-            maxLength={6}
-            secureTextEntry
-            placeholder="Enter new 6-digit passcode"
-          />
-          
-          <TextInput
-            label="Confirm New Passcode"
-            value={confirmPasscode}
-            onChangeText={(text) => {
-              const numericText = text.replace(/[^0-9]/g, '');
-              if (numericText.length <= 6) {
-                setConfirmPasscode(numericText);
-              }
-            }}
-            mode="outlined"
-            style={styles.modalInput}
-            keyboardType="numeric"
-            maxLength={6}
-            secureTextEntry
-            placeholder="Confirm new 6-digit passcode"
-          />
-          
-          {passcodeError ? (
-            <HelperText type="error" visible={!!passcodeError}>
-              {passcodeError}
-            </HelperText>
-          ) : null}
-          
-          <View style={styles.modalButtons}>
-            <Button 
-              mode="outlined"
-              onPress={() => {
-                setShowChangePasscode(false);
-                setCurrentPasscode('');
-                setNewPasscode('');
-                setConfirmPasscode('');
-                setPasscodeError('');
-              }}
-              style={styles.modalButton}
+
+          <View style={styles.playerIdRow}>
+            <View style={[styles.playerIdPill, { backgroundColor: theme.colors.secondaryContainer }]}>
+              <Text
+                variant="headlineSmall"
+                style={[styles.playerIdText, { color: theme.colors.onSecondaryContainer }]}
+              >
+                {currentPlayer.playerCode ?? '—'}
+              </Text>
+            </View>
+
+            <Button
+              mode="contained-tonal"
+              icon="share-variant"
+              onPress={sharePlayerId}
+              disabled={!currentPlayer.playerCode}
+              contentStyle={styles.buttonContent}
             >
-              Cancel
+              Share
             </Button>
-            
-            <Button 
+          </View>
+
+          {!currentPlayer.playerCode ? (
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              Run migration 004 in Supabase to generate player IDs.
+            </Text>
+          ) : null}
+        </Card.Content>
+      </Card>
+
+      <SectionCard title="Contact information">
+        {currentPlayer.email || currentPlayer.phone ? (
+          <View>
+            {currentPlayer.email ? (
+              <List.Item
+                title={currentPlayer.email}
+                description="Email"
+                left={(props) => <List.Icon {...props} icon="email-outline" />}
+                style={styles.infoItem}
+              />
+            ) : null}
+            {currentPlayer.phone ? (
+              <List.Item
+                title={currentPlayer.phone}
+                description="Phone"
+                left={(props) => <List.Icon {...props} icon="phone-outline" />}
+                style={styles.infoItem}
+              />
+            ) : null}
+          </View>
+        ) : (
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+            No contact information yet. Add it from Edit profile.
+          </Text>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Security">
+        <List.Item
+          title="Change passcode"
+          description="Update your 6-digit login passcode"
+          left={(props) => <List.Icon {...props} icon="lock-outline" />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={() => setShowChangePasscode(true)}
+          style={styles.actionItem}
+        />
+        <Divider />
+        <List.Item
+          title="Change email"
+          description="Requires confirmation from your inbox"
+          left={(props) => <List.Icon {...props} icon="email-sync-outline" />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={() => setShowChangeEmail(true)}
+          style={styles.actionItem}
+        />
+      </SectionCard>
+
+      <Portal>
+        <Dialog
+          visible={showPlayerIdInfo}
+          onDismiss={() => setShowPlayerIdInfo(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Icon icon="badge-account-horizontal-outline" />
+          <Dialog.Title style={styles.dialogTitle}>About your player ID</Dialog.Title>
+          <Dialog.Content style={styles.dialogContent}>
+            <Text variant="bodyMedium" style={styles.dialogBody}>
+              Every player gets a permanent short ID. Share it instead of your email or phone, and
+              friends can find you in Find Players without knowing anything else about you.
+            </Text>
+            <Text variant="bodyMedium" style={styles.dialogBody}>
+              Tap Share to send it over WhatsApp, text, email, or anything else on your phone.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button mode="contained" onPress={() => setShowPlayerIdInfo(false)}>
+              Got it
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      {/* Change Passcode Dialog */}
+      <Portal>
+        <Dialog visible={showChangePasscode} onDismiss={closePasscodeDialog} style={styles.dialog}>
+          <Dialog.Icon icon="lock-outline" />
+          <Dialog.Title style={styles.dialogTitle}>Change passcode</Dialog.Title>
+          <Dialog.Content style={styles.dialogContent}>
+            <TextInput
+              label="Current passcode"
+              value={currentPasscode}
+              onChangeText={(text) => {
+                const numericText = text.replace(/[^0-9]/g, '');
+                if (numericText.length <= 6) {
+                  setCurrentPasscode(numericText);
+                }
+              }}
+              mode="outlined"
+              keyboardType="numeric"
+              maxLength={6}
+              secureTextEntry
+            />
+
+            <TextInput
+              label="New passcode"
+              value={newPasscode}
+              onChangeText={(text) => {
+                const numericText = text.replace(/[^0-9]/g, '');
+                if (numericText.length <= 6) {
+                  setNewPasscode(numericText);
+                }
+              }}
+              mode="outlined"
+              keyboardType="numeric"
+              maxLength={6}
+              secureTextEntry
+            />
+
+            <TextInput
+              label="Confirm new passcode"
+              value={confirmPasscode}
+              onChangeText={(text) => {
+                const numericText = text.replace(/[^0-9]/g, '');
+                if (numericText.length <= 6) {
+                  setConfirmPasscode(numericText);
+                }
+              }}
+              mode="outlined"
+              keyboardType="numeric"
+              maxLength={6}
+              secureTextEntry
+            />
+
+            {passcodeError ? (
+              <HelperText type="error" visible={!!passcodeError}>
+                {passcodeError}
+              </HelperText>
+            ) : null}
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button onPress={closePasscodeDialog}>Cancel</Button>
+            <Button
               mode="contained"
               onPress={handleChangePasscode}
-              style={styles.modalButton}
               loading={passcodeLoading}
               disabled={passcodeLoading}
             >
-              Update Passcode
+              Update
             </Button>
-          </View>
-        </Modal>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
 
-      {/* Change Email Modal */}
+      {/* Change Email Dialog */}
       <Portal>
-        <Modal
-          visible={showChangeEmail}
-          onDismiss={() => setShowChangeEmail(false)}
-          contentContainerStyle={styles.modal}
-        >
-          <View style={styles.modalHeader}>
-            <Text variant="titleLarge" style={styles.modalTitle}>
-              Change Email
+        <Dialog visible={showChangeEmail} onDismiss={closeEmailDialog} style={styles.dialog}>
+          <Dialog.Icon icon="email-sync-outline" />
+          <Dialog.Title style={styles.dialogTitle}>Change email</Dialog.Title>
+          <Dialog.Content style={styles.dialogContent}>
+            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+              Current: {currentPlayer?.email}
             </Text>
-            <IconButton
-              icon="close"
-              size={24}
-              onPress={() => {
-                setShowChangeEmail(false);
-                setNewEmail('');
-                setEmailError('');
-              }}
-            />
-          </View>
-          
-          <Text variant="bodyMedium" style={styles.modalSubtitle}>
-            Current email: {currentPlayer?.email}
-          </Text>
-          
-          <TextInput
-            label="New Email Address"
-            value={newEmail}
-            onChangeText={setNewEmail}
-            mode="outlined"
-            style={styles.modalInput}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholder="Enter new email address"
-          />
-          
-          {emailError ? (
-            <HelperText type="error" visible={!!emailError}>
-              {emailError}
-            </HelperText>
-          ) : null}
-          
-          <HelperText type="info" visible={true}>
-            A confirmation email will be sent to verify your new email address.
-          </HelperText>
-          
-          <View style={styles.modalButtons}>
-            <Button 
+
+            <TextInput
+              label="New email address"
+              value={newEmail}
+              onChangeText={setNewEmail}
               mode="outlined"
-              onPress={() => {
-                setShowChangeEmail(false);
-                setNewEmail('');
-                setEmailError('');
-              }}
-              style={styles.modalButton}
-            >
-              Cancel
-            </Button>
-            
-            <Button 
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            {emailError ? (
+              <HelperText type="error" visible={!!emailError}>
+                {emailError}
+              </HelperText>
+            ) : null}
+
+            <HelperText type="info" visible>
+              A confirmation email will be sent to verify your new address.
+            </HelperText>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button onPress={closeEmailDialog}>Cancel</Button>
+            <Button
               mode="contained"
               onPress={handleChangeEmail}
-              style={styles.modalButton}
               loading={emailLoading}
               disabled={emailLoading}
             >
-              Send Confirmation Email
+              Send email
             </Button>
-          </View>
-        </Modal>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  centered: {
     flex: 1,
-    padding: 16,
-  },
-  card: {
-    marginBottom: 16,
-  },
-  headerContent: {
     alignItems: 'center',
-    paddingVertical: 24,
+    justifyContent: 'center',
+    padding: spacing.xl,
   },
-  name: {
-    marginBottom: 8,
+  hero: {
+    borderRadius: radius.lg,
+  },
+  heroContent: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+  },
+  heroName: {
+    fontWeight: '600',
     textAlign: 'center',
   },
-  role: {
-    opacity: 0.7,
-    textTransform: 'capitalize',
+  heroButton: {
+    marginTop: spacing.lg,
+    minWidth: 200,
   },
-  sectionTitle: {
-    marginBottom: 12,
-    fontWeight: 'bold',
+  buttonContent: {
+    height: MIN_TOUCH_TARGET,
   },
-  divider: {
-    marginBottom: 16,
-  },
-  infoRow: {
+  statsRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    gap: spacing.md,
   },
-  label: {
-    fontWeight: 'bold',
-    width: 80,
-  },
-  value: {
+  statCard: {
     flex: 1,
+    borderRadius: radius.md,
   },
-  noInfo: {
-    fontStyle: 'italic',
-    opacity: 0.7,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
+  statContent: {
     alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
   },
-  statNumber: {
-    fontWeight: 'bold',
-    marginBottom: 4,
+  statValue: {
+    fontWeight: '700',
   },
-  buttonContainer: {
-    gap: 12,
-    marginBottom: 24,
+  playerIdCard: {
+    borderRadius: radius.lg,
   },
-  button: {
-    marginBottom: 8,
+  playerIdContent: {
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.lg,
+    gap: spacing.sm,
   },
-  modal: {
-    backgroundColor: 'white',
-    padding: 20,
-    margin: 20,
-    borderRadius: 10,
-    maxHeight: '80%',
-  },
-  modalHeader: {
+  playerIdHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
   },
-  modalTitle: {
-    flex: 1,
-    textAlign: 'center',
+  playerIdTitle: {
+    fontWeight: '600',
   },
-  modalSubtitle: {
-    textAlign: 'center',
-    marginBottom: 16,
-    opacity: 0.7,
-  },
-  modalInput: {
-    marginBottom: 16,
-  },
-  modalButtons: {
+  playerIdRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
+    alignItems: 'center',
+    gap: spacing.md,
   },
-  modalButton: {
+  playerIdPill: {
     flex: 1,
-    marginHorizontal: 8,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
   },
-}); 
+  playerIdText: {
+    fontWeight: '700',
+    letterSpacing: 4,
+  },
+  infoItem: {
+    paddingHorizontal: 0,
+  },
+  actionItem: {
+    paddingHorizontal: 0,
+    minHeight: MIN_TOUCH_TARGET + spacing.md,
+  },
+  dialog: {
+    borderRadius: radius.lg,
+  },
+  dialogTitle: {
+    textAlign: 'center',
+  },
+  dialogContent: {
+    gap: spacing.md,
+  },
+  dialogBody: {
+    lineHeight: 20,
+  },
+  dialogActions: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+});
