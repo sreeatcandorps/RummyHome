@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, FlatList, ScrollView } from 'react-native';
-import { Text, Card, FAB, IconButton, Searchbar, Menu, Portal, Dialog, TextInput, Button, List, Avatar } from 'react-native-paper';
-import { Link, router, useLocalSearchParams } from 'expo-router';
+import { View, StyleSheet, FlatList } from 'react-native';
+import { Text, Card, FAB, IconButton, Searchbar, Menu, Portal, Dialog, TextInput, Button, Avatar } from 'react-native-paper';
+import { router, useLocalSearchParams } from 'expo-router';
 import { storage } from '../../../utils/storage';
 import { Player } from '../../../types/player';
 import * as Linking from 'expo-linking';
 import * as SMS from 'expo-sms';
-import * as Contacts from 'expo-contacts';
 import { playersService } from '../../../services/players';
 import { isSupabaseConfigured } from '../../../services/supabase';
 import { EmptyState } from '../../../components/ui/EmptyState';
@@ -24,11 +23,6 @@ export default function PlayersScreen() {
   const [newPlayerEmail, setNewPlayerEmail] = useState('');
   const [newPlayerPhone, setNewPlayerPhone] = useState('');
   const [error, setError] = useState('');
-  const [hasContactPermission, setHasContactPermission] = useState(false);
-  const [contacts, setContacts] = useState<Contacts.Contact[]>([]);
-  const [contactPickerVisible, setContactPickerVisible] = useState(false);
-  const [contactSearch, setContactSearch] = useState('');
-  const [filteredContacts, setFilteredContacts] = useState<Contacts.Contact[]>([]);
   const params = useLocalSearchParams();
 
   // Add filteredPlayers state
@@ -42,10 +36,6 @@ export default function PlayersScreen() {
       setNewPlayerPhone(params.phone as string);
       setAddDialogVisible(true);
     }
-    (async () => {
-      const { status } = await Contacts.requestPermissionsAsync();
-      setHasContactPermission(status === 'granted');
-    })();
   }, [params]);
 
   // Add effect to filter players based on search query and sort
@@ -173,67 +163,6 @@ export default function PlayersScreen() {
       }
     }
   };
-
-  const handleSelectContact = async () => {
-    try {
-      if (!hasContactPermission) {
-        const { status } = await Contacts.requestPermissionsAsync();
-        if (status !== 'granted') {
-          return;
-        }
-      }
-
-      const { data } = await Contacts.getContactsAsync({
-        fields: [
-          Contacts.Fields.Name,
-          Contacts.Fields.PhoneNumbers,
-          Contacts.Fields.Emails,
-        ],
-        sort: Contacts.SortTypes.FirstName
-      });
-
-      // Show contact selection dialog
-      setContacts(data);
-      setContactPickerVisible(true);
-    } catch (error) {
-      console.error('Error loading contacts:', error);
-    }
-  };
-
-  const selectContact = (contact: Contacts.Contact) => {
-    setNewPlayerName(contact.name || '');
-    if (contact.emails && contact.emails.length > 0) {
-      setNewPlayerEmail(contact.emails[0].email || '');
-    }
-    if (contact.phoneNumbers && contact.phoneNumbers.length > 0) {
-      setNewPlayerPhone(contact.phoneNumbers[0].number || '');
-    }
-    setContactPickerVisible(false);
-  };
-
-  const handleContactSearch = async (query: string) => {
-    setContactSearch(query);
-    if (query.length < 2) {
-      setFilteredContacts([]);
-      return;
-    }
-
-    try {
-      const { data } = await Contacts.getContactsAsync({
-        fields: [
-          Contacts.Fields.Name,
-          Contacts.Fields.PhoneNumbers,
-          Contacts.Fields.Emails,
-        ],
-        name: query,  // This filters contacts by name
-      });
-      setFilteredContacts(data);
-    } catch (error) {
-      console.error('Error searching contacts:', error);
-    }
-  };
-
-
 
   const renderPlayer = ({ item }: { item: Player }) => {
     try {
@@ -398,15 +327,6 @@ export default function PlayersScreen() {
         <Dialog visible={addDialogVisible} onDismiss={handleDialogClose} style={styles.dialog}>
           <Dialog.Title>Add new player</Dialog.Title>
           <Dialog.Content>
-            <Button 
-              mode="outlined"
-              icon="account-search"
-              onPress={() => router.push('/players/search')}
-              style={styles.input}
-            >
-              Search Contacts
-            </Button>
-            
             <TextInput
               label="Player Name"
               value={newPlayerName}
@@ -438,38 +358,6 @@ export default function PlayersScreen() {
               Add
             </Button>
           </Dialog.Actions>
-        </Dialog>
-      </Portal>
-
-      <Portal>
-        <Dialog visible={contactPickerVisible} onDismiss={() => setContactPickerVisible(false)}>
-          <Dialog.Title>Select Contact</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              label="Search contacts"
-              value={contactSearch}
-              onChangeText={handleContactSearch}
-              mode="outlined"
-              style={{ marginBottom: 10 }}
-            />
-            <ScrollView style={{ maxHeight: 300 }}>
-              {filteredContacts.map((contact, index) => (
-                <List.Item
-                  key={`contact-${contact.name ?? 'unknown'}-${contact.phoneNumbers?.[0]?.number ?? index}`}
-                  title={contact.name}
-                  description={
-                    contact.phoneNumbers && contact.phoneNumbers[0]
-                      ? contact.phoneNumbers[0].number
-                      : 'No phone number'
-                  }
-                  onPress={() => selectContact(contact)}
-                />
-              ))}
-              {contactSearch.length >= 2 && filteredContacts.length === 0 && (
-                <Text style={{ padding: 16, textAlign: 'center' }}>No contacts found</Text>
-              )}
-            </ScrollView>
-          </Dialog.Content>
         </Dialog>
       </Portal>
     </View>
@@ -528,9 +416,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
   },
   input: {
-    marginBottom: spacing.lg,
-  },
-  contactButton: {
     marginBottom: spacing.lg,
   },
   dialog: {

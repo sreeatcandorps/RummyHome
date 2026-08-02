@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "rummy-home3",
+    "name": "Rummy Home",
     "slug": "rummy-home3",
     "version": "1.0.0",
     "orientation": "default",
@@ -29,8 +29,13 @@
       "favicon": "./assets/favicon.png"
     },
     "scheme": "rummy-home3",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "updates": {
-      "enabled": false
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     },
     "plugins": [
       "expo-router",
