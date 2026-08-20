@@ -1,0 +1,28 @@
+---
+description: Keep architecture-and-timeline.md current on tooling and major milestones
+alwaysApply: true
+---
+
+# Architecture & timeline log
+
+Living doc: `rummy-home3/docs/architecture-and-timeline.md`
+
+## When to update it
+
+Update that file in the same change set when any of these happen:
+
+- New or replaced tool (EAS, Expo SDK bump, Supabase, GitHub Pages, CI, store accounts)
+- Distribution path changes (Expo Go vs EAS Build vs Play/TestFlight)
+- Major module finished or abandoned (auth, scoring, players, store submit)
+- Account/linking status that blockers care about (EAS login, projectId, env vars pushed)
+
+## How to write entries
+
+- Prefer **Timeline** bullets: date + one or two sentences on *what tool/architecture changed and why*
+- Update **Current stack** and **Module status** tables when they drift
+- Do **not** dump code diffs, file lists, or minor UI polish
+- Keep the “big picture” Expo ≠ leaving Expo section accurate if distribution story changes
+
+## When not to update
+
+Pure copy tweaks, small bugfixes, styling-only passes with no new dependency or hosting change.

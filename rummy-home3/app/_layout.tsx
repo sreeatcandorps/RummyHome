@@ -8,6 +8,7 @@ import { authService } from '@/services/auth';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { lightTheme } from '@/constants/theme';
+import { isClockSkewError } from '@/utils/supabaseErrors';
 
 const theme = lightTheme;
 
@@ -36,6 +37,11 @@ export default function Layout() {
 
   const checkAuth = async () => {
     try {
+      if (isSupabaseConfigured) {
+        // After a paused Supabase project wakes up, refresh before routing.
+        await authService.ensureFreshSession();
+      }
+
       const currentPlayer = isSupabaseConfigured
         ? await authService.getCurrentUserId()
         : await getLocalCurrentPlayerId();
@@ -51,6 +57,9 @@ export default function Layout() {
       }
     } catch (error) {
       console.error('Auth check error:', error);
+      if (isSupabaseConfigured && isClockSkewError(error)) {
+        await authService.clearLocalSession();
+      }
       // On error, redirect to login
       if (segments[0] !== '(auth)') {
         router.replace('/(auth)/login');

@@ -39,7 +39,7 @@ export function formatAuthError(error: unknown): string {
   }
 
   if (lower.includes('jwt issued at future')) {
-    return 'Your phone clock appears ahead of the server. Set Date & Time to Automatic, then try again.';
+    return 'Your saved sign-in is out of sync with the server. Sign out and sign back in.';
   }
 
   return message || 'Something went wrong. Please try again.';

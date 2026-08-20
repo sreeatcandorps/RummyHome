@@ -2,6 +2,7 @@ import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { ProfileDefaults } from '@/types/database';
 import { Player } from '@/types/player';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
+import { isClockSkewError } from '@/utils/supabaseErrors';
 import { storage } from '@/utils/storage';
 
 export type Profile = {
@@ -75,6 +76,16 @@ export const authService = {
     if (error) throw error;
   },
 
+  /** Drop local session without requiring a network round-trip. */
+  async clearLocalSession() {
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch {
+      // Ignore — storage clear below is what unblocks the UI.
+    }
+    await storage.setCurrentPlayer(null);
+  },
+
   async getSession() {
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
@@ -90,7 +101,7 @@ export const authService = {
     return data.session;
   },
 
-  /** Refresh when possible so slightly skewed device clocks recover. */
+  /** Refresh when possible so slightly skewed / stale tokens recover. */
   async ensureFreshSession() {
     const session = await this.getSession();
     if (!session) return null;
@@ -102,23 +113,49 @@ export const authService = {
     }
   },
 
+  /**
+   * After Supabase pause/wake, access tokens can be rejected with PGRST303.
+   * Try one refresh; if that still fails, clear the local session so login works.
+   */
+  async recoverFromStaleSession(): Promise<boolean> {
+    try {
+      const refreshed = await this.refreshSession();
+      return Boolean(refreshed);
+    } catch {
+      await this.clearLocalSession();
+      return false;
+    }
+  },
+
   async getCurrentUserId() {
     const session = await this.getSession();
     return session?.user.id ?? null;
   },
 
   async getCurrentProfile(): Promise<Profile | null> {
-    const userId = await this.getCurrentUserId();
-    if (!userId) return null;
+    const fetchProfile = async () => {
+      const userId = await this.getCurrentUserId();
+      if (!userId) return null;
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    if (error) throw error;
-    return data ? toProfile(data) : null;
+      if (error) throw error;
+      return data ? toProfile(data) : null;
+    };
+
+    try {
+      return await fetchProfile();
+    } catch (error) {
+      if (!isClockSkewError(error)) throw error;
+
+      const recovered = await this.recoverFromStaleSession();
+      if (!recovered) return null;
+      return await fetchProfile();
+    }
   },
 
   async getCurrentPlayer(): Promise<Player | null> {

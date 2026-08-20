@@ -14,7 +14,7 @@ test('createUuid always returns a valid UUID', () => {
 
 test('maps JWT clock skew clearly', () => {
   const message = formatSupabaseError({ code: 'PGRST303', message: 'JWT issued at future' });
-  assert.match(message, /clock/i);
+  assert.match(message, /sign/i);
   assert.equal(isClockSkewError({ code: 'PGRST303', message: 'JWT issued at future' }), true);
 });
 

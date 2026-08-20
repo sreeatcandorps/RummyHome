@@ -12,7 +12,7 @@ export function formatSupabaseError(error: unknown): string {
   const code = err.code ?? '';
 
   if (code === 'PGRST303' || /JWT issued at future/i.test(message)) {
-    return 'Your phone clock appears ahead of the server. Set Date & Time to Automatic, wait a few seconds, then pull to refresh or sign out and back in.';
+    return 'Your saved sign-in is out of sync with the server (common after Supabase was paused). Sign out and sign back in.';
   }
 
   if (code === '22P02' || /invalid input syntax for type uuid/i.test(message)) {
@@ -26,6 +26,7 @@ export function formatSupabaseError(error: unknown): string {
   return message;
 }
 
+/** Stale/skewed JWT that PostgREST rejects (often after a paused project wakes up). */
 export function isClockSkewError(error: unknown): boolean {
   const err = error as { message?: string; code?: string };
   return err?.code === 'PGRST303' || /JWT issued at future/i.test(err?.message ?? '');

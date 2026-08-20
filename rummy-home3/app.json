@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Rummy Home",
-    "slug": "rummy-home3",
+    "slug": "rummy-score",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
@@ -35,11 +35,19 @@
     "updates": {
       "enabled": true,
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/076b8018-c964-4819-8331-a65b913d15b6"
     },
     "plugins": [
       "expo-router",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "076b8018-c964-4819-8331-a65b913d15b6"
+      }
+    },
+    "owner": "mindweave"
   }
 }

@@ -2,6 +2,8 @@
 
 This covers the Expo-side work that must happen before the first Android store build.
 
+For the “why Expo vs Play / EAS” explanation and project timeline, see `docs/architecture-and-timeline.md`.
+
 ## One-time Expo login
 
 ```bash
@@ -50,8 +52,11 @@ npx eas-cli update --channel production --message "Describe the fix" --environme
 ## Privacy policy URL
 
 Host `docs/privacy-policy.html` from the repo root (GitHub Pages on `/docs` works).
-Example URL shape after enabling Pages:
 
-`https://<github-user>.github.io/<repo>/privacy-policy.html`
+1. GitHub → repo **Settings** → **Pages**
+2. Source: Deploy from a branch → `main` / `/docs`
+3. Use: `https://sreeatcandorps.github.io/RummyHome/privacy-policy.html`
 
 Paste that URL into Play Console → App content → Privacy policy.
+
+Store listing text and graphics: see `docs/store-listing.md` at the repo root.

@@ -38,6 +38,10 @@ export default function Dashboard() {
     setLoadError(null);
 
     try {
+      if (isSupabaseConfigured) {
+        await authService.ensureFreshSession();
+      }
+
       const player = await authService.getCurrentPlayer();
       if (!player) {
         setCurrentPlayer(null);
@@ -56,7 +60,12 @@ export default function Dashboard() {
         setRecentGames(games);
       } catch (innerError) {
         if (isClockSkewError(innerError) && isSupabaseConfigured) {
-          await authService.refreshSession();
+          const recovered = await authService.recoverFromStaleSession();
+          if (!recovered) {
+            setCurrentPlayer(null);
+            setLoadError(formatSupabaseError(innerError));
+            return;
+          }
           const [allPlayers, games] = await Promise.all([
             playersService.listPlayers(),
             gamesService.listGamesForCurrentUser(player.id, { limit: 5, includeScores: false }),
@@ -69,6 +78,10 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error('Dashboard load error:', error);
+      if (isClockSkewError(error) && isSupabaseConfigured) {
+        await authService.clearLocalSession();
+        setCurrentPlayer(null);
+      }
       setLoadError(formatSupabaseError(error));
     } finally {
       setLoading(false);
