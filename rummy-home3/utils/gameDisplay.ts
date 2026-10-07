@@ -28,6 +28,6 @@ export function gameTypeLabel(gameType: Game['gameType']): string {
   return gameType === 'pool' ? 'Pool' : 'Stake';
 }
 
-export function gameTypeTint(gameType: Game['gameType']) {
-  return gameType === 'pool' ? gameTypeColors.pool : gameTypeColors.stake;
+export function gameTypeTint(gameType: Game['gameType'], tints: typeof gameTypeColors = gameTypeColors) {
+  return gameType === 'pool' ? tints.pool : tints.stake;
 }
