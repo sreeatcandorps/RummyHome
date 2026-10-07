@@ -153,6 +153,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Free-tier Supabase pause caused login/network failures; after restore, saved sessions hit `PGRST303 JWT issued at future`.
 - Auth now refreshes or clears the local session and asks the user to sign in again (not a phone Date & Time toggle).
 
+### 2026-10-07 — Visual redesign (no logic changes)
+- One design system in `constants/theme.ts`: felt-green/cream brand palette, spacing/radius tokens, seat colours, and matching **light + dark** themes. The Settings dark-mode switch now actually applies the dark theme (`contexts/PreferencesContext.tsx`).
+- Every screen restyled; scoreboard rebuilt around a sticky score table (`components/game/ScoreTable.tsx`) that stays readable with many players/rounds.
+- Orientation stays unlocked (`"orientation": "default"`); short landscape screens get dedicated two-column / side-panel layouts and respect notch + nav-bar insets (`hooks/useLayout.ts`).
 
 ### Now
 - Play Console personal account under Google verification (~days).
@@ -168,8 +172,9 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Profiles / Player ID + share | Done |
 | Find players (email/phone/ID, invites) | Done |
 | New game (stake/pool, expenses) | Done |
-| Game table + score entry | Done; landscape polish still open |
+| Game table + score entry | Done, portrait + landscape (2026-10 redesign) |
 | History / dashboard loading | Done |
+| Theming (light/dark) | Done; dark mode is a Settings toggle, not system-driven |
 | Supabase schema + RLS helpers | Done (apply any pending migrations before store build) |
 | Expo Go local preview | Working |
 | EAS project linked on this PC | Done |
