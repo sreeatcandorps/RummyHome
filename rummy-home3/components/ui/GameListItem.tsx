@@ -37,7 +37,17 @@ export function GameListItem({ game, onPress }: GameListItemProps) {
               {dateLabel}
             </Text>
             <View style={styles.metaRow}>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }} numberOfLines={1}>
+              <Tag
+                label={isComplete ? 'Completed' : 'Active'}
+                tone={isComplete ? 'neutral' : 'positive'}
+                icon={isComplete ? 'flag-checkered' : 'circle-medium'}
+                style={styles.statusTag}
+              />
+              <Text
+                variant="bodySmall"
+                style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}
+                numberOfLines={1}
+              >
                 {gameTypeLabel(game.gameType)} · ID {gameIdLabel(game)}
               </Text>
               <View style={styles.playersMeta}>
@@ -49,11 +59,6 @@ export function GameListItem({ game, onPress }: GameListItemProps) {
             </View>
           </View>
 
-          <Tag
-            label={isComplete ? 'Completed' : 'Active'}
-            tone={isComplete ? 'neutral' : 'positive'}
-            icon={isComplete ? 'flag-checkered' : 'circle-medium'}
-          />
           <Icon source="chevron-right" size={22} color={theme.colors.onSurfaceVariant} />
         </View>
       </TouchableRipple>
@@ -89,7 +94,7 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: spacing.xs,
   },
   title: {
     fontWeight: '700',
@@ -98,6 +103,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  statusTag: {
+    flexShrink: 0,
+  },
+  metaText: {
+    flexShrink: 1,
   },
   playersMeta: {
     flexDirection: 'row',
