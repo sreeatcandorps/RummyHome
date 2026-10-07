@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { TextInput, Button, Text, HelperText, useTheme } from 'react-native-paper';
+import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { storage } from '../../../../utils/storage';
 import { Player } from '../../../../types/player';
@@ -9,10 +9,11 @@ import { isSupabaseConfigured, supabase } from '../../../../services/supabase';
 import { formatSupabaseError } from '../../../../utils/supabaseErrors';
 import { Screen } from '../../../../components/ui/Screen';
 import { SectionCard } from '../../../../components/ui/SectionCard';
-import { MIN_TOUCH_TARGET, spacing } from '../../../../constants/theme';
+import { SeatAvatar } from '../../../../components/ui/SeatAvatar';
+import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../../../constants/theme';
 
 export default function EditPlayerScreen() {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -137,15 +138,23 @@ export default function EditPlayerScreen() {
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   return (
-    <Screen>
+    <Screen contentStyle={styles.form}>
+      <View style={styles.preview}>
+        <SeatAvatar name={name.trim() || '?'} size={72} />
+        <Text variant="titleLarge" style={styles.previewName} numberOfLines={1}>
+          {name.trim() || 'Your name'}
+        </Text>
+      </View>
+
       <SectionCard
         title="Your details"
+        icon="account-edit-outline"
         supportingText="This name is what other players see in games and invites."
       >
         <TextInput
@@ -201,13 +210,14 @@ export default function EditPlayerScreen() {
           loading={saving}
           disabled={saving || (!!error && error === 'Player not found')}
           icon="content-save-outline"
+          style={styles.pill}
           contentStyle={styles.primaryContent}
           labelStyle={styles.primaryLabel}
         >
           Save changes
         </Button>
 
-        <Button mode="text" onPress={() => router.back()} contentStyle={styles.secondaryContent}>
+        <Button mode="text" onPress={() => router.back()} style={styles.pill} contentStyle={styles.secondaryContent}>
           Cancel
         </Button>
       </View>
@@ -221,15 +231,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  form: {
+    maxWidth: 560,
+  },
+  preview: {
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  previewName: {
+    fontWeight: '700',
+  },
   actions: {
     gap: spacing.sm,
+  },
+  pill: {
+    borderRadius: radius.full,
   },
   primaryContent: {
     height: 56,
   },
   primaryLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   secondaryContent: {
     height: MIN_TOUCH_TARGET,

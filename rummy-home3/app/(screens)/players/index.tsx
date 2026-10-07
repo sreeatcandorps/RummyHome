@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
-import { Text, Card, FAB, IconButton, Searchbar, Menu, Portal, Dialog, TextInput, Button, Avatar } from 'react-native-paper';
+import { Text, FAB, IconButton, Searchbar, Menu, Portal, Dialog, TextInput, Button, TouchableRipple } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { storage } from '../../../utils/storage';
 import { Player } from '../../../types/player';
@@ -9,9 +9,15 @@ import * as SMS from 'expo-sms';
 import { playersService } from '../../../services/players';
 import { isSupabaseConfigured } from '../../../services/supabase';
 import { EmptyState } from '../../../components/ui/EmptyState';
-import { radius, spacing } from '../../../constants/theme';
+import { SeatAvatar } from '../../../components/ui/SeatAvatar';
+import { MAX_CONTENT_WIDTH, radius, seatColor, spacing, useAppTheme } from '../../../constants/theme';
+import { useLayout } from '../../../hooks/useLayout';
+
+const SORT_LABELS = { name: 'Name', games: 'Games played', wins: 'Wins' } as const;
 
 export default function PlayersScreen() {
+  const { colors } = useAppTheme();
+  const { isWide, gutterLeft, gutterRight, insets } = useLayout();
   const [players, setPlayers] = useState<Player[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMenuVisible, setSortMenuVisible] = useState(false);
@@ -164,52 +170,57 @@ export default function PlayersScreen() {
     }
   };
 
-  const renderPlayer = ({ item }: { item: Player }) => {
+  const renderPlayer = ({ item, index }: { item: Player; index: number }) => {
     try {
-      const initials = (item.name || '?')
-        .split(' ')
-        .map((word) => word[0])
-        .join('')
-        .toUpperCase()
-        .substring(0, 2);
-
       return (
-        <Card
-          mode="outlined"
-          style={styles.card}
-          onPress={() => router.push(`/players/${item.id}`)}
+        <View
+          style={[
+            styles.card,
+            isWide && styles.gridCard,
+            { backgroundColor: colors.surface, borderColor: colors.outlineVariant },
+          ]}
         >
-          <Card.Content style={styles.cardContent}>
-            <Avatar.Text size={44} label={initials} />
-            <View style={styles.playerInfo}>
-              <Text variant="titleMedium" numberOfLines={1}>
-                {item.name || 'Unknown Player'}
-              </Text>
-              <Text variant="bodySmall" style={styles.playerMeta}>
-                {item.playerCode
-                  ? `Player ID ${item.playerCode}`
-                  : `${item.gamesPlayed || 0} games · ${item.gamesWon || 0} wins`}
-              </Text>
+          <TouchableRipple
+            onPress={() => router.push(`/players/${item.id}`)}
+            borderless
+            style={styles.cardRipple}
+            accessibilityRole="button"
+            accessibilityLabel={item.name || 'Unknown Player'}
+          >
+            <View style={styles.cardContent}>
+              <SeatAvatar name={item.name || '?'} size={44} color={seatColor(index)} />
+              <View style={styles.playerInfo}>
+                <Text variant="titleMedium" numberOfLines={1} style={styles.playerName}>
+                  {item.name || 'Unknown Player'}
+                </Text>
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
+                  {item.playerCode
+                    ? `Player ID ${item.playerCode}`
+                    : `${item.gamesPlayed || 0} games · ${item.gamesWon || 0} wins`}
+                </Text>
+              </View>
+              <View style={styles.actions}>
+                <IconButton
+                  icon="pencil-outline"
+                  size={22}
+                  iconColor={colors.onSurfaceVariant}
+                  accessibilityLabel={`Edit ${item.name}`}
+                  onPress={() => router.push(`/players/${item.id}/edit`)}
+                />
+                <IconButton
+                  icon="delete-outline"
+                  size={22}
+                  iconColor={colors.error}
+                  accessibilityLabel={`Delete ${item.name}`}
+                  onPress={() => {
+                    setSelectedPlayer(item);
+                    setDeleteDialogVisible(true);
+                  }}
+                />
+              </View>
             </View>
-            <View style={styles.actions}>
-              <IconButton
-                icon="pencil-outline"
-                size={22}
-                accessibilityLabel={`Edit ${item.name}`}
-                onPress={() => router.push(`/players/${item.id}/edit`)}
-              />
-              <IconButton
-                icon="delete-outline"
-                size={22}
-                accessibilityLabel={`Delete ${item.name}`}
-                onPress={() => {
-                  setSelectedPlayer(item);
-                  setDeleteDialogVisible(true);
-                }}
-              />
-            </View>
-          </Card.Content>
-        </Card>
+          </TouchableRipple>
+        </View>
       );
     } catch (error) {
       console.error('Error rendering player:', error, item);
@@ -226,61 +237,84 @@ export default function PlayersScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : null}
-      
-      <View style={styles.header}>
-        <Searchbar
-          placeholder="Search players"
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          mode="bar"
-          style={styles.searchBar}
-          inputStyle={styles.searchInput}
-        />
-        <Menu
-          visible={sortMenuVisible}
-          onDismiss={() => setSortMenuVisible(false)}
-          anchor={
-            <IconButton
-              icon="sort"
-              size={24}
-              accessibilityLabel="Sort players"
-              onPress={() => setSortMenuVisible(true)}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.column, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
+        {error ? (
+          <Text style={[styles.errorText, { color: colors.onErrorContainer, backgroundColor: colors.errorContainer }]}>
+            {error}
+          </Text>
+        ) : null}
+
+        <View style={styles.header}>
+          <Searchbar
+            placeholder="Search players"
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            mode="bar"
+            style={[styles.searchBar, { backgroundColor: colors.surfaceVariant }]}
+            inputStyle={styles.searchInput}
+          />
+          <Menu
+            visible={sortMenuVisible}
+            onDismiss={() => setSortMenuVisible(false)}
+            anchor={
+              <Button
+                mode="outlined"
+                icon="sort"
+                compact
+                accessibilityLabel="Sort players"
+                onPress={() => setSortMenuVisible(true)}
+                style={styles.sortButton}
+                contentStyle={styles.sortButtonContent}
+              >
+                {SORT_LABELS[sortBy]}
+              </Button>
+            }
+          >
+            <Menu.Item
+              onPress={() => {
+                setSortBy('name');
+                setSortMenuVisible(false);
+              }}
+              leadingIcon={sortBy === 'name' ? 'check' : undefined}
+              title="Sort by name"
             />
-          }
-        >
-          <Menu.Item 
-            onPress={() => {
-              setSortBy('name');
-              setSortMenuVisible(false);
-            }} 
-            title="Sort by name"
-          />
-          <Menu.Item 
-            onPress={() => {
-              setSortBy('games');
-              setSortMenuVisible(false);
-            }} 
-            title="Sort by games played"
-          />
-          <Menu.Item 
-            onPress={() => {
-              setSortBy('wins');
-              setSortMenuVisible(false);
-            }} 
-            title="Sort by wins"
-          />
-        </Menu>
+            <Menu.Item
+              onPress={() => {
+                setSortBy('games');
+                setSortMenuVisible(false);
+              }}
+              leadingIcon={sortBy === 'games' ? 'check' : undefined}
+              title="Sort by games played"
+            />
+            <Menu.Item
+              onPress={() => {
+                setSortBy('wins');
+                setSortMenuVisible(false);
+              }}
+              leadingIcon={sortBy === 'wins' ? 'check' : undefined}
+              title="Sort by wins"
+            />
+          </Menu>
+        </View>
+
+        <Text variant="labelLarge" style={[styles.count, { color: colors.onSurfaceVariant }]}>
+          {filteredPlayers.length} {filteredPlayers.length === 1 ? 'player' : 'players'}
+        </Text>
       </View>
 
       <FlatList
+        key={isWide ? 'grid' : 'list'}
         data={filteredPlayers}
         renderItem={renderPlayer}
+        numColumns={isWide ? 2 : 1}
+        columnWrapperStyle={isWide ? styles.gridRow : undefined}
         keyExtractor={(item, index) => `${item.id}-${index}`}
-        contentContainerStyle={styles.listContent}
+        style={styles.list}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingLeft: gutterLeft, paddingRight: gutterRight, paddingBottom: insets.bottom + 96 },
+        ]}
         ListEmptyComponent={() => (
           <EmptyState
             icon="account-group-outline"
@@ -297,7 +331,7 @@ export default function PlayersScreen() {
       <FAB
         icon="account-plus-outline"
         label="Find players"
-        style={styles.fab}
+        style={[styles.fab, { right: gutterRight, bottom: insets.bottom + spacing.lg }]}
         onPress={() => router.push('/players/new')}
       />
 
@@ -305,18 +339,18 @@ export default function PlayersScreen() {
         <Dialog
           visible={deleteDialogVisible}
           onDismiss={() => setDeleteDialogVisible(false)}
-          style={styles.dialog}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
         >
-          <Dialog.Icon icon="delete-outline" />
+          <Dialog.Icon icon="delete-outline" color={colors.error} />
           <Dialog.Title style={styles.dialogTitle}>Delete player?</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium">
+            <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
               {selectedPlayer?.name} will be removed from this device's local list.
             </Text>
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
             <Button onPress={() => setDeleteDialogVisible(false)}>Cancel</Button>
-            <Button mode="contained" onPress={handleDeletePlayer}>
+            <Button mode="contained" buttonColor={colors.error} textColor={colors.onError} onPress={handleDeletePlayer}>
               Delete
             </Button>
           </Dialog.Actions>
@@ -324,7 +358,7 @@ export default function PlayersScreen() {
       </Portal>
 
       <Portal>
-        <Dialog visible={addDialogVisible} onDismiss={handleDialogClose} style={styles.dialog}>
+        <Dialog visible={addDialogVisible} onDismiss={handleDialogClose} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Title>Add new player</Dialog.Title>
           <Dialog.Content>
             <TextInput
@@ -367,15 +401,17 @@ export default function PlayersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+  },
+  column: {
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH + spacing.xxl * 2,
+    alignSelf: 'center',
     paddingTop: spacing.lg,
-    position: 'relative',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.lg,
+    gap: spacing.sm,
   },
   searchBar: {
     flex: 1,
@@ -384,44 +420,76 @@ const styles = StyleSheet.create({
   searchInput: {
     minHeight: 0,
   },
+  sortButton: {
+    borderRadius: radius.full,
+  },
+  sortButtonContent: {
+    height: 48,
+  },
+  count: {
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  list: {
+    flex: 1,
+  },
   listContent: {
-    gap: spacing.md,
-    paddingBottom: 96,
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH + spacing.xxl * 2,
+    alignSelf: 'center',
+    gap: spacing.sm,
+  },
+  gridRow: {
+    gap: spacing.sm,
   },
   card: {
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    overflow: 'hidden',
+  },
+  gridCard: {
+    flex: 1,
+  },
+  cardRipple: {
+    borderRadius: radius.lg,
   },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
-    paddingVertical: spacing.md,
-    minHeight: 76,
+    gap: spacing.md,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.xs,
+    paddingVertical: spacing.sm,
+    minHeight: 72,
   },
   playerInfo: {
     flex: 1,
+    minWidth: 0,
     gap: 2,
   },
-  playerMeta: {
-    opacity: 0.7,
+  playerName: {
+    fontWeight: '700',
   },
   actions: {
     flexDirection: 'row',
   },
   fab: {
     position: 'absolute',
-    margin: spacing.lg,
-    right: 0,
-    bottom: 0,
     borderRadius: radius.lg,
   },
   input: {
     marginBottom: spacing.lg,
   },
   dialog: {
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    maxWidth: 480,
+    width: '90%',
+    alignSelf: 'center',
   },
   dialogTitle: {
+    textAlign: 'center',
+  },
+  dialogBody: {
     textAlign: 'center',
   },
   dialogActions: {
@@ -430,11 +498,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   errorText: {
-    color: '#b3261e',
     textAlign: 'center',
     marginBottom: spacing.sm,
     padding: spacing.md,
-    backgroundColor: '#f9dedc',
     borderRadius: radius.sm,
   },
-}); 
+});
