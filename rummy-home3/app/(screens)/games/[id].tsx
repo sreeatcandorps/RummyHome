@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   primaryAction: {
-    flex: 1.5,
+    flex: 2,
     borderRadius: radius.full,
   },
   primaryActionContent: {
