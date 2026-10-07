@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
-import { Button, Text, Card, Dialog, Divider, Portal, useTheme } from 'react-native-paper';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { Button, Text, Dialog, Icon, IconButton, Portal } from 'react-native-paper';
+import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
@@ -9,28 +9,28 @@ import { EXPENSE_PLAYER_ID, gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
-import { radius, spacing } from '@/constants/theme';
-import { formatGameDateTime, gameIdLabel, gameTypeLabel, gameTypeTint } from '@/utils/gameDisplay';
+import { MIN_TOUCH_TARGET, radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { formatGameDateTime, gameIdLabel, gameTypeLabel } from '@/utils/gameDisplay';
 import { buildPlayerInitials } from '@/utils/playerInitials';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { useLayout } from '@/hooks/useLayout';
+import { ScoreColumn, ScoreTable } from '@/components/game/ScoreTable';
+import { Standing, Standings } from '@/components/game/Standings';
+import { BottomBar } from '@/components/ui/BottomBar';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SeatAvatar } from '@/components/ui/SeatAvatar';
+import { StackedAction } from '@/components/ui/StackedAction';
+import { Tag } from '@/components/ui/Tag';
 
-/** Columns flex to fill the width so even 10 players fit without side-scrolling. */
-const ROUND_COLUMN_FLEX = 1.5;
-const TOTAL_COLUMN_FLEX = 1.2;
-
-const scoreFontSize = (playerCount: number) => {
-  if (playerCount <= 5) return 15;
-  if (playerCount <= 7) return 13;
-  if (playerCount <= 10) return 11;
-  return 10;
-};
+/** Side panel width in landscape; the table takes everything else. */
+const SIDE_PANEL_WIDTH = 236;
 
 export default function GameScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const theme = useTheme();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const { isShort, insets, gutterLeft, gutterRight } = useLayout();
   const [game, setGame] = useState<Game | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +75,8 @@ export default function GameScreen() {
             : gamePlayers,
         );
       }
+    } catch (error) {
+      console.error('Error loading game:', error);
     } finally {
       setLoading(false);
     }
@@ -133,25 +135,37 @@ export default function GameScreen() {
     }
   };
 
-  if (loading || !game || !players.length) {
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
+
+  if (loading) {
     return (
-      <View style={[styles.loading, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" />
-        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
           Loading game…
         </Text>
       </View>
     );
   }
 
-  const maxRounds = getMaxRounds();
-  const tint = gameTypeTint(game.gameType);
+  if (!game || !players.length) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <EmptyState
+          icon="cards-playing-outline"
+          title="Couldn't open this game"
+          message="It may have been removed, or the connection dropped. Try again in a moment."
+          actionLabel="Try again"
+          onAction={() => {
+            setLoading(true);
+            loadGameData();
+          }}
+        />
+      </View>
+    );
+  }
 
-  // Landscape has width to spare and little height, so trade padding for rows.
-  const fontSize = isLandscape
-    ? Math.min(15, scoreFontSize(players.length) + 3)
-    : scoreFontSize(players.length);
-  const rowHeight = isLandscape ? 34 : players.length > 7 ? 40 : 44;
+  const maxRounds = getMaxRounds();
 
   const initials = buildPlayerInitials(players.map((player) => player.name));
   const initialsFor = (playerId: string) => initials[players.findIndex((p) => p.id === playerId)] ?? '?';
@@ -162,320 +176,218 @@ export default function GameScreen() {
     seats.length ? seats[roundIndex % seats.length]?.id : undefined;
   const nextDealerId = game.isComplete ? undefined : dealerIdForRound(maxRounds);
 
+  const colorFor = (playerId: string) => seatColor(seats.findIndex((seat) => seat.id === playerId));
+
   const standings = [...players]
     .filter((player) => player.id !== EXPENSE_PLAYER_ID)
     .map((player) => ({ player, total: getPlayerTotal(player.id) }))
     .sort((a, b) => b.total - a.total);
 
-  const cellStyle = {
-    height: rowHeight,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: theme.colors.outlineVariant,
-    paddingHorizontal: 2,
-  };
+  const bestTotal = standings[0]?.total;
+  const hasLeader = maxRounds > 0 && standings.length > 0;
+  const leaderIds = hasLeader ? standings.filter((entry) => entry.total === bestTotal).map((entry) => entry.player.id) : [];
 
-  const typeBadge = (
-    <View style={[styles.badge, { backgroundColor: tint.container }]}>
-      <Text variant="labelSmall" style={[styles.badgeText, { color: tint.on }]}>
-        {gameTypeLabel(game.gameType)}
-      </Text>
-    </View>
-  );
+  const ranked: Standing[] = standings.map((entry) => ({
+    id: entry.player.id,
+    name: entry.player.name,
+    label: initialsFor(entry.player.id),
+    color: colorFor(entry.player.id),
+    total: entry.total,
+    rank: standings.findIndex((other) => other.total === entry.total) + 1,
+    isLeader: leaderIds.includes(entry.player.id),
+  }));
 
-  const statusBadge = (
-    <View
-      style={[
-        styles.badge,
-        {
-          backgroundColor: game.isComplete
-            ? theme.colors.surfaceVariant
-            : theme.colors.primaryContainer,
-        },
-      ]}
-    >
-      <Text
-        variant="labelSmall"
-        style={{
-          color: game.isComplete ? theme.colors.onSurfaceVariant : theme.colors.onPrimaryContainer,
-        }}
-      >
-        {game.isComplete
-          ? 'Completed'
-          : nextDealerId
-            ? `Round ${game.currentRound} · ${initialsFor(nextDealerId)} deals`
-            : `Round ${game.currentRound}`}
-      </Text>
-    </View>
-  );
+  const columns: ScoreColumn[] = players.map((player, index) => ({
+    id: player.id,
+    label: initials[index],
+    color: player.id === EXPENSE_PLAYER_ID ? colors.onSurfaceVariant : colorFor(player.id),
+    isExpense: player.id === EXPENSE_PLAYER_ID,
+  }));
+
+  const totals = Object.fromEntries(players.map((player) => [player.id, getPlayerTotal(player.id)]));
+  const roundTotals = Array.from({ length: maxRounds }, (_, roundIndex) => getRoundTotal(roundIndex));
+  const grandTotal = players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0);
 
   const startedOn = formatGameDateTime(game.date);
+  const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : 'cash-multiple'} />;
+  const statusTag = game.isComplete ? (
+    <Tag label="Completed" icon="flag-checkered" />
+  ) : (
+    <Tag
+      label={nextDealerId ? `Round ${game.currentRound} · ${initialsFor(nextDealerId)} deals` : `Round ${game.currentRound}`}
+      tone="primary"
+      icon="cards-outline"
+    />
+  );
+  const idText = (
+    <Text variant="labelMedium" numberOfLines={1} style={[{ color: colors.onSurfaceVariant }, tabularNums]}>
+      ID {gameIdLabel(game)}
+    </Text>
+  );
+
+  const table = (
+    <ScoreTable
+      columns={columns}
+      scores={game.scores}
+      roundCount={maxRounds}
+      totals={totals}
+      roundTotals={roundTotals}
+      grandTotal={grandTotal}
+      dealerLabelForRound={(roundIndex) => {
+        const dealerId = dealerIdForRound(roundIndex);
+        return dealerId ? initialsFor(dealerId) : undefined;
+      }}
+      nextDealerId={nextDealerId}
+      leaderIds={leaderIds}
+      compact={isShort}
+      emptyMessage={game.isComplete ? 'This game was closed with no rounds.' : 'No rounds yet. Tap Add round to score the first hand.'}
+    />
+  );
+
+  const openScoreEntry = () =>
+    router.push({
+      pathname: '/(screens)/score-entry',
+      params: { gameId: game.id },
+    });
+
+  const undoButton = (
+    <StackedAction
+      icon="undo-variant"
+      label="Undo"
+      onPress={handleUndoLastRound}
+      disabled={maxRounds === 0}
+      height={isShort ? 44 : 56}
+      accessibilityLabel="Undo round"
+    />
+  );
+
+  const completeButton = (
+    <StackedAction
+      icon="flag-checkered"
+      label="Complete"
+      onPress={() => setShowCompleteConfirm(true)}
+      height={isShort ? 44 : 56}
+      accessibilityLabel="Complete game"
+    />
+  );
+
+  const addRoundButton = (
+    <Button
+      mode="contained"
+      onPress={openScoreEntry}
+      icon="plus"
+      style={styles.primaryAction}
+      contentStyle={isShort ? styles.compactPrimaryContent : styles.primaryActionContent}
+      labelStyle={styles.primaryActionLabel}
+    >
+      Add round
+    </Button>
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {isLandscape ? (
-        <View style={styles.compactInfo}>
-          <Text variant="bodyMedium" numberOfLines={1} style={styles.compactInfoText}>
-            Game started on {startedOn}
-          </Text>
-          {typeBadge}
-          {statusBadge}
-          <Text variant="bodySmall" numberOfLines={1} style={{ color: theme.colors.onSurfaceVariant }}>
-            Game ID {gameIdLabel(game)}
-          </Text>
-        </View>
-      ) : (
-        <Card mode="contained" style={[styles.infoCard, { backgroundColor: theme.colors.elevation.level2 }]}>
-          <Card.Content style={styles.infoContent}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen
+        options={{
+          headerShown: !isShort,
+          headerTitle: () => (
             <View>
-              <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                Game started on
+              <Text variant="titleMedium" style={styles.headerTitle} numberOfLines={1}>
+                Scoreboard
               </Text>
-              <Text variant="titleMedium" style={styles.infoTitle} numberOfLines={1}>
-                {startedOn}
-              </Text>
-            </View>
-
-            <View style={styles.metaRow}>
-              {typeBadge}
-              {statusBadge}
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                Game ID {gameIdLabel(game)}
+              <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
+                Started {startedOn}
               </Text>
             </View>
-          </Card.Content>
-        </Card>
-      )}
+          ),
+        }}
+      />
 
-      {/* A plain View, not a Card: Paper wraps card children in a flexShrink-only
-          container, which collapses the scrollable table to zero height. */}
-      <View
-        style={[
-          styles.tableCard,
-          { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant },
-        ]}
-      >
-        {/* Rendered above the ScrollView rather than as a sticky child: RN moves a
-            sticky header's style onto its own wrapper and replaces the child style
-            with flex:1, which drops flexDirection and stacks the columns. */}
-        <View style={[styles.row, { backgroundColor: theme.colors.surfaceVariant }]}>
-          <View style={[cellStyle, { flex: ROUND_COLUMN_FLEX }]}>
-            <Text
-              numberOfLines={1}
-              style={[styles.headerText, { fontSize: fontSize - 2, color: theme.colors.onSurfaceVariant }]}
-            >
-              Rd
-            </Text>
-          </View>
-          <View style={[cellStyle, { flex: TOTAL_COLUMN_FLEX }]}>
-            <Text
-              numberOfLines={1}
-              style={[styles.headerText, { fontSize: fontSize - 2, color: theme.colors.onSurfaceVariant }]}
-            >
-              Tot
-            </Text>
-          </View>
-          {players.map((player, index) => {
-            const dealsNext = player.id === nextDealerId;
-
-            return (
-              <View
-                key={player.id}
-                style={[
-                  cellStyle,
-                  { flex: 1 },
-                  dealsNext && { backgroundColor: theme.colors.primary },
-                ]}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.headerText,
-                    {
-                      fontSize: fontSize - 2,
-                      color: dealsNext ? theme.colors.onPrimary : theme.colors.onSurfaceVariant,
-                    },
-                  ]}
-                >
-                  {initials[index]}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-
-        <ScrollView style={styles.tableScroll} showsVerticalScrollIndicator={false}>
-          {maxRounds === 0 ? (
-            <View style={styles.emptyTable}>
-              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                No rounds yet. Tap Add Round to score the first hand.
-              </Text>
-            </View>
-          ) : (
-            Array.from({ length: maxRounds }, (_, roundIndex) => {
-              const roundNumber = roundIndex + 1;
-              const roundTotal = getRoundTotal(roundIndex);
-              const dealerId = dealerIdForRound(roundIndex);
-              const dealer = dealerId ? initialsFor(dealerId) : '';
-
-              return (
-                <View
-                  key={roundIndex}
-                  style={[
-                    styles.row,
-                    {
-                      backgroundColor: theme.colors.surface,
-                      borderBottomWidth: StyleSheet.hairlineWidth,
-                      borderBottomColor: theme.colors.outlineVariant,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      cellStyle,
-                      { flex: ROUND_COLUMN_FLEX, backgroundColor: theme.colors.elevation.level1 },
-                    ]}
-                  >
-                    <Text style={[styles.roundText, { fontSize, color: theme.colors.onSurface }]}>
-                      {roundNumber}
-                    </Text>
-                    {dealer ? (
-                      <Text
-                        numberOfLines={1}
-                        style={{ fontSize: fontSize - 4, color: theme.colors.onSurfaceVariant }}
-                      >
-                        D: {dealer}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  <View
-                    style={[
-                      cellStyle,
-                      { flex: TOTAL_COLUMN_FLEX, backgroundColor: theme.colors.elevation.level1 },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.totalText,
-                        { fontSize, color: roundTotal === 0 ? theme.colors.onSurfaceVariant : theme.colors.error },
-                      ]}
-                    >
-                      {roundTotal}
-                    </Text>
-                  </View>
-
-                  {players.map((player) => {
-                    const score = game.scores[player.id]?.[roundIndex] || 0;
-                    return (
-                      <View key={player.id} style={[cellStyle, { flex: 1 }]}>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.scoreText,
-                            { fontSize, color: theme.colors.onSurfaceVariant },
-                            score > 0 && { color: theme.colors.primary, fontWeight: '700' },
-                          ]}
-                        >
-                          {score !== 0 ? score : '–'}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              );
-            })
-          )}
-        </ScrollView>
-
+      {isShort ? (
         <View
           style={[
-            styles.row,
-            styles.totalsRow,
-            {
-              backgroundColor: theme.colors.secondaryContainer,
-              borderTopColor: theme.colors.outline,
-            },
+            styles.compactTopBar,
+            { paddingTop: insets.top + spacing.xs, paddingLeft: Math.max(insets.left, spacing.xs), paddingRight: gutterRight },
           ]}
         >
-          <View style={[cellStyle, { flex: ROUND_COLUMN_FLEX }]}>
-            <Text style={[styles.headerText, { fontSize: fontSize - 2, color: theme.colors.onSecondaryContainer }]}>
-              TOTAL
-            </Text>
+          <IconButton icon="arrow-left" onPress={goBack} accessibilityLabel="Back" style={styles.backButton} />
+          <Text variant="titleMedium" style={styles.headerTitle} numberOfLines={1}>
+            Scoreboard
+          </Text>
+          {typeTag}
+          {statusTag}
+          <View style={styles.flex} />
+          <Text variant="labelMedium" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
+            {startedOn}
+          </Text>
+          {idText}
+        </View>
+      ) : (
+        <View style={[styles.infoStrip, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
+          <View style={styles.metaRow}>
+            {typeTag}
+            {statusTag}
+            <View style={styles.flex} />
+            {idText}
           </View>
-          <View style={[cellStyle, { flex: TOTAL_COLUMN_FLEX }]}>
-            <Text style={[styles.totalText, { fontSize, color: theme.colors.onSecondaryContainer }]}>
-              {players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0)}
+          {standings.length > 0 ? <Standings standings={ranked} layout="rail" /> : null}
+        </View>
+      )}
+
+      {isShort ? (
+        <View
+          style={[
+            styles.landscapeBody,
+            { paddingLeft: gutterLeft, paddingRight: gutterRight, paddingBottom: insets.bottom + spacing.sm },
+          ]}
+        >
+          <View style={styles.flex}>{table}</View>
+          <View style={[styles.sidePanel, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
+            <Text variant="labelLarge" style={[styles.panelTitle, { color: colors.onSurfaceVariant }]}>
+              STANDINGS
             </Text>
-          </View>
-          {players.map((player) => {
-            const total = getPlayerTotal(player.id);
-            return (
-              <View key={player.id} style={[cellStyle, { flex: 1 }]}>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.totalText, { fontSize, color: theme.colors.onSecondaryContainer }]}
-                >
-                  {total}
-                </Text>
+            <Standings standings={ranked} layout="list" style={styles.flex} />
+            {!game.isComplete ? (
+              <View style={styles.panelActions}>
+                {addRoundButton}
+                <View style={styles.panelActionRow}>
+                  {undoButton}
+                  {completeButton}
+                </View>
               </View>
-            );
-          })}
-        </View>
-      </View>
-
-      {!game.isComplete && (
-        <View style={isLandscape ? styles.actionBarCompact : styles.actionBar}>
-          <View style={styles.actionBarInner}>
-            <Button
-              mode="outlined"
-              onPress={handleUndoLastRound}
-              disabled={maxRounds === 0}
-              style={styles.sideAction}
-              contentStyle={isLandscape ? styles.actionContentCompact : styles.sideActionContent}
-              labelStyle={styles.sideActionLabel}
-            >
-              Undo Round
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={() => router.push({
-                pathname: '/(screens)/score-entry',
-                params: { gameId: game.id }
-              })}
-              icon="plus"
-              style={styles.primaryAction}
-              contentStyle={isLandscape ? styles.actionContentCompact : styles.primaryActionContent}
-              labelStyle={styles.primaryActionLabel}
-            >
-              Add Round
-            </Button>
-
-            <Button
-              mode="outlined"
-              onPress={() => setShowCompleteConfirm(true)}
-              style={styles.sideAction}
-              contentStyle={isLandscape ? styles.actionContentCompact : styles.sideActionContent}
-              labelStyle={styles.sideActionLabel}
-            >
-              Complete Game
-            </Button>
+            ) : null}
           </View>
         </View>
+      ) : (
+        <>
+          <View
+            style={[
+              styles.portraitTable,
+              { paddingLeft: insets.left + spacing.sm, paddingRight: insets.right + spacing.sm },
+              game.isComplete && { paddingBottom: insets.bottom + spacing.md },
+            ]}
+          >
+            {table}
+          </View>
+          {!game.isComplete ? (
+            <BottomBar fullWidth>
+              {undoButton}
+              {addRoundButton}
+              {completeButton}
+            </BottomBar>
+          ) : null}
+        </>
       )}
 
       <Portal>
         <Dialog
           visible={showCompleteConfirm}
           onDismiss={() => setShowCompleteConfirm(false)}
-          style={styles.dialog}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
         >
           <Dialog.Icon icon="flag-checkered" />
           <Dialog.Title style={styles.dialogTitle}>Complete this game?</Dialog.Title>
           <Dialog.Content style={styles.dialogContent}>
-            <Text variant="bodyMedium" style={styles.dialogBody}>
+            <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
               {maxRounds === 0
                 ? 'No rounds have been scored yet. You can still close the game, but it will have no results.'
                 : `${maxRounds} ${maxRounds === 1 ? 'round' : 'rounds'} will be locked in and no more rounds can be added.`}
@@ -488,6 +400,7 @@ export default function GameScreen() {
               onPress={handleCompleteGame}
               loading={completing}
               disabled={completing}
+              contentStyle={styles.dialogButtonContent}
             >
               Complete game
             </Button>
@@ -497,49 +410,79 @@ export default function GameScreen() {
         <Dialog
           visible={showCompleteResult}
           onDismiss={() => setShowCompleteResult(false)}
-          style={styles.dialog}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
         >
-          <Dialog.Icon icon="trophy-outline" />
+          <Dialog.Icon icon="trophy" color={colors.leader} />
           <Dialog.Title style={styles.dialogTitle}>Game complete</Dialog.Title>
-          <Dialog.Content style={styles.dialogContent}>
+          <Dialog.ScrollArea style={styles.resultScroll}>
             {standings.length > 0 ? (
               <View style={styles.standings}>
-                {standings.map((entry, index) => (
-                  <View key={entry.player.id}>
-                    {index > 0 ? <Divider /> : null}
-                    <View style={styles.standingRow}>
-                      <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                {standings.map((entry, index) => {
+                  const winner = index === 0 && entry.total === bestTotal && maxRounds > 0;
+                  return (
+                    <View
+                      key={entry.player.id}
+                      style={[
+                        styles.standingRow,
+                        { backgroundColor: winner ? colors.leaderContainer : 'transparent' },
+                      ]}
+                    >
+                      <Text
+                        variant="labelLarge"
+                        style={[styles.standingRank, { color: winner ? colors.onLeaderContainer : colors.onSurfaceVariant }]}
+                      >
                         {index + 1}
                       </Text>
-                      <Text variant="bodyLarge" style={styles.standingName} numberOfLines={1}>
+                      <SeatAvatar name={entry.player.name} color={colorFor(entry.player.id)} size={30} />
+                      <Text
+                        variant="bodyLarge"
+                        style={[styles.standingName, { color: winner ? colors.onLeaderContainer : colors.onSurface }]}
+                        numberOfLines={1}
+                      >
                         {entry.player.name}
                       </Text>
+                      {winner ? <Icon source="crown" size={18} color={colors.leader} /> : null}
                       <Text
                         variant="titleMedium"
-                        style={{
-                          color: entry.total > 0 ? theme.colors.primary : theme.colors.onSurfaceVariant,
-                          fontWeight: '700',
-                        }}
+                        style={[
+                          styles.standingTotal,
+                          tabularNums,
+                          {
+                            color: winner
+                              ? colors.onLeaderContainer
+                              : entry.total > 0
+                                ? colors.positive
+                                : colors.onSurfaceVariant,
+                          },
+                        ]}
                       >
                         {entry.total}
                       </Text>
                     </View>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             ) : (
               <Text variant="bodyMedium">This game was closed with no scores.</Text>
             )}
-          </Dialog.Content>
+          </Dialog.ScrollArea>
           <Dialog.Actions style={styles.dialogActions}>
             <Button onPress={() => setShowCompleteResult(false)}>Stay here</Button>
-            <Button mode="contained" onPress={() => { setShowCompleteResult(false); router.back(); }}>
+            <Button
+              mode="contained"
+              onPress={() => { setShowCompleteResult(false); router.back(); }}
+              contentStyle={styles.dialogButtonContent}
+            >
               Done
             </Button>
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={!!actionError} onDismiss={() => setActionError(null)} style={styles.dialog}>
+        <Dialog
+          visible={!!actionError}
+          onDismiss={() => setActionError(null)}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
+        >
           <Dialog.Icon icon="alert-circle-outline" />
           <Dialog.Title style={styles.dialogTitle}>Something went wrong</Dialog.Title>
           <Dialog.Content>
@@ -548,7 +491,7 @@ export default function GameScreen() {
             </Text>
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
-            <Button mode="contained" onPress={() => setActionError(null)}>
+            <Button mode="contained" onPress={() => setActionError(null)} contentStyle={styles.dialogButtonContent}>
               Got it
             </Button>
           </Dialog.Actions>
@@ -562,158 +505,136 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loading: {
+  flex: {
+    flex: 1,
+  },
+  centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
+    padding: spacing.xl,
   },
-  infoCard: {
-    margin: spacing.md,
-    marginBottom: spacing.sm,
-    borderRadius: radius.md,
+  headerTitle: {
+    fontWeight: '800',
   },
-  compactInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  infoStrip: {
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
-  },
-  compactInfoText: {
-    fontWeight: '700',
-    marginRight: spacing.xs,
-  },
-  infoContent: {
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  infoTitle: {
-    fontWeight: '700',
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-  },
-  badgeText: {
-    fontWeight: '700',
-  },
-  tableCard: {
-    flex: 1,
-    marginHorizontal: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  tableScroll: {
-    flex: 1,
-  },
-  row: {
+  compactTopBar: {
     flexDirection: 'row',
-  },
-  totalsRow: {
-    borderTopWidth: 2,
-  },
-  emptyTable: {
-    padding: spacing.xl,
     alignItems: 'center',
+    gap: spacing.sm,
+    paddingBottom: spacing.xs,
   },
-  headerText: {
-    fontWeight: '700',
-    textAlign: 'center',
+  backButton: {
+    margin: 0,
   },
-  roundText: {
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  scoreText: {
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  totalText: {
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  // Floats clear of the rounded bottom edge instead of sitting flush against it.
-  actionBar: {
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  actionBarCompact: {
-    paddingTop: spacing.sm,
+  portraitTable: {
+    flex: 1,
     paddingBottom: spacing.sm,
   },
-  actionContentCompact: {
-    height: 40,
-  },
-  actionBarInner: {
+  landscapeBody: {
+    flex: 1,
     flexDirection: 'row',
-    alignItems: 'stretch',
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
+  },
+  sidePanel: {
+    width: SIDE_PANEL_WIDTH,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    padding: spacing.sm,
+    gap: spacing.xs,
+  },
+  panelTitle: {
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    fontSize: 11,
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  panelActions: {
+    gap: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  panelActionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
   primaryAction: {
-    flex: 1.4,
+    flex: 1.5,
     borderRadius: radius.full,
   },
   primaryActionContent: {
-    height: 52,
+    height: 56,
+  },
+  compactPrimaryContent: {
+    height: MIN_TOUCH_TARGET,
   },
   primaryActionLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginHorizontal: spacing.xs,
-  },
-  sideAction: {
-    flex: 1,
-    borderRadius: radius.full,
-    justifyContent: 'center',
-  },
-  sideActionContent: {
-    height: 52,
-  },
-  sideActionLabel: {
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: 'center',
-    marginHorizontal: spacing.xs,
-    marginVertical: 0,
+    fontSize: 16,
+    fontWeight: '800',
   },
   dialog: {
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    maxWidth: 480,
+    width: '90%',
+    alignSelf: 'center',
   },
   dialogTitle: {
     textAlign: 'center',
+    fontWeight: '700',
   },
   dialogContent: {
     gap: spacing.md,
   },
   dialogBody: {
     lineHeight: 20,
+    textAlign: 'center',
   },
   dialogActions: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     gap: spacing.sm,
   },
+  dialogButtonContent: {
+    paddingHorizontal: spacing.sm,
+  },
+  resultScroll: {
+    maxHeight: 320,
+    borderTopWidth: 0,
+    borderBottomWidth: 0,
+    paddingHorizontal: spacing.lg,
+  },
   standings: {
-    gap: spacing.xs,
+    gap: 2,
+    paddingVertical: spacing.xs,
   },
   standingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+  },
+  standingRank: {
+    width: 18,
+    textAlign: 'center',
+    fontWeight: '800',
   },
   standingName: {
     flex: 1,
+    fontWeight: '600',
+  },
+  standingTotal: {
+    fontWeight: '800',
   },
 });
