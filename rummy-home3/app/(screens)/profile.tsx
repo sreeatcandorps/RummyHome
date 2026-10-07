@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, ActivityIndicator, Share } from 'react-native';
-import {
-  Text,
-  Card,
-  Button,
-  Avatar,
-  Divider,
-  useTheme,
-  TextInput,
-  Portal,
-  Dialog,
-  HelperText,
-  IconButton,
-  List,
-} from 'react-native-paper';
+import { Text, Button, Divider, TextInput, Portal, Dialog, HelperText, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
 import { authService } from '../../services/auth';
 import { supabase } from '../../services/supabase';
@@ -21,10 +8,16 @@ import { Player } from '../../types/player';
 import { Screen } from '../../components/ui/Screen';
 import { SectionCard } from '../../components/ui/SectionCard';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
+import { ListRow } from '../../components/ui/ListRow';
+import { SeatAvatar } from '../../components/ui/SeatAvatar';
+import { StatTile } from '../../components/ui/StatTile';
+import { Tag } from '../../components/ui/Tag';
+import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
+import { useLayout } from '../../hooks/useLayout';
 
 export default function ProfileScreen() {
-  const theme = useTheme();
+  const theme = useAppTheme();
+  const { isWide } = useLayout();
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -187,15 +180,6 @@ export default function ProfileScreen() {
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
   const sharePlayerId = async () => {
     if (!currentPlayer?.playerCode) return;
 
@@ -225,7 +209,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
@@ -254,151 +238,148 @@ export default function ProfileScreen() {
     { label: 'Win rate', value: `${winRate}%` },
   ];
 
-  return (
-    <Screen>
-      <Card
+  const hero = (
+    <View style={[styles.hero, { backgroundColor: theme.colors.felt }]}>
+      <SeatAvatar
+        name={currentPlayer.name}
+        size={88}
+        color={currentPlayer.role === 'admin' ? theme.colors.error : theme.colors.primary}
+        style={{ ...styles.heroAvatar, borderColor: theme.colors.onFelt }}
+      />
+      <Text variant="headlineSmall" style={[styles.heroName, { color: theme.colors.onFelt }]}>
+        {currentPlayer.name}
+      </Text>
+      <Tag
+        label={currentPlayer.role === 'admin' ? 'Administrator' : 'Player'}
+        tone={currentPlayer.role === 'admin' ? 'danger' : 'primary'}
+      />
+
+      <Button
         mode="contained"
-        style={[styles.hero, { backgroundColor: theme.colors.primaryContainer }]}
+        onPress={() => router.push(`/players/${currentPlayer.id}/edit`)}
+        icon="account-edit-outline"
+        buttonColor={theme.colors.onFelt}
+        textColor={theme.colors.felt}
+        style={styles.heroButton}
+        contentStyle={styles.buttonContent}
+        labelStyle={styles.heroButtonLabel}
       >
-        <Card.Content style={styles.heroContent}>
-          <Avatar.Text
-            size={88}
-            label={getInitials(currentPlayer.name)}
-            style={{
-              backgroundColor: currentPlayer.role === 'admin'
-                ? theme.colors.error
-                : theme.colors.primary,
-            }}
-          />
-          <Text variant="headlineSmall" style={[styles.heroName, { color: theme.colors.onPrimaryContainer }]}>
-            {currentPlayer.name}
-          </Text>
-          <Text variant="labelLarge" style={{ color: theme.colors.onPrimaryContainer, opacity: 0.8 }}>
-            {currentPlayer.role === 'admin' ? 'Administrator' : 'Player'}
-          </Text>
+        Edit profile
+      </Button>
+    </View>
+  );
 
-          <Button
-            mode="contained"
-            onPress={() => router.push(`/players/${currentPlayer.id}/edit`)}
-            icon="account-edit-outline"
-            style={styles.heroButton}
-            contentStyle={styles.buttonContent}
-          >
-            Edit profile
-          </Button>
-        </Card.Content>
-      </Card>
+  const statsRow = (
+    <View style={styles.statsRow}>
+      {stats.map((stat) => (
+        <StatTile key={stat.label} label={stat.label} value={stat.value} />
+      ))}
+    </View>
+  );
 
-      <View style={styles.statsRow}>
-        {stats.map((stat) => (
-          <Card key={stat.label} mode="outlined" style={styles.statCard}>
-            <Card.Content style={styles.statContent}>
-              <Text variant="headlineSmall" style={styles.statValue}>
-                {stat.value}
-              </Text>
-              <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                {stat.label}
-              </Text>
-            </Card.Content>
-          </Card>
-        ))}
+  const playerIdCard = (
+    <SectionCard
+      title="Your player ID"
+      icon="badge-account-horizontal-outline"
+      right={
+        <IconButton
+          icon="information-outline"
+          size={20}
+          accessibilityLabel="What is a player ID?"
+          onPress={() => setShowPlayerIdInfo(true)}
+          style={styles.noMargin}
+        />
+      }
+    >
+      <View style={styles.playerIdRow}>
+        <View style={[styles.playerIdPill, { backgroundColor: theme.colors.secondaryContainer }]}>
+          <Text variant="headlineSmall" style={[styles.playerIdText, { color: theme.colors.onSecondaryContainer }]}>
+            {currentPlayer.playerCode ?? '—'}
+          </Text>
+        </View>
+
+        <Button
+          mode="contained-tonal"
+          icon="share-variant"
+          onPress={sharePlayerId}
+          disabled={!currentPlayer.playerCode}
+          style={styles.pill}
+          contentStyle={styles.buttonContent}
+        >
+          Share
+        </Button>
       </View>
 
-      <Card mode="outlined" style={styles.playerIdCard}>
-        <Card.Content style={styles.playerIdContent}>
-          <View style={styles.playerIdHeader}>
-            <Text variant="titleMedium" style={styles.playerIdTitle}>
-              Your player ID
-            </Text>
-            <IconButton
-              icon="information-outline"
-              size={20}
-              accessibilityLabel="What is a player ID?"
-              onPress={() => setShowPlayerIdInfo(true)}
-            />
+      {!currentPlayer.playerCode ? (
+        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+          Run migration 004 in Supabase to generate player IDs.
+        </Text>
+      ) : null}
+    </SectionCard>
+  );
+
+  const contactCard = (
+    <SectionCard title="Contact information" icon="card-account-details-outline">
+      {currentPlayer.email || currentPlayer.phone ? (
+        <View>
+          {currentPlayer.email ? <ListRow title={currentPlayer.email} description="Email" icon="email-outline" /> : null}
+          {currentPlayer.phone ? <ListRow title={currentPlayer.phone} description="Phone" icon="phone-outline" /> : null}
+        </View>
+      ) : (
+        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+          No contact information yet. Add it from Edit profile.
+        </Text>
+      )}
+    </SectionCard>
+  );
+
+  const securityCard = (
+    <SectionCard title="Security" icon="shield-lock-outline">
+      <ListRow
+        title="Change passcode"
+        description="Update your 6-digit login passcode"
+        icon="lock-outline"
+        onPress={() => setShowChangePasscode(true)}
+      />
+      <Divider />
+      <ListRow
+        title="Change email"
+        description="Requires confirmation from your inbox"
+        icon="email-sync-outline"
+        onPress={() => setShowChangeEmail(true)}
+      />
+    </SectionCard>
+  );
+
+  return (
+    <Screen>
+      {isWide ? (
+        <View style={styles.columns}>
+          <View style={styles.column}>
+            {hero}
+            {statsRow}
           </View>
-
-          <View style={styles.playerIdRow}>
-            <View style={[styles.playerIdPill, { backgroundColor: theme.colors.secondaryContainer }]}>
-              <Text
-                variant="headlineSmall"
-                style={[styles.playerIdText, { color: theme.colors.onSecondaryContainer }]}
-              >
-                {currentPlayer.playerCode ?? '—'}
-              </Text>
-            </View>
-
-            <Button
-              mode="contained-tonal"
-              icon="share-variant"
-              onPress={sharePlayerId}
-              disabled={!currentPlayer.playerCode}
-              contentStyle={styles.buttonContent}
-            >
-              Share
-            </Button>
+          <View style={styles.column}>
+            {playerIdCard}
+            {contactCard}
+            {securityCard}
           </View>
-
-          {!currentPlayer.playerCode ? (
-            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-              Run migration 004 in Supabase to generate player IDs.
-            </Text>
-          ) : null}
-        </Card.Content>
-      </Card>
-
-      <SectionCard title="Contact information">
-        {currentPlayer.email || currentPlayer.phone ? (
-          <View>
-            {currentPlayer.email ? (
-              <List.Item
-                title={currentPlayer.email}
-                description="Email"
-                left={(props) => <List.Icon {...props} icon="email-outline" />}
-                style={styles.infoItem}
-              />
-            ) : null}
-            {currentPlayer.phone ? (
-              <List.Item
-                title={currentPlayer.phone}
-                description="Phone"
-                left={(props) => <List.Icon {...props} icon="phone-outline" />}
-                style={styles.infoItem}
-              />
-            ) : null}
-          </View>
-        ) : (
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-            No contact information yet. Add it from Edit profile.
-          </Text>
-        )}
-      </SectionCard>
-
-      <SectionCard title="Security">
-        <List.Item
-          title="Change passcode"
-          description="Update your 6-digit login passcode"
-          left={(props) => <List.Icon {...props} icon="lock-outline" />}
-          right={(props) => <List.Icon {...props} icon="chevron-right" />}
-          onPress={() => setShowChangePasscode(true)}
-          style={styles.actionItem}
-        />
-        <Divider />
-        <List.Item
-          title="Change email"
-          description="Requires confirmation from your inbox"
-          left={(props) => <List.Icon {...props} icon="email-sync-outline" />}
-          right={(props) => <List.Icon {...props} icon="chevron-right" />}
-          onPress={() => setShowChangeEmail(true)}
-          style={styles.actionItem}
-        />
-      </SectionCard>
+        </View>
+      ) : (
+        <>
+          {hero}
+          {statsRow}
+          {playerIdCard}
+          {contactCard}
+          {securityCard}
+        </>
+      )}
 
       <Portal>
         <Dialog
           visible={showPlayerIdInfo}
           onDismiss={() => setShowPlayerIdInfo(false)}
-          style={styles.dialog}
+          style={[styles.dialog, { backgroundColor: theme.colors.surface }]}
         >
           <Dialog.Icon icon="badge-account-horizontal-outline" />
           <Dialog.Title style={styles.dialogTitle}>About your player ID</Dialog.Title>
@@ -421,7 +402,7 @@ export default function ProfileScreen() {
 
       {/* Change Passcode Dialog */}
       <Portal>
-        <Dialog visible={showChangePasscode} onDismiss={closePasscodeDialog} style={styles.dialog}>
+        <Dialog visible={showChangePasscode} onDismiss={closePasscodeDialog} style={[styles.dialog, { backgroundColor: theme.colors.surface }]}>
           <Dialog.Icon icon="lock-outline" />
           <Dialog.Title style={styles.dialogTitle}>Change passcode</Dialog.Title>
           <Dialog.Content style={styles.dialogContent}>
@@ -492,7 +473,7 @@ export default function ProfileScreen() {
 
       {/* Change Email Dialog */}
       <Portal>
-        <Dialog visible={showChangeEmail} onDismiss={closeEmailDialog} style={styles.dialog}>
+        <Dialog visible={showChangeEmail} onDismiss={closeEmailDialog} style={[styles.dialog, { backgroundColor: theme.colors.surface }]}>
           <Dialog.Icon icon="email-sync-outline" />
           <Dialog.Title style={styles.dialogTitle}>Change email</Dialog.Title>
           <Dialog.Content style={styles.dialogContent}>
@@ -543,56 +524,50 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing.xl,
   },
-  hero: {
-    borderRadius: radius.lg,
+  columns: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.lg,
   },
-  heroContent: {
+  column: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.lg,
+  },
+  noMargin: {
+    margin: 0,
+  },
+  hero: {
+    borderRadius: radius.xl,
     alignItems: 'center',
     paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
     gap: spacing.sm,
   },
+  heroAvatar: {
+    borderWidth: 3,
+  },
   heroName: {
-    fontWeight: '600',
+    fontWeight: '800',
     textAlign: 'center',
   },
   heroButton: {
-    marginTop: spacing.lg,
+    marginTop: spacing.md,
     minWidth: 200,
+    borderRadius: radius.full,
+  },
+  heroButtonLabel: {
+    fontWeight: '800',
+  },
+  pill: {
+    borderRadius: radius.full,
   },
   buttonContent: {
     height: MIN_TOUCH_TARGET,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: radius.md,
-  },
-  statContent: {
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.md,
-  },
-  statValue: {
-    fontWeight: '700',
-  },
-  playerIdCard: {
-    borderRadius: radius.lg,
-  },
-  playerIdContent: {
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.lg,
     gap: spacing.sm,
-  },
-  playerIdHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  playerIdTitle: {
-    fontWeight: '600',
   },
   playerIdRow: {
     flexDirection: 'row',
@@ -609,15 +584,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 4,
   },
-  infoItem: {
-    paddingHorizontal: 0,
-  },
-  actionItem: {
-    paddingHorizontal: 0,
-    minHeight: MIN_TOUCH_TARGET + spacing.md,
-  },
   dialog: {
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    maxWidth: 480,
+    width: '90%',
+    alignSelf: 'center',
   },
   dialogTitle: {
     textAlign: 'center',
