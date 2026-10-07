@@ -7,6 +7,7 @@ import { authService } from '@/services/auth';
 import { Player } from '@/types/player';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
+import { useLayout } from '@/hooks/useLayout';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof Ionicons>['name'];
@@ -29,6 +30,7 @@ function BrandTitle() {
 
 export default function TabLayout() {
   const theme = useAppTheme();
+  const { insets, isShort } = useLayout();
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
 
   useEffect(() => {
@@ -70,8 +72,11 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.outlineVariant,
+          height: (isShort ? 52 : 64) + insets.bottom,
+          paddingTop: isShort ? 0 : 4,
+          paddingBottom: insets.bottom + (isShort ? 0 : 4),
         },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
         tabBarItemStyle: { minHeight: MIN_TOUCH_TARGET },
         sceneStyle: { backgroundColor: theme.colors.background },
         headerRight: HeaderRight,
