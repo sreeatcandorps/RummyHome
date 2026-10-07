@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { router } from 'expo-router';
@@ -8,6 +8,7 @@ import { isSupabaseConfigured } from '../../services/supabase';
 import { formatAuthError } from '../../utils/authErrors';
 import { AuthShell } from '../../components/ui/AuthShell';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
+import { takeStartupNotice } from '../../utils/startupNotice';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
@@ -15,6 +16,11 @@ export default function LoginScreen() {
   const [passcode, setPasscode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const notice = takeStartupNotice();
+    if (notice) setError(notice);
+  }, []);
 
   const handleEmailLogin = async () => {
     if (!email || !passcode) {

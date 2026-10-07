@@ -1,7 +1,7 @@
 import '../polyfills';
-import { Stack } from 'expo-router';
+import { SplashScreen, Stack, useRouter, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { useRouter, useSegments } from 'expo-router';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { DarkTheme as NavigationDarkTheme, DefaultTheme as NavigationLightTheme, ThemeProvider } from '@react-navigation/native';
 import { PaperProvider } from 'react-native-paper';
@@ -10,8 +10,26 @@ import { PreferencesProvider, usePreferences } from '@/contexts/PreferencesConte
 import { authService } from '@/services/auth';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { storage } from '@/utils/storage';
-import { darkTheme, lightTheme } from '@/constants/theme';
+import { darkTheme, lightTheme, brand, spacing } from '@/constants/theme';
 import { isClockSkewError } from '@/utils/supabaseErrors';
+import { setStartupNotice } from '@/utils/startupNotice';
+import { withTimeout } from '@/utils/withTimeout';
+
+const STARTUP_TIMEOUT_MS = 4000;
+
+function hideSplash() {
+  SplashScreen.hideAsync().catch(() => {});
+}
+
+// Expo Router only hides the native splash once navigation reports ready.
+// On Android that signal waits on a native inset/layout callback that does
+// not arrive while the splash is still up, so the two wait on each other.
+// Own the splash here and always dismiss it.
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync().catch(() => {});
+  hideSplash();
+  setTimeout(hideSplash, 1200);
+}
 
 export default function Layout() {
   return (
@@ -43,9 +61,21 @@ function ThemedApp() {
   }, [darkMode, theme]);
 
   useEffect(() => {
-    checkAuth();
+    let active = true;
+    withTimeout(checkAuth(), STARTUP_TIMEOUT_MS, 'Startup timed out').catch((error) => {
+      console.error('Auth check error:', error);
+      const message = error instanceof Error ? error.message : 'Could not finish startup';
+      setStartupNotice(message);
+      if (active && segments[0] !== '(auth)') {
+        router.replace('/(auth)/login');
+      }
+    }).finally(() => {
+      hideSplash();
+    });
 
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured) return () => {
+      active = false;
+    };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
@@ -57,7 +87,10 @@ function ThemedApp() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const checkAuth = async () => {
@@ -80,6 +113,7 @@ function ThemedApp() {
       }
     } catch (error) {
       console.error('Auth check error:', error);
+      setStartupNotice(error instanceof Error ? error.message : 'Could not finish startup');
       if (isSupabaseConfigured && isClockSkewError(error)) {
         await authService.clearLocalSession();
       }
@@ -118,3 +152,51 @@ function ThemedApp() {
     </ThemeProvider>
   );
 }
+
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    console.error(error);
+    hideSplash();
+  }, [error]);
+
+  return (
+    <View style={styles.errorScreen}>
+      <Text style={styles.errorTitle}>Rummy Home could not start</Text>
+      <Text style={styles.errorBody}>{error.message}</Text>
+      <Pressable onPress={retry} style={styles.retry}>
+        <Text style={styles.retryLabel}>Try again</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  errorScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.xl,
+    backgroundColor: brand.cream,
+    gap: spacing.md,
+  },
+  errorTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: brand.felt,
+  },
+  errorBody: {
+    fontSize: 16,
+    color: '#1B1F1C',
+  },
+  retry: {
+    alignSelf: 'flex-start',
+    backgroundColor: brand.felt,
+    borderRadius: 8,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  retryLabel: {
+    color: brand.cream,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+});

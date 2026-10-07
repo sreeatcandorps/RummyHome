@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, View } from 'react-native';
-import { Redirect } from 'expo-router';
+import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import { Redirect, SplashScreen } from 'expo-router';
 import { authService } from '@/services/auth';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { brand, spacing } from '@/constants/theme';
+import { setStartupNotice } from '@/utils/startupNotice';
+import { withTimeout } from '@/utils/withTimeout';
+
+const STARTUP_TIMEOUT_MS = 4000;
 
 /** Signed-in players go straight to Home; everyone else to login. */
 async function hasSignedInPlayer() {
@@ -22,9 +26,19 @@ export default function Index() {
 
   useEffect(() => {
     let active = true;
-    hasSignedInPlayer()
-      .then((signedIn) => active && setHref(signedIn ? '/(tabs)' : '/(auth)/login'))
-      .catch(() => active && setHref('/(auth)/login'));
+    withTimeout(hasSignedInPlayer(), STARTUP_TIMEOUT_MS, 'Startup timed out before sign-in could be checked')
+      .then((signedIn) => {
+        if (active) setHref(signedIn ? '/(tabs)' : '/(auth)/login');
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        const message = error instanceof Error ? error.message : 'Could not finish startup';
+        setStartupNotice(message);
+        if (active) setHref('/(auth)/login');
+      })
+      .finally(() => {
+        SplashScreen.hideAsync().catch(() => {});
+      });
     return () => {
       active = false;
     };
@@ -37,6 +51,7 @@ export default function Index() {
     <View style={styles.splash}>
       <Image source={require('../assets/icon.png')} style={styles.logo} />
       <ActivityIndicator color={brand.felt} />
+      <Text style={styles.hint}>Opening Rummy Home…</Text>
     </View>
   );
 }
@@ -52,5 +67,9 @@ const styles = StyleSheet.create({
   logo: {
     width: 160,
     height: 160,
+  },
+  hint: {
+    color: brand.felt,
+    fontSize: 14,
   },
 });
