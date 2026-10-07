@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { Text, Button, Card, useTheme } from 'react-native-paper';
+import { Text, Button, Icon } from 'react-native-paper';
 import { router } from 'expo-router';
 import { storage } from '../../utils/storage';
+import { AuthShell } from '../../components/ui/AuthShell';
+import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 
 export default function AdminLoginScreen() {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const [loading, setLoading] = useState(false);
 
   const handleAdminLogin = async () => {
@@ -47,100 +49,87 @@ export default function AdminLoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="headlineMedium" style={styles.title}>
-            🔐 Admin Access
-          </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Login as administrator to access all features
-          </Text>
-        </Card.Content>
-      </Card>
+    <AuthShell
+      title="Admin access"
+      subtitle="Login as administrator to access all features"
+      icon="shield-account-outline"
+      footer={
+        <Button
+          mode="outlined"
+          onPress={() => router.push('/(auth)/login')}
+          icon="arrow-left"
+          style={styles.pill}
+          contentStyle={styles.buttonContent}
+        >
+          Back to normal login
+        </Button>
+      }
+    >
+      <Text variant="titleMedium" style={styles.sectionTitle}>
+        Quick admin login
+      </Text>
+      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+        This will create an admin account with full access to all features
+      </Text>
 
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Quick Admin Login
-          </Text>
-          <Text variant="bodySmall" style={styles.note}>
-            This will create an admin account with full access to all features
-          </Text>
-          
-          <Button
-            mode="contained"
-            onPress={handleAdminLogin}
-            style={[styles.adminButton, { backgroundColor: theme.colors.error }]}
-            loading={loading}
-            disabled={loading}
-            icon="account-cog"
-          >
-            Login as Admin
-          </Button>
+      <Button
+        mode="contained"
+        onPress={handleAdminLogin}
+        buttonColor={theme.colors.error}
+        textColor={theme.colors.onError}
+        loading={loading}
+        disabled={loading}
+        icon="account-cog"
+        style={styles.pill}
+        contentStyle={styles.buttonContent}
+      >
+        Login as admin
+      </Button>
 
-          <Button
-            mode="outlined"
-            onPress={() => router.push('/(auth)/login')}
-            style={styles.backButton}
-            icon="arrow-left"
-          >
-            Back to Normal Login
-          </Button>
-        </Card.Content>
-      </Card>
-
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Admin Features
-          </Text>
-          
-          <View style={styles.featureList}>
-            <Text variant="bodyMedium">• Full access to all game settings</Text>
-            <Text variant="bodyMedium">• Create and manage games</Text>
-            <Text variant="bodyMedium">• View all player data</Text>
-            <Text variant="bodyMedium">• Clear games and reset data</Text>
-            <Text variant="bodyMedium">• Access to admin-only features</Text>
+      <View style={[styles.features, { backgroundColor: theme.colors.surfaceVariant }]}>
+        <Text variant="titleSmall" style={styles.sectionTitle}>
+          Admin features
+        </Text>
+        {[
+          'Full access to all game settings',
+          'Create and manage games',
+          'View all player data',
+          'Clear games and reset data',
+          'Access to admin-only features',
+        ].map((feature) => (
+          <View key={feature} style={styles.featureRow}>
+            <Icon source="check" size={16} color={theme.colors.primary} />
+            <Text variant="bodyMedium" style={styles.featureText}>
+              {feature}
+            </Text>
           </View>
-        </Card.Content>
-      </Card>
-    </View>
+        ))}
+      </View>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'center',
-  },
-  card: {
-    marginBottom: 16,
-  },
-  title: {
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    textAlign: 'center',
-    marginBottom: 24,
-    opacity: 0.7,
-  },
   sectionTitle: {
-    marginBottom: 8,
+    fontWeight: '700',
   },
-  note: {
-    marginBottom: 16,
-    opacity: 0.7,
+  pill: {
+    borderRadius: radius.full,
   },
-  adminButton: {
-    marginBottom: 16,
+  buttonContent: {
+    height: MIN_TOUCH_TARGET,
   },
-  backButton: {
-    marginBottom: 16,
+  features: {
+    borderRadius: radius.md,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
-  featureList: {
-    gap: 8,
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
-}); 
+  featureText: {
+    flex: 1,
+  },
+});

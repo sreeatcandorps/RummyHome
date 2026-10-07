@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, HelperText, Card, useTheme } from 'react-native-paper';
+import { View, StyleSheet, Alert } from 'react-native';
+import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { router } from 'expo-router';
 import { storage } from '../../utils/storage';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured, supabase } from '../../services/supabase';
 import { formatAuthError } from '../../utils/authErrors';
-import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
+import { AuthShell } from '../../components/ui/AuthShell';
+import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 // import * as Location from 'expo-location';
 
 interface SimpleCountry {
@@ -17,7 +18,7 @@ interface SimpleCountry {
 }
 
 export default function RegisterScreen() {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const [firstName, setFirstName] = React.useState('');
   const [lastName, setLastName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -188,129 +189,10 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: theme.colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Create account
-          </Text>
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-            You'll use your email and a 6-digit passcode to sign in.
-          </Text>
-        </View>
-
-        <Card mode="elevated" style={styles.card}>
-          <Card.Content style={styles.cardContent}>
-            <Text variant="titleSmall" style={styles.groupLabel}>
-              Your name
-            </Text>
-            <View style={styles.nameRow}>
-              <TextInput
-                label="First name"
-                value={firstName}
-                onChangeText={setFirstName}
-                mode="outlined"
-                disabled={loading}
-                style={styles.nameInput}
-              />
-              <TextInput
-                label="Last name"
-                value={lastName}
-                onChangeText={setLastName}
-                mode="outlined"
-                disabled={loading}
-                style={styles.nameInput}
-              />
-            </View>
-
-            <Text variant="titleSmall" style={styles.groupLabel}>
-              Sign-in details
-            </Text>
-            <TextInput
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              mode="outlined"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              disabled={loading}
-              left={<TextInput.Icon icon="email-outline" />}
-            />
-
-            <View>
-              <TextInput
-                label="6-digit passcode"
-                value={passcode}
-                onChangeText={(text) => {
-                  const numericText = text.replace(/[^0-9]/g, '');
-                  if (numericText.length <= 6) {
-                    setPasscode(numericText);
-                  }
-                }}
-                mode="outlined"
-                keyboardType="numeric"
-                maxLength={6}
-                secureTextEntry
-                disabled={loading}
-                left={<TextInput.Icon icon="lock-outline" />}
-              />
-              <HelperText type="info" visible>
-                Numbers only — this is your quick login code.
-              </HelperText>
-            </View>
-
-            <Text variant="titleSmall" style={styles.groupLabel}>
-              Contact (optional)
-            </Text>
-            <View>
-              <TextInput
-                label="Phone number"
-                value={phone}
-                onChangeText={setPhone}
-                mode="outlined"
-                keyboardType="phone-pad"
-                disabled={loading}
-                left={<TextInput.Icon icon="phone-outline" />}
-              />
-              {selectedCountry && (
-                <HelperText type="info" visible>
-                  {selectedCountry.flag} {selectedCountry.name} (+{selectedCountry.callingCode})
-                </HelperText>
-              )}
-            </View>
-
-            {error ? (
-              <HelperText type="error" visible={!!error}>
-                {error}
-              </HelperText>
-            ) : null}
-
-            <Button
-              mode="contained"
-              onPress={handleRegister}
-              loading={loading}
-              disabled={loading}
-              contentStyle={styles.primaryContent}
-              labelStyle={styles.primaryLabel}
-            >
-              Create account
-            </Button>
-
-            <Button
-              mode="text"
-              onPress={clearFields}
-              disabled={loading}
-              contentStyle={styles.secondaryContent}
-            >
-              Clear form
-            </Button>
-          </Card.Content>
-        </Card>
-
+    <AuthShell
+      title="Create account"
+      subtitle="You'll use your email and a 6-digit passcode to sign in."
+      footer={
         <View style={styles.footerRow}>
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
             Already have an account?
@@ -324,37 +206,121 @@ export default function RegisterScreen() {
             Sign in
           </Button>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      }
+    >
+      <Text variant="titleSmall" style={styles.groupLabel}>
+        Your name
+      </Text>
+      <View style={styles.nameRow}>
+        <TextInput
+          label="First name"
+          value={firstName}
+          onChangeText={setFirstName}
+          mode="outlined"
+          disabled={loading}
+          style={styles.nameInput}
+        />
+        <TextInput
+          label="Last name"
+          value={lastName}
+          onChangeText={setLastName}
+          mode="outlined"
+          disabled={loading}
+          style={styles.nameInput}
+        />
+      </View>
+
+      <Text variant="titleSmall" style={styles.groupLabel}>
+        Sign-in details
+      </Text>
+      <TextInput
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        mode="outlined"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoComplete="email"
+        disabled={loading}
+        left={<TextInput.Icon icon="email-outline" />}
+      />
+
+      <View>
+        <TextInput
+          label="6-digit passcode"
+          value={passcode}
+          onChangeText={(text) => {
+            const numericText = text.replace(/[^0-9]/g, '');
+            if (numericText.length <= 6) {
+              setPasscode(numericText);
+            }
+          }}
+          mode="outlined"
+          keyboardType="numeric"
+          maxLength={6}
+          secureTextEntry
+          disabled={loading}
+          left={<TextInput.Icon icon="lock-outline" />}
+        />
+        <HelperText type="info" visible>
+          Numbers only — this is your quick login code.
+        </HelperText>
+      </View>
+
+      <Text variant="titleSmall" style={styles.groupLabel}>
+        Contact (optional)
+      </Text>
+      <View>
+        <TextInput
+          label="Phone number"
+          value={phone}
+          onChangeText={setPhone}
+          mode="outlined"
+          keyboardType="phone-pad"
+          disabled={loading}
+          left={<TextInput.Icon icon="phone-outline" />}
+        />
+        {selectedCountry && (
+          <HelperText type="info" visible>
+            {selectedCountry.flag} {selectedCountry.name} (+{selectedCountry.callingCode})
+          </HelperText>
+        )}
+      </View>
+
+      {error ? (
+        <HelperText type="error" visible={!!error}>
+          {error}
+        </HelperText>
+      ) : null}
+
+      <Button
+        mode="contained"
+        onPress={handleRegister}
+        loading={loading}
+        disabled={loading}
+        style={styles.pill}
+        contentStyle={styles.primaryContent}
+        labelStyle={styles.primaryLabel}
+      >
+        Create account
+      </Button>
+
+      <Button
+        mode="text"
+        onPress={clearFields}
+        disabled={loading}
+        contentStyle={styles.secondaryContent}
+      >
+        Clear form
+      </Button>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.xl,
-    gap: spacing.lg,
-  },
-  header: {
-    gap: spacing.xs,
-  },
-  title: {
-    fontWeight: '700',
-  },
-  card: {
-    borderRadius: radius.lg,
-  },
-  cardContent: {
-    paddingVertical: spacing.lg,
-    gap: spacing.md,
-  },
   groupLabel: {
     marginTop: spacing.xs,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   nameRow: {
     flexDirection: 'row',
@@ -363,12 +329,15 @@ const styles = StyleSheet.create({
   nameInput: {
     flex: 1,
   },
+  pill: {
+    borderRadius: radius.full,
+  },
   primaryContent: {
     height: 56,
   },
   primaryLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   secondaryContent: {
     height: MIN_TOUCH_TARGET,
