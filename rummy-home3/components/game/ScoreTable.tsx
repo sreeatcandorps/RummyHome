@@ -99,25 +99,27 @@ export function ScoreTable({
           dealsNext && { backgroundColor: colors.primary },
         ]}
       >
-        <View style={styles.headerLabelRow}>
-          {leader ? <Icon source="crown" size={compact ? 12 : 14} color={dealsNext ? colors.onPrimary : colors.leader} /> : null}
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.headerText,
-              {
-                fontSize: fontSize - 1,
-                color: dealsNext ? colors.onPrimary : column.isExpense ? colors.onSurfaceVariant : column.color,
-              },
-            ]}
-          >
-            {column.label}
-          </Text>
-        </View>
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.headerText,
+            {
+              fontSize: fontSize - 1,
+              color: dealsNext ? colors.onPrimary : column.isExpense ? colors.onSurfaceVariant : column.color,
+            },
+          ]}
+        >
+          {column.label}
+        </Text>
         {dealsNext ? (
-          <Text style={[styles.dealsText, { color: colors.onPrimary }]} numberOfLines={1}>
-            DEALS
-          </Text>
+          <View style={styles.headerLabelRow}>
+            {leader ? <Icon source="crown" size={10} color={colors.onPrimary} /> : null}
+            <Text style={[styles.dealsText, { color: colors.onPrimary }]} numberOfLines={1}>
+              DEALS
+            </Text>
+          </View>
+        ) : leader ? (
+          <Icon source="crown" size={compact ? 12 : 14} color={colors.leader} />
         ) : (
           <View style={[styles.seatBar, { backgroundColor: column.isExpense ? colors.outlineVariant : column.color }]} />
         )}
