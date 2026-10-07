@@ -10,7 +10,6 @@ import {
   Text,
   TextInput,
   TouchableRipple,
-  useTheme,
 } from 'react-native-paper';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Game } from '../../types/game';
@@ -20,7 +19,19 @@ import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
 import { storage } from '../../utils/storage';
 import { distributeRummyWinnings } from '../../utils/rummyDistribution';
-import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
+import {
+  MAX_CONTENT_WIDTH,
+  MIN_TOUCH_TARGET,
+  radius,
+  seatColor,
+  spacing,
+  tabularNums,
+  useAppTheme,
+} from '../../constants/theme';
+import { useLayout } from '../../hooks/useLayout';
+import { BottomBar } from '../../components/ui/BottomBar';
+import { SeatAvatar } from '../../components/ui/SeatAvatar';
+import { buildPlayerInitials } from '../../utils/playerInitials';
 import { formatGameDateTime, gameIdLabel } from '../../utils/gameDisplay';
 import { formatSupabaseError } from '../../utils/supabaseErrors';
 
@@ -50,7 +61,8 @@ const TYPE_LABELS: Record<ScoreType, string> = {
 const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
 export default function ScoreEntryScreen() {
-  const theme = useTheme();
+  const { colors } = useAppTheme();
+  const { isShort, insets, gutterLeft, gutterRight } = useLayout();
   const { gameId } = useLocalSearchParams();
 
   const [game, setGame] = useState<Game | null>(null);
@@ -319,231 +331,393 @@ export default function ScoreEntryScreen() {
         : `Middle drop (${middleDropValue})`
     : null;
 
+  const initials = buildPlayerInitials(participants.map((participant) => participant.name));
+  const seatIndex = (participantId: string) =>
+    participants.filter((participant) => !participant.isExpense).findIndex((participant) => participant.id === participantId);
+
+  const modeOptions: { value: SelectableType; label: string; amount?: number; icon: string }[] = [
+    { value: 'drop', label: 'Drop', amount: dropValue, icon: 'arrow-down-circle-outline' },
+    { value: 'middle_drop', label: 'Middle drop', amount: middleDropValue, icon: 'arrow-collapse-down' },
+    { value: 'rummy', label: 'Rummy', icon: 'trophy-outline' },
+  ];
+
+  const hint = selectedTypeLabel
+    ? selectedType === 'rummy'
+      ? 'Tap every winner. They split the points so the round balances.'
+      : `Tap each player who took a ${selectedTypeLabel}.`
+    : 'Pick Drop, Middle drop or Rummy, or tap a player to type an exact score.';
+
   if (loading) {
     return (
-      <View style={[styles.loading, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.loading, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
+
+  const modeTiles = (
+    <View style={[styles.modes, isShort && styles.modesColumn]}>
+      {modeOptions.map((option) => {
+        const selected = selectedType === option.value;
+        const accessibleLabel = option.amount !== undefined ? `${option.label} ${option.amount}` : option.label;
+        return (
+          <View
+            key={option.value}
+            style={[
+              styles.modeTile,
+              isShort && styles.modeTileRow,
+              {
+                backgroundColor: selected ? colors.primary : colors.surface,
+                borderColor: selected ? colors.primary : colors.outlineVariant,
+              },
+            ]}
+          >
+            <TouchableRipple
+              onPress={() => setSelectedType((prev) => (prev === option.value ? null : option.value))}
+              borderless
+              style={styles.modeRipple}
+              accessibilityRole="button"
+              accessibilityLabel={accessibleLabel}
+              accessibilityState={{ selected }}
+            >
+              <View style={[styles.modeInner, isShort && styles.modeInnerRow]}>
+                <Icon source={option.icon} size={isShort ? 20 : 22} color={selected ? colors.onPrimary : colors.primary} />
+                <Text
+                  variant="labelLarge"
+                  numberOfLines={1}
+                  style={[styles.modeLabel, { color: selected ? colors.onPrimary : colors.onSurface }]}
+                >
+                  {option.label}
+                </Text>
+                {option.amount !== undefined ? (
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.modeAmount, tabularNums, { color: selected ? colors.onPrimary : colors.onSurfaceVariant }]}
+                  >
+                    {option.amount}
+                  </Text>
+                ) : (
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.modeAmount, { color: selected ? colors.onPrimary : colors.onSurfaceVariant }]}
+                  >
+                    winners
+                  </Text>
+                )}
+              </View>
+            </TouchableRipple>
+          </View>
+        );
+      })}
+    </View>
+  );
+
+  const tallyPill = (
+    <View
+      style={[styles.tallyPill, { backgroundColor: isBalanced ? colors.positiveContainer : colors.errorContainer }]}
+      accessible
+      accessibilityLabel={isBalanced ? 'Round balanced' : `Round tally ${tally}`}
+    >
+      <Text
+        style={[
+          styles.tallyValue,
+          tabularNums,
+          { color: isBalanced ? colors.onPositiveContainer : colors.onErrorContainer },
+        ]}
+      >
+        {isBalanced ? '0' : signed(tally)}
+      </Text>
+      <Text
+        variant="labelSmall"
+        style={[styles.tallyCaption, { color: isBalanced ? colors.onPositiveContainer : colors.onErrorContainer }]}
+      >
+        {isBalanced ? 'Balanced' : 'Tally'}
+      </Text>
+    </View>
+  );
+
+  const submitButton = (
+    <Button
+      mode="contained"
+      onPress={handleSubmit}
+      loading={isSubmitting}
+      disabled={isSubmitting}
+      icon="check"
+      style={styles.submitButton}
+      contentStyle={isShort ? styles.submitContentCompact : styles.submitContent}
+      labelStyle={styles.submitLabel}
+    >
+      Submit round
+    </Button>
+  );
+
+  const playerRows = participants.map((participant, index) => {
+    const value = scoreFor(participant.id);
+    const scoreType = typeFor(participant.id);
+    const isWinner = winners.includes(participant.id);
+    const isPositive = (value ?? 0) > 0;
+    const hasValue = value !== undefined;
+
+    return (
+      <View
+        key={participant.id}
+        style={[
+          styles.playerRow,
+          isShort && styles.playerCell,
+          {
+            backgroundColor: isPositive ? colors.positiveContainer : colors.surface,
+            borderColor: isWinner ? colors.positive : hasValue ? colors.outline : colors.outlineVariant,
+            borderWidth: isWinner ? 2 : 1,
+          },
+        ]}
+      >
+        <TouchableRipple
+          onPress={() => handleParticipantPress(participant)}
+          borderless
+          style={styles.playerRipple}
+          accessibilityRole="button"
+          accessibilityLabel={participant.name}
+        >
+          <View style={[styles.playerRowInner, isShort && styles.playerRowInnerCompact]}>
+            <View>
+              {participant.isExpense ? (
+                <SeatAvatar name={participant.name} icon="cash-multiple" muted size={isShort ? 32 : 38} />
+              ) : (
+                <SeatAvatar
+                  name={participant.name}
+                  label={initials[index]}
+                  color={seatColor(seatIndex(participant.id))}
+                  size={isShort ? 32 : 38}
+                />
+              )}
+              {isWinner ? (
+                <View style={[styles.winnerBadge, { backgroundColor: colors.leader, borderColor: colors.surface }]}>
+                  <Icon source="trophy" size={10} color={colors.surface} />
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.playerText}>
+              <Text variant="bodyLarge" numberOfLines={1} style={[styles.playerName, { color: isPositive ? colors.onPositiveContainer : colors.onSurface }]}>
+                {participant.name}
+              </Text>
+              <Text
+                variant="labelSmall"
+                numberOfLines={1}
+                style={{ color: isPositive ? colors.onPositiveContainer : colors.onSurfaceVariant }}
+              >
+                {scoreType ? (isWinner ? 'Rummy winner' : TYPE_LABELS[scoreType]) : 'Not scored'}
+              </Text>
+            </View>
+
+            {isShort && !hasValue ? null : (
+              <View
+                style={[
+                  styles.scorePill,
+                  isShort && styles.scorePillCompact,
+                  {
+                    backgroundColor: isPositive ? colors.surface : hasValue ? colors.surfaceVariant : 'transparent',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.playerScore,
+                    tabularNums,
+                    { color: isPositive ? colors.positive : hasValue ? colors.onSurface : colors.outline },
+                  ]}
+                >
+                  {value === undefined ? '—' : signed(value)}
+                </Text>
+              </View>
+            )}
+
+            <IconButton
+              icon={value === undefined ? 'pencil-outline' : 'close'}
+              size={20}
+              style={styles.rowAction}
+              iconColor={colors.onSurfaceVariant}
+              accessibilityLabel={
+                value === undefined
+                  ? `Enter score for ${participant.name}`
+                  : `Clear score for ${participant.name}`
+              }
+              onPress={() =>
+                value === undefined ? openManualEntry(participant) : clearScore(participant.id)
+              }
+            />
+          </View>
+        </TouchableRipple>
+      </View>
+    );
+  });
+
+  const hintText = (
+    <View style={styles.hintRow}>
+      <Icon source="gesture-tap" size={16} color={colors.onSurfaceVariant} />
+      <Text variant="bodySmall" style={[styles.hintText, { color: colors.onSurfaceVariant }]}>
+        {hint}
+      </Text>
+    </View>
+  );
+
+  const title = game ? `Round ${game.currentRound}` : 'Enter scores';
+  const subtitle = game ? `${formatGameDateTime(game.date)} · ID ${gameIdLabel(game)}` : undefined;
 
   return (
     <>
       <Stack.Screen
         options={{
           title: game ? `Enter scores for round ${game.currentRound}` : 'Enter scores',
-          headerShown: true,
-          headerTitleStyle: { fontSize: 17, fontWeight: '600' },
+          headerShown: !isShort,
+          headerTitle: () => (
+            <View>
+              <Text variant="titleMedium" style={styles.headerTitle} numberOfLines={1}>
+                {title}
+              </Text>
+              {subtitle ? (
+                <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+          ),
         }}
       />
 
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        {/* Frozen: the score type must stay visible while the player list scrolls. */}
-        <View style={styles.stickyTop}>
-          {game ? (
-            <Text variant="bodySmall" numberOfLines={1} style={{ color: theme.colors.onSurfaceVariant }}>
-              {formatGameDateTime(game.date)} · ID {gameIdLabel(game)}
-            </Text>
-          ) : null}
-
-          <SegmentedButtons
-            value={selectedType ?? ''}
-            onValueChange={(value) =>
-              setSelectedType((prev) => (prev === value ? null : (value as SelectableType)))
-            }
-            buttons={typeOptions.map((option) => ({
-              value: option.value,
-              label: option.label,
-              style: styles.segment,
-            }))}
-          />
-
-          <Text variant="labelLarge" numberOfLines={1} style={{ color: theme.colors.onSurfaceVariant }}>
-            {selectedTypeLabel
-              ? `Select players for ${selectedTypeLabel}`
-              : 'Tap a player to type an exact score'}
-          </Text>
-        </View>
-
-        <ScrollView
-          style={styles.scrollArea}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.playerList}>
-            {participants.map((participant) => {
-              const value = scoreFor(participant.id);
-              const scoreType = typeFor(participant.id);
-              const isWinner = winners.includes(participant.id);
-              const isPositive = (value ?? 0) > 0;
-
-              return (
-                <TouchableRipple
-                  key={participant.id}
-                  onPress={() => handleParticipantPress(participant)}
-                  borderless
-                  style={[
-                    styles.playerRow,
-                    {
-                      backgroundColor: isPositive
-                        ? theme.colors.primaryContainer
-                        : value !== undefined
-                          ? theme.colors.surfaceVariant
-                          : 'transparent',
-                      borderColor: isWinner ? theme.colors.primary : theme.colors.outlineVariant,
-                    },
-                  ]}
-                >
-                  <View style={styles.playerRowInner}>
-                    <Icon
-                      source={
-                        participant.isExpense
-                          ? 'cash-multiple'
-                          : isWinner
-                            ? 'trophy'
-                            : value !== undefined
-                              ? 'check-circle'
-                              : 'account-outline'
-                      }
-                      size={20}
-                      color={isPositive ? theme.colors.primary : theme.colors.onSurfaceVariant}
-                    />
-
-                    <View style={styles.playerText}>
-                      <Text variant="bodyLarge" numberOfLines={1} style={styles.playerName}>
-                        {participant.name}
-                      </Text>
-                      {scoreType ? (
-                        <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                          {isWinner ? 'Rummy winner' : TYPE_LABELS[scoreType]}
-                        </Text>
-                      ) : null}
-                    </View>
-
-                    <Text
-                      variant="titleMedium"
-                      style={[
-                        styles.playerScore,
-                        {
-                          color: isPositive
-                            ? theme.colors.primary
-                            : value !== undefined
-                              ? theme.colors.onSurface
-                              : theme.colors.outline,
-                        },
-                      ]}
-                    >
-                      {value === undefined ? '—' : signed(value)}
-                    </Text>
-
-                    <IconButton
-                      icon={value === undefined ? 'pencil-outline' : 'close'}
-                      size={18}
-                      accessibilityLabel={
-                        value === undefined
-                          ? `Enter score for ${participant.name}`
-                          : `Clear score for ${participant.name}`
-                      }
-                      onPress={() =>
-                        value === undefined ? openManualEntry(participant) : clearScore(participant.id)
-                      }
-                    />
-                  </View>
-                </TouchableRipple>
-              );
-            })}
-          </View>
-        </ScrollView>
-
-        <View style={styles.bottomBar}>
-          <View
-            style={[
-              styles.tallyPill,
-              {
-                backgroundColor: isBalanced
-                  ? theme.colors.primaryContainer
-                  : theme.colors.errorContainer,
-              },
-            ]}
-          >
-            <Text
-              variant="titleMedium"
-              style={{
-                fontWeight: '700',
-                color: isBalanced ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
-              }}
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {isShort ? (
+          <>
+            <View
+              style={[
+                styles.compactTopBar,
+                { paddingTop: insets.top + spacing.xs, paddingLeft: Math.max(insets.left, spacing.xs), paddingRight: gutterRight },
+              ]}
             >
-              {tally}
-            </Text>
-            <Text
-              variant="labelSmall"
-              style={{
-                color: isBalanced ? theme.colors.onPrimaryContainer : theme.colors.onErrorContainer,
-              }}
+              <IconButton
+                icon="close"
+                onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+                accessibilityLabel="Close score entry"
+                style={styles.noMargin}
+              />
+              <Text variant="titleMedium" style={styles.headerTitle} numberOfLines={1}>
+                {title}
+              </Text>
+              {subtitle ? (
+                <Text variant="labelMedium" numberOfLines={1} style={[styles.flex, { color: colors.onSurfaceVariant }]}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+            <View
+              style={[
+                styles.landscapeBody,
+                { paddingLeft: gutterLeft, paddingRight: gutterRight, paddingBottom: insets.bottom + spacing.sm },
+              ]}
             >
-              {isBalanced ? 'Balanced' : 'Tally'}
-            </Text>
-          </View>
+              <View style={[styles.controlPanel, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
+                {modeTiles}
+                {hintText}
+                <View style={styles.flex} />
+                <View style={styles.submitRow}>
+                  {tallyPill}
+                  {submitButton}
+                </View>
+              </View>
+              <ScrollView
+                style={styles.flex}
+                contentContainerStyle={styles.grid}
+                keyboardShouldPersistTaps="handled"
+              >
+                {playerRows}
+              </ScrollView>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Frozen: the score type must stay visible while the player list scrolls. */}
+            <View style={[styles.stickyTop, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
+              <View style={styles.column}>
+                {modeTiles}
+                {hintText}
+              </View>
+            </View>
 
-          <Button
-            mode="contained"
-            onPress={handleSubmit}
-            loading={isSubmitting}
-            disabled={isSubmitting}
-            icon="check"
-            style={styles.submitButton}
-            contentStyle={styles.submitContent}
-            labelStyle={styles.submitLabel}
-          >
-            Submit round
-          </Button>
-        </View>
+            <ScrollView
+              style={styles.scrollArea}
+              contentContainerStyle={[styles.content, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={[styles.column, styles.playerList]}>{playerRows}</View>
+            </ScrollView>
+
+            <BottomBar>
+              {tallyPill}
+              {submitButton}
+            </BottomBar>
+          </>
+        )}
       </View>
 
       <Portal>
-        <Dialog visible={!!manualTarget} onDismiss={closeManualEntry} style={styles.dialog}>
-          <Dialog.Title style={styles.dialogTitle}>{manualTarget?.name}</Dialog.Title>
-          <Dialog.Content style={styles.dialogContent}>
-            <SegmentedButtons
-              value={manualNegative ? 'minus' : 'plus'}
-              onValueChange={(value) => setManualNegative(value === 'minus')}
-              buttons={[
-                { value: 'minus', label: 'Loses (−)' },
-                { value: 'plus', label: 'Wins (+)' },
-              ]}
-            />
-            <TextInput
-              label="Points"
-              value={manualDigits}
-              onChangeText={(text) => setManualDigits(text.replace(/[^0-9]/g, ''))}
-              keyboardType="number-pad"
-              mode="outlined"
-              autoFocus
-              maxLength={4}
-            />
-            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+        <Dialog
+          visible={!!manualTarget}
+          onDismiss={closeManualEntry}
+          style={[styles.dialog, { backgroundColor: colors.surface }, isShort && styles.dialogCompact]}
+        >
+          {isShort ? null : <Dialog.Title style={styles.dialogTitle}>{manualTarget?.name}</Dialog.Title>}
+          <Dialog.Content style={[styles.dialogContent, isShort && styles.dialogContentCompact]}>
+            {isShort ? (
+              <Text variant="titleMedium" style={styles.headerTitle} numberOfLines={1}>
+                {manualTarget?.name}
+              </Text>
+            ) : null}
+            <View style={isShort ? styles.manualRow : styles.manualColumn}>
+              <SegmentedButtons
+                value={manualNegative ? 'minus' : 'plus'}
+                onValueChange={(value) => setManualNegative(value === 'minus')}
+                style={isShort ? styles.flex : undefined}
+                buttons={[
+                  { value: 'minus', label: 'Loses (−)' },
+                  { value: 'plus', label: 'Wins (+)' },
+                ]}
+              />
+              <TextInput
+                label="Points"
+                value={manualDigits}
+                onChangeText={(text) => setManualDigits(text.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                mode="outlined"
+                autoFocus
+                maxLength={4}
+                style={[styles.pointsInput, isShort && styles.pointsInputCompact]}
+                contentStyle={styles.pointsInputContent}
+                left={<TextInput.Affix text={manualNegative ? '−' : '+'} />}
+              />
+            </View>
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, textAlign: 'center' }}>
               Saves as {manualNegative ? '−' : '+'}
               {manualDigits || '0'}
             </Text>
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
             <Button onPress={closeManualEntry}>Cancel</Button>
-            <Button mode="contained" onPress={submitManualEntry} disabled={!manualDigits}>
+            <Button mode="contained" onPress={submitManualEntry} disabled={!manualDigits} contentStyle={styles.dialogButtonContent}>
               Save
             </Button>
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={!!message} onDismiss={() => setMessage(null)} style={styles.dialog}>
+        <Dialog visible={!!message} onDismiss={() => setMessage(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Icon icon={message?.icon ?? 'information-outline'} />
           <Dialog.Title style={styles.dialogTitle}>{message?.title}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogBody}>
+            <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
               {message?.body}
             </Text>
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
-            <Button mode="contained" onPress={() => setMessage(null)}>
+            <Button mode="contained" onPress={() => setMessage(null)} contentStyle={styles.dialogButtonContent}>
               Got it
             </Button>
           </Dialog.Actions>
@@ -557,95 +731,264 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  flex: {
+    flex: 1,
+  },
+  noMargin: {
+    margin: 0,
+  },
+  column: {
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    alignSelf: 'center',
+  },
   loading: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerTitle: {
+    fontWeight: '800',
+  },
   stickyTop: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
+  },
+  compactTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  landscapeBody: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  controlPanel: {
+    width: 296,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    padding: spacing.sm,
+    gap: spacing.sm,
+  },
+  submitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  modes: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  modesColumn: {
+    flexDirection: 'column',
+    gap: spacing.xs,
+  },
+  modeTile: {
+    flex: 1,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  modeTileRow: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+  },
+  modeRipple: {
+    borderRadius: radius.lg,
+  },
+  modeInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    minHeight: 76,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
+  modeInnerRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    gap: spacing.sm,
+    minHeight: MIN_TOUCH_TARGET,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  modeLabel: {
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  modeAmount: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  hintRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.xxs,
+  },
+  hintText: {
+    flex: 1,
+    lineHeight: 17,
   },
   scrollArea: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
   },
-  segment: {
-    minWidth: 0,
-  },
   playerList: {
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   playerRow: {
-    borderRadius: radius.md,
-    borderWidth: 1,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  playerCell: {
+    flexBasis: '48%',
+    flexGrow: 1,
+  },
+  playerRipple: {
+    borderRadius: radius.lg,
   },
   playerRowInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    minHeight: 50,
+    minHeight: 62,
     paddingLeft: spacing.md,
-    paddingRight: spacing.xs,
+    paddingRight: spacing.xxs,
+  },
+  playerRowInnerCompact: {
+    minHeight: 52,
+    gap: spacing.sm,
+    paddingLeft: spacing.sm,
+  },
+  winnerBadge: {
+    position: 'absolute',
+    right: -4,
+    bottom: -3,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   playerText: {
     flex: 1,
+    minWidth: 0,
   },
   playerName: {
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  scorePill: {
+    minWidth: 58,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+  },
+  scorePillCompact: {
+    minWidth: 48,
+    paddingHorizontal: spacing.xs,
   },
   playerScore: {
-    minWidth: 56,
-    textAlign: 'right',
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
   },
-  // Floats above the rounded bottom edge rather than hugging it.
-  bottomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.lg,
+  rowAction: {
+    margin: 0,
   },
   tallyPill: {
-    width: 76,
-    height: MIN_TOUCH_TARGET,
+    minWidth: 68,
+    height: 52,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.full,
+    borderRadius: radius.lg,
+  },
+  tallyValue: {
+    fontSize: 19,
+    fontWeight: '800',
+    lineHeight: 22,
+  },
+  tallyCaption: {
+    fontWeight: '700',
   },
   submitButton: {
     flex: 1,
     borderRadius: radius.full,
   },
   submitContent: {
-    height: MIN_TOUCH_TARGET,
+    height: 52,
+  },
+  submitContentCompact: {
+    height: 52,
   },
   submitLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   dialog: {
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    maxWidth: 440,
+    width: '90%',
+    alignSelf: 'center',
+  },
+  dialogCompact: {
+    maxWidth: 560,
+    marginTop: 0,
+    marginBottom: 'auto',
   },
   dialogTitle: {
     textAlign: 'center',
+    fontWeight: '700',
   },
   dialogContent: {
     gap: spacing.md,
   },
+  dialogContentCompact: {
+    paddingTop: spacing.md,
+    gap: spacing.sm,
+  },
+  manualColumn: {
+    gap: spacing.md,
+  },
+  manualRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  pointsInput: {
+    fontSize: 24,
+  },
+  pointsInputCompact: {
+    width: 150,
+  },
+  pointsInputContent: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
   dialogBody: {
     lineHeight: 20,
+    textAlign: 'center',
   },
   dialogActions: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     gap: spacing.sm,
+  },
+  dialogButtonContent: {
+    paddingHorizontal: spacing.md,
   },
 });
