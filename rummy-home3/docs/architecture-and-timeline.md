@@ -50,6 +50,7 @@ Same codebase either way.
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / production | Real store binaries |
 | OTA | `expo-updates` enabled + EAS Update channels | Fix JS during the 14-day test without new Play review every time |
+| Version codes | `appVersionSource: "remote"` in `eas.json` | EAS tracks Android versionCode; no manual bumps in `app.json` |
 | Secrets for builds | EAS Environment Variables (`EXPO_PUBLIC_SUPABASE_*`) | `.env.local` never reaches EAS builders |
 | Privacy page | `docs/privacy-policy.html` (repo root) | Play Store requires a public privacy URL |
 | Store listing draft | `docs/store-listing.md` | Copy/assets checklist for Play Console |
@@ -157,6 +158,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - One design system in `constants/theme.ts`: felt-green/cream brand palette, spacing/radius tokens, seat colours, and matching **light + dark** themes. The Settings dark-mode switch now actually applies the dark theme (`contexts/PreferencesContext.tsx`).
 - Every screen restyled; scoreboard rebuilt around a sticky score table (`components/game/ScoreTable.tsx`) that stays readable with many players/rounds.
 - Orientation stays unlocked (`"orientation": "default"`); short landscape screens get dedicated two-column / side-panel layouts and respect notch + nav-bar insets (`hooks/useLayout.ts`).
+
+### 2026-10-07 — Pre-release hardening
+- Removed the passwordless `/admin-login` dev route (local-mode backdoor); it no longer ships in any build.
+- `eas.json` now sets `appVersionSource: "remote"`: EAS owns the Android versionCode (starts at 1, production `autoIncrement` bumps it). Expo SDK 54 patch versions aligned via `expo install --fix`.
 
 ### Now
 - Play Console personal account under Google verification (~days).
