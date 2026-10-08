@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { Alert, View, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { Text, Button, Icon, TouchableRipple } from 'react-native-paper';
 import { router, useFocusEffect } from 'expo-router';
 import { storage } from '@/utils/storage';
@@ -8,6 +8,7 @@ import { Game } from '@/types/game';
 import { authService } from '@/services/auth';
 import { gamesService } from '@/services/games';
 import { playersService } from '@/services/players';
+import { clearDemoData, loadDemoData } from '@/services/demoSeed';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { formatSupabaseError, isClockSkewError } from '@/utils/supabaseErrors';
 import { Screen } from '@/components/ui/Screen';
@@ -27,6 +28,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [demoBusy, setDemoBusy] = useState<null | 'load' | 'clear'>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -96,6 +98,28 @@ export default function Dashboard() {
     router.push(`/(screens)/games/${gameId}`);
   };
 
+  const runDemoAction = async (action: 'load' | 'clear') => {
+    setDemoBusy(action);
+    try {
+      if (action === 'load') {
+        const result = await loadDemoData();
+        await loadData(true);
+        Alert.alert(
+          'Demo data loaded',
+          `${result.hostName} is in the sample games. Open the active game to keep adding rounds.`,
+        );
+      } else {
+        await clearDemoData();
+        await loadData(true);
+        Alert.alert('Demo data cleared', 'Sample players and games were removed. Your account is still on this phone.');
+      }
+    } catch (error) {
+      Alert.alert('Demo data failed', error instanceof Error ? error.message : 'Something went wrong.');
+    } finally {
+      setDemoBusy(null);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
@@ -136,6 +160,37 @@ export default function Dashboard() {
     { label: 'History', icon: 'history', href: '/(screens)/games/history' as const },
     { label: 'All players', icon: 'account-group-outline', href: '/(screens)/players' as const },
   ];
+
+  const demoTools = __DEV__ ? (
+    <SectionCard
+      title="Developer preview"
+      icon="flask-outline"
+      supportingText="Sample players and games stay on this phone. This card is not in the Play Store build."
+    >
+      <View style={styles.demoActions}>
+        <Button
+          mode="contained"
+          icon="database-plus"
+          onPress={() => runDemoAction('load')}
+          loading={demoBusy === 'load'}
+          disabled={demoBusy !== null}
+          style={styles.demoButton}
+        >
+          Load demo data
+        </Button>
+        <Button
+          mode="outlined"
+          icon="database-remove"
+          onPress={() => runDemoAction('clear')}
+          loading={demoBusy === 'clear'}
+          disabled={demoBusy !== null}
+          style={styles.demoButton}
+        >
+          Clear demo data
+        </Button>
+      </View>
+    </SectionCard>
+  ) : null;
 
   const hero = (
     <View style={[styles.hero, isShort && styles.heroCompact, { backgroundColor: colors.felt }]}>
@@ -260,6 +315,7 @@ export default function Dashboard() {
         <View style={styles.columns}>
           <View style={styles.column}>
             {hero}
+            {demoTools}
             {statsRow}
             {shortcutRow}
           </View>
@@ -268,6 +324,7 @@ export default function Dashboard() {
       ) : (
         <>
           {hero}
+          {demoTools}
           {statsRow}
           {shortcutRow}
           {recent}
@@ -380,5 +437,11 @@ const styles = StyleSheet.create({
   },
   gameList: {
     gap: spacing.sm,
+  },
+  demoActions: {
+    gap: spacing.sm,
+  },
+  demoButton: {
+    borderRadius: radius.full,
   },
 });
