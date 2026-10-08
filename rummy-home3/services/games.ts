@@ -312,10 +312,12 @@ export const gamesService = {
       if (!game) return null;
       const maxRounds = Math.max(...Object.values(game.scores).map((scores) => scores.length), 0);
       if (maxRounds === 0) return game;
+      // Columns can be shorter than the round count (e.g. expense cleared in the
+      // last round), so trim to the round being undone rather than popping each.
       const updatedGame = {
         ...game,
         scores: Object.fromEntries(
-          Object.entries(game.scores).map(([playerId, scores]) => [playerId, scores.slice(0, -1)]),
+          Object.entries(game.scores).map(([playerId, scores]) => [playerId, scores.slice(0, maxRounds - 1)]),
         ),
         currentRound: Math.max(1, maxRounds),
       };

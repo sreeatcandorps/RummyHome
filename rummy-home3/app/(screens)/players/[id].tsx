@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Share, StyleSheet, View } from 'react-native';
-import { Avatar, Button, Card, Dialog, IconButton, List, Portal, Text, useTheme } from 'react-native-paper';
+import { Button, Dialog, IconButton, Portal, Text } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { storage } from '../../../utils/storage';
 import { Player } from '../../../types/player';
@@ -10,10 +10,15 @@ import { isSupabaseConfigured } from '../../../services/supabase';
 import { Screen } from '../../../components/ui/Screen';
 import { SectionCard } from '../../../components/ui/SectionCard';
 import { EmptyState } from '../../../components/ui/EmptyState';
-import { MIN_TOUCH_TARGET, radius, spacing } from '../../../constants/theme';
+import { ListRow } from '../../../components/ui/ListRow';
+import { SeatAvatar } from '../../../components/ui/SeatAvatar';
+import { Tag } from '../../../components/ui/Tag';
+import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../../constants/theme';
+import { useLayout } from '../../../hooks/useLayout';
 
 export default function PlayerDetailScreen() {
-  const theme = useTheme();
+  const { colors } = useAppTheme();
+  const { isWide } = useLayout();
   const { id } = useLocalSearchParams();
   const [player, setPlayer] = useState<Player | null>(null);
   const [isSelf, setIsSelf] = useState(false);
@@ -59,18 +64,10 @@ export default function PlayerDetailScreen() {
     }
   };
 
-  const getInitials = (name: string) =>
-    name
-      .split(' ')
-      .map((word) => word[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-
   if (loading) {
     return (
-      <View style={[styles.centered, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -89,78 +86,62 @@ export default function PlayerDetailScreen() {
     );
   }
 
-  return (
-    <Screen>
-      <Card mode="contained" style={[styles.hero, { backgroundColor: theme.colors.elevation.level2 }]}>
-        <Card.Content style={styles.heroContent}>
-          <Avatar.Text
-            size={72}
-            label={getInitials(player.name)}
-            style={{
-              backgroundColor: player.role === 'admin' ? theme.colors.error : theme.colors.primary,
-            }}
-          />
-          <Text variant="headlineSmall" style={styles.heroName}>
-            {player.name}
+  const hero = (
+    <View style={[styles.hero, { backgroundColor: colors.felt }]}>
+      <SeatAvatar
+        name={player.name}
+        size={80}
+        color={player.role === 'admin' ? colors.error : colors.primary}
+        style={{ ...styles.heroAvatar, borderColor: colors.onFelt }}
+      />
+      <Text variant="headlineSmall" style={[styles.heroName, { color: colors.onFelt }]}>
+        {player.name}
+      </Text>
+      <Tag label={player.role === 'admin' ? 'App admin' : 'Player'} tone={player.role === 'admin' ? 'danger' : 'primary'} />
+    </View>
+  );
+
+  const idCard = (
+    <SectionCard
+      title="Player ID"
+      icon="badge-account-horizontal-outline"
+      right={
+        <IconButton
+          icon="information-outline"
+          size={20}
+          accessibilityLabel="What is a player ID?"
+          onPress={() => setShowIdInfo(true)}
+          style={styles.noMargin}
+        />
+      }
+    >
+      <View style={styles.idRow}>
+        <View style={[styles.idPill, { backgroundColor: colors.secondaryContainer }]}>
+          <Text variant="headlineSmall" style={[styles.idText, { color: colors.onSecondaryContainer }]}>
+            {player.playerCode ?? '—'}
           </Text>
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-            {player.role === 'admin' ? 'App admin' : 'Player'}
-          </Text>
-        </Card.Content>
-      </Card>
+        </View>
 
-      <Card mode="outlined" style={styles.idCard}>
-        <Card.Content style={styles.idContent}>
-          <View style={styles.idHeader}>
-            <Text variant="titleMedium" style={styles.idTitle}>
-              Player ID
-            </Text>
-            <IconButton
-              icon="information-outline"
-              size={20}
-              accessibilityLabel="What is a player ID?"
-              onPress={() => setShowIdInfo(true)}
-            />
-          </View>
+        <Button
+          mode="contained-tonal"
+          icon="share-variant"
+          onPress={sharePlayerId}
+          disabled={!player.playerCode}
+          style={styles.pillButton}
+          contentStyle={styles.buttonContent}
+        >
+          Share
+        </Button>
+      </View>
+    </SectionCard>
+  );
 
-          <View style={styles.idRow}>
-            <View style={[styles.idPill, { backgroundColor: theme.colors.secondaryContainer }]}>
-              <Text variant="headlineSmall" style={[styles.idText, { color: theme.colors.onSecondaryContainer }]}>
-                {player.playerCode ?? '—'}
-              </Text>
-            </View>
-
-            <Button
-              mode="contained-tonal"
-              icon="share-variant"
-              onPress={sharePlayerId}
-              disabled={!player.playerCode}
-              contentStyle={styles.buttonContent}
-            >
-              Share
-            </Button>
-          </View>
-        </Card.Content>
-      </Card>
-
+  const details = (
+    <>
       {isSelf && (player.email || player.phone) ? (
-        <SectionCard title="Contact information">
-          {player.email ? (
-            <List.Item
-              title={player.email}
-              description="Email"
-              left={(props) => <List.Icon {...props} icon="email-outline" />}
-              style={styles.infoItem}
-            />
-          ) : null}
-          {player.phone ? (
-            <List.Item
-              title={player.phone}
-              description="Phone"
-              left={(props) => <List.Icon {...props} icon="phone-outline" />}
-              style={styles.infoItem}
-            />
-          ) : null}
+        <SectionCard title="Contact information" icon="card-account-details-outline">
+          {player.email ? <ListRow title={player.email} description="Email" icon="email-outline" /> : null}
+          {player.phone ? <ListRow title={player.phone} description="Phone" icon="phone-outline" /> : null}
         </SectionCard>
       ) : null}
 
@@ -169,18 +150,43 @@ export default function PlayerDetailScreen() {
           mode="contained"
           icon="account-edit-outline"
           onPress={() => router.push(`/players/${player.id}/edit`)}
+          style={styles.pillButton}
           contentStyle={styles.buttonContent}
         >
           Edit profile
         </Button>
       ) : null}
+    </>
+  );
+
+  return (
+    <Screen>
+      {isWide ? (
+        <View style={styles.columns}>
+          <View style={styles.column}>{hero}</View>
+          <View style={styles.column}>
+            {idCard}
+            {details}
+          </View>
+        </View>
+      ) : (
+        <>
+          {hero}
+          {idCard}
+          {details}
+        </>
+      )}
 
       <Portal>
-        <Dialog visible={showIdInfo} onDismiss={() => setShowIdInfo(false)} style={styles.dialog}>
+        <Dialog
+          visible={showIdInfo}
+          onDismiss={() => setShowIdInfo(false)}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
+        >
           <Dialog.Icon icon="badge-account-horizontal-outline" />
           <Dialog.Title style={styles.dialogTitle}>About player IDs</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogBody}>
+            <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
               Each player has a permanent short ID. Searching by ID is the safest way to add someone
               to a game, because names are never searchable.
             </Text>
@@ -202,33 +208,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hero: {
-    borderRadius: radius.lg,
+  columns: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.lg,
   },
-  heroContent: {
+  column: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.lg,
+  },
+  noMargin: {
+    margin: 0,
+  },
+  hero: {
+    borderRadius: radius.xl,
     alignItems: 'center',
     paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
     gap: spacing.sm,
+  },
+  heroAvatar: {
+    borderWidth: 3,
   },
   heroName: {
-    fontWeight: '700',
+    fontWeight: '800',
     textAlign: 'center',
-  },
-  idCard: {
-    borderRadius: radius.lg,
-  },
-  idContent: {
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  idHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  idTitle: {
-    fontWeight: '600',
   },
   idRow: {
     flexDirection: 'row',
@@ -245,20 +250,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 4,
   },
-  infoItem: {
-    paddingHorizontal: 0,
+  pillButton: {
+    borderRadius: radius.full,
   },
   buttonContent: {
     height: MIN_TOUCH_TARGET,
   },
   dialog: {
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    maxWidth: 440,
+    width: '90%',
+    alignSelf: 'center',
   },
   dialogTitle: {
     textAlign: 'center',
   },
   dialogBody: {
     lineHeight: 20,
+    textAlign: 'center',
   },
   dialogActions: {
     paddingHorizontal: spacing.lg,

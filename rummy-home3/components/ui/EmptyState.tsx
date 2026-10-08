@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Icon, Text, useTheme } from 'react-native-paper';
-import { MIN_TOUCH_TARGET, spacing } from '@/constants/theme';
+import { Button, Icon, Text } from 'react-native-paper';
+import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
 
 type EmptyStateProps = {
   icon?: string;
@@ -12,11 +12,13 @@ type EmptyStateProps = {
 };
 
 export function EmptyState({ icon = 'cards-playing-outline', title, message, actionLabel, onAction }: EmptyStateProps) {
-  const theme = useTheme();
+  const theme = useAppTheme();
 
   return (
     <View style={styles.container}>
-      <Icon source={icon} size={48} color={theme.colors.onSurfaceVariant} />
+      <View style={[styles.iconWrap, { backgroundColor: theme.colors.surfaceVariant }]}>
+        <Icon source={icon} size={32} color={theme.colors.onSurfaceVariant} />
+      </View>
       <Text variant="titleMedium" style={styles.title}>
         {title}
       </Text>
@@ -30,7 +32,8 @@ export function EmptyState({ icon = 'cards-playing-outline', title, message, act
           mode="contained"
           onPress={onAction}
           style={styles.action}
-          contentStyle={{ height: MIN_TOUCH_TARGET }}
+          contentStyle={styles.actionContent}
+          labelStyle={styles.actionLabel}
         >
           {actionLabel}
         </Button>
@@ -43,18 +46,36 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
     gap: spacing.sm,
+  },
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
   title: {
     textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   message: {
     textAlign: 'center',
     lineHeight: 20,
-    maxWidth: 320,
+    maxWidth: 340,
   },
   action: {
     marginTop: spacing.md,
+    borderRadius: radius.full,
+  },
+  actionContent: {
+    height: MIN_TOUCH_TARGET,
+    paddingHorizontal: spacing.md,
+  },
+  actionLabel: {
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

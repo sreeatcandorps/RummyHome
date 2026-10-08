@@ -5,7 +5,8 @@ import { router } from 'expo-router';
 import { storage } from '../../../utils/storage';
 import { Player } from '../../../types/player';
 import { Screen } from '@/components/ui/Screen';
-import { spacing } from '@/constants/theme';
+import { SectionCard } from '@/components/ui/SectionCard';
+import { MIN_TOUCH_TARGET, radius, spacing } from '@/constants/theme';
 
 export default function AddPlayerScreen() {
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -36,7 +37,7 @@ export default function AddPlayerScreen() {
 
   return (
     <Screen>
-      <View style={styles.form}>
+      <SectionCard title="Add player" icon="account-plus-outline" style={styles.form}>
         <TextInput
           label="Player Name"
           value={newPlayerName}
@@ -66,14 +67,14 @@ export default function AddPlayerScreen() {
         />
         {error ? <HelperText type="error">{error}</HelperText> : null}
         <View style={styles.buttonContainer}>
-          <Button mode="outlined" onPress={() => router.back()} style={styles.button}>
+          <Button mode="outlined" onPress={() => router.back()} style={styles.button} contentStyle={styles.buttonContent}>
             Cancel
           </Button>
-          <Button mode="contained" onPress={handleAddPlayer} style={styles.button}>
-            Add Player
+          <Button mode="contained" onPress={handleAddPlayer} style={styles.button} contentStyle={styles.buttonContent}>
+            Add player
           </Button>
         </View>
-      </View>
+      </SectionCard>
     </Screen>
   );
 }
@@ -92,5 +93,9 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
+    borderRadius: radius.full,
+  },
+  buttonContent: {
+    height: MIN_TOUCH_TARGET,
   },
 });
