@@ -1,11 +1,13 @@
 import { Game, GameSettings } from '@/types/game';
 import { Player } from '@/types/player';
-import { ScoreType } from '@/types/database';
+import { ProfileDefaults, ScoreType } from '@/types/database';
 import { distributeRummyWinnings } from '@/utils/rummyDistribution';
 import {
+  calculateDealerId,
   calculateFinalTotals,
   legacySettingsForGameType,
   RoundScoreInput,
+  settingsForGameType,
   validateRoundScores,
 } from '@/utils/scoring';
 
@@ -310,6 +312,77 @@ export function mergeDemoData(
     players,
     games,
     host: players.find((player) => player.id === host.id) ?? host,
+  };
+}
+
+export function roundInputsForGame(game: Game, roundIndex: number): RoundScoreInput[] {
+  return Object.entries(game.scores).map(([playerId, values]) => {
+    const value = values[roundIndex] ?? 0;
+    const scoreType: ScoreType = playerId === DEMO_EXPENSE_ID
+      ? 'expense'
+      : value > 0
+        ? 'rummy'
+        : value === game.settings.dropAmount
+          ? 'drop'
+          : value === game.settings.mdAmount
+            ? 'middle_drop'
+            : 'count';
+    return {
+      playerId: playerId === DEMO_EXPENSE_ID ? null : playerId,
+      value,
+      scoreType,
+    };
+  });
+}
+
+export type DemoSeedPayload = {
+  profiles: { clientKey: string; displayName: string }[];
+  games: {
+    createdAt: string;
+    gameType: 'stake' | 'pool';
+    status: 'active' | 'completed';
+    currentRound: number;
+    shareCode: string;
+    settings: ProfileDefaults;
+    playerKeys: string[];
+    rounds: {
+      roundNumber: number;
+      dealerKey: string | null;
+      scores: { playerKey: string | null; scoreType: ScoreType; value: number }[];
+    }[];
+  }[];
+};
+
+/** Shape stored by apply_demo_seed. Real accounts stay as their ids; demo cast uses demo- keys. */
+export function buildDemoSeedPayload(merged: DemoMergeResult): DemoSeedPayload {
+  const demoGames = merged.games.filter((game) => isDemoId(game.id));
+
+  return {
+    profiles: merged.players
+      .filter((player) => isDemoId(player.id))
+      .map((player) => ({ clientKey: player.id, displayName: player.name })),
+    games: demoGames.map((game) => ({
+      createdAt: game.date,
+      gameType: game.gameType,
+      status: game.isComplete ? 'completed' : 'active',
+      currentRound: game.currentRound,
+      shareCode: `DEMO-${game.shareCode ?? 'GAME'}`,
+      settings: {
+        ...settingsForGameType(game.gameType),
+        expenseEnabled: game.settings.expense,
+        expenseAmount: game.settings.expenseAmount,
+      },
+      playerKeys: game.players,
+      rounds: Array.from({ length: Math.max(game.currentRound - 1, 0) }, (_, roundIndex) => ({
+        roundNumber: roundIndex + 1,
+        dealerKey: calculateDealerId(game.players, roundIndex + 1),
+        scores: roundInputsForGame(game, roundIndex).map((score) => ({
+          playerKey: score.playerId,
+          scoreType: score.scoreType,
+          value: score.value,
+        })),
+      })),
+    })),
   };
 }
 

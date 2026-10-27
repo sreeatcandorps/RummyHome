@@ -37,6 +37,8 @@ export type Database = {
           avatar_url: string | null;
           role: AppRole;
           default_settings: ProfileDefaults;
+          is_demo: boolean;
+          demo_owner_id: string | null;
         };
         Insert: {
           id: string;
@@ -49,6 +51,8 @@ export type Database = {
           avatar_url?: string | null;
           role?: AppRole;
           default_settings?: ProfileDefaults;
+          is_demo?: boolean;
+          demo_owner_id?: string | null;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
       };
@@ -65,6 +69,7 @@ export type Database = {
           share_code: string;
           spectator_access: boolean;
           completed_at: string | null;
+          is_demo: boolean;
         };
         Insert: {
           id?: string;
@@ -76,6 +81,7 @@ export type Database = {
           share_code: string;
           spectator_access?: boolean;
           completed_at?: string | null;
+          is_demo?: boolean;
         };
         Update: Partial<Database['public']['Tables']['games']['Insert']>;
       };
@@ -170,6 +176,20 @@ export type Database = {
           created_by: string;
         };
         Update: Partial<Database['public']['Tables']['token_ledger']['Insert']>;
+      };
+    };
+    Functions: {
+      is_demo_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      clear_demo_data: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
+      apply_demo_seed: {
+        Args: { payload: Json };
+        Returns: undefined;
       };
     };
   };

@@ -9,7 +9,8 @@ import { authService } from '@/services/auth';
 import { gamesService } from '@/services/games';
 import { playersService } from '@/services/players';
 import { clearDemoData, loadDemoData } from '@/services/demoSeed';
-import { isSupabaseConfigured } from '@/services/supabase';
+import { isSupabaseConfigured, supabase } from '@/services/supabase';
+import { isAdminEmail } from '@/utils/adminAccess';
 import { formatSupabaseError, isClockSkewError } from '@/utils/supabaseErrors';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -29,6 +30,7 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [demoBusy, setDemoBusy] = useState<null | 'load' | 'clear'>(null);
+  const [showDemoTools, setShowDemoTools] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -50,11 +52,18 @@ export default function Dashboard() {
       const player = await authService.getCurrentPlayer();
       if (!player) {
         setCurrentPlayer(null);
+        setShowDemoTools(false);
         setLoadError('Not signed in. Please log in again.');
         return;
       }
 
       setCurrentPlayer(player);
+      let adminEmail = player.email ?? null;
+      if (!isAdminEmail(adminEmail) && isSupabaseConfigured) {
+        const { data } = await supabase.auth.getSession();
+        adminEmail = data.session?.user.email ?? adminEmail;
+      }
+      setShowDemoTools(isAdminEmail(adminEmail));
 
       try {
         const [allPlayers, games] = await Promise.all([
@@ -68,6 +77,7 @@ export default function Dashboard() {
           const recovered = await authService.recoverFromStaleSession();
           if (!recovered) {
             setCurrentPlayer(null);
+            setShowDemoTools(false);
             setLoadError(formatSupabaseError(innerError));
             return;
           }
@@ -86,6 +96,7 @@ export default function Dashboard() {
       if (isClockSkewError(error) && isSupabaseConfigured) {
         await authService.clearLocalSession();
         setCurrentPlayer(null);
+        setShowDemoTools(false);
       }
       setLoadError(formatSupabaseError(error));
     } finally {
@@ -111,7 +122,7 @@ export default function Dashboard() {
       } else {
         await clearDemoData();
         await loadData(true);
-        Alert.alert('Demo data cleared', 'Sample players and games were removed. Your account is still on this phone.');
+        Alert.alert('Demo data cleared', 'Sample players and games were removed. Your account and real games are unchanged.');
       }
     } catch (error) {
       Alert.alert('Demo data failed', error instanceof Error ? error.message : 'Something went wrong.');
@@ -161,11 +172,11 @@ export default function Dashboard() {
     { label: 'All players', icon: 'account-group-outline', href: '/(screens)/players' as const },
   ];
 
-  const demoTools = __DEV__ ? (
+  const demoTools = showDemoTools ? (
     <SectionCard
-      title="Developer preview"
+      title="Demo data"
       icon="flask-outline"
-      supportingText="Sample players and games stay on this phone. This card is not in the Play Store build."
+      supportingText="Sample players and games for your account. Clear removes only this sample data."
     >
       <View style={styles.demoActions}>
         <Button

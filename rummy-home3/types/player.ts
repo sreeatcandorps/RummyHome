@@ -9,4 +9,6 @@ export interface Player {
   gamesWon?: number;
   inviteStatus?: 'pending' | 'accepted';
   role: 'admin' | 'player';
+  /** Supabase profile created by the demo seeder. Real accounts omit this or set it false. */
+  isDemo?: boolean;
 } 

@@ -159,6 +159,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Every screen restyled; scoreboard rebuilt around a sticky score table (`components/game/ScoreTable.tsx`) that stays readable with many players/rounds.
 - Orientation stays unlocked (`"orientation": "default"`); short landscape screens get dedicated two-column / side-panel layouts and respect notch + nav-bar insets (`hooks/useLayout.ts`).
 
+### 2026-10-27 — Admin demo seed on Supabase
+- Home-screen Load/Clear demo data is available in release builds only for an allowlisted admin email (`EXPO_PUBLIC_ADMIN_EMAILS`, default `koneru2k@gmail.com`, enforced again in `public.is_demo_admin()`).
+- Sample players and games are tagged `is_demo` and written with the signed-in session through `apply_demo_seed` / `clear_demo_data`. Apply `supabase/migrations/005_demo_data.sql` before using it on the APK.
+
 ### 2026-10-07 — Pre-release hardening
 - Removed the passwordless `/admin-login` dev route (local-mode backdoor); it no longer ships in any build.
 - `eas.json` now sets `appVersionSource: "remote"`: EAS owns the Android versionCode (starts at 1, production `autoIncrement` bumps it). Expo SDK 54 patch versions aligned via `expo install --fix`.

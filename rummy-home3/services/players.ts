@@ -9,6 +9,7 @@ const toPlayer = (row: any): Player => ({
   phone: row.phone ?? undefined,
   name: row.display_name || [row.first_name, row.last_name].filter(Boolean).join(' ') || 'Rummy Player',
   role: row.role === 'app_admin' ? 'admin' : 'player',
+  isDemo: row.is_demo === true,
 });
 
 export { isEphemeralTestEmail };

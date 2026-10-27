@@ -1,14 +1,19 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { Player } from '../types/player';
 import { Game } from '../types/game';
 import { RoundScoreInput, validateRoundScores } from '../utils/scoring';
 import { distributeRummyWinnings } from '../utils/rummyDistribution';
+import { isAdminEmail } from '../utils/adminAccess';
 import {
+  buildDemoSeedPayload,
   DEMO_EXPENSE_ID,
   mergeDemoData,
   normalizePlayerName,
+  roundInputsForGame,
   SRIKANTH_NAME,
   stripDemoData,
 } from '../utils/demoData';
@@ -24,23 +29,7 @@ const srikanth = (overrides: Partial<Player> = {}): Player => ({
 });
 
 function roundInputs(game: Game, roundIndex: number): RoundScoreInput[] {
-  return Object.entries(game.scores).map(([playerId, values]) => {
-    const value = values[roundIndex] ?? 0;
-    const scoreType = playerId === DEMO_EXPENSE_ID
-      ? 'expense' as const
-      : value > 0
-        ? 'rummy' as const
-        : value === game.settings.dropAmount
-          ? 'drop' as const
-          : value === game.settings.mdAmount
-            ? 'middle_drop' as const
-            : 'count' as const;
-    return {
-      playerId: playerId === DEMO_EXPENSE_ID ? null : playerId,
-      value,
-      scoreType,
-    };
-  });
+  return roundInputsForGame(game, roundIndex);
 }
 
 function hostTotals(game: Game, hostId: string) {
@@ -48,7 +37,7 @@ function hostTotals(game: Game, hostId: string) {
 }
 
 test('demo expense column matches the game service', () => {
-  const source = readFileSync(new URL('../services/games.ts', import.meta.url), 'utf8');
+  const source = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../services/games.ts'), 'utf8');
   assert.match(source, /EXPENSE_PLAYER_ID = 'EX'/);
 });
 
@@ -156,6 +145,50 @@ test('seeds realistic games that include Srikanth and validate under the scoring
   assert.ok(games.some((game) => game.id === 'real-game'));
   assert.ok((host.gamesWon ?? 0) >= 1);
   assert.ok((host.gamesWon ?? 0) < (host.gamesPlayed ?? 0));
+});
+
+test('admin allowlist defaults to the release admin and ignores everyone else', () => {
+  const previous = process.env.EXPO_PUBLIC_ADMIN_EMAILS;
+  delete process.env.EXPO_PUBLIC_ADMIN_EMAILS;
+  assert.equal(isAdminEmail('koneru2k@gmail.com'), true);
+  assert.equal(isAdminEmail('  Koneru2K@Gmail.com '), true);
+  assert.equal(isAdminEmail('friend@example.com'), false);
+  assert.equal(isAdminEmail(null), false);
+
+  process.env.EXPO_PUBLIC_ADMIN_EMAILS = 'friend@example.com, koneru2k@gmail.com';
+  assert.equal(isAdminEmail('friend@example.com'), true);
+  assert.equal(isAdminEmail('koneru2k@gmail.com'), true);
+  if (previous === undefined) delete process.env.EXPO_PUBLIC_ADMIN_EMAILS;
+  else process.env.EXPO_PUBLIC_ADMIN_EMAILS = previous;
+});
+
+test('supabase seed payload tags demo rows and reuses a real Srikanth id', () => {
+  const hostId = '11111111-1111-4111-8111-111111111111';
+  const existing = srikanth({ id: hostId, email: 'koneru2k@gmail.com' });
+  const merged = mergeDemoData([existing], [], hostId, new Date('2026-10-08T00:00:00Z'));
+  const payload = buildDemoSeedPayload(merged);
+
+  assert.equal(payload.profiles.some((profile) => profile.clientKey === hostId), false);
+  assert.ok(payload.profiles.length >= 12);
+  payload.profiles.forEach((profile) => {
+    assert.match(profile.clientKey, /^demo-/);
+  });
+  assert.equal(payload.games.length, 5);
+  const live = payload.games.filter((game) => game.status === 'active');
+  const finished = payload.games.filter((game) => game.status === 'completed');
+  assert.equal(live.length, 1);
+  assert.equal(finished.length, 4);
+  payload.games.forEach((game) => {
+    assert.match(game.shareCode, /^DEMO-/);
+    assert.ok(game.playerKeys.includes(hostId));
+    assert.equal(game.rounds.length, game.currentRound - 1);
+    game.rounds.forEach((round) => {
+      const total = round.scores.reduce((sum, score) => sum + score.value, 0);
+      assert.equal(total, 0);
+    });
+  });
+  assert.ok(live[0].playerKeys.length >= 10);
+  assert.ok(live[0].rounds.length >= 8 && live[0].rounds.length <= 12);
 });
 
 test('clear removes demo records and keeps the signed-in player', () => {
