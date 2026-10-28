@@ -166,9 +166,9 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Live scorecards are shared with an unguessable `view_token`. The public page is a Supabase Edge Function (`supabase/functions/scorecard`); email goes through `send-email` when a Resend key is set.
 - Completed games can be grouped into a prize session (coins, not money). Apply `supabase/migrations/006_friday_game_night.sql` before using this on the APK. Passcode reset must use the GitHub Pages URL as the Supabase Site URL, or the email keeps pointing at localhost.
 
-### 2026-10-28 — Redesign (Home, my players, Settle, Pages scorecard)
+### 2026-10-28 — Redesign (Home, my players, Results, Pages scorecard)
 - Three tabs: Home, Players, Me. History, the stat tiles, and the whole-directory player list are gone. A non-player admin is a `game_players` row with `seated = false`.
-- Settle is on hold the same day. `EXPO_PUBLIC_SETTLE_ENABLED` is off, so Home does not show it and new games are labeled Points. The screens and `prize_sessions` tables stay.
+- Settle is hidden the same day. `EXPO_PUBLIC_SETTLE_ENABLED` is off. Results replaces it on Home: check finished games, total points, show 1st, 2nd, and 3rd place, and declare only if you admin every selected game. Apply `008_results.sql` after `007` before declare works on the live database. The `prize_sessions` tables stay unused.
 - Public scorecard and the invite page are static HTML for GitHub Pages (`public/scorecard.html`, `public/get/index.html`), not the Supabase function URL. Apply `007_redesign.sql` after `006` before my players and unseated admins work on the live database.
 
 ### 2026-10-27 — Admin demo seed on Supabase
@@ -195,9 +195,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | New game (points, my players) | Done. Stored type is still the points game |
 | Game table + score entry | Done, portrait + landscape. One Scorecard header |
 | Home Recent | Done. History screen redirects home |
-| Settle / prize sessions | On hold. Flag off. Tables and screens kept |
+| Results | Done in the app. Apply `008_results.sql` before declare works on the live database |
+| Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; dark mode is on Me and saved on the phone |
-| Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`. `005` only if you use demo data |
+| Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
 | Public scorecard | GitHub Pages HTML. Paste the anon key into `public/scorecard.html` before the live link loads a game |
 | Expo Go local preview | Working |
 | EAS project linked on this PC | Done |

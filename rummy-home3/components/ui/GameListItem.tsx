@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Icon, Text, TouchableRipple } from 'react-native-paper';
 import { Game } from '@/types/game';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { settleEnabled } from '@/constants/features';
 import { formatGameDateTime, gameIdLabel, gameTypeLabel, gameTypeTint } from '@/utils/gameDisplay';
 import { Tag } from '@/components/ui/Tag';
 
@@ -31,7 +32,7 @@ export function GameListItem({ game, onPress, selected = false }: GameListItemPr
         <View style={styles.row}>
           <View style={[styles.typeIcon, { backgroundColor: selected ? theme.colors.primary : tint.container }]}>
             <Icon
-              source={selected ? 'check' : game.gameType === 'pool' ? 'trophy-outline' : 'cash-multiple'}
+              source={selected ? 'check' : game.gameType === 'pool' ? 'trophy-outline' : settleEnabled ? 'cash-multiple' : 'numeric'}
               size={22}
               color={selected ? theme.colors.onPrimary : tint.on}
             />

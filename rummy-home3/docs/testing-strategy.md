@@ -54,8 +54,8 @@ On two phones, or one phone and a second account:
 5. Account A opens Players and makes B a game admin. B can then add a round.
 6. Account A adds a third person as view-only. That person sees the game and cannot score.
 7. Share → Copy link. Open it in a browser. Start time and game ID are visible. Add a round on the phone and refresh; the page updates within about 8 seconds.
-8. Complete the game from Done. The confirm shows points only. There is no Settle button and no coin field.
-9. Home → Settle. Pick the completed game. Record a payment that adds to 0. Tap the row to change it. When every Now is 0, the session says Settled and the row does not open.
+8. Complete the game from Done. The confirm shows points only. There is no Results button on that confirm.
+9. Home → Results. Check the completed game. The podium names 1st place and the totals table lists the points. Declare works for an admin of that game. Add a finished game they do not run and Declare stays off. A second account can open the declared result. Home has no Settle button.
 
 ## Regression
 
@@ -79,6 +79,7 @@ After any scoring or schema change:
 - [ ] Copy link works even if email is not configured
 - [ ] Phones are charged, and the table has the game ID written down in case someone is late
 - [ ] `007_redesign.sql` has been run after `006`
+- [ ] `008_results.sql` has been run after `007` before Results can be declared on the live database
 
 ## Redesign tap-through
 
@@ -91,7 +92,7 @@ Before the next APK goes to Sree, someone else does this on a physical Android p
 - Open the copied link in Chrome. The table renders. The tab is not showing the page source.
 - Second phone, second account: they see the game, and view-only cannot score.
 - Players: +, remove, airplane mode during remove. No other person’s email on the list, the sheet, or Find.
-- One points game completed from Done. Home has no Settle button.
+- One points game completed from Done. Home → Results shows places. Home has no Settle button.
 - A new account’s welcome email arrives from `scores@mindweavetech.com`.
 
-Pass when Home has New game and Recent, and none of Settle, Active, Players, Today, History, or All players. Settle stays off until `EXPO_PUBLIC_SETTLE_ENABLED=true`.
+Pass when Home has New game, Results, and Recent, and none of Settle, Active, History, or All players. The Today chip is the filter, not a screen. Settle stays off. `EXPO_PUBLIC_SETTLE_ENABLED` stays unset.

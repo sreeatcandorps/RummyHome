@@ -38,11 +38,14 @@ test('only an admin of the game can settle it', () => {
   assert.equal(userAdminsGame(game, 'player'), false);
 });
 
-test('settle is on hold and the visible help does not name it', () => {
+test('settle stays hidden and results talk about places', () => {
   assert.equal(settleEnabled, false);
   assert.equal(pointsGameLabel(), 'Points');
-  const shown = [HELP.home, HELP.newGame, HELP.scorecard, HELP.complete, HELP.scoreEntry, HELP.players, HELP.me].join('\n');
-  assert.doesNotMatch(shown, /settle|prize|stake|coins|ledger/i);
+  const shown = [HELP.home, HELP.newGame, HELP.scorecard, HELP.complete, HELP.scoreEntry, HELP.players, HELP.me, HELP.results].join('\n');
+  assert.doesNotMatch(shown, /settle|prize|stake|coins|ledger|payment|money/i);
+  assert.match(HELP.home, /Results/);
+  assert.match(HELP.results, /place/);
+  assert.match(HELP.results, /winner/);
 });
 
 test('stake opening coins are the points and expense is not a person', () => {

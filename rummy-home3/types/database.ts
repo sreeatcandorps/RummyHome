@@ -247,6 +247,18 @@ export type Database = {
         Args: { p_entry_id: string; p_legs: Json; p_note: string };
         Returns: Json;
       };
+      declare_game_result: {
+        Args: { p_game_ids: string[] };
+        Returns: Json;
+      };
+      get_game_result: {
+        Args: { p_id: string };
+        Returns: Json;
+      };
+      list_game_results: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
     };
   };
 };

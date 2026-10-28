@@ -44,6 +44,14 @@ export default function ScreensLayout() {
         }}
       />
       <Stack.Screen
+        name="results/index"
+        options={{ title: 'Results', headerRight: () => <HelpButton text={HELP.results} /> }}
+      />
+      <Stack.Screen
+        name="results/[id]"
+        options={{ title: 'Results', headerRight: () => <HelpButton text={HELP.results} /> }}
+      />
+      <Stack.Screen
         name="settle/index"
         options={{
           title: settleEnabled ? 'Settle' : 'Home',

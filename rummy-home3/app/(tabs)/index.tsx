@@ -156,6 +156,15 @@ export default function Dashboard() {
           <View style={styles.columns}>
             <View style={styles.column}>
               {liveCard}
+              <Button
+                mode="outlined"
+                icon="podium"
+                onPress={() => router.push('/(screens)/results')}
+                style={styles.settle}
+                accessibilityLabel="Results"
+              >
+                Results
+              </Button>
               {settleEnabled ? (
                 <Button mode="outlined" icon="scale-balance" onPress={() => router.push('/(screens)/settle')} style={styles.settle}>
                   Settle
@@ -167,6 +176,15 @@ export default function Dashboard() {
         ) : (
           <View>
             {liveCard}
+            <Button
+              mode="outlined"
+              icon="podium"
+              onPress={() => router.push('/(screens)/results')}
+              style={styles.settle}
+              accessibilityLabel="Results"
+            >
+              Results
+            </Button>
             {settleEnabled ? (
               <Button mode="outlined" icon="scale-balance" onPress={() => router.push('/(screens)/settle')} style={styles.settle}>
                 Settle

@@ -3,6 +3,9 @@ import { settleEnabled } from '@/constants/features';
 const recent =
   'Recent is every game you can see. Tap a row to open it. Live is the one still going.';
 
+const resultsLine =
+  'Results adds up the games you check and shows 1st, 2nd, and 3rd place.';
+
 const scorecardBase =
   'View only means you can watch and cannot change the scores. The … menu is Players (who can score) and Share. Totals sit in the header next to each name. Undo asks before it removes the last round.';
 
@@ -14,8 +17,8 @@ export const HELP = {
   reset:
     'We email a link. It opens a page where you choose a new 6-digit code. It is not a text message.',
   home: settleEnabled
-    ? `Settle is where you combine finished games you run and record who paid whom. It stays here even if you don’t run any games yet. ${recent}`
-    : recent,
+    ? `Settle is where you combine finished games you run and record who paid whom. It stays here even if you don’t run any games yet. ${resultsLine} ${recent}`
+    : `${recent} ${resultsLine}`,
   newGame:
     'Turn off I’m playing if you are only keeping score. You still run the game, and you are not a column. This list is people you already added. To add someone new, use Find players. That does not put them in this game until you check them.',
   scorecard: settleEnabled
@@ -39,6 +42,8 @@ export const HELP = {
     'Search a first name, last name, or player ID. An email works only if you type the whole address, and the address is never shown. + adds them to your list only. It does not put them in a game. Invite opens your phone’s share sheet.',
   me:
     'The email here is yours. It is how you sign in. Your player ID is what you give someone so they can find you. Phone is optional and is never texted. Dark mode is saved on this phone.',
+  results:
+    'Check finished games to add up each player’s points. The podium names 1st, 2nd, and 3rd place, and who the winner is. The totals table is everyone. Declare results saves that snapshot, and only an admin of every checked game can do it. Anyone can view a declared result.',
   publicScorecard:
     'This page updates on its own. The start time and game ID say which game it is. No login. Anyone with the link can watch.',
 } as const;

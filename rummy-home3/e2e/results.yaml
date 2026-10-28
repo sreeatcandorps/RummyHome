@@ -1,0 +1,9 @@
+appId: com.rummyhome.app
+---
+# Results is on Home. Settle stays hidden while EXPO_PUBLIC_SETTLE_ENABLED is unset.
+- launchApp
+- assertVisible: "Results"
+- assertNotVisible: "Settle"
+- tapOn: "Results"
+- assertVisible: "Declare results"
+- assertNotVisible: "Record a payment"
