@@ -1,6 +1,6 @@
 # Rummy Home redesign proposal
 
-Status: proposal for review. No app code in this change. The current look (felt green, cream, seat colors) stays. This redesign is about fewer screens, fewer taps, and the bugs from the latest APK (`a933e6b`).
+Status: approved and built on `cursor/visual-redesign-3550`. The current look (felt green, cream, seat colors) stays. This redesign is about fewer screens, fewer taps, and the bugs from the latest APK (`a933e6b`). Apply `supabase/migrations/007_redesign.sql` after `006` before the new roster and unseated-admin rows work on the live project.
 
 Product rules that stay, from `docs/product-contract.md`, `docs/friday-setup.md`, and `docs/testing-strategy.md`:
 
@@ -807,12 +807,14 @@ Maestro will not catch a misaligned header as reliably as eyes will, and it will
 
 `docs/testing-strategy.md` should gain this Maestro table and this phone pass when the redesign is built. Unit tests stay. They are not the sign-off.
 
-## 8. Open questions
+## 8. Defaults chosen at build
 
-1. The iPhone app is not in the App Store. Until there is a TestFlight or store URL, `…/Games/get` will tell iPhone users the app is not available yet. Confirm that is acceptable, and send the APK URL that Android should download in the meantime.
-2. Recent’s Today chip follows the phone’s timezone, which is what the current Today tile does. Say if a session should use a fixed timezone instead.
-3. Coins on Settle start equal to the points, and Complete does not edit them. They often do not add to 0 when the expense column took points, so the session cannot reach all zeros without a later adjustment. Should the expense be its own ledger line?
-4. Demo data (Load / Clear) moves under Me for `koneru2k@gmail.com`. Say if it should stay on Home instead.
+These were still open when the build started. They are the behavior in the app until Sree says otherwise.
+
+1. **Get page.** `https://sreeatcandorps.github.io/Games/get` tells an iPhone that the app is not up yet. Android says the preview APK is shared separately until Play exists. There is no store URL and no download link on that page.
+2. **Today.** The Today chip uses the phone’s local timezone, the same way the old Today tile did.
+3. **Expense.** Expense is not its own ledger person. Opening coins equal the seated players’ points only. If those coins do not add to 0, Settle says so. Payments between people keep that total, so the session cannot be marked Settled until the numbers do reach 0. Complete has no coin editor.
+4. **Demo data.** Load and Clear stay on Me, and only for the allowlisted admin email (`EXPO_PUBLIC_ADMIN_EMAILS`, default `koneru2k@gmail.com`). They are not on Home.
 
 ## Later
 

@@ -26,7 +26,7 @@ It signs up five real throwaway accounts on the project in `.env.local`: admin, 
 - A normal player cannot insert a round. After they are promoted, a game admin can.
 - The anon key can read the scorecard with the game’s token and cannot read it with a random token.
 
-The script skips (exit 0) when Supabase env vars are missing. It fails with a pointer at `006_friday_game_night.sql` if that migration is not applied. It also needs email confirmation turned off, or the new users never get a session.
+The script exits 1 when Supabase env vars are missing, so a build without keys is red rather than a quiet pass. It fails with a pointer at `006_friday_game_night.sql` if that migration is not applied. It also needs email confirmation turned off, or the new users never get a session. `007_redesign.sql` is not applied by this script.
 
 `npm run test:smoke`, `test:game-flow`, and `test:nightly` are the older live checks (login, create game, add a round). Run those after `test:rls` when the keys are available.
 
@@ -49,13 +49,13 @@ On two phones, or one phone and a second account:
 
 1. Create two accounts. Confirm both can sign in with the 6-digit passcode (eye toggle shows the digits).
 2. Account A starts a game, turns off “I’m playing”, and adds account B.
-3. Account B signs in and sees the game under Home and History without creating it.
+3. Account B signs in and sees the game under Home → Recent without creating it.
 4. Account B cannot add a round. Account A can.
 5. Account A opens Players and makes B a game admin. B can then add a round.
 6. Account A adds a third person as view-only. That person sees the game and cannot score.
 7. Share → Copy link. Open it in a browser. Start time and game ID are visible. Add a round on the phone and refresh; the page updates within about 8 seconds.
-8. Complete the game. Stake shows points as coins and lets you edit them. Pool asks for a prize.
-9. History → Prize distribution. Pick the completed game. Add an entry that adds to 0. When every balance is 0, the session says Settled.
+8. Complete the game from Done. The confirm shows points only. There is no Settle button and no coin field.
+9. Home → Settle. Pick the completed game. Record a payment that adds to 0. Tap the row to change it. When every Now is 0, the session says Settled and the row does not open.
 
 ## Regression
 
@@ -72,9 +72,26 @@ After any scoring or schema change:
 - [ ] `006_friday_game_night.sql` has been run on `gngcrplcldfiubvhcdin`
 - [ ] Site URL is `https://sreeatcandorps.github.io/Games/`, not localhost
 - [ ] A fresh reset email opens that page
-- [ ] `scorecard` function is deployed (open a copied link on wifi, not only in the app)
+- [ ] `public/scorecard.html` and `public/get/index.html` are published on GitHub Pages, and the anon key is pasted into the scorecard file
 - [ ] New preview APK is the one installed (older APKs do not have Share or prize sessions)
 - [ ] Two accounts: the second sees a game the first created
 - [ ] Only a game admin can add a round
 - [ ] Copy link works even if email is not configured
 - [ ] Phones are charged, and the table has the game ID written down in case someone is late
+- [ ] `007_redesign.sql` has been run after `006`
+
+## Redesign tap-through
+
+`npm test` does not open a screen. Maestro flows live in `rummy-home3/e2e/` and are meant for the preview APK (`appId: com.rummyhome.app`). They were not run here because this change does not build an APK. The same paths were walked on the web build where a browser was available; the report with this change says what passed and what could not be tapped.
+
+Before the next APK goes to Sree, someone else does this on a physical Android phone:
+
+- Install the new APK over the old one. Cold start. Home in a few seconds on wifi, and an error with Retry on a dead network.
+- Rotate the scorecard both ways, twice. The title Scorecard stays lined up with the back button.
+- Open the copied link in Chrome. The table renders. The tab is not showing the page source.
+- Second phone, second account: they see the game, and view-only cannot score.
+- Players: +, remove, airplane mode during remove. No other person’s email on the list, the sheet, or Find.
+- One stake game completed with no coin fields, then Settle from Home until every Now is 0. A non-admin who taps Settle sees the explanation.
+- A new account’s welcome email arrives from `scores@mindweavetech.com`.
+
+Pass when Home has New game, Settle, and Recent, and none of Active, Players, Today, History, or All players.

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { Tabs, router } from 'expo-router';
+import { Tabs, router, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, TouchableRipple } from 'react-native-paper';
-import { authService } from '@/services/auth';
-import { Player } from '@/types/player';
-import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
+import { HelpButton } from '@/components/ui/HelpButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
+import { HELP } from '@/constants/help';
+import { authService } from '@/services/auth';
+import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 
 function TabBarIcon(props: {
@@ -28,35 +29,37 @@ function BrandTitle() {
   );
 }
 
+function HeaderTools() {
+  const path = usePathname();
+  const theme = useAppTheme();
+  const [name, setName] = useState('?');
+  const text = path.includes('/players') ? HELP.players : path.includes('/me') ? HELP.me : HELP.home;
+
+  useEffect(() => {
+    authService.getCurrentPlayer().then((player) => setName(player?.name ?? '?')).catch(() => {});
+  }, [path]);
+
+  return (
+    <View style={styles.headerRight}>
+      <HelpButton text={text} />
+      {path.includes('/players') || path.includes('/me') ? null : (
+        <TouchableRipple
+          onPress={() => router.push('/(tabs)/me')}
+          borderless
+          style={styles.avatarButton}
+          accessibilityRole="button"
+          accessibilityLabel="Open Me"
+        >
+          <SeatAvatar name={name} size={36} color={theme.colors.primary} />
+        </TouchableRipple>
+      )}
+    </View>
+  );
+}
+
 export default function TabLayout() {
   const theme = useAppTheme();
   const { insets, isShort } = useLayout();
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
-
-  useEffect(() => {
-    loadCurrentPlayer();
-  }, []);
-
-  const loadCurrentPlayer = async () => {
-    const player = await authService.getCurrentPlayer();
-    setCurrentPlayer(player);
-  };
-
-  const HeaderRight = () => (
-    <TouchableRipple
-      onPress={() => router.push('/profile')}
-      borderless
-      style={styles.avatarButton}
-      accessibilityRole="button"
-      accessibilityLabel="Open profile"
-    >
-      <SeatAvatar
-        name={currentPlayer?.name ?? '?'}
-        size={36}
-        color={currentPlayer?.role === 'admin' ? theme.colors.error : theme.colors.primary}
-      />
-    </TouchableRipple>
-  );
 
   return (
     <Tabs
@@ -77,9 +80,8 @@ export default function TabLayout() {
           paddingBottom: insets.bottom + (isShort ? 0 : 4),
         },
         tabBarLabelStyle: { fontSize: 12, lineHeight: 16, fontWeight: '600' },
-        tabBarItemStyle: { minHeight: MIN_TOUCH_TARGET },
         sceneStyle: { backgroundColor: theme.colors.background },
-        headerRight: HeaderRight,
+        headerRight: () => <HeaderTools />,
       }}
     >
       <Tabs.Screen
@@ -91,13 +93,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="players"
         options={{
-          title: 'Settings',
-          headerTitle: 'Settings',
-          tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon name={focused ? 'settings' : 'settings-outline'} color={color} />
-          ),
+          title: 'Players',
+          tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'people' : 'people-outline'} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="me"
+        options={{
+          title: 'Me',
+          tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'person' : 'person-outline'} color={color} />,
         }}
       />
     </Tabs>
@@ -118,6 +124,10 @@ const styles = StyleSheet.create({
   brandText: {
     fontWeight: '800',
     letterSpacing: -0.2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   avatarButton: {
     marginRight: spacing.sm,

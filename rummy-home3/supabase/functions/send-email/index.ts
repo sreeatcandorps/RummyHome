@@ -1,6 +1,6 @@
 // Optional email for welcome notes and scorecard links.
 // Deploy:
-//   supabase secrets set RESEND_API_KEY=re_xxx RESEND_FROM="Rummy Home <scores@yourdomain.com>" --project-ref gngcrplcldfiubvhcdin
+//   supabase secrets set RESEND_API_KEY=re_xxx RESEND_FROM="Rummy Home <scores@mindweavetech.com>" --project-ref gngcrplcldfiubvhcdin
 //   supabase functions deploy send-email --project-ref gngcrplcldfiubvhcdin
 // Without RESEND_API_KEY the function returns sent:false and the app tells you to copy the link.
 

@@ -102,6 +102,7 @@ export type Database = {
           color_code: string | null;
           role: GameMemberRole;
           is_active: boolean;
+          seated?: boolean;
         };
         Insert: {
           id?: string;
@@ -112,6 +113,7 @@ export type Database = {
           color_code?: string | null;
           role?: GameMemberRole;
           is_active?: boolean;
+          seated?: boolean;
         };
         Update: Partial<Database['public']['Tables']['game_players']['Insert']>;
       };
@@ -219,6 +221,30 @@ export type Database = {
       };
       list_prize_sessions: {
         Args: Record<string, never>;
+        Returns: Json;
+      };
+      search_players: {
+        Args: { p_query: string };
+        Returns: { id: string; display_name: string; player_code: string | null }[];
+      };
+      list_my_players: {
+        Args: Record<string, never>;
+        Returns: { id: string; display_name: string; player_code: string | null; games_together: number }[];
+      };
+      add_my_player: {
+        Args: { p_player_id: string };
+        Returns: undefined;
+      };
+      remove_my_player: {
+        Args: { p_player_id: string };
+        Returns: undefined;
+      };
+      touch_my_players: {
+        Args: { p_ids: string[] };
+        Returns: undefined;
+      };
+      update_prize_entry: {
+        Args: { p_entry_id: string; p_legs: Json; p_note: string };
         Returns: Json;
       };
     };

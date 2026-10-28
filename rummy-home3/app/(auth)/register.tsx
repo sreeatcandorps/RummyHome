@@ -9,6 +9,7 @@ import { formatAuthError } from '../../utils/authErrors';
 import { AuthShell } from '../../components/ui/AuthShell';
 import { PasscodeField } from '@/components/ui/PasscodeField';
 import { sendWelcomeEmail } from '@/services/mail';
+import { HELP } from '@/constants/help';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 // import * as Location from 'expo-location';
 
@@ -25,6 +26,7 @@ export default function RegisterScreen() {
   const [lastName, setLastName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
+  const [phoneOpen, setPhoneOpen] = useState(false);
   const [passcode, setPasscode] = React.useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -198,6 +200,7 @@ export default function RegisterScreen() {
     <AuthShell
       title="Create account"
       subtitle="You'll use your email and a 6-digit passcode to sign in."
+      help={HELP.createAccount}
       footer={
         <View style={styles.footerRow}>
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -256,25 +259,27 @@ export default function RegisterScreen() {
         Numbers only — this is your quick login code. Use the eye to check each digit.
       </HelperText>
 
-      <Text variant="titleSmall" style={styles.groupLabel}>
-        Contact (optional)
-      </Text>
-      <View>
-        <TextInput
-          label="Phone number"
-          value={phone}
-          onChangeText={setPhone}
-          mode="outlined"
-          keyboardType="phone-pad"
-          disabled={loading}
-          left={<TextInput.Icon icon="phone-outline" />}
-        />
-        {selectedCountry && (
-          <HelperText type="info" visible>
-            {selectedCountry.flag} {selectedCountry.name} (+{selectedCountry.callingCode})
-          </HelperText>
-        )}
-      </View>
+      <Button mode="text" onPress={() => setPhoneOpen((open) => !open)} icon={phoneOpen ? 'chevron-up' : 'chevron-down'}>
+        Phone (optional)
+      </Button>
+      {phoneOpen ? (
+        <View>
+          <TextInput
+            label="Phone number"
+            value={phone}
+            onChangeText={setPhone}
+            mode="outlined"
+            keyboardType="phone-pad"
+            disabled={loading}
+            left={<TextInput.Icon icon="phone-outline" />}
+          />
+          {selectedCountry && (
+            <HelperText type="info" visible>
+              {selectedCountry.flag} {selectedCountry.name} (+{selectedCountry.callingCode})
+            </HelperText>
+          )}
+        </View>
+      ) : null}
 
       {error ? (
         <View style={styles.signInError}>

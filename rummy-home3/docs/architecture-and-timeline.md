@@ -38,7 +38,7 @@ Same codebase either way.
 
 ---
 
-## Current stack (as of 2026-08-18)
+## Current stack (as of 2026-10-28)
 
 | Piece | Choice | Why |
 | --- | --- | --- |
@@ -46,6 +46,8 @@ Same codebase either way.
 | Framework | Expo SDK **54** | React Native 0.81 app toolchain |
 | UI | React Native Paper (Material 3) | Android-familiar components |
 | Backend | Supabase (Auth + Postgres + RLS) | Shared multi-user data without a custom server |
+| My players | `my_players` in `007_redesign.sql` | Per-account roster. Home and New game do not read every profile |
+| Public scorecard | GitHub Pages `…/Games/scorecard.html` | HTML page calls `public_scorecard`. The app does not copy the edge-function URL |
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / production | Real store binaries |
@@ -164,6 +166,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Live scorecards are shared with an unguessable `view_token`. The public page is a Supabase Edge Function (`supabase/functions/scorecard`); email goes through `send-email` when a Resend key is set.
 - Completed games can be grouped into a prize session (coins, not money). Apply `supabase/migrations/006_friday_game_night.sql` before using this on the APK. Passcode reset must use the GitHub Pages URL as the Supabase Site URL, or the email keeps pointing at localhost.
 
+### 2026-10-28 — Redesign (Home, my players, Settle, Pages scorecard)
+- Three tabs: Home, Players, Me. History, the stat tiles, and the whole-directory player list are gone. Settle is only on Home. A non-player admin is a `game_players` row with `seated = false`.
+- Public scorecard and the invite page are static HTML for GitHub Pages (`public/scorecard.html`, `public/get/index.html`), not the Supabase function URL. Apply `007_redesign.sql` after `006` before my players, unseated admins, and payment edits work on the live database.
+
 ### 2026-10-27 — Admin demo seed on Supabase
 - Home-screen Load/Clear demo data is available in release builds only for an allowlisted admin email (`EXPO_PUBLIC_ADMIN_EMAILS`, default `koneru2k@gmail.com`, enforced again in `public.is_demo_admin()`).
 - Sample players and games are tagged `is_demo` and written with the signed-in session through `apply_demo_seed` / `clear_demo_data`. Apply `supabase/migrations/005_demo_data.sql` before using it on the APK.
@@ -184,13 +190,13 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | --- | --- |
 | Auth (email/passcode, session refresh) | Done enough for testing |
 | Profiles / Player ID + share | Done |
-| Find players (email/phone/ID, invites) | Done |
-| New game (stake/pool, expenses) | Done |
-| Game table + score entry | Done, portrait + landscape (2026-10 redesign) |
-| History / dashboard loading | Done |
-| Theming (light/dark) | Done; dark mode is a Settings toggle, not system-driven |
-| Supabase schema + RLS helpers | Done (apply `005` if you use demo data, then `006` for Friday sharing and prizes) |
-| Public scorecard + prize sessions | In the app; live link needs the scorecard function deployed and `006` applied |
+| Find players (name, player ID, exact email, +) | Done; needs `007` on the live database |
+| New game (stake, my players) | Done |
+| Game table + score entry | Done, portrait + landscape. One Scorecard header |
+| Home Recent / Settle | Done. History screen redirects home |
+| Theming (light/dark) | Done; dark mode is on Me and saved on the phone |
+| Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`. `005` only if you use demo data |
+| Public scorecard | GitHub Pages HTML. Paste the anon key into `public/scorecard.html` before the live link loads a game |
 | Expo Go local preview | Working |
 | EAS project linked on this PC | Done |
 | EAS env vars for Supabase | Done |

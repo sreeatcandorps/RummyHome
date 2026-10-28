@@ -16,8 +16,8 @@ const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!url || !anonKey) {
-  console.log('SKIP friday RLS: set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env.local');
-  process.exit(0);
+  console.error('FAIL friday RLS: set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env.local');
+  process.exit(1);
 }
 
 const stamp = Date.now();

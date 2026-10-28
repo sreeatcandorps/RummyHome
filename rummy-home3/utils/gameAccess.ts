@@ -4,6 +4,8 @@ export type GameVisibility = {
   createdBy?: string | null;
   players: string[];
   spectators?: string[];
+  adminIds?: string[];
+  unseatedAdminIds?: string[];
   /** Emails of people tied to this game (seated, viewing, or the creator). */
   memberEmails?: { profileId: string; email?: string | null }[];
 };
@@ -28,14 +30,30 @@ export function gameVisibleToUser(game: GameVisibility, viewer: Viewer): boolean
   if (game.createdBy && game.createdBy === viewer.id) return true;
   if (game.players.includes(viewer.id)) return true;
   if (game.spectators?.includes(viewer.id)) return true;
+  if (game.adminIds?.includes(viewer.id)) return true;
+  if (game.unseatedAdminIds?.includes(viewer.id)) return true;
+
+  const tied = new Set<string>([
+    ...(game.createdBy ? [game.createdBy] : []),
+    ...game.players,
+    ...(game.spectators ?? []),
+    ...(game.adminIds ?? []),
+    ...(game.unseatedAdminIds ?? []),
+  ]);
 
   return (game.memberEmails ?? []).some(
-    (member) =>
-      sameEmail(member.email, viewer.email) &&
-      (member.profileId === game.createdBy ||
-        game.players.includes(member.profileId) ||
-        (game.spectators ?? []).includes(member.profileId)),
+    (member) => sameEmail(member.email, viewer.email) && tied.has(member.profileId),
   );
+}
+
+/** Creator, a promoted admin, or a non-player admin. A seated player is not enough. */
+export function userAdminsGame(
+  game: { createdBy?: string | null; adminIds?: string[] | null },
+  userId: string | null | undefined,
+): boolean {
+  if (!userId) return false;
+  if (game.createdBy === userId) return true;
+  return Boolean(game.adminIds?.includes(userId));
 }
 
 export type ScoreAccess = {

@@ -10,6 +10,7 @@ import { formatAuthError } from '../../utils/authErrors';
 import { AuthShell } from '../../components/ui/AuthShell';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 import { takeStartupNotice } from '../../utils/startupNotice';
+import { HELP } from '@/constants/help';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
@@ -87,6 +88,7 @@ export default function LoginScreen() {
     <AuthShell
       title="Rummy Home"
       subtitle="Sign in to keep score with your table"
+      help={HELP.signIn}
       footer={
         <>
           <View style={styles.dividerRow}>

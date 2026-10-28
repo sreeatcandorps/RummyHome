@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Checkbox, Dialog, Text, TextInput } from 'react-native-paper';
+import { Button, Checkbox, Dialog, Text } from 'react-native-paper';
+import { HelpButton } from '@/components/ui/HelpButton';
+import { HELP } from '@/constants/help';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 export type SharePerson = {
   id: string;
   name: string;
+  playerCode?: string;
+  /** Used to send. Never rendered. */
   email?: string;
 };
 
@@ -13,21 +17,35 @@ type ShareDialogProps = {
   visible: boolean;
   people: SharePerson[];
   link: string;
+  startedLabel?: string;
+  gameLabel?: string;
   busy?: boolean;
   notice?: string | null;
   onDismiss: () => void;
   onCopy: () => void;
-  onEmail: (emails: string[]) => void;
+  onEmail: (people: SharePerson[]) => void;
+  onPreview: () => void;
 };
 
-export function ShareDialog({ visible, people, link, busy, notice, onDismiss, onCopy, onEmail }: ShareDialogProps) {
+export function ShareDialog({
+  visible,
+  people,
+  link,
+  startedLabel,
+  gameLabel,
+  busy,
+  notice,
+  onDismiss,
+  onCopy,
+  onEmail,
+  onPreview,
+}: ShareDialogProps) {
   const { colors } = useAppTheme();
   const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
     if (!visible) return;
-    setSelected(people.filter((person) => person.email).map((person) => person.id));
-    // Preselect once each time the sheet opens. `people` is read at open time.
+    setSelected(people.map((person) => person.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
@@ -35,54 +53,52 @@ export function ShareDialog({ visible, people, link, busy, notice, onDismiss, on
     setSelected((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   };
 
-  const emails = people.filter((person) => selected.includes(person.id) && person.email).map((person) => person.email as string);
-
   return (
     <Dialog visible={visible} onDismiss={onDismiss} style={[styles.dialog, { backgroundColor: colors.surface }]}>
-      <Dialog.Title style={styles.title}>Share scorecard</Dialog.Title>
+      <Dialog.Title>
+        <View style={styles.titleRow}>
+          <Text variant="titleLarge" style={styles.title}>Share scorecard</Text>
+          <HelpButton text={HELP.share} />
+        </View>
+      </Dialog.Title>
       <Dialog.ScrollArea style={styles.scroll}>
         <ScrollView>
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-            Everyone in the game starts selected. The link is view-only and does not need a sign-in.
+            Anyone with the link can watch.
           </Text>
+          {startedLabel ? (
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Started {startedLabel}</Text>
+          ) : null}
+          {gameLabel ? (
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>ID {gameLabel}</Text>
+          ) : null}
           {people.map((person) => (
             <Checkbox.Item
               key={person.id}
-              label={person.email ? `${person.name}` : `${person.name} (no email)`}
-              status={person.email && selected.includes(person.id) ? 'checked' : 'unchecked'}
-              disabled={!person.email || busy}
+              label={`${person.name}${person.playerCode ? `  ${person.playerCode}` : ''}`}
+              status={selected.includes(person.id) ? 'checked' : 'unchecked'}
+              disabled={busy}
               onPress={() => toggle(person.id)}
               labelStyle={styles.checkLabel}
             />
           ))}
-          <TextInput
-            mode="outlined"
-            label="Link"
-            value={link}
-            editable={false}
-            multiline
-            style={styles.link}
-          />
           {notice ? (
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-              {notice}
-            </Text>
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{notice}</Text>
           ) : null}
         </ScrollView>
       </Dialog.ScrollArea>
       <Dialog.Actions style={styles.actions}>
         <Button onPress={onDismiss} disabled={busy}>Close</Button>
-        <Button mode="outlined" icon="content-copy" onPress={onCopy} disabled={busy || !link}>
-          Copy link
-        </Button>
+        <Button mode="outlined" icon="eye-outline" onPress={onPreview} disabled={busy || !link}>Preview</Button>
+        <Button mode="outlined" icon="content-copy" onPress={onCopy} disabled={busy || !link}>Copy link</Button>
         <Button
           mode="contained"
           icon="email-outline"
-          onPress={() => onEmail(emails)}
+          onPress={() => onEmail(people.filter((person) => selected.includes(person.id)))}
           loading={busy}
-          disabled={busy || emails.length === 0}
+          disabled={busy || selected.length === 0}
         >
-          Email
+          Email selected
         </Button>
       </Dialog.Actions>
     </Dialog>
@@ -96,8 +112,12 @@ const styles = StyleSheet.create({
     width: '92%',
     alignSelf: 'center',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   title: {
-    textAlign: 'center',
     fontWeight: '700',
   },
   scroll: {
@@ -106,9 +126,6 @@ const styles = StyleSheet.create({
   },
   checkLabel: {
     textAlign: 'left',
-  },
-  link: {
-    marginTop: spacing.sm,
   },
   actions: {
     flexWrap: 'wrap',

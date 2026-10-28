@@ -4,6 +4,7 @@ import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { router } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { authRedirectUrl } from '@/utils/authRedirect';
+import { HELP } from '@/constants/help';
 import { AuthShell } from '../../components/ui/AuthShell';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 import 'react-native-url-polyfill/auto'
@@ -76,8 +77,9 @@ export default function ForgotPasswordScreen() {
 
   return (
     <AuthShell
-      title="Forgot passcode?"
+      title="Reset passcode"
       subtitle="Enter your email and we'll send a link to reset your 6-digit passcode."
+      help={HELP.reset}
       icon="lock-reset"
       footer={
         <>

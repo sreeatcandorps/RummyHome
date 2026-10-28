@@ -1,502 +1,190 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Button, Icon, Switch, Searchbar, Text, TextInput, TouchableRipple } from 'react-native-paper';
-import { router } from 'expo-router';
-import { storage } from '../../../utils/storage';
-import { Player } from '../../../types/player';
-import { gamesService } from '../../../services/games';
-import { authService } from '../../../services/auth';
-import { playersService } from '../../../services/players';
-import { isSupabaseConfigured } from '../../../services/supabase';
-import { formatSupabaseError } from '../../../utils/supabaseErrors';
-import { SectionCard } from '../../../components/ui/SectionCard';
-import { EmptyState } from '../../../components/ui/EmptyState';
-import { BottomBar } from '../../../components/ui/BottomBar';
-import { SeatAvatar } from '../../../components/ui/SeatAvatar';
-import { MAX_CONTENT_WIDTH, MIN_TOUCH_TARGET, radius, seatColor, spacing, useAppTheme } from '../../../constants/theme';
-import { useLayout } from '../../../hooks/useLayout';
-
-const GAME_TYPES = [
-  { value: 'stake' as const, label: 'Stake', icon: 'cash-multiple' },
-  { value: 'pool' as const, label: 'Pool', icon: 'trophy-outline' },
-];
+import React, { useCallback, useMemo, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
+import { Button, Searchbar, Switch, Text, TextInput } from 'react-native-paper';
+import { router, useFocusEffect } from 'expo-router';
+import { Player } from '@/types/player';
+import { gamesService } from '@/services/games';
+import { playersService } from '@/services/players';
+import { authService } from '@/services/auth';
+import { isSupabaseConfigured } from '@/services/supabase';
+import { storage } from '@/utils/storage';
+import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { matchesMyPlayer } from '@/utils/playerSearch';
+import { takePlayerToCheck } from '@/utils/pendingPlayer';
+import { legacySettingsForGameType } from '@/utils/scoring';
+import { Screen } from '@/components/ui/Screen';
+import { BottomBar } from '@/components/ui/BottomBar';
+import { LoadingRows } from '@/components/ui/LoadingRows';
+import { spacing, useAppTheme } from '@/constants/theme';
 
 export default function NewGame() {
-  const { colors, gameTypes } = useAppTheme();
-  const { isWide, gutterLeft, gutterRight, isShort } = useLayout();
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
-  const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [gameType, setGameType] = useState<'stake' | 'pool'>('stake');
-  const [expenseEnabled, setExpenseEnabled] = useState(true);
-  const [expenseDigits, setExpenseDigits] = useState('10');
-  const [creating, setCreating] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const { colors } = useAppTheme();
+  const defaults = legacySettingsForGameType('stake');
+  const [selected, setSelected] = useState<string[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [me, setMe] = useState<Player | null>(null);
   const [includeMe, setIncludeMe] = useState(true);
+  const [expenseEnabled, setExpenseEnabled] = useState(true);
+  const [expenseDigits, setExpenseDigits] = useState(String(Math.abs(defaults.expenseAmount)));
+  const [query, setQuery] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadPlayers();
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const userId = isSupabaseConfigured ? await authService.getCurrentUserId() : await storage.getCurrentPlayer();
+      const current = await authService.getCurrentPlayer();
+      setMe(current);
+      if (!userId) {
+        setError('You must be signed in to create a game.');
+        return;
+      }
+      const mine = await playersService.listMyPlayers(userId);
+      setPlayers(mine);
+      const pending = takePlayerToCheck();
+      if (pending) setSelected((currentIds) => (currentIds.includes(pending) ? currentIds : [...currentIds, pending]));
+    } catch (err) {
+      setError(formatSupabaseError(err));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const loadPlayers = async () => {
-    try {
-      const [players, userId] = await Promise.all([
-        isSupabaseConfigured ? playersService.listPlayers() : storage.getPlayers(),
-        isSupabaseConfigured ? authService.getCurrentUserId() : storage.getCurrentPlayer(),
-      ]);
+  useFocusEffect(useCallback(() => {
+    load();
+  }, [load]));
 
-      setAvailablePlayers(players);
-      setCurrentUserId(userId);
+  const others = useMemo(
+    () => players.filter((player) => player.id !== me?.id && matchesMyPlayer(player, query)),
+    [players, me?.id, query],
+  );
 
-      if (userId) {
-        setSelectedPlayers((prev) => (prev.includes(userId) ? prev : [userId, ...prev]));
-      }
-    } catch (error) {
-      console.error('Failed to load players:', error);
-      Alert.alert('Error', formatSupabaseError(error));
-    }
-  };
+  const seatedCount = selected.filter((id) => id !== me?.id).length + (includeMe && me ? 1 : 0);
+  const startDisabled = seatedCount < 2;
 
-  const togglePlayerSelection = (playerId: string) => {
-    if (selectedPlayers.includes(playerId)) {
-      setSelectedPlayers(selectedPlayers.filter((id) => id !== playerId));
-    } else {
-      setSelectedPlayers([...selectedPlayers, playerId]);
-    }
+  const toggle = (id: string) => {
+    setSelected((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   };
 
   const startGame = async () => {
-    if (selectedPlayers.length < 2) {
-      Alert.alert(
-        'Need more players',
-        includeMe
-          ? 'Select at least one other registered player. Ask friends to create an account first, then use Find Players.'
-          : 'Pick at least two registered players. You can keep score without playing.',
-      );
-      return;
-    }
-
+    if (!me) return;
+    const playerIds = includeMe
+      ? [me.id, ...selected.filter((id) => id !== me.id)]
+      : selected.filter((id) => id !== me.id);
+    if (playerIds.length < 2) return;
     setCreating(true);
     try {
-      const createdBy = currentUserId
-        ?? (isSupabaseConfigured
-          ? await authService.getCurrentUserId()
-          : await storage.getCurrentPlayer());
-
-      if (!createdBy) {
-        throw new Error('You must be signed in to create a game.');
-      }
-
-      const playerIds = includeMe
-        ? (selectedPlayers.includes(createdBy) ? selectedPlayers : [createdBy, ...selectedPlayers])
-        : selectedPlayers.filter((id) => id !== createdBy);
-
-      const newGame = await gamesService.createGame({
+      const game = await gamesService.createGame({
         playerIds,
-        gameType,
+        gameType: 'stake',
         expenseEnabled,
         expenseAmount: -Math.abs(parseInt(expenseDigits || '0', 10) || 0),
-        createdBy,
+        createdBy: me.id,
       });
-
-      router.push(`/(screens)/games/${newGame.id}`);
-    } catch (error: any) {
-      console.error('Error creating game:', error);
-      Alert.alert('Could not create game', formatSupabaseError(error));
+      router.replace(`/(screens)/games/${game.id}`);
+    } catch (err) {
+      Alert.alert('Could not create game', formatSupabaseError(err));
     } finally {
       setCreating(false);
     }
   };
 
-  const otherPlayers = useMemo(() => {
-    const others = availablePlayers.filter((player) => player.id !== currentUserId);
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return others;
-    return others.filter(
-      (player) =>
-        player.name.toLowerCase().includes(q) ||
-        (player.email ?? '').toLowerCase().includes(q),
-    );
-  }, [availablePlayers, currentUserId, searchQuery]);
-
-  const currentUserName = availablePlayers.find((p) => p.id === currentUserId)?.name ?? 'You';
-
-  const renderPlayerRow = (player: Player, isSelf: boolean) => {
-    const checked = (isSelf && includeMe) || selectedPlayers.includes(player.id);
-    const seat = selectedPlayers.indexOf(player.id);
-
-    return (
-      <TouchableRipple
-        key={player.id}
-        onPress={isSelf ? () => setIncludeMe((current) => !current) : () => togglePlayerSelection(player.id)}
-        disabled={false}
-        borderless
-        style={[
-          styles.playerRow,
-          {
-            backgroundColor: checked ? colors.primaryContainer : 'transparent',
-          },
-        ]}
-        accessibilityRole="checkbox"
-        accessibilityLabel={player.name}
-        accessibilityState={{ checked }}
-      >
-        <View style={styles.playerRowInner}>
-          <SeatAvatar name={player.name} size={40} muted={!checked} color={seatColor(seat < 0 ? 0 : seat)} />
-          <View style={styles.playerText}>
-            <Text
-              variant="bodyLarge"
-              numberOfLines={1}
-              style={[styles.playerName, { color: checked ? colors.onPrimaryContainer : colors.onSurface }]}
-            >
-              {player.name}
-            </Text>
-            <Text
-              variant="bodySmall"
-              style={{ color: checked ? colors.onPrimaryContainer : colors.onSurfaceVariant }}
-              numberOfLines={1}
-            >
-              {isSelf ? (includeMe ? 'You are playing' : 'Keeping score only') : player.email ?? 'No email on file'}
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.check,
-              checked
-                ? { backgroundColor: colors.primary, borderColor: 'transparent' }
-                : { borderColor: colors.outline },
-            ]}
-          >
-            {checked ? <Icon source="check" size={16} color={colors.onPrimary} /> : null}
-          </View>
-        </View>
-      </TouchableRipple>
-    );
-  };
-
-  const gameSetup = (
-    <SectionCard title="Game type" icon="cards-outline">
-      <View style={styles.typeRow} accessibilityRole="radiogroup">
-        {GAME_TYPES.map((option) => {
-          const selected = gameType === option.value;
-          const tint = gameTypes[option.value];
-          return (
-            <View
-              key={option.value}
-              style={[
-                styles.typeTile,
-                {
-                  backgroundColor: selected ? tint.container : colors.surface,
-                  borderColor: selected ? tint.accent : colors.outlineVariant,
-                  borderWidth: selected ? 2 : 1,
-                },
-              ]}
-            >
-              <TouchableRipple
-                onPress={() => setGameType(option.value)}
-                borderless
-                style={styles.typeRipple}
-                accessibilityRole="radio"
-                accessibilityLabel={option.label}
-                accessibilityState={{ checked: selected }}
-              >
-                <View style={[styles.typeInner, isShort && styles.typeInnerCompact]}>
-                  <Icon source={option.icon} size={24} color={selected ? tint.on : colors.onSurfaceVariant} />
-                  <Text
-                    variant="titleMedium"
-                    style={[styles.typeLabel, { color: selected ? tint.on : colors.onSurface }]}
-                  >
-                    {option.label}
-                  </Text>
-                  {selected ? (
-                    <View style={styles.typeCheck}>
-                      <Icon source="check-circle" size={18} color={tint.accent} />
-                    </View>
-                  ) : null}
-                </View>
-              </TouchableRipple>
-            </View>
-          );
-        })}
-      </View>
-
-      <View style={[styles.expenseBox, { backgroundColor: colors.surfaceVariant }]}>
-        <View style={styles.settingRow}>
-          <View style={styles.settingText}>
-            <Text variant="bodyLarge" style={styles.settingTitle}>
-              Add expense to each round
-            </Text>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-              Charges the table a fixed amount every round.
-            </Text>
-          </View>
-          <Switch
-            value={expenseEnabled}
-            onValueChange={setExpenseEnabled}
-            accessibilityLabel="Add expense to each round"
-          />
-        </View>
-
-        {expenseEnabled ? (
-          <View style={styles.expenseRow}>
-            <TextInput
-              label="Expense per round"
-              value={expenseDigits}
-              onChangeText={(text) => setExpenseDigits(text.replace(/[^0-9]/g, ''))}
-              keyboardType="number-pad"
-              mode="outlined"
-              maxLength={4}
-              dense
-              left={<TextInput.Affix text="−" />}
-              style={[styles.expenseInput, { backgroundColor: colors.surface }]}
-            />
-            <Text variant="bodySmall" style={[styles.expenseHint, { color: colors.onSurfaceVariant }]}>
-              Recorded as −{expenseDigits || '0'} on every round.
-            </Text>
-          </View>
-        ) : null}
-      </View>
-    </SectionCard>
-  );
-
-  const playerPicker = (
-    <SectionCard
-      title="Players"
-      icon="account-group-outline"
-      supportingText="Include yourself only if you are playing. A scorekeeper can leave themselves out."
-    >
-      <Searchbar
-        placeholder="Search name or email"
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        mode="bar"
-        style={[styles.search, { backgroundColor: colors.surfaceVariant }]}
-        inputStyle={styles.searchInput}
-      />
-
-      <View style={styles.playerList}>
-        {currentUserId
-          ? renderPlayerRow(
-              { id: currentUserId, name: currentUserName, role: 'player' } as Player,
-              true,
-            )
-          : null}
-
-        {otherPlayers.map((player) => renderPlayerRow(player, false))}
-      </View>
-
-      {otherPlayers.length === 0 ? (
-        <EmptyState
-          icon="account-search-outline"
-          title={searchQuery.trim() ? 'No matches' : 'No other players yet'}
-          message={
-            searchQuery.trim()
-              ? `Nobody matches “${searchQuery}”.`
-              : 'Ask a friend to sign up, then invite them from Find players.'
-          }
-          actionLabel={searchQuery.trim() ? undefined : 'Find players'}
-          onAction={searchQuery.trim() ? undefined : () => router.push('/(screens)/players/new')}
-        />
-      ) : null}
-    </SectionCard>
-  );
-
-  const rosterIds = includeMe || !currentUserId
-    ? selectedPlayers
-    : selectedPlayers.filter((id) => id !== currentUserId);
-  const selectedCount = rosterIds.length;
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingLeft: gutterLeft, paddingRight: gutterRight, paddingTop: isShort ? spacing.md : spacing.lg },
-        ]}
-        keyboardShouldPersistTaps="handled"
-      >
-        {isWide ? (
-          <View style={styles.columns}>
-            <View style={styles.sideColumn}>{gameSetup}</View>
-            <View style={styles.mainColumn}>{playerPicker}</View>
-          </View>
-        ) : (
-          <View style={styles.stack}>
-            {gameSetup}
-            {playerPicker}
-          </View>
-        )}
-      </ScrollView>
-
-      <BottomBar fullWidth={isWide}>
-        <View style={styles.selectedSummary}>
-          <Text variant="titleMedium" style={styles.selectedCount}>
-            {selectedCount}
-          </Text>
-          <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
-            {selectedCount === 1 ? 'player' : 'players'}
-          </Text>
-        </View>
+    <Screen
+      contentStyle={styles.content}
+    >
+      <Text variant="titleMedium">Stake</Text>
+      <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+        Drop {defaults.dropAmount} · Middle {defaults.mdAmount} · Max {defaults.maxCount}
+      </Text>
+      <View style={styles.expense}>
+        <Text variant="bodyLarge">Expense</Text>
+        <TextInput
+          mode="outlined"
+          dense
+          value={expenseDigits}
+          onChangeText={(text) => setExpenseDigits(text.replace(/[^0-9]/g, ''))}
+          style={styles.expenseInput}
+          disabled={!expenseEnabled}
+        />
+        <Switch value={expenseEnabled} onValueChange={setExpenseEnabled} accessibilityLabel="Expense" />
+      </View>
+      <View style={styles.meRow}>
+        <Text variant="titleMedium">I’m playing</Text>
+        <Switch value={includeMe} onValueChange={setIncludeMe} accessibilityLabel="I’m playing" />
+      </View>
+      <Text variant="titleMedium">Who’s in</Text>
+      <Searchbar placeholder="Search my players" value={query} onChangeText={setQuery} style={styles.search} />
+      {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+      {loading && players.length === 0 ? <LoadingRows /> : null}
+      {others.map((player) => {
+        const checked = selected.includes(player.id);
+        return (
+          <Button
+            key={player.id}
+            mode={checked ? 'contained' : 'outlined'}
+            onPress={() => toggle(player.id)}
+            style={styles.player}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked }}
+          >
+            {`${checked ? '✓ ' : ''}${player.name}${player.playerCode ? `  ${player.playerCode}` : ''}`}
+          </Button>
+        );
+      })}
+      <Button mode="outlined" icon="account-search" onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game' } })}>
+        Find players
+      </Button>
+      <Text variant="bodyMedium" style={styles.count}>
+        {seatedCount} selected
+        {startDisabled ? (includeMe ? ' · Pick at least one more player.' : ' · Pick at least two players.') : ''}
+      </Text>
+      <BottomBar>
         <Button
           mode="contained"
           onPress={startGame}
-          disabled={selectedCount < 2 || creating}
           loading={creating}
-          icon="play"
-          contentStyle={isShort ? styles.startButtonContentCompact : styles.startButtonContent}
-          labelStyle={styles.startButtonLabel}
-          style={styles.startButton}
+          disabled={startDisabled || creating}
+          style={styles.start}
         >
           Start game
         </Button>
       </BottomBar>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  content: {
+    paddingBottom: 120,
   },
-  scrollContent: {
-    paddingBottom: spacing.xxl,
-  },
-  stack: {
-    width: '100%',
-    maxWidth: MAX_CONTENT_WIDTH,
-    alignSelf: 'center',
-    gap: spacing.lg,
-  },
-  columns: {
+  expense: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.lg,
-  },
-  sideColumn: {
-    flex: 2,
-    minWidth: 0,
-  },
-  mainColumn: {
-    flex: 3,
-    minWidth: 0,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  typeTile: {
-    flex: 1,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-  },
-  typeRipple: {
-    borderRadius: radius.lg,
-  },
-  typeInner: {
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    minHeight: 84,
-    padding: spacing.md,
-  },
-  typeInnerCompact: {
-    minHeight: 64,
-    flexDirection: 'row',
     gap: spacing.sm,
+    marginVertical: spacing.md,
   },
-  typeLabel: {
-    fontWeight: '800',
+  expenseInput: {
+    width: 80,
   },
-  typeCheck: {
-    position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-  },
-  expenseBox: {
-    borderRadius: radius.md,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  settingRow: {
+  meRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.md,
-    minHeight: MIN_TOUCH_TARGET,
-  },
-  settingText: {
-    flex: 1,
-    gap: 2,
-  },
-  settingTitle: {
-    fontWeight: '600',
+    marginBottom: spacing.md,
   },
   search: {
-    borderRadius: radius.full,
+    marginVertical: spacing.sm,
   },
-  searchInput: {
-    minHeight: 0,
+  player: {
+    marginBottom: spacing.sm,
   },
-  expenseRow: {
-    gap: spacing.xs,
+  count: {
+    marginTop: spacing.md,
   },
-  expenseInput: {
-    maxWidth: 200,
-  },
-  expenseHint: {
-    lineHeight: 18,
-  },
-  playerList: {
-    gap: spacing.xs,
-    marginHorizontal: -spacing.sm,
-  },
-  playerRow: {
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.sm,
-  },
-  playerRowInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    minHeight: 60,
-    paddingVertical: spacing.xs,
-  },
-  playerText: {
+  start: {
     flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  playerName: {
-    fontWeight: '600',
-  },
-  check: {
-    width: 26,
-    height: 26,
-    borderRadius: radius.full,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedSummary: {
-    flex: 1,
-    minWidth: 0,
-  },
-  selectedCount: {
-    fontWeight: '800',
-    lineHeight: 22,
-  },
-  startButton: {
-    flex: 2,
-    borderRadius: radius.full,
-  },
-  startButtonContent: {
-    height: 52,
-  },
-  startButtonContentCompact: {
-    height: MIN_TOUCH_TARGET,
-  },
-  startButtonLabel: {
-    fontSize: 16,
-    fontWeight: '800',
   },
 });

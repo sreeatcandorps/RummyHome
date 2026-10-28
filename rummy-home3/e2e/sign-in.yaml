@@ -1,0 +1,13 @@
+appId: com.rummyhome.app
+---
+- launchApp
+- tapOn: "Email"
+- inputText: "host@example.com"
+- tapOn: "Passcode"
+- inputText: "123456"
+- tapOn: "Help"
+- tapOn: "Close"
+- tapOn: "Sign in"
+- assertVisible: "New game"
+- assertNotVisible: "Active"
+- assertNotVisible: "All players"

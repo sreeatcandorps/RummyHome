@@ -1,6 +1,6 @@
 import React from 'react';
-import { Linking, Share, View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Button, Text, Dialog, Icon, IconButton, Menu, Portal, TextInput } from 'react-native-paper';
+import { Linking, View, StyleSheet, ActivityIndicator } from 'react-native';
+import { Button, Text, Dialog, Icon, Menu, Portal } from 'react-native-paper';
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import * as Clipboard from 'expo-clipboard';
@@ -17,8 +17,10 @@ import { MIN_TOUCH_TARGET, radius, seatColor, spacing, tabularNums, useAppTheme 
 import { formatGameDateTime, gameIdLabel, gameTypeLabel } from '@/utils/gameDisplay';
 import { buildPlayerInitials } from '@/utils/playerInitials';
 import { scorecardUrl } from '@/utils/shareLink';
-import { coinSum } from '@/utils/prizeSession';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
+import { HELP } from '@/constants/help';
+import { HelpButton } from '@/components/ui/HelpButton';
 import { useLayout } from '@/hooks/useLayout';
 import { PlayersSheet } from '@/components/game/PlayersSheet';
 import { ScoreColumn, ScoreTable } from '@/components/game/ScoreTable';
@@ -39,6 +41,7 @@ export default function GameScreen() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [showUndoConfirm, setShowUndoConfirm] = useState(false);
   const [showCompleteResult, setShowCompleteResult] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -51,8 +54,7 @@ export default function GameScreen() {
   const [shareBusy, setShareBusy] = useState(false);
   const [roster, setRoster] = useState<Player[]>([]);
   const [directory, setDirectory] = useState<Player[]>([]);
-  const [prizeDigits, setPrizeDigits] = useState('');
-  const [shareEdits, setShareEdits] = useState<Record<string, string>>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadGameData();
@@ -80,17 +82,18 @@ export default function GameScreen() {
       const userId = isSupabaseConfigured
         ? await authService.getCurrentUserId()
         : await storage.getCurrentPlayer();
-      const [currentGame, gamePlayers, access] = await Promise.all([
+      const [currentGame, gamePlayers, access] = await withTimeout(Promise.all([
         gamesService.getGame(id),
         gamesService.listGamePlayers(id),
         gamesService.accessFor(id, userId),
-      ]);
+      ]), REQUEST_TIMEOUT_MS, 'Couldn’t open this game.');
 
       if (currentGame) {
-        const seated = gamePlayers.filter((player) => player.seatRole !== 'spectator');
+        const seated = gamePlayers.filter((player) => player.seatRole !== 'spectator' && player.seated !== false);
         setGame(currentGame);
         setRoster(gamePlayers);
         setCanScore(access.canScore);
+        setLoadError(null);
         setPlayers(
           currentGame.settings?.expense
             ? [...seated, { id: EXPENSE_PLAYER_ID, name: 'Expenses', role: 'player' } as Player]
@@ -99,6 +102,7 @@ export default function GameScreen() {
       }
     } catch (error) {
       console.error('Error loading game:', error);
+      setLoadError(formatSupabaseError(error));
     } finally {
       setLoading(false);
     }
@@ -121,67 +125,35 @@ export default function GameScreen() {
     return Math.max(...Object.values(game.scores).map(scores => scores.length), 0);
   };
 
-  const handleUndoLastRound = async () => {
+  const handleUndoLastRound = () => {
+    if (!game || getMaxRounds() === 0) return;
+    setShowUndoConfirm(true);
+  };
+
+  const confirmUndoLastRound = async () => {
     if (!game) return;
-
-    const maxRounds = getMaxRounds();
-
-    if (maxRounds > 0) {
-      try {
-        const currentUserId = isSupabaseConfigured
-          ? await authService.getCurrentUserId()
-          : null;
-        const nextGame = await gamesService.undoLastRound(game.id, currentUserId ?? 'local-admin');
-        if (nextGame) setGame(nextGame);
-      } catch (error) {
-        setActionError(formatSupabaseError(error));
-      }
+    setShowUndoConfirm(false);
+    try {
+      const currentUserId = isSupabaseConfigured ? await authService.getCurrentUserId() : null;
+      const nextGame = await gamesService.undoLastRound(game.id, currentUserId ?? 'local-admin');
+      if (nextGame) setGame(nextGame);
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
     }
   };
 
   const playingSeats = () => players.filter((player) => player.id !== EXPENSE_PLAYER_ID);
 
   const openComplete = () => {
-    const seats = playingSeats();
-    const edits: Record<string, string> = {};
-    seats.forEach((player) => {
-      edits[player.id] = String(getPlayerTotal(player.id));
-    });
-    setShareEdits(edits);
-    const leaderPoints = seats.reduce((best, player) => Math.max(best, getPlayerTotal(player.id)), 0);
-    setPrizeDigits(game?.gameType === 'pool' ? String(game.settings.poolAmount ?? 100) : String(leaderPoints));
     setShowCompleteConfirm(true);
   };
 
   const handleCompleteGame = async () => {
     if (!game) return;
 
-    const seats = playingSeats();
-    let prize: number | null = null;
-    let prizeShares: Record<string, number> | null = null;
-
-    if (game.gameType === 'pool') {
-      const parsed = Number(prizeDigits);
-      if (!Number.isInteger(parsed)) {
-        setActionError('Enter the pool prize as a whole number of coins.');
-        return;
-      }
-      prize = parsed;
-    } else {
-      prizeShares = {};
-      for (const seat of seats) {
-        const parsed = Number(shareEdits[seat.id] ?? '');
-        if (!Number.isInteger(parsed)) {
-          setActionError(`Enter whole coins for ${seat.name}.`);
-          return;
-        }
-        prizeShares[seat.id] = parsed;
-      }
-    }
-
     setCompleting(true);
     try {
-      const updatedGame = await gamesService.completeGame(game.id, { prize, prizeShares });
+      const updatedGame = await gamesService.completeGame(game.id);
       if (updatedGame) setGame(updatedGame);
       setShowCompleteConfirm(false);
       setShowCompleteResult(true);
@@ -214,10 +186,16 @@ export default function GameScreen() {
     setShareNotice('Link copied. Paste it into WhatsApp.');
   };
 
-  const emailShareLink = async (emails: string[]) => {
+  const emailShareLink = async (selected: { email?: string }[]) => {
     if (!game || !shareLink) return;
+    const emails = selected.map((person) => person.email).filter((email): email is string => Boolean(email));
+    const skipped = selected.length - emails.length;
     setShareBusy(true);
     try {
+      if (emails.length === 0) {
+        setShareNotice(skipped > 0 ? `Skipped ${skipped}. Copy the link instead.` : 'Copy the link to share it.');
+        return;
+      }
       const result = await sendScorecardEmail({
         gameId: game.id,
         emails,
@@ -225,10 +203,7 @@ export default function GameScreen() {
         gameLabel: gameIdLabel(game),
         startedAt: formatGameDateTime(game.date),
       });
-      setShareNotice(result.message);
-      if (!result.sent) {
-        await Share.share({ message: shareLink, title: `Rummy scorecard ${gameIdLabel(game)}` });
-      }
+      setShareNotice(skipped > 0 ? `${result.message} Skipped ${skipped}.` : result.message);
     } finally {
       setShareBusy(false);
     }
@@ -252,8 +227,9 @@ export default function GameScreen() {
     setMenuOpen(false);
     setPlayersOpen(true);
     try {
-      const everyone = isSupabaseConfigured ? await playersService.listPlayers() : await storage.getPlayers();
-      setDirectory(everyone);
+      const userId = isSupabaseConfigured ? await authService.getCurrentUserId() : await storage.getCurrentPlayer();
+      const everyone = userId ? await playersService.listMyPlayers(userId) : [];
+      setDirectory(everyone.map((player) => ({ ...player, email: undefined, phone: undefined })));
     } catch (error) {
       setActionError(formatSupabaseError(error));
     }
@@ -279,7 +255,36 @@ export default function GameScreen() {
     }
   };
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
+  const addPlayer = async (player: Player) => {
+    if (!game) return;
+    try {
+      await gamesService.addSeatedPlayer(game.id, player.id);
+      await loadGameData();
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    }
+  };
+
+  const addScorekeeper = async (player: Player) => {
+    if (!game) return;
+    try {
+      await gamesService.addNonPlayerAdmin(game.id, player.id);
+      await loadGameData();
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    }
+  };
+
+  const moveSeat = async (player: Player, direction: -1 | 1) => {
+    if (!game) return;
+    try {
+      const next = await gamesService.moveSeat(game.id, player.id, direction);
+      if (next) setGame(next);
+      await loadGameData();
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    }
+  };
 
   if (loading) {
     return (
@@ -298,7 +303,7 @@ export default function GameScreen() {
         <EmptyState
           icon="cards-playing-outline"
           title="Couldn't open this game"
-          message="It may have been removed, or the connection dropped. Try again in a moment."
+          message={loadError ?? 'It may have been removed, or the connection dropped. Try again in a moment.'}
           actionLabel="Try again"
           onAction={() => {
             setLoading(true);
@@ -398,10 +403,10 @@ export default function GameScreen() {
   const completeButton = (
     <StackedAction
       icon="flag-checkered"
-      label="Complete"
+      label="Done"
       onPress={openComplete}
       height={isShort ? 44 : 56}
-      accessibilityLabel="Complete game"
+      accessibilityLabel="Done"
     />
   );
 
@@ -422,69 +427,44 @@ export default function GameScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          headerShown: !isShort,
-          headerTitle: () => (
-            <View>
-              <Text variant="titleMedium" style={styles.headerTitle} numberOfLines={1}>
-                Scoreboard
-              </Text>
-              <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
-                Started {startedOn}
-              </Text>
+          headerShown: true,
+          title: 'Scorecard',
+          headerTitleAlign: 'left',
+          headerStyle: { backgroundColor: colors.background },
+          headerRight: () => (
+            <View style={styles.headerActions}>
+              <HelpButton text={HELP.scorecard} />
+              <Menu
+                visible={menuOpen}
+                onDismiss={() => setMenuOpen(false)}
+                anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu"> </Button>}
+              >
+                <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title="Players" />
+                <Menu.Item leadingIcon="share-variant" onPress={openShare} title="Share" />
+              </Menu>
             </View>
           ),
         }}
       />
 
-      {isShort ? (
-        <View
-          style={[
-            styles.compactTopBar,
-            { paddingTop: insets.top + spacing.xs, paddingLeft: Math.max(insets.left, spacing.xs), paddingRight: gutterRight },
-          ]}
-        >
-          <IconButton icon="arrow-left" onPress={goBack} accessibilityLabel="Back" style={styles.backButton} />
-          <Text variant="titleMedium" style={styles.headerTitle} numberOfLines={1}>
-            Scoreboard
-          </Text>
+      <View style={[styles.infoStrip, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
+        <View style={styles.metaRow}>
           {typeTag}
           {statusTag}
           {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
           <View style={styles.flex} />
           <Text variant="labelMedium" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
-            {startedOn}
+            Started {startedOn}
           </Text>
           {idText}
-          <Menu
-            visible={menuOpen}
-            onDismiss={() => setMenuOpen(false)}
-            anchor={<IconButton icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu" />}
-          >
-            <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title="Players" />
-            <Menu.Item leadingIcon="share-variant" onPress={openShare} title="Share" />
-            <Menu.Item leadingIcon="eye-outline" onPress={openPublicScorecard} title="View" />
-          </Menu>
         </View>
-      ) : (
-        <View style={[styles.infoStrip, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
-          <View style={styles.metaRow}>
-            {typeTag}
-            {statusTag}
-            {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
-            <View style={styles.flex} />
-            {idText}
-            <Menu
-              visible={menuOpen}
-              onDismiss={() => setMenuOpen(false)}
-              anchor={<IconButton icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu" />}
-            >
-              <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title="Players" />
-              <Menu.Item leadingIcon="share-variant" onPress={openShare} title="Share" />
-              <Menu.Item leadingIcon="eye-outline" onPress={openPublicScorecard} title="View" />
-            </Menu>
-          </View>
-        </View>
-      )}
+        {!canScore && !game.isComplete ? (
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>View only.</Text>
+        ) : null}
+        {game.isComplete ? (
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Completed.</Text>
+        ) : null}
+      </View>
 
       {isShort ? (
         <View
@@ -516,17 +496,30 @@ export default function GameScreen() {
 
       <Portal>
         <Dialog
+          visible={showUndoConfirm}
+          onDismiss={() => setShowUndoConfirm(false)}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
+        >
+          <Dialog.Title>Remove the last round?</Dialog.Title>
+          <Dialog.Actions>
+            <Button onPress={() => setShowUndoConfirm(false)}>Cancel</Button>
+            <Button mode="contained" onPress={confirmUndoLastRound}>Remove</Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog
           visible={showCompleteConfirm}
           onDismiss={() => setShowCompleteConfirm(false)}
           style={[styles.dialog, { backgroundColor: colors.surface }]}
         >
-          <Dialog.Icon icon="flag-checkered" />
-          <Dialog.Title style={styles.dialogTitle}>Complete this game?</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>
+            <View style={styles.headerActions}>
+              <Text variant="titleLarge">Complete this game?</Text>
+              <HelpButton text={HELP.complete} />
+            </View>
+          </Dialog.Title>
           <Dialog.ScrollArea style={styles.resultScroll}>
             <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
-              {game.gameType === 'pool'
-                ? 'Check the points, then enter the pool prize in coins.'
-                : 'For a stake game the prize starts as each player’s points. Edit the coins before you confirm.'}
+              ID {gameIdLabel(game)}. The scores stay as they are.
             </Text>
             {playingSeats().map((seat) => (
               <View key={seat.id} style={styles.prizeRow}>
@@ -534,37 +527,13 @@ export default function GameScreen() {
                   {seat.name}
                 </Text>
                 <Text variant="titleMedium" style={tabularNums}>
-                  {getPlayerTotal(seat.id)}
+                  {getPlayerTotal(seat.id) > 0 ? `+${getPlayerTotal(seat.id)}` : getPlayerTotal(seat.id)}
                 </Text>
-                {game.gameType === 'stake' ? (
-                  <TextInput
-                    mode="outlined"
-                    dense
-                    label="Coins"
-                    value={shareEdits[seat.id] ?? ''}
-                    onChangeText={(text) => setShareEdits((current) => ({ ...current, [seat.id]: text.replace(/[^0-9-]/g, '') }))}
-                    keyboardType="numbers-and-punctuation"
-                    style={styles.prizeInput}
-                  />
-                ) : null}
               </View>
             ))}
-            {game.gameType === 'pool' ? (
-              <TextInput
-                mode="outlined"
-                label="Prize (coins)"
-                value={prizeDigits}
-                onChangeText={(text) => setPrizeDigits(text.replace(/[^0-9]/g, ''))}
-                keyboardType="number-pad"
-              />
-            ) : (
-              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-                Coins add to {coinSum(Object.fromEntries(playingSeats().map((seat) => [seat.id, Number(shareEdits[seat.id] || 0)])))}.
-              </Text>
-            )}
           </Dialog.ScrollArea>
           <Dialog.Actions style={styles.dialogActions}>
-            <Button onPress={() => setShowCompleteConfirm(false)}>Keep playing</Button>
+            <Button onPress={() => setShowCompleteConfirm(false)}>Not yet</Button>
             <Button
               mode="contained"
               onPress={handleCompleteGame}
@@ -572,7 +541,7 @@ export default function GameScreen() {
               disabled={completing}
               contentStyle={styles.dialogButtonContent}
             >
-              Complete game
+              Confirm
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -669,26 +638,38 @@ export default function GameScreen() {
 
         <ShareDialog
           visible={shareOpen}
-          people={roster.filter((person) => person.seatRole !== 'spectator').map((person) => ({
+          people={roster.map((person) => ({
             id: person.id,
             name: person.name,
+            playerCode: person.playerCode,
             email: person.email,
           }))}
           link={shareLink}
+          startedLabel={startedOn}
+          gameLabel={gameIdLabel(game)}
           busy={shareBusy}
           notice={shareNotice}
           onDismiss={() => setShareOpen(false)}
           onCopy={copyShareLink}
           onEmail={emailShareLink}
+          onPreview={openPublicScorecard}
         />
         <PlayersSheet
           visible={playersOpen}
           seats={roster}
           canManage={canScore}
           candidates={directory}
+          canReorder={getMaxRounds() === 0}
           onDismiss={() => setPlayersOpen(false)}
           onToggleAdmin={changeAdmin}
+          onAddPlayer={addPlayer}
           onAddSpectator={addViewer}
+          onAddNonPlayerAdmin={addScorekeeper}
+          onFindPlayers={() => {
+            setPlayersOpen(false);
+            router.push('/(screens)/players/new');
+          }}
+          onMove={moveSeat}
         />
       </Portal>
     </View>
@@ -701,6 +682,10 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   centered: {
     flex: 1,

@@ -1,0 +1,5 @@
+appId: com.rummyhome.app
+---
+- launchApp
+- tapOn: "Settle"
+- assertVisible: "Settle is for finished games you run."

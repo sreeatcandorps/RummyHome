@@ -1,7 +1,7 @@
 const TOKEN_BYTES = 24;
 
-/** Public scorecard host. Override with EXPO_PUBLIC_SCORECARD_URL after you deploy the page. */
-export const DEFAULT_SCORECARD_BASE = 'https://gngcrplcldfiubvhcdin.supabase.co/functions/v1/scorecard';
+/** Public scorecard on GitHub Pages. Override with EXPO_PUBLIC_SCORECARD_URL. */
+export const DEFAULT_SCORECARD_BASE = 'https://sreeatcandorps.github.io/Games/scorecard.html';
 
 export function createViewToken(): string {
   const bytes = new Uint8Array(TOKEN_BYTES);

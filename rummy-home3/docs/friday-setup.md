@@ -8,6 +8,7 @@ In the Supabase SQL editor for project `gngcrplcldfiubvhcdin`, run the whole fil
 
 1. `supabase/migrations/005_demo_data.sql` — only if you still want Load demo data. It is not required for sharing or prizes. Skip it if you already applied it.
 2. `supabase/migrations/006_friday_game_night.sql` — required. This is who can see a game, the public scorecard token, and prize sessions.
+3. `supabase/migrations/007_redesign.sql` — required for my players, unseated admins, and editing a payment. Run it after 006. Do not skip 006.
 
 Until `006` is applied:
 
@@ -37,7 +38,7 @@ Optional override in EAS / `.env.local`: `EXPO_PUBLIC_AUTH_REDIRECT_URL`.
 
 The copy-link URL is:
 
-`https://gngcrplcldfiubvhcdin.supabase.co/functions/v1/scorecard?t=TOKEN`
+`https://sreeatcandorps.github.io/Games/scorecard.html?t=TOKEN`
 
 Deploy it once (Supabase CLI, logged in):
 
@@ -54,7 +55,7 @@ Until that deploy, Copy link still copies the URL, but it will 404. A backup pag
 Copy link works with no email account. Welcome email and “Email” on the share sheet call the `send-email` function.
 
 ```bash
-supabase secrets set RESEND_API_KEY=re_xxx RESEND_FROM="Rummy Home <scores@yourdomain.com>" --project-ref gngcrplcldfiubvhcdin
+supabase secrets set RESEND_API_KEY=re_xxx RESEND_FROM="Rummy Home <scores@mindweavetech.com>" --project-ref gngcrplcldfiubvhcdin
 supabase functions deploy send-email --project-ref gngcrplcldfiubvhcdin
 ```
 

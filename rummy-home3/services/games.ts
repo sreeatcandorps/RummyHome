@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
+import { MIGRATION_007_HINT, playersService } from '@/services/players';
 import { GameType, ProfileDefaults, ScoreType } from '@/types/database';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
@@ -7,6 +8,7 @@ import { createViewToken } from '@/utils/shareLink';
 import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validateRoundScores } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
 import { createUuid, isUuid } from '@/utils/uuid';
+import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 
 type CreateGameInput = {
   playerIds: string[];
@@ -44,6 +46,8 @@ const missingColumn = (error: unknown) => {
 export const MIGRATION_006_HINT =
   'This needs the latest database update. Run supabase/migrations/006_friday_game_night.sql in the Supabase SQL editor, then try again.';
 
+export { MIGRATION_007_HINT };
+
 /** Reserved column key for table expenses, which have no owning player. */
 export const EXPENSE_PLAYER_ID = 'EX';
 
@@ -58,7 +62,7 @@ const legacyGameFromServer = (
   gamePlayers: any[] = [],
 ): Game => {
   const memberships = [...gamePlayers].sort((a, b) => (a.player_order ?? 0) - (b.player_order ?? 0));
-  const seated = memberships.filter((membership) => membership.role !== 'spectator');
+  const seated = memberships.filter((membership) => membership.role !== 'spectator' && membership.seated !== false);
   const playerIds = seated.map((membership) => membership.profile_id);
 
   const scoreMap = playerIds.reduce<Record<string, number[]>>((acc, playerId) => {
@@ -99,6 +103,9 @@ const legacyGameFromServer = (
     prizeShares: (game.prize_shares as Record<string, number> | null) ?? null,
     spectators: memberships.filter((membership) => membership.role === 'spectator').map((membership) => membership.profile_id),
     adminIds: memberships.filter((membership) => membership.role === 'game_admin').map((membership) => membership.profile_id),
+    unseatedAdminIds: memberships
+      .filter((membership) => membership.role === 'game_admin' && membership.seated === false)
+      .map((membership) => membership.profile_id),
   };
 };
 
@@ -133,10 +140,12 @@ export const gamesService = {
         createdBy: input.createdBy,
         viewToken: createViewToken(),
         shareCode: makeShareCode(),
-        adminIds: input.playerIds.includes(input.createdBy) ? [input.createdBy] : [],
+        adminIds: [input.createdBy],
+        unseatedAdminIds: input.playerIds.includes(input.createdBy) ? [] : [input.createdBy],
         spectators: [],
       };
       await storage.addGame(legacyGame);
+      await playersService.rememberTogether(input.createdBy, input.playerIds).catch(() => {});
       return legacyGame;
     }
 
@@ -169,6 +178,21 @@ export const gamesService = {
 
     const { error: playersError } = await supabase.from('game_players').insert(memberships);
     if (playersError) throw playersError;
+
+    if (!input.playerIds.includes(input.createdBy)) {
+      const unseated = await supabase.from('game_players').insert({
+        game_id: gameId,
+        profile_id: input.createdBy,
+        player_order: 900,
+        role: 'game_admin',
+        seated: false,
+      });
+      if (unseated.error && !missingColumn(unseated.error)) {
+        // The creator still runs the game through created_by when this row cannot be stored.
+      }
+    }
+
+    await playersService.rememberTogether(input.createdBy, input.playerIds).catch(() => {});
 
     const created = await this.getGame(gameId);
     if (!created) {
@@ -204,13 +228,22 @@ export const gamesService = {
     const gameIds = await this.visibleGameIds(currentUserId);
     if (gameIds.length === 0) return [];
 
-    const { data: games, error } = await supabase
+    const gamesQuery = () => supabase
       .from('games')
-      .select('*, game_players(profile_id, player_order, role)')
+      .select('*, game_players(profile_id, player_order, role, seated)')
       .in('id', gameIds)
       .order('created_at', { ascending: false })
       .limit(limit);
 
+    let { data: games, error } = await withTimeout(gamesQuery(), REQUEST_TIMEOUT_MS, 'Couldn’t load your games.');
+    if (error && missingColumn(error)) {
+      ({ data: games, error } = await supabase
+        .from('games')
+        .select('*, game_players(profile_id, player_order, role)')
+        .in('id', gameIds)
+        .order('created_at', { ascending: false })
+        .limit(limit));
+    }
     if (error) throw error;
     const rows = games ?? [];
 
@@ -237,23 +270,17 @@ export const gamesService = {
     );
   },
 
-  async visibleGameIds(currentUserId: string): Promise<string[]> {
-    const rpc = await supabase.rpc('list_visible_game_ids');
+  async visibleGameIds(_currentUserId: string): Promise<string[]> {
+    const rpc = await withTimeout(
+      supabase.rpc('list_visible_game_ids'),
+      REQUEST_TIMEOUT_MS,
+      'Couldn’t load your games.',
+    );
     if (!rpc.error) {
       return [...new Set((rpc.data ?? []) as string[])];
     }
-    if (!missingRpc(rpc.error)) throw rpc.error;
-
-    const [{ data: memberships, error: membershipError }, { data: created, error: createdError }] = await Promise.all([
-      supabase.from('game_players').select('game_id').eq('profile_id', currentUserId),
-      supabase.from('games').select('id').eq('created_by', currentUserId),
-    ]);
-    if (membershipError) throw membershipError;
-    if (createdError) throw createdError;
-    return [...new Set([
-      ...(memberships ?? []).map((membership) => membership.game_id),
-      ...(created ?? []).map((game) => game.id),
-    ])];
+    if (missingRpc(rpc.error)) throw new Error(MIGRATION_006_HINT);
+    throw rpc.error;
   },
 
   async getGame(gameId: string): Promise<Game | null> {
@@ -285,30 +312,47 @@ export const gamesService = {
       const seatFor = (playerId: string): SeatRole =>
         game.spectators?.includes(playerId)
           ? 'spectator'
-          : game.adminIds?.includes(playerId)
+          : game.adminIds?.includes(playerId) || game.unseatedAdminIds?.includes(playerId)
             ? 'game_admin'
             : 'player';
-      return [...game.players, ...(game.spectators ?? [])]
-        .map((playerId) => byId.get(playerId))
-        .filter((player): player is Player => Boolean(player))
-        .map((player) => ({ ...player, seatRole: seatFor(player.id) }));
+      const ids = [...game.players, ...(game.spectators ?? []), ...(game.unseatedAdminIds ?? [])];
+      return ids
+        .map((playerId) => {
+          const known = byId.get(playerId);
+          const base = known ?? { id: playerId, name: 'Rummy Player', role: 'player' as const };
+          return {
+            ...base,
+            email: undefined,
+            phone: undefined,
+            seatRole: seatFor(playerId),
+            seated: !game.unseatedAdminIds?.includes(playerId) && !game.spectators?.includes(playerId),
+          };
+        });
     }
 
-    const { data, error } = await supabase
+    const withSeat = await supabase
       .from('game_players')
-      .select('profile_id, role, profiles(*)')
+      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, email)')
       .eq('game_id', gameId)
       .order('player_order', { ascending: true });
 
-    if (error) throw error;
+    const loaded = withSeat.error && missingColumn(withSeat.error)
+      ? await supabase
+        .from('game_players')
+        .select('profile_id, role, player_order, profiles(display_name, player_code, email)')
+        .eq('game_id', gameId)
+        .order('player_order', { ascending: true })
+      : withSeat;
+    if (loaded.error) throw loaded.error;
 
-    return (data ?? []).map((membership: any) => ({
+    return (loaded.data ?? []).map((membership: any) => ({
       id: membership.profile_id,
       name: membership.profiles?.display_name ?? 'Rummy Player',
+      playerCode: membership.profiles?.player_code ?? undefined,
       email: membership.profiles?.email ?? undefined,
-      phone: membership.profiles?.phone ?? undefined,
       role: membership.role === 'game_admin' ? 'admin' as const : 'player' as const,
       seatRole: (membership.role ?? 'player') as SeatRole,
+      seated: membership.seated !== false && membership.role !== 'spectator',
     }));
   },
 
@@ -504,11 +548,13 @@ export const gamesService = {
       if (!game) throw new Error('Game not found.');
       const adminIds = new Set(game.adminIds ?? []);
       const spectators = new Set(game.spectators ?? []);
+      const unseated = new Set(game.unseatedAdminIds ?? []);
       if (role === 'spectator') {
         if (game.players.includes(profileId)) {
           throw new Error('Someone already on the scorecard stays in the game. Add a different person as view-only.');
         }
         adminIds.delete(profileId);
+        unseated.delete(profileId);
         spectators.add(profileId);
       } else if (role === 'game_admin') {
         spectators.delete(profileId);
@@ -516,8 +562,9 @@ export const gamesService = {
       } else {
         spectators.delete(profileId);
         adminIds.delete(profileId);
+        unseated.delete(profileId);
       }
-      const updated = { ...game, adminIds: [...adminIds], spectators: [...spectators] };
+      const updated = { ...game, adminIds: [...adminIds], spectators: [...spectators], unseatedAdminIds: [...unseated] };
       await storage.updateGame(updated);
       return updated;
     }
@@ -558,6 +605,121 @@ export const gamesService = {
       .eq('game_id', gameId)
       .eq('profile_id', profileId);
     if (error) throw error;
+    return this.getGame(gameId);
+  },
+
+  async addSeatedPlayer(gameId: string, profileId: string) {
+    const game = await this.getGame(gameId);
+    if (!game) throw new Error('Game not found.');
+    if (game.players.includes(profileId) || game.spectators?.includes(profileId) || game.unseatedAdminIds?.includes(profileId)) {
+      throw new Error('They are already in this game.');
+    }
+
+    if (!isSupabaseConfigured) {
+      const updated = { ...game, players: [...game.players, profileId] };
+      if (!updated.scores[profileId]) updated.scores = { ...updated.scores, [profileId]: [] };
+      await storage.updateGame(updated);
+      await playersService.rememberTogether(game.createdBy ?? profileId, [profileId]).catch(() => {});
+      return updated;
+    }
+
+    const { data: orders, error: orderError } = await supabase.from('game_players').select('player_order').eq('game_id', gameId);
+    if (orderError) throw orderError;
+    const next = Math.max(-1, ...(orders ?? []).map((row) => row.player_order)) + 1;
+    const { error } = await supabase.from('game_players').insert({
+      game_id: gameId,
+      profile_id: profileId,
+      player_order: next,
+      display_number: next + 1,
+      role: 'player',
+      seated: true,
+    });
+    if (error) {
+      if (missingColumn(error)) {
+        const retry = await supabase.from('game_players').insert({
+          game_id: gameId,
+          profile_id: profileId,
+          player_order: next,
+          display_number: next + 1,
+          role: 'player',
+        });
+        if (retry.error) throw retry.error;
+      } else {
+        throw error;
+      }
+    }
+    if (game.createdBy) await playersService.rememberTogether(game.createdBy, [profileId]).catch(() => {});
+    return this.getGame(gameId);
+  },
+
+  async addNonPlayerAdmin(gameId: string, profileId: string) {
+    const game = await this.getGame(gameId);
+    if (!game) throw new Error('Game not found.');
+    if (game.players.includes(profileId)) {
+      throw new Error('They are already a score column. Promote them instead.');
+    }
+
+    if (!isSupabaseConfigured) {
+      const adminIds = new Set([...(game.adminIds ?? []), profileId]);
+      const spectators = (game.spectators ?? []).filter((id) => id !== profileId);
+      const unseated = new Set([...(game.unseatedAdminIds ?? []), profileId]);
+      const updated = { ...game, adminIds: [...adminIds], spectators, unseatedAdminIds: [...unseated] };
+      await storage.updateGame(updated);
+      return updated;
+    }
+
+    const { data: orders, error: orderError } = await supabase.from('game_players').select('player_order').eq('game_id', gameId);
+    if (orderError) throw orderError;
+    const next = Math.max(900, ...(orders ?? []).map((row) => row.player_order)) + 1;
+    const { error } = await supabase.from('game_players').insert({
+      game_id: gameId,
+      profile_id: profileId,
+      player_order: next,
+      role: 'game_admin',
+      seated: false,
+    });
+    if (error) {
+      if (missingColumn(error)) throw new Error(MIGRATION_007_HINT);
+      throw error;
+    }
+    return this.getGame(gameId);
+  },
+
+  async moveSeat(gameId: string, profileId: string, direction: -1 | 1) {
+    const game = await this.getGame(gameId);
+    if (!game) throw new Error('Game not found.');
+    const index = game.players.indexOf(profileId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= game.players.length) return game;
+
+    if (!isSupabaseConfigured) {
+      const players = [...game.players];
+      const [moved] = players.splice(index, 1);
+      players.splice(target, 0, moved);
+      const updated = { ...game, players };
+      await storage.updateGame(updated);
+      return updated;
+    }
+
+    const { data: rows, error } = await supabase
+      .from('game_players')
+      .select('id, profile_id, player_order, seated, role')
+      .eq('game_id', gameId)
+      .order('player_order', { ascending: true });
+    if (error) throw error;
+    const seated = (rows ?? []).filter((row) => row.role !== 'spectator' && (row as { seated?: boolean }).seated !== false);
+    const from = seated.findIndex((row) => row.profile_id === profileId);
+    const to = from + direction;
+    if (from < 0 || to < 0 || to >= seated.length) return game;
+    const a = seated[from];
+    const b = seated[to];
+    const park = 10000 + a.player_order;
+    const first = await supabase.from('game_players').update({ player_order: park }).eq('id', a.id);
+    if (first.error) throw first.error;
+    const second = await supabase.from('game_players').update({ player_order: a.player_order }).eq('id', b.id);
+    if (second.error) throw second.error;
+    const third = await supabase.from('game_players').update({ player_order: b.player_order }).eq('id', a.id);
+    if (third.error) throw third.error;
     return this.getGame(gameId);
   },
 };

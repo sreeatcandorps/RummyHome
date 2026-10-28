@@ -1,4 +1,4 @@
-import { MIGRATION_006_HINT } from '@/services/games';
+import { MIGRATION_006_HINT, MIGRATION_007_HINT } from '@/services/games';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { Game } from '@/types/game';
 import {
@@ -74,7 +74,7 @@ function withStatus(session: PrizeSession): PrizeSession {
 function fromServer(payload: any): PrizeSession {
   return {
     id: payload.id,
-    title: payload.title ?? 'Prize distribution',
+    title: 'Settle',
     status: payload.status === 'settled' ? 'settled' : 'open',
     createdAt: payload.createdAt,
     games: (payload.games ?? []).map((game: any) => ({
@@ -114,7 +114,7 @@ export const sessionsService = {
       if (chosen.length !== gameIds.length) throw new Error('Only completed games can go into a session.');
       const session = withStatus({
         id: `session-${Date.now()}`,
-        title: 'Prize distribution',
+        title: 'Settle',
         status: 'open',
         createdAt: new Date().toISOString(),
         games: chosen.map((game) => gameToPrize(game, names)),
@@ -182,5 +182,55 @@ export const sessionsService = {
       throw error;
     }
     return fromServer(data);
+  },
+
+  async updateEntry(sessionId: string, entryId: string, legs: PrizeLeg[], note: string): Promise<PrizeSession> {
+    const check = validateLegs(legs);
+    if (!check.ok) throw new Error(check.error);
+
+    if (!isSupabaseConfigured) {
+      const sessions = await readLocal();
+      const index = sessions.findIndex((session) => session.id === sessionId);
+      if (index < 0) throw new Error('Session not found.');
+      if (sessions[index].status === 'settled') {
+        throw new Error('This settlement is completed and cannot be edited.');
+      }
+      const entries = sessions[index].entries.map((entry) => (
+        entry.id === entryId ? { ...entry, legs, note } : entry
+      ));
+      const next = withStatus({ ...sessions[index], entries });
+      sessions[index] = next;
+      await writeLocal(sessions);
+      return next;
+    }
+
+    const { data, error } = await supabase.rpc('update_prize_entry', {
+      p_entry_id: entryId,
+      p_legs: legs,
+      p_note: note,
+    });
+    if (error) {
+      if (missingRpc(error)) throw new Error(MIGRATION_007_HINT);
+      throw error;
+    }
+    return fromServer(data);
+  },
+
+  async list(): Promise<Pick<PrizeSession, 'id' | 'status' | 'createdAt'>[]> {
+    if (!isSupabaseConfigured) {
+      const sessions = await readLocal();
+      return sessions.map((session) => ({ id: session.id, status: session.status, createdAt: session.createdAt }));
+    }
+    const { data, error } = await supabase.rpc('list_prize_sessions');
+    if (error) {
+      if (missingRpc(error)) throw new Error(MIGRATION_006_HINT);
+      throw error;
+    }
+    const rows = (data ?? []) as { id: string; status?: string; createdAt: string }[];
+    return rows.map((row) => ({
+      id: row.id,
+      status: row.status === 'settled' ? 'settled' as const : 'open' as const,
+      createdAt: row.createdAt,
+    }));
   },
 };

@@ -8,7 +8,11 @@
     :root { color-scheme: light; }
     body { margin: 0; font-family: "Segoe UI", sans-serif; background: #FBF1E1; color: #1B1F1C; }
     header { background: #17402F; color: #FBF1E1; padding: 16px 18px 14px; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
     header h1 { margin: 0; font-size: 22px; }
+    button.help { background: transparent; color: #FBF1E1; border: 1px solid rgba(251,241,225,.5); border-radius: 999px; width: 32px; height: 32px; font-weight: 700; cursor: pointer; }
+    dialog { border: 0; border-radius: 12px; max-width: 420px; }
+    dialog p { margin: 0 0 12px; }
     .meta { margin-top: 6px; font-size: 14px; opacity: 0.9; }
     main { padding: 12px; overflow-x: auto; }
     table { border-collapse: collapse; min-width: 100%; background: #fff; border-radius: 12px; }
@@ -22,15 +26,25 @@
 </head>
 <body>
   <header>
-    <h1>Rummy scorecard</h1>
-    <div class="meta" id="meta">Loading…</div>
+    <div>
+      <h1>Rummy scorecard</h1>
+      <div class="meta" id="meta">Loading…</div>
+    </div>
+    <button class="help" type="button" aria-label="Help" onclick="document.getElementById('help').showModal()">?</button>
   </header>
+  <dialog id="help">
+    <p>This page updates on its own. The start time and game ID say which game it is. No login. Anyone with the link can watch.</p>
+    <form method="dialog"><button>Close</button></form>
+  </dialog>
   <main id="board"></main>
   <script>
     const PROJECT = 'https://gngcrplcldfiubvhcdin.supabase.co';
+    // Public anon key. Paste the project anon key here before publishing this file,
+    // or open the page with ?k= for a one-off check. It is not a secret.
+    const ANON_KEY = '';
     const params = new URLSearchParams(location.search);
     const token = params.get('t') || '';
-    const anonKey = params.get('k') || '';
+    const anonKey = params.get('k') || ANON_KEY;
 
     function initials(names) {
       const base = names.map((name) => {
@@ -90,13 +104,14 @@
     }
 
     async function load() {
-      if (!token || token.length < 48) {
-        document.getElementById('meta').textContent = 'This link is missing a scorecard token.';
+      if (!/^[0-9a-f]{48}$/.test(token)) {
+        document.getElementById('meta').textContent = 'This scorecard link is not valid.';
+        document.getElementById('board').innerHTML = '';
         return;
       }
       if (!anonKey) {
-        document.getElementById('meta').textContent = 'Open the scorecard from the app link, or host the edge function.';
-        document.getElementById('board').innerHTML = '<p class="msg">The live page is served by the scorecard edge function. This file is the backup: add ?k=YOUR_ANON_KEY or deploy supabase/functions/scorecard.</p>';
+        document.getElementById('meta').textContent = 'This page needs the public anon key filled in before it can load a game.';
+        document.getElementById('board').innerHTML = '<p class="msg">Paste the Supabase anon key into ANON_KEY in scorecard.html, then publish this file on GitHub Pages.</p>';
         return;
       }
       const response = await fetch(PROJECT + '/rest/v1/rpc/public_scorecard', {

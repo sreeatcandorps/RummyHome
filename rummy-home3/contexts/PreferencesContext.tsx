@@ -29,7 +29,15 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
       .finally(() => setReady(true));
   }, []);
 
-  const setDarkMode = useCallback((value: boolean) => setDarkModeState(value), []);
+  const setDarkMode = useCallback((value: boolean) => {
+    setDarkModeState(value);
+    AsyncStorage.getItem(SETTINGS_KEY)
+      .then((saved) => {
+        const current = saved ? JSON.parse(saved) : {};
+        return AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...current, darkMode: value }));
+      })
+      .catch(() => {});
+  }, []);
 
   const value = useMemo(() => ({ darkMode, ready, setDarkMode }), [darkMode, ready, setDarkMode]);
 

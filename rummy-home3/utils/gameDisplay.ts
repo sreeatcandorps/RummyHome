@@ -1,5 +1,8 @@
 import { Game } from '@/types/game';
 import { gameTypeColors } from '@/constants/theme';
+import { isLocalToday } from '@/utils/localDay';
+
+export { isLocalToday };
 
 /** "Mon, Jul 27 · 6:27 PM" — the primary way players recognise a game. */
 export function formatGameDateTime(value: string): string {

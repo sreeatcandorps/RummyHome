@@ -26,6 +26,8 @@ export type Game = {
   prizeShares?: Record<string, number> | null;
   spectators?: string[];
   adminIds?: string[];
+  /** Game admins with no score column. */
+  unseatedAdminIds?: string[];
 };
 
 export interface Round {

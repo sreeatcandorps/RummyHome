@@ -62,7 +62,8 @@ test('share tokens are unguessable and the public url keeps the token', () => {
   assert.equal(isViewToken(token), true);
   assert.notEqual(createViewToken(), token);
   assert.equal(isViewToken('short'), false);
-  assert.match(scorecardUrl(token), new RegExp(`t=${token}$`));
+  assert.match(scorecardUrl(token), new RegExp(`github\\.io/Games/scorecard\\.html\\?t=${token}$`));
+  assert.doesNotMatch(scorecardUrl(token), /functions\/v1/);
   assert.doesNotMatch(scorecardUrl(token), /localhost/);
 });
 

@@ -1,31 +1,29 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Menu, Text, TextInput } from 'react-native-paper';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Button, Text, TextInput } from 'react-native-paper';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { PrizeSession, sessionsService } from '@/services/sessions';
 import { Screen } from '@/components/ui/Screen';
-import { SectionCard } from '@/components/ui/SectionCard';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { balancesAfterEntries, coinSum, isSettled, openingBalances, PrizeLeg } from '@/utils/prizeSession';
+import { LoadingRows } from '@/components/ui/LoadingRows';
+import { balancesAfterEntries, coinSum, isSettled, openingBalances, PrizeLeg, validateLegs } from '@/utils/prizeSession';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { spacing, tabularNums, useAppTheme } from '@/constants/theme';
 
-type DraftLeg = { profileId: string; amount: string };
-
 const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
-export default function PrizeSessionScreen() {
+export default function SettleLedger() {
   const { colors } = useAppTheme();
   const { id } = useLocalSearchParams();
   const [session, setSession] = useState<PrizeSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [note, setNote] = useState('');
-  const [legs, setLegs] = useState<DraftLeg[]>([
-    { profileId: '', amount: '' },
-    { profileId: '', amount: '' },
-  ]);
-  const [menuIndex, setMenuIndex] = useState<number | null>(null);
+  const [fromId, setFromId] = useState('');
+  const [toId, setToId] = useState('');
+  const [coins, setCoins] = useState('');
+  const [multi, setMulti] = useState(false);
+  const [extra, setExtra] = useState<{ profileId: string; amount: string }[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -34,7 +32,7 @@ export default function PrizeSessionScreen() {
     try {
       const next = await sessionsService.get(id);
       setSession(next);
-      if (!next) setError('This session could not be found.');
+      if (!next) setError('This settlement could not be found.');
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
@@ -46,18 +44,11 @@ export default function PrizeSessionScreen() {
     load();
   }, [load]));
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
-
+  if (loading && !session) return <Screen><LoadingRows /></Screen>;
   if (!session) {
     return (
       <Screen>
-        <EmptyState icon="scale-balance" title="No session" message={error ?? 'This prize distribution is missing.'} />
+        <EmptyState icon="scale-balance" title="No settlement" message={error ?? 'This settlement is missing.'} actionLabel="Retry" onAction={load} />
       </Screen>
     );
   }
@@ -68,22 +59,55 @@ export default function PrizeSessionScreen() {
   const opening = openingBalances(session.games);
   const balances = balancesAfterEntries(opening, session.entries);
   const settled = session.status === 'settled' || isSettled(balances);
-  const draftTotal = legs.reduce((sum, leg) => sum + (Number(leg.amount) || 0), 0);
+  const openingSum = coinSum(opening);
 
-  const saveEntry = async () => {
+  const clearForm = () => {
+    setFromId('');
+    setToId('');
+    setCoins('');
+    setMulti(false);
+    setExtra([]);
+    setEditingId(null);
+  };
+
+  const draftLegs = (): PrizeLeg[] => {
+    if (!multi) {
+      const amount = Number(coins);
+      if (!fromId || !toId || !Number.isInteger(amount) || amount <= 0) return [];
+      return [
+        { profileId: fromId, amount: -amount },
+        { profileId: toId, amount },
+      ];
+    }
+    return extra
+      .filter((leg) => leg.profileId && leg.amount !== '' && leg.amount !== '-')
+      .map((leg) => ({ profileId: leg.profileId, amount: Number(leg.amount) }));
+  };
+
+  const legs = draftLegs();
+  const check = validateLegs(legs);
+  const noteFor = (payload: PrizeLeg[]) => {
+    if (payload.length === 2) {
+      const payer = payload.find((leg) => leg.amount < 0);
+      const payee = payload.find((leg) => leg.amount > 0);
+      if (payer && payee) {
+        return `${names.get(payer.profileId) ?? 'Player'} paid ${names.get(payee.profileId) ?? 'Player'} ${Math.abs(payee.amount)}`;
+      }
+    }
+    return 'Payment';
+  };
+
+  const save = async () => {
+    if (!check.ok) return;
     setSaving(true);
     setError(null);
     try {
-      const payload: PrizeLeg[] = legs
-        .filter((leg) => leg.profileId)
-        .map((leg) => ({ profileId: leg.profileId, amount: Number(leg.amount) }));
-      const next = await sessionsService.addEntry(session.id, payload, note.trim());
+      const note = noteFor(legs);
+      const next = editingId
+        ? await sessionsService.updateEntry(session.id, editingId, legs, note)
+        : await sessionsService.addEntry(session.id, legs, note);
       setSession(next);
-      setNote('');
-      setLegs([
-        { profileId: '', amount: '' },
-        { profileId: '', amount: '' },
-      ]);
+      clearForm();
     } catch (err) {
       setError(err instanceof Error ? err.message : formatSupabaseError(err));
     } finally {
@@ -91,134 +115,173 @@ export default function PrizeSessionScreen() {
     }
   };
 
+  const editEntry = (entryId: string) => {
+    if (settled) return;
+    const entry = session.entries.find((item) => item.id === entryId);
+    if (!entry) return;
+    setEditingId(entry.id);
+    if (entry.legs.length === 2) {
+      const payer = entry.legs.find((leg) => leg.amount < 0);
+      const payee = entry.legs.find((leg) => leg.amount > 0);
+      if (payer && payee && payer.amount === -payee.amount) {
+        setMulti(false);
+        setFromId(payer.profileId);
+        setToId(payee.profileId);
+        setCoins(String(payee.amount));
+        return;
+      }
+    }
+    setMulti(true);
+    setExtra(entry.legs.map((leg) => ({ profileId: leg.profileId, amount: String(leg.amount) })));
+  };
+
   return (
     <Screen>
-      <SectionCard
-        title={settled ? 'Settled' : 'Open'}
-        icon={settled ? 'check-decagram' : 'scale-balance'}
-        supportingText="Coins start from the game points or pool prize. Each entry must add to 0."
-      >
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          Starting coins add to {coinSum(opening)}. Current balances add to {coinSum(balances)}.
+      <Text variant="titleMedium">{session.games.length} {session.games.length === 1 ? 'game' : 'games'} · {settled ? 'Settled' : 'not settled'}</Text>
+      {openingSum !== 0 ? (
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+          These coins add to {openingSum}. The expense column is not a person, so payments between people keep that total.
         </Text>
-        {people.map((person) => (
-          <View key={person.profileId} style={styles.balanceRow}>
-            <Text variant="bodyLarge" style={styles.name} numberOfLines={1}>{person.name}</Text>
-            <Text variant="bodyMedium" style={[tabularNums, { color: colors.onSurfaceVariant }]}>
-              {signed(opening[person.profileId] ?? 0)}
-            </Text>
-            <Text variant="titleMedium" style={tabularNums}>
-              {signed(balances[person.profileId] ?? 0)}
-            </Text>
-          </View>
-        ))}
-      </SectionCard>
-
-      <SectionCard title="Ledger" icon="format-list-bulleted">
-        {session.entries.length === 0 ? (
-          <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-            No entries yet.
-          </Text>
-        ) : (
-          session.entries.map((entry) => (
-            <View key={entry.id} style={styles.entry}>
-              <Text variant="labelLarge">{entry.note || 'Entry'}</Text>
-              {entry.legs.map((leg, index) => (
-                <Text key={`${entry.id}-${index}`} variant="bodyMedium" style={tabularNums}>
-                  {names.get(leg.profileId) ?? 'Player'} {signed(leg.amount)}
-                </Text>
-              ))}
-            </View>
-          ))
-        )}
-      </SectionCard>
+      ) : null}
+      <View style={styles.head}>
+        <Text style={styles.name}>Name</Text>
+        <Text style={[tabularNums, styles.col]}>Start</Text>
+        <Text style={[tabularNums, styles.col]}>Now</Text>
+      </View>
+      {people.map((person) => (
+        <View key={person.profileId} style={styles.balanceRow}>
+          <Text variant="bodyLarge" style={styles.name} numberOfLines={1}>{person.name}</Text>
+          <Text style={[tabularNums, styles.col]}>{signed(opening[person.profileId] ?? 0)}</Text>
+          <Text variant="titleMedium" style={[tabularNums, styles.col]}>{signed(balances[person.profileId] ?? 0)}</Text>
+        </View>
+      ))}
 
       {settled ? null : (
-        <SectionCard title="Add entry" icon="plus" supportingText="One entry can have several legs. They must add to 0.">
-          {legs.map((leg, index) => (
-            <View key={index} style={styles.legRow}>
-              <Menu
-                visible={menuIndex === index}
-                onDismiss={() => setMenuIndex(null)}
-                anchor={
-                  <Button mode="outlined" onPress={() => setMenuIndex(index)} style={styles.personButton}>
-                    {names.get(leg.profileId) ?? 'Player'}
-                  </Button>
-                }
-              >
-                {people.map((person) => (
-                  <Menu.Item
-                    key={person.profileId}
-                    title={person.name}
-                    onPress={() => {
-                      setLegs((current) => current.map((item, itemIndex) => (
+        <View style={styles.form}>
+          <Text variant="titleMedium">{editingId ? 'Change payment' : 'Record a payment'}</Text>
+          {multi ? (
+            extra.map((leg, index) => (
+              <View key={index} style={styles.multi}>
+                <View style={styles.people}>
+                  {people.map((person) => (
+                    <Button
+                      key={person.profileId}
+                      compact
+                      mode={leg.profileId === person.profileId ? 'contained' : 'outlined'}
+                      onPress={() => setExtra((current) => current.map((item, itemIndex) => (
                         itemIndex === index ? { ...item, profileId: person.profileId } : item
-                      )));
-                      setMenuIndex(null);
-                    }}
-                  />
+                      )))}
+                    >
+                      {person.name}
+                    </Button>
+                  ))}
+                </View>
+                <TextInput
+                  mode="outlined"
+                  dense
+                  label="Coins"
+                  value={leg.amount}
+                  keyboardType="numbers-and-punctuation"
+                  onChangeText={(text) => setExtra((current) => current.map((item, itemIndex) => (
+                    itemIndex === index ? { ...item, amount: text.replace(/[^0-9-]/g, '') } : item
+                  )))}
+                />
+              </View>
+            ))
+          ) : (
+            <View>
+              <Text variant="labelLarge">From</Text>
+              <View style={styles.people}>
+                {people.map((person) => (
+                  <Button key={person.profileId} compact mode={fromId === person.profileId ? 'contained' : 'outlined'} onPress={() => setFromId(person.profileId)}>
+                    {person.name}
+                  </Button>
                 ))}
-              </Menu>
-              <TextInput
-                mode="outlined"
-                dense
-                label="Coins"
-                value={leg.amount}
-                keyboardType="numbers-and-punctuation"
-                onChangeText={(text) => setLegs((current) => current.map((item, itemIndex) => (
-                  itemIndex === index ? { ...item, amount: text.replace(/[^0-9-]/g, '') } : item
-                )))}
-                style={styles.amount}
-              />
+              </View>
+              <Text variant="labelLarge">To</Text>
+              <View style={styles.people}>
+                {people.map((person) => (
+                  <Button key={person.profileId} compact mode={toId === person.profileId ? 'contained' : 'outlined'} onPress={() => setToId(person.profileId)}>
+                    {person.name}
+                  </Button>
+                ))}
+              </View>
+              <TextInput mode="outlined" label="Coins" value={coins} keyboardType="number-pad" onChangeText={(text) => setCoins(text.replace(/[^0-9]/g, ''))} />
             </View>
-          ))}
-          <Button mode="text" icon="plus" onPress={() => setLegs((current) => [...current, { profileId: '', amount: '' }])}>
-            Add leg
-          </Button>
-          <TextInput mode="outlined" label="Note" value={note} onChangeText={setNote} />
-          <Text variant="bodySmall" style={{ color: draftTotal === 0 ? colors.onSurfaceVariant : colors.error }}>
-            These legs add to {draftTotal}.
+          )}
+          <Text variant="bodySmall" style={{ color: check.ok ? colors.onSurfaceVariant : colors.error }}>
+            {legs.length === 0 ? 'Adds to 0.' : check.ok ? 'Adds to 0.' : check.error}
           </Text>
-          {error ? <Text variant="bodySmall" style={{ color: colors.error }}>{error}</Text> : null}
-          <Button mode="contained" onPress={saveEntry} loading={saving} disabled={saving}>
-            Save entry
+          {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+          <Button mode="contained" onPress={save} loading={saving} disabled={!check.ok || saving}>
+            Save payment
           </Button>
-        </SectionCard>
+          <Button mode="text" onPress={() => {
+            if (multi) {
+              setMulti(false);
+              return;
+            }
+            setMulti(true);
+            setExtra(people.map((person) => ({ profileId: person.profileId, amount: '' })));
+          }}>
+            More than two people?
+          </Button>
+        </View>
       )}
-      {error && settled ? <Text variant="bodySmall" style={{ color: colors.error }}>{error}</Text> : null}
+
+      <Text variant="titleMedium" style={styles.payments}>Payments</Text>
+      {session.entries.length === 0 ? (
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>None yet — tap a row to edit</Text>
+      ) : (
+        [...session.entries].reverse().map((entry) => (
+          <Pressable key={entry.id} onPress={() => editEntry(entry.id)} disabled={settled} style={styles.entry} accessibilityRole="button">
+            <Text variant="titleSmall">{entry.note || 'Payment'}</Text>
+            {entry.legs.map((leg, index) => (
+              <Text key={`${entry.id}-${index}`} style={tabularNums}>
+                {names.get(leg.profileId) ?? 'Player'} {signed(leg.amount)}
+              </Text>
+            ))}
+          </Pressable>
+        ))
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  head: {
+    flexDirection: 'row',
+    marginTop: spacing.md,
   },
   balanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
     paddingVertical: spacing.xs,
   },
   name: {
     flex: 1,
-    fontWeight: '600',
   },
-  entry: {
-    gap: 2,
-    paddingVertical: spacing.sm,
+  col: {
+    width: 64,
+    textAlign: 'right',
   },
-  legRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  form: {
+    marginTop: spacing.lg,
     gap: spacing.sm,
   },
-  personButton: {
-    flex: 1,
+  people: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
   },
-  amount: {
-    width: 110,
+  multi: {
+    marginBottom: spacing.sm,
+  },
+  payments: {
+    marginTop: spacing.lg,
+  },
+  entry: {
+    paddingVertical: spacing.sm,
   },
 });
