@@ -1,5 +1,6 @@
 import {
   formatPoints,
+  gameColumnLabel,
   placeLabel,
   playersByFirstName,
   podiumPlaces,
@@ -54,8 +55,8 @@ export function buildResultsDetails(input: {
   return {
     title: 'Results',
     createdAtLabel: input.createdAtLabel,
-    games: input.games.map((game) => ({ name: game.name, when: game.when })),
-    columns: [...input.games.map((game) => game.name), 'Total'],
+    games: input.games.map((game, index) => ({ name: `Game ${index + 1}`, when: game.when })),
+    columns: [...input.games.map((game, index) => gameColumnLabel(index, game.when)), 'Total'],
     rows,
     positive: totals.positive.map((row) => ({ name: row.name, points: formatPoints(row.points) })),
     negative: totals.negative.map((row) => ({ name: row.name, points: formatPoints(row.points) })),
@@ -69,7 +70,9 @@ export function buildResultsDetails(input: {
 
 export function resultsDetailsHtml(details: ResultsDetails): string {
   const games = details.games.map((game) => `<li>${escapeHtml(game.name)} — ${escapeHtml(game.when)}</li>`).join('');
-  const head = ['Player', ...details.columns].map((label) => `<th>${escapeHtml(label)}</th>`).join('');
+  const gameHeads = details.games.map((game, index) =>
+    `<th><span class="g">Game</span><span class="n">${index + 1}</span><span class="t">${escapeHtml(game.when)}</span></th>`).join('');
+  const head = `<th>Player</th>${gameHeads}<th>Total</th>`;
   const body = details.rows.map((row) => {
     const cells = [row.name, ...row.cells].map((value) => `<td>${escapeHtml(value)}</td>`).join('');
     return `<tr>${cells}</tr>`;
@@ -89,7 +92,10 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
   table { border-collapse: collapse; width: 100%; margin-top: 8px; }
   th, td { border: 1px solid #D7CBB8; padding: 4px 6px; font-size: 12px; text-align: right; }
   th:first-child, td:first-child { text-align: left; }
-  th { background: #17402F; color: #FBF1E1; }
+  th { background: #17402F; color: #FBF1E1; vertical-align: bottom; }
+  th span { display: block; }
+  th .g, th .t { font-size: 9px; font-weight: 600; }
+  th .n { font-size: 15px; font-weight: 800; }
 </style>
 </head>
 <body>

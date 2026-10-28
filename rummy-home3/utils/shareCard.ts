@@ -68,7 +68,7 @@ export function buildResultsShareCard(input: {
 }): ShareCard {
   return {
     ...buildShareCard({ ...input, rows: input.rows }),
-    podiumFirst: true,
+    podiumFirst: false,
     lines: [...input.rows]
       .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
       .slice(0, RESULTS_IMAGE_TOTAL_CAP)

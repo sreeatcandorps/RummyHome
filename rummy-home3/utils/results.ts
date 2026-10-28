@@ -189,12 +189,12 @@ export function playersByFirstName<T extends { id: string; name: string }>(playe
 
 /**
  * A score column has to show a signed total such as "-1234" without crowding.
- * 56 is the floor; extra space grows the columns toward 64 and beyond.
+ * 50 is the floor, so name + 4 games + Total fit on a 360dp phone; extra space is spread evenly.
  * The scorecard uses the same idea, stepping type up once a column reaches the 50s and 64.
  */
-export const RESULTS_SCORE_MIN = 56;
+export const RESULTS_SCORE_MIN = 50;
 /** The player name stays a fixed width. Game columns take the rest. */
-export const RESULTS_NAME_COL = 92;
+export const RESULTS_NAME_COL = 76;
 
 function splitEven(available: number, count: number): number[] {
   if (count <= 0) return [];
@@ -213,7 +213,7 @@ export function resultsColumnWidths(frameWidth: number, gameCount: number): numb
   const games = Math.max(0, gameCount);
   const nameWidth = width >= RESULTS_NAME_COL + RESULTS_SCORE_MIN * 2
     ? RESULTS_NAME_COL
-    : Math.max(72, Math.min(RESULTS_NAME_COL, width - RESULTS_SCORE_MIN * 2));
+    : Math.max(64, Math.min(RESULTS_NAME_COL, width - RESULTS_SCORE_MIN * 2));
   const scoreCount = games + 1;
   const available = Math.max(0, width - nameWidth);
   const slotsThatFit = Math.max(1, Math.min(scoreCount, Math.floor(available / RESULTS_SCORE_MIN) || 1));
@@ -230,6 +230,7 @@ export function resultsColumnWidths(frameWidth: number, gameCount: number): numb
 export function resultsVisibleGameCount(frameWidth: number, gameCount: number): number {
   const games = Math.max(0, gameCount);
   if (games === 0) return 0;
+  if (!resultsTableScrollsHorizontally(frameWidth, games)) return games;
   const widths = resultsColumnWidths(frameWidth, games);
   const name = widths[0] ?? 0;
   const gameWidth = Math.max(1, widths[1] ?? RESULTS_SCORE_MIN);
@@ -278,4 +279,17 @@ export function canDeclareResults(
 ): boolean {
   if (!userId || games.length === 0) return false;
   return games.every((game) => userAdminsGame(game, userId));
+}
+
+/** Start time for a Results column header: h:mm, no AM/PM (10:05). */
+export function gameClock(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const hour = date.getHours() % 12 || 12;
+  return `${hour}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+/** "Game 1 10:05" for the image and PDF; games are already in start order. */
+export function gameColumnLabel(index: number, when: string): string {
+  return when ? `Game ${index + 1} ${when}` : `Game ${index + 1}`;
 }

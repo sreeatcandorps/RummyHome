@@ -13,8 +13,8 @@ export type GridGame = {
   scores: Record<string, number>;
 };
 
-const HEADER_H = 40;
-const ROW_H = 44;
+const HEADER_H = 52;
+const ROW_H = 40;
 const VISIBLE_ROWS = 8;
 
 export function GameScoreGrid({
@@ -30,7 +30,7 @@ export function GameScoreGrid({
   const [frameWidth, setFrameWidth] = useState(0);
   const rows = playersByFirstName(players);
   const widths = resultsColumnWidths(frameWidth, games.length);
-  const nameWidth = widths[0] ?? 104;
+  const nameWidth = widths[0] ?? 76;
   const scoreWidths = widths.slice(1);
   const contentWidth = widths.reduce((sum, value) => sum + value, 0);
   const bodyHeight = Math.min(Math.max(rows.length, 1), VISIBLE_ROWS) * ROW_H;
@@ -56,8 +56,10 @@ export function GameScoreGrid({
               <Text variant="labelLarge" style={styles.cornerText}>Player</Text>
             </View>
             {games.map((game, index) => (
-              <View key={game.id} testID={`col-${game.name}`} accessibilityLabel={`${game.name}, ${game.when}`} style={[styles.headCell, { width: scoreWidths[index], backgroundColor: brand.felt }]}>
-                <Text numberOfLines={1} style={styles.headerText}>{game.name}</Text>
+              <View key={game.id} testID={`col-${index + 1}`} accessibilityLabel={`Game ${index + 1}${game.when ? `, started ${game.when}` : ''}`} style={[styles.headCell, styles.gameHead, { width: scoreWidths[index], backgroundColor: brand.felt }]}>
+                <Text numberOfLines={1} style={styles.headSmall}>Game</Text>
+                <Text numberOfLines={1} style={styles.headNumber}>{index + 1}</Text>
+                <Text numberOfLines={1} style={styles.headSmall}>{game.when}</Text>
               </View>
             ))}
             <View
@@ -78,7 +80,7 @@ export function GameScoreGrid({
                 testID={`player-row-${player.name}`}
                 style={[styles.nameCell, styles.stuckLeft, { width: nameWidth, height: ROW_H, borderRightColor: colors.outlineVariant, backgroundColor: stripe(index) }]}
               >
-                <Text variant="labelLarge" numberOfLines={1}>{player.name}</Text>
+                <Text variant="labelLarge" numberOfLines={1} style={styles.nameText}>{player.name}</Text>
               </View>
               {games.map((game, gameIndex) => {
                 const text = scoreCell(game.scores, player.id);
@@ -127,7 +129,7 @@ const styles = StyleSheet.create({
   },
   corner: {
     justifyContent: 'flex-end',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 6,
     paddingBottom: spacing.sm,
     borderRightWidth: StyleSheet.hairlineWidth,
   },
@@ -155,16 +157,38 @@ const styles = StyleSheet.create({
   },
   nameCell: {
     justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 6,
     borderRightWidth: StyleSheet.hairlineWidth,
   },
   scoreCell: {
     alignItems: 'flex-end',
     justifyContent: 'center',
-    paddingRight: spacing.xs,
+    paddingRight: 4,
   },
   scoreText: {
     fontWeight: '700',
+    fontSize: 13,
+  },
+  nameText: {
+    fontSize: 13,
+  },
+  gameHead: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 2,
+  },
+  headSmall: {
+    color: brand.cream,
+    fontSize: 10,
+    lineHeight: 12,
+    fontWeight: '600',
+    opacity: 0.9,
+  },
+  headNumber: {
+    color: brand.cream,
+    fontSize: 17,
+    lineHeight: 20,
+    fontWeight: '800',
   },
   stuckLeft: {
     position: 'sticky' as 'absolute',

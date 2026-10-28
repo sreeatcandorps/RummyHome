@@ -10,7 +10,7 @@ import { resultsService } from '@/services/results';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { GameResult, ResultSheet } from '@/utils/results';
+import { GameResult, ResultSheet, gameClock } from '@/utils/results';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
 function sheetFor(result: GameResult): ResultSheet {
@@ -64,7 +64,7 @@ export default function DeclaredResult() {
       games: sheet.games.map((game) => ({
         id: game.id,
         name: game.name,
-        when: formatGameDateTime(game.date),
+        when: gameClock(game.date),
         scores: game.scores,
       })),
     });

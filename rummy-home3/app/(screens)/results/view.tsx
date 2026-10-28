@@ -13,7 +13,7 @@ import { Player } from '@/types/player';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { gameResultName, presentResults, ResultSheet, ResultStanding, withinResultsPlayerLimit } from '@/utils/results';
+import { gameResultName, presentResults, ResultSheet, ResultStanding, withinResultsPlayerLimit, gameClock } from '@/utils/results';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
 function param(value: string | string[] | undefined): string {
@@ -99,7 +99,7 @@ export default function ShownResults() {
       games: sheet.games.map((game) => ({
         id: game.id,
         name: game.name,
-        when: formatGameDateTime(game.date),
+        when: gameClock(game.date),
         scores: game.scores,
       })),
     });

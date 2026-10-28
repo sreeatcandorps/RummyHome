@@ -4,7 +4,7 @@ import { Text } from 'react-native-paper';
 import { GameScoreGrid } from '@/components/results/GameScoreGrid';
 import { spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime } from '@/utils/gameDisplay';
-import { formatPoints, placeLabel, podiumPlaces, ResultSheet, ResultStanding, splitTotals } from '@/utils/results';
+import { formatPoints, placeLabel, podiumPlaces, ResultSheet, ResultStanding, splitTotals, gameClock } from '@/utils/results';
 
 export function ResultsPage({
   createdAt,
@@ -21,7 +21,7 @@ export function ResultsPage({
   const games = sheet.games.map((game) => ({
     id: game.id,
     name: game.name,
-    when: formatGameDateTime(game.date),
+    when: gameClock(game.date),
     scores: game.scores,
   }));
 
