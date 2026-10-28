@@ -8,21 +8,22 @@ Product rules that stay, from `docs/product-contract.md`, `docs/friday-setup.md`
 - A game has 2–20 seated players. The creator is a game admin even when they only keep score.
 - Any game admin can enter and undo scores, and can promote a seated player during the game or after it is completed. A non-player admin can do the same and is not a score column. A seated player who is not an admin, and a view-only person, see the live scorecard and cannot change it.
 - Someone sees a game when they created it, are seated, were added as view-only, are a non-player admin, or their account email matches a seat. An outsider does not see it in the app. Anyone with the unguessable link can watch the public page. The app never shows that email.
-- Games in this redesign are stake games. Prize coins start equal to each player’s points. Coins, not money. A ledger entry can have several legs and must add to 0. The session is settled when every balance is 0.
-- Completed games stay scored. Prize edits are the coin ledger, not a rewrite of the rounds. Pool games are out of scope (see Later).
+- Games in this redesign are stake games. Coins start equal to each player’s points. The on-screen word is coins, not prize. A ledger entry can have several legs and must add to 0. The session is settled when every balance is 0.
+- Completed games stay scored. Coin edits are the ledger, not a rewrite of the rounds. Pool games are out of scope (see Later).
 
 ## Decisions (Oct 28)
 
 Sree answered the open questions. These override any older line in this doc. The screens and flows below already follow them.
 
 1. **Email stays private.** The app never shows another person’s email. Search results, my players, the player sheet, and Share show name and player ID only. Find can search by email, and that match is the full address or nothing. After +, the email is still hidden. Your own email appears only on Sign in, Create account, and Me, because it is the login.
-2. **Who can settle.** Anyone who was in the games can open Settle prizes and pick games. Recording payments, editing a ledger row, and completing the settlement are allowed only for someone who is a game admin on every selected game. Otherwise the screen blocks the action and says why.
+2. **Settle, and only on Home.** The button is labeled Settle. The UI does not say Prize or Settle prizes. Settle is not on the scorecard, the complete step, or any other game screen. It stays on Home even when this person admins no games, and that opens a short explanation. The list is completed games they admin, picked together. Games they do not admin are not listed. Opening coins still start equal to each player’s points. Recording payments, editing a row, and marking Settled require them to be admin of every game in that session.
 3. **Promote after the game ends.** A game admin can make a seated player an admin during a live game and after it is completed.
 4. **Non-player admin.** Add non-player admin gives someone admin rights with no seat and no score column. The picker is my players only. If they are not on that list, the sheet says “Can’t find them? First add them to your player list in Find Players, then come back.” with a button to Find Players. Find is not a search box on the game screen.
 5. **Welcome email.** Creating an account sends a welcome email from `scores@mindweavetech.com` through Resend. Sign-up does not wait on that send.
 6. **Recent works.** Home’s Recent section lists the games this account can see. Tapping a row opens that scorecard. It uses the empty, loading, and error states in section 3.4. It does not open a second History screen and it does not spin forever.
 7. **Ledger edits.** Until the settlement is completed, tap any payment row to change it. After it is completed, rows stay as they are. Turning a finished points game into a prize later is under Later.
-8. **Stake only.** Prize coins for a stake game start equal to that player’s points. Pool is out of scope for this redesign.
+8. **Stake only.** Coins for a stake game start equal to that player’s points. Pool is out of scope for this redesign. The word prize is not used on screen.
+9. **Help.** Every screen has a small ? at the top. It opens a short note about the parts that are easy to misunderstand. It skips the obvious, including how to enter a score. First-draft text is under each screen in section 3. Sree will rewrite it.
 
 ## 1. Problems found
 
@@ -55,7 +56,7 @@ Three tabs. Games live on Home, so there is no separate History tab and no stat 
 
 | Tab | What it is |
 | --- | --- |
-| Home | New game, the live game, Settle prizes, and the one games list |
+| Home | New game, the live game, Settle, and Recent |
 | Players | My players, with Find and Invite |
 | Me | My name, email, passcode, optional phone, appearance, log out |
 
@@ -68,7 +69,7 @@ Home ── New game ── Scorecard ── Enter scores
   │         │            ├── Share (sheet)
   │         │            └── Complete (confirm, then coins)
   │         └── needs someone? ── Find players ── back, already on my list
-  └── Settle prizes ── pick games ── ledger
+  └── Settle ── pick games you admin ── ledger
 Players ── Find players
         └── Invite (phone share sheet, no form)
 Me
@@ -94,12 +95,13 @@ Shared rules for every screen:
 - Empty: one sentence and one button.
 - Error: what failed, in plain language, and Retry. Keep the last list on screen underneath.
 - A control that does nothing is not on the screen.
+- A ? sits at the top of every screen. Tap it for the help text under that screen. Close it with the same icon or by tapping outside. The note is a few lines, not a manual.
 
 ### 3.1 Sign in
 
 ```
 +----------------------------------+
-|            [ RH logo ]           |
+|            [ RH logo ]        ?  |
 |           Rummy Home             |
 |                                  |
 |  Email                           |
@@ -122,11 +124,13 @@ Shared rules for every screen:
 - Network failure: “Couldn’t reach Rummy Home.” Retry. No endless spinner.
 - Forgot passcode opens 3.3. Create account opens 3.2.
 
+Help: “Your passcode is 6 digits, not a regular password. The eye shows those digits. Forgot passcode emails you a link to set a new one.”
+
 ### 3.2 Create account
 
 ```
 +----------------------------------+
-|  <         Create account        |
+|  <         Create account     ?  |
 |                                  |
 |  First name        Last name     |
 |  [ Srikanth ]      [ Koneru ]    |
@@ -151,11 +155,13 @@ Shared rules for every screen:
 - Success goes straight to Home. Confirm-email stays off so sign-in is immediate.
 - A welcome email goes out from `scores@mindweavetech.com` through Resend. Account creation does not wait for it. If the send fails, the account still exists.
 
+Help: “Email is how you sign in. Phone is optional and is never texted. If this email already has an account, use Sign in.”
+
 ### 3.3 Forgot passcode
 
 ```
 +----------------------------------+
-|  <         Reset passcode        |
+|  <         Reset passcode     ?  |
 |                                  |
 |  Email                           |
 |  [                            ]  |
@@ -170,13 +176,15 @@ Shared rules for every screen:
 
 - The link target is `https://sreeatcandorps.github.io/Games/` (the page that already sets a new code). Supabase only honors that when Site URL and Redirect URLs include it, and `http://localhost:3000` is not the Site URL. Also allow `rummy-home3://**`. This is a dashboard setting, documented in `docs/friday-setup.md`. The screen copy should say “Check your email” only after Supabase accepts the send.
 
+Help: “We email a link. It opens a page where you choose a new 6-digit code. It is not a text message.”
+
 ### 3.4 Home
 
 Portrait. This replaces the hero stat tiles, the shortcut row, and the separate History screen. Recent stays, and it has to work.
 
 ```
 +----------------------------------+
-| [logo] Rummy Home            (SK)|
+| [logo] Rummy Home         ? (SK)|
 |                                  |
 |  Hi Sree                         |
 |  [ + New game                 ]  |
@@ -189,7 +197,7 @@ Portrait. This replaces the hero stat tiles, the shortcut row, and the separate 
 |  | [ Resume ]                   ||
 |  +------------------------------+|
 |                                  |
-|  [ Settle prizes ]               |
+|  [ Settle ]                      |
 |                                  |
 |  Recent                          |
 |  chips:  All    Live    Today    |
@@ -204,7 +212,7 @@ Portrait. This replaces the hero stat tiles, the shortcut row, and the separate 
 
 - New game is the primary button. One tap.
 - Live is the newest in-progress game, or the empty line “No live game.” Resume opens the scorecard. Tapping the card does the same. There is no Active tile. A count of 0 does not navigate anywhere.
-- Settle prizes is on Home, under the live card, for anyone who took part in a completed game. It opens 3.12. With no completed game, the caption is “Finish a game first” and the button does not open a spinner.
+- Settle is on Home, under the live card, for everyone. It is the only place Settle appears. It opens 3.12. It is not hidden when this person admins no games.
 - Recent is the games list. Chips filter it in place: All, Live, Today. Today is this chip, not a screen. There is no History screen and no See all.
 - Tapping a Recent row opens that scorecard. That is the bug to close: the section has to show the games this account can see, and the tap has to land on the game. A live count of 0 stays here as “No live game.” It does not push a screen that spins.
 - The chips use the games Home already loaded. Changing a chip does not fetch again.
@@ -212,13 +220,15 @@ Portrait. This replaces the hero stat tiles, the shortcut row, and the separate 
 - Empty list: “No games yet.” The only action is the New game button already at the top. The empty card does not add a second New game button.
 - Landscape: New game and the live card on the left, Recent on the right. Same chips. No third column.
 - The avatar opens Me.
+
+Help: “Settle is where you combine finished games you run and record who paid whom. It stays here even if you don’t run any games yet. Recent is every game you can see. Tap a row to open it. Live is the one still going.”
 - Demo load/clear moves to Me, and only for the allowlisted admin email. It is not on Home.
 
 ### 3.5 New game
 
 ```
 +----------------------------------+
-|  <            New game           |
+|  <            New game        ? |
 |                                  |
 |  Stake                            |
 |  Drop -10 · Middle -30 · Max -80 |
@@ -244,7 +254,9 @@ Portrait. This replaces the hero stat tiles, the shortcut row, and the separate 
 - The checklist is my players, not every account. Search on this screen filters that list by name or player ID. It does not show emails.
 - Find players opens 3.14. On return, a person just added is already checked. Find is not a directory search inside the game.
 - Start needs 2 seated people. If I'm playing is on, one other person is enough. The button says why it is disabled: “Pick at least one more player.”
-- Start opens the scorecard. The new game is the Live card on Home immediately.
+- Start opens the scorecard. The new game is the Live card on Home immediately. Completing it does not open Settle. Coins for that game are handled later from Home → Settle, and they start equal to the points.
+
+Help: “Turn off I’m playing if you are only keeping score. You still run the game, and you are not a column. This list is people you already added. To add someone new, use Find players. That does not put them in this game until you check them.”
 
 ### 3.6 Scorecard, portrait
 
@@ -252,7 +264,7 @@ The table itself stays: initials and totals in the sticky header, rounds underne
 
 ```
 +----------------------------------+
-| <  Scorecard            ( ... )  |
+| <  Scorecard         ?  ( ... )  |
 |    Started Tue Oct 27 · 4:05 PM  |
 |    ID F28KCA                     |
 |                                  |
@@ -273,8 +285,10 @@ The table itself stays: initials and totals in the sticky header, rounds underne
 - (...) opens a menu with two items: Players, Share. View is inside Share as Preview.
 - Admin (creator or a promoted game admin), game still live: bottom bar is Undo, Add round, Done.
 - Seated non-admin, or view-only: no bottom bar. A line under the tags says “View only.” The table still updates when someone else scores.
-- Completed game: no bottom bar. A line says “Completed.” Anyone who played sees “Settle this game,” which opens Settle with this game already selected. Recording the payments still requires an admin of every game in the session (section 3.12).
+- Completed game: no bottom bar. A line says “Completed.” There is no Settle button and no coin or prize fields. Combining games is Home → Settle.
 - Undo asks “Remove the last round?” so a mis-tap does not wipe a hand. Confirm, then the round is gone on this phone and on the public page.
+
+Help: “View only means you can watch and cannot change the scores. The … menu is Players (who can score) and Share. Totals sit in the header next to each name. Undo asks before it removes the last round. Settling coins is not on this screen.” Landscape uses the same note. Do not explain Drop, Middle drop, Rummy, or Add round.
 - Many players: the header and the rows scroll sideways together. Totals stay in the header cells, not in a bottom total row and not in a standings panel.
 
 ### 3.7 Scorecard, landscape
@@ -283,7 +297,7 @@ Same header, shorter. The table gets the rest of the width. The bottom bar stays
 
 ```
 +------------------------------------------------------------------+
-| < Scorecard   Tue Oct 27 · 4:05 PM · ID F28KCA          ( ... )  |
+| < Scorecard ?  Tue Oct 27 · 4:05 PM · ID F28KCA        ( ... )  |
 | Stake  Live                                                      |
 | RND | SK 12 | P1 -4 | P10 0 | P2 -8 | P3 ... | P4 | P5 | EXP     |
 |  3  | +22   | -10   | -2    | -10   |        |    |    | -10     |
@@ -301,7 +315,7 @@ Opened from the scorecard menu. Not a new page.
 
 ```
 +----------------------------------+
-|  Players in this game        (x) |
+|  Players in this game     ? (x) |
 |                                  |
 |  Sree Koneru          Admin      |
 |  Player 1             [ Admin ]  |
@@ -319,18 +333,20 @@ Opened from the scorecard menu. Not a new page.
 +----------------------------------+
 ```
 
-- An admin can switch a seated player to Admin while the game is live and after it is completed. That person can then enter and undo scores. On a completed game they can also settle, if they are an admin of every game in the session.
+- An admin can switch a seated player to Admin while the game is live and after it is completed. That person can then enter and undo scores. Once they admin the finished games, those games show up when they open Settle on Home.
 - An admin can add someone from my players as View only. They see the game at Home and cannot score. They are not a column.
 - Add non-player admin picks from my players only. The person becomes a game admin, is not seated, and does not get a score column. They show under “Admins not playing.” They can enter scores, undo, promote, and settle under the same rules as the creator.
 - The picker is a list of my players, name and player ID only. It does not search every account. If the person is not on the list, the sheet says “Can’t find them? First add them to your player list in Find Players, then come back.” and offers a Find Players button. That button leaves the game and opens 3.14. There is no Find field on the game screen.
 - A non-admin sees the same names with the switches and the add buttons hidden.
 - Add a player, while the game is still live, seats someone from my players. Earlier rounds count as 0 for them until an admin enters an adjustment. Order in the seated list is the deal order; drag the handle to reorder before the first round is saved.
 
+Help: “Admin can change scores. View only can watch and is not a column. Add non-player admin lets someone run the game without sitting in it. They have to be on your player list already. If they aren’t, add them in Find Players and come back. You can make someone an admin after the game is over, too.”
+
 ### 3.9 Share (sheet)
 
 ```
 +----------------------------------+
-|  Share scorecard             (x) |
+|  Share scorecard          ? (x) |
 |  Anyone with the link can watch. |
 |  Started Tue Oct 27 · 4:05 PM    |
 |  ID F28KCA                       |
@@ -351,13 +367,15 @@ Opened from the scorecard menu. Not a new page.
 - Email selected sends the link through Resend to the checked people, using the address on the account. The address is not shown before or after the send. From-address for this mail can be the same verified sender as the welcome email, `scores@mindweavetech.com`. If someone has no email, they are skipped and the sheet says how many were skipped, without listing addresses. If Resend is not configured, the button explains that and Copy link still works.
 - Preview opens the public page.
 
+Help: “Anyone with the link can watch, with no account. Copy link is what you paste into WhatsApp. Email sends it to the people you checked and does not show their addresses.”
+
 ### 3.10 Enter scores
 
 Only a game admin can open this. Anyone else who deep-links here sees “View only” and a Back button.
 
 ```
 +----------------------------------+
-|  <           Round 4             |
+|  <           Round 4          ? |
 |                                  |
 | [ Drop -10 ] [ Middle -30 ] [Rummy]
 |                                  |
@@ -376,38 +394,41 @@ Only a game admin can open this. Anyone else who deep-links here sees “View on
 - Submit returns to the scorecard with the new round at the top of the table.
 - Landscape: the three tiles and the tally stay in a left column; player rows are two columns on the right.
 
+Help: “Submit stays off until this round adds to 0, including the expense column. The line under the list says Balanced or how far off it is.” Do not explain what Drop, Middle drop, or Rummy mean.
+
 ### 3.11 Complete game
 
-Done on the scorecard opens this confirm. It is not a separate tab.
+Done on the scorecard opens this confirm. It is not a separate tab, and it does not settle coins.
 
 ```
 +----------------------------------+
-|  Complete this game?             |
+|  Complete this game?          ?  |
 |  ID F28KCA                       |
 |                                  |
-|  Points          Prize coins     |
-|  Sree      +40   [  40 ]         |
-|  Player 1  -20   [ -20 ]         |
-|  Player 2  -20   [ -20 ]         |
+|  Sree            +40             |
+|  Player 1        -20             |
+|  Player 2        -20             |
 |                                  |
-|  These coins add to 0.           |
+|  The scores stay as they are.    |
 |                                  |
 |  [ Not yet ]     [ Confirm ]     |
 +----------------------------------+
 ```
 
-- Stake is the only game type here. Each coin field starts equal to that player’s points. The host can edit a field before confirming. Show the sum. If the sum is not 0 (the expense column often causes this), say so and still allow confirm. Settlement later has to bring balances to 0.
-- Confirm marks the game completed and returns to the scorecard. The next prompt is “Settle now?” which opens Settle with this game selected. Not yet returns Home.
+- The list is the points, read-only, so the host can see the result before closing the game. There is no coin field and no prize field.
+- Confirm marks the game completed and returns to the scorecard. It does not offer Settle. Coins for these points are handled from Home → Settle, where they start equal to the points.
 
-### 3.12 Settle prizes
+Help: “This closes the game. It does not move coins. When you are ready to record payments across games, use Settle on Home.”
 
-Opened from Home, or from a completed scorecard. Two steps on one stack, not a mode hidden inside History.
+### 3.12 Settle
+
+Opened only from the Settle button on Home. Not from a scorecard, and not after Complete. Two steps on one stack.
 
 Step 1, pick games:
 
 ```
 +----------------------------------+
-|  <          Settle prizes        |
+|  <          Settle            ?  |
 |                                  |
 |  chips:  Today          All      |
 |                                  |
@@ -419,15 +440,16 @@ Step 1, pick games:
 +----------------------------------+
 ```
 
-- Today is the default chip, because a Friday night is one session. All shows older completed games. Anyone who was in a completed game can open this step and check games.
-- Continue is where the admin rule is enforced. If the person is a game admin on every checked game, the session opens and the ledger can be edited. If they are not an admin on all of them, nothing is saved and the screen says: “Only an admin of every selected game can settle. You’re not an admin of ID K91Q.” Name the games that block it. They can uncheck those games and continue with the rest.
-- Opening balances are the sum of the coin lines from each included game. For a stake game those coins started equal to the points.
+- Today is the default chip, because a Friday night is one session. All shows older completed games. Both chips list only games this person admins. A game they played but do not admin is not here.
+- The button on Home always opens this screen. When the admin list is empty, there are no checkboxes. The screen says: “Settle is for finished games you run. You are not an admin of any completed game yet. When you are, they show up here and you can settle several together.”
+- Continue needs at least one checked game. Checking several is the normal case: one session covers the night. One game is allowed when that is all they admin. Continue opens the ledger only because every checked game is already one they admin.
+- Opening balances are the points from each included game. Those coins start equal to the points. There is no separate prize amount.
 
 Step 2, the ledger. Balances first. The entry form is the next thing, not a block buried under a log.
 
 ```
 +----------------------------------+
-|  <          Tonight              |
+|  <          Settle            ?  |
 |  2 games · not settled           |
 |                                  |
 |  Name            Start     Now   |
@@ -474,14 +496,16 @@ Step 2, the ledger. Balances first. The entry form is the next thing, not a bloc
 
 - When every Now value is 0, the person who is allowed to settle can mark it completed. The title becomes “Settled” and the form hides.
 - Until then, tap any payment row. The form fills with that payment, they change it, and Save replaces the row and recalculates Now. The new legs still have to add to 0.
-- After the settlement is completed, rows do not open for edit. Reopening it from Home → Settle prizes → Past sessions is read-only. Converting a completed points game into a prize after the fact is under Later, not a control on this screen.
-- Wording on this screen is coins and prize. It does not say money, dollars, or cash.
+- After the settlement is completed, rows do not open for edit. Reopening it from Home → Settle → Past sessions is read-only. Converting a completed points game into a different coin total after the fact is under Later, not a control on this screen.
+- Wording on this screen is coins. It does not say prize, money, dollars, or cash.
+
+Help: “Pick the finished games you run. Coins start as each player’s points. A payment is one person to another, and it has to add to 0. Tap a payment to change it until you mark this Settled. After that, it stays as it is. If you see no games, you are not the admin of a finished game yet.”
 
 ### 3.13 Players (my list)
 
 ```
 +----------------------------------+
-|  Players · 12                    |
+|  Players · 12                 ?  |
 |                                  |
 |  [ search name or player ID    ]  |
 |                                  |
@@ -520,11 +544,13 @@ Step 2, the ledger. Balances first. The entry form is the next thing, not a bloc
 
 Empty: “No players yet.” Two buttons, Find players and Invite.
 
+Help: “This is your list, not everyone with an account. Find adds someone who already signed up. Invite sends a link to get the app. You only see a name and a player ID.”
+
 ### 3.14 Find players
 
 ```
 +----------------------------------+
-|  <          Find players         |
+|  <          Find players      ? |
 |                                  |
 |  [ first, last, email, or ID  ]  |
 |                                  |
@@ -547,6 +573,10 @@ Empty: “No players yet.” Two buttons, Find players and Invite.
 - No email field, no phone field, no WhatsApp button, no Text button, no “Go to new game.”
 - Invite someone new is the same share sheet as 3.15.
 - No matches: “No account matches that. Invite them and they can join after they sign up.”
+
+Help: “Search a first name, last name, or player ID. An email works only if you type the whole address, and the address is never shown. + adds them to your list only. It does not put them in a game. Invite opens your phone’s share sheet.”
+
+Invite (3.15) is the phone’s own share sheet, so it has no Rummy Home ? icon. The Players and Find help cover what Invite does.
 
 ### 3.15 Invite
 
@@ -571,7 +601,7 @@ Replaces Settings and Profile as two different places. The avatar and the Me tab
 
 ```
 +----------------------------------+
-|  Me                              |
+|  Me                           ?  |
 |                                  |
 |  SK   Sree Koneru                |
 |       koneru2k@gmail.com         |
@@ -598,13 +628,15 @@ Replaces Settings and Profile as two different places. The avatar and the Me tab
 - Log out returns to Sign in.
 - Allowlisted admin only: a collapsed “Demo data” group with Load and Clear, same behavior as today.
 
+Help: “The email here is yours. It is how you sign in. Your player ID is what you give someone so they can find you. Phone is optional and is never texted. Dark mode is saved on this phone.”
+
 ### 3.17 Public scorecard (browser)
 
 No login. Looks like the phone scorecard: cream page, felt header, totals in the column headers, start time and game ID in the header, sideways scroll, refreshes about every 8 seconds.
 
 ```
 +----------------------------------+
-|  Rummy scorecard                 |
+|  Rummy scorecard              ?  |
 |  Started Tue, Oct 27, 4:05 PM    |
 |  ID F28KCA · Live                |
 |                                  |
@@ -614,6 +646,8 @@ No login. Looks like the phone scorecard: cream page, felt header, totals in the
 ```
 
 - A bad or missing token says “This scorecard link is not valid.” It does not show another game.
+
+Help: “This page updates on its own. The start time and game ID say which game it is. No login. Anyone with the link can watch.”
 - Hosting is section 5.
 
 ## 4. Flows
@@ -627,7 +661,7 @@ No login. Looks like the phone scorecard: cream page, felt header, totals in the
 
 ### Start a game
 
-1. Home → New game. The game is stake. Prize coins will start equal to points when it is completed.
+1. Home → New game. The game is stake. When it is finished, its coins on Home → Settle start equal to the points.
 2. Leave I'm playing on, or turn it off to keep score only.
 3. Check people on my list. Missing someone: Find, tap +, return, they are checked. The list shows name and player ID, not email.
 4. Not registered: Invite, they install and create an account, then Find → +.
@@ -650,14 +684,14 @@ No login. Looks like the phone scorecard: cream page, felt header, totals in the
 5. The same Players sheet still promotes after the game is completed.
 6. A normal player or a watcher opens the same scorecard from Recent. They see View only. Add round is not there.
 
-### Prizes and the ledger
+### Settle and the ledger
 
-1. Admin taps Done. Coins start equal to points. They can edit, then confirm.
-2. Settle now, or later from Home → Settle prizes. A player who is not an admin can open this too.
-3. Today’s finished games are checked. Continue. If they are not an admin of every checked game, the screen names those games and does not open the ledger.
-4. An admin of all of them records a payment: From, To, coins. Save. The Now column moves. The payment line appears above the form.
+1. An admin taps Done on the scorecard, confirms the points, and returns to the scorecard. Nothing there mentions Settle.
+2. Later, from Home, they tap Settle. The list is completed games they admin. They check the ones from the night. Someone who admins none still has the button, and the screen explains why the list is empty.
+3. Continue opens the ledger. Opening coins equal the points.
+4. Record a payment: From, To, coins. Save. The Now column moves. The payment line appears above the form.
 5. Tap that line to change it. Save again. Now updates.
-6. Repeat until every Now is 0, then mark the settlement completed. The screen says Settled. Those rows no longer open for edit.
+6. Repeat until every Now is 0, then mark it Settled. Those rows no longer open for edit.
 
 ### Share
 
@@ -668,7 +702,7 @@ No login. Looks like the phone scorecard: cream page, felt header, totals in the
 
 ### History
 
-There is no History screen. Recent, with All / Live / Today, is that list, and each row opens the scorecard. Settle prizes is the button above it.
+There is no History screen. Recent, with All / Live / Today, is that list, and each row opens the scorecard. Settle is the button above it, and it is not repeated on the scorecard.
 
 ## 5. Public scorecard hosting
 
@@ -689,7 +723,7 @@ These are part of the redesign build, in this order. They are listed so none of 
 
 1. Delete the Home tiles Active, Players, and Today, and the shortcut row Find players / History / All players. Home is section 3.4.
 2. Recent is the one games list, with All / Live / Today chips. Tapping a row opens that scorecard. Remove the History screen and the `filter` query params. Recent must not spin with no way out.
-3. Put Settle prizes on Home. Anyone in the games can open it. Recording and editing payments is blocked unless the person is a game admin on every selected game, with a message that names the games. Rebuild the ledger as From → To → coins, with an optional multi-person entry that must add to 0. Tap a row to edit it until the settlement is completed. Then the rows are read-only. Remove the player menu and the +/- control.
+3. Put Settle on Home only, labeled Settle. Remove every Settle and prize control from the scorecard and from Complete. The picker lists completed games this person admins, including an explanation when that list is empty. Rebuild the ledger as From → To → coins, with an optional multi-person entry that must add to 0. Tap a row to edit it until it is Settled. Then the rows are read-only. Remove the player menu and the +/- control. Opening coins equal the points.
 4. Add `my_players` (owner, player, created_at, games_together). Find + inserts a row. Playing a game inserts rows for the other people. Home and New game read this list, not `select * from profiles`. Rows store no email for display.
 5. Find searches first name, last name, player ID, and email. An email hit requires the full address. Each result shows name, player ID, and +. The email is never shown, before or after +. + updates my list on screen immediately.
 6. Invite is only the native share sheet and `…/Games/get`. Remove the email, phone, WhatsApp, and Text fields from Find Players. Remove the unused SMS and mailto helpers on the Players screen.
@@ -704,9 +738,10 @@ These are part of the redesign build, in this order. They are listed so none of 
 15. Remove dead screens: `players/search`, `app/(screens)/game.tsx`, and the Settings game-rules block. Fold Profile into Me.
 16. Scorecard menu: Players and Share. Preview lives inside Share.
 17. Undo asks before it removes the round.
-18. New game reads my players. I'm playing stays optional. The game is stake. Prize coins default to the points.
+18. New game reads my players. I'm playing stays optional. The game is stake. On Settle, coins default to the points.
 19. Add non-player admin on the game sheet, picked only from my players, with the Find Players hand-off when they are missing. They get no score column. Promote stays available after the game is completed.
 20. Welcome email on account creation, from `scores@mindweavetech.com` via Resend. Sign-up still finishes if the send fails.
+21. Add a ? on every screen, using the first-draft help under section 3. Skip obvious scoring instructions.
 
 ## 7. Testing plan
 
@@ -748,9 +783,10 @@ Run on a device or emulator with two accounts already created (A is the admin, B
 | Undo | Undo, cancel, Undo, confirm | Round remains after cancel, and is gone after confirm. |
 | Rotate | Scorecard portrait → landscape → portrait | The title “Scorecard” lines up with the back button both times. Totals stay in the header. |
 | Share | Copy link, open the URL in Chrome | Rendered page, not source. Start time and game ID visible. Add a round, wait, the page shows it. |
-| Complete | Done | Coins start equal to the points. Edit one, Confirm. Game shows Completed. Coins match the edit. |
-| Settle blocked | B, who is not an admin of every selected game, opens Settle and continues | Message names the game. No ledger. |
-| Settle | A → Settle prizes, Today, pick the game, pay From B To A, Save, tap the row, change the amount, Save | Now column updates both times. A payment that does not add to 0 cannot save. When every balance is 0 and A marks it complete, the row does not open for edit. |
+| Complete | Done, Confirm | Points are shown and cannot be edited. No Settle and no coin fields. Scorecard says Completed. |
+| Settle empty | D, admin of no finished game, taps Settle on Home | Explanation, no spinner, button was visible. |
+| Settle | A → Home → Settle, Today, pick two games, pay From B To A, Save, tap the row, change the amount, Save | Now column updates both times. A payment that does not add to 0 cannot save. When every balance is 0 and A marks it Settled, the row does not open for edit. The scorecard has no Settle control. |
+| Help | Tap ? on Home, the scorecard, and Settle | A short note opens and closes. The scorecard note does not teach scoring. |
 | Today chip | Home, chip Today | Only today’s games. All brings the rest back without a full-screen spinner. |
 | Offline | Airplane mode, open Home | Last list stays, or an error with Retry. Not an endless spinner. |
 | Me | Avatar, edit name, toggle dark mode, log out, sign in | Name saved. Dark mode still on. |
@@ -775,12 +811,12 @@ Maestro will not catch a misaligned header as reliably as eyes will, and it will
 
 1. The iPhone app is not in the App Store. Until there is a TestFlight or store URL, `…/Games/get` will tell iPhone users the app is not available yet. Confirm that is acceptable, and send the APK URL that Android should download in the meantime.
 2. Recent’s Today chip follows the phone’s timezone, which is what the current Today tile does. Say if a session should use a fixed timezone instead.
-3. Stake coins often do not add to 0 when the expense column took points. Complete still allows that, and the coins start equal to the points. Settle then cannot reach all zeros unless those coins are edited. Is editing at Complete the right place, or should expense be its own ledger line?
+3. Coins on Settle start equal to the points, and Complete does not edit them. They often do not add to 0 when the expense column took points, so the session cannot reach all zeros without a later adjustment. Should the expense be its own ledger line?
 4. Demo data (Load / Clear) moves under Me for `koneru2k@gmail.com`. Say if it should stay on Home instead.
 
 ## Later
 
-- Pool games. This redesign is stake only. Prize coins start equal to points.
+- Pool games. This redesign is stake only. Coins start equal to points.
 - After a settlement is completed, converting that finished points game into a different prize. Until that exists, a completed settlement cannot be edited.
 
 ## 9. Build order
@@ -790,8 +826,9 @@ No calendar estimate. This is the sequence, smallest confusing piece first, so a
 1. **Home and navigation.** Remove the duplicate tiles and the History screen. Recent is the list, with three chips, and a row opens the scorecard. Settle entry point, loading/error/empty. Fixes the spinner and the “0 Active” dead end. Touches Home, the tab bar, and the games query cache.
 2. **My players, Find, Invite.** New `my_players` data, + button, immediate list update, name and player ID only, exact email search, share sheet, delete the extra player screens and the invite form fields. Welcome email from `scores@mindweavetech.com`. Fixes the pencil, the spinner page, and Remove.
 3. **Scorecard header, admins, and the public page.** One header across rotation. Promote during and after the game. Add non-player admin from my players only. Publish `scorecard.html` and `get/index.html` on `sreeatcandorps.github.io/Games`. Point Copy link at Pages. Share does not show emails.
-4. **Settle prizes.** New ledger on Home. Anyone can start it. Only an admin of every selected game can record or edit payments, until the settlement is completed. Stake coins start equal to points.
+4. **Settle.** One entry on Home, labeled Settle, including the empty explanation. Ledger for the games that person admins. From / To / coins, editable until Settled. Coins start equal to points. No prize controls on a game screen.
 5. **Me.** Fold Profile and Settings together. Drop unused game rules. Phone stays optional. My own email stays on this screen.
-6. **Maestro pack and a phone pass** on the APK that contains 1–5, before that APK is handed to Sree.
+6. **Help.** The ? and the first-draft copy in section 3, on every screen.
+7. **Maestro pack and a phone pass** on the APK that contains 1–6, before that APK is handed to Sree.
 
-Slices 1–3 are the Friday-night confusion. Slice 4 is the prize redesign. Slice 5 is cleanup. Slice 6 is the gate.
+Slices 1–3 are the Friday-night confusion. Slice 4 is Settle. Slice 5 is cleanup. Slice 6 is the help icon and its copy. Slice 7 is the gate.
