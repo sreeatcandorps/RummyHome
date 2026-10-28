@@ -1,5 +1,5 @@
 appId: com.rummyhome.app
 ---
+# Settle is behind EXPO_PUBLIC_SETTLE_ENABLED, which is off.
 - launchApp
-- tapOn: "Settle"
-- assertVisible: "Settle is for finished games you run."
+- assertNotVisible: "Settle"

@@ -11,6 +11,7 @@ import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { takePlayerToCheck } from '@/utils/pendingPlayer';
+import { pointsGameLabel } from '@/constants/features';
 import { legacySettingsForGameType } from '@/utils/scoring';
 import { Screen } from '@/components/ui/Screen';
 import { BottomBar } from '@/components/ui/BottomBar';
@@ -95,7 +96,7 @@ export default function NewGame() {
     <Screen
       contentStyle={styles.content}
     >
-      <Text variant="titleMedium">Stake</Text>
+      <Text variant="titleMedium">{pointsGameLabel()}</Text>
       <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
         Drop {defaults.dropAmount} · Middle {defaults.mdAmount} · Max {defaults.maxCount}
       </Text>

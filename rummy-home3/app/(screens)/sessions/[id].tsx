@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Redirect, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { settleEnabled } from '@/constants/features';
 import { PrizeSession, sessionsService } from '@/services/sessions';
 import { Screen } from '@/components/ui/Screen';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -13,6 +14,11 @@ import { spacing, tabularNums, useAppTheme } from '@/constants/theme';
 const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
 export default function SettleLedger() {
+  if (!settleEnabled) return <Redirect href="/(tabs)" />;
+  return <SettleLedgerBody />;
+}
+
+function SettleLedgerBody() {
   const { colors } = useAppTheme();
   const { id } = useLocalSearchParams();
   const [session, setSession] = useState<PrizeSession | null>(null);

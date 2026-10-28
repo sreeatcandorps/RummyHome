@@ -19,6 +19,7 @@ import { buildPlayerInitials } from '@/utils/playerInitials';
 import { scorecardUrl } from '@/utils/shareLink';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
+import { settleEnabled } from '@/constants/features';
 import { HELP } from '@/constants/help';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { useLayout } from '@/hooks/useLayout';
@@ -348,7 +349,7 @@ export default function GameScreen() {
   const grandTotal = players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0);
 
   const startedOn = formatGameDateTime(game.date);
-  const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : 'cash-multiple'} />;
+  const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : settleEnabled ? 'cash-multiple' : 'numeric'} />;
   const statusTag = game.isComplete ? (
     <Tag label="Completed" icon="flag-checkered" />
   ) : (

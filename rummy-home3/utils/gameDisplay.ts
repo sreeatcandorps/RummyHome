@@ -1,4 +1,5 @@
 import { Game } from '@/types/game';
+import { pointsGameLabel } from '@/constants/features';
 import { gameTypeColors } from '@/constants/theme';
 import { isLocalToday } from '@/utils/localDay';
 
@@ -28,7 +29,7 @@ export function gameIdLabel(game: Pick<Game, 'id' | 'shareCode'>): string {
 }
 
 export function gameTypeLabel(gameType: Game['gameType']): string {
-  return gameType === 'pool' ? 'Pool' : 'Stake';
+  return gameType === 'pool' ? 'Pool' : pointsGameLabel();
 }
 
 export function gameTypeTint(gameType: Game['gameType'], tints: typeof gameTypeColors = gameTypeColors) {

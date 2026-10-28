@@ -4,6 +4,8 @@ import { isLocalToday } from '../utils/localDay';
 import { userAdminsGame } from '../utils/gameAccess';
 import { inviteMessage, INVITE_URL } from '../utils/inviteLink';
 import { matchesMyPlayer, playerSearchMode } from '../utils/playerSearch';
+import { HELP } from '../constants/help';
+import { pointsGameLabel, settleEnabled } from '../constants/features';
 import { coinSum, openingBalances, stakePrizeShares, validateLegs } from '../utils/prizeSession';
 
 test('find search is a full email, a name, or nothing for a phone', () => {
@@ -34,6 +36,13 @@ test('only an admin of the game can settle it', () => {
   assert.equal(userAdminsGame(game, 'host'), true);
   assert.equal(userAdminsGame(game, 'keeper'), true);
   assert.equal(userAdminsGame(game, 'player'), false);
+});
+
+test('settle is on hold and the visible help does not name it', () => {
+  assert.equal(settleEnabled, false);
+  assert.equal(pointsGameLabel(), 'Points');
+  const shown = [HELP.home, HELP.newGame, HELP.scorecard, HELP.complete, HELP.scoreEntry, HELP.players, HELP.me].join('\n');
+  assert.doesNotMatch(shown, /settle|prize|stake|coins|ledger/i);
 });
 
 test('stake opening coins are the points and expense is not a person', () => {

@@ -2,7 +2,7 @@ appId: com.rummyhome.app
 ---
 - launchApp
 - assertVisible: "New game"
-- assertVisible: "Settle"
+- assertNotVisible: "Settle"
 - assertVisible: "No live game."
 - tapOn: "No live game."
 - assertNotVisible: "Loading your games"

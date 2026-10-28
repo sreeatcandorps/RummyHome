@@ -9,6 +9,7 @@ import { gamesService } from '@/services/games';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { settleEnabled } from '@/constants/features';
 import { formatGameDateTime, gameIdLabel, gameTypeLabel, isLocalToday } from '@/utils/gameDisplay';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -155,18 +156,22 @@ export default function Dashboard() {
           <View style={styles.columns}>
             <View style={styles.column}>
               {liveCard}
-              <Button mode="outlined" icon="scale-balance" onPress={() => router.push('/(screens)/settle')} style={styles.settle}>
-                Settle
-              </Button>
+              {settleEnabled ? (
+                <Button mode="outlined" icon="scale-balance" onPress={() => router.push('/(screens)/settle')} style={styles.settle}>
+                  Settle
+                </Button>
+              ) : null}
             </View>
             <View style={styles.column}>{recent}</View>
           </View>
         ) : (
           <View>
             {liveCard}
-            <Button mode="outlined" icon="scale-balance" onPress={() => router.push('/(screens)/settle')} style={styles.settle}>
-              Settle
-            </Button>
+            {settleEnabled ? (
+              <Button mode="outlined" icon="scale-balance" onPress={() => router.push('/(screens)/settle')} style={styles.settle}>
+                Settle
+              </Button>
+            ) : null}
             {recent}
           </View>
         )

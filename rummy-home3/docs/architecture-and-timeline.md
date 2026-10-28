@@ -167,8 +167,9 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Completed games can be grouped into a prize session (coins, not money). Apply `supabase/migrations/006_friday_game_night.sql` before using this on the APK. Passcode reset must use the GitHub Pages URL as the Supabase Site URL, or the email keeps pointing at localhost.
 
 ### 2026-10-28 — Redesign (Home, my players, Settle, Pages scorecard)
-- Three tabs: Home, Players, Me. History, the stat tiles, and the whole-directory player list are gone. Settle is only on Home. A non-player admin is a `game_players` row with `seated = false`.
-- Public scorecard and the invite page are static HTML for GitHub Pages (`public/scorecard.html`, `public/get/index.html`), not the Supabase function URL. Apply `007_redesign.sql` after `006` before my players, unseated admins, and payment edits work on the live database.
+- Three tabs: Home, Players, Me. History, the stat tiles, and the whole-directory player list are gone. A non-player admin is a `game_players` row with `seated = false`.
+- Settle is on hold the same day. `EXPO_PUBLIC_SETTLE_ENABLED` is off, so Home does not show it and new games are labeled Points. The screens and `prize_sessions` tables stay.
+- Public scorecard and the invite page are static HTML for GitHub Pages (`public/scorecard.html`, `public/get/index.html`), not the Supabase function URL. Apply `007_redesign.sql` after `006` before my players and unseated admins work on the live database.
 
 ### 2026-10-27 — Admin demo seed on Supabase
 - Home-screen Load/Clear demo data is available in release builds only for an allowlisted admin email (`EXPO_PUBLIC_ADMIN_EMAILS`, default `koneru2k@gmail.com`, enforced again in `public.is_demo_admin()`).
@@ -191,9 +192,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Auth (email/passcode, session refresh) | Done enough for testing |
 | Profiles / Player ID + share | Done |
 | Find players (name, player ID, exact email, +) | Done; needs `007` on the live database |
-| New game (stake, my players) | Done |
+| New game (points, my players) | Done. Stored type is still the points game |
 | Game table + score entry | Done, portrait + landscape. One Scorecard header |
-| Home Recent / Settle | Done. History screen redirects home |
+| Home Recent | Done. History screen redirects home |
+| Settle / prize sessions | On hold. Flag off. Tables and screens kept |
 | Theming (light/dark) | Done; dark mode is on Me and saved on the phone |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`. `005` only if you use demo data |
 | Public scorecard | GitHub Pages HTML. Paste the anon key into `public/scorecard.html` before the live link loads a game |

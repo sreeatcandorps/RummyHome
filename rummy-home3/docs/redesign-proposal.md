@@ -2,27 +2,29 @@
 
 Status: approved and built on `cursor/visual-redesign-3550`. The current look (felt green, cream, seat colors) stays. This redesign is about fewer screens, fewer taps, and the bugs from the latest APK (`a933e6b`). Apply `supabase/migrations/007_redesign.sql` after `006` before the new roster and unseated-admin rows work on the live project.
 
+**Settle: On hold.** Sree paused the whole Settle/prize feature. It may be removed later. `EXPO_PUBLIC_SETTLE_ENABLED` is off, so Home has no Settle button, help text does not mention it, and new games are points only. The screens, services, and database tables stay so it can be discussed later. Set the flag to `true` to show it again.
+
 Product rules that stay, from `docs/product-contract.md`, `docs/friday-setup.md`, and `docs/testing-strategy.md`:
 
 - Sign in with email and a 6-digit passcode. Phone is optional profile data. No SMS.
 - A game has 2–20 seated players. The creator is a game admin even when they only keep score.
 - Any game admin can enter and undo scores, and can promote a seated player during the game or after it is completed. A non-player admin can do the same and is not a score column. A seated player who is not an admin, and a view-only person, see the live scorecard and cannot change it.
 - Someone sees a game when they created it, are seated, were added as view-only, are a non-player admin, or their account email matches a seat. An outsider does not see it in the app. Anyone with the unguessable link can watch the public page. The app never shows that email.
-- Games in this redesign are stake games. Coins start equal to each player’s points. The on-screen word is coins, not prize. A ledger entry can have several legs and must add to 0. The session is settled when every balance is 0.
-- Completed games stay scored. Coin edits are the ledger, not a rewrite of the rounds. Pool games are out of scope (see Later).
+- Games on screen are points only while Settle is on hold. The stored game type is still the points game (the old stake type). Pool stays out of scope.
+- Completed games stay scored. The Settle ledger, described below, is not shown.
 
 ## Decisions (Oct 28)
 
 Sree answered the open questions. These override any older line in this doc. The screens and flows below already follow them.
 
 1. **Email stays private.** The app never shows another person’s email. Search results, my players, the player sheet, and Share show name and player ID only. Find can search by email, and that match is the full address or nothing. After +, the email is still hidden. Your own email appears only on Sign in, Create account, and Me, because it is the login.
-2. **Settle, and only on Home.** The button is labeled Settle. The UI does not say Prize or Settle prizes. Settle is not on the scorecard, the complete step, or any other game screen. It stays on Home even when this person admins no games, and that opens a short explanation. The list is completed games they admin, picked together. Games they do not admin are not listed. Opening coins still start equal to each player’s points. Recording payments, editing a row, and marking Settled require them to be admin of every game in that session.
+2. **Settle, and only on Home. On hold.** The button was labeled Settle and lived only on Home. It is hidden while `EXPO_PUBLIC_SETTLE_ENABLED` is off. The description below is what comes back if the flag is turned on. The list is completed games they admin, picked together. Games they do not admin are not listed. Opening amounts still start equal to each player’s points. Recording payments, editing a row, and marking the session finished require them to be admin of every game in that session.
 3. **Promote after the game ends.** A game admin can make a seated player an admin during a live game and after it is completed.
 4. **Non-player admin.** Add non-player admin gives someone admin rights with no seat and no score column. The picker is my players only. If they are not on that list, the sheet says “Can’t find them? First add them to your player list in Find Players, then come back.” with a button to Find Players. Find is not a search box on the game screen.
 5. **Welcome email.** Creating an account sends a welcome email from `scores@mindweavetech.com` through Resend. Sign-up does not wait on that send.
 6. **Recent works.** Home’s Recent section lists the games this account can see. Tapping a row opens that scorecard. It uses the empty, loading, and error states in section 3.4. It does not open a second History screen and it does not spin forever.
-7. **Ledger edits.** Until the settlement is completed, tap any payment row to change it. After it is completed, rows stay as they are. Turning a finished points game into a prize later is under Later.
-8. **Stake only.** Coins for a stake game start equal to that player’s points. Pool is out of scope for this redesign. The word prize is not used on screen.
+7. **Ledger edits. On hold** with Settle. Until a session is completed, tap any payment row to change it. After it is completed, rows stay as they are. Turning a finished points game into something else later is under Later.
+8. **Points only while Settle is on hold.** New games show as Points. Pool is out of scope. The words prize, stake, coins, and ledger are not on screen.
 9. **Help.** Every screen has a small ? at the top. It opens a short note about the parts that are easy to misunderstand. It skips the obvious, including how to enter a score. First-draft text is under each screen in section 3. Sree will rewrite it.
 
 ## 1. Problems found
@@ -56,7 +58,7 @@ Three tabs. Games live on Home, so there is no separate History tab and no stat 
 
 | Tab | What it is |
 | --- | --- |
-| Home | New game, the live game, Settle, and Recent |
+| Home | New game, the live game, and Recent. Settle is on hold and is not shown |
 | Players | My players, with Find and Invite |
 | Me | My name, email, passcode, optional phone, appearance, log out |
 
@@ -420,7 +422,9 @@ Done on the scorecard opens this confirm. It is not a separate tab, and it does 
 
 Help: “This closes the game. It does not move coins. When you are ready to record payments across games, use Settle on Home.”
 
-### 3.12 Settle
+### 3.12 Settle (On hold)
+
+Not shown while `EXPO_PUBLIC_SETTLE_ENABLED` is off. The screen and the tables remain.
 
 Opened only from the Settle button on Home. Not from a scorecard, and not after Complete. Two steps on one stack.
 
@@ -813,7 +817,7 @@ These were still open when the build started. They are the behavior in the app u
 
 1. **Get page.** `https://sreeatcandorps.github.io/Games/get` tells an iPhone that the app is not up yet. Android says the preview APK is shared separately until Play exists. There is no store URL and no download link on that page.
 2. **Today.** The Today chip uses the phone’s local timezone, the same way the old Today tile did.
-3. **Expense.** Expense is not its own ledger person. Opening coins equal the seated players’ points only. If those coins do not add to 0, Settle says so. Payments between people keep that total, so the session cannot be marked Settled until the numbers do reach 0. Complete has no coin editor.
+3. **Expense. On hold** with Settle. Expense is not its own person on that ledger. Opening amounts equal the seated players’ points only. If those amounts do not add to 0, the held screen says so. Payments between people keep that total, so the session cannot be marked finished until the numbers do reach 0. Complete has no amount editor. The points game still has an expense column.
 4. **Demo data.** Load and Clear stay on Me, and only for the allowlisted admin email (`EXPO_PUBLIC_ADMIN_EMAILS`, default `koneru2k@gmail.com`). They are not on Home.
 
 ## Later

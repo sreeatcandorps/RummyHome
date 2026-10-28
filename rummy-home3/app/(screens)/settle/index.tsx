@@ -1,7 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
-import { router, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
+import { settleEnabled } from '@/constants/features';
 import { Game } from '@/types/game';
 import { authService } from '@/services/auth';
 import { gamesService } from '@/services/games';
@@ -9,7 +10,7 @@ import { sessionsService } from '@/services/sessions';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { userAdminsGame } from '@/utils/gameAccess';
-import { formatGameDateTime, gameIdLabel, isLocalToday } from '@/utils/gameDisplay';
+import { formatGameDateTime, gameIdLabel, gameTypeLabel, isLocalToday } from '@/utils/gameDisplay';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { EMPTY_SETTLE } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
@@ -17,6 +18,11 @@ import { LoadingRows } from '@/components/ui/LoadingRows';
 import { spacing, useAppTheme } from '@/constants/theme';
 
 export default function SettlePicker() {
+  if (!settleEnabled) return <Redirect href="/(tabs)" />;
+  return <SettlePickerBody />;
+}
+
+function SettlePickerBody() {
   const { colors } = useAppTheme();
   const [games, setGames] = useState<Game[]>([]);
   const [past, setPast] = useState<{ id: string; status: 'open' | 'settled'; createdAt: string }[]>([]);
@@ -108,7 +114,7 @@ export default function SettlePicker() {
             accessibilityRole="checkbox"
             accessibilityState={{ checked: on }}
           >
-            {`${on ? '✓ ' : ''}${formatGameDateTime(game.date)}  ${gameIdLabel(game)}  Stake`}
+            {`${on ? '✓ ' : ''}${formatGameDateTime(game.date)}  ${gameIdLabel(game)}  ${gameTypeLabel(game.gameType)}`}
           </Button>
         );
       })}

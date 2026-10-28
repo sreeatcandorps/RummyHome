@@ -91,7 +91,7 @@ Before the next APK goes to Sree, someone else does this on a physical Android p
 - Open the copied link in Chrome. The table renders. The tab is not showing the page source.
 - Second phone, second account: they see the game, and view-only cannot score.
 - Players: +, remove, airplane mode during remove. No other person’s email on the list, the sheet, or Find.
-- One stake game completed with no coin fields, then Settle from Home until every Now is 0. A non-admin who taps Settle sees the explanation.
+- One points game completed from Done. Home has no Settle button.
 - A new account’s welcome email arrives from `scores@mindweavetech.com`.
 
-Pass when Home has New game, Settle, and Recent, and none of Active, Players, Today, History, or All players.
+Pass when Home has New game and Recent, and none of Settle, Active, Players, Today, History, or All players. Settle stays off until `EXPO_PUBLIC_SETTLE_ENABLED=true`.
