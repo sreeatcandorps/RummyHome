@@ -10,9 +10,11 @@ import {
   playersByFirstName,
   podiumPlaces,
   presentResults,
+  RESULTS_SCORE_MIN,
   resultsColumnWidths,
   resultsPlayerCount,
   resultsTableScrollsHorizontally,
+  resultsVisibleGameCount,
   scoreCell,
   splitTotals,
   totalAcrossGames,
@@ -128,17 +130,35 @@ test('a missing seat is a dash, a zero is a score, and names sort by first name'
   );
 });
 
-test('four games fit on a phone and a fifth game scrolls sideways', () => {
-  const phone = 358;
-  assert.equal(resultsTableScrollsHorizontally(phone, 3), false);
-  assert.equal(resultsTableScrollsHorizontally(phone, 4), false);
-  assert.equal(resultsTableScrollsHorizontally(phone, 5), true);
-  const four = resultsColumnWidths(phone, 4);
-  const five = resultsColumnWidths(phone, 5);
-  assert.equal(four.reduce((sum, value) => sum + value, 0), phone);
-  assert.equal(five.length, 7);
-  assert.ok(five.slice(1).every((value) => value === five[1]));
-  assert.ok(five.reduce((sum, value) => sum + value, 0) > phone);
+test('game columns follow the width, and the total keeps a slot', () => {
+  const gutter = 32;
+  const small = 360 - gutter;
+  const typical = 412 - gutter;
+  const largePhone = 430 - gutter;
+  const tablet = 1024 - gutter;
+  const games = 8;
+
+  assert.equal(resultsVisibleGameCount(small, games), 3);
+  assert.equal(resultsTableScrollsHorizontally(small, 3), false);
+  assert.equal(resultsTableScrollsHorizontally(small, games), true);
+  assert.equal(resultsColumnWidths(small, 3).reduce((sum, value) => sum + value, 0), small);
+
+  const typicalVisible = resultsVisibleGameCount(typical, games);
+  assert.ok(typicalVisible >= 4 && typicalVisible <= 5, `typical phone shows ${typicalVisible}`);
+  assert.ok(resultsVisibleGameCount(largePhone, games) >= typicalVisible);
+  assert.equal(resultsTableScrollsHorizontally(tablet, games), false);
+  assert.equal(resultsVisibleGameCount(tablet, games), games);
+  assert.ok(resultsVisibleGameCount(tablet, 20) > resultsVisibleGameCount(largePhone, 20));
+
+  for (const width of [small, typical, largePhone, tablet]) {
+    const widths = resultsColumnWidths(width, games);
+    assert.equal(widths.length, games + 2);
+    assert.ok(widths.slice(1).every((value) => value >= RESULTS_SCORE_MIN));
+    assert.equal(widths[0], 92);
+  }
+
+  const landscape = 844 - 24;
+  assert.ok(resultsVisibleGameCount(landscape, games) > resultsVisibleGameCount(small, games));
 });
 
 test('results stop at 50 players and a game stops at 15', () => {

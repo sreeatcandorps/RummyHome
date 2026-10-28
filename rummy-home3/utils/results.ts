@@ -187,8 +187,13 @@ export function playersByFirstName<T extends { id: string; name: string }>(playe
     || a.id.localeCompare(b.id));
 }
 
-/** Four game columns plus Total fill a phone. A fifth game is what starts the sideways scroll. */
-export const RESULTS_GAMES_WITHOUT_SCROLL = 4;
+/**
+ * A score column has to show a signed total such as "-1234" without crowding.
+ * 56 is the floor; extra space grows the columns toward 64 and beyond.
+ * The scorecard uses the same idea, stepping type up once a column reaches the 50s and 64.
+ */
+export const RESULTS_SCORE_MIN = 56;
+/** The player name stays a fixed width. Game columns take the rest. */
 export const RESULTS_NAME_COL = 92;
 
 function splitEven(available: number, count: number): number[] {
@@ -198,19 +203,39 @@ function splitEven(available: number, count: number): number[] {
   return Array.from({ length: count }, (_, index) => base + (index < extra ? 1 : 0));
 }
 
-/** Pixel widths: name, then one width per game, then Total. */
+/**
+ * Pixel widths: name, then one width per game, then Total.
+ * The name is fixed. Total is always one of the score columns, so it can stay on screen.
+ * As many game columns as fit at RESULTS_SCORE_MIN are shown; the rest scroll sideways.
+ */
 export function resultsColumnWidths(frameWidth: number, gameCount: number): number[] {
   const width = Math.max(0, Math.floor(frameWidth));
-  const nameWidth = width > RESULTS_NAME_COL + 40 ? RESULTS_NAME_COL : Math.max(72, Math.floor(width * 0.4));
   const games = Math.max(0, gameCount);
+  const nameWidth = width >= RESULTS_NAME_COL + RESULTS_SCORE_MIN * 2
+    ? RESULTS_NAME_COL
+    : Math.max(72, Math.min(RESULTS_NAME_COL, width - RESULTS_SCORE_MIN * 2));
   const scoreCount = games + 1;
   const available = Math.max(0, width - nameWidth);
-  const fittedSlots = Math.min(games, RESULTS_GAMES_WITHOUT_SCROLL) + 1;
-  if (games <= RESULTS_GAMES_WITHOUT_SCROLL) {
+  const slotsThatFit = Math.max(1, Math.min(scoreCount, Math.floor(available / RESULTS_SCORE_MIN) || 1));
+  if (slotsThatFit >= scoreCount) {
     return [nameWidth, ...splitEven(available, scoreCount)];
   }
-  const scoreWidth = Math.floor(available / fittedSlots);
-  return [nameWidth, ...Array(scoreCount).fill(scoreWidth)];
+  const base = Math.floor(available / slotsThatFit);
+  const gameWidth = Math.max(RESULTS_SCORE_MIN, base);
+  const remainder = gameWidth === base ? available - base * slotsThatFit : 0;
+  return [nameWidth, ...Array(games).fill(gameWidth), gameWidth + remainder];
+}
+
+/** How many game columns are on screen. Total has its own slot and is not counted here. */
+export function resultsVisibleGameCount(frameWidth: number, gameCount: number): number {
+  const games = Math.max(0, gameCount);
+  if (games === 0) return 0;
+  const widths = resultsColumnWidths(frameWidth, games);
+  const name = widths[0] ?? 0;
+  const gameWidth = Math.max(1, widths[1] ?? RESULTS_SCORE_MIN);
+  const totalWidth = widths[widths.length - 1] ?? gameWidth;
+  const room = Math.max(0, Math.floor(frameWidth) - name - totalWidth);
+  return Math.min(games, Math.floor(room / gameWidth));
 }
 
 export function resultsTableScrollsHorizontally(frameWidth: number, gameCount: number): boolean {

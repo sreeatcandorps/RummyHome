@@ -60,7 +60,15 @@ export function GameScoreGrid({
                 <Text numberOfLines={1} style={styles.headerText}>{game.name}</Text>
               </View>
             ))}
-            <View testID="col-Total" style={[styles.headCell, { width: scoreWidths[games.length], backgroundColor: brand.felt }]}>
+            <View
+              testID="col-Total"
+              style={[
+                styles.headCell,
+                styles.stuckRight,
+                styles.totalEdge,
+                { width: scoreWidths[games.length], height: HEADER_H, backgroundColor: brand.felt, zIndex: 6, borderLeftColor: colors.outlineVariant },
+              ]}
+            >
               <Text numberOfLines={1} style={styles.headerText}>Total</Text>
             </View>
           </View>
@@ -88,7 +96,12 @@ export function GameScoreGrid({
               <View
                 testID={`cell-${player.name}-Total`}
                 accessibilityLabel={`${player.name}, total, ${scoreCell({ [player.id]: totals[player.id] ?? 0 }, player.id)}`}
-                style={[styles.scoreCell, { width: scoreWidths[games.length] }]}
+                style={[
+                  styles.scoreCell,
+                  styles.stuckRight,
+                  styles.totalEdge,
+                  { width: scoreWidths[games.length], height: ROW_H, backgroundColor: stripe(index), zIndex: 3, borderLeftColor: colors.outlineVariant },
+                ]}
               >
                 <Text variant="bodyMedium" style={[tabularNums, styles.scoreText, scoreLook(scoreCell({ [player.id]: totals[player.id] ?? 0 }, player.id))]}>
                   {scoreCell({ [player.id]: totals[player.id] ?? 0 }, player.id)}
@@ -162,5 +175,12 @@ const styles = StyleSheet.create({
     position: 'sticky' as 'absolute',
     top: 0,
     zIndex: 3,
+  },
+  stuckRight: {
+    position: 'sticky' as 'absolute',
+    right: 0,
+  },
+  totalEdge: {
+    borderLeftWidth: StyleSheet.hairlineWidth,
   },
 });
