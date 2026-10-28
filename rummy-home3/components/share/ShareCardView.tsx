@@ -11,6 +11,12 @@ export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: Re
       <Text style={styles.title}>{card.title}</Text>
       <Text style={styles.date}>{card.date}</Text>
       <View style={styles.rule} />
+      {card.podiumFirst ? card.places.map((place) => (
+        <Text key={place.label} style={styles.podium}>
+          {`${place.label}  ${place.names}  ${place.points}`}
+        </Text>
+      )) : null}
+      {card.podiumFirst && card.lines.length > 0 ? <Text style={styles.more}>Totals</Text> : null}
       {card.lines.map((line) => (
         <View key={`${line.name}-${line.points}`} style={styles.line}>
           <Text style={styles.name} numberOfLines={1}>{line.name}</Text>
@@ -22,12 +28,12 @@ export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: Re
       {card.moreCount > 0 ? (
         <Text style={styles.more}>{`and ${card.moreCount} more`}</Text>
       ) : null}
-      {card.places.length > 0 ? <View style={styles.rule} /> : null}
-      {card.places.map((place) => (
+      {!card.podiumFirst && card.places.length > 0 ? <View style={styles.rule} /> : null}
+      {!card.podiumFirst ? card.places.map((place) => (
         <Text key={place.label} style={styles.place}>
           {`${place.label}  ${place.names}  ${place.points}`}
         </Text>
-      ))}
+      )) : null}
     </View>
   );
 }
@@ -86,5 +92,10 @@ const styles = StyleSheet.create({
   place: {
     color: brand.cream,
     fontWeight: '700',
+  },
+  podium: {
+    color: brand.cream,
+    fontWeight: '800',
+    fontSize: 18,
   },
 });

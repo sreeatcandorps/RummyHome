@@ -21,7 +21,12 @@ export type ShareCard = {
   lines: ShareCardLine[];
   moreCount: number;
   places: ShareCardPlace[];
+  /** Results image leads with 1st, 2nd, and 3rd, then a short totals list. */
+  podiumFirst?: boolean;
 };
+
+/** The results picture stays short: the podium, then the leading totals. */
+export const RESULTS_IMAGE_TOTAL_CAP = 6;
 
 export function sharePlaces(standings: ResultStanding[]): { label: string; names: string; points: number }[] {
   return podiumPlaces(standings).map((group) => ({
@@ -51,5 +56,23 @@ export function buildShareCard(input: {
       names: place.names,
       points: formatPoints(place.points),
     })),
+  };
+}
+
+/** A simple results picture: Rummy Home, the title, the date, the podium, and the top totals. */
+export function buildResultsShareCard(input: {
+  title: string;
+  date: string;
+  rows: { name: string; points: number }[];
+  places?: { label: string; names: string; points: number }[];
+}): ShareCard {
+  return {
+    ...buildShareCard({ ...input, rows: input.rows }),
+    podiumFirst: true,
+    lines: [...input.rows]
+      .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
+      .slice(0, RESULTS_IMAGE_TOTAL_CAP)
+      .map((row) => ({ name: row.name, points: formatPoints(row.points) })),
+    moreCount: Math.max(0, input.rows.length - RESULTS_IMAGE_TOTAL_CAP),
   };
 }

@@ -43,7 +43,7 @@ export const HELP = {
   me:
     'The email here is yours. It is how you sign in. Your player ID is what you give someone so they can find you. Phone is optional and is never texted. Dark mode is saved on this phone.',
   results:
-    'Check finished games, then show the results. Positive totals are on the left and negative totals are on the right. Each row is a game and each column is a player. A dash means they did not play. 1st, 2nd, and 3rd place are at the bottom, and the highest score is the winner. Declare results saves that snapshot, and only an admin of every checked game can do it. Anyone can view a declared result. Results can include at most 50 players. Share sends an image.',
+    'Check finished games, then show the results. Positive totals are on the left and negative totals are on the right. Each row is a player, in first-name order, and the columns are the games and a total. A dash means they did not play. Four games fit across a phone. 1st, 2nd, and 3rd place are at the bottom, and the highest score is the winner. Declare results saves that snapshot, and only an admin of every checked game can do it. Anyone can view a declared result. Results can include at most 50 players. Share results sends a picture of the places. Share full details (PDF) sends the whole table.',
   publicScorecard:
     'This page updates on its own. The start time and game ID say which game it is. No login. Anyone with the link can watch.',
 } as const;

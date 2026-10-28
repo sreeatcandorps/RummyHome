@@ -11,7 +11,8 @@ import { gamesService } from '@/services/games';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { formatGameDateTime } from '@/utils/gameDisplay';
-import { buildShareCard, sharePlaces } from '@/utils/shareCard';
+import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
+import { buildResultsDetails } from '@/utils/resultsDetails';
 import { gameResultName, presentResults, ResultSheet, ResultStanding, withinResultsPlayerLimit } from '@/utils/results';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
@@ -81,7 +82,7 @@ export default function ShownResults() {
 
   const card = useMemo(() => {
     if (standings.length === 0) return null;
-    return buildShareCard({
+    return buildResultsShareCard({
       title: 'Results',
       date: formatGameDateTime(createdAt),
       rows: standings.map((row) => ({ name: row.name, points: row.points })),
@@ -89,9 +90,24 @@ export default function ShownResults() {
     });
   }, [standings, createdAt]);
 
+  const details = useMemo(() => {
+    if (standings.length === 0) return null;
+    return buildResultsDetails({
+      createdAtLabel: formatGameDateTime(createdAt),
+      standings,
+      players: sheet.players,
+      games: sheet.games.map((game) => ({
+        id: game.id,
+        name: game.name,
+        when: formatGameDateTime(game.date),
+        scores: game.scores,
+      })),
+    });
+  }, [standings, sheet, createdAt]);
+
   return (
     <Screen>
-      <ResultsShare card={card} />
+      <ResultsShare card={card} details={details} />
       {error ? (
         <>
           <Text style={{ color: colors.error }}>{error}</Text>

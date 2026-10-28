@@ -13,6 +13,10 @@ export function ShareImageDialog({
   onDismiss,
   onShared,
   onFail,
+  title = 'Share results',
+  shareLabel = 'Share image',
+  onDetails,
+  detailsBusy = false,
 }: {
   visible: boolean;
   card: ShareCard | null;
@@ -20,6 +24,10 @@ export function ShareImageDialog({
   onDismiss: () => void;
   onShared: (notice: string) => void;
   onFail: (message: string) => void;
+  title?: string;
+  shareLabel?: string;
+  onDetails?: () => void;
+  detailsBusy?: boolean;
 }) {
   const { colors } = useAppTheme();
   const cardRef = useRef<View>(null);
@@ -42,16 +50,21 @@ export function ShareImageDialog({
       <View style={[styles.backdrop, { backgroundColor: colors.backdrop }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onDismiss} accessibilityLabel="Close share results" />
         <View style={[styles.dialog, { backgroundColor: colors.surface }]}>
-          <Text variant="headlineSmall" accessibilityRole="header" style={styles.title}>Share results</Text>
+          <Text variant="headlineSmall" accessibilityRole="header" style={styles.title}>{title}</Text>
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
             {card ? <ShareCardView card={card} cardRef={cardRef} /> : null}
             {notice ? <Text variant="bodyMedium" style={styles.notice}>{notice}</Text> : null}
           </ScrollView>
           <View style={styles.actions}>
-            <Button onPress={onDismiss} disabled={busy}>Close</Button>
-            <Button mode="contained" icon="image" onPress={share} loading={busy} disabled={busy || !card}>
-              Share image
+            <Button onPress={onDismiss} disabled={busy || detailsBusy}>Close</Button>
+            <Button mode="contained" icon="image" onPress={share} loading={busy} disabled={busy || detailsBusy || !card}>
+              {shareLabel}
             </Button>
+            {onDetails ? (
+              <Button mode="outlined" icon="file-pdf-box" onPress={onDetails} loading={detailsBusy} disabled={busy || detailsBusy}>
+                Share full details (PDF)
+              </Button>
+            ) : null}
           </View>
         </View>
       </View>
@@ -90,6 +103,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
     gap: spacing.xs,
     paddingHorizontal: spacing.md,

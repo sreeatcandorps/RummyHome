@@ -1,14 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MAX_RESULTS_PLAYERS, RESULTS_PLAYER_LIMIT, SEATED_PLAYER_LIMIT } from '../constants/limits';
-import { buildShareCard, SHARE_CARD_LINE_CAP } from '../utils/shareCard';
+import { buildResultsShareCard, buildShareCard, RESULTS_IMAGE_TOTAL_CAP, SHARE_CARD_LINE_CAP } from '../utils/shareCard';
+import { buildResultsDetails, resultsDetailsHtml, resultsDetailsPdf } from '../utils/resultsDetails';
 import {
   canDeclareResults,
   formatPoints,
   placeLabel,
+  playersByFirstName,
   podiumPlaces,
   presentResults,
+  resultsColumnWidths,
   resultsPlayerCount,
+  resultsTableScrollsHorizontally,
   scoreCell,
   splitTotals,
   totalAcrossGames,
@@ -86,7 +90,7 @@ test('positive totals stay on the left, negative totals on the right, each by ma
   ]);
 });
 
-test('each game is a row, a missing seat is a dash, and a zero is a score', () => {
+test('a missing seat is a dash, a zero is a score, and names sort by first name', () => {
   const { sheet } = presentResults([
     {
       id: 'g2',
@@ -113,6 +117,28 @@ test('each game is a row, a missing seat is a dash, and a zero is a score', () =
   assert.equal(sheet.players.some((player) => player.id === 'EX'), false);
   const ada = sheet.players.find((player) => player.name === 'Ada');
   assert.equal(ada && sheet.games[1].scores[ada.id], 5);
+  assert.deepEqual(playersByFirstName(sheet.players).map((player) => player.name), ['Ada', 'Bea', 'Cam']);
+  assert.deepEqual(
+    playersByFirstName([
+      { id: 'z', name: 'Zoe Ann' },
+      { id: 'a', name: 'ann' },
+      { id: 'b', name: 'Bea' },
+    ]).map((player) => player.name),
+    ['ann', 'Bea', 'Zoe Ann'],
+  );
+});
+
+test('four games fit on a phone and a fifth game scrolls sideways', () => {
+  const phone = 358;
+  assert.equal(resultsTableScrollsHorizontally(phone, 3), false);
+  assert.equal(resultsTableScrollsHorizontally(phone, 4), false);
+  assert.equal(resultsTableScrollsHorizontally(phone, 5), true);
+  const four = resultsColumnWidths(phone, 4);
+  const five = resultsColumnWidths(phone, 5);
+  assert.equal(four.reduce((sum, value) => sum + value, 0), phone);
+  assert.equal(five.length, 7);
+  assert.ok(five.slice(1).every((value) => value === five[1]));
+  assert.ok(five.reduce((sum, value) => sum + value, 0) > phone);
 });
 
 test('results stop at 50 players and a game stops at 15', () => {
@@ -136,6 +162,79 @@ test('the share image names Rummy Home and shortens a long list', () => {
   assert.equal(card.moreCount, 3);
   assert.equal(card.lines[0].name, 'P14');
   assert.equal(card.places[0].points, '+14');
+
+  const resultsCard = buildResultsShareCard({
+    title: 'Results',
+    date: 'Wed, Oct 28 · 6:40 PM',
+    rows: Array.from({ length: RESULTS_IMAGE_TOTAL_CAP + 2 }, (_, index) => ({ name: `P${index}`, points: index })),
+    places: [{ label: '1st', names: 'P7', points: 7 }],
+  });
+  assert.equal(resultsCard.podiumFirst, true);
+  assert.equal(resultsCard.brand, 'Rummy Home');
+  assert.equal(resultsCard.lines.length, RESULTS_IMAGE_TOTAL_CAP);
+  assert.equal(resultsCard.moreCount, 2);
+  assert.equal(resultsCard.places[0].label, '1st');
+  assert.equal(resultsCard.lines[0].points, `+${RESULTS_IMAGE_TOTAL_CAP + 1}`);
+});
+
+test('the full details include the games, the player table, both totals, and the places', () => {
+  const { standings, sheet } = presentResults([
+    {
+      id: 'g1',
+      name: 'ALPHA',
+      date: '2026-10-28T15:00:00.000Z',
+      players: ['a', 'b'],
+      scores: { a: [20], b: [-20] },
+      names: { a: 'Ada', b: 'Bea' },
+    },
+    {
+      id: 'g2',
+      name: 'BETA',
+      date: '2026-10-28T17:00:00.000Z',
+      players: ['a'],
+      scores: { a: [5] },
+      names: { a: 'Ada' },
+    },
+  ]);
+  const details = buildResultsDetails({
+    createdAtLabel: 'Wed, Oct 28 · 6:40 PM',
+    standings,
+    players: sheet.players,
+    games: sheet.games.map((game) => ({ ...game, when: game.date })),
+  });
+  assert.deepEqual(details.rows.map((row) => row.name), ['Ada', 'Bea']);
+  assert.deepEqual(details.columns, ['ALPHA', 'BETA', 'Total']);
+  assert.equal(details.rows[1].cells[1], '—');
+  assert.equal(details.rows[0].cells[2], '+25');
+  const html = resultsDetailsHtml(details);
+  assert.match(html, /Rummy Home/);
+  assert.match(html, /Created Wed, Oct 28/);
+  assert.match(html, /ALPHA/);
+  assert.match(html, /BETA/);
+  assert.match(html, />Total</);
+  assert.match(html, /Positive/);
+  assert.match(html, /Negative/);
+  assert.match(html, /1st/);
+  const many = buildResultsDetails({
+    createdAtLabel: 'Wed, Oct 28 · 6:40 PM',
+    standings: Array.from({ length: 50 }, (_, index) => ({
+      id: `p${index}`,
+      name: `P${String(index).padStart(2, '0')}`,
+      points: index,
+      games: 1,
+      place: 1,
+    })),
+    players: Array.from({ length: 50 }, (_, index) => ({ id: `p${index}`, name: `P${String(index).padStart(2, '0')}` })),
+    games: [{ id: 'g', name: 'ALPHA', when: 'Wed', scores: {} }],
+  });
+  const pdf = new TextDecoder().decode(resultsDetailsPdf(many));
+  assert.match(pdf, /^%PDF-1\.4/);
+  assert.match(pdf, /ALPHA/);
+  assert.match(pdf, /P00/);
+  assert.match(pdf, /P49/);
+  const pageCount = pdf.match(/\/Count (\d+)/);
+  assert.ok(pageCount && Number(pageCount[1]) >= 2);
+  assert.match(pdf, /1st/);
 });
 
 test('only an admin of every selected game can declare', () => {

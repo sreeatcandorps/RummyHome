@@ -6,7 +6,8 @@ export const IMAGE_READY = 'Image ready.';
 function drawShareCard(card: ShareCard): string {
   if (typeof document === 'undefined') throw new Error('Could not make the image.');
   const width = 720;
-  const height = 240 + card.lines.length * 42 + (card.moreCount > 0 ? 36 : 0) + card.places.length * 36;
+  const podiumExtra = card.podiumFirst ? card.places.length * 44 + (card.lines.length > 0 ? 36 : 0) : card.places.length * 36;
+  const height = 240 + card.lines.length * 42 + (card.moreCount > 0 ? 36 : 0) + podiumExtra;
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = Math.max(height, 360);
@@ -29,7 +30,7 @@ function drawShareCard(card: ShareCard): string {
   ctx.fillText(card.date.slice(0, 40), 36, 176);
 
   let y = 230;
-  card.lines.forEach((line) => {
+  const drawLine = (line: { name: string; points: string }) => {
     ctx.fillStyle = '#FBF1E1';
     ctx.font = '600 24px sans-serif';
     ctx.fillText(line.name.slice(0, 24), 36, y);
@@ -39,19 +40,36 @@ function drawShareCard(card: ShareCard): string {
     ctx.fillText(line.points, canvas.width - 36, y);
     ctx.textAlign = 'left';
     y += 42;
-  });
+  };
+  if (card.podiumFirst) {
+    card.places.forEach((place) => {
+      ctx.fillStyle = '#FBF1E1';
+      ctx.font = '800 28px sans-serif';
+      ctx.fillText(`${place.label}  ${place.names}  ${place.points}`.slice(0, 42), 36, y);
+      y += 44;
+    });
+    if (card.lines.length > 0) {
+      ctx.fillStyle = '#E3B341';
+      ctx.font = '700 22px sans-serif';
+      ctx.fillText('Totals', 36, y);
+      y += 36;
+    }
+  }
+  card.lines.forEach(drawLine);
   if (card.moreCount > 0) {
     ctx.fillStyle = '#E3B341';
     ctx.font = '700 22px sans-serif';
     ctx.fillText(`and ${card.moreCount} more`, 36, y);
     y += 36;
   }
-  card.places.forEach((place) => {
-    ctx.fillStyle = '#FBF1E1';
-    ctx.font = '700 22px sans-serif';
-    ctx.fillText(`${place.label}  ${place.names}  ${place.points}`.slice(0, 48), 36, y);
-    y += 36;
-  });
+  if (!card.podiumFirst) {
+    card.places.forEach((place) => {
+      ctx.fillStyle = '#FBF1E1';
+      ctx.font = '700 22px sans-serif';
+      ctx.fillText(`${place.label}  ${place.names}  ${place.points}`.slice(0, 48), 36, y);
+      y += 36;
+    });
+  }
 
   return canvas.toDataURL('image/png');
 }

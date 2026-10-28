@@ -173,6 +173,51 @@ export function scoreCell(scores: Record<string, number>, playerId: string): str
   return formatPoints(scores[playerId]);
 }
 
+/** The word a person is sorted by. "Ann Marie" sorts with Ann. */
+export function firstNameKey(name: string): string {
+  const word = name.trim().split(/\s+/)[0] ?? '';
+  return (word || name).toLocaleLowerCase();
+}
+
+/** Rows of the results table: first name A–Z, then the full name. */
+export function playersByFirstName<T extends { id: string; name: string }>(players: T[]): T[] {
+  return [...players].sort((a, b) =>
+    firstNameKey(a.name).localeCompare(firstNameKey(b.name))
+    || a.name.localeCompare(b.name)
+    || a.id.localeCompare(b.id));
+}
+
+/** Four game columns plus Total fill a phone. A fifth game is what starts the sideways scroll. */
+export const RESULTS_GAMES_WITHOUT_SCROLL = 4;
+export const RESULTS_NAME_COL = 92;
+
+function splitEven(available: number, count: number): number[] {
+  if (count <= 0) return [];
+  const base = Math.floor(available / count);
+  const extra = available - base * count;
+  return Array.from({ length: count }, (_, index) => base + (index < extra ? 1 : 0));
+}
+
+/** Pixel widths: name, then one width per game, then Total. */
+export function resultsColumnWidths(frameWidth: number, gameCount: number): number[] {
+  const width = Math.max(0, Math.floor(frameWidth));
+  const nameWidth = width > RESULTS_NAME_COL + 40 ? RESULTS_NAME_COL : Math.max(72, Math.floor(width * 0.4));
+  const games = Math.max(0, gameCount);
+  const scoreCount = games + 1;
+  const available = Math.max(0, width - nameWidth);
+  const fittedSlots = Math.min(games, RESULTS_GAMES_WITHOUT_SCROLL) + 1;
+  if (games <= RESULTS_GAMES_WITHOUT_SCROLL) {
+    return [nameWidth, ...splitEven(available, scoreCount)];
+  }
+  const scoreWidth = Math.floor(available / fittedSlots);
+  return [nameWidth, ...Array(scoreCount).fill(scoreWidth)];
+}
+
+export function resultsTableScrollsHorizontally(frameWidth: number, gameCount: number): boolean {
+  const content = resultsColumnWidths(frameWidth, gameCount).reduce((sum, value) => sum + value, 0);
+  return content > frameWidth + 1;
+}
+
 /**
  * Rows follow the game date. Columns follow the places (highest points first).
  * A player who was not seated in that game has no score key.

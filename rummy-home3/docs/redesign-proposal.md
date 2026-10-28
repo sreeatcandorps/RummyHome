@@ -2,7 +2,7 @@
 
 Status: approved and built on `cursor/visual-redesign-3550`. The current look (felt green, cream, seat colors) stays. This redesign is about fewer screens, fewer taps, and the bugs from the latest APK (`a933e6b`). Apply `supabase/migrations/007_redesign.sql` after `006` before the new roster and unseated-admin rows work on the live project.
 
-**Results replaces Settle.** Home has a Results button. You check finished games, then show the results. The results page is exactly four parts, top to bottom: the title Results with the date and time it was created, totals with positive scores on the left and negative scores on the right, a table with one row per game and one column per player, and 1st, 2nd, and 3rd place at the bottom. Declare results is only for an admin of every selected game. Anyone signed in can view a declared result. Wording is place and winner. There is no payment, coin, or prize language on that screen.
+**Results replaces Settle.** Home has a Results button. You check finished games, then show the results. The results page is exactly four parts, top to bottom: the title Results with the date and time it was created, totals with positive scores on the left and negative scores on the right, a table with one row per player and a column per game plus a total, and 1st, 2nd, and 3rd place at the bottom. Declare results is only for an admin of every selected game. Anyone signed in can view a declared result. Wording is place and winner. There is no payment, coin, or prize language on that screen.
 
 Settle (payments, the ledger, coins, prize money) stays in the repo behind `EXPO_PUBLIC_SETTLE_ENABLED`, which is off. It is not on Home and it is not coming back as the product. Apply `supabase/migrations/008_results.sql` after `007` before Declare works on the live database. This change does not run that file.
 
@@ -367,7 +367,7 @@ Help: “Admin can change scores. View only can watch and is not a column. Add n
 +----------------------------------+
 ```
 
-- Share image is the picture for WhatsApp or a text. It shows Rummy Home, the game, the date, and the totals. A long list keeps the top names and says “and N more.” The same picture is available on a live game and on a completed game. Results uses the same kind of picture once the results page is open, from the header, not as another block on the page.
+- Share image is the picture for WhatsApp or a text. It shows Rummy Home, the game, the date, and the totals. A long list keeps the top names and says “and N more.” The same picture is available on a live game and on a completed game. Results, from the header, has its own two choices: Share results is a short picture of the podium and the top totals, and Share full details (PDF) is the whole table. Neither is another block on the page.
 - The link is the GitHub Pages URL in section 5, not the Supabase function URL. Copy link and Email stay as the secondary way to share the page.
 - Rows show name and player ID. They do not show an email address.
 - Copy link puts that URL on the clipboard and confirms “Copied.” The host can still paste it. The app does not collect a phone number.
@@ -443,11 +443,12 @@ Opened only from the Results button on Home. Not from a scorecard, and not after
 |  Player 1        +10    Player 4   -10   |
 |  Bea               0                     |
 |                                          |
-|  Game          Sree   P1   P2   P4   Bea |
-|  DP5MXW                                  |
-|  Tue · 4:40     +30   +10  -40   —    0  |
-|  K91Q                                    |
-|  Tue · 6:10     +20    —   +0  -10   —   |
+|  Player   DP5MXW   K91Q    Total       |
+|  Bea          0     —       0          |
+|  Player 1   +10     —     +10          |
+|  Player 2   -40   +0     -40          |
+|  Player 4     —   -10     -10          |
+|  Sree      +30   +20     +50          |
 |                                          |
 |  1st   Sree                         +50  |
 |  2nd   Player 1                     +10  |
@@ -457,16 +458,16 @@ Opened only from the Results button on Home. Not from a scorecard, and not after
 
 - The picker lists every finished game this person can see, not only games they run. Show results opens the page above. The created time is the moment Show results was tapped. A declared result uses the time it was declared.
 - Totals: everyone with a positive total, and anyone on exactly 0, is in the left column. Everyone with a negative total is in the right column. Each column is sorted by magnitude, largest first.
-- The table has one row per game. The row label is the game id and the date. The columns are every seated player across the selected games, highest points first. A cell is that player’s points in that game. A dash means they did not play. A zero means they played and scored 0. The expense column is not a person and is not a column here. The game column and the header row stay put. The rest scrolls up and down and left and right.
+- The table has one row per player. Names are sorted by first name, A to Z. The columns are each selected game, then a Total column. A cell is that player’s points in that game. A dash means they did not play. A zero means they played and scored 0. The expense column is not a person and is not a column here. The name column and the header row stay put. Up to 4 games, plus Total, fit on a phone with no sideways scroll. A fifth game is what starts that scroll. The rows scroll up and down, through as many as 50 players.
 - 1st, 2nd, and 3rd place are the last thing on the page. Highest points are 1st. A tie shares the place, and the next place skips.
 - A game can seat at most 15 players. The new-game screen and Add player say “A game can have at most 15 players.” A Results view can include at most 50 distinct players. Show results and Declare results stay off, and the screen says “Results can include at most 50 players.”
 - Declare results saves that snapshot, including each game’s scores, so the page can be opened later. The button stays off unless the signed-in person is an admin of every checked game. The screen says so. Anyone can view a declared result. Declaring again writes another result. It does not change the previous one.
-- Share in the header sends the picture. It is not a fifth section on the page.
+- Share in the header is not a fifth section on the page. It offers two choices. Share results sends a short picture: Rummy Home, the title, the date, 1st, 2nd, and 3rd, and the top totals. Share full details (PDF) sends a PDF with the title, the created date and time, the list of games, the full players-by-games table with totals, the positive and negative totals, and the places. A long list can run onto another page.
 - Empty list: “No finished games yet. Complete a game, then its points can be added up here.”
 - Nothing on this screen talks about payments, coins, or prizes. The words are place and winner.
 - The old Settle screens and `prize_sessions` tables remain in the repo. `EXPO_PUBLIC_SETTLE_ENABLED` is off, so those screens redirect home. They are not the feature.
 
-Help: “Check finished games, then show the results. Positive totals are on the left and negative totals are on the right. Each row is a game and each column is a player. A dash means they did not play. 1st, 2nd, and 3rd place are at the bottom, and the highest score is the winner. Declare results saves that snapshot, and only an admin of every checked game can do it. Anyone can view a declared result. Results can include at most 50 players. Share sends an image.”
+Help: “Check finished games, then show the results. Positive totals are on the left and negative totals are on the right. Each row is a player, in first-name order, and the columns are the games and a total. A dash means they did not play. Four games fit across a phone. 1st, 2nd, and 3rd place are at the bottom, and the highest score is the winner. Declare results saves that snapshot, and only an admin of every checked game can do it. Anyone can view a declared result. Results can include at most 50 players. Share results sends a picture of the places. Share full details (PDF) sends the whole table.”
 
 ### 3.13 Players (my list)
 
@@ -654,14 +655,14 @@ Help: “This page updates on its own. The start time and game ID say which game
 ### Results
 
 1. An admin taps Done on the scorecard, confirms the points, and returns to the scorecard. Nothing there mentions Results.
-2. Later, from Home, they tap Results. The list is finished games they can see. They check the ones from the night and tap Show results. The page is the title and time, the two total columns, the game rows, and 1st, 2nd, and 3rd place.
+2. Later, from Home, they tap Results. The list is finished games they can see. They check the ones from the night and tap Show results. The page is the title and time, the two total columns, players down the side with a column per game and a total, and 1st, 2nd, and 3rd place.
 3. If they run every checked game, and the selection has at most 50 players, Declare results saves the snapshot and opens the same page. Someone who does not run one of the checked games can still show the results, and Declare stays off.
 4. Anyone signed in can open that result again from Declared. Declaring again writes a new result.
 
 ### Share
 
 1. Scorecard → (...) → Share. This works while the game is live and after it is completed. Results → Share works once the results page is open.
-2. Share image makes the Rummy Home picture for WhatsApp or a text.
+2. On a scorecard, Share image makes the Rummy Home picture for WhatsApp or a text. On Results, Share results is the short podium picture, and Share full details (PDF) is the full table for WhatsApp or a text.
 3. Copy link is still there. Paste it into WhatsApp when a link is wanted. Or leave people checked and Email selected. The send uses the account address and does not show it. The sender is `scores@mindweavetech.com` when that Resend setup is in place.
 4. The recipient opens the link in a browser. No account. They see the start time, the game ID, and the live totals. Results does not have a public link.
 
@@ -688,7 +689,7 @@ These are part of the redesign build, in this order. They are listed so none of 
 
 1. Delete the Home tiles Active, Players, and Today, and the shortcut row Find players / History / All players. Home is section 3.4.
 2. Recent is the one games list, with All / Live / Today chips. Tapping a row opens that scorecard. Remove the History screen and the `filter` query params. Recent must not spin with no way out.
-3. Put Results on Home only, labeled Results. The picker lists finished games this person can see. Show results opens the four-part page: title and time, positive and negative totals, one row per game, then 1st, 2nd, and 3rd place. Declare is only for an admin of every checked game. Anyone can view a declared result. A game seats at most 15 players. A results view holds at most 50. Settle stays hidden behind its flag. Remove prize controls from the scorecard and from Complete.
+3. Put Results on Home only, labeled Results. The picker lists finished games this person can see. Show results opens the four-part page: title and time, positive and negative totals, one row per player with a column per game and a total, then 1st, 2nd, and 3rd place. Declare is only for an admin of every checked game. Anyone can view a declared result. A game seats at most 15 players. A results view holds at most 50. Settle stays hidden behind its flag. Remove prize controls from the scorecard and from Complete.
 4. Add `my_players` (owner, player, created_at, games_together). Find + inserts a row. Playing a game inserts rows for the other people. Home and New game read this list, not `select * from profiles`. Rows store no email for display.
 5. Find searches first name, last name, player ID, and email. An email hit requires the full address. Each result shows name, player ID, and +. The email is never shown, before or after +. + updates my list on screen immediately.
 6. Invite is only the native share sheet and `…/Games/get`. Remove the email, phone, WhatsApp, and Text fields from Find Players. Remove the unused SMS and mailto helpers on the Players screen.
@@ -749,7 +750,7 @@ Run on a device or emulator with two accounts already created (A is the admin, B
 | Rotate | Scorecard portrait → landscape → portrait | The title “Scorecard” lines up with the back button both times. Totals stay in the header. |
 | Share | Copy link, open the URL in Chrome | Rendered page, not source. Start time and game ID visible. Add a round, wait, the page shows it. |
 | Complete | Done, Confirm | Points are shown and cannot be edited. No Results button on the confirm. Scorecard says Completed. |
-| Results | A → Home → Results, check two finished games, Show results | The page is the title and time, positive totals on the left, negative totals on the right, one row per game, then 1st, 2nd, and 3rd. Declare works because A runs both games. The scorecard has no Results control. Home has no Settle button. |
+| Results | A → Home → Results, check two finished games, Show results | The page is the title and time, positive totals on the left, negative totals on the right, one row per player with a column per game and a total, then 1st, 2nd, and 3rd. Declare works because A runs both games. The scorecard has no Results control. Home has no Settle button. |
 | Results blocked | Check a finished game A does not run | Show results still opens. Declare stays off and the screen says only an admin of every selected game can declare. |
 | View | B opens the declared result | The same four parts, including each game’s scores. B cannot have declared a set that includes a game B does not run. |
 | Help | Tap ? on Home, the scorecard, and Results | A short note opens and closes. The scorecard note does not teach scoring. Results talks about place and winner. |
@@ -794,7 +795,7 @@ No calendar estimate. This is the sequence, smallest confusing piece first, so a
 1. **Home and navigation.** Remove the duplicate tiles and the History screen. Recent is the list, with three chips, and a row opens the scorecard. Results entry point, loading/error/empty. Fixes the spinner and the “0 Active” dead end. Touches Home, the tab bar, and the games query cache.
 2. **My players, Find, Invite.** New `my_players` data, + button, immediate list update, name and player ID only, exact email search, share sheet, delete the extra player screens and the invite form fields. Welcome email from `scores@mindweavetech.com`. Fixes the pencil, the spinner page, and Remove.
 3. **Scorecard header, admins, and the public page.** One header across rotation. Promote during and after the game. Add non-player admin from my players only. Publish `scorecard.html` and `get/index.html` on `sreeatcandorps.github.io/Games`. Point Copy link at Pages. Share does not show emails.
-4. **Results.** One entry on Home, labeled Results. Check finished games, show the four-part page, and declare only when the person runs every checked game. Anyone can view. Share image is on the scorecard and on that page. Settle stays hidden.
+4. **Results.** One entry on Home, labeled Results. Check finished games, show the four-part page, and declare only when the person runs every checked game. Anyone can view. The scorecard shares an image. Results shares a podium image and a full-details PDF. Settle stays hidden.
 5. **Me.** Fold Profile and Settings together. Drop unused game rules. Phone stays optional. My own email stays on this screen.
 6. **Help.** The ? and the first-draft copy in section 3, on every screen.
 7. **Maestro pack and a phone pass** on the APK that contains 1–6, before that APK is handed to Sree.

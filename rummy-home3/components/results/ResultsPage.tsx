@@ -58,7 +58,11 @@ export function ResultsPage({
         </View>
       </View>
 
-      <GameScoreGrid players={sheet.players} games={games} />
+      <GameScoreGrid
+        players={sheet.players}
+        games={games}
+        totals={Object.fromEntries(standings.map((row) => [row.id, row.points]))}
+      />
 
       <View testID="results-places" accessibilityLabel="Places" style={styles.places}>
         {places.map((group) => {
