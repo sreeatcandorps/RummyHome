@@ -64,8 +64,7 @@ export function ScoreTable({
 
   const fontSize = fontSizeFor(columnWidth);
   const rowHeight = compact ? 34 : columns.length > 8 ? 40 : 44;
-  const headerHeight = compact ? 38 : 48;
-  const totalsHeight = compact ? 40 : 48;
+  const headerHeight = compact ? 58 : 64;
 
   const translate = { transform: [{ translateX: Animated.multiply(scrollX, -1) }] };
   const onHorizontalScroll = Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
@@ -111,6 +110,26 @@ export function ScoreTable({
         >
           {column.label}
         </Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={[
+            styles.headerTotal,
+            tabularNums,
+            {
+              fontSize,
+              color: dealsNext
+                ? colors.onPrimary
+                : (totals[column.id] ?? 0) > 0
+                  ? colors.positive
+                  : (totals[column.id] ?? 0) < 0
+                    ? colors.negative
+                    : colors.onSurface,
+            },
+          ]}
+        >
+          {totals[column.id] ?? 0}
+        </Text>
         {dealsNext ? (
           <View style={styles.headerLabelRow}>
             {leader ? <Icon source="crown" size={10} color={colors.onPrimary} /> : null}
@@ -123,42 +142,6 @@ export function ScoreTable({
         ) : (
           <View style={[styles.seatBar, { backgroundColor: column.isExpense ? colors.outlineVariant : column.color }]} />
         )}
-      </View>
-    );
-  });
-
-  const totalCells = columns.map((column) => {
-    const total = totals[column.id] ?? 0;
-    const leader = isLeader(column.id);
-    return (
-      <View
-        key={column.id}
-        style={[
-          styles.cell,
-          { width: columnWidth, height: totalsHeight, borderRightColor: colors.hairline },
-          leader && { backgroundColor: colors.leaderContainer },
-        ]}
-      >
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          style={[
-            styles.totalText,
-            tabularNums,
-            {
-              fontSize: fontSize + 1,
-              color: leader
-                ? colors.onLeaderContainer
-                : total > 0
-                  ? colors.positive
-                  : total < 0
-                    ? colors.negative
-                    : colors.onSurfaceVariant,
-            },
-          ]}
-        >
-          {total}
-        </Text>
       </View>
     );
   });
@@ -287,6 +270,11 @@ export function ScoreTable({
               ]}
             >
               <Text style={[styles.cornerText, { color: colors.onSurfaceVariant }]}>RND</Text>
+              {grandTotal !== 0 ? (
+                <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1}>
+                  {grandTotal > 0 ? `+${grandTotal}` : grandTotal}
+                </Text>
+              ) : null}
             </View>
             <View style={styles.clip}>
               <Animated.View style={[styles.row, { width: contentWidth }, translate]}>{headerCells}</Animated.View>
@@ -302,21 +290,6 @@ export function ScoreTable({
             {body}
           </ScrollView>
 
-          <View style={[styles.row, styles.totalsRow, { backgroundColor: colors.tableHeader, borderTopColor: colors.primary }]}>
-            <View
-              style={[styles.cell, { width: roundColumnWidth, height: totalsHeight, borderRightColor: colors.outlineVariant }]}
-            >
-              <Text style={[styles.cornerText, { color: colors.onSurface }]}>TOTAL</Text>
-              {grandTotal !== 0 ? (
-                <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1}>
-                  {grandTotal > 0 ? `+${grandTotal}` : grandTotal}
-                </Text>
-              ) : null}
-            </View>
-            <View style={styles.clip}>
-              <Animated.View style={[styles.row, { width: contentWidth }, translate]}>{totalCells}</Animated.View>
-            </View>
-          </View>
         </>
       ) : null}
     </View>
@@ -366,6 +339,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.2,
     flexShrink: 1,
+  },
+  headerTotal: {
+    fontWeight: '800',
+    textAlign: 'center',
   },
   dealsText: {
     fontSize: 8,

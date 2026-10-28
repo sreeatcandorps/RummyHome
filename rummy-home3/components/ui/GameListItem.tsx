@@ -9,9 +9,10 @@ import { Tag } from '@/components/ui/Tag';
 type GameListItemProps = {
   game: Game;
   onPress: () => void;
+  selected?: boolean;
 };
 
-export function GameListItem({ game, onPress }: GameListItemProps) {
+export function GameListItem({ game, onPress, selected = false }: GameListItemProps) {
   const theme = useAppTheme();
   const isComplete = game.isComplete;
   const tint = gameTypeTint(game.gameType, theme.gameTypes);
@@ -28,8 +29,12 @@ export function GameListItem({ game, onPress }: GameListItemProps) {
         accessibilityLabel={`${gameTypeLabel(game.gameType)} game, ${dateLabel}, ${isComplete ? 'completed' : 'active'}`}
       >
         <View style={styles.row}>
-          <View style={[styles.typeIcon, { backgroundColor: tint.container }]}>
-            <Icon source={game.gameType === 'pool' ? 'trophy-outline' : 'cash-multiple'} size={22} color={tint.on} />
+          <View style={[styles.typeIcon, { backgroundColor: selected ? theme.colors.primary : tint.container }]}>
+            <Icon
+              source={selected ? 'check' : game.gameType === 'pool' ? 'trophy-outline' : 'cash-multiple'}
+              size={22}
+              color={selected ? theme.colors.onPrimary : tint.on}
+            />
           </View>
 
           <View style={styles.body}>

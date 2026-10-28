@@ -181,7 +181,7 @@ export default function PlayersScreen() {
           ]}
         >
           <TouchableRipple
-            onPress={() => router.push(`/players/${item.id}`)}
+            onPress={() => router.push(`/(screens)/players/${item.id}`)}
             borderless
             style={styles.cardRipple}
             accessibilityRole="button"
@@ -205,7 +205,7 @@ export default function PlayersScreen() {
                   size={22}
                   iconColor={colors.onSurfaceVariant}
                   accessibilityLabel={`Edit ${item.name}`}
-                  onPress={() => router.push(`/players/${item.id}/edit`)}
+                  onPress={() => router.push(`/(screens)/players/${item.id}/edit`)}
                 />
                 <IconButton
                   icon="delete-outline"
@@ -332,7 +332,7 @@ export default function PlayersScreen() {
         icon="account-plus-outline"
         label="Find players"
         style={[styles.fab, { right: gutterRight, bottom: insets.bottom + spacing.lg }]}
-        onPress={() => router.push('/players/new')}
+        onPress={() => router.push('/(screens)/players/new')}
       />
 
       <Portal>

@@ -1,11 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Button, Text } from 'react-native-paper';
 import { Game } from '@/types/game';
-import { Player } from '@/types/player';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { gamesService } from '@/services/games';
+import { playersService } from '@/services/players';
+import { sessionsService } from '@/services/sessions';
 import { authService } from '@/services/auth';
+import { isSupabaseConfigured } from '@/services/supabase';
+import { storage } from '@/utils/storage';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -19,10 +22,13 @@ export default function GameHistory() {
   const { colors } = useAppTheme();
   const { isWide } = useLayout();
   const [games, setGames] = useState<Game[]>([]);
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selecting, setSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [creatingSession, setCreatingSession] = useState(false);
+  const params = useLocalSearchParams<{ filter?: string }>();
 
   useFocusEffect(
     useCallback(() => {
@@ -38,8 +44,11 @@ export default function GameHistory() {
       const player = await authService.getCurrentPlayer();
       if (!player) return;
 
-      setCurrentPlayer(player);
-      const userGames = await gamesService.listGamesForCurrentUser(player.id);
+      const userGames = await gamesService.listGamesForCurrentUser(player.id, {
+        includeScores: false,
+        email: player.email,
+        limit: 100,
+      });
       setGames(userGames);
     } catch (err) {
       console.error('History load error:', err);
@@ -62,8 +71,37 @@ export default function GameHistory() {
   }
 
   const activeCount = games.filter((game) => !game.isComplete).length;
-  const activeGames = games.filter((game) => !game.isComplete);
-  const completedGames = games.filter((game) => game.isComplete);
+  const todayGames = games.filter((game) => new Date(game.date).toDateString() === new Date().toDateString());
+  const source = selecting
+    ? games
+    : params.filter === 'today'
+      ? todayGames
+      : params.filter === 'active'
+        ? games.filter((game) => !game.isComplete)
+        : games;
+  const activeGames = source.filter((game) => !game.isComplete);
+  const completedGames = source.filter((game) => game.isComplete);
+
+  const toggleSelected = (gameId: string) => {
+    setSelectedIds((current) => (current.includes(gameId) ? current.filter((id) => id !== gameId) : [...current, gameId]));
+  };
+
+  const createSession = async () => {
+    setCreatingSession(true);
+    setError(null);
+    try {
+      const directory = isSupabaseConfigured ? await playersService.listPlayers() : await storage.getPlayers();
+      const names = new Map(directory.map((player) => [player.id, player.name]));
+      const session = await sessionsService.create(selectedIds, names);
+      setSelecting(false);
+      setSelectedIds([]);
+      router.push(`/(screens)/sessions/${session.id}`);
+    } catch (err) {
+      setError(formatSupabaseError(err));
+    } finally {
+      setCreatingSession(false);
+    }
+  };
 
   const renderGroup = (title: string, icon: string, list: Game[]) =>
     list.length > 0 ? (
@@ -71,7 +109,11 @@ export default function GameHistory() {
         <View style={[styles.list, isWide && styles.grid]}>
           {list.map((game) => (
             <View key={game.id} style={isWide ? styles.gridItem : undefined}>
-              <GameListItem game={game} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
+              <GameListItem
+                game={game}
+                selected={selectedIds.includes(game.id)}
+                onPress={() => (selecting && game.isComplete ? toggleSelected(game.id) : router.push(`/(screens)/games/${game.id}`))}
+              />
             </View>
           ))}
         </View>
@@ -82,6 +124,33 @@ export default function GameHistory() {
     <Screen
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}
     >
+      <View style={styles.sessionBar}>
+        {selecting ? (
+          <>
+            <Button mode="text" onPress={() => { setSelecting(false); setSelectedIds([]); }}>
+              Cancel
+            </Button>
+            <Button
+              mode="contained"
+              icon="trophy-outline"
+              loading={creatingSession}
+              disabled={selectedIds.length === 0 || creatingSession}
+              onPress={createSession}
+            >
+              Create session ({selectedIds.length})
+            </Button>
+          </>
+        ) : (
+          <Button mode="outlined" icon="scale-balance" onPress={() => setSelecting(true)}>
+            Prize distribution
+          </Button>
+        )}
+      </View>
+      {selecting ? (
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+          Tap completed games to include them. Coins start from the points (stake) or the prize (pool).
+        </Text>
+      ) : null}
       {error ? (
         <SectionCard>
           <EmptyState
@@ -138,5 +207,11 @@ const styles = StyleSheet.create({
   gridItem: {
     flexBasis: '48%',
     flexGrow: 1,
+  },
+  sessionBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
 });

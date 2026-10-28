@@ -1,29 +1,33 @@
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Button, Text, Dialog, Icon, IconButton, Portal } from 'react-native-paper';
+import { Linking, Share, View, StyleSheet, ActivityIndicator } from 'react-native';
+import { Button, Text, Dialog, Icon, IconButton, Menu, Portal, TextInput } from 'react-native-paper';
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
+import * as Clipboard from 'expo-clipboard';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { EXPENSE_PLAYER_ID, gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
+import { playersService } from '@/services/players';
+import { sendScorecardEmail } from '@/services/mail';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
+import { storage } from '@/utils/storage';
 import { MIN_TOUCH_TARGET, radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime, gameIdLabel, gameTypeLabel } from '@/utils/gameDisplay';
 import { buildPlayerInitials } from '@/utils/playerInitials';
+import { scorecardUrl } from '@/utils/shareLink';
+import { coinSum } from '@/utils/prizeSession';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { useLayout } from '@/hooks/useLayout';
+import { PlayersSheet } from '@/components/game/PlayersSheet';
 import { ScoreColumn, ScoreTable } from '@/components/game/ScoreTable';
-import { Standing, Standings } from '@/components/game/Standings';
+import { ShareDialog } from '@/components/game/ShareDialog';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { StackedAction } from '@/components/ui/StackedAction';
 import { Tag } from '@/components/ui/Tag';
-
-/** Side panel width in landscape; the table takes everything else. */
-const SIDE_PANEL_WIDTH = 236;
 
 export default function GameScreen() {
   const { id } = useLocalSearchParams();
@@ -38,6 +42,17 @@ export default function GameScreen() {
   const [showCompleteResult, setShowCompleteResult] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [canScore, setCanScore] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [playersOpen, setPlayersOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareLink, setShareLink] = useState('');
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [roster, setRoster] = useState<Player[]>([]);
+  const [directory, setDirectory] = useState<Player[]>([]);
+  const [prizeDigits, setPrizeDigits] = useState('');
+  const [shareEdits, setShareEdits] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadGameData();
@@ -62,17 +77,24 @@ export default function GameScreen() {
     if (typeof id !== 'string') return;
 
     try {
-      const [currentGame, gamePlayers] = await Promise.all([
+      const userId = isSupabaseConfigured
+        ? await authService.getCurrentUserId()
+        : await storage.getCurrentPlayer();
+      const [currentGame, gamePlayers, access] = await Promise.all([
         gamesService.getGame(id),
-        gamesService.listGamePlayers(id)
+        gamesService.listGamePlayers(id),
+        gamesService.accessFor(id, userId),
       ]);
 
       if (currentGame) {
+        const seated = gamePlayers.filter((player) => player.seatRole !== 'spectator');
         setGame(currentGame);
+        setRoster(gamePlayers);
+        setCanScore(access.canScore);
         setPlayers(
           currentGame.settings?.expense
-            ? [...gamePlayers, { id: EXPENSE_PLAYER_ID, name: 'Expenses', role: 'player' } as Player]
-            : gamePlayers,
+            ? [...seated, { id: EXPENSE_PLAYER_ID, name: 'Expenses', role: 'player' } as Player]
+            : seated,
         );
       }
     } catch (error) {
@@ -117,12 +139,49 @@ export default function GameScreen() {
     }
   };
 
+  const playingSeats = () => players.filter((player) => player.id !== EXPENSE_PLAYER_ID);
+
+  const openComplete = () => {
+    const seats = playingSeats();
+    const edits: Record<string, string> = {};
+    seats.forEach((player) => {
+      edits[player.id] = String(getPlayerTotal(player.id));
+    });
+    setShareEdits(edits);
+    const leaderPoints = seats.reduce((best, player) => Math.max(best, getPlayerTotal(player.id)), 0);
+    setPrizeDigits(game?.gameType === 'pool' ? String(game.settings.poolAmount ?? 100) : String(leaderPoints));
+    setShowCompleteConfirm(true);
+  };
+
   const handleCompleteGame = async () => {
     if (!game) return;
 
+    const seats = playingSeats();
+    let prize: number | null = null;
+    let prizeShares: Record<string, number> | null = null;
+
+    if (game.gameType === 'pool') {
+      const parsed = Number(prizeDigits);
+      if (!Number.isInteger(parsed)) {
+        setActionError('Enter the pool prize as a whole number of coins.');
+        return;
+      }
+      prize = parsed;
+    } else {
+      prizeShares = {};
+      for (const seat of seats) {
+        const parsed = Number(shareEdits[seat.id] ?? '');
+        if (!Number.isInteger(parsed)) {
+          setActionError(`Enter whole coins for ${seat.name}.`);
+          return;
+        }
+        prizeShares[seat.id] = parsed;
+      }
+    }
+
     setCompleting(true);
     try {
-      const updatedGame = await gamesService.completeGame(game.id);
+      const updatedGame = await gamesService.completeGame(game.id, { prize, prizeShares });
       if (updatedGame) setGame(updatedGame);
       setShowCompleteConfirm(false);
       setShowCompleteResult(true);
@@ -132,6 +191,91 @@ export default function GameScreen() {
       setActionError(formatSupabaseError(error));
     } finally {
       setCompleting(false);
+    }
+  };
+
+  const openShare = async () => {
+    if (!game) return;
+    setMenuOpen(false);
+    setShareNotice(null);
+    setShareOpen(true);
+    try {
+      const token = await gamesService.ensureViewToken(game.id);
+      setShareLink(scorecardUrl(token));
+    } catch (error) {
+      setShareLink('');
+      setShareNotice(formatSupabaseError(error));
+    }
+  };
+
+  const copyShareLink = async () => {
+    if (!shareLink) return;
+    await Clipboard.setStringAsync(shareLink);
+    setShareNotice('Link copied. Paste it into WhatsApp.');
+  };
+
+  const emailShareLink = async (emails: string[]) => {
+    if (!game || !shareLink) return;
+    setShareBusy(true);
+    try {
+      const result = await sendScorecardEmail({
+        gameId: game.id,
+        emails,
+        url: shareLink,
+        gameLabel: gameIdLabel(game),
+        startedAt: formatGameDateTime(game.date),
+      });
+      setShareNotice(result.message);
+      if (!result.sent) {
+        await Share.share({ message: shareLink, title: `Rummy scorecard ${gameIdLabel(game)}` });
+      }
+    } finally {
+      setShareBusy(false);
+    }
+  };
+
+  const openPublicScorecard = async () => {
+    setMenuOpen(false);
+    try {
+      if (!game) return;
+      const token = game.viewToken ?? await gamesService.ensureViewToken(game.id);
+      const url = scorecardUrl(token);
+      const supported = await Linking.canOpenURL(url);
+      if (supported) await Linking.openURL(url);
+      else setActionError(url);
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    }
+  };
+
+  const openPlayers = async () => {
+    setMenuOpen(false);
+    setPlayersOpen(true);
+    try {
+      const everyone = isSupabaseConfigured ? await playersService.listPlayers() : await storage.getPlayers();
+      setDirectory(everyone);
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    }
+  };
+
+  const changeAdmin = async (player: Player, makeAdmin: boolean) => {
+    if (!game) return;
+    try {
+      await gamesService.setSeatRole(game.id, player.id, makeAdmin ? 'game_admin' : 'player');
+      await loadGameData();
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    }
+  };
+
+  const addViewer = async (player: Player) => {
+    if (!game) return;
+    try {
+      await gamesService.setSeatRole(game.id, player.id, 'spectator');
+      await loadGameData();
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
     }
   };
 
@@ -186,16 +330,6 @@ export default function GameScreen() {
   const bestTotal = standings[0]?.total;
   const hasLeader = maxRounds > 0 && standings.length > 0;
   const leaderIds = hasLeader ? standings.filter((entry) => entry.total === bestTotal).map((entry) => entry.player.id) : [];
-
-  const ranked: Standing[] = standings.map((entry) => ({
-    id: entry.player.id,
-    name: entry.player.name,
-    label: initialsFor(entry.player.id),
-    color: colorFor(entry.player.id),
-    total: entry.total,
-    rank: standings.findIndex((other) => other.total === entry.total) + 1,
-    isLeader: leaderIds.includes(entry.player.id),
-  }));
 
   const columns: ScoreColumn[] = players.map((player, index) => ({
     id: player.id,
@@ -265,7 +399,7 @@ export default function GameScreen() {
     <StackedAction
       icon="flag-checkered"
       label="Complete"
-      onPress={() => setShowCompleteConfirm(true)}
+      onPress={openComplete}
       height={isShort ? 44 : 56}
       accessibilityLabel="Complete game"
     />
@@ -315,21 +449,40 @@ export default function GameScreen() {
           </Text>
           {typeTag}
           {statusTag}
+          {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
           <View style={styles.flex} />
           <Text variant="labelMedium" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
             {startedOn}
           </Text>
           {idText}
+          <Menu
+            visible={menuOpen}
+            onDismiss={() => setMenuOpen(false)}
+            anchor={<IconButton icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu" />}
+          >
+            <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title="Players" />
+            <Menu.Item leadingIcon="share-variant" onPress={openShare} title="Share" />
+            <Menu.Item leadingIcon="eye-outline" onPress={openPublicScorecard} title="View" />
+          </Menu>
         </View>
       ) : (
         <View style={[styles.infoStrip, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
           <View style={styles.metaRow}>
             {typeTag}
             {statusTag}
+            {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
             <View style={styles.flex} />
             {idText}
+            <Menu
+              visible={menuOpen}
+              onDismiss={() => setMenuOpen(false)}
+              anchor={<IconButton icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu" />}
+            >
+              <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title="Players" />
+              <Menu.Item leadingIcon="share-variant" onPress={openShare} title="Share" />
+              <Menu.Item leadingIcon="eye-outline" onPress={openPublicScorecard} title="View" />
+            </Menu>
           </View>
-          {standings.length > 0 ? <Standings standings={ranked} layout="rail" /> : null}
         </View>
       )}
 
@@ -337,46 +490,29 @@ export default function GameScreen() {
         <View
           style={[
             styles.landscapeBody,
-            { paddingLeft: gutterLeft, paddingRight: gutterRight, paddingBottom: insets.bottom + spacing.sm },
+            { paddingLeft: gutterLeft, paddingRight: gutterRight },
           ]}
         >
           <View style={styles.flex}>{table}</View>
-          <View style={[styles.sidePanel, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
-            <Text variant="labelLarge" style={[styles.panelTitle, { color: colors.onSurfaceVariant }]}>
-              STANDINGS
-            </Text>
-            <Standings standings={ranked} layout="list" style={styles.flex} />
-            {!game.isComplete ? (
-              <View style={styles.panelActions}>
-                {addRoundButton}
-                <View style={styles.panelActionRow}>
-                  {undoButton}
-                  {completeButton}
-                </View>
-              </View>
-            ) : null}
-          </View>
         </View>
       ) : (
-        <>
-          <View
-            style={[
-              styles.portraitTable,
-              { paddingLeft: insets.left + spacing.sm, paddingRight: insets.right + spacing.sm },
-              game.isComplete && { paddingBottom: insets.bottom + spacing.md },
-            ]}
-          >
-            {table}
-          </View>
-          {!game.isComplete ? (
-            <BottomBar fullWidth>
-              {undoButton}
-              {addRoundButton}
-              {completeButton}
-            </BottomBar>
-          ) : null}
-        </>
+        <View
+          style={[
+            styles.portraitTable,
+            { paddingLeft: insets.left + spacing.sm, paddingRight: insets.right + spacing.sm },
+            (game.isComplete || !canScore) && { paddingBottom: insets.bottom + spacing.md },
+          ]}
+        >
+          {table}
+        </View>
       )}
+      {!game.isComplete && canScore ? (
+        <BottomBar fullWidth>
+          {undoButton}
+          {addRoundButton}
+          {completeButton}
+        </BottomBar>
+      ) : null}
 
       <Portal>
         <Dialog
@@ -386,13 +522,47 @@ export default function GameScreen() {
         >
           <Dialog.Icon icon="flag-checkered" />
           <Dialog.Title style={styles.dialogTitle}>Complete this game?</Dialog.Title>
-          <Dialog.Content style={styles.dialogContent}>
+          <Dialog.ScrollArea style={styles.resultScroll}>
             <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
-              {maxRounds === 0
-                ? 'No rounds have been scored yet. You can still close the game, but it will have no results.'
-                : `${maxRounds} ${maxRounds === 1 ? 'round' : 'rounds'} will be locked in and no more rounds can be added.`}
+              {game.gameType === 'pool'
+                ? 'Check the points, then enter the pool prize in coins.'
+                : 'For a stake game the prize starts as each player’s points. Edit the coins before you confirm.'}
             </Text>
-          </Dialog.Content>
+            {playingSeats().map((seat) => (
+              <View key={seat.id} style={styles.prizeRow}>
+                <Text variant="bodyLarge" style={styles.standingName} numberOfLines={1}>
+                  {seat.name}
+                </Text>
+                <Text variant="titleMedium" style={tabularNums}>
+                  {getPlayerTotal(seat.id)}
+                </Text>
+                {game.gameType === 'stake' ? (
+                  <TextInput
+                    mode="outlined"
+                    dense
+                    label="Coins"
+                    value={shareEdits[seat.id] ?? ''}
+                    onChangeText={(text) => setShareEdits((current) => ({ ...current, [seat.id]: text.replace(/[^0-9-]/g, '') }))}
+                    keyboardType="numbers-and-punctuation"
+                    style={styles.prizeInput}
+                  />
+                ) : null}
+              </View>
+            ))}
+            {game.gameType === 'pool' ? (
+              <TextInput
+                mode="outlined"
+                label="Prize (coins)"
+                value={prizeDigits}
+                onChangeText={(text) => setPrizeDigits(text.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+              />
+            ) : (
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+                Coins add to {coinSum(Object.fromEntries(playingSeats().map((seat) => [seat.id, Number(shareEdits[seat.id] || 0)])))}.
+              </Text>
+            )}
+          </Dialog.ScrollArea>
           <Dialog.Actions style={styles.dialogActions}>
             <Button onPress={() => setShowCompleteConfirm(false)}>Keep playing</Button>
             <Button
@@ -496,6 +666,30 @@ export default function GameScreen() {
             </Button>
           </Dialog.Actions>
         </Dialog>
+
+        <ShareDialog
+          visible={shareOpen}
+          people={roster.filter((person) => person.seatRole !== 'spectator').map((person) => ({
+            id: person.id,
+            name: person.name,
+            email: person.email,
+          }))}
+          link={shareLink}
+          busy={shareBusy}
+          notice={shareNotice}
+          onDismiss={() => setShareOpen(false)}
+          onCopy={copyShareLink}
+          onEmail={emailShareLink}
+        />
+        <PlayersSheet
+          visible={playersOpen}
+          seats={roster}
+          canManage={canScore}
+          candidates={directory}
+          onDismiss={() => setPlayersOpen(false)}
+          onToggleAdmin={changeAdmin}
+          onAddSpectator={addViewer}
+        />
       </Portal>
     </View>
   );
@@ -543,28 +737,6 @@ const styles = StyleSheet.create({
   },
   landscapeBody: {
     flex: 1,
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  sidePanel: {
-    width: SIDE_PANEL_WIDTH,
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    padding: spacing.sm,
-    gap: spacing.xs,
-  },
-  panelTitle: {
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    fontSize: 11,
-    paddingHorizontal: spacing.sm,
-    paddingTop: spacing.xs,
-  },
-  panelActions: {
-    gap: spacing.sm,
-    paddingTop: spacing.xs,
-  },
-  panelActionRow: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
@@ -636,5 +808,15 @@ const styles = StyleSheet.create({
   },
   standingTotal: {
     fontWeight: '800',
+  },
+  prizeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  prizeInput: {
+    width: 96,
+    backgroundColor: 'transparent',
   },
 });

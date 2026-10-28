@@ -149,7 +149,7 @@ export default function PlayerDetailScreen() {
         <Button
           mode="contained"
           icon="account-edit-outline"
-          onPress={() => router.push(`/players/${player.id}/edit`)}
+          onPress={() => router.push(`/(screens)/players/${player.id}/edit`)}
           style={styles.pillButton}
           contentStyle={styles.buttonContent}
         >

@@ -3,6 +3,7 @@ import { View, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { router } from 'expo-router';
 import { supabase } from '../../services/supabase';
+import { authRedirectUrl } from '@/utils/authRedirect';
 import { AuthShell } from '../../components/ui/AuthShell';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 import 'react-native-url-polyfill/auto'
@@ -37,7 +38,7 @@ export default function ForgotPasswordScreen() {
     try {
       // Send password reset email with the hosted GitHub Pages URL
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: 'https://sreeatcandorps.github.io/Games/',
+        redirectTo: authRedirectUrl(),
       });
 
       if (resetError) {

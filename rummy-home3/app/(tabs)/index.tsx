@@ -68,7 +68,7 @@ export default function Dashboard() {
       try {
         const [allPlayers, games] = await Promise.all([
           isSupabaseConfigured ? playersService.listPlayers() : storage.getPlayers(),
-          gamesService.listGamesForCurrentUser(player.id, { limit: 5, includeScores: false }),
+          gamesService.listGamesForCurrentUser(player.id, { limit: 50, includeScores: false, email: player.email }),
         ]);
         setPlayers(allPlayers);
         setRecentGames(games);
@@ -83,7 +83,7 @@ export default function Dashboard() {
           }
           const [allPlayers, games] = await Promise.all([
             playersService.listPlayers(),
-            gamesService.listGamesForCurrentUser(player.id, { limit: 5, includeScores: false }),
+            gamesService.listGamesForCurrentUser(player.id, { limit: 50, includeScores: false, email: player.email }),
           ]);
           setPlayers(allPlayers);
           setRecentGames(games);
@@ -161,9 +161,24 @@ export default function Dashboard() {
   }).length;
 
   const stats = [
-    { label: 'Active', value: activeGames, icon: 'play-circle-outline' },
-    { label: 'Players', value: players.length, icon: 'account-group-outline' },
-    { label: 'Today', value: gamesToday, icon: 'calendar-today' },
+    {
+      label: 'Active',
+      value: activeGames,
+      icon: 'play-circle-outline',
+      onPress: () => router.push({ pathname: '/(screens)/games/history', params: { filter: 'active' } }),
+    },
+    {
+      label: 'Players',
+      value: players.length,
+      icon: 'account-group-outline',
+      onPress: () => router.push('/(screens)/players'),
+    },
+    {
+      label: 'Today',
+      value: gamesToday,
+      icon: 'calendar-today',
+      onPress: () => router.push({ pathname: '/(screens)/games/history', params: { filter: 'today' } }),
+    },
   ];
 
   const shortcuts = [
@@ -254,7 +269,7 @@ export default function Dashboard() {
   const statsRow = (
     <View style={styles.row}>
       {stats.map((stat) => (
-        <StatTile key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} />
+        <StatTile key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} onPress={stat.onPress} />
       ))}
     </View>
   );

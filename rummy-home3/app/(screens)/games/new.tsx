@@ -32,6 +32,7 @@ export default function NewGame() {
   const [expenseDigits, setExpenseDigits] = useState('10');
   const [creating, setCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [includeMe, setIncludeMe] = useState(true);
 
   useEffect(() => {
     loadPlayers();
@@ -57,8 +58,6 @@ export default function NewGame() {
   };
 
   const togglePlayerSelection = (playerId: string) => {
-    if (playerId === currentUserId) return;
-
     if (selectedPlayers.includes(playerId)) {
       setSelectedPlayers(selectedPlayers.filter((id) => id !== playerId));
     } else {
@@ -70,7 +69,9 @@ export default function NewGame() {
     if (selectedPlayers.length < 2) {
       Alert.alert(
         'Need more players',
-        'Select at least one other registered player. Ask friends to create an account first, then use Find Players.',
+        includeMe
+          ? 'Select at least one other registered player. Ask friends to create an account first, then use Find Players.'
+          : 'Pick at least two registered players. You can keep score without playing.',
       );
       return;
     }
@@ -86,9 +87,9 @@ export default function NewGame() {
         throw new Error('You must be signed in to create a game.');
       }
 
-      const playerIds = selectedPlayers.includes(createdBy)
-        ? selectedPlayers
-        : [createdBy, ...selectedPlayers];
+      const playerIds = includeMe
+        ? (selectedPlayers.includes(createdBy) ? selectedPlayers : [createdBy, ...selectedPlayers])
+        : selectedPlayers.filter((id) => id !== createdBy);
 
       const newGame = await gamesService.createGame({
         playerIds,
@@ -121,14 +122,14 @@ export default function NewGame() {
   const currentUserName = availablePlayers.find((p) => p.id === currentUserId)?.name ?? 'You';
 
   const renderPlayerRow = (player: Player, isSelf: boolean) => {
-    const checked = isSelf || selectedPlayers.includes(player.id);
+    const checked = (isSelf && includeMe) || selectedPlayers.includes(player.id);
     const seat = selectedPlayers.indexOf(player.id);
 
     return (
       <TouchableRipple
         key={player.id}
-        onPress={isSelf ? undefined : () => togglePlayerSelection(player.id)}
-        disabled={isSelf}
+        onPress={isSelf ? () => setIncludeMe((current) => !current) : () => togglePlayerSelection(player.id)}
+        disabled={false}
         borderless
         style={[
           styles.playerRow,
@@ -138,7 +139,7 @@ export default function NewGame() {
         ]}
         accessibilityRole="checkbox"
         accessibilityLabel={player.name}
-        accessibilityState={{ checked, disabled: isSelf }}
+        accessibilityState={{ checked }}
       >
         <View style={styles.playerRowInner}>
           <SeatAvatar name={player.name} size={40} muted={!checked} color={seatColor(seat < 0 ? 0 : seat)} />
@@ -155,18 +156,18 @@ export default function NewGame() {
               style={{ color: checked ? colors.onPrimaryContainer : colors.onSurfaceVariant }}
               numberOfLines={1}
             >
-              {isSelf ? 'You (always included)' : player.email ?? 'No email on file'}
+              {isSelf ? (includeMe ? 'You are playing' : 'Keeping score only') : player.email ?? 'No email on file'}
             </Text>
           </View>
           <View
             style={[
               styles.check,
               checked
-                ? { backgroundColor: isSelf ? colors.outline : colors.primary, borderColor: 'transparent' }
+                ? { backgroundColor: colors.primary, borderColor: 'transparent' }
                 : { borderColor: colors.outline },
             ]}
           >
-            {checked ? <Icon source={isSelf ? 'lock' : 'check'} size={16} color={colors.onPrimary} /> : null}
+            {checked ? <Icon source="check" size={16} color={colors.onPrimary} /> : null}
           </View>
         </View>
       </TouchableRipple>
@@ -262,7 +263,7 @@ export default function NewGame() {
     <SectionCard
       title="Players"
       icon="account-group-outline"
-      supportingText="You are included automatically. Pick at least one other registered player."
+      supportingText="Include yourself only if you are playing. A scorekeeper can leave themselves out."
     >
       <Searchbar
         placeholder="Search name or email"
@@ -300,7 +301,10 @@ export default function NewGame() {
     </SectionCard>
   );
 
-  const selectedCount = selectedPlayers.length;
+  const rosterIds = includeMe || !currentUserId
+    ? selectedPlayers
+    : selectedPlayers.filter((id) => id !== currentUserId);
+  const selectedCount = rosterIds.length;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

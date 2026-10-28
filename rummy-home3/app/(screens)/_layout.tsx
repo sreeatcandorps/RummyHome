@@ -29,6 +29,7 @@ export default function ScreensLayout() {
       <Stack.Screen name="games/new" options={{ title: 'New game' }} />
       <Stack.Screen name="games/history" options={{ title: 'Game history' }} />
       <Stack.Screen name="games/[id]" options={{ title: 'Scoreboard' }} />
+      <Stack.Screen name="sessions/[id]" options={{ title: 'Prize distribution' }} />
       <Stack.Screen name="players/index" options={{ title: 'Players' }} />
       <Stack.Screen name="players/new" options={{ title: 'Find players' }} />
       <Stack.Screen name="players/search" options={{ title: 'Search players' }} />

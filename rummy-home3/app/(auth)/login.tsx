@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { PasscodeField } from '@/components/ui/PasscodeField';
 import { storage } from '../../utils/storage';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
@@ -12,7 +13,8 @@ import { takeStartupNotice } from '../../utils/startupNotice';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
-  const [email, setEmail] = useState('');
+  const params = useLocalSearchParams<{ email?: string }>();
+  const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
   const [passcode, setPasscode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -124,26 +126,10 @@ export default function LoginScreen() {
         left={<TextInput.Icon icon="email-outline" />}
       />
 
-      <View>
-        <TextInput
-          label="6-digit passcode"
-          value={passcode}
-          onChangeText={(text) => {
-            const numericText = text.replace(/[^0-9]/g, '');
-            if (numericText.length <= 6) {
-              setPasscode(numericText);
-            }
-          }}
-          mode="outlined"
-          keyboardType="numeric"
-          maxLength={6}
-          secureTextEntry
-          left={<TextInput.Icon icon="lock-outline" />}
-        />
-        <HelperText type="info" visible>
-          Use the same passcode you chose when creating your account.
-        </HelperText>
-      </View>
+      <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} />
+      <HelperText type="info" visible>
+        Numbers only. Use the eye to check the digits as you type.
+      </HelperText>
 
       {error ? (
         <HelperText type="error" visible={!!error}>

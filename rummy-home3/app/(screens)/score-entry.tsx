@@ -91,17 +91,32 @@ export default function ScoreEntryScreen() {
     }
 
     try {
-      const currentGame = await gamesService.getGame(String(gameId));
+      const userId = isSupabaseConfigured
+        ? await authService.getCurrentUserId()
+        : await storage.getCurrentPlayer();
+      const access = await gamesService.accessFor(String(gameId), userId);
+      const currentGame = access.game ?? await gamesService.getGame(String(gameId));
 
       if (!currentGame) {
         setMessage({ title: 'Game not found', body: 'This game may have been removed.', icon: 'alert-circle-outline' });
         return;
       }
 
+      if (!access.canScore) {
+        setMessage({
+          title: 'View only',
+          body: 'Only a game admin can enter scores. You can still watch the scorecard.',
+          icon: 'eye-outline',
+        });
+        return;
+      }
+
       setGame(currentGame);
 
       const gamePlayers = await gamesService.listGamePlayers(currentGame.id);
-      const roster: Participant[] = gamePlayers.map((player) => ({ id: player.id, name: player.name }));
+      const roster: Participant[] = gamePlayers
+        .filter((player) => player.seatRole !== 'spectator')
+        .map((player) => ({ id: player.id, name: player.name }));
 
       if (currentGame.settings.expense) {
         roster.push({ id: EXPENSE_ID, name: 'Expenses', isExpense: true });
@@ -351,6 +366,18 @@ export default function ScoreEntryScreen() {
     return (
       <View style={[styles.loading, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!game) {
+    return (
+      <View style={[styles.loading, { backgroundColor: colors.background, padding: 24, gap: 12 }]}>
+        <Text variant="titleLarge">{message?.title ?? 'Could not open scores'}</Text>
+        <Text variant="bodyMedium">{message?.body ?? 'Go back to the scorecard.'}</Text>
+        <Button mode="contained" onPress={() => router.back()}>
+          Back to scorecard
+        </Button>
       </View>
     );
   }

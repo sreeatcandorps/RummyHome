@@ -159,6 +159,11 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Every screen restyled; scoreboard rebuilt around a sticky score table (`components/game/ScoreTable.tsx`) that stays readable with many players/rounds.
 - Orientation stays unlocked (`"orientation": "default"`); short landscape screens get dedicated two-column / side-panel layouts and respect notch + nav-bar insets (`hooks/useLayout.ts`).
 
+### 2026-10-27 — Friday game night (sharing, admins, prizes)
+- Any account seated in a game, added as view-only, or keeping score sees that game. Game admins (the creator, plus people they promote on the scorecard) are the only ones who can enter or undo scores.
+- Live scorecards are shared with an unguessable `view_token`. The public page is a Supabase Edge Function (`supabase/functions/scorecard`); email goes through `send-email` when a Resend key is set.
+- Completed games can be grouped into a prize session (coins, not money). Apply `supabase/migrations/006_friday_game_night.sql` before using this on the APK. Passcode reset must use the GitHub Pages URL as the Supabase Site URL, or the email keeps pointing at localhost.
+
 ### 2026-10-27 — Admin demo seed on Supabase
 - Home-screen Load/Clear demo data is available in release builds only for an allowlisted admin email (`EXPO_PUBLIC_ADMIN_EMAILS`, default `koneru2k@gmail.com`, enforced again in `public.is_demo_admin()`).
 - Sample players and games are tagged `is_demo` and written with the signed-in session through `apply_demo_seed` / `clear_demo_data`. Apply `supabase/migrations/005_demo_data.sql` before using it on the APK.
@@ -184,7 +189,8 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Game table + score entry | Done, portrait + landscape (2026-10 redesign) |
 | History / dashboard loading | Done |
 | Theming (light/dark) | Done; dark mode is a Settings toggle, not system-driven |
-| Supabase schema + RLS helpers | Done (apply any pending migrations before store build) |
+| Supabase schema + RLS helpers | Done (apply `005` if you use demo data, then `006` for Friday sharing and prizes) |
+| Public scorecard + prize sessions | In the app; live link needs the scorecard function deployed and `006` applied |
 | Expo Go local preview | Working |
 | EAS project linked on this PC | Done |
 | EAS env vars for Supabase | Done |
@@ -228,6 +234,8 @@ More detail: `docs/play-store-setup.md`, `docs/release-checklist.md`.
 | `docs/play-store-setup.md` | Step checklist for EAS + privacy URL |
 | `docs/release-checklist.md` | Pre-build smoke tests |
 | `docs/product-contract.md` | Product rules (scoring, roles, limits) |
+| `docs/friday-setup.md` | SQL, Site URL, scorecard function, Resend |
+| `docs/testing-strategy.md` | Unit, RLS, roles, Friday checklist |
 | `docs/store-listing.md` (repo root `docs/`) | Play listing copy |
 | `docs/privacy-policy.html` (repo root) | Hosted privacy page |
 | `TASK_LIST.md` | Older feature backlog (partially stale) |

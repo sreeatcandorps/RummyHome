@@ -256,7 +256,7 @@ export default function ProfileScreen() {
 
       <Button
         mode="contained"
-        onPress={() => router.push(`/players/${currentPlayer.id}/edit`)}
+        onPress={() => router.push(`/(screens)/players/${currentPlayer.id}/edit`)}
         icon="account-edit-outline"
         buttonColor={theme.colors.onFelt}
         textColor={theme.colors.felt}

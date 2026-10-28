@@ -7,6 +7,8 @@ import { authService } from '../../services/auth';
 import { isSupabaseConfigured, supabase } from '../../services/supabase';
 import { formatAuthError } from '../../utils/authErrors';
 import { AuthShell } from '../../components/ui/AuthShell';
+import { PasscodeField } from '@/components/ui/PasscodeField';
+import { sendWelcomeEmail } from '@/services/mail';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 // import * as Location from 'expo-location';
 
@@ -156,6 +158,10 @@ export default function RegisterScreen() {
         await storage.savePlayers([...players, newPlayer]);
       }
 
+      if (isSupabaseConfigured) {
+        sendWelcomeEmail(email.trim(), displayName).catch(() => {});
+      }
+
       if (isSupabaseConfigured && !authData.session) {
         Alert.alert(
           'Confirm Your Email',
@@ -245,27 +251,10 @@ export default function RegisterScreen() {
         left={<TextInput.Icon icon="email-outline" />}
       />
 
-      <View>
-        <TextInput
-          label="6-digit passcode"
-          value={passcode}
-          onChangeText={(text) => {
-            const numericText = text.replace(/[^0-9]/g, '');
-            if (numericText.length <= 6) {
-              setPasscode(numericText);
-            }
-          }}
-          mode="outlined"
-          keyboardType="numeric"
-          maxLength={6}
-          secureTextEntry
-          disabled={loading}
-          left={<TextInput.Icon icon="lock-outline" />}
-        />
-        <HelperText type="info" visible>
-          Numbers only — this is your quick login code.
-        </HelperText>
-      </View>
+      <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} />
+      <HelperText type="info" visible>
+        Numbers only — this is your quick login code. Use the eye to check each digit.
+      </HelperText>
 
       <Text variant="titleSmall" style={styles.groupLabel}>
         Contact (optional)
@@ -288,9 +277,20 @@ export default function RegisterScreen() {
       </View>
 
       {error ? (
-        <HelperText type="error" visible={!!error}>
-          {error}
-        </HelperText>
+        <View style={styles.signInError}>
+          <HelperText type="error" visible>
+            {error}
+          </HelperText>
+          {/sign(?:ing)? in/i.test(error) ? (
+            <Button
+              mode="contained-tonal"
+              icon="login"
+              onPress={() => router.push({ pathname: '/(auth)/login', params: { email: email.trim() } })}
+            >
+              Sign in
+            </Button>
+          ) : null}
+        </View>
       ) : null}
 
       <Button
@@ -346,6 +346,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  signInError: {
     gap: spacing.xs,
   },
 });
