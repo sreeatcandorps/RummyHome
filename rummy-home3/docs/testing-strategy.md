@@ -55,7 +55,7 @@ On two phones, or one phone and a second account:
 6. Account A adds a third person as view-only. That person sees the game and cannot score.
 7. Share → Copy link. Open it in a browser. Start time and game ID are visible. Add a round on the phone and refresh; the page updates within about 8 seconds.
 8. Complete the game from Done. The confirm shows points only. There is no Results button on that confirm.
-9. Home → Results. Check the completed game. The podium names 1st place and the totals table lists the points. Declare works for an admin of that game. Add a finished game they do not run and Declare stays off. A second account can open the declared result. Home has no Settle button.
+9. Home → Results. Check the completed games and tap Show results. Positive totals are on the left, negative totals on the right, each row is a game, and 1st, 2nd, and 3rd place are at the bottom. Share image shows Rummy Home. Declare works for an admin of every checked game. Add a finished game they do not run and Declare stays off. A second account can open the declared result. Home has no Settle button. A 16th seated player is refused. More than 50 players in one results view is refused.
 
 ## Regression
 

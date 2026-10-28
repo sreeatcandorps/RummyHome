@@ -1,13 +1,24 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Text } from 'react-native-paper';
 import { useLocalSearchParams } from 'expo-router';
-import { ResultsBoard } from '@/components/results/ResultsBoard';
+import { ResultsPage } from '@/components/results/ResultsPage';
+import { ResultsShare } from '@/components/results/ResultsShare';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { Screen } from '@/components/ui/Screen';
 import { useAppTheme } from '@/constants/theme';
 import { resultsService } from '@/services/results';
-import { GameResult } from '@/utils/results';
+import { formatGameDateTime } from '@/utils/gameDisplay';
+import { buildShareCard, sharePlaces } from '@/utils/shareCard';
+import { GameResult, ResultSheet } from '@/utils/results';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
+
+function sheetFor(result: GameResult): ResultSheet {
+  if (result.sheet && result.sheet.players.length > 0) return result.sheet;
+  return {
+    players: result.standings.map((row) => ({ id: row.id, name: row.name })),
+    games: result.sheet?.games ?? [],
+  };
+}
 
 export default function DeclaredResult() {
   const { colors } = useAppTheme();
@@ -32,8 +43,19 @@ export default function DeclaredResult() {
     load();
   }, [load]);
 
+  const card = useMemo(() => {
+    if (!result) return null;
+    return buildShareCard({
+      title: 'Results',
+      date: formatGameDateTime(result.declaredAt),
+      rows: result.standings.map((row) => ({ name: row.name, points: row.points })),
+      places: sharePlaces(result.standings),
+    });
+  }, [result]);
+
   return (
     <Screen>
+      <ResultsShare card={card} />
       {error ? (
         <>
           <Text style={{ color: colors.error }}>{error}</Text>
@@ -45,12 +67,7 @@ export default function DeclaredResult() {
         <Text variant="bodyLarge">These results are not here.</Text>
       ) : null}
       {result ? (
-        <>
-          <Text variant="bodyLarge">
-            {result.gameIds.length === 1 ? '1 game' : `${result.gameIds.length} games`}
-          </Text>
-          <ResultsBoard standings={result.standings} />
-        </>
+        <ResultsPage createdAt={result.declaredAt} standings={result.standings} sheet={sheetFor(result)} />
       ) : null}
     </Screen>
   );

@@ -37,7 +37,7 @@ Game settings start from profile defaults and are copied onto the game at creati
 
 ## Players
 
-- A game must have at least 2 players and at most 20 players.
+- A game must have at least 2 players and at most 15 players.
 - Player order is explicit and controls dealer rotation.
 - A default expense player is represented as a system score, not a normal profile.
 - Player colors and display numbers are per-game metadata.

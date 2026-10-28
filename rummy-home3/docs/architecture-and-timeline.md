@@ -45,6 +45,7 @@ Same codebase either way.
 | App root | `rummy-home3/` | Expo Router mobile app |
 | Framework | Expo SDK **54** | React Native 0.81 app toolchain |
 | UI | React Native Paper (Material 3) | Android-familiar components |
+| Share image | `react-native-view-shot` and `expo-sharing` | Scorecard and Results pictures for WhatsApp or a text. The web build draws the same card |
 | Backend | Supabase (Auth + Postgres + RLS) | Shared multi-user data without a custom server |
 | My players | `my_players` in `007_redesign.sql` | Per-account roster. Home and New game do not read every profile |
 | Public scorecard | GitHub Pages `…/Games/scorecard.html` | HTML page calls `public_scorecard`. The app does not copy the edge-function URL |
@@ -168,7 +169,8 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 
 ### 2026-10-28 — Redesign (Home, my players, Results, Pages scorecard)
 - Three tabs: Home, Players, Me. History, the stat tiles, and the whole-directory player list are gone. A non-player admin is a `game_players` row with `seated = false`.
-- Settle is hidden the same day. `EXPO_PUBLIC_SETTLE_ENABLED` is off. Results replaces it on Home: check finished games, total points, show 1st, 2nd, and 3rd place, and declare only if you admin every selected game. Apply `008_results.sql` after `007` before declare works on the live database. The `prize_sessions` tables stay unused.
+- Settle is hidden the same day. `EXPO_PUBLIC_SETTLE_ENABLED` is off. Results replaces it on Home: check finished games, then a page with the created time, positive and negative totals, one row per game, and 1st, 2nd, and 3rd place. Declare only if you admin every selected game. Apply `008_results.sql` after `007` before declare works on the live database. The `prize_sessions` tables stay unused.
+- Scorecard and Results can be shared as an image (`react-native-view-shot` on the phone, the same card drawn for the web). The scorecard link stays as a second option. A game seats at most 15 players. One Results view holds at most 50.
 - Public scorecard and the invite page are static HTML for GitHub Pages (`public/scorecard.html`, `public/get/index.html`), not the Supabase function URL. Apply `007_redesign.sql` after `006` before my players and unseated admins work on the live database.
 
 ### 2026-10-27 — Admin demo seed on Supabase
@@ -195,7 +197,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | New game (points, my players) | Done. Stored type is still the points game |
 | Game table + score entry | Done, portrait + landscape. One Scorecard header |
 | Home Recent | Done. History screen redirects home |
-| Results | Done in the app. Apply `008_results.sql` before declare works on the live database |
+| Results | Done in the app. Totals, game rows, and places. Apply `008_results.sql` before declare works on the live database |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; dark mode is on Me and saved on the phone |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |

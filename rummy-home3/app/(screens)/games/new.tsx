@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Button, Searchbar, Switch, Text, TextInput } from 'react-native-paper';
 import { router, useFocusEffect } from 'expo-router';
 import { Player } from '@/types/player';
@@ -12,6 +12,7 @@ import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { takePlayerToCheck } from '@/utils/pendingPlayer';
 import { pointsGameLabel } from '@/constants/features';
+import { MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 import { legacySettingsForGameType } from '@/utils/scoring';
 import { Screen } from '@/components/ui/Screen';
 import { BottomBar } from '@/components/ui/BottomBar';
@@ -63,10 +64,20 @@ export default function NewGame() {
   );
 
   const seatedCount = selected.filter((id) => id !== me?.id).length + (includeMe && me ? 1 : 0);
-  const startDisabled = seatedCount < 2;
+  const atCap = seatedCount >= MAX_SEATED_PLAYERS;
+  const startDisabled = seatedCount < 2 || seatedCount > MAX_SEATED_PLAYERS;
 
   const toggle = (id: string) => {
-    setSelected((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+    setSelected((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id);
+      if (seatedCount >= MAX_SEATED_PLAYERS) return current;
+      return [...current, id];
+    });
+  };
+
+  const onIncludeMe = (value: boolean) => {
+    if (value && !includeMe && seatedCount >= MAX_SEATED_PLAYERS) return;
+    setIncludeMe(value);
   };
 
   const startGame = async () => {
@@ -75,6 +86,10 @@ export default function NewGame() {
       ? [me.id, ...selected.filter((id) => id !== me.id)]
       : selected.filter((id) => id !== me.id);
     if (playerIds.length < 2) return;
+    if (playerIds.length > MAX_SEATED_PLAYERS) {
+      setError(SEATED_PLAYER_LIMIT);
+      return;
+    }
     setCreating(true);
     try {
       const game = await gamesService.createGame({
@@ -86,7 +101,7 @@ export default function NewGame() {
       });
       router.replace(`/(screens)/games/${game.id}`);
     } catch (err) {
-      Alert.alert('Could not create game', formatSupabaseError(err));
+      setError(formatSupabaseError(err));
     } finally {
       setCreating(false);
     }
@@ -114,9 +129,10 @@ export default function NewGame() {
       </View>
       <View style={styles.meRow}>
         <Text variant="titleMedium">I’m playing</Text>
-        <Switch value={includeMe} onValueChange={setIncludeMe} accessibilityLabel="I’m playing" />
+        <Switch value={includeMe} onValueChange={onIncludeMe} accessibilityLabel="I’m playing" />
       </View>
       <Text variant="titleMedium">Who’s in</Text>
+      {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
       <Searchbar placeholder="Search my players" value={query} onChangeText={setQuery} style={styles.search} />
       {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
       {loading && players.length === 0 ? <LoadingRows /> : null}
@@ -140,7 +156,7 @@ export default function NewGame() {
       </Button>
       <Text variant="bodyMedium" style={styles.count}>
         {seatedCount} selected
-        {startDisabled ? (includeMe ? ' · Pick at least one more player.' : ' · Pick at least two players.') : ''}
+        {seatedCount < 2 ? (includeMe ? ' · Pick at least one more player.' : ' · Pick at least two players.') : ''}
       </Text>
       <BottomBar>
         <Button

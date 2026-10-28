@@ -1,10 +1,16 @@
--- Results: places from points across finished games.
+-- Results: places and the per-game score sheet across finished games.
 -- Apply after 007_redesign.sql. This file is not applied by the app.
 -- Settle tables are unchanged and stay unused while the app flag is off.
 --
 -- Highest points are 1st place. Ties share a place and the next place skips
 -- (1, 1, 3), matching rummy-home3/utils/results.ts. The expense column
 -- (a score with no profile) is not a player.
+--
+-- places is a jsonb object:
+--   standings: [{id,name,points,games,place}]
+--   players:   [{id,name}] in the same order as standings
+--   games:     [{id,name,date,scores}] scores omit anyone who did not play
+-- A results view can include at most 50 distinct seated players.
 
 create table if not exists public.game_results (
   id uuid primary key default gen_random_uuid(),
@@ -38,6 +44,7 @@ declare
   new_id uuid;
   gid uuid;
   distinct_ids uuid[];
+  player_count integer;
   places jsonb;
 begin
   if auth.uid() is null then
@@ -71,6 +78,22 @@ begin
     where not public.is_game_admin(target.id)
   ) then
     raise exception 'Only an admin of every selected game can declare results';
+  end if;
+
+  with seated as (
+    select gp.game_id, gp.profile_id
+    from public.game_players gp
+    where gp.game_id = any(distinct_ids)
+      and gp.is_active
+      and gp.role <> 'spectator'
+      and gp.seated
+  )
+  select count(distinct profile_id)::integer
+  into player_count
+  from seated;
+
+  if coalesce(player_count, 0) > 50 then
+    raise exception 'Results can include at most 50 players';
   end if;
 
   with seated as (
@@ -110,19 +133,54 @@ begin
       games,
       rank() over (order by points desc)::integer as place
     from totals
+  ),
+  per_game as (
+    select
+      g.id,
+      g.created_at,
+      coalesce(nullif(g.share_code, ''), upper(right(g.id::text, 6))) as name,
+      coalesce((
+        select jsonb_object_agg(x.profile_id::text, x.points)
+        from (
+          select s.profile_id, coalesce(max(p.points), 0)::integer as points
+          from seated s
+          left join points p
+            on p.game_id = s.game_id
+           and p.profile_id = s.profile_id
+          where s.game_id = g.id
+          group by s.profile_id
+        ) x
+      ), '{}'::jsonb) as scores
+    from public.games g
+    where g.id = any(distinct_ids)
   )
-  select coalesce(jsonb_agg(
-    jsonb_build_object(
-      'id', profile_id,
-      'name', name,
-      'points', points,
-      'games', games,
-      'place', place
-    )
-    order by place, name
-  ), '[]'::jsonb)
+  select jsonb_build_object(
+    'standings', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', profile_id,
+        'name', name,
+        'points', points,
+        'games', games,
+        'place', place
+      ) order by place, name)
+      from ranked
+    ), '[]'::jsonb),
+    'players', coalesce((
+      select jsonb_agg(jsonb_build_object('id', profile_id, 'name', name) order by place, name)
+      from ranked
+    ), '[]'::jsonb),
+    'games', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', id,
+        'name', name,
+        'date', created_at,
+        'scores', scores
+      ) order by created_at, name)
+      from per_game
+    ), '[]'::jsonb)
+  )
   into places
-  from ranked;
+  from (select 1) as anchor;
 
   insert into public.game_results (declared_by, places)
   values (auth.uid(), places)
@@ -156,7 +214,11 @@ as $$
           from public.game_result_games g
           where g.result_id = r.id
         ), '[]'::jsonb),
-        'standings', r.places
+        'standings', coalesce(r.places->'standings', '[]'::jsonb),
+        'sheet', jsonb_build_object(
+          'players', coalesce(r.places->'players', '[]'::jsonb),
+          'games', coalesce(r.places->'games', '[]'::jsonb)
+        )
       )
       from public.game_results r
       where r.id = p_id
@@ -180,7 +242,7 @@ as $$
         'gameCount', (select count(*) from public.game_result_games g where g.result_id = r.id),
         'firstNames', coalesce((
           select jsonb_agg(p->>'name' order by p->>'name')
-          from jsonb_array_elements(r.places) p
+          from jsonb_array_elements(coalesce(r.places->'standings', '[]'::jsonb)) p
           where (p->>'place')::integer = 1
         ), '[]'::jsonb)
       ) order by r.declared_at desc)

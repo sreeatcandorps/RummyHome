@@ -48,6 +48,10 @@ export default function ScreensLayout() {
         options={{ title: 'Results', headerRight: () => <HelpButton text={HELP.results} /> }}
       />
       <Stack.Screen
+        name="results/view"
+        options={{ title: 'Results', headerRight: () => <HelpButton text={HELP.results} /> }}
+      />
+      <Stack.Screen
         name="results/[id]"
         options={{ title: 'Results', headerRight: () => <HelpButton text={HELP.results} /> }}
       />

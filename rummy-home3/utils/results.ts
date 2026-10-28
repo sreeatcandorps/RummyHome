@@ -1,3 +1,4 @@
+import { MAX_RESULTS_PLAYERS } from '@/constants/limits';
 import { userAdminsGame } from '@/utils/gameAccess';
 
 /** Matches the expense column in services/games.ts. It is not a player. */
@@ -17,12 +18,27 @@ export type ResultStanding = {
   place: number;
 };
 
+/** One cell in the game × player sheet. A missing key means that player did not play. */
+export type ResultSheetGame = {
+  id: string;
+  name: string;
+  date: string;
+  scores: Record<string, number>;
+};
+
+export type ResultSheet = {
+  players: { id: string; name: string }[];
+  games: ResultSheetGame[];
+};
+
 export type GameResult = {
   id: string;
   declaredAt: string;
   declaredBy: string;
   gameIds: string[];
   standings: ResultStanding[];
+  /** Per-game scores so a declared result can draw the sheet without the games. */
+  sheet?: ResultSheet;
 };
 
 export type GameResultSummary = {
@@ -118,6 +134,71 @@ export function summaryFrom(result: GameResult): GameResultSummary {
     gameCount: result.gameIds.length,
     winnerLine: winnerLine(result.standings),
   };
+}
+
+/** Share code when the game has one, otherwise the tail of the id. */
+export function gameResultName(game: { id: string; shareCode?: string | null }): string {
+  const code = game.shareCode?.trim();
+  if (code) return code;
+  return game.id.slice(-6).toUpperCase();
+}
+
+/** Zero sits with the positive totals. Each column is largest magnitude first. */
+export function splitTotals(standings: ResultStanding[]): { positive: ResultStanding[]; negative: ResultStanding[] } {
+  const byMagnitude = (a: ResultStanding, b: ResultStanding) =>
+    Math.abs(b.points) - Math.abs(a.points) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
+  return {
+    positive: standings.filter((row) => row.points >= 0).sort(byMagnitude),
+    negative: standings.filter((row) => row.points < 0).sort(byMagnitude),
+  };
+}
+
+export function resultsPlayerCount(games: ResultGame[]): number {
+  const ids = new Set<string>();
+  games.forEach((game) => {
+    game.players.forEach((id) => {
+      if (id && id !== RESULT_EXPENSE_ID) ids.add(id);
+    });
+  });
+  return ids.size;
+}
+
+export function withinResultsPlayerLimit(games: ResultGame[]): boolean {
+  return resultsPlayerCount(games) <= MAX_RESULTS_PLAYERS;
+}
+
+/** "—" when they were not seated. "0" when they played and scored 0. */
+export function scoreCell(scores: Record<string, number>, playerId: string): string {
+  if (!Object.prototype.hasOwnProperty.call(scores, playerId)) return '—';
+  return formatPoints(scores[playerId]);
+}
+
+/**
+ * Rows follow the game date. Columns follow the places (highest points first).
+ * A player who was not seated in that game has no score key.
+ */
+export function buildResultSheet(
+  games: Array<ResultGame & { id: string; name: string; date: string }>,
+  standings: ResultStanding[],
+): ResultSheet {
+  const ordered = [...games].sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
+  return {
+    players: standings.map((row) => ({ id: row.id, name: row.name })),
+    games: ordered.map((game) => {
+      const scores: Record<string, number> = {};
+      const seated = new Set(game.players.filter((id) => id && id !== RESULT_EXPENSE_ID));
+      standings.forEach((row) => {
+        if (!seated.has(row.id)) return;
+        scores[row.id] = (game.scores[row.id] ?? []).reduce((sum, value) => sum + (Number(value) || 0), 0);
+      });
+      return { id: game.id, name: game.name, date: game.date, scores };
+    }),
+  };
+}
+
+export function presentResults(games: Array<ResultGame & { id: string; name: string; date: string }>) {
+  const standings = totalAcrossGames(games);
+  return { standings, sheet: buildResultSheet(games, standings) };
 }
 
 /** True only when this person runs every selected game. An empty selection is not enough. */

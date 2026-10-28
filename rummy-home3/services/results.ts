@@ -1,12 +1,16 @@
+import { RESULTS_PLAYER_LIMIT } from '@/constants/limits';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { Game } from '@/types/game';
 import {
   canDeclareResults,
   GameResult,
   GameResultSummary,
+  gameResultName,
+  presentResults,
+  ResultSheet,
   ResultStanding,
   summaryFrom,
-  totalAcrossGames,
+  withinResultsPlayerLimit,
   winnerLineFromNames,
 } from '@/utils/results';
 
@@ -51,6 +55,47 @@ function standingFrom(value: unknown): ResultStanding | null {
   };
 }
 
+function numberRecord(value: unknown): Record<string, number> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const scores: Record<string, number> = {};
+  Object.entries(value as Record<string, unknown>).forEach(([key, raw]) => {
+    const points = Number(raw);
+    if (Number.isFinite(points)) scores[key] = points;
+  });
+  return scores;
+}
+
+function sheetFrom(value: unknown, standings: ResultStanding[]): ResultSheet {
+  const fallback: ResultSheet = {
+    players: standings.map((row) => ({ id: row.id, name: row.name })),
+    games: [],
+  };
+  if (!value || typeof value !== 'object') return fallback;
+  const row = value as { players?: unknown; games?: unknown };
+  const players = Array.isArray(row.players)
+    ? row.players.flatMap((item) => {
+      if (!item || typeof item !== 'object') return [];
+      const player = item as { id?: unknown; name?: unknown };
+      if (typeof player.id !== 'string') return [];
+      return [{ id: player.id, name: typeof player.name === 'string' && player.name.trim() ? player.name : 'Player' }];
+    })
+    : fallback.players;
+  const games = Array.isArray(row.games)
+    ? row.games.flatMap((item) => {
+      if (!item || typeof item !== 'object') return [];
+      const game = item as { id?: unknown; name?: unknown; date?: unknown; scores?: unknown };
+      if (typeof game.id !== 'string') return [];
+      return [{
+        id: game.id,
+        name: typeof game.name === 'string' && game.name.trim() ? game.name : game.id.slice(-6).toUpperCase(),
+        date: typeof game.date === 'string' ? game.date : '',
+        scores: numberRecord(game.scores),
+      }];
+    })
+    : [];
+  return { players: players.length > 0 ? players : fallback.players, games };
+}
+
 function resultFrom(value: unknown): GameResult | null {
   if (!value || typeof value !== 'object') return null;
   const row = value as {
@@ -59,10 +104,18 @@ function resultFrom(value: unknown): GameResult | null {
     declaredBy?: unknown;
     gameIds?: unknown;
     standings?: unknown;
+    sheet?: unknown;
   };
   if (typeof row.id !== 'string') return null;
-  const standings = Array.isArray(row.standings)
-    ? row.standings.map(standingFrom).filter((item): item is ResultStanding => Boolean(item))
+  let standingsRaw = row.standings;
+  let sheetRaw = row.sheet;
+  if (standingsRaw && !Array.isArray(standingsRaw) && typeof standingsRaw === 'object') {
+    const blob = standingsRaw as { standings?: unknown; players?: unknown; games?: unknown };
+    sheetRaw = sheetRaw ?? { players: blob.players, games: blob.games };
+    standingsRaw = blob.standings;
+  }
+  const standings = Array.isArray(standingsRaw)
+    ? standingsRaw.map(standingFrom).filter((item): item is ResultStanding => Boolean(item))
     : [];
   const gameIds = Array.isArray(row.gameIds) ? row.gameIds.filter((id): id is string => typeof id === 'string') : [];
   return {
@@ -71,12 +124,16 @@ function resultFrom(value: unknown): GameResult | null {
     declaredBy: typeof row.declaredBy === 'string' ? row.declaredBy : '',
     gameIds,
     standings,
+    sheet: sheetFrom(sheetRaw, standings),
   };
 }
 
-function assertDeclarable(games: Game[], userId: string) {
+function assertDeclarable(games: Game[], names: Record<string, string>, userId: string) {
   if (games.length === 0) throw new Error('Pick at least one finished game.');
   if (games.some((game) => !game.isComplete)) throw new Error('Only finished games can be declared.');
+  if (!withinResultsPlayerLimit(games.map((game) => ({ players: game.players, scores: game.scores, names })))) {
+    throw new Error(RESULTS_PLAYER_LIMIT);
+  }
   if (!canDeclareResults(games, userId)) {
     throw new Error('Only an admin of every selected game can declare results.');
   }
@@ -122,7 +179,15 @@ export const resultsService = {
   },
 
   async declare(input: { games: Game[]; names: Record<string, string>; userId: string }): Promise<GameResult> {
-    assertDeclarable(input.games, input.userId);
+    assertDeclarable(input.games, input.names, input.userId);
+    const presented = presentResults(input.games.map((game) => ({
+      id: game.id,
+      name: gameResultName(game),
+      date: game.date,
+      players: game.players,
+      scores: game.scores,
+      names: input.names,
+    })));
 
     if (!isSupabaseConfigured) {
       const result: GameResult = {
@@ -130,11 +195,8 @@ export const resultsService = {
         declaredAt: new Date().toISOString(),
         declaredBy: input.userId,
         gameIds: input.games.map((game) => game.id),
-        standings: totalAcrossGames(input.games.map((game) => ({
-          players: game.players,
-          scores: game.scores,
-          names: input.names,
-        }))),
+        standings: presented.standings,
+        sheet: presented.sheet,
       };
       const existing = await readLocal();
       await writeLocal([result, ...existing]);

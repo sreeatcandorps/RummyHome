@@ -9,6 +9,7 @@ import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settings
 import { storage } from '@/utils/storage';
 import { createUuid, isUuid } from '@/utils/uuid';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
+import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 
 type CreateGameInput = {
   playerIds: string[];
@@ -111,8 +112,9 @@ const legacyGameFromServer = (
 
 export const gamesService = {
   async createGame(input: CreateGameInput): Promise<Game> {
-    if (input.playerIds.length < 2 || input.playerIds.length > 20) {
-      throw new Error('A game must have between 2 and 20 players.');
+    const seated = input.playerIds.filter((id) => id && id !== EXPENSE_PLAYER_ID);
+    if (seated.length < 2 || seated.length > MAX_SEATED_PLAYERS) {
+      throw new Error(GAME_SIZE_MESSAGE);
     }
 
     const baseSettings = input.settings ?? settingsForGameType(input.gameType);
@@ -613,6 +615,10 @@ export const gamesService = {
     if (!game) throw new Error('Game not found.');
     if (game.players.includes(profileId) || game.spectators?.includes(profileId) || game.unseatedAdminIds?.includes(profileId)) {
       throw new Error('They are already in this game.');
+    }
+    const seated = game.players.filter((id) => id !== EXPENSE_PLAYER_ID);
+    if (seated.length >= MAX_SEATED_PLAYERS) {
+      throw new Error(SEATED_PLAYER_LIMIT);
     }
 
     if (!isSupabaseConfigured) {

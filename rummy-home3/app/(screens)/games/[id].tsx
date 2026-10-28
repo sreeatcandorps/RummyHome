@@ -15,6 +15,8 @@ import { realtimeService } from '@/services/realtime';
 import { storage } from '@/utils/storage';
 import { MIN_TOUCH_TARGET, radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime, gameIdLabel, gameTypeLabel } from '@/utils/gameDisplay';
+import { buildShareCard, sharePlaces } from '@/utils/shareCard';
+import { totalAcrossGames } from '@/utils/results';
 import { buildPlayerInitials } from '@/utils/playerInitials';
 import { scorecardUrl } from '@/utils/shareLink';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
@@ -332,6 +334,17 @@ export default function GameScreen() {
     .filter((player) => player.id !== EXPENSE_PLAYER_ID)
     .map((player) => ({ player, total: getPlayerTotal(player.id) }))
     .sort((a, b) => b.total - a.total);
+  const scorecardPlaces = totalAcrossGames([{
+    players: seats.map((seat) => seat.id),
+    scores: game.scores,
+    names: Object.fromEntries(seats.map((seat) => [seat.id, seat.name])),
+  }]);
+  const shareCard = buildShareCard({
+    title: gameIdLabel(game),
+    date: formatGameDateTime(game.date),
+    rows: scorecardPlaces.map((row) => ({ name: row.name, points: row.points })),
+    places: sharePlaces(scorecardPlaces),
+  });
 
   const bestTotal = standings[0]?.total;
   const hasLeader = maxRounds > 0 && standings.length > 0;
@@ -646,6 +659,7 @@ export default function GameScreen() {
             email: person.email,
           }))}
           link={shareLink}
+          card={shareCard}
           startedLabel={startedOn}
           gameLabel={gameIdLabel(game)}
           busy={shareBusy}
@@ -654,6 +668,7 @@ export default function GameScreen() {
           onCopy={copyShareLink}
           onEmail={emailShareLink}
           onPreview={openPublicScorecard}
+          onNotice={setShareNotice}
         />
         <PlayersSheet
           visible={playersOpen}

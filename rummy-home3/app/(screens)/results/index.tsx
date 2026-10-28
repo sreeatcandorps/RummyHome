@@ -2,10 +2,10 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { router, useFocusEffect } from 'expo-router';
-import { ResultsBoard } from '@/components/results/ResultsBoard';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { RESULTS_PLAYER_LIMIT } from '@/constants/limits';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { authService } from '@/services/auth';
 import { gamesService } from '@/services/games';
@@ -14,7 +14,7 @@ import { isSupabaseConfigured } from '@/services/supabase';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { formatGameDateTime, gameIdLabel, gameTypeLabel } from '@/utils/gameDisplay';
-import { canDeclareResults, GameResultSummary, totalAcrossGames } from '@/utils/results';
+import { canDeclareResults, GameResultSummary, withinResultsPlayerLimit } from '@/utils/results';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
@@ -76,19 +76,23 @@ export default function ResultsScreen() {
     [checked, games],
   );
 
-  const standings = useMemo(
-    () => totalAcrossGames(selected.map((game) => ({
-      players: game.players,
-      scores: game.scores,
-      names,
-    }))),
-    [selected, names],
-  );
-
-  const allowed = canDeclareResults(selected, userId);
+  const tooMany = selected.length > 0 && !withinResultsPlayerLimit(selected.map((game) => ({
+    players: game.players,
+    scores: game.scores,
+    names,
+  })));
+  const allowed = canDeclareResults(selected, userId) && !tooMany;
 
   const toggle = (id: string) => {
     setChecked((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  };
+
+  const show = () => {
+    if (selected.length === 0 || tooMany) return;
+    router.push({
+      pathname: '/(screens)/results/view',
+      params: { ids: selected.map((game) => game.id).join(','), at: new Date().toISOString() },
+    });
   };
 
   const declare = async () => {
@@ -108,7 +112,7 @@ export default function ResultsScreen() {
   return (
     <Screen>
       <Text variant="bodyLarge">
-        Check finished games. Places update as you go. The totals table is the full list.
+        Check finished games, then show the results.
       </Text>
       {error ? (
         <View>
@@ -137,9 +141,16 @@ export default function ResultsScreen() {
           </Button>
         );
       })}
-      {selected.length > 0 ? <ResultsBoard standings={standings} /> : games.length > 0 ? (
-        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>Check games to see places.</Text>
-      ) : null}
+      {tooMany ? <Text style={{ color: colors.error }}>{RESULTS_PLAYER_LIMIT}</Text> : null}
+      <Button
+        mode="contained"
+        icon="view-list"
+        onPress={show}
+        disabled={selected.length === 0 || tooMany}
+        accessibilityLabel="Show results"
+      >
+        Show results
+      </Button>
       <Button
         mode="contained"
         icon="flag-checkered"
@@ -150,11 +161,11 @@ export default function ResultsScreen() {
       >
         Declare results
       </Button>
-      {selected.length > 0 && !allowed ? (
+      {selected.length > 0 && !tooMany && !canDeclareResults(selected, userId) ? (
         <Text variant="bodyMedium">
           Only an admin of every selected game can declare these results. Anyone can view them after they are declared.
         </Text>
-      ) : selected.length > 0 ? (
+      ) : selected.length > 0 && !tooMany ? (
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
           Anyone can view these results after you declare them.
         </Text>
