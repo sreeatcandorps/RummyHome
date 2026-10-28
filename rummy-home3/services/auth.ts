@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
+import { authRedirectUrl } from '@/utils/authRedirect';
 import { ProfileDefaults } from '@/types/database';
 import { Player } from '@/types/player';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
@@ -57,6 +58,7 @@ export const authService = {
       email: email.trim(),
       password,
       options: {
+        emailRedirectTo: authRedirectUrl(),
         data: {
           display_name: displayName || email.split('@')[0],
         },

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
+import { authRedirectUrl } from '@/utils/authRedirect';
 import { User, Session } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -49,7 +50,9 @@ export function useAuth() {
   };
 
   const resetPassword = async (email: string) => {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: authRedirectUrl(),
+    });
     return { data, error };
   };
 

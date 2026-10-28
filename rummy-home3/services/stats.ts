@@ -14,7 +14,7 @@ export type PlayerStats = {
 export const statsService = {
   async getPlayerStats(profileId: string): Promise<PlayerStats> {
     const [games, balances] = await Promise.all([
-      gamesService.listGamesForCurrentUser(profileId),
+      gamesService.listGamesForCurrentUser(profileId, { includeScores: true }),
       tokensService.getBalances(),
     ]);
 

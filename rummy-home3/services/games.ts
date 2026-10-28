@@ -2,6 +2,8 @@ import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { GameType, ProfileDefaults, ScoreType } from '@/types/database';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
+import { canEnterScores, gameVisibleToUser, SeatRole } from '@/utils/gameAccess';
+import { createViewToken } from '@/utils/shareLink';
 import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validateRoundScores } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
 import { createUuid, isUuid } from '@/utils/uuid';
@@ -22,6 +24,26 @@ type AddRoundInput = {
   createdBy: string;
 };
 
+type CompleteGameInput = {
+  prize?: number | null;
+  prizeShares?: Record<string, number> | null;
+};
+
+const missingRpc = (error: unknown) => {
+  const code = (error as { code?: string })?.code;
+  const message = ((error as { message?: string })?.message ?? '').toLowerCase();
+  return code === 'PGRST202' || message.includes('could not find the function') || message.includes('schema cache');
+};
+
+const missingColumn = (error: unknown) => {
+  const code = (error as { code?: string })?.code;
+  const message = ((error as { message?: string })?.message ?? '').toLowerCase();
+  return code === '42703' || code === 'PGRST204' || message.includes('column') && (message.includes('view_token') || message.includes('prize'));
+};
+
+export const MIGRATION_006_HINT =
+  'This needs the latest database update. Run supabase/migrations/006_friday_game_night.sql in the Supabase SQL editor, then try again.';
+
 /** Reserved column key for table expenses, which have no owning player. */
 export const EXPENSE_PLAYER_ID = 'EX';
 
@@ -35,9 +57,9 @@ const legacyGameFromServer = (
   scores: any[] = [],
   gamePlayers: any[] = [],
 ): Game => {
-  const playerIds = gamePlayers
-    .sort((a, b) => a.player_order - b.player_order)
-    .map((membership) => membership.profile_id);
+  const memberships = [...gamePlayers].sort((a, b) => (a.player_order ?? 0) - (b.player_order ?? 0));
+  const seated = memberships.filter((membership) => membership.role !== 'spectator');
+  const playerIds = seated.map((membership) => membership.profile_id);
 
   const scoreMap = playerIds.reduce<Record<string, number[]>>((acc, playerId) => {
     acc[playerId] = [];
@@ -71,6 +93,12 @@ const legacyGameFromServer = (
       game.settings?.expenseAmount,
     ),
     shareCode: game.share_code ?? undefined,
+    viewToken: game.view_token ?? undefined,
+    createdBy: game.created_by ?? undefined,
+    prize: game.prize ?? null,
+    prizeShares: (game.prize_shares as Record<string, number> | null) ?? null,
+    spectators: memberships.filter((membership) => membership.role === 'spectator').map((membership) => membership.profile_id),
+    adminIds: memberships.filter((membership) => membership.role === 'game_admin').map((membership) => membership.profile_id),
   };
 };
 
@@ -102,6 +130,11 @@ export const gamesService = {
           input.expenseEnabled,
           settings.expenseAmount,
         ),
+        createdBy: input.createdBy,
+        viewToken: createViewToken(),
+        shareCode: makeShareCode(),
+        adminIds: input.playerIds.includes(input.createdBy) ? [input.createdBy] : [],
+        spectators: [],
       };
       await storage.addGame(legacyGame);
       return legacyGame;
@@ -156,45 +189,71 @@ export const gamesService = {
     return created;
   },
 
-  async listGamesForCurrentUser(currentUserId: string, options: { limit?: number; includeScores?: boolean } = {}): Promise<Game[]> {
+  async listGamesForCurrentUser(currentUserId: string, options: { limit?: number; includeScores?: boolean; email?: string | null } = {}): Promise<Game[]> {
     const limit = options.limit ?? 50;
-    const includeScores = options.includeScores ?? true;
+    const includeScores = options.includeScores ?? false;
 
     if (!isSupabaseConfigured) {
       const games = await storage.getGames();
       return games
-        .filter((game) => game.players.includes(currentUserId))
+        .filter((game) => gameVisibleToUser(game, { id: currentUserId, email: options.email }))
         .sort((a, b) => b.date.localeCompare(a.date))
         .slice(0, limit);
     }
 
-    const { data: memberships, error: membershipError } = await supabase
-      .from('game_players')
-      .select('game_id')
-      .eq('profile_id', currentUserId);
-
-    if (membershipError) throw membershipError;
-    const gameIds = [...new Set((memberships ?? []).map((membership) => membership.game_id))];
+    const gameIds = await this.visibleGameIds(currentUserId);
     if (gameIds.length === 0) return [];
 
     const { data: games, error } = await supabase
       .from('games')
-      .select('*, game_players(profile_id, player_order)')
+      .select('*, game_players(profile_id, player_order, role)')
       .in('id', gameIds)
       .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
+    const rows = games ?? [];
 
     if (!includeScores) {
-      return (games ?? []).map((game: any) =>
-        legacyGameFromServer(game, [], game.game_players ?? []),
-      );
+      return rows.map((game: any) => legacyGameFromServer(game, [], game.game_players ?? []));
     }
 
-    return Promise.all((games ?? []).map((game) => this.getGame(game.id))).then((items) =>
-      items.filter((game): game is Game => Boolean(game)),
+    const ids = rows.map((game) => game.id);
+    const { data: scores, error: scoresError } = await supabase
+      .from('scores')
+      .select('*, rounds(round_number, undone_at)')
+      .in('game_id', ids);
+    if (scoresError) throw scoresError;
+
+    const scoresByGame = new Map<string, any[]>();
+    (scores ?? []).forEach((score) => {
+      const bucket = scoresByGame.get(score.game_id) ?? [];
+      bucket.push(score);
+      scoresByGame.set(score.game_id, bucket);
+    });
+
+    return rows.map((game: any) =>
+      legacyGameFromServer(game, scoresByGame.get(game.id) ?? [], game.game_players ?? []),
     );
+  },
+
+  async visibleGameIds(currentUserId: string): Promise<string[]> {
+    const rpc = await supabase.rpc('list_visible_game_ids');
+    if (!rpc.error) {
+      return [...new Set((rpc.data ?? []) as string[])];
+    }
+    if (!missingRpc(rpc.error)) throw rpc.error;
+
+    const [{ data: memberships, error: membershipError }, { data: created, error: createdError }] = await Promise.all([
+      supabase.from('game_players').select('game_id').eq('profile_id', currentUserId),
+      supabase.from('games').select('id').eq('created_by', currentUserId),
+    ]);
+    if (membershipError) throw membershipError;
+    if (createdError) throw createdError;
+    return [...new Set([
+      ...(memberships ?? []).map((membership) => membership.game_id),
+      ...(created ?? []).map((game) => game.id),
+    ])];
   },
 
   async getGame(gameId: string): Promise<Game | null> {
@@ -222,7 +281,17 @@ export const gamesService = {
     if (!isSupabaseConfigured) {
       const [game, players] = await Promise.all([this.getGame(gameId), storage.getPlayers()]);
       if (!game) return [];
-      return players.filter((player) => game.players.includes(player.id));
+      const byId = new Map(players.map((player) => [player.id, player]));
+      const seatFor = (playerId: string): SeatRole =>
+        game.spectators?.includes(playerId)
+          ? 'spectator'
+          : game.adminIds?.includes(playerId)
+            ? 'game_admin'
+            : 'player';
+      return [...game.players, ...(game.spectators ?? [])]
+        .map((playerId) => byId.get(playerId))
+        .filter((player): player is Player => Boolean(player))
+        .map((player) => ({ ...player, seatRole: seatFor(player.id) }));
     }
 
     const { data, error } = await supabase
@@ -238,8 +307,33 @@ export const gamesService = {
       name: membership.profiles?.display_name ?? 'Rummy Player',
       email: membership.profiles?.email ?? undefined,
       phone: membership.profiles?.phone ?? undefined,
-      role: membership.role === 'game_admin' ? 'admin' : 'player',
+      role: membership.role === 'game_admin' ? 'admin' as const : 'player' as const,
+      seatRole: (membership.role ?? 'player') as SeatRole,
     }));
+  },
+
+  async accessFor(gameId: string, userId: string | null) {
+    const game = await this.getGame(gameId);
+    if (!game || !userId) {
+      return { game, canScore: false, isCreator: false, seatRole: null as SeatRole | null, rolesKnown: true };
+    }
+
+    const seats = isSupabaseConfigured ? await this.listGamePlayers(gameId) : [];
+    const mine = seats.find((seat) => seat.id === userId);
+    const seatRole = mine?.seatRole
+      ?? (game.adminIds?.includes(userId) ? 'game_admin' as const
+        : game.spectators?.includes(userId) ? 'spectator' as const
+          : game.players.includes(userId) ? 'player' as const
+            : null);
+    const rolesKnown = isSupabaseConfigured || Boolean(game.createdBy) || Boolean(game.adminIds?.length);
+    const isCreator = game.createdBy === userId;
+    return {
+      game,
+      isCreator,
+      seatRole,
+      rolesKnown,
+      canScore: canEnterScores({ isCreator, seatRole, rolesKnown }),
+    };
   },
 
   async addRound(input: AddRoundInput) {
@@ -346,20 +440,123 @@ export const gamesService = {
     return this.getGame(gameId);
   },
 
-  async completeGame(gameId: string) {
+  async completeGame(gameId: string, settlement?: CompleteGameInput) {
     if (!isSupabaseConfigured) {
       const game = await this.getGame(gameId);
       if (!game) return null;
-      const updatedGame = { ...game, isComplete: true };
+      const updatedGame = {
+        ...game,
+        isComplete: true,
+        prize: settlement?.prize ?? game.prize ?? null,
+        prizeShares: settlement?.prizeShares ?? game.prizeShares ?? null,
+      };
       await storage.updateGame(updatedGame);
       return updatedGame;
     }
 
-    const { error } = await supabase
-      .from('games')
-      .update({ status: 'completed', completed_at: new Date().toISOString() })
-      .eq('id', gameId);
+    const completedAt = new Date().toISOString();
+    const patch: {
+      status: 'completed';
+      completed_at: string;
+      prize?: number | null;
+      prize_shares?: Record<string, number> | null;
+    } = { status: 'completed', completed_at: completedAt };
+    if (settlement) {
+      patch.prize = settlement.prize ?? null;
+      patch.prize_shares = settlement.prizeShares ?? null;
+    }
 
+    const { error } = await supabase.from('games').update(patch).eq('id', gameId);
+    if (error && settlement && missingColumn(error)) {
+      const retry = await supabase
+        .from('games')
+        .update({ status: 'completed', completed_at: completedAt })
+        .eq('id', gameId);
+      if (retry.error) throw retry.error;
+      return this.getGame(gameId);
+    }
+    if (error) throw error;
+    return this.getGame(gameId);
+  },
+
+  async ensureViewToken(gameId: string): Promise<string> {
+    const game = await this.getGame(gameId);
+    if (!game) throw new Error('Game not found.');
+    if (game.viewToken) return game.viewToken;
+
+    const token = createViewToken();
+    if (!isSupabaseConfigured) {
+      await storage.updateGame({ ...game, viewToken: token });
+      return token;
+    }
+
+    const { error } = await supabase.from('games').update({ view_token: token }).eq('id', gameId);
+    if (error) {
+      if (missingColumn(error)) throw new Error(MIGRATION_006_HINT);
+      throw error;
+    }
+    return token;
+  },
+
+  async setSeatRole(gameId: string, profileId: string, role: SeatRole) {
+    if (!isSupabaseConfigured) {
+      const game = await this.getGame(gameId);
+      if (!game) throw new Error('Game not found.');
+      const adminIds = new Set(game.adminIds ?? []);
+      const spectators = new Set(game.spectators ?? []);
+      if (role === 'spectator') {
+        if (game.players.includes(profileId)) {
+          throw new Error('Someone already on the scorecard stays in the game. Add a different person as view-only.');
+        }
+        adminIds.delete(profileId);
+        spectators.add(profileId);
+      } else if (role === 'game_admin') {
+        spectators.delete(profileId);
+        adminIds.add(profileId);
+      } else {
+        spectators.delete(profileId);
+        adminIds.delete(profileId);
+      }
+      const updated = { ...game, adminIds: [...adminIds], spectators: [...spectators] };
+      await storage.updateGame(updated);
+      return updated;
+    }
+
+    if (role === 'spectator') {
+      const { data: existing, error: existingError } = await supabase
+        .from('game_players')
+        .select('id, role')
+        .eq('game_id', gameId)
+        .eq('profile_id', profileId)
+        .maybeSingle();
+      if (existingError) throw existingError;
+      if (existing && existing.role !== 'spectator') {
+        throw new Error('Someone already on the scorecard stays in the game. Add a different person as view-only.');
+      }
+      if (!existing) {
+        const { data: orders, error: orderError } = await supabase
+          .from('game_players')
+          .select('player_order')
+          .eq('game_id', gameId);
+        if (orderError) throw orderError;
+        const next = Math.max(-1, ...(orders ?? []).map((row) => row.player_order)) + 1;
+        const { error } = await supabase.from('game_players').insert({
+          game_id: gameId,
+          profile_id: profileId,
+          player_order: next,
+          display_number: next + 1,
+          role: 'spectator',
+        });
+        if (error) throw error;
+      }
+      return this.getGame(gameId);
+    }
+
+    const { error } = await supabase
+      .from('game_players')
+      .update({ role })
+      .eq('game_id', gameId)
+      .eq('profile_id', profileId);
     if (error) throw error;
     return this.getGame(gameId);
   },

@@ -70,6 +70,9 @@ export type Database = {
           spectator_access: boolean;
           completed_at: string | null;
           is_demo: boolean;
+          view_token: string;
+          prize: number | null;
+          prize_shares: Json | null;
         };
         Insert: {
           id?: string;
@@ -82,6 +85,9 @@ export type Database = {
           spectator_access?: boolean;
           completed_at?: string | null;
           is_demo?: boolean;
+          view_token?: string;
+          prize?: number | null;
+          prize_shares?: Json | null;
         };
         Update: Partial<Database['public']['Tables']['games']['Insert']>;
       };
@@ -190,6 +196,30 @@ export type Database = {
       apply_demo_seed: {
         Args: { payload: Json };
         Returns: undefined;
+      };
+      list_visible_game_ids: {
+        Args: Record<string, never>;
+        Returns: string[];
+      };
+      public_scorecard: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      create_prize_session: {
+        Args: { p_game_ids: string[] };
+        Returns: string;
+      };
+      add_prize_entry: {
+        Args: { p_session_id: string; p_legs: Json; p_note: string };
+        Returns: Json;
+      };
+      get_prize_session: {
+        Args: { p_session_id: string };
+        Returns: Json;
+      };
+      list_prize_sessions: {
+        Args: Record<string, never>;
+        Returns: Json;
       };
     };
   };
