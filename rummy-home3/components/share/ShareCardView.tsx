@@ -6,8 +6,8 @@ import { ShareCard } from '@/utils/shareCard';
 
 export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: React.Ref<View> }) {
   return (
-    <View ref={cardRef} collapsable={false} accessibilityLabel="Rummy Home share image" style={styles.card}>
-      <Text style={styles.brand}>Rummy Home</Text>
+    <View ref={cardRef} collapsable={false} accessibilityLabel="EZ Score: Rummy share image" style={styles.card}>
+      <Text style={styles.brand}>EZ Score: Rummy</Text>
       <Text style={styles.title}>{card.title}</Text>
       <Text style={styles.date}>{card.date}</Text>
       <View style={styles.rule} />

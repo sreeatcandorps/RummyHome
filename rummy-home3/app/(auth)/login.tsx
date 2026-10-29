@@ -86,7 +86,7 @@ export default function LoginScreen() {
 
   return (
     <AuthShell
-      title="Rummy Home"
+      title="EZ Score: Rummy"
       subtitle="Sign in to keep score with your table"
       help={HELP.signIn}
       footer={

@@ -81,7 +81,7 @@ async function shareWeb(card: ShareCard): Promise<string> {
     try {
       const blob = await (await fetch(url)).blob();
       const file = new File([blob], 'rummy-home.png', { type: 'image/png' });
-      const data: ShareData = { files: [file], title: 'Rummy Home', text: card.title };
+      const data: ShareData = { files: [file], title: 'EZ Score: Rummy', text: card.title };
       if (!nav.canShare || nav.canShare(data)) {
         await nav.share(data);
         return IMAGE_READY;

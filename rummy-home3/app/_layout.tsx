@@ -161,7 +161,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 
   return (
     <View style={styles.errorScreen}>
-      <Text style={styles.errorTitle}>Rummy Home could not start</Text>
+      <Text style={styles.errorTitle}>EZ Score: Rummy could not start</Text>
       <Text style={styles.errorBody}>{error.message}</Text>
       <Pressable onPress={retry} style={styles.retry}>
         <Text style={styles.retryLabel}>Try again</Text>

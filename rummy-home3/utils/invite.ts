@@ -4,7 +4,7 @@ import { INVITE_URL, inviteMessage, playerIdShareMessage } from '@/utils/inviteL
 export { INVITE_URL, inviteMessage, playerIdShareMessage };
 
 export async function shareInvite(): Promise<void> {
-  await Share.share({ message: inviteMessage(), url: INVITE_URL, title: 'Rummy Home' });
+  await Share.share({ message: inviteMessage(), url: INVITE_URL, title: 'EZ Score: Rummy' });
 }
 
 export async function sharePlayerId(playerCode: string): Promise<void> {

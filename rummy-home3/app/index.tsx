@@ -51,7 +51,7 @@ export default function Index() {
     <View style={styles.splash}>
       <Image source={require('../assets/icon.png')} style={styles.logo} />
       <ActivityIndicator color={brand.felt} />
-      <Text style={styles.hint}>Opening Rummy Home…</Text>
+      <Text style={styles.hint}>Opening EZ Score: Rummy…</Text>
     </View>
   );
 }

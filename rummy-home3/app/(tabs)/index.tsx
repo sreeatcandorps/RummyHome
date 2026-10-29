@@ -10,7 +10,7 @@ import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { settleEnabled } from '@/constants/features';
-import { formatGameDateTime, gameIdLabel, gameTypeLabel, isLocalToday } from '@/utils/gameDisplay';
+import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, isWithinLast24Hours } from '@/utils/gameDisplay';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -19,7 +19,7 @@ import { LoadingRows } from '@/components/ui/LoadingRows';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 
-type Chip = 'all' | 'live' | 'today';
+type Chip = 'all' | 'live' | 'last24h';
 
 export default function Dashboard() {
   const { colors } = useAppTheme();
@@ -64,7 +64,7 @@ export default function Dashboard() {
   const liveGame = recentGames.find((game) => !game.isComplete) ?? null;
   const filtered = recentGames.filter((game) => {
     if (chip === 'live') return !game.isComplete;
-    if (chip === 'today') return isLocalToday(game.date);
+    if (chip === 'last24h') return isWithinLast24Hours(game.date);
     return true;
   });
   const firstName = currentPlayer?.name?.split(' ')[0] || 'there';
@@ -87,15 +87,15 @@ export default function Dashboard() {
   const recent = (
     <SectionCard title="Recent" icon="history">
       <View style={styles.chips}>
-        {(['all', 'live', 'today'] as Chip[]).map((value) => (
+        {(['all', 'live', 'last24h'] as Chip[]).map((value) => (
           <Button
             key={value}
             mode={chip === value ? 'contained' : 'outlined'}
             compact
             onPress={() => setChip(value)}
-            accessibilityLabel={value === 'all' ? 'All games' : value === 'live' ? 'Live games' : 'Today'}
+            accessibilityLabel={value === 'all' ? 'All games' : value === 'live' ? 'Live games' : 'Last 24 hours'}
           >
-            {value === 'all' ? 'All' : value === 'live' ? 'Live' : 'Today'}
+            {value === 'all' ? 'All' : value === 'live' ? 'Live' : 'Last 24 hours'}
           </Button>
         ))}
       </View>
@@ -104,14 +104,18 @@ export default function Dashboard() {
           {recentGames.length === 0 ? 'No games yet.' : 'Nothing in this filter.'}
         </Text>
       ) : (
-        filtered.map((game) => (
-          <View key={game.id} style={styles.gameGap}>
-            <GameListItem game={game} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-              {game.isComplete ? 'Done' : 'Live'} · {gameIdLabel(game)} · {formatGameDateTime(game.date)} · {gameTypeLabel(game.gameType)}
-            </Text>
-          </View>
-        ))
+        filtered.map((game) => {
+          const gNum = gameNumberLabel(game);
+          const status = gameStatusLabel(game);
+          return (
+            <View key={game.id} style={styles.gameGap}>
+              <GameListItem game={game} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+                {status}{gNum ? ` · ${gNum}` : ''} · {formatGameDateTime(game.date)} · {gameTypeLabel(game.gameType)}
+              </Text>
+            </View>
+          );
+        })
       )}
     </SectionCard>
   );

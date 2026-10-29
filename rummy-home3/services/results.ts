@@ -190,9 +190,10 @@ export const resultsService = {
     })));
 
     if (!isSupabaseConfigured) {
+      const declaredAt = new Date().toISOString();
       const result: GameResult = {
         id: `result-${Date.now()}`,
-        declaredAt: new Date().toISOString(),
+        declaredAt,
         declaredBy: input.userId,
         gameIds: input.games.map((game) => game.id),
         standings: presented.standings,
@@ -200,6 +201,7 @@ export const resultsService = {
       };
       const existing = await readLocal();
       await writeLocal([result, ...existing]);
+      await this.closeGames(input.games.map((g) => g.id), declaredAt);
       return result;
     }
 
@@ -213,5 +215,18 @@ export const resultsService = {
     const result = resultFrom(data);
     if (!result) throw new Error('Results were declared but could not be opened.');
     return result;
+  },
+
+  async closeGames(gameIds: string[], closedAt: string): Promise<void> {
+    if (!isSupabaseConfigured) {
+      const { storage } = await import('@/utils/storage');
+      const games = await storage.getGames();
+      const updated = games.map((game) =>
+        gameIds.includes(game.id) && !game.closedAt
+          ? { ...game, closedAt }
+          : game
+      );
+      await storage.saveGames(updated);
+    }
   },
 };

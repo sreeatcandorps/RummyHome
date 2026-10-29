@@ -169,14 +169,14 @@ test('results stop at 50 players and a game stops at 15', () => {
   assert.equal(SEATED_PLAYER_LIMIT, 'A game can have at most 15 players.');
 });
 
-test('the share image names Rummy Home and shortens a long list', () => {
+test('the share image names EZ Score: Rummy and shortens a long list', () => {
   const card = buildShareCard({
     title: 'Results',
     date: 'Wed, Oct 28 · 6:40 PM',
     rows: Array.from({ length: SHARE_CARD_LINE_CAP + 3 }, (_, index) => ({ name: `P${index}`, points: index })),
     places: [{ label: '1st', names: 'P14', points: 14 }],
   });
-  assert.equal(card.brand, 'Rummy Home');
+  assert.equal(card.brand, 'EZ Score: Rummy');
   assert.equal(card.title, 'Results');
   assert.equal(card.lines.length, SHARE_CARD_LINE_CAP);
   assert.equal(card.moreCount, 3);
@@ -190,7 +190,7 @@ test('the share image names Rummy Home and shortens a long list', () => {
     places: [{ label: '1st', names: 'P7', points: 7 }],
   });
   assert.equal(resultsCard.podiumFirst, false);
-  assert.equal(resultsCard.brand, 'Rummy Home');
+  assert.equal(resultsCard.brand, 'EZ Score: Rummy');
   assert.equal(resultsCard.lines.length, RESULTS_IMAGE_TOTAL_CAP);
   assert.equal(resultsCard.moreCount, 2);
   assert.equal(resultsCard.places[0].label, '1st');
@@ -227,7 +227,7 @@ test('the full details include the games, the player table, both totals, and the
   assert.equal(details.rows[1].cells[1], '—');
   assert.equal(details.rows[0].cells[2], '+25');
   const html = resultsDetailsHtml(details);
-  assert.match(html, /Rummy Home/);
+  assert.match(html, /EZ Score: Rummy/);
   assert.match(html, /Created Wed, Oct 28/);
   assert.match(html, /class="n">1</);
   assert.match(html, /class="n">2</);

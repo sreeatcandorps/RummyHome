@@ -7,6 +7,7 @@ import { HelpButton } from '@/components/ui/HelpButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { HELP } from '@/constants/help';
 import { authService } from '@/services/auth';
+import { playersService } from '@/services/players';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 
@@ -23,7 +24,7 @@ function BrandTitle() {
     <View style={styles.brand}>
       <Image source={require('../../assets/icon.png')} style={styles.brandLogo} />
       <Text variant="titleLarge" style={[styles.brandText, { color: theme.colors.onSurface }]}>
-        Rummy Home
+        EZ Score: Rummy
       </Text>
     </View>
   );
@@ -60,6 +61,26 @@ function HeaderTools() {
 export default function TabLayout() {
   const theme = useAppTheme();
   const { insets, isShort } = useLayout();
+  const [playerCount, setPlayerCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const loadPlayerCount = async () => {
+      try {
+        const player = await authService.getCurrentPlayer();
+        if (player) {
+          const cached = await playersService.readMyPlayers(player.id);
+          if (cached.length > 0) {
+            setPlayerCount(cached.length);
+          }
+          const fresh = await playersService.listMyPlayers(player.id);
+          setPlayerCount(fresh.length);
+        }
+      } catch {
+        // Ignore errors, count will update when Players tab loads
+      }
+    };
+    loadPlayerCount();
+  }, []);
 
   return (
     <Tabs
@@ -95,7 +116,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="players"
         options={{
-          title: 'Players',
+          title: playerCount != null ? `Players · ${playerCount}` : 'Players',
+          tabBarLabel: playerCount != null ? `Players · ${playerCount}` : 'Players',
           tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'people' : 'people-outline'} color={color} />,
         }}
       />

@@ -15,7 +15,7 @@ export type ShareCardPlace = {
 };
 
 export type ShareCard = {
-  brand: 'Rummy Home';
+  brand: 'EZ Score: Rummy';
   title: string;
   date: string;
   lines: ShareCardLine[];
@@ -46,7 +46,7 @@ export function buildShareCard(input: {
   const sorted = [...input.rows].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
   const shown = sorted.slice(0, SHARE_CARD_LINE_CAP);
   return {
-    brand: 'Rummy Home',
+    brand: 'EZ Score: Rummy',
     title: input.title,
     date: input.date,
     lines: shown.map((row) => ({ name: row.name, points: formatPoints(row.points) })),

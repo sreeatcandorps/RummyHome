@@ -25,12 +25,12 @@ async function shareNative(html: string): Promise<void> {
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(file.uri, {
       mimeType: 'application/pdf',
-      dialogTitle: 'Rummy Home',
+      dialogTitle: 'EZ Score: Rummy',
       UTI: 'com.adobe.pdf',
     });
     return;
   }
-  await Share.share({ url: file.uri, title: 'Rummy Home' });
+  await Share.share({ url: file.uri, title: 'EZ Score: Rummy' });
 }
 
 /** A PDF of the full results. Phones print the HTML with expo-print and open the share sheet. */

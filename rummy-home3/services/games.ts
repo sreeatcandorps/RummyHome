@@ -107,6 +107,8 @@ const legacyGameFromServer = (
     unseatedAdminIds: memberships
       .filter((membership) => membership.role === 'game_admin' && membership.seated === false)
       .map((membership) => membership.profile_id),
+    gameNumber: game.game_number ?? null,
+    closedAt: game.closed_at ?? null,
   };
 };
 
@@ -126,6 +128,11 @@ export const gamesService = {
     };
 
     if (!isSupabaseConfigured) {
+      const existingGames = await storage.getGames();
+      const creatorGames = existingGames.filter((g) => g.createdBy === input.createdBy);
+      const nextNumber = creatorGames.length > 0
+        ? Math.max(...creatorGames.map((g) => g.gameNumber ?? 0)) + 1
+        : 1;
       const legacyGame: Game = {
         id: Date.now().toString(),
         date: new Date().toISOString(),
@@ -145,6 +152,8 @@ export const gamesService = {
         adminIds: [input.createdBy],
         unseatedAdminIds: input.playerIds.includes(input.createdBy) ? [] : [input.createdBy],
         spectators: [],
+        gameNumber: nextNumber,
+        closedAt: null,
       };
       await storage.addGame(legacyGame);
       await playersService.rememberTogether(input.createdBy, input.playerIds).catch(() => {});

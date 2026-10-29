@@ -84,7 +84,7 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Rummy Home results</title>
+<title>EZ Score: Rummy results</title>
 <style>
   body { font-family: Helvetica, Arial, sans-serif; color: #17402F; margin: 24px; }
   h1 { margin: 0 0 4px; }
@@ -99,7 +99,7 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
 </style>
 </head>
 <body>
-  <p class="brand">Rummy Home</p>
+  <p class="brand">EZ Score: Rummy</p>
   <h1>${escapeHtml(details.title)}</h1>
   <p>Created ${escapeHtml(details.createdAtLabel)}</p>
   <h2>Games</h2>
@@ -124,7 +124,7 @@ function pdfEscape(value: string): string {
 /** A small multi-page PDF of the same details, for the web download. Phones use expo-print on the HTML. */
 export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
   const lines: string[] = [
-    'Rummy Home',
+    'EZ Score: Rummy',
     details.title,
     `Created ${details.createdAtLabel}`,
     '',
@@ -147,7 +147,7 @@ export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
   const pageSize = 42;
   const pages: string[][] = [];
   for (let index = 0; index < lines.length; index += pageSize) pages.push(lines.slice(index, index + pageSize));
-  if (pages.length === 0) pages.push(['Rummy Home']);
+  if (pages.length === 0) pages.push(['EZ Score: Rummy']);
 
   const objects: string[] = [];
   const pageIds: number[] = [];
