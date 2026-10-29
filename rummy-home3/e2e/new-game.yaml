@@ -1,0 +1,7 @@
+appId: com.rummyhome.app
+---
+- launchApp
+- tapOn: "New game"
+- assertVisible: "I'm playing"
+- tapOn: "I'm playing"
+- tapOn: "Start game"

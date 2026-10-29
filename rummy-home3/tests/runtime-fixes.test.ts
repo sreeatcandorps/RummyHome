@@ -3,6 +3,8 @@ import test from 'node:test';
 import { createUuid, isUuid } from '../utils/uuid';
 import { formatSupabaseError, isClockSkewError } from '../utils/supabaseErrors';
 import { isEphemeralTestEmail } from '../utils/playerFilters';
+import { withTimeout } from '../utils/withTimeout';
+import { setStartupNotice, takeStartupNotice } from '../utils/startupNotice';
 
 test('createUuid always returns a valid UUID', () => {
   for (let i = 0; i < 20; i += 1) {
@@ -24,6 +26,16 @@ test('maps invalid uuid create errors clearly', () => {
     message: 'invalid input syntax for type uuid: "1785180149586-d54dd2cbff85d"',
   });
   assert.match(message, /game ID/i);
+});
+
+test('startup work that never settles is reported instead of hanging', async () => {
+  await assert.rejects(
+    withTimeout(new Promise(() => {}), 20, 'Startup timed out'),
+    /Startup timed out/,
+  );
+  setStartupNotice('Startup timed out');
+  assert.equal(takeStartupNotice(), 'Startup timed out');
+  assert.equal(takeStartupNotice(), null);
 });
 
 test('filters ephemeral smoke emails from player lists', () => {

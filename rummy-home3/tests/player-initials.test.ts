@@ -14,8 +14,12 @@ test('sample players stay distinct', () => {
   assert.deepEqual(buildPlayerInitials(['Player 1', 'Player 2', 'Player 10']), ['P1', 'P2', 'P10']);
 });
 
-test('numbers duplicate initials in seat order', () => {
-  assert.deepEqual(buildPlayerInitials(['Sam Kumar', 'Sunil Kohli']), ['SK1', 'SK2']);
+test('grows colliding initials by a letter before numbering them', () => {
+  assert.deepEqual(buildPlayerInitials(['Sam Kumar', 'Sunil Kohli']), ['SAK', 'SUK']);
+});
+
+test('numbers only when the longer initials still match', () => {
+  assert.deepEqual(buildPlayerInitials(['Sam Kumar', 'Sam Kumar']), ['SAK', 'SAK2']);
 });
 
 test('single word names use one letter', () => {

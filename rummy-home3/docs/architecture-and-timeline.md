@@ -38,18 +38,23 @@ Same codebase either way.
 
 ---
 
-## Current stack (as of 2026-08-18)
+## Current stack (as of 2026-10-28)
 
 | Piece | Choice | Why |
 | --- | --- | --- |
 | App root | `rummy-home3/` | Expo Router mobile app |
 | Framework | Expo SDK **54** | React Native 0.81 app toolchain |
 | UI | React Native Paper (Material 3) | Android-familiar components |
+| Share image | `react-native-view-shot` and `expo-sharing` | Scorecard picture, and the Results podium picture, for WhatsApp or a text. The web build draws the same card |
+| Results PDF | `expo-print` and `expo-sharing` | Share full details prints HTML to a PDF on the phone and opens the share sheet. The web build downloads the same details |
 | Backend | Supabase (Auth + Postgres + RLS) | Shared multi-user data without a custom server |
+| My players | `my_players` in `007_redesign.sql` | Per-account roster. Home and New game do not read every profile |
+| Public scorecard | GitHub Pages `…/Games/scorecard.html` | HTML page calls `public_scorecard`. The app does not copy the edge-function URL |
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / production | Real store binaries |
 | OTA | `expo-updates` enabled + EAS Update channels | Fix JS during the 14-day test without new Play review every time |
+| Version codes | `appVersionSource: "remote"` in `eas.json` | EAS tracks Android versionCode; no manual bumps in `app.json` |
 | Secrets for builds | EAS Environment Variables (`EXPO_PUBLIC_SUPABASE_*`) | `.env.local` never reaches EAS builders |
 | Privacy page | `docs/privacy-policy.html` (repo root) | Play Store requires a public privacy URL |
 | Store listing draft | `docs/store-listing.md` | Copy/assets checklist for Play Console |
@@ -153,6 +158,29 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Free-tier Supabase pause caused login/network failures; after restore, saved sessions hit `PGRST303 JWT issued at future`.
 - Auth now refreshes or clears the local session and asks the user to sign in again (not a phone Date & Time toggle).
 
+### 2026-10-07 — Visual redesign (no logic changes)
+- One design system in `constants/theme.ts`: felt-green/cream brand palette, spacing/radius tokens, seat colours, and matching **light + dark** themes. The Settings dark-mode switch now actually applies the dark theme (`contexts/PreferencesContext.tsx`).
+- Every screen restyled; scoreboard rebuilt around a sticky score table (`components/game/ScoreTable.tsx`) that stays readable with many players/rounds.
+- Orientation stays unlocked (`"orientation": "default"`); short landscape screens get dedicated two-column / side-panel layouts and respect notch + nav-bar insets (`hooks/useLayout.ts`).
+
+### 2026-10-27 — Friday game night (sharing, admins, prizes)
+- Any account seated in a game, added as view-only, or keeping score sees that game. Game admins (the creator, plus people they promote on the scorecard) are the only ones who can enter or undo scores.
+- Live scorecards are shared with an unguessable `view_token`. The public page is a Supabase Edge Function (`supabase/functions/scorecard`); email goes through `send-email` when a Resend key is set.
+- Completed games can be grouped into a prize session (coins, not money). Apply `supabase/migrations/006_friday_game_night.sql` before using this on the APK. Passcode reset must use the GitHub Pages URL as the Supabase Site URL, or the email keeps pointing at localhost.
+
+### 2026-10-28 — Redesign (Home, my players, Results, Pages scorecard)
+- Three tabs: Home, Players, Me. History, the stat tiles, and the whole-directory player list are gone. A non-player admin is a `game_players` row with `seated = false`.
+- Settle is hidden the same day. `EXPO_PUBLIC_SETTLE_ENABLED` is off. Results replaces it on Home: check finished games, then a page with the created time, positive and negative totals, one row per player (first name A–Z) with a column per game and a total, and 1st, 2nd, and 3rd place. Score columns follow the width on screen, with the name and the total staying put. Declare only if you admin every selected game. Apply `008_results.sql` after `007` before declare works on the live database. The `prize_sessions` tables stay unused.
+- Scorecard and Results can be shared as an image (`react-native-view-shot` on the phone, the same card drawn for the web). Results also shares a PDF of the full table (`expo-print` `printToFileAsync` plus `expo-sharing`). The scorecard link stays as a second option. A game seats at most 15 players. One Results view holds at most 50.
+- Public scorecard and the invite page are static HTML for GitHub Pages (`public/scorecard.html`, `public/get/index.html`), not the Supabase function URL. Apply `007_redesign.sql` after `006` before my players and unseated admins work on the live database.
+
+### 2026-10-27 — Admin demo seed on Supabase
+- Home-screen Load/Clear demo data is available in release builds only for an allowlisted admin email (`EXPO_PUBLIC_ADMIN_EMAILS`, default `koneru2k@gmail.com`, enforced again in `public.is_demo_admin()`).
+- Sample players and games are tagged `is_demo` and written with the signed-in session through `apply_demo_seed` / `clear_demo_data`. Apply `supabase/migrations/005_demo_data.sql` before using it on the APK.
+
+### 2026-10-07 — Pre-release hardening
+- Removed the passwordless `/admin-login` dev route (local-mode backdoor); it no longer ships in any build.
+- `eas.json` now sets `appVersionSource: "remote"`: EAS owns the Android versionCode (starts at 1, production `autoIncrement` bumps it). Expo SDK 54 patch versions aligned via `expo install --fix`.
 
 ### Now
 - Play Console personal account under Google verification (~days).
@@ -166,11 +194,15 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | --- | --- |
 | Auth (email/passcode, session refresh) | Done enough for testing |
 | Profiles / Player ID + share | Done |
-| Find players (email/phone/ID, invites) | Done |
-| New game (stake/pool, expenses) | Done |
-| Game table + score entry | Done; landscape polish still open |
-| History / dashboard loading | Done |
-| Supabase schema + RLS helpers | Done (apply any pending migrations before store build) |
+| Find players (name, player ID, exact email, +) | Done; needs `007` on the live database |
+| New game (points, my players) | Done. Stored type is still the points game |
+| Game table + score entry | Done, portrait + landscape. One Scorecard header |
+| Home Recent | Done. History screen redirects home |
+| Results | Done in the app. Totals, players-by-game table, places, a podium image, and a full-details PDF. Apply `008_results.sql` before declare works on the live database |
+| Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
+| Theming (light/dark) | Done; dark mode is on Me and saved on the phone |
+| Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
+| Public scorecard | GitHub Pages HTML. Paste the anon key into `public/scorecard.html` before the live link loads a game |
 | Expo Go local preview | Working |
 | EAS project linked on this PC | Done |
 | EAS env vars for Supabase | Done |
@@ -214,6 +246,8 @@ More detail: `docs/play-store-setup.md`, `docs/release-checklist.md`.
 | `docs/play-store-setup.md` | Step checklist for EAS + privacy URL |
 | `docs/release-checklist.md` | Pre-build smoke tests |
 | `docs/product-contract.md` | Product rules (scoring, roles, limits) |
+| `docs/friday-setup.md` | SQL, Site URL, scorecard function, Resend |
+| `docs/testing-strategy.md` | Unit, RLS, roles, Friday checklist |
 | `docs/store-listing.md` (repo root `docs/`) | Play listing copy |
 | `docs/privacy-policy.html` (repo root) | Hosted privacy page |
 | `TASK_LIST.md` | Older feature backlog (partially stale) |

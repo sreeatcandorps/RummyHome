@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Get EZ Score: Rummy</title>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", sans-serif; background: #FBF1E1; color: #1B1F1C; }
+    main { max-width: 520px; margin: 0 auto; padding: 32px 20px; }
+    h1 { color: #17402F; }
+    p { font-size: 18px; line-height: 1.45; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>EZ Score: Rummy</h1>
+    <p id="message">Loading…</p>
+  </main>
+  <script>
+    const ua = navigator.userAgent || '';
+    const iphone = /iPhone|iPad|iPod/i.test(ua);
+    const android = /Android/i.test(ua);
+    const message = document.getElementById('message');
+    if (iphone) {
+      message.textContent = 'The iPhone app is not up yet. There is no TestFlight or App Store listing. Ask the person who invited you for the Android build, or check back later.';
+    } else if (android) {
+      message.textContent = 'The Android app is shared as a preview APK until it is on the Play Store. Ask the person who invited you for that file. This page does not collect an email or a phone number.';
+    } else {
+      message.textContent = 'EZ Score: Rummy is a phone app. On an iPhone it is not available yet. On Android it is shared as a preview APK until the Play Store listing exists.';
+    }
+  </script>
+</body>
+</html>

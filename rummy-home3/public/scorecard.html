@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rummy scorecard</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; font-family: "Segoe UI", sans-serif; background: #FBF1E1; color: #1B1F1C; }
+    header { background: #17402F; color: #FBF1E1; padding: 16px 18px 14px; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    header h1 { margin: 0; font-size: 22px; }
+    button.help { background: transparent; color: #FBF1E1; border: 1px solid rgba(251,241,225,.5); border-radius: 999px; width: 32px; height: 32px; font-weight: 700; cursor: pointer; }
+    dialog { border: 0; border-radius: 12px; max-width: 420px; }
+    dialog p { margin: 0 0 12px; }
+    .meta { margin-top: 6px; font-size: 14px; opacity: 0.9; }
+    main { padding: 12px; overflow-x: auto; }
+    table { border-collapse: collapse; min-width: 100%; background: #fff; border-radius: 12px; }
+    th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid #E7E0D4; font-variant-numeric: tabular-nums; }
+    th { background: #F4EFE4; font-size: 13px; }
+    th .total { display: block; font-size: 16px; font-weight: 800; }
+    td.pos { color: #0E7A43; font-weight: 700; }
+    td.neg { color: #8C2F2F; }
+    .msg { padding: 24px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Rummy scorecard</h1>
+      <div class="meta" id="meta">Loading…</div>
+    </div>
+    <button class="help" type="button" aria-label="Help" onclick="document.getElementById('help').showModal()">?</button>
+  </header>
+  <dialog id="help">
+    <p>This page updates on its own. The start time and game ID say which game it is. No login. Anyone with the link can watch.</p>
+    <form method="dialog"><button>Close</button></form>
+  </dialog>
+  <main id="board"></main>
+  <script>
+    const PROJECT = 'https://gngcrplcldfiubvhcdin.supabase.co';
+    // Public anon key. Paste the project anon key here before publishing this file,
+    // or open the page with ?k= for a one-off check. It is not a secret.
+    const ANON_KEY = '';
+    const params = new URLSearchParams(location.search);
+    const token = params.get('t') || '';
+    const anonKey = params.get('k') || ANON_KEY;
+
+    function initials(names) {
+      const base = names.map((name) => {
+        const words = (name || '').trim().split(/\s+/).filter(Boolean);
+        if (!words.length) return '?';
+        if (words.join(' ').toLowerCase() === 'expenses') return 'EXP';
+        const last = words.length > 1 ? words[words.length - 1] : '';
+        const lastPart = /^\d+$/.test(last) ? last : last.slice(0, 1);
+        return (words[0][0] + lastPart).toUpperCase();
+      });
+      const counts = {};
+      base.forEach((label) => { counts[label] = (counts[label] || 0) + 1; });
+      return base.map((label, index) => {
+        if (counts[label] < 2) return label;
+        const words = (names[index] || '').trim().split(/\s+/);
+        const last = words.length > 1 ? words[words.length - 1][0] : '';
+        return (words[0].slice(0, 2) + last).toUpperCase();
+      });
+    }
+
+    function render(card) {
+      const players = card.players || [];
+      const names = players.map((player) => player.name);
+      const labels = initials(names);
+      const byName = new Map(players.map((player, index) => [player.name, index]));
+      const rounds = new Set();
+      const grid = players.map(() => ({}));
+      let expense = {};
+      (card.scores || []).forEach((score) => {
+        rounds.add(score.round);
+        if (!score.name || score.type === 'expense') {
+          expense[score.round] = (expense[score.round] || 0) + score.value;
+          return;
+        }
+        const index = byName.get(score.name);
+        if (index == null) return;
+        grid[index][score.round] = (grid[index][score.round] || 0) + score.value;
+      });
+      const roundList = [...rounds].sort((a, b) => a - b);
+      const hasExpense = Object.keys(expense).length > 0;
+      const totals = grid.map((row) => roundList.reduce((sum, round) => sum + (row[round] || 0), 0));
+      const started = new Date(card.startedAt);
+      const when = Number.isNaN(started.getTime()) ? card.startedAt : started.toLocaleString();
+      document.getElementById('meta').textContent = 'Started ' + when + ' · ID ' + card.gameId + ' · ' + (card.status === 'completed' ? 'Completed' : 'Live');
+      const head = labels.map((label, index) => '<th>' + label + '<span class="total">' + totals[index] + '</span></th>').join('');
+      const expenseHead = hasExpense ? '<th>EXP<span class="total">' + roundList.reduce((sum, round) => sum + (expense[round] || 0), 0) + '</span></th>' : '';
+      const body = roundList.map((round) => {
+        const cells = grid.map((row) => {
+          const value = row[round] || 0;
+          const cls = value > 0 ? 'pos' : value < 0 ? 'neg' : '';
+          return '<td class="' + cls + '">' + (value > 0 ? '+' + value : value) + '</td>';
+        }).join('');
+        const expenseCell = hasExpense ? '<td class="neg">' + (expense[round] || 0) + '</td>' : '';
+        return '<tr><td>' + round + '</td>' + cells + expenseCell + '</tr>';
+      }).join('');
+      document.getElementById('board').innerHTML = '<table><thead><tr><th>Rnd</th>' + head + expenseHead + '</tr></thead><tbody>' + (body || '<tr><td colspan="8">No rounds yet.</td></tr>') + '</tbody></table>';
+    }
+
+    async function load() {
+      if (!/^[0-9a-f]{48}$/.test(token)) {
+        document.getElementById('meta').textContent = 'This scorecard link is not valid.';
+        document.getElementById('board').innerHTML = '';
+        return;
+      }
+      if (!anonKey) {
+        document.getElementById('meta').textContent = 'This page needs the public anon key filled in before it can load a game.';
+        document.getElementById('board').innerHTML = '<p class="msg">Paste the Supabase anon key into ANON_KEY in scorecard.html, then publish this file on GitHub Pages.</p>';
+        return;
+      }
+      const response = await fetch(PROJECT + '/rest/v1/rpc/public_scorecard', {
+        method: 'POST',
+        headers: { apikey: anonKey, Authorization: 'Bearer ' + anonKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_token: token }),
+      });
+      const card = await response.json();
+      if (!card || card.gameId == null) {
+        document.getElementById('meta').textContent = 'This scorecard link is not valid.';
+        return;
+      }
+      render(card);
+    }
+
+    load().catch(() => {
+      document.getElementById('meta').textContent = 'Could not load the scorecard.';
+    });
+    setInterval(load, 8000);
+  </script>
+</body>
+</html>
