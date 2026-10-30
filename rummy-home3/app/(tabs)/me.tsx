@@ -185,11 +185,14 @@ export default function MeScreen() {
         )}
       </SectionCard>
 
-      <SectionCard title="Phone" icon="phone-outline" supportingText="Optional. Nothing texts this number.">
+      <SectionCard title="Phone" icon="phone-outline" supportingText="Optional. We never text this number.">
         <TextInput mode="outlined" label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
         <Button mode="text" onPress={saveName} loading={saving}>Save phone</Button>
       </SectionCard>
 
+      <Button mode="contained-tonal" icon="cog-outline" onPress={() => router.push('/(screens)/settings')} style={styles.block}>
+        User settings: game type, Drop, Middle drop
+      </Button>
       <Button mode="outlined" icon="lock-reset" onPress={changePasscode} style={styles.block}>
         Change passcode
       </Button>

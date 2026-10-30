@@ -29,6 +29,7 @@ export default function ScreensLayout() {
         }}
       />
       <Stack.Screen name="profile" options={{ title: 'Me' }} />
+      <Stack.Screen name="settings" options={{ title: 'User settings', headerRight: () => <HelpButton text={HELP.userSettings} /> }} />
       <Stack.Screen
         name="games/new"
         options={{ title: 'New game', headerRight: () => <HelpButton text={HELP.newGame} /> }}
@@ -66,7 +67,7 @@ export default function ScreensLayout() {
       <Stack.Screen name="players/index" options={{ title: 'Players' }} />
       <Stack.Screen
         name="players/new"
-        options={{ title: 'Find players', headerRight: () => <HelpButton text={HELP.find} /> }}
+        options={{ title: 'Find player in database', headerRight: () => <HelpButton text={HELP.find} /> }}
       />
       <Stack.Screen name="players/[id]" options={{ title: 'Players' }} />
       <Stack.Screen name="players/[id]/edit" options={{ title: 'Me' }} />

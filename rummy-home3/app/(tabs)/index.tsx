@@ -18,6 +18,8 @@ import { GameListItem } from '@/components/ui/GameListItem';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
+import { JoinRequestsDialog } from '@/components/players/JoinRequestsDialog';
+import { playerIdentityService } from '@/services/playerIdentity';
 
 type Chip = 'all' | 'live' | 'last24h';
 
@@ -30,6 +32,7 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [chip, setChip] = useState<Chip>('all');
+  const [notices, setNotices] = useState<string[]>([]);
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -49,6 +52,9 @@ export default function Dashboard() {
         email: player.email,
       });
       setRecentGames(games);
+      playerIdentityService.takeNotices(player.id)
+        .then((list) => { if (list.length) setNotices((cur) => [...cur, ...list.map((n) => n.text)]); })
+        .catch(() => {});
     } catch (error) {
       setLoadError(formatSupabaseError(error));
     } finally {
@@ -140,6 +146,12 @@ export default function Dashboard() {
     >
       {refreshing ? <ProgressBar indeterminate color={colors.primary} style={styles.bar} /> : null}
       <Text variant="headlineSmall" style={styles.hi}>Hi {firstName}</Text>
+      <JoinRequestsDialog me={currentPlayer} onChanged={() => loadData(true)} />
+      {notices.map((text, i) => (
+        <SectionCard key={i} title="Player update" icon="account-alert-outline" supportingText={text}>
+          <Button compact mode="text" onPress={() => setNotices((cur) => cur.filter((_, j) => j !== i))}>OK</Button>
+        </SectionCard>
+      ))}
       <Button
         mode="contained"
         icon="plus"

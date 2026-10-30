@@ -33,6 +33,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { StackedAction } from '@/components/ui/StackedAction';
 import { Tag } from '@/components/ui/Tag';
+import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
+import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
+import { rulesFromGame } from '@/utils/gameSettings';
 
 export default function GameScreen() {
   const { id } = useLocalSearchParams();
@@ -51,6 +54,9 @@ export default function GameScreen() {
   const [canScore, setCanScore] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [playersOpen, setPlayersOpen] = useState(false);
+  const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const [viewer, setViewer] = useState<Player | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareLink, setShareLink] = useState('');
   const [shareNotice, setShareNotice] = useState<string | null>(null);
@@ -453,7 +459,15 @@ export default function GameScreen() {
                 onDismiss={() => setMenuOpen(false)}
                 anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu"> </Button>}
               >
+                <Menu.Item leadingIcon="cog-outline" onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title="Game settings" />
                 <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title="Players" />
+                {canScore ? (
+                  <Menu.Item leadingIcon="account-check-outline" title="Register players" onPress={async () => {
+                    setMenuOpen(false);
+                    setViewer(await authService.getCurrentPlayer());
+                    setRegisterOpen(true);
+                  }} />
+                ) : null}
                 <Menu.Item leadingIcon="share-variant" onPress={openShare} title="Share" />
               </Menu>
             </View>
@@ -688,6 +702,23 @@ export default function GameScreen() {
           onMove={moveSeat}
         />
       </Portal>
+      <GameSettingsDialog
+        visible={gameSettingsOpen}
+        rules={rulesFromGame(game.settings)}
+        readOnly={!canScore}
+        onDismiss={() => setGameSettingsOpen(false)}
+        onSave={async (rules) => {
+          const updated = await gamesService.updateGameRules(game.id, rules);
+          if (updated) setGame(updated);
+        }}
+      />
+      <RegisterPlayersDialog
+        visible={registerOpen}
+        me={viewer}
+        gameId={game.id}
+        gameNumbers={game.gameNumber ? [game.gameNumber] : []}
+        onDismiss={() => { setRegisterOpen(false); loadGameData(); }}
+      />
     </View>
   );
 }

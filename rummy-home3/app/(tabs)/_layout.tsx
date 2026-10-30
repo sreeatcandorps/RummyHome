@@ -116,8 +116,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="players"
         options={{
-          title: playerCount != null ? `Players · ${playerCount}` : 'Players',
-          tabBarLabel: playerCount != null ? `Players · ${playerCount}` : 'Players',
+          title: playerCount != null ? `My players · ${playerCount}` : 'My players',
+          tabBarLabel: playerCount != null ? `My players · ${playerCount}` : 'My players',
           tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'people' : 'people-outline'} color={color} />,
         }}
       />

@@ -1,3 +1,5 @@
+import type { PlayerStatus } from '@/utils/playerIdentity';
+
 export interface Player {
   id: string;
   name: string;
@@ -17,4 +19,15 @@ export interface Player {
   gamesTogether?: number;
   /** Supabase profile created by the demo seeder. Real accounts omit this or set it false. */
   isDemo?: boolean;
+  /** Registered, Unregistered, or a deleted state. Absent means registered (older rows). */
+  status?: PlayerStatus;
+  /** For an unregistered player: the creator who manages them. */
+  managedBy?: string;
+  firstName?: string;
+  lastName?: string;
+  zipCode?: string;
+  /** Email the creator invited this unregistered player with (normalized). Only the creator sees it. */
+  inviteEmail?: string;
+  /** Set when the account's email has been confirmed. */
+  emailVerified?: boolean;
 } 

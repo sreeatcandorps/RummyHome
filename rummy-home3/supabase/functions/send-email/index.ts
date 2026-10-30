@@ -55,6 +55,22 @@ Deno.serve(async (request) => {
     to = Array.isArray(body.emails) ? body.emails.map((email: string) => String(email)) : [];
     subject = `Rummy scorecard ${body.gameLabel || game.share_code}`;
     html = `<p>A live Rummy scorecard is ready.</p><p>Started ${body.startedAt || ''}. Game ID ${body.gameLabel || game.share_code}.</p><p><a href="${body.url}">Open the scorecard</a></p>`;
+  } else if (body.kind === 'player_invite') {
+    // Register players: the creator invites an unregistered player they manage.
+    const email = String(body.email ?? '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(email)) return json({ sent: false, message: 'Enter a full email address.' }, 400);
+    const { data: links, error: linkError } = await userClient
+      .from('player_links')
+      .select('id')
+      .eq('email', email)
+      .eq('owner_id', userData.user.id)
+      .eq('status', 'pending')
+      .limit(1);
+    if (linkError || !links?.length) return json({ sent: false, message: 'Save the email in Register players first.' }, 403);
+    const esc = (v: unknown) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
+    to = [email];
+    subject = `${body.inviterName || 'A friend'} added you to a Rummy game`;
+    html = `<p>Hi ${esc(body.playerName) || 'there'},</p><p>${esc(body.inviterName) || 'A friend'} added you to a Rummy game on EZ Score: Rummy.</p><p>Please download the app and register with your email ID and then mention that exact email ID there.</p><p>Your email ID: <b>${esc(email)}</b></p><p><a href="${esc(body.url)}">Get the app</a></p>`;
   } else {
     return json({ sent: false, message: 'Unknown email.' }, 400);
   }

@@ -1,3 +1,4 @@
+import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { MIGRATION_007_HINT, playersService } from '@/services/players';
 import { GameType, ProfileDefaults, ScoreType } from '@/types/database';
@@ -18,6 +19,8 @@ type CreateGameInput = {
   expenseAmount?: number;
   createdBy: string;
   settings?: ProfileDefaults;
+  /** Drop and Middle drop for this game, copied from the user's settings. */
+  rules?: PointsRules;
 };
 
 type AddRoundInput = {
@@ -92,11 +95,11 @@ const legacyGameFromServer = (
     scores: scoreMap,
     currentRound: game.current_round,
     gameType: game.game_type,
-    settings: legacySettingsForGameType(
+    settings: withStoredPointsRules(legacySettingsForGameType(
       game.game_type,
       game.settings?.expenseEnabled ?? true,
       game.settings?.expenseAmount,
-    ),
+    ), game.settings),
     shareCode: game.share_code ?? undefined,
     viewToken: game.view_token ?? undefined,
     createdBy: game.created_by ?? undefined,
@@ -125,6 +128,12 @@ export const gamesService = {
       expenseEnabled: input.expenseEnabled,
       expenseAmount: input.expenseAmount ?? baseSettings.expenseAmount,
       gameType: input.gameType,
+      ...(input.rules ? {
+        stakeDrop: input.rules.drop,
+        stakeMiddleDrop: input.rules.middleDrop,
+        dropAmount: input.rules.drop,
+        mdAmount: input.rules.middleDrop,
+      } : {}),
     };
 
     if (!isSupabaseConfigured) {
@@ -141,11 +150,11 @@ export const gamesService = {
         currentRound: 1,
         isComplete: false,
         gameType: input.gameType,
-        settings: legacySettingsForGameType(
+        settings: withStoredPointsRules(legacySettingsForGameType(
           input.gameType,
           input.expenseEnabled,
           settings.expenseAmount,
-        ),
+        ), settings),
         createdBy: input.createdBy,
         viewToken: createViewToken(),
         shareCode: makeShareCode(),
@@ -315,6 +324,34 @@ export const gamesService = {
     return legacyGameFromServer(game, scores ?? [], gamePlayers ?? []);
   },
 
+  /** Game settings: change Drop and Middle drop any time, even mid-game. */
+  async updateGameRules(gameId: string, rules: PointsRules): Promise<Game | null> {
+    if (!isSupabaseConfigured) {
+      const game = await this.getGame(gameId);
+      if (!game) return null;
+      const next = { ...game, settings: { ...game.settings, dropAmount: rules.drop, mdAmount: rules.middleDrop } };
+      await storage.updateGame(next);
+      return next;
+    }
+    const { data: row, error: readError } = await supabase.from('games').select('settings').eq('id', gameId).maybeSingle();
+    if (readError) throw readError;
+    const current = (row?.settings ?? {}) as Record<string, unknown>;
+    const { error } = await supabase
+      .from('games')
+      .update({
+        settings: {
+          ...current,
+          stakeDrop: rules.drop,
+          stakeMiddleDrop: rules.middleDrop,
+          dropAmount: rules.drop,
+          mdAmount: rules.middleDrop,
+        } as any,
+      })
+      .eq('id', gameId);
+    if (error) throw error;
+    return this.getGame(gameId);
+  },
+
   async listGamePlayers(gameId: string): Promise<Player[]> {
     if (!isSupabaseConfigured) {
       const [game, players] = await Promise.all([this.getGame(gameId), storage.getPlayers()]);
@@ -343,7 +380,7 @@ export const gamesService = {
 
     const withSeat = await supabase
       .from('game_players')
-      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, email)')
+      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, email, player_status)')
       .eq('game_id', gameId)
       .order('player_order', { ascending: true });
 
@@ -361,6 +398,7 @@ export const gamesService = {
       name: membership.profiles?.display_name ?? 'Rummy Player',
       playerCode: membership.profiles?.player_code ?? undefined,
       email: membership.profiles?.email ?? undefined,
+      status: membership.profiles?.player_status ?? undefined,
       role: membership.role === 'game_admin' ? 'admin' as const : 'player' as const,
       seatRole: (membership.role ?? 'player') as SeatRole,
       seated: membership.seated !== false && membership.role !== 'spectator',

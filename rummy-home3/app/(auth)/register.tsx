@@ -1,3 +1,4 @@
+import { normalizeEmail, normalizeZip } from '@/utils/playerIdentity';
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
@@ -27,6 +28,8 @@ export default function RegisterScreen() {
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [phoneOpen, setPhoneOpen] = useState(false);
+  const [zip, setZip] = React.useState('');
+  const [checkEmail, setCheckEmail] = useState<string | null>(null);
   const [passcode, setPasscode] = React.useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -122,8 +125,10 @@ export default function RegisterScreen() {
       }
 
       const displayName = `${firstName} ${lastName}`;
+      const zipCode = normalizeZip(zip);
+      const cleanEmail = normalizeEmail(email);
       const authData = isSupabaseConfigured
-        ? await authService.signUp(email, passcode, displayName)
+        ? await authService.signUp(cleanEmail, passcode, displayName, { phone: formattedPhone || null, zip_code: zipCode })
         : { user: { id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` }, session: null };
 
       if (!authData.user) throw new Error('Failed to create user');
@@ -135,8 +140,9 @@ export default function RegisterScreen() {
             first_name: firstName,
             last_name: lastName,
             phone: formattedPhone || null,
+            zip_code: zipCode,
             display_name: displayName,
-            email: email.trim(),
+            email: cleanEmail,
           })
           .eq('id', authData.user.id);
 
@@ -148,8 +154,11 @@ export default function RegisterScreen() {
       if (!isSupabaseConfigured) {
         const newPlayer = {
           id: authData.user.id,
-          email: email.trim(),
+          email: cleanEmail,
           phone: formattedPhone || undefined,
+          zipCode: zipCode || undefined,
+          status: 'registered' as const,
+          emailVerified: true,
           name: displayName,
           gamesPlayed: 0,
           gamesWon: 0,
@@ -165,6 +174,8 @@ export default function RegisterScreen() {
       }
 
       if (isSupabaseConfigured && !authData.session) {
+        setCheckEmail(cleanEmail);
+        return;
         Alert.alert(
           'Confirm Your Email',
           'Your account was created, but you must confirm your email before you can sign in. Check your inbox, then return here and sign in with your email and 6-digit passcode.',
@@ -195,6 +206,24 @@ export default function RegisterScreen() {
       setLoading(false);
     }
   };
+
+  if (checkEmail) {
+    return (
+      <AuthShell title="Check your email" subtitle={`We sent a confirmation link to ${checkEmail}.`} help={HELP.createAccount}>
+        <Text variant="bodyMedium">
+          Open the link to confirm your email, then sign in with your email and 6-digit passcode. If a friend added you to a game with this email, you will be asked “Is this you?” the first time you sign in.
+        </Text>
+        <Button mode="outlined" icon="email-sync-outline" style={{ marginTop: 16 }}
+          onPress={() => authService.resendConfirmation(checkEmail).then(() => setError('Sent again.')).catch((e) => setError(formatAuthError(e)))}>
+          Resend the link
+        </Button>
+        {error ? <HelperText type="info" visible>{error}</HelperText> : null}
+        <Button mode="contained" style={{ marginTop: 8 }} onPress={() => router.replace({ pathname: '/(auth)/login', params: { email: checkEmail } })}>
+          Go to sign in
+        </Button>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell
@@ -254,16 +283,32 @@ export default function RegisterScreen() {
         left={<TextInput.Icon icon="email-outline" />}
       />
 
+      <HelperText type="info" visible>
+        Use the exact email a friend registered you with, so your games show up. We send a link to confirm it.
+      </HelperText>
       <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} />
       <HelperText type="info" visible>
         Numbers only — this is your quick login code. Use the eye to check each digit.
       </HelperText>
 
       <Button mode="text" onPress={() => setPhoneOpen((open) => !open)} icon={phoneOpen ? 'chevron-up' : 'chevron-down'}>
-        Phone (optional)
+        Optional: phone and zip code
       </Button>
       {phoneOpen ? (
         <View>
+          <HelperText type="info" visible>
+            Both are optional. We never text you and never ask for your address.
+          </HelperText>
+          <TextInput
+            label="Zip code"
+            value={zip}
+            onChangeText={(t) => setZip(t.replace(/[^0-9-]/g, '').slice(0, 10))}
+            mode="outlined"
+            keyboardType="number-pad"
+            disabled={loading}
+            left={<TextInput.Icon icon="map-marker-outline" />}
+            style={{ marginBottom: 8 }}
+          />
           <TextInput
             label="Phone number"
             value={phone}

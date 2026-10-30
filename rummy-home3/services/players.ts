@@ -109,6 +109,8 @@ export const playersService = {
       const { storage } = await import('@/utils/storage');
       const players = await storage.getPlayers();
       const found = players.filter((player) => {
+        // The database is registered players only. Unregistered ones live in their creator's My players.
+        if (player.managedBy || (player.status && player.status !== 'registered')) return false;
         if (mode === 'email') return (player.email ?? '').toLowerCase() === trimmed.toLowerCase();
         const haystack = `${player.name} ${player.playerCode ?? ''}`.toLowerCase();
         return haystack.includes(trimmed.toLowerCase());

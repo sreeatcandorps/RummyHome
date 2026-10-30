@@ -13,6 +13,11 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { spacing, useAppTheme } from '@/constants/theme';
+import { Tag } from '@/components/ui/Tag';
+import { NewPlayerStepper } from '@/components/players/NewPlayerStepper';
+import { AddPlayersDialog } from '@/components/players/AddPlayersDialog';
+import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
+import { playerIdentityService } from '@/services/playerIdentity';
 
 export default function PlayersTab() {
   const { colors } = useAppTheme();
@@ -25,6 +30,10 @@ export default function PlayersTab() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Player | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [unregistered, setUnregistered] = useState<Record<string, Player>>({});
+  const [newCount, setNewCount] = useState(1);
+  const [addOpen, setAddOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -39,6 +48,8 @@ export default function PlayersTab() {
       if (cached.length) setPlayers(cached);
       const fresh = await playersService.listMyPlayers(player.id);
       setPlayers(fresh);
+      const open = await playerIdentityService.listUnregistered(player.id).catch(() => []);
+      setUnregistered(Object.fromEntries(open.map((p) => [p.id, p])));
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
@@ -51,7 +62,7 @@ export default function PlayersTab() {
   }, [load]));
 
   React.useLayoutEffect(() => {
-    navigation.setOptions({ title: `Players · ${players.length}` });
+    navigation.setOptions({ title: `My players · ${players.length}` });
   }, [navigation, players.length]);
 
   const shown = players
@@ -103,16 +114,17 @@ export default function PlayersTab() {
         style={styles.search}
       />
       <View style={styles.actions}>
-        <Button mode="contained" icon="account-search" onPress={() => router.push('/(screens)/players/new')}>
-          Find players
+        <Button mode="contained" icon="database-search" onPress={() => router.push('/(screens)/players/new')}>
+          Find player in database
         </Button>
-        <Button mode="outlined" icon="share-variant" onPress={() => shareInvite().catch(() => {})}>
-          Invite
+        <Button mode="outlined" icon="account-check-outline" onPress={() => setRegisterOpen(true)}>
+          Register players{Object.keys(unregistered).length ? ` · ${Object.keys(unregistered).length}` : ''}
         </Button>
         <Button mode="text" onPress={() => setSort((current) => (current === 'games' ? 'name' : 'games'))}>
           {sort === 'games' ? 'Most games' : 'Name'}
         </Button>
       </View>
+      <NewPlayerStepper count={newCount} onChange={setNewCount} onAdd={() => setAddOpen(true)} />
       {error ? (
         <View>
           <Text variant="bodyMedium" style={{ color: colors.error }}>{error}</Text>
@@ -123,9 +135,9 @@ export default function PlayersTab() {
       {!loading && players.length === 0 && !error ? (
         <EmptyState
           icon="account-group-outline"
-          title="No players yet."
-          message="Find someone who already has an account, or invite them."
-          actionLabel="Find players"
+          title="No one in My players yet."
+          message="Add a new player with just initials, or find a registered player in the database."
+          actionLabel="Find player in database"
           onAction={() => router.push('/(screens)/players/new')}
         />
       ) : null}
@@ -146,12 +158,17 @@ export default function PlayersTab() {
             <SeatAvatar name={player.name} size={36} />
             <View>
               <Text variant="titleMedium">{player.name}{me?.id === player.id ? ' · This is you' : ''}</Text>
-              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{player.playerCode || 'No player ID yet'}</Text>
+              <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{player.playerCode || 'No player ID yet'}</Text>
+                {unregistered[player.id] ? <Tag label={unregistered[player.id].status === 'pending' ? 'Pending' : 'Unregistered'} /> : null}
+              </View>
             </View>
           </View>
         </Button>
       ))}
 
+      {me ? <AddPlayersDialog visible={addOpen} count={newCount} ownerId={me.id} onClose={() => { setAddOpen(false); load(); }} onSaved={() => {}} onDeleted={() => {}} /> : null}
+      <RegisterPlayersDialog visible={registerOpen} me={me} onDismiss={() => { setRegisterOpen(false); load(); }} />
       <Portal>
         <Dialog visible={!!selected} onDismiss={() => setSelected(null)}>
           <Dialog.Title>{selected?.name}</Dialog.Title>
@@ -163,8 +180,11 @@ export default function PlayersTab() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setSelected(null)}>Close</Button>
+            {selected && unregistered[selected.id] ? (
+              <Button onPress={() => { setSelected(null); setRegisterOpen(true); }}>Register</Button>
+            ) : null}
             <Button textColor={colors.error} onPress={confirmRemove} loading={removing}>
-              Remove from my players
+              Remove from My players
             </Button>
           </Dialog.Actions>
         </Dialog>

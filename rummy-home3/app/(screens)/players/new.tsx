@@ -80,7 +80,7 @@ export default function FindPlayersScreen() {
         value={query}
         onChangeText={setQuery}
         style={styles.search}
-        accessibilityLabel="Find players"
+        accessibilityLabel="Find player in database"
       />
       {error ? <Text variant="bodyMedium" style={{ color: colors.error }}>{error}</Text> : null}
       {results.map((player) => (
@@ -95,13 +95,13 @@ export default function FindPlayersScreen() {
             disabled={!!added[player.id]}
             accessibilityLabel={added[player.id] ? 'Added' : `Add ${player.name}`}
           >
-            {added[player.id] ? 'Added' : '+'}
+            {added[player.id] ? 'In My players' : '+ My players'}
           </Button>
         </View>
       ))}
       {nothing ? (
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          No account matches that. Invite them and they can join after they sign up.
+          No registered player matches that. Not in the database? Use Add new player on New game or in My players.
         </Text>
       ) : null}
       <Button mode="outlined" icon="share-variant" onPress={() => shareInvite().catch(() => {})} style={styles.invite}>

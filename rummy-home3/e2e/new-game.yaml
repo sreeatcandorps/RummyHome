@@ -2,6 +2,7 @@ appId: com.rummyhome.app
 ---
 - launchApp
 - tapOn: "New game"
-- assertVisible: "I'm playing"
-- tapOn: "I'm playing"
-- tapOn: "Start game"
+- assertVisible: "Playing · 1"
+- assertNotVisible: "I'm playing"
+- assertVisible: "Find player in database"
+- assertVisible: "Add new player"
