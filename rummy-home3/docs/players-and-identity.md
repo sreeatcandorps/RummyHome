@@ -10,7 +10,7 @@
 | Status | Meaning |
 | --- | --- |
 | Unregistered | Created by a game creator; has a player ID, no account. |
-| Pending | Invited with an email that already belongs to a registered player. Waiting for that person's Yes. |
+| Pending | A claim link was shared, or someone asked to claim this player with its player ID. |
 | Registered | Has an account. |
 | Deleted before registering | Soft delete by the creator. Past scores stay. |
 | Deleted after registering | Account removed. Past scores stay. |
@@ -20,39 +20,47 @@ Transitions live in `utils/playerIdentity.ts` (`TRANSITIONS`) and are mirrored b
 `supabase/migrations/011_player_identity.sql`. To add a status, add it to `PLAYER_STATUSES`,
 the label map, the transition table, and the SQL check constraint.
 
-## Email is the identity key
-- Lowercased and trimmed everywhere (`normalizeEmail`, and `lower(btrim())` in SQL).
-- Unique across accounts. Changing your email is not allowed for now.
-- No phone verification, no OTP. Phone and zip are optional at sign-up and never used to text.
-- US only for now. A WhatsApp link can be added later as another link `kind` without changing the model.
+## Player IDs
+- Every player (registered or not) has `public_player_no`, shown as **#42**.
+- A plain number from a sequence, assigned when the player is first saved. Unique, never changed, never reused.
+- Existing players were numbered oldest first (by `created_at`) in migration 012.
+- The uuid stays the primary key; games and scores point at it.
+- **Player IDs are never used to sign in.** Email + 6-digit passcode is the only sign-in.
 
-## Pending records (`player_links`)
-One row per creator + unregistered player + email.
-- `kind = signup`: the email had no account. When someone signs up and confirms that email,
-  the first login shows "Is this you? You played in G3 with Sree". Yes merges; Not me leaves it with the creator.
-- `kind = existing`: the email already belongs to a registered player. **Never linked instantly.**
-  The creator sees "This email belongs to a registered player. We'll send them a request to join your game."
-  The player shows Pending. The registered person sees "<creator> added you to G<n>. Is this you?" with Yes / Not me.
-  - Yes: seats and scores move to the account; status Registered.
-  - Not me, or no answer in 14 days: back to Unregistered, email cleared, the creator gets a note. Scores stay with the creator.
-  - While pending the creator can Change email or Resend (restarts the 14 days).
-- The same email under two creators: each creator has their own pending record; all of them merge into the one account.
-- **Unlink player**: if a link was wrong, the creator unlinks. The seats in exactly the games that moved go back
-  to the original unregistered record (same initials, no email). Scores are never deleted, only re-linked.
+## Email
+- Lowercased and trimmed everywhere (`normalizeEmail`, `lower(btrim())` in SQL). Unique per account. Changing it is not allowed for now.
+- Sign-up requires email and Supabase email confirmation. Phone and zip are optional and never used to text.
+- No OTP, no phone check. US only for now; a WhatsApp link would be another claim `kind`.
 
-## Invites
-Register players asks only for an email and has a Share button. The message is:
-"Please download the app and register with your email ID and then mention that exact email ID there."
-If the `send-email` edge function is deployed with a Resend key, the invite is emailed (kind `player_invite`).
-Otherwise the phone's share sheet opens with the same text.
+## Claims (`player_links`)
+Two ways to claim an unregistered player. Both need a confirmed email. Both set the player to **Pending**.
+
+1. **Claim link** (`kind = link`). In Register players (game ⋮ menu or My players) the creator taps **Share**.
+   The server makes a random 256-bit token, stores only its sha-256, and returns it once inside the message:
+   "Join me on EZ Score: Rummy! Download the app and sign up using this link to see your scores. Your player ID is #42." + link.
+   The native share sheet sends it (WhatsApp, SMS, anything). The link is single use, expires in 14 days,
+   can be turned off (revoked), and **Share again** makes a new token and revokes the old one.
+   Opening it saves the token on the phone (`/claim?t=` in the app; the web `get` page offers "Open in app").
+   After sign-up and email confirmation the app asks "Is this you? You played in G3 with Sree" with Yes / Not me.
+   Yes links the scores. Not me leaves the player unregistered and tells the creator.
+2. **Player ID at sign-up** (`kind = id_request`). Sign-up has "Enter your player ID if you have one."
+   With no link, it creates a request the creator sees on Home and My players: "#42 wants to claim R K. Approve?".
+   Only Approve links. Decline keeps the player unregistered. Limited to 5 requests per account per 24 hours.
+
+- Yes / Approve moves seats and scores only for games the account is not already seated in, and records
+  `moved_game_ids`. **Unlink player** moves exactly those back to the original unregistered record. Scores are never deleted.
+- Two creators holding records for the same person: each record is claimed through its own link or request into
+  the same account, so the person ends up as one player.
+- Any pending claim older than 14 days expires; the player goes back to Unregistered and the creator gets a note.
 
 ## Settings
 - **User settings** (Me > User settings): game type (Points only for now; Pool later), Drop and Middle drop. Every new game copies these.
 - **Game settings** (⋮ on New game and on the scorecard): Drop and Middle drop for that game, changeable any time.
 
 ## Supabase dashboard steps
-1. Run `supabase/migrations/011_player_identity.sql` in the SQL editor (after 010).
+1. Run `supabase/migrations/011_player_identity.sql`, then `012_player_numbers_and_claim_links.sql`, in the SQL editor (after 010).
 2. Authentication > Providers > Email: turn on **Confirm email**.
 3. Authentication > URL configuration: make sure the app's redirect URL (see `utils/authRedirect.ts`) is in the allow list.
-4. Optional: Authentication > Email templates > Confirm signup: mention "Use this same email your friend added you with".
-5. Optional (emailed invites): `supabase secrets set RESEND_API_KEY=... RESEND_FROM="EZ Score <scores@mindweavetech.com>"` and `supabase functions deploy send-email`.
+4. Database > Extensions: pgcrypto must be on (it is by default on Supabase).
+5. Android app links: claim links open `https://sreeatcandorps.github.io/Games/get?claim=…`, which offers "Open in app"
+   (`rummy-home3://claim?t=…`). Verified Android App Links for that domain are not set up yet.

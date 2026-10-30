@@ -1,3 +1,4 @@
+import { displayPlayerId } from '@/utils/playerIdentity';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { Player } from '@/types/player';
@@ -27,7 +28,8 @@ const missingRpc = (error: unknown) => {
 
 const toPlayer = (row: any): Player => ({
   id: row.id,
-  playerCode: row.player_code ?? undefined,
+  playerCode: displayPlayerId(row),
+  playerNo: row.public_player_no ?? undefined,
   email: row.email ?? undefined,
   phone: row.phone ?? undefined,
   name: row.display_name || [row.first_name, row.last_name].filter(Boolean).join(' ') || 'Rummy Player',

@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createHash, randomBytes } from 'node:crypto';
 import {
-  applyClaims, canTransition, changeRequestEmail, claimableLinks, claimPrompt, clampNewPlayerCount, closeRequest,
-  EXISTING_ACCOUNT_NOTICE, INVITE_MESSAGE, inviteOutcome, inviteShareText, isExpired, isValidEmail, joinRequestPrompt,
-  nextStatus, normalizeEmail, normalizeZip, PendingLink, pickerGrid, remapGamePlayers, seatedOrder, sortCandidates,
-  unlinkPlayer, upsertPendingLink,
+  acceptClaim, backfillPlayerNumbers, canRequestClaim, canTransition, claimPrompt, claimRequestPrompt, claimShareText, claimUrl,
+  clampNewPlayerCount, closeClaim, findClaimLink, formatPlayerNo, ID_CLAIMS_PER_DAY, isExpired, isValidEmail, issueClaimLink,
+  isWellFormedToken, nextPlayerNo, nextStatus, normalizeEmail, normalizeZip, parsePlayerNo, PendingLink, pickerGrid,
+  remapGamePlayers, requestClaimById, revokeClaimLinks, seatedOrder, sortCandidates, toBase64Url, TOKEN_BYTES, unlinkPlayer,
 } from '../utils/playerIdentity';
 import { parseRuleInput, rulesFromProfileDefaults, validateRules, withStoredPointsRules } from '../utils/gameSettings';
 
@@ -68,53 +69,163 @@ test('zip is optional and 5 digits', () => {
 test('status transitions', () => {
   assert.equal(nextStatus('unregistered', 'delete'), 'deleted_before_registering');
   assert.equal(nextStatus('registered', 'delete'), 'deleted_after_registering');
-  assert.equal(nextStatus('unregistered', 'claim'), 'merged');
-  assert.equal(nextStatus('unregistered', 'request_existing'), 'pending');
+  assert.equal(nextStatus('unregistered', 'share_link'), 'pending');
+  assert.equal(nextStatus('unregistered', 'request_claim'), 'pending');
   assert.equal(nextStatus('pending', 'accept'), 'merged');
   assert.equal(nextStatus('pending', 'decline'), 'unregistered');
   assert.equal(nextStatus('pending', 'expire'), 'unregistered');
+  assert.equal(nextStatus('pending', 'revoke'), 'unregistered');
   assert.equal(nextStatus('merged', 'unlink'), 'unregistered');
   assert.equal(nextStatus('deleted_before_registering', 'restore'), 'unregistered');
-  assert.throws(() => nextStatus('registered', 'claim'));
+  assert.throws(() => nextStatus('registered', 'accept'));
   assert.throws(() => nextStatus('unregistered', 'accept'), /can't accept/);
   assert.ok(!canTransition('deleted_after_registering', 'delete'));
 });
 
-// ---------- claim and merge (new sign-up) ----------
-const link = (over: Partial<PendingLink>): PendingLink => ({
-  id: 'l1', ownerId: 'sree', ownerName: 'Sree', playerId: 'rk1', playerName: 'R K', email: 'raj@gmail.com',
-  status: 'pending', invitedAt: daysAgo(1), lastSentAt: daysAgo(1), gameNumbers: [3], kind: 'signup', ...over,
+// ---------- player ID sequence ----------
+test('player IDs are #numbers, parsed with or without #, never 0', () => {
+  assert.equal(formatPlayerNo(42), '#42');
+  assert.equal(formatPlayerNo(undefined), '');
+  assert.equal(parsePlayerNo(' #42 '), 42);
+  assert.equal(parsePlayerNo('42'), 42);
+  assert.equal(parsePlayerNo('0'), null);
+  assert.equal(parsePlayerNo('4a'), null);
 });
 
-test('upsert keeps one pending record per creator + player and normalizes the email', () => {
-  let links = upsertPendingLink([], { id: 'a', ownerId: 'sree', playerId: 'rk1', playerName: 'R K', email: ' RAJ@gmail.com' });
-  links = upsertPendingLink(links, { id: 'b', ownerId: 'sree', playerId: 'rk1', playerName: 'R K', email: 'raj2@gmail.com' });
-  assert.equal(links.length, 1);
-  assert.equal(links[0].email, 'raj2@gmail.com');
-  links = upsertPendingLink(links, { id: 'c', ownerId: 'anu', playerId: 'rk2', playerName: 'Raj', email: 'raj2@gmail.com' });
-  assert.equal(links.length, 2);
-  assert.throws(() => upsertPendingLink(links, { id: 'd', ownerId: 'x', playerId: 'y', playerName: 'z', email: 'nope' }));
+test('sequence goes up from the highest ever issued, so numbers are never reused', () => {
+  assert.equal(nextPlayerNo(0), 1);
+  assert.equal(nextPlayerNo(41), 42);
 });
 
-test('claims need a verified email that matches exactly after normalizing', () => {
-  const links = [link({}), link({ id: 'l2', email: 'other@gmail.com' })];
-  assert.equal(claimableLinks(links, 'Raj@Gmail.com', false).length, 0);
-  assert.deepEqual(claimableLinks(links, ' Raj@Gmail.com', true).map((l) => l.id), ['l1']);
-  assert.equal(claimPrompt(link({})), 'Is this you? You played in G3 with Sree as "R K".');
+test('backfill numbers existing players oldest first and keeps existing numbers', () => {
+  const out = backfillPlayerNumbers([
+    { id: 'c', createdAt: '2026-03-01' },
+    { id: 'a', createdAt: '2026-01-01' },
+    { id: 'z', createdAt: '2025-01-01', playerNo: 7 },
+    { id: 'b', createdAt: '2026-01-01' },
+  ]);
+  assert.deepEqual(out.map((p) => [p.id, p.playerNo]), [['c', 10], ['a', 8], ['z', 7], ['b', 9]]);
 });
 
-test('same email under two creators merges into one account', () => {
-  const links = [link({}), link({ id: 'l2', ownerId: 'anu', ownerName: 'Anu', playerId: 'rk2', playerName: 'Raj' })];
-  const { links: out, remap } = applyClaims(links, 'acct', 'RAJ@gmail.com', [{ linkId: 'l1', accept: true }, { linkId: 'l2', accept: true }]);
-  assert.deepEqual(remap, { rk1: 'acct', rk2: 'acct' });
-  assert.ok(out.every((l) => l.status === 'claimed' && l.claimedBy === 'acct'));
+// ---------- claim links ----------
+const hash = (t: string) => createHash('sha256').update(t).digest('hex');
+const mkToken = () => toBase64Url(new Uint8Array(randomBytes(TOKEN_BYTES)));
+const base = { ownerId: 'sree', ownerName: 'Sree', playerId: 'rk1', playerName: 'R K', playerNo: 42, gameNumbers: [3] };
+const games = () => [
+  { id: 'g3', players: ['sree', 'rk1'], scores: { sree: [5], rk1: [-5] } as Record<string, number[]> },
+  { id: 'g9', players: ['acct', 'rk1'], scores: { acct: [1], rk1: [-1] } as Record<string, number[]> },
+];
+
+test('tokens are at least 128 bits, url-safe, and stored only as a hash', () => {
+  const t = mkToken();
+  assert.ok(TOKEN_BYTES * 8 >= 128);
+  assert.ok(isWellFormedToken(t));
+  assert.ok(!t.includes('+') && !t.includes('/') && !t.includes('='));
+  const links = issueClaimLink([], { id: 'l1', ...base, tokenHash: hash(t) }, NOW.toISOString());
+  assert.ok(!JSON.stringify(links).includes(t));
+  assert.ok(findClaimLink(links, hash(t), NOW));
 });
 
-test('declining one creator leaves that record with them', () => {
-  const links = [link({}), link({ id: 'l2', ownerId: 'anu', playerId: 'rk2' })];
-  const { links: out, remap } = applyClaims(links, 'acct', 'raj@gmail.com', [{ linkId: 'l1', accept: true }, { linkId: 'l2', accept: false }]);
-  assert.deepEqual(remap, { rk1: 'acct' });
-  assert.equal(out[1].status, 'declined');
+test('share message has the player ID and the link', () => {
+  const text = claimShareText(42, claimUrl('abc_DEF-123'));
+  assert.ok(text.startsWith('Join me on EZ Score: Rummy! Download the app and sign up using this link to see your scores. Your player ID is #42.'));
+  assert.ok(text.includes('?claim=abc_DEF-123'));
+});
+
+test('re-sharing makes a new link and the old one stops working; revoke turns it off', () => {
+  const t1 = mkToken(); const t2 = mkToken();
+  let links = issueClaimLink([], { id: 'l1', ...base, tokenHash: hash(t1) }, NOW.toISOString());
+  links = issueClaimLink(links, { id: 'l2', ...base, tokenHash: hash(t2) }, NOW.toISOString());
+  assert.equal(findClaimLink(links, hash(t1), NOW), null);
+  assert.equal(findClaimLink(links, hash(t2), NOW)?.id, 'l2');
+  links = revokeClaimLinks(links, 'rk1');
+  assert.equal(findClaimLink(links, hash(t2), NOW), null);
+});
+
+test('claim links expire after 14 days', () => {
+  const t = mkToken();
+  const links = issueClaimLink([], { id: 'l1', ...base, tokenHash: hash(t) }, daysAgo(15));
+  assert.ok(isExpired(links[0], NOW));
+  assert.equal(findClaimLink(links, hash(t), NOW), null);
+  const fresh = issueClaimLink([], { id: 'l1', ...base, tokenHash: hash(t) }, daysAgo(13));
+  assert.ok(findClaimLink(fresh, hash(t), NOW));
+  assert.equal(closeClaim(links[0], 'expire').playerStatus, 'unregistered');
+});
+
+test('Yes on a link is single use and moves only games the account is not already in', () => {
+  const t = mkToken();
+  const links = issueClaimLink([], { id: 'l1', ...base, tokenHash: hash(t) }, NOW.toISOString());
+  const out = acceptClaim(links, 'l1', 'acct', games(), NOW);
+  assert.equal(out.playerStatus, 'merged');
+  assert.deepEqual(out.games[0].players, ['sree', 'acct']);
+  assert.deepEqual(out.games[0].scores, { sree: [5], acct: [-5] });
+  assert.deepEqual(out.games[1].players, ['acct', 'rk1']);
+  assert.deepEqual(out.links[0].movedGameIds, ['g3']);
+  assert.equal(findClaimLink(out.links, hash(t), NOW), null);
+  assert.throws(() => acceptClaim(out.links, 'l1', 'acct', out.games, NOW), /no longer valid/);
+  assert.equal(claimPrompt(links[0]), 'Is this you? You played in G3 with Sree');
+});
+
+test('Not me leaves the player unregistered and tells the creator', () => {
+  const links = issueClaimLink([], { id: 'l1', ...base, tokenHash: 'h' }, NOW.toISOString());
+  const r = closeClaim(links[0], 'decline');
+  assert.equal(r.link.status, 'declined');
+  assert.equal(r.playerStatus, 'unregistered');
+  assert.equal(r.notice.ownerId, 'sree');
+  assert.match(r.notice.text, /Not me/);
+  assert.throws(() => closeClaim(r.link, 'decline'));
+});
+
+// ---------- player ID typed at sign-up ----------
+const rk = { id: 'rk1', name: 'R K', playerNo: 42, managedBy: 'sree', status: 'unregistered' as const };
+
+test('ID claim makes a request for the creator; only Approve links', () => {
+  const { links, notice } = requestClaimById([], { id: 'q1', requesterId: 'acct', requesterName: 'Raj', player: rk, ownerName: 'Sree' }, NOW.toISOString());
+  assert.equal(links[0].kind, 'id_request');
+  assert.equal(notice.text, '#42 wants to claim R K. Approve?');
+  assert.equal(claimRequestPrompt(links[0]), '#42 wants to claim R K. Approve?');
+  assert.throws(() => acceptClaim(links, 'q1', 'someone-else', games(), NOW), /another account/);
+  const approved = acceptClaim(links, 'q1', 'acct', games(), NOW);
+  assert.equal(approved.links[0].status, 'claimed');
+  const declined = closeClaim(links[0], 'decline');
+  assert.equal(declined.link.status, 'declined');
+  assert.equal(declined.playerStatus, 'unregistered');
+});
+
+test('ID claims are rate limited per account and checked', () => {
+  let links: PendingLink[] = [];
+  for (let i = 0; i < ID_CLAIMS_PER_DAY; i++) {
+    links = requestClaimById(links, { id: `q${i}`, requesterId: 'acct', player: { ...rk, id: `p${i}` } }, NOW.toISOString()).links;
+  }
+  assert.ok(!canRequestClaim(links, 'acct', NOW));
+  assert.throws(() => requestClaimById(links, { id: 'qx', requesterId: 'acct', player: { ...rk, id: 'px' } }, NOW.toISOString()), /Too many/);
+  assert.ok(canRequestClaim(links, 'acct', new Date(NOW.getTime() + 2 * 86400000)));
+  assert.ok(canRequestClaim(links, 'other', NOW));
+  assert.throws(() => requestClaimById([], { id: 'q', requesterId: 'sree', player: rk }), /own player/);
+  assert.throws(() => requestClaimById([], { id: 'q', requesterId: 'acct', player: { ...rk, status: 'registered' } }), /not waiting/);
+  const once = requestClaimById([], { id: 'q', requesterId: 'acct', player: rk }).links;
+  assert.throws(() => requestClaimById(once, { id: 'q2', requesterId: 'acct', player: rk }), /already asked/);
+});
+
+test('two creators holding the same person: both claims merge into one account', () => {
+  let links = issueClaimLink([], { id: 'a', ...base, tokenHash: 'h1' }, NOW.toISOString());
+  links = issueClaimLink(links, { id: 'b', ownerId: 'anu', playerId: 'raj2', playerName: 'Raj', tokenHash: 'h2' }, NOW.toISOString());
+  const g: { id: string; players: string[]; scores: Record<string, number[]> }[] = [{ id: 'g3', players: ['sree', 'rk1'], scores: { sree: [1], rk1: [-1] } }, { id: 'g7', players: ['anu', 'raj2'], scores: { anu: [2], raj2: [-2] } }];
+  const one = acceptClaim(links, 'a', 'acct', g, NOW);
+  const two = acceptClaim(one.links, 'b', 'acct', one.games, NOW);
+  assert.deepEqual(two.games.map((x) => x.players), [['sree', 'acct'], ['anu', 'acct']]);
+});
+
+test('Unlink moves only the moved games back; scores kept', () => {
+  const links = issueClaimLink([], { id: 'l1', ...base, tokenHash: 'h' }, NOW.toISOString());
+  const claimed = acceptClaim(links, 'l1', 'acct', games(), NOW);
+  const r = unlinkPlayer(claimed.links[0], claimed.games);
+  assert.equal(r.playerStatus, 'unregistered');
+  assert.equal(r.link.status, 'unlinked');
+  assert.deepEqual(r.games[0].players, ['sree', 'rk1']);
+  assert.deepEqual(r.games[0].scores, { sree: [5], rk1: [-5] });
+  assert.deepEqual(r.games[1], games()[1]);
+  assert.throws(() => unlinkPlayer(links[0], games()));
 });
 
 test('remap moves seats and scores; nothing is lost', () => {
@@ -122,66 +233,6 @@ test('remap moves seats and scores; nothing is lost', () => {
   const moved = remapGamePlayers(game, { rk1: 'acct' });
   assert.deepEqual(moved.players, ['sree', 'acct']);
   assert.deepEqual(moved.scores, { sree: [10, 0], acct: [-10, 0] });
-});
-
-// ---------- the tricky case: existing registered account ----------
-test('email of a registered account makes the player Pending, never linked instantly', () => {
-  const out = inviteOutcome('unregistered', true);
-  assert.equal(out.status, 'pending');
-  assert.equal(out.kind, 'existing');
-  assert.equal(out.notice, EXISTING_ACCOUNT_NOTICE);
-  assert.equal(inviteOutcome('unregistered', false).status, 'unregistered');
-  assert.equal(joinRequestPrompt(link({ kind: 'existing' })), 'Sree added you to G3. Is this you?');
-});
-
-test('Not me sends the player back to Unregistered, clears the email, tells the creator', () => {
-  const r = closeRequest(link({ kind: 'existing' }), 'decline');
-  assert.equal(r.link.status, 'declined');
-  assert.equal(r.playerStatus, 'unregistered');
-  assert.equal(r.clearEmail, true);
-  assert.equal(r.notice.ownerId, 'sree');
-  assert.match(r.notice.text, /Not me/);
-  assert.throws(() => closeRequest(r.link, 'decline'));
-});
-
-test('requests expire after 14 days and go back to Unregistered', () => {
-  const stale = link({ kind: 'existing', lastSentAt: daysAgo(15) });
-  assert.ok(isExpired(stale, NOW));
-  assert.ok(!isExpired(link({ kind: 'existing', lastSentAt: daysAgo(3) }), NOW));
-  assert.ok(!isExpired(link({ kind: 'signup', lastSentAt: daysAgo(30) }), NOW));
-  const r = closeRequest(stale, 'expire');
-  assert.equal(r.link.status, 'expired');
-  assert.equal(r.playerStatus, 'unregistered');
-});
-
-test('Pending: Change email and Resend restart the clock', () => {
-  const changed = changeRequestEmail(link({ kind: 'existing', lastSentAt: daysAgo(10) }), ' New@Mail.com', NOW.toISOString());
-  assert.equal(changed.email, 'new@mail.com');
-  assert.equal(changed.lastSentAt, NOW.toISOString());
-  assert.ok(!isExpired(changed, NOW));
-  assert.throws(() => changeRequestEmail(link({ status: 'claimed' }), 'a@b.co'));
-});
-
-test('Unlink moves only the moved games back to the unregistered record; scores kept', () => {
-  const claimed = link({ status: 'claimed', claimedBy: 'acct', movedGameIds: ['g3'] });
-  const games: { id: string; players: string[]; scores: Record<string, number[]> }[] = [
-    { id: 'g3', players: ['sree', 'acct'], scores: { sree: [5], acct: [-5] } },
-    { id: 'g9', players: ['acct', 'anu'], scores: { acct: [7], anu: [-7] } },
-  ];
-  const r = unlinkPlayer(claimed, games);
-  assert.equal(r.playerStatus, 'unregistered');
-  assert.equal(r.link.status, 'unlinked');
-  assert.equal(r.link.email, '');
-  assert.deepEqual(r.games[0].players, ['sree', 'rk1']);
-  assert.deepEqual(r.games[0].scores, { sree: [5], rk1: [-5] });
-  assert.deepEqual(r.games[1], games[1]);
-  assert.throws(() => unlinkPlayer(link({}), games));
-});
-
-test('invite text has the exact message', () => {
-  const text = inviteShareText('R K', ' Raj@Gmail.com', 'Sree', 'https://x.test/get');
-  assert.ok(text.includes(INVITE_MESSAGE));
-  assert.ok(text.includes('raj@gmail.com'));
 });
 
 // ---------- settings ----------

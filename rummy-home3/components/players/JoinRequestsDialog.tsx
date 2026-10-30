@@ -1,63 +1,63 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { Button, Dialog, Portal, Text } from 'react-native-paper';
 import { Player } from '@/types/player';
 import { playerIdentityService } from '@/services/playerIdentity';
-import { claimPrompt, joinRequestPrompt, PendingLink } from '@/utils/playerIdentity';
+import { claimPrompt, PendingLink } from '@/utils/playerIdentity';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { spacing, useAppTheme } from '@/constants/theme';
 
 /**
- * First login after sign-up, or any time a creator adds you with your email:
- * "Is this you?" Yes links those scores to you. Not me sends them back.
+ * After sign-up (and email confirmation) on a phone that opened a claim link:
+ * "Is this you? You played in G3 with Sree". Yes links the scores. Not me leaves them.
+ * Also sends a player ID typed at sign-up to its creator as a claim request.
  */
-export function JoinRequestsDialog({ me, onChanged }: { me: Player | null; onChanged?: () => void }) {
+export function JoinRequestsDialog({ me, onChanged, onNotice }: { me: Player | null; onChanged?: () => void; onNotice?: (text: string) => void }) {
   const { colors } = useAppTheme();
-  const [requests, setRequests] = useState<PendingLink[]>([]);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [claim, setClaim] = useState<(PendingLink & { token: string }) | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!me) return;
-    try { setRequests(await playerIdentityService.listMyRequests(me)); } catch { setRequests([]); }
-  }, [me]);
+    try { setClaim(await playerIdentityService.peekPendingClaim()); } catch { setClaim(null); }
+    const sent = await playerIdentityService.flushPendingPlayerNo(me).catch(() => null);
+    if (sent) onNotice?.(sent);
+  }, [me, onNotice]);
   useEffect(() => { load(); }, [load]);
 
-  const answer = async (link: PendingLink, accept: boolean) => {
-    if (!me) return;
-    setBusy(link.id);
+  const answer = async (accept: boolean) => {
+    if (!me || !claim) return;
+    setBusy(true);
     setError(null);
     try {
-      await playerIdentityService.answerRequest(me, link, accept);
-      setRequests((r) => r.filter((x) => x.id !== link.id));
+      await playerIdentityService.answerClaimLink(me, claim, accept);
+      setClaim(null);
+      onNotice?.(accept ? `Done. ${claim.playerName}’s games are now on your account.` : 'Okay. Those scores stay with the person who sent the link.');
       onChanged?.();
-    } catch (err) { setError(formatSupabaseError(err)); } finally { setBusy(null); }
+    } catch (err) { setError(formatSupabaseError(err)); setClaim(null); } finally { setBusy(false); }
   };
 
-  const current = requests[0];
   return (
     <Portal>
-      <Dialog visible={Boolean(current)} dismissable={false}>
-        <Dialog.Title>{current?.kind === 'existing' ? 'Request to join a game' : 'Welcome! One quick check'}</Dialog.Title>
+      <Dialog visible={Boolean(claim)} dismissable={false}>
+        <Dialog.Title>One quick check</Dialog.Title>
         <Dialog.Content>
-          {current ? (
+          {claim ? (
             <View style={{ gap: spacing.sm }}>
-              <Text variant="bodyLarge">{current.kind === 'existing' ? joinRequestPrompt(current) : claimPrompt(current)}</Text>
+              <Text variant="bodyLarge">{claimPrompt(claim)}</Text>
               <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-                They added “{current.playerName}” with your email, {current.email}. Yes puts those scores on your account. Not me leaves them with {current.ownerName || 'them'}.
+                {claim.ownerName || 'They'} added you as “{claim.playerName}”{claim.playerNo ? ` (#${claim.playerNo})` : ''}. Yes puts those scores on your account.
               </Text>
-              {requests.length > 1 ? <Text variant="labelMedium">{requests.length - 1} more after this</Text> : null}
               {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
             </View>
           ) : null}
         </Dialog.Content>
-        <Dialog.Actions style={styles.actions}>
-          <Button mode="outlined" onPress={() => current && answer(current, false)} disabled={Boolean(busy)}>Not me</Button>
-          <Button mode="contained" onPress={() => current && answer(current, true)} loading={busy === current?.id}>Yes</Button>
+        <Dialog.Actions style={{ gap: spacing.sm }}>
+          <Button mode="outlined" onPress={() => answer(false)} disabled={busy}>Not me</Button>
+          <Button mode="contained" onPress={() => answer(true)} loading={busy}>Yes</Button>
         </Dialog.Actions>
       </Dialog>
     </Portal>
   );
 }
-
-const styles = StyleSheet.create({ actions: { gap: spacing.sm } });

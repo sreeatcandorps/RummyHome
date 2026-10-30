@@ -1,4 +1,6 @@
-import { normalizeEmail, normalizeZip } from '@/utils/playerIdentity';
+import { normalizeEmail, normalizeZip, parsePlayerNo } from '@/utils/playerIdentity';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PENDING_PLAYER_NO_KEY } from '@/services/playerIdentity';
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
@@ -29,6 +31,7 @@ export default function RegisterScreen() {
   const [phone, setPhone] = React.useState('');
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [zip, setZip] = React.useState('');
+  const [playerIdText, setPlayerIdText] = React.useState('');
   const [checkEmail, setCheckEmail] = useState<string | null>(null);
   const [passcode, setPasscode] = React.useState('');
   const [loading, setLoading] = useState(false);
@@ -126,6 +129,10 @@ export default function RegisterScreen() {
 
       const displayName = `${firstName} ${lastName}`;
       const zipCode = normalizeZip(zip);
+      const claimNo = playerIdText.trim() ? parsePlayerNo(playerIdText) : null;
+      if (playerIdText.trim() && claimNo == null) throw new Error('A player ID is a number, like #42.');
+      // Sent to the creator after the first sign-in (once the email is confirmed).
+      if (claimNo != null) await AsyncStorage.setItem(PENDING_PLAYER_NO_KEY, String(claimNo));
       const cleanEmail = normalizeEmail(email);
       const authData = isSupabaseConfigured
         ? await authService.signUp(cleanEmail, passcode, displayName, { phone: formattedPhone || null, zip_code: zipCode })
@@ -211,7 +218,7 @@ export default function RegisterScreen() {
     return (
       <AuthShell title="Check your email" subtitle={`We sent a confirmation link to ${checkEmail}.`} help={HELP.createAccount}>
         <Text variant="bodyMedium">
-          Open the link to confirm your email, then sign in with your email and 6-digit passcode. If a friend added you to a game with this email, you will be asked “Is this you?” the first time you sign in.
+          Open the link to confirm your email, then sign in with your email and 6-digit passcode. If you opened a link from a friend, you will be asked “Is this you?” the first time you sign in.
         </Text>
         <Button mode="outlined" icon="email-sync-outline" style={{ marginTop: 16 }}
           onPress={() => authService.resendConfirmation(checkEmail).then(() => setError('Sent again.')).catch((e) => setError(formatAuthError(e)))}>
@@ -284,11 +291,28 @@ export default function RegisterScreen() {
       />
 
       <HelperText type="info" visible>
-        Use the exact email a friend registered you with, so your games show up. We send a link to confirm it.
+        We send a link to confirm this email. It is how you sign in.
       </HelperText>
       <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} />
       <HelperText type="info" visible>
         Numbers only — this is your quick login code. Use the eye to check each digit.
+      </HelperText>
+
+      <Text variant="titleSmall" style={styles.groupLabel}>
+        Enter your player ID if you have one.
+      </Text>
+      <TextInput
+        label="Player ID (optional)"
+        placeholder="#42"
+        value={playerIdText}
+        onChangeText={(t) => setPlayerIdText(t.replace(/[^0-9#]/g, '').slice(0, 13))}
+        mode="outlined"
+        keyboardType="number-pad"
+        disabled={loading}
+        left={<TextInput.Icon icon="pound" />}
+      />
+      <HelperText type="info" visible>
+        From the friend who added you. They approve it, then your past scores join your account. A player ID is never used to sign in. Opened a link from them? You can leave this empty.
       </HelperText>
 
       <Button mode="text" onPress={() => setPhoneOpen((open) => !open)} icon={phoneOpen ? 'chevron-up' : 'chevron-down'}>

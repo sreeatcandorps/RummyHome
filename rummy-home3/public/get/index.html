@@ -15,8 +15,15 @@
   <main>
     <h1>EZ Score: Rummy</h1>
     <p id="message">Loading…</p>
+    <p id="claim" hidden>Already have the app? <a id="open">Open your sign-up link in the app</a>. Install the app first, then come back and tap it.</p>
   </main>
   <script>
+    // Claim links look like .../get?claim=TOKEN. The token is passed to the app only; it is never sent anywhere else.
+    const claim = new URLSearchParams(location.search).get('claim');
+    if (claim && /^[A-Za-z0-9_-]{22,}$/.test(claim)) {
+      document.getElementById('claim').hidden = false;
+      document.getElementById('open').href = 'rummy-home3://claim?t=' + encodeURIComponent(claim);
+    }
     const ua = navigator.userAgent || '';
     const iphone = /iPhone|iPad|iPod/i.test(ua);
     const android = /Android/i.test(ua);

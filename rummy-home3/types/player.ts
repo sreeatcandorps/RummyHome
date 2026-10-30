@@ -26,8 +26,8 @@ export interface Player {
   firstName?: string;
   lastName?: string;
   zipCode?: string;
-  /** Email the creator invited this unregistered player with (normalized). Only the creator sees it. */
-  inviteEmail?: string;
+  /** Public player ID number, shown as #42. Never used to sign in. */
+  playerNo?: number;
   /** Set when the account's email has been confirmed. */
   emailVerified?: boolean;
 } 

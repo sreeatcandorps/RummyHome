@@ -21,7 +21,7 @@
 
 export const PLAYER_STATUSES = [
   'unregistered',
-  /** Invited with an email that belongs to an existing account; waiting for that person's Yes. */
+  /** A claim link was shared, or someone asked to claim this player by ID. */
   'pending',
   'registered',
   'deleted_before_registering',
@@ -42,22 +42,27 @@ export const PLAYER_STATUS_LABEL: Record<PlayerStatus, string> = {
 
 export type PlayerEvent =
   | 'register'
-  | 'claim'
-  /** Email matched a registered account: ask them first, never link instantly. */
-  | 'request_existing'
-  /** The registered person tapped Yes. */
+  /** Creator shared a claim link: Pending until someone uses it. */
+  | 'share_link'
+  /** Someone typed this player's ID at sign-up: Pending until the creator answers. */
+  | 'request_claim'
+  /** Yes on a claim link, or the creator approved an ID claim. Scores move to the account. */
   | 'accept'
-  /** Not me, or the request expired: back to Unregistered, email cleared. */
+  /** Not me, creator declined, link revoked, or 14 days passed: back to Unregistered. */
   | 'decline'
   | 'expire'
+  | 'revoke'
   /** Creator undoes a wrong link: back to an Unregistered record, scores kept. */
   | 'unlink'
   | 'delete'
   | 'restore';
 
 const TRANSITIONS: Record<PlayerStatus, Partial<Record<PlayerEvent, PlayerStatus>>> = {
-  unregistered: { register: 'registered', claim: 'merged', request_existing: 'pending', delete: 'deleted_before_registering' },
-  pending: { accept: 'merged', decline: 'unregistered', expire: 'unregistered', request_existing: 'pending', delete: 'deleted_before_registering' },
+  unregistered: { register: 'registered', share_link: 'pending', request_claim: 'pending', delete: 'deleted_before_registering' },
+  pending: {
+    share_link: 'pending', request_claim: 'pending', accept: 'merged',
+    decline: 'unregistered', expire: 'unregistered', revoke: 'unregistered', delete: 'deleted_before_registering',
+  },
   registered: { delete: 'deleted_after_registering' },
   deleted_before_registering: { restore: 'unregistered' },
   deleted_after_registering: { restore: 'registered' },
@@ -79,7 +84,7 @@ export const isDeletedStatus = (status?: PlayerStatus | null) =>
 
 export const isUnregistered = (status?: PlayerStatus | null) => status === 'unregistered' || status === 'pending';
 
-/** Days a join request to an existing account stays open before the player goes back to Unregistered. */
+/** Days a claim link or an ID claim request stays open. */
 export const REQUEST_EXPIRY_DAYS = 14;
 
 // ---------- email ----------
@@ -174,93 +179,193 @@ export function seatedOrder(meId: string, selectedIds: string[]): string[] {
 export const MAX_NEW_PLAYERS_AT_ONCE = 5;
 export const clampNewPlayerCount = (n: number) => Math.max(1, Math.min(MAX_NEW_PLAYERS_AT_ONCE, Math.round(n) || 1));
 
-// ---------- pending links, claim and merge ----------
+// ---------- public player IDs ----------
 
-export const LINK_STATUSES = ['pending', 'claimed', 'declined', 'expired', 'cancelled', 'unlinked'] as const;
+/** Player IDs are plain numbers shown as #1, #2... They are never used to sign in. */
+export const formatPlayerNo = (n: number | null | undefined) => (n == null ? '' : `#${n}`);
+
+/** Visible player ID from a profile row: #42 once 012 is applied, else the older code. */
+export const displayPlayerId = (row: { public_player_no?: number | null; player_code?: string | null } | null | undefined) =>
+  row?.public_player_no != null ? formatPlayerNo(row.public_player_no) : row?.player_code ?? undefined;
+
+export function parsePlayerNo(raw: string): number | null {
+  const t = raw.trim().replace(/^#/, '');
+  if (!/^\d{1,12}$/.test(t)) return null;
+  const n = Number(t);
+  return n >= 1 ? n : null;
+}
+
+/** Next number in the sequence. Numbers are never reused, so this is past the highest ever issued. */
+export const nextPlayerNo = (highestIssued: number) => Math.max(0, Math.floor(highestIssued)) + 1;
+
+/** Backfill for existing players: oldest first gets #1. Mirrors the SQL backfill in 012. */
+export function backfillPlayerNumbers<T extends { id: string; createdAt?: string | null; playerNo?: number | null }>(players: T[]): (T & { playerNo: number })[] {
+  const highest = Math.max(0, ...players.map((p) => p.playerNo ?? 0));
+  let next = highest;
+  const missing = players
+    .filter((p) => p.playerNo == null)
+    .sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? '') || a.id.localeCompare(b.id));
+  const assigned = new Map(missing.map((p) => [p.id, ++next]));
+  return players.map((p) => ({ ...p, playerNo: p.playerNo ?? (assigned.get(p.id) as number) }));
+}
+
+// ---------- claims ----------
+
+export const CLAIM_KINDS = ['link', 'id_request'] as const;
+export type ClaimKind = (typeof CLAIM_KINDS)[number];
+export const LINK_STATUSES = ['pending', 'claimed', 'declined', 'expired', 'revoked', 'unlinked'] as const;
 export type LinkStatus = (typeof LINK_STATUSES)[number];
 
-/** One unregistered player that one creator invited with one email. */
+/**
+ * One way to claim one unregistered player.
+ * - 'link': the creator shared a secret single-use link. Only the hash is stored.
+ * - 'id_request': someone typed the player ID at sign-up. The creator must approve.
+ * Two creators holding records for the same person: each is claimed through its own link or
+ * request into the same account, so the person ends up as one player.
+ */
 export type PendingLink = {
   id: string;
+  kind: ClaimKind;
   ownerId: string;
   ownerName?: string;
   playerId: string;
   playerName: string;
-  email: string;
+  playerNo?: number;
   status: LinkStatus;
-  invitedAt: string;
-  lastSentAt?: string | null;
+  createdAt: string;
+  expiresAt: string;
+  /** sha-256 of the token, hex. Only for kind 'link'. */
+  tokenHash?: string;
+  /** For 'id_request': the account asking. */
+  requesterId?: string;
+  requesterName?: string;
   claimedBy?: string | null;
-  /** Up to a few G-numbers the player was in, for the "Is this you?" prompt. */
   gameNumbers?: number[];
-  /** 'signup': the email had no account yet. 'existing': it already belonged to a registered player. */
-  kind?: 'signup' | 'existing';
-  /** Games whose seats were moved to the account on Yes, so Unlink can move exactly those back. */
   movedGameIds?: string[];
 };
 
-export function upsertPendingLink(links: PendingLink[], input: Omit<PendingLink, 'status' | 'email' | 'invitedAt'> & { email: string; now?: string }): PendingLink[] {
-  const email = normalizeEmail(input.email);
-  if (!isValidEmail(email)) throw new Error('Enter a full email address.');
-  const now = input.now ?? new Date().toISOString();
-  const existing = links.find((link) => link.ownerId === input.ownerId && link.playerId === input.playerId && link.status === 'pending');
-  if (existing) {
-    return links.map((link) => (link === existing
-      ? { ...link, email, playerName: input.playerName, lastSentAt: now, gameNumbers: input.gameNumbers ?? link.gameNumbers }
-      : link));
-  }
-  const { now: _now, ...rest } = input;
-  return [...links, { ...rest, email, status: 'pending', invitedAt: now, lastSentAt: now }];
-}
+export type CreatorNotice = { ownerId: string; playerId: string; text: string };
 
-/** Pending links a newly verified account may claim. Requires a verified email. */
-export function claimableLinks(links: PendingLink[], accountEmail: string | null | undefined, emailVerified: boolean): PendingLink[] {
-  if (!emailVerified || !accountEmail) return [];
-  const email = normalizeEmail(accountEmail);
-  return links.filter((link) => link.status === 'pending' && link.email === email);
-}
+export const TOKEN_BYTES = 32; // 256 bits, well over the 128-bit minimum.
 
-export function claimPrompt(link: PendingLink): string {
-  const games = (link.gameNumbers ?? []).slice(0, 3).map((n) => `G${n}`);
-  const where = games.length ? ` in ${games.join(', ')}` : '';
-  return `Is this you? You played${where} with ${link.ownerName || 'a friend'} as "${link.playerName}".`;
-}
-
-export type ClaimDecision = { linkId: string; accept: boolean };
-
-export type MergeResult = {
-  links: PendingLink[];
-  /** Unregistered player id -> account id. Every score row and seat for the key moves to the value. */
-  remap: Record<string, string>;
+export const toBase64Url = (bytes: Uint8Array) => {
+  let bin = '';
+  bytes.forEach((b) => { bin += String.fromCharCode(b); });
+  const b64 = typeof btoa === 'function' ? btoa(bin) : Buffer.from(bin, 'binary').toString('base64');
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 };
 
-/**
- * Applies the account holder's answers. Accepted links become claimed and
- * their player is remapped to the account; declined ones stay with the
- * creator (status declined) so the creator can fix the email and resend.
- * When the same email is pending under several creators, each accepted link
- * merges into the same account, so the person ends up as one player.
- */
-export function applyClaims(links: PendingLink[], accountId: string, accountEmail: string, decisions: ClaimDecision[]): MergeResult {
-  const email = normalizeEmail(accountEmail);
-  const byId = new Map(decisions.map((d) => [d.linkId, d.accept]));
-  const remap: Record<string, string> = {};
-  const next = links.map((link) => {
-    if (!byId.has(link.id) || link.status !== 'pending' || link.email !== email) return link;
-    if (byId.get(link.id)) {
-      remap[link.playerId] = accountId;
-      return { ...link, status: 'claimed' as const, claimedBy: accountId };
-    }
-    return { ...link, status: 'declined' as const };
-  });
-  // A player that was claimed through one link is claimed for every creator.
-  const final = next.map((link) => (link.status === 'pending' && remap[link.playerId]
-    ? { ...link, status: 'claimed' as const, claimedBy: accountId }
-    : link));
-  return { links: final, remap };
+export const isWellFormedToken = (token: string) => /^[A-Za-z0-9_-]{22,}$/.test(token);
+
+const addDays = (iso: string, days: number) => new Date(Date.parse(iso) + days * 86400000).toISOString();
+
+export function isExpired(link: PendingLink, now: Date = new Date()): boolean {
+  return link.status === 'pending' && Date.parse(link.expiresAt) <= now.getTime();
 }
 
-/** Rewrites player ids in a game's seats and score columns after a merge. */
+/**
+ * Share (or re-share): a new token for this player. Any older pending link for the
+ * same player is revoked, so only the newest link works.
+ */
+export function issueClaimLink(
+  links: PendingLink[],
+  input: { id: string; ownerId: string; ownerName?: string; playerId: string; playerName: string; playerNo?: number; tokenHash: string; gameNumbers?: number[] },
+  now: string = new Date().toISOString(),
+): PendingLink[] {
+  const revoked = links.map((l) => (l.kind === 'link' && l.playerId === input.playerId && l.status === 'pending' ? { ...l, status: 'revoked' as const } : l));
+  return [...revoked, { ...input, kind: 'link', status: 'pending', createdAt: now, expiresAt: addDays(now, REQUEST_EXPIRY_DAYS) }];
+}
+
+export function revokeClaimLinks(links: PendingLink[], playerId: string): PendingLink[] {
+  return links.map((l) => (l.kind === 'link' && l.playerId === playerId && l.status === 'pending' ? { ...l, status: 'revoked' as const } : l));
+}
+
+/** Finds the live link for a token hash. Used, revoked or expired links never match. */
+export function findClaimLink(links: PendingLink[], tokenHash: string, now: Date = new Date()): PendingLink | null {
+  const link = links.find((l) => l.kind === 'link' && l.tokenHash === tokenHash);
+  if (!link || link.status !== 'pending' || isExpired(link, now)) return null;
+  return link;
+}
+
+export function claimPrompt(link: Pick<PendingLink, 'gameNumbers' | 'ownerName'>): string {
+  const games = (link.gameNumbers ?? []).slice(0, 3).map((n) => `G${n}`);
+  return `Is this you? You played in ${games.length ? games.join(', ') : 'a game'} with ${link.ownerName || 'a friend'}`;
+}
+
+export function claimRequestPrompt(link: Pick<PendingLink, 'playerNo' | 'playerName'>): string {
+  return `${formatPlayerNo(link.playerNo)} wants to claim ${link.playerName}. Approve?`;
+}
+
+// ID claim requests: rate limited per account.
+export const ID_CLAIMS_PER_DAY = 5;
+
+export function canRequestClaim(links: PendingLink[], requesterId: string, now: Date = new Date()): boolean {
+  const since = now.getTime() - 86400000;
+  return links.filter((l) => l.kind === 'id_request' && l.requesterId === requesterId && Date.parse(l.createdAt) > since).length < ID_CLAIMS_PER_DAY;
+}
+
+export function requestClaimById(
+  links: PendingLink[],
+  input: { id: string; requesterId: string; requesterName?: string; player: { id: string; name: string; playerNo?: number; managedBy?: string; status?: PlayerStatus }; ownerName?: string; gameNumbers?: number[] },
+  now: string = new Date().toISOString(),
+): { links: PendingLink[]; notice: CreatorNotice } {
+  const { player } = input;
+  if (!player.managedBy || (player.status !== 'unregistered' && player.status !== 'pending')) {
+    throw new Error('That player ID is not waiting to be claimed.');
+  }
+  if (player.managedBy === input.requesterId) throw new Error("You can't claim your own player.");
+  if (!canRequestClaim(links, input.requesterId, new Date(now))) throw new Error('Too many player ID requests today. Try again tomorrow.');
+  if (links.some((l) => l.kind === 'id_request' && l.status === 'pending' && l.playerId === player.id && l.requesterId === input.requesterId)) {
+    throw new Error('You already asked to claim this player.');
+  }
+  const link: PendingLink = {
+    id: input.id, kind: 'id_request', ownerId: player.managedBy, ownerName: input.ownerName, playerId: player.id, playerName: player.name,
+    playerNo: player.playerNo, requesterId: input.requesterId, requesterName: input.requesterName, status: 'pending',
+    createdAt: now, expiresAt: addDays(now, REQUEST_EXPIRY_DAYS), gameNumbers: input.gameNumbers,
+  };
+  return { links: [...links, link], notice: { ownerId: player.managedBy, playerId: player.id, text: claimRequestPrompt(link) } };
+}
+
+/**
+ * Yes on a link (by the new account) or Approve on an ID request (by the creator).
+ * Single use: the link becomes claimed and can never match again.
+ */
+export function acceptClaim<G extends { id: string; players: string[]; scores: Record<string, number[]>; adminIds?: string[] }>(
+  links: PendingLink[], linkId: string, accountId: string, games: G[], now: Date = new Date(),
+): { links: PendingLink[]; games: G[]; playerStatus: PlayerStatus } {
+  const link = links.find((l) => l.id === linkId);
+  if (!link || link.status !== 'pending' || isExpired(link, now)) throw new Error('This claim is no longer valid.');
+  if (link.kind === 'id_request' && link.requesterId !== accountId) throw new Error('This request belongs to another account.');
+  // Games where the account already has its own seat stay with the creator.
+  const moved = games.filter((g) => g.players.includes(link.playerId) && !g.players.includes(accountId)).map((g) => g.id);
+  const movedSet = new Set(moved);
+  const remap = { [link.playerId]: accountId };
+  return {
+    links: links.map((l) => {
+      if (l.id === link.id) return { ...l, status: 'claimed' as const, claimedBy: accountId, movedGameIds: moved };
+      if (l.playerId === link.playerId && l.status === 'pending') return { ...l, status: 'revoked' as const };
+      return l;
+    }),
+    games: games.map((g) => (movedSet.has(g.id) ? remapGamePlayers(g, remap) : g)),
+    playerStatus: nextStatus('pending', 'accept'),
+  };
+}
+
+/** Not me, Decline, or expiry. The player goes back to Unregistered; scores never moved. */
+export function closeClaim(link: PendingLink, reason: 'decline' | 'expire'): { link: PendingLink; playerStatus: PlayerStatus; notice: CreatorNotice } {
+  if (link.status !== 'pending') throw new Error('This request is already closed.');
+  const text = reason === 'expire'
+    ? `${link.playerName}: the ${link.kind === 'link' ? 'claim link' : 'claim request'} expired. ${link.playerName} is unregistered again.`
+    : link.kind === 'link'
+      ? `${link.playerName}: the person who opened your link said "Not me". ${link.playerName} is still unregistered.`
+      : `You declined the claim for ${link.playerName}. ${link.playerName} is still unregistered.`;
+  return {
+    link: { ...link, status: reason === 'expire' ? 'expired' : 'declined' },
+    playerStatus: nextStatus('pending', reason),
+    notice: { ownerId: link.ownerId, playerId: link.playerId, text },
+  };
+}
+
 export function gamesWithPlayer<G extends { id: string; players: string[] }>(games: G[], playerId: string): string[] {
   return games.filter((game) => game.players.includes(playerId)).map((game) => game.id);
 }
@@ -278,86 +383,7 @@ export function remapGamePlayers<G extends { players: string[]; scores: Record<s
   return { ...game, players, scores, adminIds: game.adminIds?.map(map) };
 }
 
-// ---------- invite text ----------
-
-export const INVITE_MESSAGE =
-  'Please download the app and register with your email ID and then mention that exact email ID there.';
-
-export function inviteShareText(playerName: string, email: string, inviterName: string, appUrl: string): string {
-  return `Hi ${playerName}, ${inviterName} added you to a Rummy game on EZ Score: Rummy. ${INVITE_MESSAGE}\n\nYour email ID: ${normalizeEmail(email)}\nGet the app: ${appUrl}`;
-}
-
-// ---------- sign-up optional fields ----------
-
-export function normalizeZip(raw: string): string | null {
-  const zip = raw.trim();
-  if (!zip) return null;
-  if (!/^\d{5}(-\d{4})?$/.test(zip)) throw new Error('Zip code should be 5 digits, like 94086.');
-  return zip;
-}
-
-// ---------- the tricky case: linking to an existing registered account ----------
-
-export const EXISTING_ACCOUNT_NOTICE =
-  "This email belongs to a registered player. We'll send them a request to join your game.";
-
-export function joinRequestPrompt(link: PendingLink): string {
-  const g = link.gameNumbers?.[0];
-  return `${link.ownerName || 'A friend'} added you to ${g ? `G${g}` : 'a game'}. Is this you?`;
-}
-
-/** What inviting an email does to an unregistered player. Never links instantly. */
-export function inviteOutcome(status: PlayerStatus, emailBelongsToAccount: boolean): { status: PlayerStatus; kind: 'signup' | 'existing'; notice: string } {
-  if (emailBelongsToAccount) {
-    return { status: nextStatus(status, 'request_existing'), kind: 'existing', notice: EXISTING_ACCOUNT_NOTICE };
-  }
-  if (status !== 'unregistered' && status !== 'pending') nextStatus(status, 'claim');
-  return {
-    status: 'unregistered',
-    kind: 'signup',
-    notice: 'Invite ready. When they sign up with this exact email, they will be asked to confirm it is them.',
-  };
-}
-
-export function isExpired(link: PendingLink, now: Date = new Date(), days = REQUEST_EXPIRY_DAYS): boolean {
-  if (link.status !== 'pending' || link.kind !== 'existing') return false;
-  const sent = Date.parse(link.lastSentAt || link.invitedAt);
-  return !Number.isNaN(sent) && now.getTime() - sent > days * 86400000;
-}
-
-export type CreatorNotice = { ownerId: string; playerId: string; text: string };
-
-/**
- * Not me or expiry: the link closes, the player goes back to Unregistered with
- * no email, and the creator is told. Scores never moved, so nothing else changes.
- */
-export function closeRequest(link: PendingLink, reason: 'decline' | 'expire'): { link: PendingLink; playerStatus: PlayerStatus; clearEmail: true; notice: CreatorNotice } {
-  if (link.status !== 'pending') throw new Error('This request is already closed.');
-  const playerStatus = nextStatus(link.kind === 'existing' ? 'pending' : 'unregistered', reason === 'decline' ? 'decline' : 'expire');
-  const text = reason === 'decline'
-    ? `${link.playerName}: the person at ${link.email} said "Not me". ${link.playerName} is unregistered again. Check the email and register them again.`
-    : `${link.playerName}: nobody answered the request sent to ${link.email}. ${link.playerName} is unregistered again.`;
-  return {
-    link: { ...link, status: reason === 'decline' ? 'declined' : 'expired' },
-    playerStatus,
-    clearEmail: true,
-    notice: { ownerId: link.ownerId, playerId: link.playerId, text },
-  };
-}
-
-/** Pending: the creator fixes the email (or just resends). Restarts the expiry clock. */
-export function changeRequestEmail(link: PendingLink, email: string, now = new Date().toISOString()): PendingLink {
-  if (link.status !== 'pending') throw new Error('Only a pending request can be changed.');
-  const next = normalizeEmail(email);
-  if (!isValidEmail(next)) throw new Error('Enter a full email address.');
-  return { ...link, email: next, lastSentAt: now };
-}
-
-/**
- * Unlink a wrongly linked player. Moves the seats in movedGameIds back from
- * the account to the original unregistered record (same initials, no email).
- * Scores are never deleted, only re-linked.
- */
+/** Wrong link: moves exactly the moved games back to the original unregistered record. Scores kept. */
 export function unlinkPlayer<G extends { id: string; players: string[]; scores: Record<string, number[]>; adminIds?: string[] }>(
   link: PendingLink,
   games: G[],
@@ -366,8 +392,27 @@ export function unlinkPlayer<G extends { id: string; players: string[]; scores: 
   const moved = new Set(link.movedGameIds ?? []);
   const back = { [link.claimedBy]: link.playerId };
   return {
-    link: { ...link, status: 'unlinked', email: '' },
+    link: { ...link, status: 'unlinked' },
     games: games.map((game) => (moved.has(game.id) ? remapGamePlayers(game, back) : game)),
     playerStatus: nextStatus('merged', 'unlink'),
   };
+}
+
+// ---------- share text ----------
+
+export function claimShareText(playerNo: number | undefined, url: string): string {
+  const id = playerNo ? ` Your player ID is ${formatPlayerNo(playerNo)}.` : '';
+  return `Join me on EZ Score: Rummy! Download the app and sign up using this link to see your scores.${id}\n${url}`;
+}
+
+export const CLAIM_LINK_BASE = 'https://sreeatcandorps.github.io/Games/get';
+export const claimUrl = (token: string, base = CLAIM_LINK_BASE) => `${base}?claim=${encodeURIComponent(token)}`;
+
+// ---------- sign-up optional fields ----------
+
+export function normalizeZip(raw: string): string | null {
+  const zip = raw.trim();
+  if (!zip) return null;
+  if (!/^\d{5}(-\d{4})?$/.test(zip)) throw new Error('Zip code should be 5 digits, like 94086.');
+  return zip;
 }

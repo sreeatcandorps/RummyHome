@@ -1,42 +1,48 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform, Share } from 'react-native';
+import { Share } from 'react-native';
+import * as Crypto from 'expo-crypto';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { playersService } from '@/services/players';
-import { sendAppEmail } from '@/services/mail';
 import { storage } from '@/utils/storage';
 import { Player } from '@/types/player';
-import { Game } from '@/types/game';
-import { INVITE_URL } from '@/utils/inviteLink';
 import {
-  applyClaims,
+  acceptClaim,
   Candidate,
-  changeRequestEmail,
-  closeRequest,
+  claimShareText,
+  claimUrl,
+  closeClaim,
   CreatorNotice,
-  gamesWithPlayer,
-  inviteOutcome,
-  inviteShareText,
+  findClaimLink,
+  formatPlayerNo,
   isDeletedStatus,
   isExpired,
   isUnregistered,
-  isValidEmail,
+  issueClaimLink,
+  isWellFormedToken,
   newPlayerDisplayName,
+  nextPlayerNo,
   nextStatus,
-  normalizeEmail,
   PendingLink,
   PICKER_PREFETCH,
   PlayerStatus,
-  remapGamePlayers,
+  requestClaimById,
+  revokeClaimLinks,
   sortCandidates,
+  toBase64Url,
+  TOKEN_BYTES,
   unlinkPlayer,
-  upsertPendingLink,
 } from '@/utils/playerIdentity';
 
-export const MIGRATION_011_HINT =
-  'This needs the latest database update. Run supabase/migrations/011_player_identity.sql in the Supabase SQL editor, then try again.';
+export const MIGRATION_012_HINT =
+  'This needs the latest database update. Run supabase/migrations/011_player_identity.sql and 012_player_numbers_and_claim_links.sql in the Supabase SQL editor, then try again.';
 
 const LINKS_KEY = 'pendingPlayerLinks';
 const NOTICES_KEY = 'creatorNotices';
+const SEQ_KEY = 'playerNoSeq';
+/** Set when the app was opened from a claim link, until the person answers. */
+export const PENDING_TOKEN_KEY = 'pendingClaimToken';
+/** Player ID typed at sign-up, sent as a claim request after the first sign-in. */
+export const PENDING_PLAYER_NO_KEY = 'pendingClaimPlayerNo';
 
 const missingRpc = (error: unknown) => {
   const code = (error as { code?: string })?.code;
@@ -47,11 +53,12 @@ const missingRpc = (error: unknown) => {
 const rpc = async <T,>(name: string, args: Record<string, unknown> = {}): Promise<T> => {
   const { data, error } = await (supabase.rpc as any)(name, args);
   if (error) {
-    if (missingRpc(error)) throw new Error(MIGRATION_011_HINT);
+    if (missingRpc(error)) throw new Error(MIGRATION_012_HINT);
     throw error;
   }
   return data as T;
 };
+const first = (row: any) => (Array.isArray(row) ? row[0] : row);
 
 async function readJson<T>(key: string, fallback: T): Promise<T> {
   const raw = await AsyncStorage.getItem(key);
@@ -59,89 +66,98 @@ async function readJson<T>(key: string, fallback: T): Promise<T> {
 }
 const writeJson = (key: string, value: unknown) => AsyncStorage.setItem(key, JSON.stringify(value));
 
-const localCode = () => `P${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+export const sha256Hex = (text: string) => Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, text);
+export const newClaimToken = () => toBase64Url(Crypto.getRandomBytes(TOKEN_BYTES));
+
+/** Local mode: next number in a sequence that never goes backwards. */
+async function takeLocalPlayerNo(): Promise<number> {
+  const players = await storage.getPlayers();
+  const seq = Number(await AsyncStorage.getItem(SEQ_KEY)) || 0;
+  const highest = Math.max(seq, ...players.map((p) => p.playerNo ?? 0));
+  const no = nextPlayerNo(highest);
+  await AsyncStorage.setItem(SEQ_KEY, String(no));
+  return no;
+}
 
 const serverPlayer = (row: any): Player => ({
   id: row.id,
   name: row.display_name || 'Rummy Player',
-  playerCode: row.player_code ?? undefined,
+  playerNo: row.public_player_no ?? undefined,
+  playerCode: row.public_player_no != null ? formatPlayerNo(row.public_player_no) : row.player_code ?? undefined,
   firstName: row.first_name ?? undefined,
   lastName: row.last_name ?? undefined,
   status: (row.player_status ?? 'registered') as PlayerStatus,
   managedBy: row.managed_by ?? undefined,
-  inviteEmail: row.invite_email ?? undefined,
   role: 'player',
 });
 
 const linkFromRow = (row: any): PendingLink => ({
   id: row.id,
+  kind: row.kind === 'id_request' ? 'id_request' : 'link',
   ownerId: row.owner_id,
   ownerName: row.owner_name ?? undefined,
   playerId: row.player_id,
   playerName: row.player_name ?? 'Player',
-  email: row.email,
+  playerNo: row.public_player_no ?? row.player_no ?? undefined,
   status: row.status,
-  kind: row.kind ?? 'signup',
-  invitedAt: row.invited_at,
-  lastSentAt: row.last_sent_at,
+  createdAt: row.invited_at ?? row.created_at,
+  expiresAt: row.expires_at,
+  requesterId: row.requester_id ?? undefined,
+  requesterName: row.requester_name ?? undefined,
   claimedBy: row.claimed_by,
   gameNumbers: row.game_numbers ?? [],
   movedGameIds: row.moved_game_ids ?? [],
 });
 
-async function myGames(ownerId: string): Promise<Game[]> {
-  const games = await storage.getGames();
-  return games.filter((game) => game.createdBy === ownerId || game.adminIds?.includes(ownerId));
+async function setLocalStatus(playerId: string, status: PlayerStatus) {
+  const players = await storage.getPlayers();
+  const p = players.find((x) => x.id === playerId);
+  if (p) await storage.updatePlayer({ ...p, status });
 }
 
-export type InviteResult = { status: PlayerStatus; notice: string; shared: 'email' | 'share-sheet' | 'none' };
+export type ShareResult = { notice: string; shared: boolean; message: string };
 
 export const playerIdentityService = {
-  // ---------- Add new players (saved one row at a time) ----------
+  // ---------- Add new players ----------
 
-  async createNewPlayer(ownerId: string, first: string, last: string): Promise<Player> {
-    const name = newPlayerDisplayName(first, last);
+  async createNewPlayer(ownerId: string, firstName: string, lastName: string): Promise<Player> {
+    const name = newPlayerDisplayName(firstName, lastName);
     if (!name) throw new Error('Type a name or initials.');
     if (isSupabaseConfigured) {
-      const row = await rpc<any>('create_unregistered_player', { p_first: first.trim(), p_last: last.trim() });
-      const player = serverPlayer(Array.isArray(row) ? row[0] : row);
+      const player = serverPlayer(first(await rpc<any>('create_unregistered_player', { p_first: firstName.trim(), p_last: lastName.trim() })));
       await playersService.addMyPlayer(ownerId, player).catch(() => {});
       return player;
     }
+    const no = await takeLocalPlayerNo();
     const player: Player = {
       id: `np-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      name,
-      firstName: first.trim(),
-      lastName: last.trim(),
-      playerCode: localCode(),
-      status: 'unregistered',
-      managedBy: ownerId,
-      role: 'player',
+      name, firstName: firstName.trim(), lastName: lastName.trim(),
+      playerNo: no, playerCode: formatPlayerNo(no),
+      status: 'unregistered', managedBy: ownerId, role: 'player',
     };
     await storage.addPlayer(player);
     await playersService.addMyPlayer(ownerId, player);
     return player;
   },
 
-  async updateNewPlayer(ownerId: string, playerId: string, first: string, last: string): Promise<Player> {
-    const name = newPlayerDisplayName(first, last);
+  async updateNewPlayer(ownerId: string, playerId: string, firstName: string, lastName: string): Promise<Player> {
+    const name = newPlayerDisplayName(firstName, lastName);
     if (!name) throw new Error('Type a name or initials.');
     if (isSupabaseConfigured) {
-      const row = await rpc<any>('update_unregistered_player', { p_player_id: playerId, p_first: first.trim(), p_last: last.trim() });
-      const player = serverPlayer(Array.isArray(row) ? row[0] : row);
+      const player = serverPlayer(first(await rpc<any>('update_unregistered_player', { p_player_id: playerId, p_first: firstName.trim(), p_last: lastName.trim() })));
       await playersService.addMyPlayer(ownerId, player).catch(() => {});
       return player;
     }
     const players = await storage.getPlayers();
     const found = players.find((p) => p.id === playerId && p.managedBy === ownerId);
     if (!found || !isUnregistered(found.status)) throw new Error('Only your unregistered players can be edited.');
-    const next = { ...found, name, firstName: first.trim(), lastName: last.trim() };
+    const next = { ...found, name, firstName: firstName.trim(), lastName: lastName.trim() };
     await storage.updatePlayer(next);
     await playersService.addMyPlayer(ownerId, next);
     return next;
   },
 
-  /** Soft delete. Past scores stay; the player disappears from My players. */
+  /** Soft delete. Past scores stay; the player leaves My players; any claim link stops working. */
   async deleteNewPlayer(ownerId: string, playerId: string): Promise<void> {
     if (isSupabaseConfigured) {
       await rpc('delete_unregistered_player', { p_player_id: playerId });
@@ -153,13 +169,12 @@ export const playerIdentityService = {
     if (!found) throw new Error('Player not found.');
     await storage.updatePlayer({ ...found, status: nextStatus(found.status ?? 'unregistered', 'delete') });
     const links = await readJson<PendingLink[]>(LINKS_KEY, []);
-    await writeJson(LINKS_KEY, links.map((l) => (l.playerId === playerId && l.status === 'pending' ? { ...l, status: 'cancelled' } : l)));
+    await writeJson(LINKS_KEY, links.map((l) => (l.playerId === playerId && l.status === 'pending' ? { ...l, status: 'revoked' as const } : l)));
     await playersService.removeMyPlayer(ownerId, playerId);
   },
 
   // ---------- New game picker ----------
 
-  /** Top 100 from games this user created or ran, sorted (last 2 weeks first, then total games). */
   async listCandidates(ownerId: string, now = new Date()): Promise<Candidate[]> {
     if (isSupabaseConfigured) {
       const rows = await rpc<any[]>('list_new_game_candidates', { p_limit: PICKER_PREFETCH });
@@ -172,7 +187,8 @@ export const playerIdentityService = {
         lastPlayedAt: row.last_played_at ?? null,
       })), now).slice(0, PICKER_PREFETCH);
     }
-    const [games, players, roster] = await Promise.all([myGames(ownerId), storage.getPlayers(), playersService.readMyPlayers(ownerId)]);
+    const games = (await storage.getGames()).filter((g) => g.createdBy === ownerId || g.adminIds?.includes(ownerId));
+    const [players, roster] = await Promise.all([storage.getPlayers(), playersService.readMyPlayers(ownerId)]);
     const byId = new Map(players.map((p) => [p.id, p]));
     const stats = new Map<string, { total: number; last: string | null }>();
     games.forEach((game) => game.players.forEach((id) => {
@@ -182,7 +198,6 @@ export const playerIdentityService = {
       if (!s.last || game.date > s.last) s.last = game.date;
       stats.set(id, s);
     }));
-    // My players added by hand (or just created) show even before their first game.
     roster.forEach((p) => { if (!stats.has(p.id) && p.id !== ownerId) stats.set(p.id, { total: 0, last: null }); });
     const list: Candidate[] = [...stats.entries()].map(([id, s]) => {
       const p = byId.get(id) ?? roster.find((r) => r.id === id);
@@ -191,171 +206,192 @@ export const playerIdentityService = {
     return sortCandidates(list, now).slice(0, PICKER_PREFETCH);
   },
 
-  // ---------- Register players ----------
+  // ---------- Register players (creator side) ----------
 
-  /** Unregistered and pending players, either in one game or across My players. */
   async listUnregistered(ownerId: string, gameId?: string): Promise<Player[]> {
-    if (isSupabaseConfigured) {
-      const rows = await rpc<any[]>('list_my_unregistered_players', { p_game_id: gameId ?? null });
-      return (rows ?? []).map(serverPlayer);
-    }
-    await this.expireOldRequests(ownerId);
-    const [players, games, links] = await Promise.all([storage.getPlayers(), storage.getGames(), readJson<PendingLink[]>(LINKS_KEY, [])]);
+    if (isSupabaseConfigured) return ((await rpc<any[]>('list_my_unregistered_players', { p_game_id: gameId ?? null })) ?? []).map(serverPlayer);
+    await this.expireOld(ownerId);
+    const [players, games] = await Promise.all([storage.getPlayers(), storage.getGames()]);
     const game = gameId ? games.find((g) => g.id === gameId) : null;
-    return players
-      .filter((p) => p.managedBy === ownerId && isUnregistered(p.status) && (!game || game.players.includes(p.id)))
-      .map((p) => {
-        const link = links.find((l) => l.playerId === p.id && l.ownerId === ownerId && l.status === 'pending');
-        return { ...p, inviteEmail: link?.email ?? p.inviteEmail };
-      });
+    return players.filter((p) => p.managedBy === ownerId && isUnregistered(p.status) && (!game || game.players.includes(p.id)));
   },
 
-  /** Linked players this creator invited (for the Unlink option). */
   async listLinked(ownerId: string): Promise<PendingLink[]> {
     if (isSupabaseConfigured) return ((await rpc<any[]>('list_my_player_links')) ?? []).map(linkFromRow).filter((l) => l.status === 'claimed');
-    const links = await readJson<PendingLink[]>(LINKS_KEY, []);
-    return links.filter((l) => l.ownerId === ownerId && l.status === 'claimed');
+    return (await readJson<PendingLink[]>(LINKS_KEY, [])).filter((l) => l.ownerId === ownerId && l.status === 'claimed');
+  },
+
+  /** Live claim link (not the token, only that one exists) per player. */
+  async listOpenLinks(ownerId: string): Promise<PendingLink[]> {
+    if (isSupabaseConfigured) return ((await rpc<any[]>('list_my_player_links')) ?? []).map(linkFromRow).filter((l) => l.status === 'pending' && l.kind === 'link');
+    return (await readJson<PendingLink[]>(LINKS_KEY, [])).filter((l) => l.ownerId === ownerId && l.kind === 'link' && l.status === 'pending' && !isExpired(l));
   },
 
   /**
-   * Saves the email on the player and sends the invite. If the email already
-   * belongs to a registered account, nothing is linked: the player becomes
-   * Pending and that person gets an in-app "Is this you?" request.
+   * Makes a new single-use claim link (invalidating any older one) and opens the
+   * share sheet. The token exists only in this message; only its hash is stored.
    */
-  async invite(owner: Player, player: Player, rawEmail: string, gameNumbers: number[] = []): Promise<InviteResult> {
-    const email = normalizeEmail(rawEmail);
-    if (!isValidEmail(email)) throw new Error('Enter a full email address.');
-    let status: PlayerStatus;
-    let notice: string;
+  async shareClaimLink(owner: Player, player: Player, gameNumbers: number[] = []): Promise<ShareResult> {
+    let token: string;
     if (isSupabaseConfigured) {
-      const row = await rpc<any>('invite_unregistered_player', { p_player_id: player.id, p_email: email, p_game_numbers: gameNumbers });
-      const r = Array.isArray(row) ? row[0] : row;
-      const out = inviteOutcome(player.status ?? 'unregistered', Boolean(r?.existing_account));
-      status = out.status;
-      notice = out.notice;
+      token = first(await rpc<any>('create_claim_link', { p_player_id: player.id, p_game_numbers: gameNumbers }))?.token;
+      if (!token) throw new Error('Couldn’t make a link. Try again.');
     } else {
-      const players = await storage.getPlayers();
-      const existing = players.find((p) => !p.managedBy && !isDeletedStatus(p.status) && normalizeEmail(p.email) === email);
-      if (existing?.id === owner.id) throw new Error("That's your own email.");
-      const out = inviteOutcome(player.status ?? 'unregistered', Boolean(existing));
-      status = out.status;
-      notice = out.notice;
+      token = newClaimToken();
       const links = await readJson<PendingLink[]>(LINKS_KEY, []);
-      const next = upsertPendingLink(links, {
-        id: `link-${Date.now()}`,
-        ownerId: owner.id,
-        ownerName: owner.name,
-        playerId: player.id,
-        playerName: player.name,
-        email,
-        gameNumbers,
-      }).map((l) => (l.ownerId === owner.id && l.playerId === player.id && l.status === 'pending' ? { ...l, kind: out.kind } : l));
-      await writeJson(LINKS_KEY, next);
-      const target = players.find((p) => p.id === player.id);
-      if (target) await storage.updatePlayer({ ...target, status, inviteEmail: email });
+      await writeJson(LINKS_KEY, issueClaimLink(links, {
+        id: `link-${Date.now()}`, ownerId: owner.id, ownerName: owner.name, playerId: player.id, playerName: player.name,
+        playerNo: player.playerNo, tokenHash: await sha256Hex(token), gameNumbers,
+      }));
+      await setLocalStatus(player.id, nextStatus(player.status ?? 'unregistered', 'share_link'));
     }
-
-    // Existing account: the in-app request is the message. New email: send the invite.
-    if (status === 'pending') return { status, notice, shared: 'none' };
-    const text = inviteShareText(player.name, email, owner.name, INVITE_URL);
-    const mail = await sendAppEmail({ kind: 'player_invite', email, playerName: player.name, inviterName: owner.name, url: INVITE_URL }).catch(() => ({ sent: false }));
-    if (mail.sent) return { status, notice: `Invite emailed to ${email}.`, shared: 'email' };
+    const message = claimShareText(player.playerNo, claimUrl(token));
     try {
-      if (Platform.OS === 'web' && !(navigator as any)?.share) {
-        return { status, notice: `${notice} Copy this message and send it: ${text}`, shared: 'none' };
-      }
-      await Share.share({ message: text });
-      return { status, notice, shared: 'share-sheet' };
+      const result = await Share.share({ message });
+      const shared = (result as any)?.action !== 'dismissedAction';
+      return { notice: shared ? `Link shared for ${player.name}. It works once and expires in 14 days.` : 'Link made but not sent. Tap Share again any time (that makes a new link).', shared, message };
     } catch {
-      return { status, notice, shared: 'none' };
+      return { notice: 'Sharing isn’t available here. Copy this message:', shared: false, message };
     }
   },
 
-  /** Pending: fix the email, or resend the same one. */
-  async changeEmail(owner: Player, player: Player, email: string, gameNumbers: number[] = []): Promise<InviteResult> {
-    if (!isSupabaseConfigured) {
-      const links = await readJson<PendingLink[]>(LINKS_KEY, []);
-      const link = links.find((l) => l.ownerId === owner.id && l.playerId === player.id && l.status === 'pending');
-      if (link && normalizeEmail(email) === link.email) {
-        await writeJson(LINKS_KEY, links.map((l) => (l === link ? changeRequestEmail(l, email) : l)));
-        return { status: player.status ?? 'pending', notice: 'Sent again.', shared: 'none' };
-      }
-      if (link) {
-        await writeJson(LINKS_KEY, links.map((l) => (l === link ? { ...l, status: 'cancelled' as const } : l)));
-        const players = await storage.getPlayers();
-        const target = players.find((p) => p.id === player.id);
-        if (target) await storage.updatePlayer({ ...target, status: 'unregistered', inviteEmail: undefined });
-      }
-      return this.invite(owner, { ...player, status: 'unregistered' }, email, gameNumbers);
-    }
-    return this.invite(owner, player, email, gameNumbers);
-  },
-
-  /** Requests to the signed-in person: "<creator> added you to G3. Is this you?" Needs a verified email. */
-  async listMyRequests(me: Player): Promise<PendingLink[]> {
-    if (isSupabaseConfigured) return ((await rpc<any[]>('list_my_pending_claims')) ?? []).map(linkFromRow);
+  async revokeClaimLink(ownerId: string, playerId: string): Promise<void> {
+    if (isSupabaseConfigured) { await rpc('revoke_claim_link', { p_player_id: playerId }); return; }
     const links = await readJson<PendingLink[]>(LINKS_KEY, []);
-    const email = normalizeEmail(me.email);
-    return links.filter((l) => l.status === 'pending' && l.email === email && l.ownerId !== me.id && !isExpired(l));
+    await writeJson(LINKS_KEY, revokeClaimLinks(links, playerId));
+    const stillPending = links.some((l) => l.playerId === playerId && l.kind === 'id_request' && l.status === 'pending');
+    if (!stillPending) await setLocalStatus(playerId, 'unregistered');
   },
 
-  /** Yes links the scores (status Registered). Not me sends the player back to Unregistered and tells the creator. */
-  async answerRequest(me: Player, link: PendingLink, accept: boolean): Promise<void> {
-    if (isSupabaseConfigured) {
-      await rpc('answer_player_claim', { p_link_id: link.id, p_accept: accept });
-      return;
-    }
+  /** ID claim requests waiting for this creator: "#42 wants to claim R K. Approve?" */
+  async listClaimRequests(ownerId: string): Promise<PendingLink[]> {
+    if (isSupabaseConfigured) return ((await rpc<any[]>('list_claim_requests')) ?? []).map(linkFromRow);
+    await this.expireOld(ownerId);
+    return (await readJson<PendingLink[]>(LINKS_KEY, [])).filter((l) => l.ownerId === ownerId && l.kind === 'id_request' && l.status === 'pending');
+  },
+
+  async answerClaimRequest(ownerId: string, link: PendingLink, approve: boolean): Promise<void> {
+    if (isSupabaseConfigured) { await rpc('answer_claim_request', { p_link_id: link.id, p_approve: approve }); return; }
     const links = await readJson<PendingLink[]>(LINKS_KEY, []);
-    const players = await storage.getPlayers();
-    const target = players.find((p) => p.id === link.playerId);
-    if (!accept) {
-      const closed = closeRequest(link, 'decline');
+    if (!approve) {
+      const closed = closeClaim(link, 'decline');
       await writeJson(LINKS_KEY, links.map((l) => (l.id === link.id ? closed.link : l)));
-      if (target) await storage.updatePlayer({ ...target, status: closed.playerStatus, inviteEmail: undefined });
-      await this.notify(closed.notice);
+      const others = links.some((l) => l.id !== link.id && l.playerId === link.playerId && l.status === 'pending');
+      if (!others) await setLocalStatus(link.playerId, closed.playerStatus);
       return;
     }
-    const games = await storage.getGames();
-    const moved = gamesWithPlayer(games, link.playerId);
-    const { links: next, remap } = applyClaims(links, me.id, me.email ?? '', [{ linkId: link.id, accept: true }]);
-    await writeJson(LINKS_KEY, next.map((l) => (l.id === link.id ? { ...l, movedGameIds: moved } : l)));
-    await storage.saveGames(games.map((g) => remapGamePlayers(g, remap)));
-    if (target) await storage.updatePlayer({ ...target, status: 'merged' });
-    // The creator now sees the real account in My players.
-    await playersService.addMyPlayer(link.ownerId, me).catch(() => {});
-    await playersService.removeMyPlayer(link.ownerId, link.playerId).catch(() => {});
+    await this.acceptLocal(links, link, link.requesterId as string, ownerId);
   },
 
-  /** Wrong link: the player goes back to an Unregistered record under this creator, same initials, no email. */
+  async acceptLocal(links: PendingLink[], link: PendingLink, accountId: string, ownerId: string) {
+    const games = await storage.getGames();
+    const result = acceptClaim(links, link.id, accountId, games);
+    await writeJson(LINKS_KEY, result.links);
+    await storage.saveGames(result.games);
+    await setLocalStatus(link.playerId, result.playerStatus);
+    const players = await storage.getPlayers();
+    const account = players.find((p) => p.id === accountId);
+    if (account) await playersService.addMyPlayer(ownerId, account).catch(() => {});
+    await playersService.removeMyPlayer(ownerId, link.playerId).catch(() => {});
+  },
+
   async unlink(ownerId: string, link: PendingLink): Promise<void> {
-    if (isSupabaseConfigured) {
-      await rpc('unlink_player', { p_link_id: link.id });
-      return;
-    }
+    if (isSupabaseConfigured) { await rpc('unlink_player', { p_link_id: link.id }); return; }
     const [links, games, players] = await Promise.all([readJson<PendingLink[]>(LINKS_KEY, []), storage.getGames(), storage.getPlayers()]);
     const result = unlinkPlayer(link, games);
     await writeJson(LINKS_KEY, links.map((l) => (l.id === link.id ? result.link : l)));
     await storage.saveGames(result.games);
     const original = players.find((p) => p.id === link.playerId);
     if (original) {
-      await storage.updatePlayer({ ...original, status: result.playerStatus, inviteEmail: undefined });
+      await storage.updatePlayer({ ...original, status: result.playerStatus });
       await playersService.addMyPlayer(ownerId, original);
     }
     if (link.claimedBy) await playersService.removeMyPlayer(ownerId, link.claimedBy).catch(() => {});
   },
 
-  async expireOldRequests(ownerId: string, now = new Date()): Promise<void> {
-    if (isSupabaseConfigured) return; // the server expires them in list_my_unregistered_players
+  // ---------- claimant side ----------
+
+  async rememberClaimToken(token: string) {
+    if (isWellFormedToken(token)) await AsyncStorage.setItem(PENDING_TOKEN_KEY, token);
+  },
+
+  /** The claim link this phone opened, if it is still valid. */
+  async peekPendingClaim(): Promise<(PendingLink & { token: string }) | null> {
+    const token = await AsyncStorage.getItem(PENDING_TOKEN_KEY);
+    if (!token) return null;
+    if (isSupabaseConfigured) {
+      const row = first(await rpc<any>('peek_claim_link', { p_token: token }).catch(() => null));
+      if (!row) { await AsyncStorage.removeItem(PENDING_TOKEN_KEY); return null; }
+      return { ...linkFromRow(row), token };
+    }
+    const link = findClaimLink(await readJson<PendingLink[]>(LINKS_KEY, []), await sha256Hex(token));
+    if (!link) { await AsyncStorage.removeItem(PENDING_TOKEN_KEY); return null; }
+    return { ...link, token };
+  },
+
+  /** Yes links the player's scores to this account (single use). Not me leaves the player unregistered. */
+  async answerClaimLink(me: Player, claim: PendingLink & { token: string }, accept: boolean): Promise<void> {
+    try {
+      if (isSupabaseConfigured) {
+        await rpc('answer_claim_link', { p_token: claim.token, p_accept: accept });
+        return;
+      }
+      const links = await readJson<PendingLink[]>(LINKS_KEY, []);
+      const link = findClaimLink(links, await sha256Hex(claim.token));
+      if (!link) throw new Error('This link was already used or has expired.');
+      if (!accept) {
+        const closed = closeClaim(link, 'decline');
+        await writeJson(LINKS_KEY, links.map((l) => (l.id === link.id ? closed.link : l)));
+        await setLocalStatus(link.playerId, closed.playerStatus);
+        await this.notify(closed.notice);
+        return;
+      }
+      await this.acceptLocal(links, link, me.id, link.ownerId);
+    } finally {
+      await AsyncStorage.removeItem(PENDING_TOKEN_KEY);
+    }
+  },
+
+  /** Player ID typed at sign-up with no link: ask the creator. Rate limited per account. */
+  async requestClaimByPlayerNo(me: Player, playerNo: number): Promise<string> {
+    if (isSupabaseConfigured) {
+      await rpc('request_claim_by_player_no', { p_player_no: playerNo });
+      return `Request sent. The person who added ${formatPlayerNo(playerNo)} will approve it.`;
+    }
+    const [players, links, games] = await Promise.all([storage.getPlayers(), readJson<PendingLink[]>(LINKS_KEY, []), storage.getGames()]);
+    const player = players.find((p) => p.playerNo === playerNo && !isDeletedStatus(p.status));
+    if (!player) throw new Error(`No player ${formatPlayerNo(playerNo)} is waiting to be claimed.`);
+    const owner = players.find((p) => p.id === player.managedBy);
+    const gameNumbers = games.filter((g) => g.players.includes(player.id)).map((g) => g.gameNumber).filter((n): n is number => n != null);
+    const out = requestClaimById(links, {
+      id: `req-${Date.now()}`, requesterId: me.id, requesterName: me.name, ownerName: owner?.name, gameNumbers,
+      player: { id: player.id, name: player.name, playerNo: player.playerNo, managedBy: player.managedBy, status: player.status },
+    });
+    await writeJson(LINKS_KEY, out.links);
+    await setLocalStatus(player.id, nextStatus(player.status ?? 'unregistered', 'request_claim'));
+    return `Request sent. ${owner?.name ?? 'The person who added you'} will approve it.`;
+  },
+
+  /** After the first sign-in: send the ID claim typed at sign-up, if any. */
+  async flushPendingPlayerNo(me: Player): Promise<string | null> {
+    const raw = await AsyncStorage.getItem(PENDING_PLAYER_NO_KEY);
+    if (!raw) return null;
+    await AsyncStorage.removeItem(PENDING_PLAYER_NO_KEY);
+    try { return await this.requestClaimByPlayerNo(me, Number(raw)); } catch (e) { return e instanceof Error ? e.message : null; }
+  },
+
+  // ---------- expiry and notices ----------
+
+  async expireOld(ownerId: string, now = new Date()): Promise<void> {
+    if (isSupabaseConfigured) return;
     const links = await readJson<PendingLink[]>(LINKS_KEY, []);
     const stale = links.filter((l) => l.ownerId === ownerId && isExpired(l, now));
     if (!stale.length) return;
-    const players = await storage.getPlayers();
     let next = links;
     for (const link of stale) {
-      const closed = closeRequest(link, 'expire');
+      const closed = closeClaim(link, 'expire');
       next = next.map((l) => (l.id === link.id ? closed.link : l));
-      const p = players.find((x) => x.id === link.playerId);
-      if (p) await storage.updatePlayer({ ...p, status: closed.playerStatus, inviteEmail: undefined });
+      if (!next.some((l) => l.playerId === link.playerId && l.status === 'pending')) await setLocalStatus(link.playerId, closed.playerStatus);
       await this.notify(closed.notice);
     }
     await writeJson(LINKS_KEY, next);
@@ -366,7 +402,6 @@ export const playerIdentityService = {
     await writeJson(NOTICES_KEY, [...all, notice]);
   },
 
-  /** Notices for the creator (Not me, expired). Read once. */
   async takeNotices(ownerId: string): Promise<CreatorNotice[]> {
     if (isSupabaseConfigured) return ((await rpc<any[]>('take_creator_notices').catch(() => [])) ?? []).map((r: any) => ({ ownerId, playerId: r.player_id, text: r.text }));
     const all = await readJson<CreatorNotice[]>(NOTICES_KEY, []);

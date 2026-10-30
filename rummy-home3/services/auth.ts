@@ -1,3 +1,4 @@
+import { displayPlayerId } from '@/utils/playerIdentity';
 import { normalizeEmail } from '@/utils/playerIdentity';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { authRedirectUrl } from '@/utils/authRedirect';
@@ -15,6 +16,7 @@ export type Profile = {
   lastName?: string;
   displayName: string;
   playerCode?: string;
+  playerNo?: number;
   defaultSettings: ProfileDefaults;
   role: 'app_admin' | 'player';
 };
@@ -23,6 +25,7 @@ export const profileToPlayer = (profile: Profile): Player => ({
   id: profile.id,
   name: profile.displayName,
   playerCode: profile.playerCode,
+  playerNo: profile.playerNo,
   email: profile.email,
   phone: profile.phone,
   role: profile.role === 'app_admin' ? 'admin' : 'player',
@@ -35,7 +38,8 @@ const toProfile = (row: any): Profile => ({
   firstName: row.first_name ?? undefined,
   lastName: row.last_name ?? undefined,
   displayName: row.display_name,
-  playerCode: row.player_code ?? undefined,
+  playerCode: displayPlayerId(row),
+  playerNo: row.public_player_no ?? undefined,
   defaultSettings: row.default_settings ?? DEFAULT_PROFILE_SETTINGS,
   role: row.role ?? 'player',
 });

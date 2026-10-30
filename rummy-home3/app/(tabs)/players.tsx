@@ -15,6 +15,7 @@ import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { Tag } from '@/components/ui/Tag';
 import { NewPlayerStepper } from '@/components/players/NewPlayerStepper';
+import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
 import { AddPlayersDialog } from '@/components/players/AddPlayersDialog';
 import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
 import { playerIdentityService } from '@/services/playerIdentity';
@@ -124,6 +125,7 @@ export default function PlayersTab() {
           {sort === 'games' ? 'Most games' : 'Name'}
         </Button>
       </View>
+      {me ? <ClaimRequestsCard ownerId={me.id} onChanged={load} /> : null}
       <NewPlayerStepper count={newCount} onChange={setNewCount} onAdd={() => setAddOpen(true)} />
       {error ? (
         <View>

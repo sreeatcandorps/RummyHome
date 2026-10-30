@@ -1,3 +1,4 @@
+import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { MIGRATION_007_HINT, playersService } from '@/services/players';
@@ -380,7 +381,7 @@ export const gamesService = {
 
     const withSeat = await supabase
       .from('game_players')
-      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, email, player_status)')
+      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, public_player_no, email, player_status)')
       .eq('game_id', gameId)
       .order('player_order', { ascending: true });
 
@@ -396,7 +397,7 @@ export const gamesService = {
     return (loaded.data ?? []).map((membership: any) => ({
       id: membership.profile_id,
       name: membership.profiles?.display_name ?? 'Rummy Player',
-      playerCode: membership.profiles?.player_code ?? undefined,
+      playerCode: displayPlayerId(membership.profiles),
       email: membership.profiles?.email ?? undefined,
       status: membership.profiles?.player_status ?? undefined,
       role: membership.role === 'game_admin' ? 'admin' as const : 'player' as const,
