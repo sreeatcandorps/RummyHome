@@ -12,19 +12,6 @@ alter table public.games
   add column if not exists game_number integer,
   add column if not exists closed_at timestamptz;
 
--- Backfill existing games with sequential numbers per creator by creation order
-with numbered as (
-  select
-    id,
-    row_number() over (partition by created_by order by created_at) as rn
-  from public.games
-  where game_number is null
-)
-update public.games g
-set game_number = n.rn
-from numbered n
-where g.id = n.id;
-
 -- Backfill closed_at for games already in declared results
 update public.games g
 set closed_at = (
@@ -37,6 +24,22 @@ where g.closed_at is null
   and exists (
     select 1 from public.game_result_games grg where grg.game_id = g.id
   );
+
+-- Backfill numbers only for games that are not Closed, per creator, oldest = G1.
+-- Closed games keep game_number null (they never show a badge on Home).
+-- Rows that already have a number are never touched, so numbers never change.
+with numbered as (
+  select
+    id,
+    row_number() over (partition by created_by order by created_at, id) as rn
+  from public.games
+  where game_number is null
+    and closed_at is null
+)
+update public.games g
+set game_number = n.rn
+from numbered n
+where g.id = n.id;
 
 -- Function to assign the next game number for a creator
 create or replace function public.assign_game_number()
@@ -249,6 +252,9 @@ begin
   return public.get_game_result(new_id);
 end;
 $$;
+
+-- close_games_in_result is internal only; nobody calls it directly.
+revoke all on function public.close_games_in_result(uuid[], timestamptz) from public, anon, authenticated;
 
 -- Index for efficient game_number lookup per creator
 create index if not exists games_created_by_number_idx on public.games (created_by, game_number);

@@ -1,4 +1,4 @@
-import { formatPoints, placeLabel, podiumPlaces, ResultStanding } from '@/utils/results';
+import { formatPoints, placeLabel, podiumPlaces, resultsCountLine, ResultStanding } from '@/utils/results';
 
 /** Long lists keep the leaders and say how many names were left off the image. */
 export const SHARE_CARD_LINE_CAP = 12;
@@ -23,6 +23,8 @@ export type ShareCard = {
   places: ShareCardPlace[];
   /** Results image leads with 1st, 2nd, and 3rd, then a short totals list. */
   podiumFirst?: boolean;
+  /** e.g. "3 games · 6 players" under the date. */
+  summary?: string;
 };
 
 /** The results picture stays short: the podium, then the leading totals. */
@@ -65,14 +67,16 @@ export function buildResultsShareCard(input: {
   date: string;
   rows: { name: string; points: number }[];
   places?: { label: string; names: string; points: number }[];
+  gameCount?: number;
 }): ShareCard {
+  // The image is the Totals section: every player, highest first, then 1st/2nd/3rd at the bottom.
   return {
     ...buildShareCard({ ...input, rows: input.rows }),
     podiumFirst: false,
+    summary: input.gameCount != null ? resultsCountLine(input.gameCount, input.rows.length) : undefined,
     lines: [...input.rows]
       .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
-      .slice(0, RESULTS_IMAGE_TOTAL_CAP)
       .map((row) => ({ name: row.name, points: formatPoints(row.points) })),
-    moreCount: Math.max(0, input.rows.length - RESULTS_IMAGE_TOTAL_CAP),
+    moreCount: 0,
   };
 }

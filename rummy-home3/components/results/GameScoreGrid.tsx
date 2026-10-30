@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { brand, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { playersByFirstName, resultsColumnWidths, scoreCell } from '@/utils/results';
@@ -42,14 +42,23 @@ export function GameScoreGrid({
     return { color: colors.primary };
   };
 
+  const isWeb = Platform.OS === 'web';
+  const frameHeight = HEADER_H + bodyHeight;
+  const Outer = isWeb ? View : ScrollView;
+  const Inner = isWeb ? View : ScrollView;
+  const outerProps = isWeb ? {} : { nestedScrollEnabled: true };
+  const innerProps = isWeb ? {} : { horizontal: true, nestedScrollEnabled: true };
+
   return (
-    <View style={[styles.frame, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}>
-      <View
+    <View style={[styles.frame, { borderColor: colors.outlineVariant, backgroundColor: colors.surface, height: frameHeight + 4 }]}>
+      <Outer
+        {...outerProps}
         testID="results-grid-scroll"
         accessibilityLabel="Scores by player"
-        onLayout={(event) => setFrameWidth(Math.floor(event.nativeEvent.layout.width))}
-        style={{ height: HEADER_H + bodyHeight, overflow: 'auto' as 'scroll' }}
+        onLayout={(event: { nativeEvent: { layout: { width: number } } }) => setFrameWidth(Math.floor(event.nativeEvent.layout.width))}
+        style={{ height: frameHeight, overflow: (isWeb ? 'auto' : 'hidden') as 'scroll' }}
       >
+        <Inner {...innerProps}>
         <View style={{ width: Math.max(contentWidth, frameWidth) }} testID="results-grid">
           <View style={[styles.headerLine, styles.stuckTop, { height: HEADER_H, borderBottomColor: colors.outlineVariant, backgroundColor: brand.felt, zIndex: 4 }]}>
             <View style={[styles.corner, styles.stuckLeft, { width: nameWidth, height: HEADER_H, borderRightColor: colors.outlineVariant, backgroundColor: brand.felt, zIndex: 5 }]}>
@@ -112,7 +121,8 @@ export function GameScoreGrid({
             </View>
           ))}
         </View>
-      </View>
+        </Inner>
+      </Outer>
     </View>
   );
 }
@@ -121,6 +131,7 @@ const styles = StyleSheet.create({
   frame: {
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderRadius: 12,
+    overflow: 'hidden',
   },
   headerLine: {
     flexDirection: 'row',
@@ -190,20 +201,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '800',
   },
-  stuckLeft: {
-    position: 'sticky' as 'absolute',
-    left: 0,
-    zIndex: 2,
-  },
-  stuckTop: {
-    position: 'sticky' as 'absolute',
-    top: 0,
-    zIndex: 3,
-  },
-  stuckRight: {
-    position: 'sticky' as 'absolute',
-    right: 0,
-  },
+  // Sticky edges only exist on web; on phones they would pull cells out of the row.
+  stuckLeft: Platform.OS === 'web' ? { position: 'sticky' as 'absolute', left: 0, zIndex: 2 } : {},
+  stuckTop: Platform.OS === 'web' ? { position: 'sticky' as 'absolute', top: 0, zIndex: 3 } : {},
+  stuckRight: Platform.OS === 'web' ? { position: 'sticky' as 'absolute', right: 0 } : {},
   totalEdge: {
     borderLeftWidth: StyleSheet.hairlineWidth,
   },

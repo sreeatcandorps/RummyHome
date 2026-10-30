@@ -4,7 +4,7 @@ import { Text } from 'react-native-paper';
 import { GameScoreGrid } from '@/components/results/GameScoreGrid';
 import { spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime } from '@/utils/gameDisplay';
-import { formatPoints, placeLabel, podiumPlaces, ResultSheet, ResultStanding, splitTotals, gameClock } from '@/utils/results';
+import { formatPoints, placeLabel, podiumPlaces, resultsCountLine, ResultSheet, ResultStanding, splitTotals, gameClock } from '@/utils/results';
 
 export function ResultsPage({
   createdAt,
@@ -34,6 +34,9 @@ export function ResultsPage({
 
       <View testID="results-totals" accessibilityLabel="Totals" style={styles.totals}>
         <Text variant="titleMedium" style={styles.section}>Totals</Text>
+        <Text variant="bodyMedium" testID="results-counts" style={{ color: colors.onSurfaceVariant }}>
+          {resultsCountLine(sheet.games.length, standings.length)}
+        </Text>
         <View style={styles.columns}>
           <View testID="results-positive" accessibilityLabel="Positive totals" style={styles.column}>
             {positive.map((row) => (
@@ -64,7 +67,8 @@ export function ResultsPage({
         totals={Object.fromEntries(standings.map((row) => [row.id, row.points]))}
       />
 
-      <View testID="results-places" accessibilityLabel="Places" style={styles.places}>
+      <View testID="results-places" accessibilityLabel="Places" style={[styles.places, { borderTopColor: colors.outlineVariant }]}>
+        <Text variant="titleMedium" style={styles.section}>Top 3</Text>
         {places.map((group) => {
           const place = group[0].place;
           const names = group.map((row) => row.name).join(', ');
@@ -121,12 +125,16 @@ const styles = StyleSheet.create({
   },
   places: {
     gap: spacing.sm,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth * 2,
+    position: 'relative',
+    zIndex: 1,
   },
   placeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.sm,
+    minHeight: 32,
   },
   placeLabel: {
     width: 48,

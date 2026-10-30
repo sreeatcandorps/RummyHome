@@ -32,9 +32,11 @@ function seatedNames(players: Player[]): Record<string, string> {
 
 export default function ShownResults() {
   const { colors } = useAppTheme();
-  const params = useLocalSearchParams<{ ids?: string; at?: string }>();
+  const params = useLocalSearchParams<{ ids?: string; at?: string; preview?: string }>();
+  const previewReason = param(params.preview);
   const idKey = param(params.ids);
   const createdAt = param(params.at) || new Date().toISOString();
+  const [gameCount, setGameCount] = useState(0);
   const [standings, setStandings] = useState<ResultStanding[]>([]);
   const [sheet, setSheet] = useState<ResultSheet>({ players: [], games: [] });
   const [loading, setLoading] = useState(true);
@@ -67,6 +69,7 @@ export default function ShownResults() {
         return;
       }
       const presented = presentResults(shaped);
+      setGameCount(loaded.length);
       setStandings(presented.standings);
       setSheet(presented.sheet);
     } catch (err) {
@@ -87,8 +90,9 @@ export default function ShownResults() {
       date: formatGameDateTime(createdAt),
       rows: standings.map((row) => ({ name: row.name, points: row.points })),
       places: sharePlaces(standings),
+      gameCount,
     });
-  }, [standings, createdAt]);
+  }, [standings, createdAt, gameCount]);
 
   const details = useMemo(() => {
     if (standings.length === 0) return null;
@@ -107,7 +111,14 @@ export default function ShownResults() {
 
   return (
     <Screen>
-      <ResultsShare card={card} details={details} />
+      <ResultsShare card={card} details={details} createdAt={createdAt} />
+      {previewReason ? (
+        <Text variant="bodyMedium" testID="results-preview-note" style={{ color: colors.onSurfaceVariant }}>
+          {previewReason === 'admin'
+            ? 'Running totals only. Only an admin of every selected game can save these results.'
+            : 'Running totals only. Some games are still going, so nothing is saved and no game is closed.'}
+        </Text>
+      ) : null}
       {error ? (
         <>
           <Text style={{ color: colors.error }}>{error}</Text>

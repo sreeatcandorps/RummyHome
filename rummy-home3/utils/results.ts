@@ -46,7 +46,52 @@ export type GameResultSummary = {
   declaredAt: string;
   gameCount: number;
   winnerLine: string;
+  /** Seated players in the result. */
+  playerCount: number;
+  /** 1st, 2nd, and 3rd place rows (ties share a place). */
+  top: { name: string; points: number; place: number }[];
 };
+
+/** Past results load this many at a time. */
+export const RESULTS_PAGE_SIZE = 5;
+
+/**
+ * Show results either saves (every selected game is finished, so those games become Closed)
+ * or only previews running totals (any selected game is still open; nothing is saved or closed).
+ */
+export function resultsShowMode(games: { isComplete?: boolean }[]): 'save' | 'preview' {
+  if (games.length === 0) return 'preview';
+  return games.every((game) => Boolean(game.isComplete)) ? 'save' : 'preview';
+}
+
+/** Games the Results page lists: open and finished, never Closed. */
+export function selectableResultGames<T extends { closedAt?: string | null }>(games: T[]): T[] {
+  return games.filter((game) => !game.closedAt);
+}
+
+/** Top 3 places, for the past results list. */
+export function topThree(standings: ResultStanding[]): { name: string; points: number; place: number }[] {
+  return standings
+    .filter((row) => row.place <= 3)
+    .sort((a, b) => a.place - b.place || a.name.localeCompare(b.name))
+    .map((row) => ({ name: row.name, points: row.points, place: row.place }));
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+/** Readable PDF name: EZScore-Rummy-Results-YYYY-MM-DD-HHmm.pdf (local time). */
+export function resultsPdfFileName(value: string | Date = new Date()): string {
+  const date = value instanceof Date ? value : new Date(value);
+  const safe = Number.isNaN(date.getTime()) ? new Date() : date;
+  return `EZScore-Rummy-Results-${safe.getFullYear()}-${pad2(safe.getMonth() + 1)}-${pad2(safe.getDate())}-${pad2(safe.getHours())}${pad2(safe.getMinutes())}.pdf`;
+}
+
+/** "3 games · 6 players" */
+export function resultsCountLine(gameCount: number, playerCount: number): string {
+  return `${gameCount === 1 ? '1 game' : `${gameCount} games`} · ${playerCount === 1 ? '1 player' : `${playerCount} players`}`;
+}
 
 export function formatPoints(value: number): string {
   if (value > 0) return `+${value}`;
@@ -133,6 +178,8 @@ export function summaryFrom(result: GameResult): GameResultSummary {
     declaredAt: result.declaredAt,
     gameCount: result.gameIds.length,
     winnerLine: winnerLine(result.standings),
+    playerCount: result.standings.length,
+    top: topThree(result.standings),
   };
 }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshControlProps, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+import { NativeScrollEvent, NativeSyntheticEvent, RefreshControlProps, ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { MAX_CONTENT_WIDTH, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 
@@ -12,6 +12,8 @@ type ScreenProps = {
   safeBottom?: boolean;
   /** Let content use the full width instead of the centred reading column. */
   fullWidth?: boolean;
+  /** Scroll events, e.g. to load more rows near the bottom. */
+  onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
 };
 
 /** Consistent page padding, safe areas and background across screens. */
@@ -22,6 +24,7 @@ export function Screen({
   contentStyle,
   safeBottom = true,
   fullWidth = false,
+  onScroll,
 }: ScreenProps) {
   const theme = useAppTheme();
   const { insets, gutterLeft, gutterRight, isShort } = useLayout();
@@ -49,6 +52,8 @@ export function Screen({
       contentContainerStyle={padding}
       refreshControl={refreshControl}
       keyboardShouldPersistTaps="handled"
+      onScroll={onScroll}
+      scrollEventThrottle={onScroll ? 200 : undefined}
     >
       <View style={[column, styles.gap, contentStyle]}>{children}</View>
     </ScrollView>

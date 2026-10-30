@@ -101,7 +101,7 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
 <body>
   <p class="brand">EZ Score: Rummy</p>
   <h1>${escapeHtml(details.title)}</h1>
-  <p>Created ${escapeHtml(details.createdAtLabel)}</p>
+  <p>Created ${escapeHtml(details.createdAtLabel)} · ${details.games.length} games · ${details.rows.length} players</p>
   <h2>Games</h2>
   <ul>${games}</ul>
   <h2>Scores</h2>
@@ -111,7 +111,7 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
   <ul>${list(details.positive)}</ul>
   <h3>Negative</h3>
   <ul>${list(details.negative)}</ul>
-  <h2>Places</h2>
+  <h2>Top 3</h2>
   <ul>${places}</ul>
 </body>
 </html>`;
@@ -126,7 +126,7 @@ export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
   const lines: string[] = [
     'EZ Score: Rummy',
     details.title,
-    `Created ${details.createdAtLabel}`,
+    `Created ${details.createdAtLabel}  ${details.games.length} games  ${details.rows.length} players`,
     '',
     'Games',
     ...details.games.map((game) => `${game.name}  ${game.when}`),
@@ -141,7 +141,7 @@ export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
     'Negative totals',
     ...details.negative.map((row) => `${row.name}  ${row.points}`),
     '',
-    'Places',
+    'Top 3',
     ...details.places.map((place) => `${place.label}  ${place.names}  ${place.points}`),
   ];
   const pageSize = 42;

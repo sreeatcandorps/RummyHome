@@ -51,6 +51,7 @@ export default function DeclaredResult() {
       date: formatGameDateTime(result.declaredAt),
       rows: result.standings.map((row) => ({ name: row.name, points: row.points })),
       places: sharePlaces(result.standings),
+      gameCount: result.gameIds.length || sheetFor(result).games.length,
     });
   }, [result]);
 
@@ -72,7 +73,7 @@ export default function DeclaredResult() {
 
   return (
     <Screen>
-      <ResultsShare card={card} details={details} />
+      <ResultsShare card={card} details={details} createdAt={result?.declaredAt} />
       {error ? (
         <>
           <Text style={{ color: colors.error }}>{error}</Text>

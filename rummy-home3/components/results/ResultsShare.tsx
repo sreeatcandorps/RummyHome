@@ -10,7 +10,7 @@ import { ResultsDetails } from '@/utils/resultsDetails';
 import { shareResultsPdf } from '@/utils/shareResultsPdf';
 
 /** Header share. The results page body stays the four sections. */
-export function ResultsShare({ card, details }: { card: ShareCard | null; details: ResultsDetails | null }) {
+export function ResultsShare({ card, details, createdAt }: { card: ShareCard | null; details: ResultsDetails | null; createdAt?: string }) {
   const navigation = useNavigation();
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export function ResultsShare({ card, details }: { card: ShareCard | null; detail
     if (!details || pdfBusy) return;
     setPdfBusy(true);
     try {
-      setNotice(await shareResultsPdf(details));
+      setNotice(await shareResultsPdf(details, createdAt));
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Could not make the PDF.');
     } finally {

@@ -56,8 +56,24 @@ export const HELP = {
     "Search a first name, last name, or player ID. An email works only if you type the whole address, and the address is never shown. + adds them to your list only. It does not put them in a game. Invite opens your phone's share sheet.",
   me:
     'The email here is yours. It is how you sign in. Your player ID is what you give someone so they can find you. Phone is optional and is never texted. Dark mode is saved on this phone.',
-  results:
-    'Check finished games, then show the results. Positive totals are on the left and negative totals are on the right. Each row is a player, in first-name order, and the columns are the games and a total. A dash means they did not play. The name and the total stay on screen, and as many games as fit are shown. 1st, 2nd, and 3rd place are at the bottom, and the highest score is the winner. Declare results saves that snapshot, and only an admin of every checked game can do it. Anyone can view a declared result. Results can include at most 50 players. Share results sends a picture of the places. Share full details (PDF) sends the whole table.',
+  results: `This is the Results page. It adds up the points from the games you pick.
+
+What you see, top to bottom:
+- "Select games and then show the results." tells you what to do.
+- Your games, newest first. Each row has its G-number badge (G1, G2...), the date and time it started, its status, and Points or Pool.
+- Active (green edge) means the game is still going. Completed (grey edge) means it is finished. Closed games are already in a result, so they are not listed.
+- Show results adds up the games you selected.
+- Past results lists earlier results, newest first: when, the number of games and players, and 1st, 2nd and 3rd place with their points. The highest points is the winner. Scroll down to load more.
+
+What you can do:
+- Tap a game to select it, and tap it again to unselect it.
+- Tap Show results.
+  - If every selected game is Completed, the result is saved and those games become Closed.
+  - If any selected game is still Active, you see the running totals only. Nothing is saved and no game is closed.
+- Tap a past result to open it again.
+- On a result, tap Share to send a picture of the Totals with the top 3, or a PDF with everything.
+
+Results can include at most 50 players.`,
   publicScorecard:
     'This page updates on its own. The start time and game ID say which game it is. No login. Anyone with the link can watch.',
 } as const;

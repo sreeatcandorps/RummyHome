@@ -191,8 +191,9 @@ test('the share image names EZ Score: Rummy and shortens a long list', () => {
   });
   assert.equal(resultsCard.podiumFirst, false);
   assert.equal(resultsCard.brand, 'EZ Score: Rummy');
-  assert.equal(resultsCard.lines.length, RESULTS_IMAGE_TOTAL_CAP);
-  assert.equal(resultsCard.moreCount, 2);
+  // Round 2: the image is the Totals section, so every player is on it.
+  assert.equal(resultsCard.lines.length, RESULTS_IMAGE_TOTAL_CAP + 2);
+  assert.equal(resultsCard.moreCount, 0);
   assert.equal(resultsCard.places[0].label, '1st');
   assert.equal(resultsCard.lines[0].points, `+${RESULTS_IMAGE_TOTAL_CAP + 1}`);
 });
@@ -270,4 +271,41 @@ test('game headers use h:mm with no AM/PM', async () => {
   const d = new Date(2026, 9, 28, 22, 5);
   assert.equal(gameClock(d.toISOString()), '10:05');
   assert.equal(gameClock(new Date(2026, 9, 28, 0, 7).toISOString()), '12:07');
+});
+
+import { resultsCountLine, resultsPdfFileName, resultsShowMode, selectableResultGames, summaryFrom as summaryOf, topThree } from '../utils/results';
+
+test('round 2: show results saves only when every selected game is finished', () => {
+  assert.equal(resultsShowMode([{ isComplete: true }, { isComplete: true }]), 'save');
+  assert.equal(resultsShowMode([{ isComplete: true }, { isComplete: false }]), 'preview');
+  assert.equal(resultsShowMode([]), 'preview');
+});
+
+test('round 2: the Results list hides Closed games and keeps open and finished ones', () => {
+  const listed = selectableResultGames([
+    { id: 'open', closedAt: null },
+    { id: 'done' },
+    { id: 'closed', closedAt: '2026-10-29T10:00:00Z' },
+  ]);
+  assert.deepEqual(listed.map((g) => g.id), ['open', 'done']);
+});
+
+test('round 2: past results carry the top 3, players, and games', () => {
+  const standings = [
+    { id: 'a', name: 'Ada', points: 30, games: 2, place: 1 },
+    { id: 'b', name: 'Bea', points: 10, games: 2, place: 2 },
+    { id: 'c', name: 'Cy', points: 0, games: 2, place: 3 },
+    { id: 'd', name: 'Di', points: -40, games: 2, place: 4 },
+  ];
+  assert.deepEqual(topThree(standings).map((r) => r.name), ['Ada', 'Bea', 'Cy']);
+  const summary = summaryOf({ id: 'r1', declaredAt: '2026-10-29T10:00:00Z', declaredBy: 'u', gameIds: ['g1', 'g2'], standings, sheet: { players: [], games: [] } });
+  assert.equal(summary.playerCount, 4);
+  assert.equal(summary.gameCount, 2);
+  assert.equal(summary.top.length, 3);
+  assert.equal(resultsCountLine(2, 4), '2 games · 4 players');
+  assert.equal(resultsCountLine(1, 1), '1 game · 1 player');
+});
+
+test('round 2: the PDF has a readable name', () => {
+  assert.equal(resultsPdfFileName(new Date(2026, 9, 29, 7, 5)), 'EZScore-Rummy-Results-2026-10-29-0705.pdf');
 });

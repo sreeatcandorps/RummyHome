@@ -3,6 +3,7 @@ import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { Game } from '@/types/game';
 import {
   canDeclareResults,
+  RESULTS_PAGE_SIZE,
   GameResult,
   GameResultSummary,
   gameResultName,
@@ -140,26 +141,44 @@ function assertDeclarable(games: Game[], names: Record<string, string>, userId: 
 }
 
 export const resultsService = {
-  async list(): Promise<GameResultSummary[]> {
+  /** Past results, newest first, one page at a time. */
+  async list(offset = 0, limit = RESULTS_PAGE_SIZE): Promise<GameResultSummary[]> {
     if (!isSupabaseConfigured) {
       const results = await readLocal();
       return results
         .map(summaryFrom)
-        .sort((a, b) => b.declaredAt.localeCompare(a.declaredAt));
+        .sort((a, b) => b.declaredAt.localeCompare(a.declaredAt))
+        .slice(offset, offset + limit);
     }
 
-    const { data, error } = await supabase.rpc('list_game_results');
-    if (error) {
-      if (missingRpc(error)) throw new Error(MIGRATION_008_HINT);
-      throw error;
+    let { data, error } = await supabase.rpc('list_game_results_page', { p_limit: limit, p_offset: offset });
+    if (error && missingRpc(error)) {
+      // Database without 010: fall back to the full 008 list and page it here.
+      const old = await supabase.rpc('list_game_results');
+      if (old.error) {
+        if (missingRpc(old.error)) throw new Error(MIGRATION_008_HINT);
+        throw old.error;
+      }
+      data = Array.isArray(old.data) ? old.data.slice(offset, offset + limit) : [];
+      error = null;
     }
-    const rows = (Array.isArray(data) ? data : []) as { id?: string; declaredAt?: string; gameCount?: number; firstNames?: string[] }[];
+    if (error) throw error;
+    const rows = (Array.isArray(data) ? data : []) as {
+      id?: string; declaredAt?: string; gameCount?: number; playerCount?: number;
+      firstNames?: string[]; top?: { name?: string; points?: number; place?: number }[];
+    }[];
     return rows
       .filter((row) => typeof row.id === 'string')
       .map((row) => ({
         id: row.id as string,
         declaredAt: row.declaredAt ?? '',
         gameCount: Number(row.gameCount) || 0,
+        playerCount: Number(row.playerCount) || 0,
+        top: (Array.isArray(row.top) ? row.top : []).map((item) => ({
+          name: typeof item.name === 'string' ? item.name : 'Player',
+          points: Number(item.points) || 0,
+          place: Number(item.place) || 0,
+        })),
         winnerLine: winnerLineFromNames(Array.isArray(row.firstNames) ? row.firstNames : []),
       }));
   },

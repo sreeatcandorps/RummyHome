@@ -10,6 +10,7 @@ export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: Re
       <Text style={styles.brand}>EZ Score: Rummy</Text>
       <Text style={styles.title}>{card.title}</Text>
       <Text style={styles.date}>{card.date}</Text>
+      {card.summary ? <Text style={styles.date}>{card.summary}</Text> : null}
       <View style={styles.rule} />
       {card.podiumFirst ? card.places.map((place) => (
         <Text key={place.label} style={styles.podium}>
