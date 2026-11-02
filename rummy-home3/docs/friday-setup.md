@@ -38,7 +38,7 @@ Optional override in EAS / `.env.local`: `EXPO_PUBLIC_AUTH_REDIRECT_URL`.
 
 The copy-link URL is:
 
-`https://sreeatcandorps.github.io/Games/scorecard.html?t=TOKEN`
+`https://ezscore.mindweavetech.com/scorecard.html?t=TOKEN`
 
 Deploy it once (Supabase CLI, logged in):
 

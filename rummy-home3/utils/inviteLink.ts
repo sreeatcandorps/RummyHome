@@ -1,4 +1,5 @@
-export const INVITE_URL = 'https://sreeatcandorps.github.io/Games/get';
+import { GET_PAGE_URL } from './siteUrls';
+export const INVITE_URL = GET_PAGE_URL;
 
 export function inviteMessage(): string {
   return `Play EZ Score: Rummy with me: ${INVITE_URL}`;

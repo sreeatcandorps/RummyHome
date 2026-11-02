@@ -550,7 +550,7 @@ Invite (3.15) is the phone’s own share sheet, so it has no Rummy Home ? icon. 
 
 No screen of its own. The button calls the phone share sheet with:
 
-- message: `Play Rummy Home with me: https://sreeatcandorps.github.io/Games/get`
+- message: `Play Rummy Home with me: https://ezscore.mindweavetech.com/get`
 - url: that same link, so iOS can share it as a link
 
 The host picks WhatsApp, Messages, Mail, or anything else the phone already has. The app does not ask for a destination.
@@ -674,12 +674,12 @@ There is no History screen. Recent, with All / Live / Today, is that list, and e
 
 Stop sending people to the Supabase function URL. The function in the repo sets `Content-Type: text/html`, and the gateway still showed the source as plain text. GitHub Pages serves real HTML.
 
-- Page: `https://sreeatcandorps.github.io/Games/scorecard.html?t=TOKEN`
+- Page: `https://ezscore.mindweavetech.com/scorecard.html?t=TOKEN`
 - The site is already the password-reset host (`public/index.html` on the Games Pages site). Add the scorecard file beside it. Start from `rummy-home3/web/scorecard.html`.
 - The page calls the existing `public_scorecard` RPC with the anon key. The anon key is public by design. The RPC returns a game only when the token is 48 hex characters, so the key does not expose other games.
 - The function can stay deployed as a JSON backup. The app must not copy its URL.
-- App config: `EXPO_PUBLIC_SCORECARD_URL` base becomes `https://sreeatcandorps.github.io/Games/scorecard.html`.
-- The invite link is a different file on the same site: `https://sreeatcandorps.github.io/Games/get`, with a small script or meta refresh by user agent, as in 3.15.
+- App config: `EXPO_PUBLIC_SCORECARD_URL` base becomes `https://ezscore.mindweavetech.com/scorecard.html`.
+- The invite link is a different file on the same site: `https://ezscore.mindweavetech.com/get`, with a small script or meta refresh by user agent, as in 3.15.
 
 What has to be true before a copied link works: migration `006_friday_game_night.sql` is applied (the RPC and `view_token`), and the HTML file is published on Pages. No Resend key is required for Copy link. The welcome email does need Resend, with the from-address `scores@mindweavetech.com`.
 
@@ -778,7 +778,7 @@ Maestro will not catch a misaligned header as reliably as eyes will, and it will
 
 These were still open when the build started. They are the behavior in the app until Sree says otherwise.
 
-1. **Get page.** `https://sreeatcandorps.github.io/Games/get` tells an iPhone that the app is not up yet. Android says the preview APK is shared separately until Play exists. There is no store URL and no download link on that page.
+1. **Get page.** `https://ezscore.mindweavetech.com/get` tells an iPhone that the app is not up yet. Android says the preview APK is shared separately until Play exists. There is no store URL and no download link on that page.
 2. **Today.** The Today chip uses the phone’s local timezone, the same way the old Today tile did.
 3. **Expense.** The points game still has an expense column, and a round still has to add to 0. Results does not give that column a place. Complete has no amount editor. The old ledger rule left with Settle.
 4. **Demo data.** Load and Clear stay on Me, and only for the allowlisted admin email (`EXPO_PUBLIC_ADMIN_EMAILS`, default `koneru2k@gmail.com`). They are not on Home.

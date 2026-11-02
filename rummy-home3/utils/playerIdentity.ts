@@ -1,3 +1,4 @@
+import { GET_PAGE_URL } from './siteUrls';
 /**
  * Player identity model (Round 3).
  *
@@ -405,7 +406,7 @@ export function claimShareText(playerNo: number | undefined, url: string): strin
   return `Join me on EZ Score: Rummy! Download the app and sign up using this link to see your scores.${id}\n${url}`;
 }
 
-export const CLAIM_LINK_BASE = 'https://sreeatcandorps.github.io/Games/get';
+export const CLAIM_LINK_BASE = GET_PAGE_URL;
 export const claimUrl = (token: string, base = CLAIM_LINK_BASE) => `${base}?claim=${encodeURIComponent(token)}`;
 
 // ---------- sign-up optional fields ----------

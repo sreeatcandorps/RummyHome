@@ -62,5 +62,5 @@ Two ways to claim an unregistered player. Both need a confirmed email. Both set 
 2. Authentication > Providers > Email: turn on **Confirm email**.
 3. Authentication > URL configuration: make sure the app's redirect URL (see `utils/authRedirect.ts`) is in the allow list.
 4. Database > Extensions: pgcrypto must be on (it is by default on Supabase).
-5. Android app links: claim links open `https://sreeatcandorps.github.io/Games/get?claim=…`, which offers "Open in app"
+5. Android app links: claim links open `https://ezscore.mindweavetech.com/get?claim=…`, which offers "Open in app"
    (`rummy-home3://claim?t=…`). Verified Android App Links for that domain are not set up yet.

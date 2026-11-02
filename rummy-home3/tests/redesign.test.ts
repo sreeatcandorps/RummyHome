@@ -78,6 +78,6 @@ test('a payment that does not add to 0 cannot be saved', () => {
 });
 
 test('invite is the get page and not an email form', () => {
-  assert.equal(INVITE_URL, 'https://sreeatcandorps.github.io/Games/get');
-  assert.match(inviteMessage(), /Play EZ Score: Rummy with me: https:\/\/sreeatcandorps\.github\.io\/Games\/get/);
+  assert.equal(INVITE_URL, 'https://ezscore.mindweavetech.com/get');
+  assert.match(inviteMessage(), /Play EZ Score: Rummy with me: https:\/\/ezscore\.mindweavetech\.com\/get/);
 });
