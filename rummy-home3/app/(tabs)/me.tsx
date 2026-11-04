@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
-import { Button, Switch, Text, TextInput } from 'react-native-paper';
+import { Button, Icon, Switch, Text, TextInput, TouchableRipple } from 'react-native-paper';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
@@ -190,9 +190,20 @@ export default function MeScreen() {
         <Button mode="text" onPress={saveName} loading={saving}>Save phone</Button>
       </SectionCard>
 
-      <Button mode="contained-tonal" icon="cog-outline" onPress={() => router.push('/(screens)/settings')} style={styles.block}>
-        User settings: game type, Drop, Middle drop, Full count
-      </Button>
+      <TouchableRipple
+        onPress={() => router.push('/(screens)/settings')}
+        style={[styles.settingsButton, { backgroundColor: colors.secondaryContainer }]}
+        borderless
+        accessibilityRole="button"
+        accessibilityLabel="User settings: game type, Drop, Middle drop, Full count"
+      >
+        <View style={styles.settingsInner}>
+          <Icon source="cog-outline" size={18} color={colors.onSecondaryContainer} />
+          <Text variant="labelLarge" style={[styles.settingsLabel, { color: colors.onSecondaryContainer }]}>
+            User settings: game type, Drop, Middle drop, Full count
+          </Text>
+        </View>
+      </TouchableRipple>
       <Button mode="outlined" icon="lock-reset" onPress={changePasscode} style={styles.block}>
         Change passcode
       </Button>
@@ -232,6 +243,21 @@ const styles = StyleSheet.create({
   },
   block: {
     marginBottom: spacing.md,
+  },
+  settingsButton: {
+    borderRadius: 20,
+    marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  settingsInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  settingsLabel: {
+    flex: 1,
   },
   gap: {
     gap: spacing.sm,
