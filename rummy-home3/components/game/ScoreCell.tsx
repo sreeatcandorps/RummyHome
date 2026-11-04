@@ -21,6 +21,15 @@ const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
 const FILL_MS = 220;
 const FLASH_MS = 520;
+const CLEAR_WIDTH = 36;
+
+/** Long names shrink a step instead of being cut off. */
+const nameFontSize = (name: string, compact?: boolean) => {
+  const base = compact ? 15 : 17;
+  if (name.length > 19) return base - 5;
+  if (name.length > 15) return base - 2;
+  return base;
+};
 
 /**
  * One player on the Add round grid: the full name over a score box and an X.
@@ -31,8 +40,10 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
   const { colors } = useAppTheme();
 
   const isConfirmed = status === 'confirmed';
-  const isSelected = status === 'selected' || status === 'pending';
+  const isPending = status === 'pending';
+  const isSelected = status === 'selected' || isPending;
   const hasValue = value !== undefined;
+  const canClear = hasValue || isPending;
 
   const fill = useRef(new Animated.Value(isConfirmed ? 1 : 0)).current;
   const scale = useRef(new Animated.Value(1)).current;
@@ -67,14 +78,14 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
   });
 
   const ringColor = isSelected ? colors.primary : isConfirmed ? colors.positive : colors.outlineVariant;
-  const boxBorder = status === 'pending' ? colors.primary : isSelected ? colors.primary : isConfirmed ? colors.positive : colors.outline;
-  const valueColor = status === 'pending'
+  const boxBorder = isSelected ? colors.primary : isConfirmed ? colors.positive : colors.outline;
+  const valueColor = isPending
     ? colors.primary
     : isConfirmed
       ? (value ?? 0) > 0 ? colors.positive : colors.onPositiveContainer
       : colors.onSurface;
 
-  const statusLabel = status === 'pending'
+  const statusLabel = isPending
     ? `typing ${signed(value ?? 0)}`
     : hasValue
       ? `score ${signed(value ?? 0)}`
@@ -88,7 +99,6 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
           width,
           backgroundColor,
           borderColor: ringColor,
-          borderWidth: isSelected ? 2 : 1,
           transform: [{ scale }],
         },
       ]}
@@ -97,48 +107,49 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
         onPress={onPress}
         onPressIn={pressIn}
         onPressOut={pressOut}
-        style={styles.press}
+        style={[styles.press, compact && styles.pressCompact]}
         accessibilityRole="button"
         accessibilityLabel={`${name}, ${statusLabel}${isSelected ? ', selected' : ''}`}
         accessibilityState={{ selected: isSelected }}
       >
         <Text
-          variant={compact ? 'bodyMedium' : 'bodyLarge'}
           numberOfLines={1}
-          style={[styles.name, { color: isConfirmed ? colors.onPositiveContainer : colors.onSurface }]}
+          style={[
+            styles.name,
+            { fontSize: nameFontSize(name, compact), color: isConfirmed ? colors.onPositiveContainer : colors.onSurface },
+          ]}
         >
           {name}
         </Text>
-        <View style={styles.row}>
-          <View
-            style={[
-              styles.box,
-              compact && styles.boxCompact,
-              {
-                borderColor: boxBorder,
-                borderStyle: status === 'pending' ? 'dashed' : 'solid',
-                backgroundColor: isConfirmed ? colors.surface : 'transparent',
-              },
-            ]}
+        <View
+          style={[
+            styles.box,
+            compact && styles.boxCompact,
+            {
+              borderColor: boxBorder,
+              borderStyle: isPending ? 'dashed' : 'solid',
+              backgroundColor: isConfirmed ? colors.surface : 'transparent',
+            },
+          ]}
+        >
+          <Text
+            style={[styles.value, compact && styles.valueCompact, tabularNums, { color: valueColor }]}
+            numberOfLines={1}
           >
-            <Text
-              style={[styles.value, compact && styles.valueCompact, tabularNums, { color: valueColor }]}
-              numberOfLines={1}
-            >
-              {hasValue ? signed(value) : ''}
-            </Text>
-          </View>
-          <IconButton
-            icon="close"
-            size={compact ? 18 : 20}
-            style={styles.clear}
-            iconColor={hasValue || status === 'pending' ? colors.onSurfaceVariant : colors.outlineVariant}
-            disabled={!hasValue && status !== 'pending'}
-            onPress={onClear}
-            accessibilityLabel={`Clear ${name}`}
-          />
+            {hasValue ? signed(value) : ''}
+          </Text>
         </View>
       </Pressable>
+      {/* A sibling, not a child, of the cell button: nested buttons are invalid on web. */}
+      <IconButton
+        icon="close"
+        size={compact ? 18 : 20}
+        style={[styles.clear, compact && styles.clearCompact]}
+        iconColor={canClear ? colors.onSurfaceVariant : colors.outlineVariant}
+        disabled={!canClear}
+        onPress={onClear}
+        accessibilityLabel={`Clear ${name}`}
+      />
       <Animated.View
         pointerEvents="none"
         style={[
@@ -154,26 +165,29 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
 const styles = StyleSheet.create({
   cell: {
     borderRadius: radius.lg,
+    // Constant width so a selection ring never nudges the grid.
+    borderWidth: 2,
     overflow: 'hidden',
   },
   press: {
     paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
+    paddingBottom: spacing.sm,
     paddingLeft: spacing.md,
-    paddingRight: spacing.xs,
+    paddingRight: spacing.sm,
     gap: spacing.xs,
+  },
+  pressCompact: {
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+    paddingLeft: spacing.sm,
   },
   name: {
     fontWeight: '700',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+    lineHeight: 22,
   },
   box: {
-    flex: 1,
     height: 40,
+    marginRight: CLEAR_WIDTH,
     borderWidth: 1.5,
     borderRadius: radius.sm,
     alignItems: 'center',
@@ -193,7 +207,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   clear: {
+    position: 'absolute',
+    right: 0,
+    bottom: 6,
     margin: 0,
+    width: CLEAR_WIDTH,
+    height: 36,
+  },
+  clearCompact: {
+    bottom: 2,
   },
   flash: {
     borderRadius: radius.lg,

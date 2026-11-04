@@ -228,7 +228,7 @@ export default function ScoreEntryScreen() {
     );
   }
 
-  const columns = isShort ? 3 : 2;
+  const columns = 2;
   const cellWidth = gridWidth > 0 ? Math.floor((gridWidth - GRID_GAP * (columns - 1)) / columns) : 0;
 
   const header = (
@@ -605,12 +605,13 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: 2,
     paddingVertical: spacing.xs,
   },
   actionLabel: {
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 12,
+    letterSpacing: 0,
   },
   captionRow: {
     flexDirection: 'row',
