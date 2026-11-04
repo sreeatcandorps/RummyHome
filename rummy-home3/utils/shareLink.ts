@@ -24,6 +24,8 @@ export function scorecardBaseUrl(): string {
   return (configured || DEFAULT_SCORECARD_BASE).replace(/\/$/, '');
 }
 
-export function scorecardUrl(token: string): string {
-  return `${scorecardBaseUrl()}?t=${encodeURIComponent(token)}`;
+export function scorecardUrl(token: string, gameNumber?: number | null): string {
+  const url = `${scorecardBaseUrl()}?t=${encodeURIComponent(token)}`;
+  if (gameNumber == null || !Number.isInteger(gameNumber) || gameNumber < 1) return url;
+  return `${url}&g=${gameNumber}`;
 }

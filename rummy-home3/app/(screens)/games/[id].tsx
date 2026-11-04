@@ -1,24 +1,22 @@
-import React from 'react';
-import { Linking, View, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useRef } from 'react';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Button, Text, Dialog, Icon, Menu, Portal } from 'react-native-paper';
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
-import * as Clipboard from 'expo-clipboard';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
 import { playersService } from '@/services/players';
-import { sendScorecardEmail } from '@/services/mail';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
 import { storage } from '@/utils/storage';
 import { MIN_TOUCH_TARGET, radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { formatGameDateTime, gameIdLabel, gameTypeLabel } from '@/utils/gameDisplay';
-import { buildShareCard, sharePlaces } from '@/utils/shareCard';
-import { totalAcrossGames } from '@/utils/results';
+import { formatGameDateTime, gameIdLabel, gameNumberLabel, gameTypeLabel } from '@/utils/gameDisplay';
 import { buildPlayerInitials } from '@/utils/playerInitials';
 import { scorecardUrl } from '@/utils/shareLink';
+import { buildScorecardSheet, canShareResults } from '@/utils/scorecardSheet';
+import { shareLiveScorecard, shareScorecardImage } from '@/utils/shareImage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { settleEnabled } from '@/constants/features';
@@ -27,7 +25,7 @@ import { HelpButton } from '@/components/ui/HelpButton';
 import { useLayout } from '@/hooks/useLayout';
 import { PlayersSheet } from '@/components/game/PlayersSheet';
 import { ScoreColumn, ScoreTable } from '@/components/game/ScoreTable';
-import { ShareDialog } from '@/components/game/ShareDialog';
+import { ScorecardImageView } from '@/components/share/ScorecardImageView';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
@@ -57,10 +55,8 @@ export default function GameScreen() {
   const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [viewer, setViewer] = useState<Player | null>(null);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [shareLink, setShareLink] = useState('');
-  const [shareNotice, setShareNotice] = useState<string | null>(null);
-  const [shareBusy, setShareBusy] = useState(false);
+  const [linkNote, setLinkNote] = useState<string | null>(null);
+  const resultsShot = useRef<View>(null);
   const [roster, setRoster] = useState<Player[]>([]);
   const [directory, setDirectory] = useState<Player[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -172,58 +168,33 @@ export default function GameScreen() {
     }
   };
 
-  const openShare = async () => {
+  const shareLive = async () => {
     if (!game) return;
     setMenuOpen(false);
-    setShareNotice(null);
-    setShareOpen(true);
+    setLinkNote(null);
     try {
-      const token = await gamesService.ensureViewToken(game.id);
-      setShareLink(scorecardUrl(token));
+      const token = game.viewToken ?? await gamesService.ensureViewToken(game.id);
+      const url = scorecardUrl(token, game.gameNumber);
+      const result = await shareLiveScorecard(url);
+      if (result === 'copied') setLinkNote('Link copied.');
     } catch (error) {
-      setShareLink('');
-      setShareNotice(formatSupabaseError(error));
+      setActionError(formatSupabaseError(error));
     }
   };
 
-  const copyShareLink = async () => {
-    if (!shareLink) return;
-    await Clipboard.setStringAsync(shareLink);
-    setShareNotice('Link copied. Paste it into WhatsApp.');
-  };
-
-  const emailShareLink = async (selected: { email?: string }[]) => {
-    if (!game || !shareLink) return;
-    const emails = selected.map((person) => person.email).filter((email): email is string => Boolean(email));
-    const skipped = selected.length - emails.length;
-    setShareBusy(true);
-    try {
-      if (emails.length === 0) {
-        setShareNotice(skipped > 0 ? `Skipped ${skipped}. Copy the link instead.` : 'Copy the link to share it.');
-        return;
-      }
-      const result = await sendScorecardEmail({
-        gameId: game.id,
-        emails,
-        url: shareLink,
-        gameLabel: gameIdLabel(game),
-        startedAt: formatGameDateTime(game.date),
-      });
-      setShareNotice(skipped > 0 ? `${result.message} Skipped ${skipped}.` : result.message);
-    } finally {
-      setShareBusy(false);
-    }
-  };
-
-  const openPublicScorecard = async () => {
+  const shareResults = async () => {
+    if (!game || !canShareResults(game.isComplete)) return;
     setMenuOpen(false);
     try {
-      if (!game) return;
-      const token = game.viewToken ?? await gamesService.ensureViewToken(game.id);
-      const url = scorecardUrl(token);
-      const supported = await Linking.canOpenURL(url);
-      if (supported) await Linking.openURL(url);
-      else setActionError(url);
+      const sheet = buildScorecardSheet({
+        gameNumber: game.gameNumber ?? null,
+        gameLabel: gameNumberLabel(game) ?? gameIdLabel(game),
+        when: formatGameDateTime(game.date),
+        isComplete: true,
+        players: players.map((player) => ({ id: player.id, name: player.name })),
+        scores: game.scores,
+      });
+      await shareScorecardImage(sheet, resultsShot.current);
     } catch (error) {
       setActionError(formatSupabaseError(error));
     }
@@ -335,17 +306,14 @@ export default function GameScreen() {
   const standings = [...players]
     .map((player) => ({ player, total: getPlayerTotal(player.id) }))
     .sort((a, b) => b.total - a.total);
-  const scorecardPlaces = totalAcrossGames([{
-    players: seats.map((seat) => seat.id),
+  const resultsSheet = canShareResults(game.isComplete) ? buildScorecardSheet({
+    gameNumber: game.gameNumber ?? null,
+    gameLabel: gameNumberLabel(game) ?? gameIdLabel(game),
+    when: formatGameDateTime(game.date),
+    isComplete: true,
+    players: seats.map((seat) => ({ id: seat.id, name: seat.name })),
     scores: game.scores,
-    names: Object.fromEntries(seats.map((seat) => [seat.id, seat.name])),
-  }]);
-  const shareCard = buildShareCard({
-    title: gameIdLabel(game),
-    date: formatGameDateTime(game.date),
-    rows: scorecardPlaces.map((row) => ({ name: row.name, points: row.points })),
-    places: sharePlaces(scorecardPlaces),
-  });
+  }) : null;
 
   const bestTotal = standings[0]?.total;
   const hasLeader = maxRounds > 0 && standings.length > 0;
@@ -462,7 +430,10 @@ export default function GameScreen() {
                     setRegisterOpen(true);
                   }} />
                 ) : null}
-                <Menu.Item leadingIcon="share-variant" onPress={openShare} title="Share" />
+                <Menu.Item leadingIcon="share-variant" onPress={shareLive} title="Share live scorecard" />
+                {canShareResults(game.isComplete) ? (
+                  <Menu.Item leadingIcon="image" onPress={shareResults} title="Share results" />
+                ) : null}
               </Menu>
             </View>
           ),
@@ -658,26 +629,12 @@ export default function GameScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <ShareDialog
-          visible={shareOpen}
-          people={roster.map((person) => ({
-            id: person.id,
-            name: person.name,
-            playerCode: person.playerCode,
-            email: person.email,
-          }))}
-          link={shareLink}
-          card={shareCard}
-          startedLabel={startedOn}
-          gameLabel={gameIdLabel(game)}
-          busy={shareBusy}
-          notice={shareNotice}
-          onDismiss={() => setShareOpen(false)}
-          onCopy={copyShareLink}
-          onEmail={emailShareLink}
-          onPreview={openPublicScorecard}
-          onNotice={setShareNotice}
-        />
+        {linkNote ? <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, padding: spacing.sm }}>{linkNote}</Text> : null}
+        {resultsSheet ? (
+          <View style={styles.offscreen} pointerEvents="none">
+            <ScorecardImageView sheet={resultsSheet} viewRef={resultsShot} />
+          </View>
+        ) : null}
         <PlayersSheet
           visible={playersOpen}
           seats={roster}
@@ -720,6 +677,11 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  offscreen: {
+    position: 'absolute',
+    left: -4000,
+    top: 0,
   },
   flex: {
     flex: 1,
