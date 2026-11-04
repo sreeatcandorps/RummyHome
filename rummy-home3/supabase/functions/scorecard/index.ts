@@ -46,13 +46,9 @@ const PAGE = `<!DOCTYPE html>
       const byName = new Map(players.map((player, index) => [player.name, index]));
       const rounds = new Set();
       const grid = players.map(() => ({}));
-      const expense = {};
       (data.scores || []).forEach((score) => {
+        if (!score.name || score.type === 'expense') return;
         rounds.add(score.round);
-        if (!score.name || score.type === 'expense') {
-          expense[score.round] = (expense[score.round] || 0) + score.value;
-          return;
-        }
         const index = byName.get(score.name);
         if (index == null) return;
         grid[index][score.round] = (grid[index][score.round] || 0) + score.value;

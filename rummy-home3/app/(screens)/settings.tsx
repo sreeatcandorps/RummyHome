@@ -29,8 +29,9 @@ export default function UserSettings() {
   const save = async () => {
     const drop = parseRuleInput(draft.drop);
     const middleDrop = parseRuleInput(draft.middleDrop);
-    if (drop == null || middleDrop == null) { setNotice('Type a number for Drop and Middle drop.'); return; }
-    const rules = { gameKind: 'points' as const, drop, middleDrop };
+    const fullCount = parseRuleInput(draft.fullCount);
+    if (drop == null || middleDrop == null || fullCount == null) { setNotice('Type a number for Drop, Middle drop, and Full count.'); return; }
+    const rules = { gameKind: 'points' as const, drop, middleDrop, fullCount };
     const problem = validateRules(rules);
     if (problem) { setNotice(problem); return; }
     setSaving(true);

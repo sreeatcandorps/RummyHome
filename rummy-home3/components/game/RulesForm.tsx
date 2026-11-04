@@ -4,13 +4,25 @@ import { SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import { PointsRules } from '@/utils/gameSettings';
 import { spacing, useAppTheme } from '@/constants/theme';
 
-export type RulesDraft = { drop: string; middleDrop: string };
-export const draftFromRules = (r: PointsRules): RulesDraft => ({ drop: String(Math.abs(r.drop)), middleDrop: String(Math.abs(r.middleDrop)) });
+export type RulesDraft = { drop: string; middleDrop: string; fullCount: string };
 
-/** Game type (Points only for now), Drop and Middle drop. Shared by Game settings and User settings. */
+/** The field always shows a negative number, including the minus sign. */
+export const showRule = (value: number) => (Number.isFinite(value) ? String(value) : '');
+
+export const draftFromRules = (r: PointsRules): RulesDraft => ({
+  drop: showRule(r.drop),
+  middleDrop: showRule(r.middleDrop),
+  fullCount: showRule(r.fullCount),
+});
+
+const signedField = (text: string) => {
+  const digits = text.replace(/[^0-9]/g, '').slice(0, 3);
+  return digits ? `-${digits}` : '';
+};
+
+/** Game type (Points only for now), Drop, Middle drop, and Full count. */
 export function RulesForm({ draft, onChange, showType }: { draft: RulesDraft; onChange: (d: RulesDraft) => void; showType?: boolean }) {
   const { colors } = useAppTheme();
-  const digits = (t: string) => t.replace(/[^0-9]/g, '').slice(0, 3);
   return (
     <View style={styles.wrap}>
       {showType ? (
@@ -27,11 +39,12 @@ export function RulesForm({ draft, onChange, showType }: { draft: RulesDraft; on
         </>
       ) : null}
       <View style={styles.row}>
-        <TextInput mode="outlined" label="Drop" keyboardType="number-pad" value={draft.drop} onChangeText={(t) => onChange({ ...draft, drop: digits(t) })} style={styles.input} right={<TextInput.Affix text="pts" />} />
-        <TextInput mode="outlined" label="Middle drop" keyboardType="number-pad" value={draft.middleDrop} onChangeText={(t) => onChange({ ...draft, middleDrop: digits(t) })} style={styles.input} right={<TextInput.Affix text="pts" />} />
+        <TextInput mode="outlined" label="Drop" keyboardType="number-pad" value={draft.drop} onChangeText={(t) => onChange({ ...draft, drop: signedField(t) })} style={styles.input} />
+        <TextInput mode="outlined" label="Middle drop" keyboardType="number-pad" value={draft.middleDrop} onChangeText={(t) => onChange({ ...draft, middleDrop: signedField(t) })} style={styles.input} />
+        <TextInput mode="outlined" label="Full count" keyboardType="number-pad" value={draft.fullCount} onChangeText={(t) => onChange({ ...draft, fullCount: signedField(t) })} style={styles.input} />
       </View>
       <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-        Points a player gets for dropping before or in the middle of a hand. Rummy defaults are Drop 10 and Middle drop 30.
+        Drop, Middle drop, and Full count are negative. Defaults are -10, -30, and -80.
       </Text>
     </View>
   );

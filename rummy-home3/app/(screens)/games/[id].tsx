@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import * as Clipboard from 'expo-clipboard';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
-import { EXPENSE_PLAYER_ID, gamesService } from '@/services/games';
+import { gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
 import { playersService } from '@/services/players';
 import { sendScorecardEmail } from '@/services/mail';
@@ -103,11 +103,7 @@ export default function GameScreen() {
         setRoster(gamePlayers);
         setCanScore(access.canScore);
         setLoadError(null);
-        setPlayers(
-          currentGame.settings?.expense
-            ? [...seated, { id: EXPENSE_PLAYER_ID, name: 'Expenses', role: 'player' } as Player]
-            : seated,
-        );
+        setPlayers(seated.filter((player) => player.id !== 'EX'));
       }
     } catch (error) {
       console.error('Error loading game:', error);
@@ -124,7 +120,8 @@ export default function GameScreen() {
 
   const getRoundTotal = (roundIndex: number): number => {
     if (!game?.scores) return 0;
-    return Object.values(game.scores).reduce((sum, playerScores) => {
+    return Object.entries(game.scores).reduce((sum, [playerId, playerScores]) => {
+      if (playerId === 'EX') return sum;
       return sum + (playerScores[roundIndex] || 0);
     }, 0);
   };
@@ -151,7 +148,7 @@ export default function GameScreen() {
     }
   };
 
-  const playingSeats = () => players.filter((player) => player.id !== EXPENSE_PLAYER_ID);
+  const playingSeats = () => players;
 
   const openComplete = () => {
     setShowCompleteConfirm(true);
@@ -328,8 +325,7 @@ export default function GameScreen() {
   const initials = buildPlayerInitials(players.map((player) => player.name));
   const initialsFor = (playerId: string) => initials[players.findIndex((p) => p.id === playerId)] ?? '?';
 
-  // Expenses never deal, so the rotation only counts real seats.
-  const seats = players.filter((player) => player.id !== EXPENSE_PLAYER_ID);
+  const seats = players;
   const dealerIdForRound = (roundIndex: number) =>
     seats.length ? seats[roundIndex % seats.length]?.id : undefined;
   const nextDealerId = game.isComplete ? undefined : dealerIdForRound(maxRounds);
@@ -337,7 +333,6 @@ export default function GameScreen() {
   const colorFor = (playerId: string) => seatColor(seats.findIndex((seat) => seat.id === playerId));
 
   const standings = [...players]
-    .filter((player) => player.id !== EXPENSE_PLAYER_ID)
     .map((player) => ({ player, total: getPlayerTotal(player.id) }))
     .sort((a, b) => b.total - a.total);
   const scorecardPlaces = totalAcrossGames([{
@@ -359,8 +354,7 @@ export default function GameScreen() {
   const columns: ScoreColumn[] = players.map((player, index) => ({
     id: player.id,
     label: initials[index],
-    color: player.id === EXPENSE_PLAYER_ID ? colors.onSurfaceVariant : colorFor(player.id),
-    isExpense: player.id === EXPENSE_PLAYER_ID,
+    color: colorFor(player.id),
   }));
 
   const totals = Object.fromEntries(players.map((player) => [player.id, getPlayerTotal(player.id)]));

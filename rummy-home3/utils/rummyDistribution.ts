@@ -2,7 +2,7 @@
  * Rummy winners share the points needed to bring a round back to zero.
  *
  * `entriesTotal` is the sum of every non-winning score in the round (drops,
- * middle drops, counts, expenses) and is normally negative. The winners split
+ * middle drops, and counts) and is normally negative. The winners split
  * its absolute value as evenly as whole points allow, with any remainder going
  * to the players selected first.
  */

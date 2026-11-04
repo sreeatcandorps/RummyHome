@@ -379,7 +379,7 @@ declare
   name text := btrim(concat_ws(' ', nullif(btrim(p_first), ''), nullif(btrim(p_last), '')));
 begin
   if auth.uid() is null then raise exception 'Sign in required'; end if;
-  if name = '' then raise exception 'Type a name or initials.'; end if;
+  if btrim(coalesce(p_first, '')) = '' or btrim(coalesce(p_last, '')) = '' then raise exception 'Type a first and last name.'; end if;
   insert into public.profiles (id, display_name, first_name, last_name, player_status, managed_by, player_code)
   values (new_id, left(name, 60), nullif(btrim(p_first), ''), nullif(btrim(p_last), ''), 'unregistered', auth.uid(), public.generate_player_code());
   insert into public.my_players (owner_id, player_id) values (auth.uid(), new_id) on conflict do nothing;
@@ -399,7 +399,7 @@ declare
   name text := btrim(concat_ws(' ', nullif(btrim(p_first), ''), nullif(btrim(p_last), '')));
 begin
   if r.player_status not in ('unregistered','pending') then raise exception 'Only unregistered players can be edited.'; end if;
-  if name = '' then raise exception 'Type a name or initials.'; end if;
+  if btrim(coalesce(p_first, '')) = '' or btrim(coalesce(p_last, '')) = '' then raise exception 'Type a first and last name.'; end if;
   update public.profiles set display_name = left(name, 60), first_name = nullif(btrim(p_first), ''), last_name = nullif(btrim(p_last), '')
   where profiles.id = p_player_id;
   return query select p.id, p.display_name, public.player_label(p), p.first_name, p.last_name, p.player_status, p.managed_by

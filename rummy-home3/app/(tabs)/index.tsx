@@ -10,7 +10,7 @@ import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { settleEnabled } from '@/constants/features';
-import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, isWithinLast24Hours } from '@/utils/gameDisplay';
+import { isWithinLast24Hours } from '@/utils/gameDisplay';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -112,18 +112,11 @@ export default function Dashboard() {
           {recentGames.length === 0 ? 'No games yet.' : 'Nothing in this filter.'}
         </Text>
       ) : (
-        filtered.map((game) => {
-          const gNum = gameNumberLabel(game);
-          const status = gameStatusLabel(game);
-          return (
-            <View key={game.id} style={styles.gameGap}>
-              <GameListItem game={game} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
-              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-                {status}{gNum ? ` · ${gNum}` : ''} · {formatGameDateTime(game.date)} · {gameTypeLabel(game.gameType)}
-              </Text>
-            </View>
-          );
-        })
+        filtered.map((game) => (
+          <View key={game.id} style={styles.gameGap}>
+            <GameListItem game={game} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
+          </View>
+        ))
       )}
     </SectionCard>
   );

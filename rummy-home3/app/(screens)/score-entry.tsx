@@ -14,7 +14,7 @@ import {
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Game } from '../../types/game';
 import { ScoreType } from '../../types/database';
-import { EXPENSE_PLAYER_ID, gamesService } from '../../services/games';
+import { gamesService } from '../../services/games';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
 import { storage } from '../../utils/storage';
@@ -35,14 +35,11 @@ import { buildPlayerInitials } from '../../utils/playerInitials';
 import { formatGameDateTime, gameIdLabel } from '../../utils/gameDisplay';
 import { formatSupabaseError } from '../../utils/supabaseErrors';
 
-const EXPENSE_ID = EXPENSE_PLAYER_ID;
-
-type SelectableType = 'drop' | 'middle_drop' | 'rummy';
+type SelectableType = 'drop' | 'middle_drop' | 'count' | 'rummy';
 
 type Participant = {
   id: string;
   name: string;
-  isExpense?: boolean;
 };
 
 type ScoreEntry = {
@@ -54,15 +51,15 @@ const TYPE_LABELS: Record<ScoreType, string> = {
   drop: 'Drop',
   middle_drop: 'Middle drop',
   rummy: 'Rummy',
-  count: 'Count',
-  expense: 'Expense',
+  count: 'Full count',
+  expense: 'Full count',
 };
 
 const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
 export default function ScoreEntryScreen() {
   const { colors } = useAppTheme();
-  const { isShort, insets, gutterLeft, gutterRight } = useLayout();
+  const { isShort, isWide, insets, gutterLeft, gutterRight } = useLayout();
   const { gameId } = useLocalSearchParams();
 
   const [game, setGame] = useState<Game | null>(null);
@@ -118,12 +115,6 @@ export default function ScoreEntryScreen() {
         .filter((player) => player.seatRole !== 'spectator')
         .map((player) => ({ id: player.id, name: player.name }));
 
-      if (currentGame.settings.expense) {
-        roster.push({ id: EXPENSE_ID, name: 'Expenses', isExpense: true });
-        const expenseAmount = currentGame.settings.expenseAmount ?? -10;
-        setEntries({ [EXPENSE_ID]: { value: expenseAmount, scoreType: 'expense' } });
-      }
-
       setParticipants(roster);
     } catch (error) {
       setMessage({ title: 'Could not load game', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
@@ -134,15 +125,7 @@ export default function ScoreEntryScreen() {
 
   const dropValue = game?.settings.dropAmount ?? -10;
   const middleDropValue = game?.settings.mdAmount ?? -30;
-
-  const typeOptions = useMemo(
-    () => [
-      { value: 'drop' as SelectableType, label: `Drop ${dropValue}` },
-      { value: 'middle_drop' as SelectableType, label: `MD ${middleDropValue}` },
-      { value: 'rummy' as SelectableType, label: 'Rummy' },
-    ],
-    [dropValue, middleDropValue],
-  );
+  const fullCountValue = game?.settings.maxCount ?? -80;
 
   const entriesTotal = useMemo(
     () => Object.values(entries).reduce((sum, entry) => sum + entry.value, 0),
@@ -225,6 +208,11 @@ export default function ScoreEntryScreen() {
       return;
     }
 
+    if (selectedType === 'count') {
+      setEntry(participant.id, { value: fullCountValue, scoreType: 'count' });
+      return;
+    }
+
     openManualEntry(participant);
   };
 
@@ -254,11 +242,7 @@ export default function ScoreEntryScreen() {
     }
 
     const value = manualNegative ? -magnitude : magnitude;
-    const scoreType: ScoreType = manualTarget.isExpense
-      ? 'expense'
-      : value > 0
-        ? 'rummy'
-        : 'count';
+    const scoreType: ScoreType = value > 0 ? 'rummy' : 'count';
 
     setEntry(manualTarget.id, { value, scoreType });
     closeManualEntry();
@@ -307,12 +291,12 @@ export default function ScoreEntryScreen() {
 
       const scores = [
         ...Object.entries(entries).map(([participantId, entry]) => ({
-          playerId: participantId === EXPENSE_ID ? null : participantId,
+          playerId: participantId,
           value: entry.value,
           scoreType: entry.scoreType,
         })),
         ...winners.map((winnerId) => ({
-          playerId: winnerId === EXPENSE_ID ? null : winnerId,
+          playerId: winnerId,
           value: distribution[winnerId] ?? 0,
           scoreType: 'rummy' as ScoreType,
         })),
@@ -338,21 +322,24 @@ export default function ScoreEntryScreen() {
     }
   };
 
-  const selectedTypeLabel = selectedType
-    ? selectedType === 'rummy'
-      ? 'Rummy'
-      : selectedType === 'drop'
-        ? `Drop (${dropValue})`
-        : `Middle drop (${middleDropValue})`
-    : null;
+  const selectedTypeLabel = selectedType === 'rummy'
+    ? 'Rummy'
+    : selectedType === 'drop'
+      ? `Drop (${dropValue})`
+      : selectedType === 'middle_drop'
+        ? `Middle drop (${middleDropValue})`
+        : selectedType === 'count'
+          ? `Full count (${fullCountValue})`
+          : null;
 
   const initials = buildPlayerInitials(participants.map((participant) => participant.name));
   const seatIndex = (participantId: string) =>
-    participants.filter((participant) => !participant.isExpense).findIndex((participant) => participant.id === participantId);
+    participants.findIndex((participant) => participant.id === participantId);
 
   const modeOptions: { value: SelectableType; label: string; amount?: number; icon: string }[] = [
     { value: 'drop', label: 'Drop', amount: dropValue, icon: 'arrow-down-circle-outline' },
     { value: 'middle_drop', label: 'Middle drop', amount: middleDropValue, icon: 'arrow-collapse-down' },
+    { value: 'count', label: 'Full count', amount: fullCountValue, icon: 'numeric' },
     { value: 'rummy', label: 'Rummy', icon: 'trophy-outline' },
   ];
 
@@ -360,7 +347,7 @@ export default function ScoreEntryScreen() {
     ? selectedType === 'rummy'
       ? 'Tap every winner. They split the points so the round balances.'
       : `Tap each player who took a ${selectedTypeLabel}.`
-    : 'Pick Drop, Middle drop or Rummy, or tap a player to type an exact score.';
+    : 'Pick Drop, Middle drop, Full count, or Rummy, or tap a player to type an exact score.';
 
   if (loading) {
     return (
@@ -392,6 +379,7 @@ export default function ScoreEntryScreen() {
             key={option.value}
             style={[
               styles.modeTile,
+              !isWide && styles.modeTileHalf,
               isShort && styles.modeTileRow,
               {
                 backgroundColor: selected ? colors.primary : colors.surface,
@@ -507,16 +495,12 @@ export default function ScoreEntryScreen() {
         >
           <View style={[styles.playerRowInner, isShort && styles.playerRowInnerCompact]}>
             <View>
-              {participant.isExpense ? (
-                <SeatAvatar name={participant.name} icon="cash-multiple" muted size={isShort ? 32 : 38} />
-              ) : (
-                <SeatAvatar
-                  name={participant.name}
-                  label={initials[index]}
-                  color={seatColor(seatIndex(participant.id))}
-                  size={isShort ? 32 : 38}
-                />
-              )}
+              <SeatAvatar
+                name={participant.name}
+                label={initials[index]}
+                color={seatColor(seatIndex(participant.id))}
+                size={isShort ? 32 : 38}
+              />
               {isWinner ? (
                 <View style={[styles.winnerBadge, { backgroundColor: colors.leader, borderColor: colors.surface }]}>
                   <Icon source="trophy" size={10} color={colors.surface} />
@@ -812,7 +796,12 @@ const styles = StyleSheet.create({
   },
   modes: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  modeTileHalf: {
+    flexGrow: 1,
+    flexBasis: '47%',
   },
   modesColumn: {
     flexDirection: 'column',

@@ -1,5 +1,3 @@
-const EXPENSE_LABEL = 'EXP';
-
 type NameParts = {
   words: string[];
   numericLast: boolean;
@@ -15,7 +13,6 @@ function partsFor(name: string): NameParts {
 function initialsFor(name: string): string {
   const clean = (name ?? '').trim();
   if (!clean) return '?';
-  if (clean.toLowerCase() === 'expenses') return EXPENSE_LABEL;
 
   const { words, numericLast } = partsFor(clean);
   const first = words[0]?.[0] ?? '';
@@ -31,7 +28,6 @@ function initialsFor(name: string): string {
 function expandedInitials(name: string): string {
   const clean = (name ?? '').trim();
   if (!clean) return '?';
-  if (clean.toLowerCase() === 'expenses') return EXPENSE_LABEL;
 
   const { words, numericLast } = partsFor(clean);
   if (words.length === 0) return '?';
@@ -75,7 +71,7 @@ export function buildPlayerInitials(names: string[]): string[] {
 
   const expanded = names.map((name, index) => {
     const label = base[index];
-    if ((totals[label] ?? 0) < 2 || label === EXPENSE_LABEL) return label;
+    if ((totals[label] ?? 0) < 2) return label;
     return expandedInitials(name);
   });
 

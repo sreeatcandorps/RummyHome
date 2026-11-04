@@ -11,7 +11,7 @@ File: `supabase/migrations/011_player_identity.sql`
 What it does, in plain English:
 
 - Gives every profile a status: registered (a real account), unregistered (you typed their name and they have not signed up), pending (a sign-up is in progress), or deleted / merged.
-- Lets you create a player who does not have an account yet. That player is tied to you until they sign up. They are not a second login.
+- Lets you create a player who does not have an account yet. You type a first name and a last name (initials are fine). The app shows the first letter of each, such as SK. That player is tied to you until they sign up. They are not a second login. A first name or a last name by itself is not saved.
 - Stores an optional zip code and remembers when a player was deleted.
 - One email address can belong to only one real account. The comparison ignores capital letters and extra spaces. If old rows already share an email, the file skips that rule and leaves a note instead of failing.
 - Adds a private list of sign-up requests (who invited whom, which email, and whether it is still open) and a short notice list so you can see “they said yes” or “they said not me.”

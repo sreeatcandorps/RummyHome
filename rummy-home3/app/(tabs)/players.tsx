@@ -7,7 +7,8 @@ import { authService } from '@/services/auth';
 import { playersService } from '@/services/players';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
-import { listInitials, matchesMyPlayer } from '@/utils/playerSearch';
+import { matchesMyPlayer } from '@/utils/playerSearch';
+import { chipInitials } from '@/utils/playerIdentity';
 import { shareInvite } from '@/utils/invite';
 import { Screen } from '@/components/ui/Screen';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -33,7 +34,7 @@ export default function PlayersTab() {
   const [selected, setSelected] = useState<Player | null>(null);
   const [removing, setRemoving] = useState(false);
   const [unregistered, setUnregistered] = useState<Record<string, Player>>({});
-  const [newCount, setNewCount] = useState(1);
+  const [newCount, setNewCount] = useState(3);
   const [addOpen, setAddOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
 
@@ -101,7 +102,7 @@ export default function PlayersTab() {
 
   const confirmRemove = () => {
     if (!selected) return;
-    Alert.alert(`Remove ${selected.name} from your list?`, 'Their account stays. Past games stay.', [
+    Alert.alert(`Remove ${chipInitials(selected.name)} from your list?`, 'Their account stays. Past games stay.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: remove },
     ]);
@@ -163,9 +164,9 @@ export default function PlayersTab() {
           accessibilityLabel={`${player.name}, ${player.playerCode || 'no player ID'}`}
         >
           <View style={styles.rowInner}>
-            <SeatAvatar name={player.name} label={listInitials(player.name)} size={36} />
+            <SeatAvatar name={player.name} label={chipInitials(player.name)} size={36} />
             <View style={styles.rowText}>
-              <Text variant="titleMedium">{player.name}{me?.id === player.id ? ' · This is you' : ''}</Text>
+              <Text variant="titleMedium">{chipInitials(player.name)}{me?.id === player.id ? ' · This is you' : ''}</Text>
               <View style={styles.idLine}>
                 <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{player.playerCode || 'No player ID yet'}</Text>
                 {unregistered[player.id] ? <Tag label={unregistered[player.id].status === 'pending' ? 'Pending' : 'Unregistered'} /> : null}
@@ -179,7 +180,7 @@ export default function PlayersTab() {
       <RegisterPlayersDialog visible={registerOpen} me={me} onDismiss={() => { setRegisterOpen(false); load(); }} />
       <Portal>
         <Dialog visible={!!selected} onDismiss={() => setSelected(null)}>
-          <Dialog.Title>{selected?.name}</Dialog.Title>
+          <Dialog.Title>{selected ? chipInitials(selected.name) : ''}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyLarge">ID {selected?.playerCode || '—'}</Text>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>

@@ -24,12 +24,12 @@ import {
 const host = { createdBy: 'host', adminIds: ['host'] };
 const rita = { createdBy: 'rita', adminIds: ['rita'] };
 
-test('points add up across games and the expense column is not a place', () => {
+test('points add up across games', () => {
   const standings = totalAcrossGames([
     {
-      players: ['host', 'rita', 'EX'],
-      scores: { host: [20], rita: [-10], EX: [-10] },
-      names: { host: 'Host', rita: 'Rita', EX: 'Expenses' },
+      players: ['host', 'rita'],
+      scores: { host: [20], rita: [-20] },
+      names: { host: 'Host', rita: 'Rita' },
     },
     {
       players: ['host', 'rita', 'dev'],
@@ -40,10 +40,9 @@ test('points add up across games and the expense column is not a place', () => {
 
   assert.deepEqual(standings.map((row) => [row.name, row.points, row.place, row.games]), [
     ['Host', 30, 1, 2],
-    ['Rita', 20, 2, 2],
+    ['Rita', 10, 2, 2],
     ['Dev', -40, 3, 1],
   ]);
-  assert.equal(standings.some((row) => row.id === 'EX'), false);
   assert.equal(winnerLine(standings), 'Winner: Host');
   assert.equal(podiumPlaces(standings).length, 3);
 });
@@ -75,9 +74,9 @@ test('tied totals share a place and the next place skips', () => {
 test('positive totals stay on the left, negative totals on the right, each by magnitude', () => {
   const standings = totalAcrossGames([
     {
-      players: ['a', 'b', 'c', 'd', 'e', 'EX'],
-      scores: { a: [50], b: [0], c: [-40], d: [-10], e: [10], EX: [-10] },
-      names: { a: 'Ada', b: 'Bea', c: 'Cam', d: 'Dee', e: 'Eve', EX: 'Expenses' },
+      players: ['a', 'b', 'c', 'd', 'e'],
+      scores: { a: [50], b: [0], c: [-40], d: [-10], e: [10] },
+      names: { a: 'Ada', b: 'Bea', c: 'Cam', d: 'Dee', e: 'Eve' },
     },
   ]);
   const columns = splitTotals(standings);
@@ -106,17 +105,15 @@ test('a missing seat is a dash, a zero is a score, and names sort by first name'
       id: 'g1',
       name: 'NIGHT',
       date: '2026-10-28T18:00:00.000Z',
-      players: ['a', 'b', 'EX'],
-      scores: { a: [10], b: [0], EX: [-10] },
-      names: { a: 'Ada', b: 'Bea', EX: 'Expenses' },
+      players: ['a', 'b'],
+      scores: { a: [10], b: [0] },
+      names: { a: 'Ada', b: 'Bea' },
     },
   ]);
 
   assert.deepEqual(sheet.games.map((game) => game.name), ['NIGHT', 'LATE']);
   assert.equal(scoreCell(sheet.games[0].scores, sheet.players.find((player) => player.name === 'Bea')?.id ?? ''), '0');
   assert.equal(scoreCell(sheet.games[1].scores, sheet.players.find((player) => player.name === 'Bea')?.id ?? ''), '—');
-  assert.equal(scoreCell(sheet.games[0].scores, 'EX'), '—');
-  assert.equal(sheet.players.some((player) => player.id === 'EX'), false);
   const ada = sheet.players.find((player) => player.name === 'Ada');
   assert.equal(ada && sheet.games[1].scores[ada.id], 5);
   assert.deepEqual(playersByFirstName(sheet.players).map((player) => player.name), ['Ada', 'Bea', 'Cam']);

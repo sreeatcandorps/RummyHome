@@ -4,10 +4,10 @@ import { createHash, randomBytes } from 'node:crypto';
 import {
   acceptClaim, backfillPlayerNumbers, canRequestClaim, canTransition, claimPrompt, claimRequestPrompt, claimShareText, claimUrl,
   clampNewPlayerCount, closeClaim, findClaimLink, formatPlayerNo, ID_CLAIMS_PER_DAY, isExpired, isValidEmail, issueClaimLink,
-  isWellFormedToken, nextPlayerNo, nextStatus, normalizeEmail, normalizeZip, parsePlayerNo, PendingLink, pickerGrid,
+  chipInitials, isWellFormedToken, newPlayerDisplayName, nextPlayerNo, nextStatus, normalizeEmail, normalizeZip, parsePlayerNo, PendingLink, pickerGrid,
   remapGamePlayers, requestClaimById, revokeClaimLinks, seatedOrder, sortCandidates, toBase64Url, TOKEN_BYTES, unlinkPlayer,
 } from '../utils/playerIdentity';
-import { parseRuleInput, rulesFromProfileDefaults, validateRules, withStoredPointsRules } from '../utils/gameSettings';
+import { DEFAULT_POINTS_RULES, parseRuleInput, rulesFromGame, rulesFromProfileDefaults, rulesToProfileDefaults, validateRules, withStoredPointsRules } from '../utils/gameSettings';
 
 const NOW = new Date('2026-10-29T20:00:00Z');
 const daysAgo = (d: number) => new Date(NOW.getTime() - d * 86400000).toISOString();
@@ -236,12 +236,27 @@ test('remap moves seats and scores; nothing is lost', () => {
 });
 
 // ---------- settings ----------
-test('drop rules: typed positive, stored negative, validated, applied to games', () => {
+test('drop rules: typed with a minus, stored negative, validated, applied to games', () => {
+  assert.equal(parseRuleInput('-10'), -10);
   assert.equal(parseRuleInput('10'), -10);
   assert.equal(parseRuleInput(''), null);
-  assert.equal(validateRules({ gameKind: 'points', drop: -40, middleDrop: -30 }), 'Middle drop is usually bigger than Drop.');
-  assert.deepEqual(rulesFromProfileDefaults({ stakeDrop: -20, stakeMiddleDrop: -40 }), { gameKind: 'points', drop: -20, middleDrop: -40 });
-  const base = { expense: true, expenseAmount: -10, dropAmount: -10, mdAmount: -30, maxCount: -80 };
-  assert.equal(withStoredPointsRules(base, { stakeDrop: -15 }).dropAmount, -15);
+  assert.equal(DEFAULT_POINTS_RULES.fullCount, -80);
+  assert.equal(validateRules({ gameKind: 'points', drop: -40, middleDrop: -30, fullCount: -80 }), 'Middle drop is usually bigger than Drop.');
+  assert.equal(validateRules({ gameKind: 'points', drop: -10, middleDrop: -30, fullCount: 80 }), 'Drop, Middle drop, and Full count must be less than 0.');
+  assert.deepEqual(rulesFromProfileDefaults({ stakeDrop: -20, stakeMiddleDrop: -40 }), { gameKind: 'points', drop: -20, middleDrop: -40, fullCount: -80 });
+  assert.equal(rulesToProfileDefaults({ gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80 }).maxCount, -80);
+  assert.equal(rulesFromGame({ expense: false, expenseAmount: 0, dropAmount: -10, mdAmount: -30, maxCount: -80 }).fullCount, -80);
+  const base = { expense: false, expenseAmount: 0, dropAmount: -10, mdAmount: -30, maxCount: -80 };
+  assert.equal(withStoredPointsRules(base, { stakeDrop: -15, maxCount: -60 }).dropAmount, -15);
+  assert.equal(withStoredPointsRules(base, { maxCount: -60 }).maxCount, -60);
   assert.equal(withStoredPointsRules(base, null).mdAmount, -30);
+});
+
+test('a new player needs both names and is shown as two initials', () => {
+  assert.equal(newPlayerDisplayName('Sree', 'Koneru'), 'Sree Koneru');
+  assert.equal(newPlayerDisplayName('S', 'K'), 'S K');
+  assert.equal(newPlayerDisplayName('Sree', ''), '');
+  assert.equal(newPlayerDisplayName('', 'Koneru'), '');
+  assert.equal(chipInitials('Sree Koneru'), 'SK');
+  assert.equal(chipInitials('S K'), 'SK');
 });

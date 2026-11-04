@@ -51,7 +51,7 @@ export default function NewGame() {
   const [rules, setRules] = useState<PointsRules>(DEFAULT_POINTS_RULES);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [newCount, setNewCount] = useState(1);
+  const [newCount, setNewCount] = useState(3);
   const [addOpen, setAddOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -126,7 +126,6 @@ export default function NewGame() {
       const game = await gamesService.createGame({
         playerIds,
         gameType: gameTypeForKind(rules.gameKind),
-        expenseEnabled: true,
         createdBy: me.id,
         rules,
       });
@@ -174,7 +173,7 @@ export default function NewGame() {
               <Text style={[styles.cellInitials, { color: colors.onSurface }]}>{chipInitials(c.name)}</Text>
             </View>
             <View style={styles.flex}>
-              <Text variant="labelLarge" numberOfLines={1}>{c.name}</Text>
+              <Text variant="labelLarge" numberOfLines={1}>{chipInitials(c.name)}</Text>
               <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
                 {c.playerCode ?? '—'}{c.status === 'unregistered' || c.status === 'pending' ? ' · Unregistered' : ''}
               </Text>

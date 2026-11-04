@@ -97,10 +97,10 @@ function SettleLedgerBody() {
       const payer = payload.find((leg) => leg.amount < 0);
       const payee = payload.find((leg) => leg.amount > 0);
       if (payer && payee) {
-        return `${names.get(payer.profileId) ?? 'Player'} paid ${names.get(payee.profileId) ?? 'Player'} ${Math.abs(payee.amount)}`;
+        return `${names.get(payer.profileId) ?? 'Player'} to ${names.get(payee.profileId) ?? 'Player'} ${Math.abs(payee.amount)}`;
       }
     }
-    return 'Payment';
+    return 'Entry';
   };
 
   const save = async () => {
@@ -146,7 +146,7 @@ function SettleLedgerBody() {
       <Text variant="titleMedium">{session.games.length} {session.games.length === 1 ? 'game' : 'games'} · {settled ? 'Settled' : 'not settled'}</Text>
       {openingSum !== 0 ? (
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          These coins add to {openingSum}. The expense column is not a person, so payments between people keep that total.
+          These points add to {openingSum}.
         </Text>
       ) : null}
       <View style={styles.head}>
@@ -164,7 +164,7 @@ function SettleLedgerBody() {
 
       {settled ? null : (
         <View style={styles.form}>
-          <Text variant="titleMedium">{editingId ? 'Change payment' : 'Record a payment'}</Text>
+          <Text variant="titleMedium">{editingId ? 'Change entry' : 'Record an entry'}</Text>
           {multi ? (
             extra.map((leg, index) => (
               <View key={index} style={styles.multi}>
@@ -185,7 +185,7 @@ function SettleLedgerBody() {
                 <TextInput
                   mode="outlined"
                   dense
-                  label="Coins"
+                  label="Points"
                   value={leg.amount}
                   keyboardType="numbers-and-punctuation"
                   onChangeText={(text) => setExtra((current) => current.map((item, itemIndex) => (
@@ -212,7 +212,7 @@ function SettleLedgerBody() {
                   </Button>
                 ))}
               </View>
-              <TextInput mode="outlined" label="Coins" value={coins} keyboardType="number-pad" onChangeText={(text) => setCoins(text.replace(/[^0-9]/g, ''))} />
+              <TextInput mode="outlined" label="Points" value={coins} keyboardType="number-pad" onChangeText={(text) => setCoins(text.replace(/[^0-9]/g, ''))} />
             </View>
           )}
           <Text variant="bodySmall" style={{ color: check.ok ? colors.onSurfaceVariant : colors.error }}>
@@ -220,7 +220,7 @@ function SettleLedgerBody() {
           </Text>
           {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
           <Button mode="contained" onPress={save} loading={saving} disabled={!check.ok || saving}>
-            Save payment
+            Save
           </Button>
           <Button mode="text" onPress={() => {
             if (multi) {
@@ -235,13 +235,13 @@ function SettleLedgerBody() {
         </View>
       )}
 
-      <Text variant="titleMedium" style={styles.payments}>Payments</Text>
+      <Text variant="titleMedium" style={styles.payments}>Entries</Text>
       {session.entries.length === 0 ? (
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>None yet — tap a row to edit</Text>
       ) : (
         [...session.entries].reverse().map((entry) => (
           <Pressable key={entry.id} onPress={() => editEntry(entry.id)} disabled={settled} style={styles.entry} accessibilityRole="button">
-            <Text variant="titleSmall">{entry.note || 'Payment'}</Text>
+            <Text variant="titleSmall">{entry.note || 'Entry'}</Text>
             {entry.legs.map((leg, index) => (
               <Text key={`${entry.id}-${index}`} style={tabularNums}>
                 {names.get(leg.profileId) ?? 'Player'} {signed(leg.amount)}

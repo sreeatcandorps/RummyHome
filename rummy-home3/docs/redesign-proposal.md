@@ -396,12 +396,12 @@ Only a game admin can open this. Anyone else who deep-links here sees “View on
 ```
 
 - Drop, Middle drop, and Rummy apply to the player that is tapped next, or the big tiles set a mode and each row applies it. Tap a row to type an exact score (count). The keypad allows a minus.
-- The round must add to 0, including the expense column when expense is on. Submit stays disabled until it does, and the line says “Off by N” or “Balanced.”
+- The round must add to 0. Submit stays disabled until it does, and the line says “Off by N” or “Balanced.”
 - Rummy winners split the positive side. The existing scoring rules do not change.
 - Submit returns to the scorecard with the new round at the top of the table.
 - Landscape: the three tiles and the tally stay in a left column; player rows are two columns on the right.
 
-Help: “Submit stays off until this round adds to 0, including the expense column. The line under the list says Balanced or how far off it is.” Do not explain what Drop, Middle drop, or Rummy mean.
+Help: “Submit stays off until this round adds to 0. The line under the list says Balanced or how far off it is.” Do not explain what Drop, Middle drop, or Rummy mean.
 
 ### 3.11 Complete game
 

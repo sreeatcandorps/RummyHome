@@ -104,8 +104,12 @@ export const sameEmail = (a?: string | null, b?: string | null) =>
 
 // ---------- names ----------
 
+/** Both names are required. The stored name keeps what was typed; the app shows two initials. */
 export function newPlayerDisplayName(first: string, last: string): string {
-  return [first.trim(), last.trim()].filter(Boolean).join(' ');
+  const given = first.trim();
+  const family = last.trim();
+  if (!given || !family) return '';
+  return `${given} ${family}`;
 }
 
 export function chipInitials(name: string): string {

@@ -17,11 +17,9 @@ import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/co
 type CreateGameInput = {
   playerIds: string[];
   gameType: GameType;
-  expenseEnabled: boolean;
-  expenseAmount?: number;
   createdBy: string;
   settings?: ProfileDefaults;
-  /** Drop and Middle drop for this game, copied from the user's settings. */
+  /** Drop, Middle drop, and Full count for this game. */
   rules?: PointsRules;
 };
 
@@ -53,8 +51,21 @@ export const MIGRATION_006_HINT = NOT_READY_MESSAGE;
 
 export { MIGRATION_007_HINT };
 
-/** Reserved column key for table expenses, which have no owning player. */
-export const EXPENSE_PLAYER_ID = 'EX';
+/** Older saved games may still store this column id. It is not a player. */
+const LEGACY_COLUMN_ID = 'EX';
+
+function withoutLegacyColumn(game: Game): Game {
+  const hasColumn = game.players.includes(LEGACY_COLUMN_ID) || Boolean(game.scores[LEGACY_COLUMN_ID]) || game.settings.expense;
+  if (!hasColumn) return game;
+  const scores = { ...game.scores };
+  delete scores[LEGACY_COLUMN_ID];
+  return {
+    ...game,
+    players: game.players.filter((id) => id !== LEGACY_COLUMN_ID),
+    scores,
+    settings: { ...game.settings, expense: false },
+  };
+}
 
 const SHARE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -78,10 +89,8 @@ const legacyGameFromServer = (
   scores.forEach((score) => {
     if (score.rounds?.undone_at) return;
 
-    // Expenses belong to the table, not a player, so they are stored without a
-    // profile and surface under the reserved EXPENSE_PLAYER_ID column.
-    const key = score.profile_id ?? (score.score_type === 'expense' ? EXPENSE_PLAYER_ID : null);
-    if (!key) return;
+    if (score.score_type === 'expense' || !score.profile_id) return;
+    const key = score.profile_id as string;
 
     const index = Math.max((score.rounds?.round_number ?? 1) - 1, 0);
     if (!scoreMap[key]) scoreMap[key] = [];
@@ -96,11 +105,7 @@ const legacyGameFromServer = (
     scores: scoreMap,
     currentRound: game.current_round,
     gameType: game.game_type,
-    settings: withStoredPointsRules(legacySettingsForGameType(
-      game.game_type,
-      game.settings?.expenseEnabled ?? true,
-      game.settings?.expenseAmount,
-    ), game.settings),
+    settings: withStoredPointsRules(legacySettingsForGameType(game.game_type, false), game.settings),
     shareCode: game.share_code ?? undefined,
     viewToken: game.view_token ?? undefined,
     createdBy: game.created_by ?? undefined,
@@ -118,7 +123,7 @@ const legacyGameFromServer = (
 
 export const gamesService = {
   async createGame(input: CreateGameInput): Promise<Game> {
-    const seated = input.playerIds.filter((id) => id && id !== EXPENSE_PLAYER_ID);
+    const seated = input.playerIds.filter((id) => id && id !== LEGACY_COLUMN_ID);
     if (seated.length < 2 || seated.length > MAX_SEATED_PLAYERS) {
       throw new Error(GAME_SIZE_MESSAGE);
     }
@@ -126,14 +131,14 @@ export const gamesService = {
     const baseSettings = input.settings ?? settingsForGameType(input.gameType);
     const settings = {
       ...baseSettings,
-      expenseEnabled: input.expenseEnabled,
-      expenseAmount: input.expenseAmount ?? baseSettings.expenseAmount,
+      expenseEnabled: false,
       gameType: input.gameType,
       ...(input.rules ? {
         stakeDrop: input.rules.drop,
         stakeMiddleDrop: input.rules.middleDrop,
         dropAmount: input.rules.drop,
         mdAmount: input.rules.middleDrop,
+        maxCount: input.rules.fullCount,
       } : {}),
     };
 
@@ -146,27 +151,23 @@ export const gamesService = {
       const legacyGame: Game = {
         id: Date.now().toString(),
         date: new Date().toISOString(),
-        players: input.playerIds,
-        scores: Object.fromEntries(input.playerIds.map((playerId) => [playerId, []])),
+        players: seated,
+        scores: Object.fromEntries(seated.map((playerId) => [playerId, []])),
         currentRound: 1,
         isComplete: false,
         gameType: input.gameType,
-        settings: withStoredPointsRules(legacySettingsForGameType(
-          input.gameType,
-          input.expenseEnabled,
-          settings.expenseAmount,
-        ), settings),
+        settings: withStoredPointsRules(legacySettingsForGameType(input.gameType, false), settings),
         createdBy: input.createdBy,
         viewToken: createViewToken(),
         shareCode: makeShareCode(),
         adminIds: [input.createdBy],
-        unseatedAdminIds: input.playerIds.includes(input.createdBy) ? [] : [input.createdBy],
+        unseatedAdminIds: seated.includes(input.createdBy) ? [] : [input.createdBy],
         spectators: [],
         gameNumber: nextNumber,
         closedAt: null,
       };
       await storage.addGame(legacyGame);
-      await playersService.rememberTogether(input.createdBy, input.playerIds).catch(() => {});
+      await playersService.rememberTogether(input.createdBy, seated).catch(() => {});
       return legacyGame;
     }
 
@@ -188,7 +189,7 @@ export const gamesService = {
 
     if (gameError) throw gameError;
 
-    const memberships = input.playerIds.map((profileId, index) => ({
+    const memberships = seated.map((profileId, index) => ({
       game_id: gameId,
       profile_id: profileId,
       player_order: index,
@@ -200,7 +201,7 @@ export const gamesService = {
     const { error: playersError } = await supabase.from('game_players').insert(memberships);
     if (playersError) throw playersError;
 
-    if (!input.playerIds.includes(input.createdBy)) {
+    if (!seated.includes(input.createdBy)) {
       const unseated = await supabase.from('game_players').insert({
         game_id: gameId,
         profile_id: input.createdBy,
@@ -213,7 +214,7 @@ export const gamesService = {
       }
     }
 
-    await playersService.rememberTogether(input.createdBy, input.playerIds).catch(() => {});
+    await playersService.rememberTogether(input.createdBy, seated).catch(() => {});
 
     const created = await this.getGame(gameId);
     if (!created) {
@@ -241,6 +242,7 @@ export const gamesService = {
     if (!isSupabaseConfigured) {
       const games = await storage.getGames();
       return games
+        .map(withoutLegacyColumn)
         .filter((game) => gameVisibleToUser(game, { id: currentUserId, email: options.email }))
         .sort((a, b) => b.date.localeCompare(a.date))
         .slice(0, limit);
@@ -307,7 +309,8 @@ export const gamesService = {
   async getGame(gameId: string): Promise<Game | null> {
     if (!isSupabaseConfigured) {
       const games = await storage.getGames();
-      return games.find((game) => game.id === gameId) ?? null;
+      const game = games.find((item) => item.id === gameId) ?? null;
+      return game ? withoutLegacyColumn(game) : null;
     }
 
     const [{ data: game, error: gameError }, { data: gamePlayers, error: playersError }, { data: scores, error: scoresError }] =
@@ -325,12 +328,15 @@ export const gamesService = {
     return legacyGameFromServer(game, scores ?? [], gamePlayers ?? []);
   },
 
-  /** Game settings: change Drop and Middle drop any time, even mid-game. */
+  /** Game settings: change Drop, Middle drop, and Full count any time, even mid-game. */
   async updateGameRules(gameId: string, rules: PointsRules): Promise<Game | null> {
     if (!isSupabaseConfigured) {
       const game = await this.getGame(gameId);
       if (!game) return null;
-      const next = { ...game, settings: { ...game.settings, dropAmount: rules.drop, mdAmount: rules.middleDrop } };
+      const next = {
+        ...game,
+        settings: { ...game.settings, dropAmount: rules.drop, mdAmount: rules.middleDrop, maxCount: rules.fullCount, expense: false },
+      };
       await storage.updateGame(next);
       return next;
     }
@@ -342,10 +348,12 @@ export const gamesService = {
       .update({
         settings: {
           ...current,
+          expenseEnabled: false,
           stakeDrop: rules.drop,
           stakeMiddleDrop: rules.middleDrop,
           dropAmount: rules.drop,
           mdAmount: rules.middleDrop,
+          maxCount: rules.fullCount,
         } as any,
       })
       .eq('id', gameId);
@@ -445,8 +453,8 @@ export const gamesService = {
         while (updatedScores[playerId].length <= roundIndex) updatedScores[playerId].push(0);
       });
       input.scores.forEach((score) => {
-        const key = score.playerId ?? (score.scoreType === 'expense' ? EXPENSE_PLAYER_ID : null);
-        if (!key) return;
+        if (score.scoreType === 'expense' || !score.playerId) return;
+        const key = score.playerId;
         if (!updatedScores[key]) updatedScores[key] = [];
         updatedScores[key][roundIndex] = score.value;
       });
@@ -500,8 +508,8 @@ export const gamesService = {
       if (!game) return null;
       const maxRounds = Math.max(...Object.values(game.scores).map((scores) => scores.length), 0);
       if (maxRounds === 0) return game;
-      // Columns can be shorter than the round count (e.g. expense cleared in the
-      // last round), so trim to the round being undone rather than popping each.
+      // Columns can be shorter than the round count, so trim to the round being
+      // undone rather than popping each.
       const updatedGame = {
         ...game,
         scores: Object.fromEntries(
@@ -664,7 +672,7 @@ export const gamesService = {
     if (game.players.includes(profileId) || game.spectators?.includes(profileId) || game.unseatedAdminIds?.includes(profileId)) {
       throw new Error('They are already in this game.');
     }
-    const seated = game.players.filter((id) => id !== EXPENSE_PLAYER_ID);
+    const seated = game.players.filter((id) => id !== LEGACY_COLUMN_ID);
     if (seated.length >= MAX_SEATED_PLAYERS) {
       throw new Error(SEATED_PLAYER_LIMIT);
     }
