@@ -10,6 +10,7 @@ import { userSettingsService } from '@/services/userSettings';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { takePlayerToCheck } from '@/utils/pendingPlayer';
 import { DEFAULT_POINTS_RULES, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
@@ -161,8 +162,8 @@ export default function NewGame() {
       </View>
       {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
 
-      <Searchbar placeholder="Search my players" value={query} onChangeText={setQuery} style={styles.search} inputStyle={styles.searchInput} />
-      {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+      <Searchbar placeholder="Search name, initials, or player ID" value={query} onChangeText={setQuery} style={styles.search} />
+      {error ? <Text style={{ color: isNotReadyMessage(error) ? colors.onSurfaceVariant : colors.error }}>{error}</Text> : null}
       {loading && candidates.length === 0 ? <LoadingRows /> : null}
 
       <View style={styles.grid}>
@@ -219,8 +220,7 @@ const styles = StyleSheet.create({
   chipDot: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   chipInitials: { color: '#fff', fontWeight: '700', fontSize: 11 },
   chipX: { fontSize: 14, marginLeft: 2 },
-  search: { height: 44 },
-  searchInput: { minHeight: 44 },
+  search: { marginVertical: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6 },
   cell: { width: '49%', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, padding: 6 },
   cellDot: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },

@@ -4,6 +4,7 @@ import { Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-nativ
 import { Player } from '@/types/player';
 import { playerIdentityService } from '@/services/playerIdentity';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { isNotReadyMessage } from '@/utils/notReady';
 import { spacing, useAppTheme } from '@/constants/theme';
 
 type Row = { key: string; first: string; last: string; player?: Player; editing: boolean; busy: boolean; error?: string };
@@ -94,7 +95,7 @@ export function AddPlayersDialog({ visible, count, ownerId, onClose, onSaved, on
                     <IconButton icon="delete-outline" size={18} iconColor={colors.error} onPress={() => remove(row)} accessibilityLabel="Delete" />
                   </View>
                   {row.player ? <Text variant="labelSmall" style={styles.meta}>Player ID {row.player.playerCode ?? '—'} · Unregistered</Text> : null}
-                  {row.error ? <Text variant="labelSmall" style={[styles.meta, { color: colors.error }]}>{row.error}</Text> : null}
+                  {row.error ? <Text variant="labelSmall" style={[styles.meta, { color: isNotReadyMessage(row.error) ? colors.onSurfaceVariant : colors.error }]}>{row.error}</Text> : null}
                 </View>
               );
             })}

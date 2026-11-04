@@ -1,4 +1,5 @@
 import { isAdminEmail } from '@/utils/adminAccess';
+import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { buildDemoSeedPayload, DemoSeedPayload, mergeDemoData, stripDemoData } from '@/utils/demoData';
 import { authService } from '@/services/auth';
 import { playersService } from '@/services/players';
@@ -14,9 +15,7 @@ function explainDemoError(error: SeedError): Error {
     || /could not find the function/i.test(message)
     || /apply_demo_seed|clear_demo_data|schema cache/i.test(message)
   ) {
-    return new Error(
-      'Demo data is not set up on the server yet. Run supabase/migrations/005_demo_data.sql in the Supabase SQL editor, then try again.',
-    );
+    return new Error(NOT_READY_MESSAGE);
   }
   return new Error(message);
 }

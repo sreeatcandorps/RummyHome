@@ -1,3 +1,4 @@
+import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
@@ -48,8 +49,7 @@ const missingColumn = (error: unknown) => {
   return code === '42703' || code === 'PGRST204' || message.includes('column') && (message.includes('view_token') || message.includes('prize'));
 };
 
-export const MIGRATION_006_HINT =
-  'This needs the latest database update. Run supabase/migrations/006_friday_game_night.sql in the Supabase SQL editor, then try again.';
+export const MIGRATION_006_HINT = NOT_READY_MESSAGE;
 
 export { MIGRATION_007_HINT };
 

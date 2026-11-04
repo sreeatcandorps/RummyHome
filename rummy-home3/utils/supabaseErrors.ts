@@ -1,3 +1,5 @@
+import { withoutDeveloperInstructions } from '@/utils/notReady';
+
 export function formatSupabaseError(error: unknown): string {
   if (!error) return 'Unknown error';
 
@@ -23,7 +25,7 @@ export function formatSupabaseError(error: unknown): string {
     return 'Network error — check Wi‑Fi and that the Supabase project is not paused.';
   }
 
-  return message;
+  return withoutDeveloperInstructions(message);
 }
 
 /** Stale/skewed JWT that PostgREST rejects (often after a paused project wakes up). */

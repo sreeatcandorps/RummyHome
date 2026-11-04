@@ -49,7 +49,7 @@ Same codebase either way.
 | Results PDF | `expo-print` and `expo-sharing` | Share full details prints HTML to a PDF on the phone and opens the share sheet. The web build downloads the same details |
 | Backend | Supabase (Auth + Postgres + RLS) | Shared multi-user data without a custom server |
 | My players | `my_players` in `007_redesign.sql` | Per-account roster. Home and New game do not read every profile |
-| Public scorecard | GitHub Pages `…/Games/scorecard.html` | HTML page calls `public_scorecard`. The app does not copy the edge-function URL |
+| Public scorecard | `https://ezscore.mindweavetech.com/scorecard.html` | Static HTML. `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__` are filled at publish time, not committed |
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / production | Real store binaries |
@@ -182,6 +182,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Removed the passwordless `/admin-login` dev route (local-mode backdoor); it no longer ships in any build.
 - `eas.json` now sets `appVersionSource: "remote"`: EAS owns the Android versionCode (starts at 1, production `autoIncrement` bumps it). Expo SDK 54 patch versions aligned via `expo install --fix`.
 
+### 2026-11-04 — Scorecard config and pending player migrations
+- The public scorecard no longer asks anyone to paste an anon key into the file. `public/scorecard.html` keeps `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__`, and `scripts/inject-scorecard-config.mjs` writes a publishable copy. Real keys stay out of git.
+- `011_player_identity.sql` and `012_player_numbers_and_claim_links.sql` are reviewed and safe to re-run. They are not applied from the app. Until they are, player sign-up shows a short message and New game still searches My players. See `docs/migrations-to-apply.md`.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -202,7 +206,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; dark mode is on Me and saved on the phone |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
-| Public scorecard | GitHub Pages HTML. Paste the anon key into `public/scorecard.html` before the live link loads a game |
+| Public scorecard | Static HTML on ezscore.mindweavetech.com. Placeholders filled by `scripts/inject-scorecard-config.mjs` at publish time. The key is not in git |
 | Expo Go local preview | Working |
 | EAS project linked on this PC | Done |
 | EAS env vars for Supabase | Done |
