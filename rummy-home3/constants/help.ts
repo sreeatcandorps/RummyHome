@@ -51,7 +51,7 @@ A game can have at most 15 players.`,
   share:
     'Share live scorecard opens the share sheet with the public page. Anyone with the link can watch the game number, the time, every round, and the totals. Share results is only on a completed game. It sends a picture of the full scorecard, with 1st, 2nd, and 3rd named at the bottom.',
   scoreEntry:
-    'Drop, Middle drop, and Full count fill in the points from this game (-10, -30, and -80 unless you changed them). Submit stays off until this round adds to 0. The line under the list says Balanced or how far off it is.',
+    'Tap one or more players, then type a number or tap Drop, Middle drop, or Full count. Everyone you tapped gets that score and turns green. Minus is on by default; tap + for a hand-entered win. Tap the winners and then Rummy: they split what the table lost so the round adds to 0. If a split is uneven, the players you tapped first get the extra point. Tap a green cell to change it, X to clear it. Moving to another player saves the number you were typing. Save round stays off until Balance is 0.',
   complete: 'This closes the game. The points stay as they are.',
   settle: 'Finished games stay on Home under Recent.',
   players: `This is My players: the people you play with, not everyone in the database.
