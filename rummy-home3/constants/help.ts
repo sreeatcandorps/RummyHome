@@ -1,5 +1,5 @@
 const scorecardBase =
-  'View only means you can watch and cannot change the scores. The ⋮ menu has Game settings (Drop, Middle drop, and Full count for this game, which you can change any time), Players (who can score), Register players (share each unregistered player their own sign-up link) and Share. Totals sit in the header next to each name. Undo asks before it removes the last round.';
+  'View only means you can watch and cannot change the scores. The ⋮ menu has Game settings (Drop, Middle drop, and Full count for this game, which you can change any time), Players (who can score), Register players (share each unregistered player their own sign-up link), Share live scorecard, and Share results once the game is complete. Totals sit in the header next to each name. Undo asks before it removes the last round.';
 
 const homeHelp = `This is your Home screen.
 
@@ -49,7 +49,7 @@ A game can have at most 15 players.`,
   playersSheet:
     "Admin can change scores. View only can watch and is not a column. Add non-player admin lets someone run the game without sitting in it. They have to be in My players already. If they aren't, add them with Find player in database and come back. You can make someone an admin after the game is over, too.",
   share:
-    'Share image makes a picture for WhatsApp or a text. It shows EZ Score: Rummy, the game, the date, and the totals. Copy link still opens the page. Email sends that link to the people you checked and does not show their addresses.',
+    'Share live scorecard opens the share sheet with the public page. Anyone with the link can watch the game number, the time, every round, and the totals. Share results is only on a completed game. It sends a picture of the full scorecard, with 1st, 2nd, and 3rd named at the bottom.',
   scoreEntry:
     'Drop, Middle drop, and Full count fill in the points from this game (-10, -30, and -80 unless you changed them). Submit stays off until this round adds to 0. The line under the list says Balanced or how far off it is.',
   complete: 'This closes the game. The points stay as they are.',
@@ -88,7 +88,7 @@ What you can do:
 
 Results can include at most 50 players.`,
   publicScorecard:
-    'This page updates on its own. The start time and game ID say which game it is. No login. Anyone with the link can watch.',
+    'This page updates on its own. It shows the game number, the start time, every round, and the totals. No login. Anyone with the link can watch.',
 } as const;
 
 export const EMPTY_SETTLE = 'Finished games stay on Home under Recent.';

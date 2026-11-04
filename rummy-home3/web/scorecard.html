@@ -27,13 +27,13 @@
 <body>
   <header>
     <div>
-      <h1>Rummy scorecard</h1>
+      <h1>EZ Score: Rummy</h1>
       <div class="meta" id="meta">Loading…</div>
     </div>
     <button class="help" type="button" aria-label="Help" onclick="document.getElementById('help').showModal()">?</button>
   </header>
   <dialog id="help">
-    <p>This page updates on its own. The start time and game ID say which game it is. No login. Anyone with the link can watch.</p>
+    <p>This page updates on its own. It shows the game number, the start time, every round, and the totals. No login. Anyone with the link can watch.</p>
     <form method="dialog"><button>Close</button></form>
   </dialog>
   <main id="board"></main>
@@ -84,7 +84,11 @@
       const totals = grid.map((row) => roundList.reduce((sum, round) => sum + (row[round] || 0), 0));
       const started = new Date(card.startedAt);
       const when = Number.isNaN(started.getTime()) ? card.startedAt : started.toLocaleString();
-      document.getElementById('meta').textContent = 'Started ' + when + ' · ID ' + card.gameId + ' · ' + (card.status === 'completed' ? 'Completed' : 'Live');
+      const fromCard = card.gameNumber != null && /^\d+$/.test(String(card.gameNumber)) ? 'G' + card.gameNumber : '';
+      const fromLink = /^\d+$/.test(params.get('g') || '') ? 'G' + params.get('g') : '';
+      const gameNo = fromCard || fromLink;
+      const status = card.status === 'completed' ? 'Completed' : 'Live';
+      document.getElementById('meta').textContent = [gameNo, 'Started ' + when, status].filter(Boolean).join(' · ');
       const head = labels.map((label, index) => '<th>' + label + '<span class="total">' + totals[index] + '</span></th>').join('');
       const body = roundList.map((round) => {
         const cells = grid.map((row) => {
@@ -94,7 +98,10 @@
         }).join('');
         return '<tr><td>' + round + '</td>' + cells + '</tr>';
       }).join('');
-      document.getElementById('board').innerHTML = '<table><thead><tr><th>Rnd</th>' + head + '</tr></thead><tbody>' + (body || '<tr><td colspan="8">No rounds yet.</td></tr>') + '</tbody></table>';
+      const totalCells = totals.map((value) => '<td class="' + (value > 0 ? 'pos' : value < 0 ? 'neg' : '') + '">' + (value > 0 ? '+' + value : value) + '</td>').join('');
+      const sum = totals.reduce((total, value) => total + value, 0);
+      const totalRow = roundList.length ? '<tr><td>Total</td>' + totalCells + '</tr>' : '';
+      document.getElementById('board').innerHTML = '<table><thead><tr><th>Rnd</th>' + head + '</tr></thead><tbody>' + (body || '<tr><td colspan="8">No rounds yet.</td></tr>') + totalRow + '</tbody></table><p class="meta">Totals add to ' + sum + '</p>';
     }
 
     async function load() {
