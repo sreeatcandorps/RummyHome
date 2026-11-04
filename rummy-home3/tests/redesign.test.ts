@@ -18,11 +18,18 @@ test('find search is a full email, a name, or nothing for a phone', () => {
   assert.equal(playerSearchMode('+1 555 123 4567'), 'none');
 });
 
-test('my list search does not look at an email address', () => {
-  const player = { name: 'Sree Koneru', playerCode: 'SK82' };
+test('my list search matches a name, initials, or player ID, and never an email', () => {
+  const player = { name: 'Sree Koneru', playerCode: 'SK82', firstName: 'Sree', lastName: 'Koneru' };
   assert.equal(matchesMyPlayer(player, 'sree'), true);
+  assert.equal(matchesMyPlayer(player, 'koneru'), true);
+  assert.equal(matchesMyPlayer(player, 'sk'), true);
   assert.equal(matchesMyPlayer(player, 'sk82'), true);
   assert.equal(matchesMyPlayer(player, 'sree@example.com'), false);
+  const numbered = { name: 'Player 4', playerCode: '#42' };
+  assert.equal(matchesMyPlayer(numbered, 'p4'), true);
+  assert.equal(matchesMyPlayer(numbered, '42'), true);
+  assert.equal(matchesMyPlayer(numbered, '#42'), true);
+  assert.equal(matchesMyPlayer(numbered, 'mvp'), false);
 });
 
 test('today uses the local calendar day', () => {

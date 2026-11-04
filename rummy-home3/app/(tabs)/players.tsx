@@ -1,18 +1,19 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
-import { Button, Dialog, Portal, Searchbar, Text } from 'react-native-paper';
+import { Button, Dialog, Portal, Searchbar, Text, TouchableRipple } from 'react-native-paper';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
 import { playersService } from '@/services/players';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-import { matchesMyPlayer } from '@/utils/playerSearch';
+import { isNotReadyMessage } from '@/utils/notReady';
+import { listInitials, matchesMyPlayer } from '@/utils/playerSearch';
 import { shareInvite } from '@/utils/invite';
 import { Screen } from '@/components/ui/Screen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
-import { spacing, useAppTheme } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { Tag } from '@/components/ui/Tag';
 import { NewPlayerStepper } from '@/components/players/NewPlayerStepper';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
@@ -129,8 +130,8 @@ export default function PlayersTab() {
       <NewPlayerStepper count={newCount} onChange={setNewCount} onAdd={() => setAddOpen(true)} />
       {error ? (
         <View>
-          <Text variant="bodyMedium" style={{ color: colors.error }}>{error}</Text>
-          <Button onPress={load}>Retry</Button>
+          <Text variant="bodyMedium" style={{ color: isNotReadyMessage(error) ? colors.onSurfaceVariant : colors.error }}>{error}</Text>
+          {isNotReadyMessage(error) ? null : <Button onPress={load}>Retry</Button>}
         </View>
       ) : null}
       {loading && players.length === 0 ? <LoadingRows /> : null}
@@ -148,25 +149,30 @@ export default function PlayersTab() {
           Invite
         </Button>
       ) : null}
+      {!loading && players.length > 0 && shown.length === 0 ? (
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+          No one in My players matches that. Try the name, the initials, or the player ID.
+        </Text>
+      ) : null}
       {shown.map((player) => (
-        <Button
+        <TouchableRipple
           key={player.id}
-          mode="outlined"
           onPress={() => openRow(player)}
-          style={styles.row}
-          contentStyle={styles.rowContent}
+          style={[styles.row, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}
+          accessibilityRole="button"
+          accessibilityLabel={`${player.name}, ${player.playerCode || 'no player ID'}`}
         >
           <View style={styles.rowInner}>
-            <SeatAvatar name={player.name} size={36} />
-            <View>
+            <SeatAvatar name={player.name} label={listInitials(player.name)} size={36} />
+            <View style={styles.rowText}>
               <Text variant="titleMedium">{player.name}{me?.id === player.id ? ' · This is you' : ''}</Text>
-              <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+              <View style={styles.idLine}>
                 <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{player.playerCode || 'No player ID yet'}</Text>
                 {unregistered[player.id] ? <Tag label={unregistered[player.id].status === 'pending' ? 'Pending' : 'Unregistered'} /> : null}
               </View>
             </View>
           </View>
-        </Button>
+        </TouchableRipple>
       ))}
 
       {me ? <AddPlayersDialog visible={addOpen} count={newCount} ownerId={me.id} onClose={() => { setAddOpen(false); load(); }} onSaved={() => {}} onDeleted={() => {}} /> : null}
@@ -208,15 +214,26 @@ const styles = StyleSheet.create({
   },
   row: {
     marginBottom: spacing.sm,
-    alignItems: 'stretch',
-  },
-  rowContent: {
-    justifyContent: 'flex-start',
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
   },
   rowInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  rowText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  idLine: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    flexWrap: 'wrap',
   },
   inviteEmpty: {
     alignSelf: 'flex-start',

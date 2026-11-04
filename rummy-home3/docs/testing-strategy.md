@@ -72,7 +72,7 @@ After any scoring or schema change:
 - [ ] `006_friday_game_night.sql` has been run on `gngcrplcldfiubvhcdin`
 - [ ] Site URL is `https://sreeatcandorps.github.io/Games/`, not localhost
 - [ ] A fresh reset email opens that page
-- [ ] `public/scorecard.html` and `public/get/index.html` are published on GitHub Pages, and the anon key is pasted into the scorecard file
+- [ ] `public/get/index.html` is published, and `dist/scorecard.html` (placeholders filled by `scripts/inject-scorecard-config.mjs`, never committed) is the live scorecard page
 - [ ] New preview APK is the one installed (older APKs do not have Share or prize sessions)
 - [ ] Two accounts: the second sees a game the first created
 - [ ] Only a game admin can add a round

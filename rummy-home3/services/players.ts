@@ -1,3 +1,4 @@
+import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { displayPlayerId } from '@/utils/playerIdentity';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
@@ -6,8 +7,7 @@ import { isEphemeralTestEmail } from '@/utils/playerFilters';
 import { playerSearchMode } from '@/utils/playerSearch';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 
-export const MIGRATION_007_HINT =
-  'This needs the latest database update. Run supabase/migrations/007_redesign.sql in the Supabase SQL editor, then try again.';
+export const MIGRATION_007_HINT = NOT_READY_MESSAGE;
 
 const ROSTER_KEY = 'myPlayersRoster';
 

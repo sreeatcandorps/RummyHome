@@ -5,6 +5,7 @@ import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { playersService } from '@/services/players';
 import { storage } from '@/utils/storage';
 import { Player } from '@/types/player';
+import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import {
   acceptClaim,
   Candidate,
@@ -33,8 +34,7 @@ import {
   unlinkPlayer,
 } from '@/utils/playerIdentity';
 
-export const MIGRATION_012_HINT =
-  'This needs the latest database update. Run supabase/migrations/011_player_identity.sql and 012_player_numbers_and_claim_links.sql in the Supabase SQL editor, then try again.';
+export const MIGRATION_012_HINT = NOT_READY_MESSAGE;
 
 const LINKS_KEY = 'pendingPlayerLinks';
 const NOTICES_KEY = 'creatorNotices';
@@ -177,15 +177,30 @@ export const playerIdentityService = {
 
   async listCandidates(ownerId: string, now = new Date()): Promise<Candidate[]> {
     if (isSupabaseConfigured) {
-      const rows = await rpc<any[]>('list_new_game_candidates', { p_limit: PICKER_PREFETCH });
-      return sortCandidates((rows ?? []).map((row) => ({
-        id: row.id,
-        name: row.display_name || 'Rummy Player',
-        playerCode: row.player_code ?? undefined,
-        status: row.player_status ?? 'registered',
-        totalGames: row.total_games ?? 0,
-        lastPlayedAt: row.last_played_at ?? null,
-      })), now).slice(0, PICKER_PREFETCH);
+      try {
+        const rows = await rpc<any[]>('list_new_game_candidates', { p_limit: PICKER_PREFETCH });
+        return sortCandidates((rows ?? []).map((row) => ({
+          id: row.id,
+          name: row.display_name || 'Rummy Player',
+          playerCode: row.player_code ?? undefined,
+          status: row.player_status ?? 'registered',
+          totalGames: row.total_games ?? 0,
+          lastPlayedAt: row.last_played_at ?? null,
+        })), now).slice(0, PICKER_PREFETCH);
+      } catch (error) {
+        // 011/012 are not on the server yet. My players (007) still loads, so
+        // New game can search and pick from that list instead of going blank.
+        if (!(error instanceof Error) || error.message !== NOT_READY_MESSAGE) throw error;
+        const mine = await playersService.listMyPlayers(ownerId);
+        return sortCandidates(mine.filter((player) => player.id !== ownerId).map((player) => ({
+          id: player.id,
+          name: player.name,
+          playerCode: player.playerCode,
+          status: player.status,
+          totalGames: player.gamesTogether ?? 0,
+          lastPlayedAt: null,
+        })), now).slice(0, PICKER_PREFETCH);
+      }
     }
     const games = (await storage.getGames()).filter((g) => g.createdBy === ownerId || g.adminIds?.includes(ownerId));
     const [players, roster] = await Promise.all([storage.getPlayers(), playersService.readMyPlayers(ownerId)]);

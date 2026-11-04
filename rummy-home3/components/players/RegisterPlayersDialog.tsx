@@ -6,6 +6,7 @@ import { Player } from '@/types/player';
 import { playerIdentityService } from '@/services/playerIdentity';
 import { PendingLink } from '@/utils/playerIdentity';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { isNotReadyMessage } from '@/utils/notReady';
 import { Tag } from '@/components/ui/Tag';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
 import { spacing, useAppTheme } from '@/constants/theme';
@@ -88,7 +89,7 @@ export function RegisterPlayersDialog({ visible, me, gameId, gameNumbers = [], o
               Tap Share to send a player their own sign-up link on WhatsApp, text, or anything else. When they sign up with it and tap Yes on “Is this you?”, their scores join their account. Each link works once and lasts 14 days. Sharing again makes a new link and turns off the old one.
             </Text>
             {me ? <ClaimRequestsCard ownerId={me.id} onChanged={load} /> : null}
-            {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+            {error ? <Text style={{ color: isNotReadyMessage(error) ? colors.onSurfaceVariant : colors.error }}>{error}</Text> : null}
             {players.length === 0 && !error ? <Text variant="bodyMedium" style={styles.lead}>Everyone {gameId ? 'in this game ' : ''}is registered.</Text> : null}
             {players.map((player) => {
               const link = open[player.id];

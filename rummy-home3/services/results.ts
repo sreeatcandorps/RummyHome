@@ -1,4 +1,5 @@
 import { RESULTS_PLAYER_LIMIT } from '@/constants/limits';
+import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { Game } from '@/types/game';
 import {
@@ -17,8 +18,7 @@ import {
 
 const LOCAL_KEY = 'gameResults';
 
-export const MIGRATION_008_HINT =
-  'This needs the latest database update. Run supabase/migrations/008_results.sql in the Supabase SQL editor, then try again.';
+export const MIGRATION_008_HINT = NOT_READY_MESSAGE;
 
 const missingRpc = (error: unknown) => {
   const message = ((error as { message?: string })?.message ?? '').toLowerCase();

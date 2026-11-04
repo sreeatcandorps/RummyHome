@@ -52,7 +52,12 @@ create trigger profiles_lock_player_no before update of public_player_no on publ
 for each row execute function public.lock_public_player_no();
 
 create or replace function public.player_label(p public.profiles)
-returns text language sql immutable as $$ select '#' || p.public_player_no::text $$;
+returns text
+language sql
+immutable
+as $$
+  select coalesce('#' || p.public_player_no::text, nullif(p.player_code, ''));
+$$;
 
 -- ---------- 2. claim records ----------
 alter table public.player_links alter column email drop not null;
@@ -263,7 +268,7 @@ begin
   returning id into new_id;
   update public.profiles set player_status = 'pending' where id = p.id;
   insert into public.creator_notices (owner_id, player_id, text)
-  values (p.managed_by, p.id, '#' || p.public_player_no || ' wants to claim ' || p.display_name || '. Approve?');
+  values (p.managed_by, p.id, public.player_label(p) || ' wants to claim ' || p.display_name || '. Approve?');
   return new_id;
 exception when unique_violation then
   raise exception 'You already asked to claim this player.';
@@ -355,11 +360,11 @@ stable
 security definer
 set search_path = public
 as $$
-  select p.id, coalesce(nullif(p.display_name, ''), 'Rummy Player'), '#' || p.public_player_no, m.games_together
+  select p.id, coalesce(nullif(p.display_name, ''), 'Rummy Player'), public.player_label(p), m.games_together
   from public.my_players m
   join public.profiles p on p.id = m.player_id
   where m.owner_id = auth.uid()
-    and p.player_status not in ('deleted_before_registering','deleted_after_registering','merged')
+    and coalesce(p.player_status, 'registered') not in ('deleted_before_registering','deleted_after_registering','merged')
   order by m.games_together desc, p.display_name;
 $$;
 
@@ -378,7 +383,7 @@ begin
   insert into public.profiles (id, display_name, first_name, last_name, player_status, managed_by, player_code)
   values (new_id, left(name, 60), nullif(btrim(p_first), ''), nullif(btrim(p_last), ''), 'unregistered', auth.uid(), public.generate_player_code());
   insert into public.my_players (owner_id, player_id) values (auth.uid(), new_id) on conflict do nothing;
-  return query select p.id, p.display_name, '#' || p.public_player_no, p.first_name, p.last_name, p.player_status, p.managed_by
+  return query select p.id, p.display_name, public.player_label(p), p.first_name, p.last_name, p.player_status, p.managed_by
     from public.profiles p where p.id = new_id;
 end;
 $$;
@@ -397,7 +402,7 @@ begin
   if name = '' then raise exception 'Type a name or initials.'; end if;
   update public.profiles set display_name = left(name, 60), first_name = nullif(btrim(p_first), ''), last_name = nullif(btrim(p_last), '')
   where profiles.id = p_player_id;
-  return query select p.id, p.display_name, '#' || p.public_player_no, p.first_name, p.last_name, p.player_status, p.managed_by
+  return query select p.id, p.display_name, public.player_label(p), p.first_name, p.last_name, p.player_status, p.managed_by
     from public.profiles p where p.id = p_player_id;
 end;
 $$;
@@ -411,7 +416,7 @@ as $$
 begin
   perform public.expire_player_requests();
   return query
-    select p.id, p.display_name, '#' || p.public_player_no, p.first_name, p.last_name, p.player_status, p.managed_by, null::text
+    select p.id, p.display_name, public.player_label(p), p.first_name, p.last_name, p.player_status, p.managed_by, null::text
     from public.profiles p
     where p.managed_by = auth.uid()
       and p.player_status in ('unregistered','pending')
@@ -444,9 +449,9 @@ as $$
     select m.player_id, 0, null from public.my_players m
     where m.owner_id = auth.uid() and not exists (select 1 from stats s where s.profile_id = m.player_id)
   )
-  select p.id, coalesce(nullif(p.display_name, ''), 'Rummy Player'), '#' || p.public_player_no, p.player_status, e.total_games, e.last_played_at
+  select p.id, coalesce(nullif(p.display_name, ''), 'Rummy Player'), public.player_label(p), p.player_status, e.total_games, e.last_played_at
   from everyone e join public.profiles p on p.id = e.profile_id
-  where p.player_status not in ('deleted_before_registering','deleted_after_registering','merged')
+  where coalesce(p.player_status, 'registered') not in ('deleted_before_registering','deleted_after_registering','merged')
   order by (e.last_played_at >= now() - interval '14 days') desc nulls last, e.total_games desc, e.last_played_at desc nulls last, p.display_name
   limit least(greatest(coalesce(p_limit, 100), 1), 100);
 $$;
@@ -466,9 +471,11 @@ begin
   if auth.uid() is null then raise exception 'Sign in required'; end if;
   if q ~ '^#?[0-9]{1,12}$' then
     return query
-      select p.id, coalesce(nullif(p.display_name, ''), 'Rummy Player'), '#' || p.public_player_no
+      select p.id, coalesce(nullif(p.display_name, ''), 'Rummy Player'), public.player_label(p)
       from public.profiles p
-      where p.public_player_no = ltrim(q, '#')::bigint and p.managed_by is null and p.player_status = 'registered';
+      where p.public_player_no = ltrim(q, '#')::bigint
+        and p.managed_by is null
+        and coalesce(p.player_status, 'registered') = 'registered';
     return;
   end if;
   if length(q) < 2 then return; end if;
@@ -476,9 +483,11 @@ begin
 
   if q ~* '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then
     return query
-      select p.id, coalesce(nullif(p.display_name, ''), 'Rummy Player'), '#' || p.public_player_no
+      select p.id, coalesce(nullif(p.display_name, ''), 'Rummy Player'), public.player_label(p)
       from public.profiles p
-      where lower(btrim(p.email)) = lower(q) and p.managed_by is null and p.player_status = 'registered'
+      where lower(btrim(p.email)) = lower(q)
+        and p.managed_by is null
+        and coalesce(p.player_status, 'registered') = 'registered'
       limit 5;
     return;
   end if;
@@ -486,10 +495,17 @@ begin
 
   pattern := '%' || replace(replace(replace(q, '\', '\\'), '%', '\%'), '_', '\_') || '%';
   return query
-    select p.id, coalesce(nullif(p.display_name, ''), 'Rummy Player'), '#' || p.public_player_no
+    select p.id, coalesce(nullif(p.display_name, ''), 'Rummy Player'), public.player_label(p)
     from public.profiles p
-    where p.managed_by is null and p.player_status = 'registered'
-      and (p.display_name ilike pattern escape '\' or p.first_name ilike pattern escape '\' or p.last_name ilike pattern escape '\')
+    where p.managed_by is null
+      and coalesce(p.player_status, 'registered') = 'registered'
+      and (
+        p.display_name ilike pattern escape '\'
+        or p.first_name ilike pattern escape '\'
+        or p.last_name ilike pattern escape '\'
+        or p.player_code ilike pattern escape '\'
+        or public.player_label(p) ilike pattern escape '\'
+      )
     order by p.display_name
     limit 20;
 end;

@@ -40,15 +40,15 @@ The copy-link URL is:
 
 `https://ezscore.mindweavetech.com/scorecard.html?t=TOKEN`
 
-Deploy it once (Supabase CLI, logged in):
+The page in git (`public/scorecard.html`, same file as `web/scorecard.html`) has no project URL and no anon key. It has the placeholders `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__`. Fill them at publish time and upload only the generated file. See `docs/migrations-to-apply.md`. Do not commit the filled-in file and do not put the key in the link.
 
 ```bash
-supabase functions deploy scorecard --project-ref gngcrplcldfiubvhcdin
+EXPO_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key \
+node scripts/inject-scorecard-config.mjs
 ```
 
-No extra key. The function reads the database with the project service role, which never goes in the app. The page reloads every 8 seconds and shows the start time and game ID.
-
-Until that deploy, Copy link still copies the URL, but it will 404. A backup page is `web/scorecard.html` (host it anywhere and pass the anon key as `?k=`). You can point the app at it with `EXPO_PUBLIC_SCORECARD_URL`.
+Publish `dist/scorecard.html` to that URL. The page reloads every 8 seconds and shows the start time and game ID. The anon key it uses is the same public client key as the app, not the service role key.
 
 ## 4. Email (optional)
 
