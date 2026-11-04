@@ -37,7 +37,7 @@ What you see, top to bottom:
 - Playing: you are always first. Everyone you pick moves up here as a small chip with their initials and player ID (#42). Tap a chip to take them out.
 - Search my players.
 - My players: 10 at a time. People who played with you in the last 2 weeks come first, then everyone else, most games first. Only players from games you created or ran show here. When you pick someone, the next player fills the spot.
-- Add new player: use − and + to pick how many (1 to 5). It opens with 3 rows at the top of the screen. First and Last are both required. You can type initials or a full name. The app shows the first letter of each, such as SK. Tap Save on each row. Saved turns green. Edit changes a name, Delete removes it. Done can be tapped any time.
+- Add new player: use − and + to pick how many (1 to 5). It opens with 3 rows at the top of the screen, titled Add new players by initials. First initial and Last initial are both required; you can type more letters if you want. The app shows the first letter of each, such as SK. Tap Save on each row. Saved turns green. Edit changes a name, Delete removes it. Done can be tapped any time.
 - Find player in database: search registered players by name, player ID (#42) or full email.
 
 Game settings are in the ⋮ menu (top right): Drop, Middle drop, and Full count for this game. They start from your User settings, and you can change them any time during the game too. Defaults are -10, -30, and -80.
@@ -51,13 +51,13 @@ A game can have at most 15 players.`,
   share:
     'Share live scorecard opens the share sheet with the public page. Anyone with the link can watch the game number, the time, every round, and the totals. Share results is only on a completed game. It sends a picture of the full scorecard, with 1st, 2nd, and 3rd named at the bottom.',
   scoreEntry:
-    'Drop, Middle drop, and Full count fill in the points from this game (-10, -30, and -80 unless you changed them). Submit stays off until this round adds to 0. The line under the list says Balanced or how far off it is.',
+    'Tap one or more players, then type a number or tap Drop, Middle drop, or Full count. Everyone you tapped gets that score and turns green. Minus is on by default; tap + for a hand-entered win. Tap the winners and then Rummy: they split what the table lost so the round adds to 0. If a split is uneven, the players you tapped first get the extra point. Tap a green cell to change it, X to clear it. Moving to another player saves the number you were typing. Save round stays off until Balance is 0.',
   complete: 'This closes the game. The points stay as they are.',
   settle: 'Finished games stay on Home under Recent.',
   players: `This is My players: the people you play with, not everyone in the database.
 
 - Every player has a player ID: a number like #42. It never changes and is never used to sign in.
-- Add new player: pick how many with − and + (up to 5). It opens with 3 rows. Type a first and a last name, or just initials, and tap Save on each one. The list shows two initials, such as SK. Each gets the next player ID right away. They show as Unregistered.
+- Add new player: pick how many with − and + (up to 5). It opens with 3 rows. Type a first initial and a last initial (more letters are fine) and tap Save on each one. The list shows two initials, such as SK. Each gets the next player ID right away. They show as Unregistered.
 - Find player in database: search people who already registered.
 - Register players: tap Share next to a player to send their own sign-up link on WhatsApp, text, or anything. When they sign up with it and tap Yes on "Is this you?", their scores join their account. A link works once and lasts 14 days. Share again makes a new link and turns off the old one. Turn off link stops it.
 - Pending means a link was sent, or someone asked to claim the player with their ID.

@@ -187,6 +187,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - `011_player_identity.sql` and `012_player_numbers_and_claim_links.sql` are reviewed and safe to re-run. They are not applied from the app. Until they are, player sign-up shows a short message and New game still searches My players. See `docs/migrations-to-apply.md`.
 - Scoring no longer has a table-cost column. Game defaults are Drop, Middle drop, and Full count (default -80), stored with the existing points settings.
 
+### 2026-11-04 — Add round redesigned from the paper sketch
+- Score entry is one screen again: G-number / round / start time / scorer header with a ⋮ menu, a two-column player grid, a Drop / Middle drop / Full count / Rummy row, an on-screen keypad with a +/- toggle (minus default), and a Balance + Save round bar. Multi-select players, then type or tap a preset. Rummy winners split the table's losses (remainder to the players tapped first). Moving to another player auto-saves. Save round unlocks only at Balance 0. No new dependencies; animations use React Native `Animated`.
+- The rules live in `utils/roundEntry.ts` with their own node tests, separate from the screen.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -201,7 +205,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Profiles / Player ID + share | Done |
 | Find players (name, player ID, exact email, +) | Done; needs `007` on the live database |
 | New game (points, my players) | Done. Stored type is still the points game |
-| Game table + score entry | Done, portrait + landscape. One Scorecard header |
+| Game table + score entry | Done, portrait + landscape. Add round rebuilt from the owner's sketch: grid, presets, keypad, Balance gate |
 | Home Recent | Done. History screen redirects home |
 | Results | Done in the app. Totals, players-by-game table, places, a podium image, and a full-details PDF. Apply `008_results.sql` before declare works on the live database |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
