@@ -37,7 +37,7 @@ What you see, top to bottom:
 - Playing: you are always first. Everyone you pick moves up here as a small chip with their initials and player ID (#42). Tap a chip to take them out.
 - Search my players.
 - My players: 10 at a time. People who played with you in the last 2 weeks come first, then everyone else, most games first. Only players from games you created or ran show here. When you pick someone, the next player fills the spot.
-- Add new player: use − and + to pick how many (1 to 5). It opens with 3 rows at the top of the screen. First and Last are both required. You can type initials or a full name. The app shows the first letter of each, such as SK. Tap Save on each row. Saved turns green. Edit changes a name, Delete removes it. Done can be tapped any time.
+- Add new player: use − and + to pick how many (1 to 5). It opens with 3 rows at the top of the screen, titled Add new players by initials. First initial and Last initial are both required; you can type more letters if you want. The app shows the first letter of each, such as SK. Tap Save on each row. Saved turns green. Edit changes a name, Delete removes it. Done can be tapped any time.
 - Find player in database: search registered players by name, player ID (#42) or full email.
 
 Game settings are in the ⋮ menu (top right): Drop, Middle drop, and Full count for this game. They start from your User settings, and you can change them any time during the game too. Defaults are -10, -30, and -80.
@@ -57,7 +57,7 @@ A game can have at most 15 players.`,
   players: `This is My players: the people you play with, not everyone in the database.
 
 - Every player has a player ID: a number like #42. It never changes and is never used to sign in.
-- Add new player: pick how many with − and + (up to 5). It opens with 3 rows. Type a first and a last name, or just initials, and tap Save on each one. The list shows two initials, such as SK. Each gets the next player ID right away. They show as Unregistered.
+- Add new player: pick how many with − and + (up to 5). It opens with 3 rows. Type a first initial and a last initial (more letters are fine) and tap Save on each one. The list shows two initials, such as SK. Each gets the next player ID right away. They show as Unregistered.
 - Find player in database: search people who already registered.
 - Register players: tap Share next to a player to send their own sign-up link on WhatsApp, text, or anything. When they sign up with it and tap Yes on "Is this you?", their scores join their account. A link works once and lasts 14 days. Share again makes a new link and turns off the old one. Turn off link stops it.
 - Pending means a link was sent, or someone asked to claim the player with their ID.

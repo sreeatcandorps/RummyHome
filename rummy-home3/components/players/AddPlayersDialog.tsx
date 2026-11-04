@@ -14,7 +14,8 @@ const blank = (i: number): Row => ({ key: `r${Date.now()}-${i}`, first: '', last
 
 /**
  * Sits at the top of the screen so the keyboard does not cover the rows.
- * Each row saves on its own. Done can be tapped at any time.
+ * Players are added by initials (more letters are allowed). Each row saves
+ * on its own. Done can be tapped at any time.
  */
 export function AddPlayersDialog({ visible, count, ownerId, onClose, onSaved, onDeleted }: {
   visible: boolean;
@@ -35,7 +36,7 @@ export function AddPlayersDialog({ visible, count, ownerId, onClose, onSaved, on
 
   const save = async (row: Row) => {
     if (!row.first.trim() || !row.last.trim()) {
-      patch(row.key, { error: 'Type a first and last name.' });
+      patch(row.key, { error: 'Type a first and a last initial.' });
       return;
     }
     patch(row.key, { busy: true, error: undefined });
@@ -69,7 +70,7 @@ export function AddPlayersDialog({ visible, count, ownerId, onClose, onSaved, on
   return (
     <Portal>
       <Modal visible={visible} onDismiss={onClose} style={styles.overlay} contentContainerStyle={[styles.sheet, { backgroundColor: colors.surface }]}>
-        <Text variant="titleLarge" style={styles.title}>Add new players</Text>
+        <Text variant="titleLarge" style={styles.title}>Add new players by initials</Text>
         <ScrollView keyboardShouldPersistTaps="handled" style={styles.scroll}>
           {rows.map((row, i) => {
             const saved = Boolean(row.player) && !row.editing;
@@ -77,10 +78,10 @@ export function AddPlayersDialog({ visible, count, ownerId, onClose, onSaved, on
             return (
               <View key={row.key} style={[styles.row, { borderColor: saved ? '#2E7D32' : colors.outlineVariant }]}>
                 <Text variant="labelLarge" style={styles.num}>{i + 1}</Text>
-                <TextInput dense mode="outlined" label="First name" value={row.first} disabled={saved || row.busy}
-                  onChangeText={(first) => patch(row.key, { first })} style={styles.input} autoCapitalize="words" />
-                <TextInput dense mode="outlined" label="Last name" value={row.last} disabled={saved || row.busy}
-                  onChangeText={(last) => patch(row.key, { last })} style={styles.input} autoCapitalize="words" />
+                <TextInput dense mode="outlined" label="First initial" value={row.first} disabled={saved || row.busy}
+                  onChangeText={(first) => patch(row.key, { first })} style={styles.input} autoCapitalize="characters" autoCorrect={false} />
+                <TextInput dense mode="outlined" label="Last initial" value={row.last} disabled={saved || row.busy}
+                  onChangeText={(last) => patch(row.key, { last })} style={styles.input} autoCapitalize="characters" autoCorrect={false} />
                 <View style={styles.actions}>
                   {saved ? (
                     <>
