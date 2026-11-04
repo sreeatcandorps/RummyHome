@@ -10,6 +10,10 @@ import { authService } from '@/services/auth';
 import { playersService } from '@/services/players';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
+import { helpVersionText, shortVersionLabel } from '@/utils/appVersion';
+import { readAppVersion } from '@/utils/appVersionRuntime';
+
+const APP_VERSION = readAppVersion();
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof Ionicons>['name'];
@@ -23,9 +27,19 @@ function BrandTitle() {
   return (
     <View style={styles.brand}>
       <Image source={require('../../assets/icon.png')} style={styles.brandLogo} />
-      <Text variant="titleLarge" style={[styles.brandText, { color: theme.colors.onSurface }]}>
-        EZ Score: Rummy
-      </Text>
+      <View style={styles.brandCopy}>
+        <Text variant="titleLarge" numberOfLines={1} style={[styles.brandText, { color: theme.colors.onSurface }]}>
+          EZ Score: Rummy
+        </Text>
+        <Text
+          variant="labelSmall"
+          numberOfLines={1}
+          style={[styles.brandVersion, { color: theme.colors.onSurfaceVariant }]}
+          accessibilityLabel={`App version ${shortVersionLabel(APP_VERSION)}`}
+        >
+          {shortVersionLabel(APP_VERSION)}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -34,7 +48,11 @@ function HeaderTools() {
   const path = usePathname();
   const theme = useAppTheme();
   const [name, setName] = useState('?');
-  const text = path.includes('/players') ? HELP.players : path.includes('/me') ? HELP.me : HELP.home;
+  const text = path.includes('/players')
+    ? HELP.players
+    : path.includes('/me')
+      ? HELP.me
+      : `${HELP.home}\n\n${helpVersionText(APP_VERSION)}`;
 
   useEffect(() => {
     authService.getCurrentPlayer().then((player) => setName(player?.name ?? '?')).catch(() => {});
@@ -143,9 +161,17 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: radius.sm,
   },
+  brandCopy: {
+    flexShrink: 1,
+  },
   brandText: {
     fontWeight: '800',
     letterSpacing: -0.2,
+    lineHeight: 24,
+  },
+  brandVersion: {
+    fontWeight: '600',
+    lineHeight: 14,
   },
   headerRight: {
     flexDirection: 'row',

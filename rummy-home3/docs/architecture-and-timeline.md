@@ -53,7 +53,7 @@ Same codebase either way.
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / production | Real store binaries |
-| OTA | `expo-updates` enabled + EAS Update channels | Fix JS during the 14-day test without new Play review every time |
+| OTA | `expo-updates`, on for the production profile only (`EXPO_UPDATES_ENABLED` in `eas.json` → `app.config.js`). Preview/development APKs run their embedded JS | Fix JS during the 14-day test without new Play review every time; preview builds can't be replaced by a stale update |
 | Version codes | `appVersionSource: "remote"` in `eas.json` | EAS tracks Android versionCode; no manual bumps in `app.json` |
 | Secrets for builds | EAS Environment Variables (`EXPO_PUBLIC_SUPABASE_*`) | `.env.local` never reaches EAS builders |
 | Privacy page | `docs/privacy-policy.html` (repo root) | Play Store requires a public privacy URL |
@@ -190,6 +190,11 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 ### 2026-11-04 — Add round redesigned from the paper sketch
 - Score entry is one screen again: G-number / round / start time / scorer header with a ⋮ menu, a two-column player grid, a Drop / Middle drop / Full count / Rummy row, an on-screen keypad with a +/- toggle (minus default), and a Balance + Save round bar. Multi-select players, then type or tap a preset. Rummy winners split the table's losses (remainder to the players tapped first). Moving to another player auto-saves. Save round unlocks only at Balance 0. No new dependencies; animations use React Native `Animated`.
 - The rules live in `utils/roundEntry.ts` with their own node tests, separate from the screen.
+
+### 2026-11-04 — Preview APKs stop reverting; version shown on Home
+- Cause of "the phone goes back to an old version": `expo-updates` was on for every build with `runtimeVersion: appVersion` (always `1.0.0`) and the preview profile on the `preview` channel. Any update ever published to that channel matched every 1.0.0 preview APK, and with `checkAutomatically: ON_LOAD` + `fallbackToCacheTimeout: 0` the APK ran its own code on the first launch, downloaded the channel's latest update in the background, and ran that (older) code from the second launch on.
+- Fix: `app.config.js` layers over `app.json` and turns `updates.enabled` on only when `EXPO_UPDATES_ENABLED=true`. `eas.json` sets it `false` for development and preview and `true` for production, so preview/development APKs always run the JavaScript built into them. The version is bumped to 1.1.0 (also a new runtime version), and preview builds `autoIncrement` so each APK has its own build number. Nothing was published.
+- Home shows `v1.1.0 (build N)` next to the title (expo-application, falling back to the config in Expo Go / web) and Help adds the same plus whether the code is embedded or an OTA update. New dependency: `expo-application`.
 
 ### Now
 - Play Console personal account under Google verification (~days).
