@@ -1,8 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 import { Player } from '../types/player';
 import { Game } from '../types/game';
 import { RoundScoreInput, validateRoundScores } from '../utils/scoring';
@@ -10,7 +7,6 @@ import { distributeRummyWinnings } from '../utils/rummyDistribution';
 import { isAdminEmail } from '../utils/adminAccess';
 import {
   buildDemoSeedPayload,
-  DEMO_EXPENSE_ID,
   mergeDemoData,
   normalizePlayerName,
   roundInputsForGame,
@@ -35,11 +31,6 @@ function roundInputs(game: Game, roundIndex: number): RoundScoreInput[] {
 function hostTotals(game: Game, hostId: string) {
   return game.scores[hostId] ?? [];
 }
-
-test('demo expense column matches the game service', () => {
-  const source = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../services/games.ts'), 'utf8');
-  assert.match(source, /EXPENSE_PLAYER_ID = 'EX'/);
-});
 
 test('reuses Srikanth Koneru by name and never duplicates that player', () => {
   const existing = srikanth({ name: '  SRIKANTH   koneru ' });
@@ -111,7 +102,9 @@ test('seeds realistic games that include Srikanth and validate under the scoring
 
   demoGames.forEach((game) => {
     assert.ok(game.players.includes(host.id), game.id);
-    assert.equal(game.scores[DEMO_EXPENSE_ID].length, game.currentRound - 1);
+    assert.equal(game.scores[host.id].length, game.currentRound - 1);
+    assert.equal(game.scores.EX, undefined);
+    assert.equal(game.settings.expense, false);
     for (let roundIndex = 0; roundIndex < game.currentRound - 1; roundIndex += 1) {
       const inputs = roundInputs(game, roundIndex);
       const result = validateRoundScores(inputs);

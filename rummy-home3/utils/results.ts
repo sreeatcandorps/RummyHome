@@ -1,7 +1,7 @@
 import { MAX_RESULTS_PLAYERS } from '@/constants/limits';
 import { userAdminsGame } from '@/utils/gameAccess';
 
-/** Matches the expense column in services/games.ts. It is not a player. */
+/** Older saved games may still have this column id. It is not a player. */
 export const RESULT_EXPENSE_ID = 'EX';
 
 export type ResultGame = {
@@ -111,7 +111,7 @@ export function placeLabel(place: number): string {
 
 /**
  * Highest points take 1st place. Tied totals share a place, and the next
- * place skips ahead (1, 1, 3). The expense column is left out.
+ * place skips ahead (1, 1, 3). A leftover column id EX is left out.
  */
 export function totalAcrossGames(games: ResultGame[]): ResultStanding[] {
   const totals = new Map<string, { name: string; points: number; games: number }>();

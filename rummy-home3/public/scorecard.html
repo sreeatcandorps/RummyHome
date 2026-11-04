@@ -52,7 +52,6 @@
       const base = names.map((name) => {
         const words = (name || '').trim().split(/\s+/).filter(Boolean);
         if (!words.length) return '?';
-        if (words.join(' ').toLowerCase() === 'expenses') return 'EXP';
         const last = words.length > 1 ? words[words.length - 1] : '';
         const lastPart = /^\d+$/.test(last) ? last : last.slice(0, 1);
         return (words[0][0] + lastPart).toUpperCase();
@@ -74,35 +73,28 @@
       const byName = new Map(players.map((player, index) => [player.name, index]));
       const rounds = new Set();
       const grid = players.map(() => ({}));
-      let expense = {};
       (card.scores || []).forEach((score) => {
+        if (!score.name || score.type === 'expense') return;
         rounds.add(score.round);
-        if (!score.name || score.type === 'expense') {
-          expense[score.round] = (expense[score.round] || 0) + score.value;
-          return;
-        }
         const index = byName.get(score.name);
         if (index == null) return;
         grid[index][score.round] = (grid[index][score.round] || 0) + score.value;
       });
       const roundList = [...rounds].sort((a, b) => a - b);
-      const hasExpense = Object.keys(expense).length > 0;
       const totals = grid.map((row) => roundList.reduce((sum, round) => sum + (row[round] || 0), 0));
       const started = new Date(card.startedAt);
       const when = Number.isNaN(started.getTime()) ? card.startedAt : started.toLocaleString();
       document.getElementById('meta').textContent = 'Started ' + when + ' · ID ' + card.gameId + ' · ' + (card.status === 'completed' ? 'Completed' : 'Live');
       const head = labels.map((label, index) => '<th>' + label + '<span class="total">' + totals[index] + '</span></th>').join('');
-      const expenseHead = hasExpense ? '<th>EXP<span class="total">' + roundList.reduce((sum, round) => sum + (expense[round] || 0), 0) + '</span></th>' : '';
       const body = roundList.map((round) => {
         const cells = grid.map((row) => {
           const value = row[round] || 0;
           const cls = value > 0 ? 'pos' : value < 0 ? 'neg' : '';
           return '<td class="' + cls + '">' + (value > 0 ? '+' + value : value) + '</td>';
         }).join('');
-        const expenseCell = hasExpense ? '<td class="neg">' + (expense[round] || 0) + '</td>' : '';
-        return '<tr><td>' + round + '</td>' + cells + expenseCell + '</tr>';
+        return '<tr><td>' + round + '</td>' + cells + '</tr>';
       }).join('');
-      document.getElementById('board').innerHTML = '<table><thead><tr><th>Rnd</th>' + head + expenseHead + '</tr></thead><tbody>' + (body || '<tr><td colspan="8">No rounds yet.</td></tr>') + '</tbody></table>';
+      document.getElementById('board').innerHTML = '<table><thead><tr><th>Rnd</th>' + head + '</tr></thead><tbody>' + (body || '<tr><td colspan="8">No rounds yet.</td></tr>') + '</tbody></table>';
     }
 
     async function load() {

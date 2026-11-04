@@ -9,7 +9,7 @@ export type RoundScoreInput = {
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileDefaults = {
   gameType: 'stake',
-  expenseEnabled: true,
+  expenseEnabled: false,
   expenseAmount: -10,
   stakeDrop: -10,
   stakeMiddleDrop: -30,
@@ -27,7 +27,7 @@ export const settingsForGameType = (gameType: GameType): ProfileDefaults => ({
 
 export const legacySettingsForGameType = (
   gameType: GameType,
-  expenseEnabled = true,
+  expenseEnabled = false,
   expenseAmount = DEFAULT_PROFILE_SETTINGS.expenseAmount,
 ): GameSettings => ({
   expense: expenseEnabled,
@@ -62,11 +62,15 @@ export const validateRoundScores = (scores: RoundScoreInput[]) => {
     return { valid: false, error: 'At least one rummy score is required to balance the round.' };
   }
 
+  if (scores.some((score) => score.scoreType === 'expense' || !score.playerId)) {
+    return { valid: false, error: 'Every score belongs to a player.' };
+  }
+
   const invalidNegative = scores.find(
-    (score) => ['drop', 'middle_drop', 'count', 'expense'].includes(score.scoreType) && score.value > 0,
+    (score) => ['drop', 'middle_drop', 'count'].includes(score.scoreType) && score.value > 0,
   );
   if (invalidNegative) {
-    return { valid: false, error: 'Drop, middle drop, count, and expense scores must be zero or negative.' };
+    return { valid: false, error: 'Drop, middle drop, and count scores must be zero or negative.' };
   }
 
   const invalidRummy = rummyScores.find((score) => score.value < 0);

@@ -26,10 +26,6 @@ test('single word names use one letter', () => {
   assert.deepEqual(buildPlayerInitials(['Ravi']), ['R']);
 });
 
-test('labels the expense column', () => {
-  assert.deepEqual(buildPlayerInitials(['Expenses']), ['EXP']);
-});
-
 test('never returns an empty label', () => {
   const labels = buildPlayerInitials(['', '   ']);
   labels.forEach((label) => assert.ok(label.length > 0));

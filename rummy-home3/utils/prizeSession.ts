@@ -92,7 +92,7 @@ export function sumLegs(legs: PrizeLeg[]): number {
 export function validateLegs(legs: PrizeLeg[]): { ok: true } | { ok: false; error: string } {
   if (legs.length < 2) return { ok: false, error: 'Add at least two people to this entry.' };
   if (legs.some((leg) => !leg.profileId)) return { ok: false, error: 'Every leg needs a player.' };
-  if (legs.some((leg) => !Number.isInteger(leg.amount))) return { ok: false, error: 'Use whole coins.' };
+  if (legs.some((leg) => !Number.isInteger(leg.amount))) return { ok: false, error: 'Use whole numbers.' };
   const total = sumLegs(legs);
   if (total !== 0) return { ok: false, error: `Legs must add to 0. They add to ${total}.` };
   return { ok: true };

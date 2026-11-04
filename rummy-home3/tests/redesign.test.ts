@@ -55,7 +55,7 @@ test('settle stays hidden and results talk about places', () => {
   assert.match(HELP.results, /winner/);
 });
 
-test('stake opening coins are the points and expense is not a person', () => {
+test('opening balances are each player points', () => {
   const shares = stakePrizeShares([
     { id: 'a', points: 40 },
     { id: 'b', points: -30 },
@@ -70,7 +70,6 @@ test('stake opening coins are the points and expense is not a person', () => {
     ],
   }]);
   assert.equal(coinSum(opening), -10);
-  assert.equal(opening.EX, undefined);
 });
 
 test('a payment that does not add to 0 cannot be saved', () => {

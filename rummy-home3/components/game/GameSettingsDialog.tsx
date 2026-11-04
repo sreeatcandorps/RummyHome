@@ -25,8 +25,9 @@ export function GameSettingsDialog({ visible, rules, title = 'Game settings', on
   const save = async () => {
     const drop = parseRuleInput(draft.drop);
     const middleDrop = parseRuleInput(draft.middleDrop);
-    if (drop == null || middleDrop == null) { setError('Type a number for Drop and Middle drop.'); return; }
-    const next: PointsRules = { gameKind: 'points', drop, middleDrop };
+    const fullCount = parseRuleInput(draft.fullCount);
+    if (drop == null || middleDrop == null || fullCount == null) { setError('Type a number for Drop, Middle drop, and Full count.'); return; }
+    const next: PointsRules = { gameKind: 'points', drop, middleDrop, fullCount };
     const problem = validateRules(next);
     if (problem) { setError(problem); return; }
     setSaving(true);

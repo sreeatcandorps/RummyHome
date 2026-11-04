@@ -11,9 +11,6 @@ import {
   validateRoundScores,
 } from '@/utils/scoring';
 
-/** Reserved expense column. Matches `EXPENSE_PLAYER_ID` in services/games.ts. */
-export const DEMO_EXPENSE_ID = 'EX';
-
 export const DEMO_ID_PREFIX = 'demo-';
 
 export const SRIKANTH_NAME = 'Srikanth Koneru';
@@ -189,14 +186,6 @@ function buildRound(
     inputs.push({ playerId, value: score.value, scoreType: score.scoreType });
   });
 
-  if (settings.expense) {
-    inputs.push({
-      playerId: null,
-      value: settings.expenseAmount,
-      scoreType: 'expense',
-    });
-  }
-
   const entriesTotal = inputs.reduce((sum, input) => sum + input.value, 0);
   const winnings = distributeRummyWinnings(entriesTotal, winners);
   winners.forEach((winnerId) => {
@@ -220,9 +209,8 @@ function timestamp(now: Date, spec: GameSpec): string {
 
 function buildGame(roster: Player[], spec: GameSpec, now: Date): Game {
   const playerIds = roster.slice(0, spec.playerCount).map((player) => player.id);
-  const settings = legacySettingsForGameType(spec.gameType, true);
+  const settings = legacySettingsForGameType(spec.gameType, false);
   const scores: Record<string, number[]> = Object.fromEntries(playerIds.map((playerId) => [playerId, []]));
-  scores[DEMO_EXPENSE_ID] = [];
 
   for (let roundIndex = 0; roundIndex < spec.rounds; roundIndex += 1) {
     const inputs = buildRound(playerIds, settings, roundIndex, spec.bias);
@@ -233,13 +221,12 @@ function buildGame(roster: Player[], spec: GameSpec, now: Date): Game {
 
     const byKey = new Map<string, number>();
     inputs.forEach((input) => {
-      byKey.set(input.playerId ?? DEMO_EXPENSE_ID, input.value);
+      if (input.playerId) byKey.set(input.playerId, input.value);
     });
 
     playerIds.forEach((playerId) => {
       scores[playerId].push(byKey.get(playerId) ?? 0);
     });
-    scores[DEMO_EXPENSE_ID].push(byKey.get(DEMO_EXPENSE_ID) ?? 0);
   }
 
   return {
@@ -318,17 +305,15 @@ export function mergeDemoData(
 export function roundInputsForGame(game: Game, roundIndex: number): RoundScoreInput[] {
   return Object.entries(game.scores).map(([playerId, values]) => {
     const value = values[roundIndex] ?? 0;
-    const scoreType: ScoreType = playerId === DEMO_EXPENSE_ID
-      ? 'expense'
-      : value > 0
-        ? 'rummy'
-        : value === game.settings.dropAmount
-          ? 'drop'
-          : value === game.settings.mdAmount
-            ? 'middle_drop'
-            : 'count';
+    const scoreType: ScoreType = value > 0
+      ? 'rummy'
+      : value === game.settings.dropAmount
+        ? 'drop'
+        : value === game.settings.mdAmount
+          ? 'middle_drop'
+          : 'count';
     return {
-      playerId: playerId === DEMO_EXPENSE_ID ? null : playerId,
+      playerId,
       value,
       scoreType,
     };
@@ -369,8 +354,8 @@ export function buildDemoSeedPayload(merged: DemoMergeResult): DemoSeedPayload {
       shareCode: `DEMO-${game.shareCode ?? 'GAME'}`,
       settings: {
         ...settingsForGameType(game.gameType),
-        expenseEnabled: game.settings.expense,
-        expenseAmount: game.settings.expenseAmount,
+        expenseEnabled: false,
+        expenseAmount: 0,
       },
       playerKeys: game.players,
       rounds: Array.from({ length: Math.max(game.currentRound - 1, 0) }, (_, roundIndex) => ({

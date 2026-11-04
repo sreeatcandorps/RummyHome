@@ -185,6 +185,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 ### 2026-11-04 — Scorecard config and pending player migrations
 - The public scorecard no longer asks anyone to paste an anon key into the file. `public/scorecard.html` keeps `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__`, and `scripts/inject-scorecard-config.mjs` writes a publishable copy. Real keys stay out of git.
 - `011_player_identity.sql` and `012_player_numbers_and_claim_links.sql` are reviewed and safe to re-run. They are not applied from the app. Until they are, player sign-up shows a short message and New game still searches My players. See `docs/migrations-to-apply.md`.
+- Scoring no longer has a table-cost column. Game defaults are Drop, Middle drop, and Full count (default -80), stored with the existing points settings.
 
 ### Now
 - Play Console personal account under Google verification (~days).

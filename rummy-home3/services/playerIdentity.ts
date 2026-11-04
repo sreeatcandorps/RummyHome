@@ -122,7 +122,7 @@ export const playerIdentityService = {
 
   async createNewPlayer(ownerId: string, firstName: string, lastName: string): Promise<Player> {
     const name = newPlayerDisplayName(firstName, lastName);
-    if (!name) throw new Error('Type a name or initials.');
+    if (!name) throw new Error('Type a first and last name.');
     if (isSupabaseConfigured) {
       const player = serverPlayer(first(await rpc<any>('create_unregistered_player', { p_first: firstName.trim(), p_last: lastName.trim() })));
       await playersService.addMyPlayer(ownerId, player).catch(() => {});
@@ -142,7 +142,7 @@ export const playerIdentityService = {
 
   async updateNewPlayer(ownerId: string, playerId: string, firstName: string, lastName: string): Promise<Player> {
     const name = newPlayerDisplayName(firstName, lastName);
-    if (!name) throw new Error('Type a name or initials.');
+    if (!name) throw new Error('Type a first and last name.');
     if (isSupabaseConfigured) {
       const player = serverPlayer(first(await rpc<any>('update_unregistered_player', { p_player_id: playerId, p_first: firstName.trim(), p_last: lastName.trim() })));
       await playersService.addMyPlayer(ownerId, player).catch(() => {});

@@ -134,7 +134,7 @@ function SettlePickerBody() {
           <Text variant="titleMedium">Past sessions</Text>
           {past.map((session) => (
             <Button key={session.id} mode="text" onPress={() => router.push(`/(screens)/sessions/${session.id}`)}>
-              {`${session.status === 'settled' ? 'Settled' : 'Open'} · ${formatGameDateTime(session.createdAt)}`}
+              {`${session.status === 'settled' ? 'Closed' : 'Open'} · ${formatGameDateTime(session.createdAt)}`}
             </Button>
           ))}
         </View>
