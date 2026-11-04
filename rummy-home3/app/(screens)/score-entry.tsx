@@ -323,58 +323,71 @@ export default function ScoreEntryScreen() {
     </ScrollView>
   );
 
-  const presetButtons: { kind: PresetKind | 'rummy'; label: string; caption: string; icon?: string }[] = [
-    { kind: 'drop', label: 'Drop', caption: `${presets.drop}` },
-    { kind: 'middle_drop', label: 'Middle drop', caption: `${presets.middle_drop}` },
-    { kind: 'count', label: 'Full count', caption: `${presets.count}` },
-    { kind: 'rummy', label: 'Rummy', caption: 'wins', icon: 'crown-outline' },
+  type ActionKey = { id: 'plus' | 'minus' | 'rummy' | PresetKind; label: string; icon?: string };
+
+  const actionKeys: ActionKey[] = [
+    { id: 'plus', label: 'Plus', icon: 'plus' },
+    { id: 'minus', label: 'Minus', icon: 'minus' },
+    { id: 'drop', label: `${presets.drop}` },
+    { id: 'middle_drop', label: `${presets.middle_drop}` },
+    { id: 'count', label: `${presets.count}` },
+    { id: 'rummy', label: 'Rummy' },
   ];
 
+  const pressAction = (key: ActionKey) => {
+    if (key.id === 'plus') return update((state) => setNegative(state, false));
+    if (key.id === 'minus') return update((state) => setNegative(state, true));
+    if (key.id === 'rummy') return update(applyRummy);
+    const kind: PresetKind = key.id;
+    return update((state) => applyPreset(state, kind, presets));
+  };
+
+  // One row: the sign toggle, the three point values from game settings, and Rummy.
   const actionRow = (
     <View style={styles.actions}>
-      {presetButtons.map((preset) => {
-        const isRummy = preset.kind === 'rummy';
+      {actionKeys.map((key) => {
+        const isSign = key.id === 'plus' || key.id === 'minus';
+        const isRummy = key.id === 'rummy';
+        const signOn = isSign && entry.draft.negative === (key.id === 'minus');
+        const enabled = isSign || hasSelection;
+        const background = signOn ? colors.primary : isRummy ? colors.leaderContainer : colors.surface;
+        const border = signOn ? colors.primary : isRummy ? colors.leaderContainer : colors.outlineVariant;
+        const foreground = signOn ? colors.onPrimary : isRummy ? colors.onLeaderContainer : colors.onSurface;
+        const accessibilityLabel = isSign
+          ? key.label
+          : isRummy
+            ? 'Rummy'
+            : `${key.id === 'drop' ? 'Drop' : key.id === 'middle_drop' ? 'Middle drop' : 'Full count'} ${key.label}`;
         return (
           <View
-            key={preset.kind}
+            key={key.id}
             style={[
               styles.action,
-              {
-                backgroundColor: isRummy ? colors.leaderContainer : colors.surface,
-                borderColor: isRummy ? colors.leaderContainer : colors.outlineVariant,
-                opacity: hasSelection ? 1 : 0.55,
-              },
+              isSign && styles.actionSign,
+              isRummy && styles.actionRummy,
+              { backgroundColor: background, borderColor: border, opacity: enabled ? 1 : 0.55 },
             ]}
           >
             <TouchableRipple
-              onPress={() =>
-                update((state) => (isRummy ? applyRummy(state) : applyPreset(state, preset.kind as PresetKind, presets)))
-              }
-              disabled={!hasSelection}
+              onPress={() => pressAction(key)}
+              disabled={!enabled}
               borderless
               style={styles.actionRipple}
               accessibilityRole="button"
-              accessibilityLabel={isRummy ? 'Rummy' : `${preset.label} ${preset.caption}`}
-              accessibilityState={{ disabled: !hasSelection }}
+              accessibilityLabel={accessibilityLabel}
+              accessibilityState={isSign ? { selected: signOn } : { disabled: !enabled }}
             >
               <View style={styles.actionInner}>
-                <Text
-                  variant="labelLarge"
-                  numberOfLines={1}
-                  style={[styles.actionLabel, { color: isRummy ? colors.onLeaderContainer : colors.onSurface }]}
-                >
-                  {preset.label}
-                </Text>
-                <View style={styles.captionRow}>
-                  {preset.icon ? <Icon source={preset.icon} size={13} color={colors.onLeaderContainer} /> : null}
+                {key.icon ? (
+                  <Icon source={key.icon} size={34} color={foreground} />
+                ) : (
                   <Text
-                    variant="labelSmall"
                     numberOfLines={1}
-                    style={[tabularNums, { color: isRummy ? colors.onLeaderContainer : colors.onSurfaceVariant }]}
+                    style={[styles.actionLabel, isRummy && styles.actionLabelRummy, tabularNums, { color: foreground }]}
                   >
-                    {preset.caption}
+                    {key.label}
                   </Text>
-                </View>
+                )}
               </View>
             </TouchableRipple>
           </View>
@@ -385,42 +398,29 @@ export default function ScoreEntryScreen() {
 
   const keypad = (
     <ScoreKeypad
-      negative={entry.draft.negative}
       enabled={hasSelection}
       canSave={hasPendingEntry(entry)}
       compact={isShort}
-      onSign={(negative) => update((state) => setNegative(state, negative))}
       onDigit={(digit) => update((state) => pressDigit(state, digit))}
       onSave={() => update(saveScore)}
     />
   );
 
+  const balanced = balance === 0;
+  const balanceBackground = balanced ? colors.positiveContainer : colors.errorContainer;
+  const balanceForeground = balanced ? colors.onPositiveContainer : colors.onErrorContainer;
+
   const balancePill = (
     <Animated.View
-      style={[
-        styles.balance,
-        {
-          backgroundColor: saveReady ? colors.positiveContainer : balance === 0 ? colors.surfaceVariant : colors.errorContainer,
-          transform: [{ scale: balancePulse }],
-        },
-      ]}
+      style={[styles.balance, { backgroundColor: balanceBackground, transform: [{ scale: balancePulse }] }]}
       accessible
       accessibilityLabel={`Balance ${signed(balance)}`}
     >
-      <Text
-        variant="labelSmall"
-        style={[styles.balanceLabel, { color: saveReady ? colors.onPositiveContainer : balance === 0 ? colors.onSurfaceVariant : colors.onErrorContainer }]}
-      >
+      <Text variant="labelMedium" style={[styles.balanceLabel, { color: balanceForeground }]}>
         Balance
       </Text>
-      <Text
-        style={[
-          styles.balanceValue,
-          tabularNums,
-          { color: saveReady ? colors.onPositiveContainer : balance === 0 ? colors.onSurfaceVariant : colors.onErrorContainer },
-        ]}
-      >
-        {balance === 0 ? '0' : signed(balance)}
+      <Text style={[styles.balanceValue, tabularNums, { color: balanceForeground }]}>
+        {balanced ? '0' : signed(balance)}
       </Text>
     </Animated.View>
   );
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   controlColumn: {
-    width: 360,
+    width: 440,
     gap: spacing.sm,
   },
   controls: {
@@ -598,25 +598,28 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     overflow: 'hidden',
   },
+  actionSign: {
+    flex: 0.8,
+  },
+  actionRummy: {
+    flex: 1.6,
+  },
   actionRipple: {
     borderRadius: radius.md,
   },
   actionInner: {
-    minHeight: 48,
+    height: 72,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 2,
-    paddingVertical: spacing.xs,
   },
   actionLabel: {
     fontWeight: '800',
-    fontSize: 12,
-    letterSpacing: 0,
+    fontSize: 22,
+    letterSpacing: -0.3,
   },
-  captionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
+  actionLabelRummy: {
+    fontSize: 18,
   },
   saveRow: {
     flexDirection: 'row',
@@ -624,8 +627,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   balance: {
-    minWidth: 84,
-    height: 52,
+    minWidth: 112,
+    height: 78,
     paddingHorizontal: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -633,22 +636,23 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontWeight: '700',
-    lineHeight: 14,
+    lineHeight: 18,
   },
   balanceValue: {
-    fontSize: 20,
+    fontSize: 30,
     fontWeight: '800',
-    lineHeight: 24,
+    lineHeight: 36,
   },
   saveRound: {
     flex: 1,
     borderRadius: radius.full,
   },
   saveRoundContent: {
-    height: 52,
+    height: 78,
   },
   saveRoundLabel: {
-    fontSize: 16,
+    fontSize: 24,
+    lineHeight: 30,
     fontWeight: '800',
   },
   dialog: {

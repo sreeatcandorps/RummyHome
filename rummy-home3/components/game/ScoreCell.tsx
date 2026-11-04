@@ -32,9 +32,10 @@ const nameFontSize = (name: string, compact?: boolean) => {
 };
 
 /**
- * One player on the Add round grid: the full name over a score box and an X.
+ * One player on the Add round grid: the full name over the score and an X.
  * White while empty, light green once a score is saved, with a ring while the
- * player is selected for the next number.
+ * player is selected for the next number. A number still being typed shows
+ * in the brand green until it is saved.
  */
 export function ScoreCell({ name, status, value, flashKey, width, compact, onPress, onClear }: ScoreCellProps) {
   const { colors } = useAppTheme();
@@ -78,7 +79,6 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
   });
 
   const ringColor = isSelected ? colors.primary : isConfirmed ? colors.positive : colors.outlineVariant;
-  const boxBorder = isSelected ? colors.primary : isConfirmed ? colors.positive : colors.outline;
   const valueColor = isPending
     ? colors.primary
     : isConfirmed
@@ -121,24 +121,12 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
         >
           {name}
         </Text>
-        <View
-          style={[
-            styles.box,
-            compact && styles.boxCompact,
-            {
-              borderColor: boxBorder,
-              borderStyle: isPending ? 'dashed' : 'solid',
-              backgroundColor: isConfirmed ? colors.surface : 'transparent',
-            },
-          ]}
+        <Text
+          style={[styles.value, compact && styles.valueCompact, tabularNums, { color: valueColor }]}
+          numberOfLines={1}
         >
-          <Text
-            style={[styles.value, compact && styles.valueCompact, tabularNums, { color: valueColor }]}
-            numberOfLines={1}
-          >
-            {hasValue ? signed(value) : ''}
-          </Text>
-        </View>
+          {hasValue ? signed(value) : ''}
+        </Text>
       </Pressable>
       {/* A sibling, not a child, of the cell button: nested buttons are invalid on web. */}
       <IconButton
@@ -171,10 +159,10 @@ const styles = StyleSheet.create({
   },
   press: {
     paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.xs,
     paddingLeft: spacing.md,
     paddingRight: spacing.sm,
-    gap: spacing.xs,
+    gap: 0,
   },
   pressCompact: {
     paddingTop: spacing.xs,
@@ -185,31 +173,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 22,
   },
-  box: {
-    height: 40,
-    marginRight: CLEAR_WIDTH,
-    borderWidth: 1.5,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-  },
-  boxCompact: {
-    height: 34,
-  },
   value: {
-    fontSize: 20,
+    marginRight: CLEAR_WIDTH,
+    // Reserve the line so an empty cell is the same height as a scored one.
+    minHeight: 32,
+    fontSize: 26,
     fontWeight: '800',
-    lineHeight: 24,
+    lineHeight: 32,
   },
   valueCompact: {
-    fontSize: 17,
-    lineHeight: 20,
+    minHeight: 26,
+    fontSize: 22,
+    lineHeight: 26,
   },
   clear: {
     position: 'absolute',
     right: 0,
-    bottom: 6,
+    bottom: 2,
     margin: 0,
     width: CLEAR_WIDTH,
     height: 36,

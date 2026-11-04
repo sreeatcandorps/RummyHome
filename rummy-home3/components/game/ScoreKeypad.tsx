@@ -4,12 +4,10 @@ import { Icon, Text, TouchableRipple } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 
 type ScoreKeypadProps = {
-  negative: boolean;
   /** Digits only count while at least one player is selected. */
   enabled: boolean;
   canSave: boolean;
   compact?: boolean;
-  onSign: (negative: boolean) => void;
   onDigit: (digit: string) => void;
   onSave: () => void;
 };
@@ -19,39 +17,10 @@ const ROWS = [
   ['6', '7', '8', '9', '0'],
 ];
 
-/**
- * Two rows: a stacked +/- toggle on the left, five digits per row, and a tall
- * Save score key on the right. Minus is on by default.
- */
-export function ScoreKeypad({ negative, enabled, canSave, compact, onSign, onDigit, onSave }: ScoreKeypadProps) {
+/** Two rows of five big digits and a tall Save score key on the right. */
+export function ScoreKeypad({ enabled, canSave, compact, onDigit, onSave }: ScoreKeypadProps) {
   const { colors } = useAppTheme();
-  const keyHeight = compact ? 40 : 46;
-
-  const signKey = (isNegative: boolean) => {
-    const on = negative === isNegative;
-    return (
-      <View
-        key={isNegative ? 'minus' : 'plus'}
-        style={[
-          styles.key,
-          { height: keyHeight, backgroundColor: on ? colors.primary : colors.surface, borderColor: on ? colors.primary : colors.outlineVariant },
-        ]}
-      >
-        <TouchableRipple
-          onPress={() => onSign(isNegative)}
-          borderless
-          style={styles.ripple}
-          accessibilityRole="button"
-          accessibilityLabel={isNegative ? 'Minus' : 'Plus'}
-          accessibilityState={{ selected: on }}
-        >
-          <View style={styles.keyInner}>
-            <Icon source={isNegative ? 'minus' : 'plus'} size={22} color={on ? colors.onPrimary : colors.onSurfaceVariant} />
-          </View>
-        </TouchableRipple>
-      </View>
-    );
-  };
+  const keyHeight = compact ? 56 : 70;
 
   const digitKey = (digit: string) => (
     <View
@@ -81,10 +50,6 @@ export function ScoreKeypad({ negative, enabled, canSave, compact, onSign, onDig
 
   return (
     <View style={styles.pad} accessibilityRole="none">
-      <View style={styles.signColumn}>
-        {signKey(false)}
-        {signKey(true)}
-      </View>
       <View style={styles.digits}>
         {ROWS.map((row) => (
           <View key={row[0]} style={styles.row}>
@@ -112,8 +77,8 @@ export function ScoreKeypad({ negative, enabled, canSave, compact, onSign, onDig
           accessibilityState={{ disabled: !canSave }}
         >
           <View style={styles.keyInner}>
-            <Icon source="check" size={22} color={canSave ? colors.onPrimary : colors.onSurfaceDisabled} />
-            <Text variant="labelMedium" style={[styles.saveLabel, { color: canSave ? colors.onPrimary : colors.onSurfaceDisabled }]}>
+            <Icon source="check" size={34} color={canSave ? colors.onPrimary : colors.onSurfaceDisabled} />
+            <Text style={[styles.saveLabel, { color: canSave ? colors.onPrimary : colors.onSurfaceDisabled }]}>
               Save{'\n'}score
             </Text>
           </View>
@@ -126,10 +91,6 @@ export function ScoreKeypad({ negative, enabled, canSave, compact, onSign, onDig
 const styles = StyleSheet.create({
   pad: {
     flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  signColumn: {
-    width: 46,
     gap: spacing.xs,
   },
   digits: {
@@ -157,11 +118,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   digit: {
-    fontSize: 22,
+    fontSize: 33,
+    lineHeight: 40,
     fontWeight: '700',
   },
   save: {
-    width: 72,
+    width: 108,
     borderWidth: 1,
     borderRadius: radius.md,
     overflow: 'hidden',
@@ -169,6 +131,7 @@ const styles = StyleSheet.create({
   saveLabel: {
     textAlign: 'center',
     fontWeight: '800',
-    lineHeight: 15,
+    fontSize: 18,
+    lineHeight: 22,
   },
 });
