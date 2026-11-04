@@ -59,7 +59,7 @@ const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
 export default function ScoreEntryScreen() {
   const { colors } = useAppTheme();
-  const { isShort, insets, gutterLeft, gutterRight } = useLayout();
+  const { isShort, isWide, insets, gutterLeft, gutterRight } = useLayout();
   const { gameId } = useLocalSearchParams();
 
   const [game, setGame] = useState<Game | null>(null);
@@ -126,16 +126,6 @@ export default function ScoreEntryScreen() {
   const dropValue = game?.settings.dropAmount ?? -10;
   const middleDropValue = game?.settings.mdAmount ?? -30;
   const fullCountValue = game?.settings.maxCount ?? -80;
-
-  const typeOptions = useMemo(
-    () => [
-      { value: 'drop' as SelectableType, label: `Drop ${dropValue}` },
-      { value: 'middle_drop' as SelectableType, label: `MD ${middleDropValue}` },
-      { value: 'count' as SelectableType, label: `Full ${fullCountValue}` },
-      { value: 'rummy' as SelectableType, label: 'Rummy' },
-    ],
-    [dropValue, middleDropValue, fullCountValue],
-  );
 
   const entriesTotal = useMemo(
     () => Object.values(entries).reduce((sum, entry) => sum + entry.value, 0),
@@ -349,6 +339,7 @@ export default function ScoreEntryScreen() {
   const modeOptions: { value: SelectableType; label: string; amount?: number; icon: string }[] = [
     { value: 'drop', label: 'Drop', amount: dropValue, icon: 'arrow-down-circle-outline' },
     { value: 'middle_drop', label: 'Middle drop', amount: middleDropValue, icon: 'arrow-collapse-down' },
+    { value: 'count', label: 'Full count', amount: fullCountValue, icon: 'numeric' },
     { value: 'rummy', label: 'Rummy', icon: 'trophy-outline' },
   ];
 
@@ -356,7 +347,7 @@ export default function ScoreEntryScreen() {
     ? selectedType === 'rummy'
       ? 'Tap every winner. They split the points so the round balances.'
       : `Tap each player who took a ${selectedTypeLabel}.`
-    : 'Pick Drop, Middle drop or Rummy, or tap a player to type an exact score.';
+    : 'Pick Drop, Middle drop, Full count, or Rummy, or tap a player to type an exact score.';
 
   if (loading) {
     return (
@@ -388,6 +379,7 @@ export default function ScoreEntryScreen() {
             key={option.value}
             style={[
               styles.modeTile,
+              !isWide && styles.modeTileHalf,
               isShort && styles.modeTileRow,
               {
                 backgroundColor: selected ? colors.primary : colors.surface,
@@ -804,7 +796,12 @@ const styles = StyleSheet.create({
   },
   modes: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  modeTileHalf: {
+    flexGrow: 1,
+    flexBasis: '47%',
   },
   modesColumn: {
     flexDirection: 'column',

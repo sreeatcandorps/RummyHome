@@ -191,7 +191,7 @@ export default function MeScreen() {
       </SectionCard>
 
       <Button mode="contained-tonal" icon="cog-outline" onPress={() => router.push('/(screens)/settings')} style={styles.block}>
-        User settings: game type, Drop, Middle drop
+        User settings: game type, Drop, Middle drop, Full count
       </Button>
       <Button mode="outlined" icon="lock-reset" onPress={changePasscode} style={styles.block}>
         Change passcode
