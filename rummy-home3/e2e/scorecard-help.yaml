@@ -1,0 +1,6 @@
+appId: com.rummyhome.app
+---
+- launchApp
+- tapOn: "Help"
+- assertVisible: "Settling coins is not on this screen."
+- tapOn: "Close"

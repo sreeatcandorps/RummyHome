@@ -1,12 +1,19 @@
+import { normalizeEmail, normalizeZip, parsePlayerNo } from '@/utils/playerIdentity';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { PENDING_PLAYER_NO_KEY } from '@/services/playerIdentity';
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, HelperText, Card, useTheme } from 'react-native-paper';
+import { View, StyleSheet, Alert } from 'react-native';
+import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { router } from 'expo-router';
 import { storage } from '../../utils/storage';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured, supabase } from '../../services/supabase';
 import { formatAuthError } from '../../utils/authErrors';
-import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
+import { AuthShell } from '../../components/ui/AuthShell';
+import { PasscodeField } from '@/components/ui/PasscodeField';
+import { sendWelcomeEmail } from '@/services/mail';
+import { HELP } from '@/constants/help';
+import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 // import * as Location from 'expo-location';
 
 interface SimpleCountry {
@@ -17,11 +24,15 @@ interface SimpleCountry {
 }
 
 export default function RegisterScreen() {
-  const theme = useTheme();
+  const theme = useAppTheme();
   const [firstName, setFirstName] = React.useState('');
   const [lastName, setLastName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [phone, setPhone] = React.useState('');
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const [zip, setZip] = React.useState('');
+  const [playerIdText, setPlayerIdText] = React.useState('');
+  const [checkEmail, setCheckEmail] = useState<string | null>(null);
   const [passcode, setPasscode] = React.useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -117,8 +128,14 @@ export default function RegisterScreen() {
       }
 
       const displayName = `${firstName} ${lastName}`;
+      const zipCode = normalizeZip(zip);
+      const claimNo = playerIdText.trim() ? parsePlayerNo(playerIdText) : null;
+      if (playerIdText.trim() && claimNo == null) throw new Error('A player ID is a number, like #42.');
+      // Sent to the creator after the first sign-in (once the email is confirmed).
+      if (claimNo != null) await AsyncStorage.setItem(PENDING_PLAYER_NO_KEY, String(claimNo));
+      const cleanEmail = normalizeEmail(email);
       const authData = isSupabaseConfigured
-        ? await authService.signUp(email, passcode, displayName)
+        ? await authService.signUp(cleanEmail, passcode, displayName, { phone: formattedPhone || null, zip_code: zipCode })
         : { user: { id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` }, session: null };
 
       if (!authData.user) throw new Error('Failed to create user');
@@ -130,8 +147,9 @@ export default function RegisterScreen() {
             first_name: firstName,
             last_name: lastName,
             phone: formattedPhone || null,
+            zip_code: zipCode,
             display_name: displayName,
-            email: email.trim(),
+            email: cleanEmail,
           })
           .eq('id', authData.user.id);
 
@@ -143,8 +161,11 @@ export default function RegisterScreen() {
       if (!isSupabaseConfigured) {
         const newPlayer = {
           id: authData.user.id,
-          email: email.trim(),
+          email: cleanEmail,
           phone: formattedPhone || undefined,
+          zipCode: zipCode || undefined,
+          status: 'registered' as const,
+          emailVerified: true,
           name: displayName,
           gamesPlayed: 0,
           gamesWon: 0,
@@ -155,7 +176,13 @@ export default function RegisterScreen() {
         await storage.savePlayers([...players, newPlayer]);
       }
 
+      if (isSupabaseConfigured) {
+        sendWelcomeEmail(email.trim(), displayName).catch(() => {});
+      }
+
       if (isSupabaseConfigured && !authData.session) {
+        setCheckEmail(cleanEmail);
+        return;
         Alert.alert(
           'Confirm Your Email',
           'Your account was created, but you must confirm your email before you can sign in. Check your inbox, then return here and sign in with your email and 6-digit passcode.',
@@ -187,130 +214,30 @@ export default function RegisterScreen() {
     }
   };
 
+  if (checkEmail) {
+    return (
+      <AuthShell title="Check your email" subtitle={`We sent a confirmation link to ${checkEmail}.`} help={HELP.createAccount}>
+        <Text variant="bodyMedium">
+          Open the link to confirm your email, then sign in with your email and 6-digit passcode. If you opened a link from a friend, you will be asked “Is this you?” the first time you sign in.
+        </Text>
+        <Button mode="outlined" icon="email-sync-outline" style={{ marginTop: 16 }}
+          onPress={() => authService.resendConfirmation(checkEmail).then(() => setError('Sent again.')).catch((e) => setError(formatAuthError(e)))}>
+          Resend the link
+        </Button>
+        {error ? <HelperText type="info" visible>{error}</HelperText> : null}
+        <Button mode="contained" style={{ marginTop: 8 }} onPress={() => router.replace({ pathname: '/(auth)/login', params: { email: checkEmail } })}>
+          Go to sign in
+        </Button>
+      </AuthShell>
+    );
+  }
+
   return (
-    <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: theme.colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.title}>
-            Create account
-          </Text>
-          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-            You'll use your email and a 6-digit passcode to sign in.
-          </Text>
-        </View>
-
-        <Card mode="elevated" style={styles.card}>
-          <Card.Content style={styles.cardContent}>
-            <Text variant="titleSmall" style={styles.groupLabel}>
-              Your name
-            </Text>
-            <View style={styles.nameRow}>
-              <TextInput
-                label="First name"
-                value={firstName}
-                onChangeText={setFirstName}
-                mode="outlined"
-                disabled={loading}
-                style={styles.nameInput}
-              />
-              <TextInput
-                label="Last name"
-                value={lastName}
-                onChangeText={setLastName}
-                mode="outlined"
-                disabled={loading}
-                style={styles.nameInput}
-              />
-            </View>
-
-            <Text variant="titleSmall" style={styles.groupLabel}>
-              Sign-in details
-            </Text>
-            <TextInput
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              mode="outlined"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              disabled={loading}
-              left={<TextInput.Icon icon="email-outline" />}
-            />
-
-            <View>
-              <TextInput
-                label="6-digit passcode"
-                value={passcode}
-                onChangeText={(text) => {
-                  const numericText = text.replace(/[^0-9]/g, '');
-                  if (numericText.length <= 6) {
-                    setPasscode(numericText);
-                  }
-                }}
-                mode="outlined"
-                keyboardType="numeric"
-                maxLength={6}
-                secureTextEntry
-                disabled={loading}
-                left={<TextInput.Icon icon="lock-outline" />}
-              />
-              <HelperText type="info" visible>
-                Numbers only — this is your quick login code.
-              </HelperText>
-            </View>
-
-            <Text variant="titleSmall" style={styles.groupLabel}>
-              Contact (optional)
-            </Text>
-            <View>
-              <TextInput
-                label="Phone number"
-                value={phone}
-                onChangeText={setPhone}
-                mode="outlined"
-                keyboardType="phone-pad"
-                disabled={loading}
-                left={<TextInput.Icon icon="phone-outline" />}
-              />
-              {selectedCountry && (
-                <HelperText type="info" visible>
-                  {selectedCountry.flag} {selectedCountry.name} (+{selectedCountry.callingCode})
-                </HelperText>
-              )}
-            </View>
-
-            {error ? (
-              <HelperText type="error" visible={!!error}>
-                {error}
-              </HelperText>
-            ) : null}
-
-            <Button
-              mode="contained"
-              onPress={handleRegister}
-              loading={loading}
-              disabled={loading}
-              contentStyle={styles.primaryContent}
-              labelStyle={styles.primaryLabel}
-            >
-              Create account
-            </Button>
-
-            <Button
-              mode="text"
-              onPress={clearFields}
-              disabled={loading}
-              contentStyle={styles.secondaryContent}
-            >
-              Clear form
-            </Button>
-          </Card.Content>
-        </Card>
-
+    <AuthShell
+      title="Create account"
+      subtitle="You'll use your email and a 6-digit passcode to sign in."
+      help={HELP.createAccount}
+      footer={
         <View style={styles.footerRow}>
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
             Already have an account?
@@ -324,37 +251,150 @@ export default function RegisterScreen() {
             Sign in
           </Button>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      }
+    >
+      <Text variant="titleSmall" style={styles.groupLabel}>
+        Your name
+      </Text>
+      <View style={styles.nameRow}>
+        <TextInput
+          label="First name"
+          value={firstName}
+          onChangeText={setFirstName}
+          mode="outlined"
+          disabled={loading}
+          style={styles.nameInput}
+        />
+        <TextInput
+          label="Last name"
+          value={lastName}
+          onChangeText={setLastName}
+          mode="outlined"
+          disabled={loading}
+          style={styles.nameInput}
+        />
+      </View>
+
+      <Text variant="titleSmall" style={styles.groupLabel}>
+        Sign-in details
+      </Text>
+      <TextInput
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        mode="outlined"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoComplete="email"
+        disabled={loading}
+        left={<TextInput.Icon icon="email-outline" />}
+      />
+
+      <HelperText type="info" visible>
+        We send a link to confirm this email. It is how you sign in.
+      </HelperText>
+      <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} />
+      <HelperText type="info" visible>
+        Numbers only — this is your quick login code. Use the eye to check each digit.
+      </HelperText>
+
+      <Text variant="titleSmall" style={styles.groupLabel}>
+        Enter your player ID if you have one.
+      </Text>
+      <TextInput
+        label="Player ID (optional)"
+        placeholder="#42"
+        value={playerIdText}
+        onChangeText={(t) => setPlayerIdText(t.replace(/[^0-9#]/g, '').slice(0, 13))}
+        mode="outlined"
+        keyboardType="number-pad"
+        disabled={loading}
+        left={<TextInput.Icon icon="pound" />}
+      />
+      <HelperText type="info" visible>
+        From the friend who added you. They approve it, then your past scores join your account. A player ID is never used to sign in. Opened a link from them? You can leave this empty.
+      </HelperText>
+
+      <Button mode="text" onPress={() => setPhoneOpen((open) => !open)} icon={phoneOpen ? 'chevron-up' : 'chevron-down'}>
+        Optional: phone and zip code
+      </Button>
+      {phoneOpen ? (
+        <View>
+          <HelperText type="info" visible>
+            Both are optional. We never text you and never ask for your address.
+          </HelperText>
+          <TextInput
+            label="Zip code"
+            value={zip}
+            onChangeText={(t) => setZip(t.replace(/[^0-9-]/g, '').slice(0, 10))}
+            mode="outlined"
+            keyboardType="number-pad"
+            disabled={loading}
+            left={<TextInput.Icon icon="map-marker-outline" />}
+            style={{ marginBottom: 8 }}
+          />
+          <TextInput
+            label="Phone number"
+            value={phone}
+            onChangeText={setPhone}
+            mode="outlined"
+            keyboardType="phone-pad"
+            disabled={loading}
+            left={<TextInput.Icon icon="phone-outline" />}
+          />
+          {selectedCountry && (
+            <HelperText type="info" visible>
+              {selectedCountry.flag} {selectedCountry.name} (+{selectedCountry.callingCode})
+            </HelperText>
+          )}
+        </View>
+      ) : null}
+
+      {error ? (
+        <View style={styles.signInError}>
+          <HelperText type="error" visible>
+            {error}
+          </HelperText>
+          {/sign(?:ing)? in/i.test(error) ? (
+            <Button
+              mode="contained-tonal"
+              icon="login"
+              onPress={() => router.push({ pathname: '/(auth)/login', params: { email: email.trim() } })}
+            >
+              Sign in
+            </Button>
+          ) : null}
+        </View>
+      ) : null}
+
+      <Button
+        mode="contained"
+        onPress={handleRegister}
+        loading={loading}
+        disabled={loading}
+        style={styles.pill}
+        contentStyle={styles.primaryContent}
+        labelStyle={styles.primaryLabel}
+      >
+        Create account
+      </Button>
+
+      <Button
+        mode="text"
+        onPress={clearFields}
+        disabled={loading}
+        contentStyle={styles.secondaryContent}
+      >
+        Clear form
+      </Button>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.xl,
-    gap: spacing.lg,
-  },
-  header: {
-    gap: spacing.xs,
-  },
-  title: {
-    fontWeight: '700',
-  },
-  card: {
-    borderRadius: radius.lg,
-  },
-  cardContent: {
-    paddingVertical: spacing.lg,
-    gap: spacing.md,
-  },
   groupLabel: {
     marginTop: spacing.xs,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   nameRow: {
     flexDirection: 'row',
@@ -363,12 +403,15 @@ const styles = StyleSheet.create({
   nameInput: {
     flex: 1,
   },
+  pill: {
+    borderRadius: radius.full,
+  },
   primaryContent: {
     height: 56,
   },
   primaryLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   secondaryContent: {
     height: MIN_TOUCH_TARGET,
@@ -377,6 +420,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  signInError: {
     gap: spacing.xs,
   },
 });

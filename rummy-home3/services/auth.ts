@@ -1,4 +1,7 @@
+import { displayPlayerId } from '@/utils/playerIdentity';
+import { normalizeEmail } from '@/utils/playerIdentity';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
+import { authRedirectUrl } from '@/utils/authRedirect';
 import { ProfileDefaults } from '@/types/database';
 import { Player } from '@/types/player';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
@@ -13,6 +16,7 @@ export type Profile = {
   lastName?: string;
   displayName: string;
   playerCode?: string;
+  playerNo?: number;
   defaultSettings: ProfileDefaults;
   role: 'app_admin' | 'player';
 };
@@ -21,6 +25,7 @@ export const profileToPlayer = (profile: Profile): Player => ({
   id: profile.id,
   name: profile.displayName,
   playerCode: profile.playerCode,
+  playerNo: profile.playerNo,
   email: profile.email,
   phone: profile.phone,
   role: profile.role === 'app_admin' ? 'admin' : 'player',
@@ -33,7 +38,8 @@ const toProfile = (row: any): Profile => ({
   firstName: row.first_name ?? undefined,
   lastName: row.last_name ?? undefined,
   displayName: row.display_name,
-  playerCode: row.player_code ?? undefined,
+  playerCode: displayPlayerId(row),
+  playerNo: row.public_player_no ?? undefined,
   defaultSettings: row.default_settings ?? DEFAULT_PROFILE_SETTINGS,
   role: row.role ?? 'player',
 });
@@ -41,7 +47,7 @@ const toProfile = (row: any): Profile => ({
 export const authService = {
   async signIn(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: normalizeEmail(email),
       password,
     });
 
@@ -52,13 +58,16 @@ export const authService = {
     return data;
   },
 
-  async signUp(email: string, password: string, displayName?: string) {
+  async signUp(email: string, password: string, displayName?: string, extra: { phone?: string | null; zip_code?: string | null } = {}) {
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: normalizeEmail(email),
       password,
       options: {
+        emailRedirectTo: authRedirectUrl(),
         data: {
           display_name: displayName || email.split('@')[0],
+          ...(extra.phone ? { phone: extra.phone } : {}),
+          ...(extra.zip_code ? { zip_code: extra.zip_code } : {}),
         },
       },
     });
@@ -68,6 +77,12 @@ export const authService = {
       await storage.setCurrentPlayer(data.session.user.id);
     }
     return data;
+  },
+
+  /** Sends the sign-up confirmation link again (Supabase email confirmation). */
+  async resendConfirmation(email: string) {
+    const { error } = await supabase.auth.resend({ type: 'signup', email: normalizeEmail(email), options: { emailRedirectTo: authRedirectUrl() } });
+    if (error) throw error;
   },
 
   async signOut() {

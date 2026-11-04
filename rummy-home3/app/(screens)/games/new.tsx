@@ -1,374 +1,230 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import {
-  Avatar,
-  Button,
-  Card,
-  Checkbox,
-  Divider,
-  SegmentedButtons,
-  Switch,
-  Searchbar,
-  Text,
-  TextInput,
-  TouchableRipple,
-  useTheme,
-} from 'react-native-paper';
-import { router } from 'expo-router';
-import { storage } from '../../../utils/storage';
-import { Player } from '../../../types/player';
-import { gamesService } from '../../../services/games';
-import { authService } from '../../../services/auth';
-import { playersService } from '../../../services/players';
-import { isSupabaseConfigured } from '../../../services/supabase';
-import { formatSupabaseError } from '../../../utils/supabaseErrors';
-import { SectionCard } from '../../../components/ui/SectionCard';
-import { EmptyState } from '../../../components/ui/EmptyState';
-import { gameTypeColors, MIN_TOUCH_TARGET, radius, spacing } from '../../../constants/theme';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Button, IconButton, Menu, Searchbar, Text } from 'react-native-paper';
+import { router, Stack, useFocusEffect } from 'expo-router';
+import { Player } from '@/types/player';
+import { gamesService } from '@/services/games';
+import { authService } from '@/services/auth';
+import { playerIdentityService } from '@/services/playerIdentity';
+import { userSettingsService } from '@/services/userSettings';
+import { isSupabaseConfigured } from '@/services/supabase';
+import { storage } from '@/utils/storage';
+import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { matchesMyPlayer } from '@/utils/playerSearch';
+import { takePlayerToCheck } from '@/utils/pendingPlayer';
+import { DEFAULT_POINTS_RULES, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
+import { Candidate, chipInitials, pickerGrid, PICKER_PAGE, seatedOrder } from '@/utils/playerIdentity';
+import { MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
+import { HELP } from '@/constants/help';
+import { Screen } from '@/components/ui/Screen';
+import { BottomBar } from '@/components/ui/BottomBar';
+import { LoadingRows } from '@/components/ui/LoadingRows';
+import { HelpButton } from '@/components/ui/HelpButton';
+import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
+import { NewPlayerStepper } from '@/components/players/NewPlayerStepper';
+import { AddPlayersDialog } from '@/components/players/AddPlayersDialog';
+import { seatColor, spacing, useAppTheme } from '@/constants/theme';
 
-const getInitials = (name: string) =>
-  name
-    .split(' ')
-    .map((word) => word[0])
-    .join('')
-    .toUpperCase()
-    .substring(0, 2);
+type Pick = { id: string; name: string; playerCode?: string };
+
+function Chip({ pick, index, isMe, onPress }: { pick: Pick; index: number; isMe: boolean; onPress?: () => void }) {
+  const { colors } = useAppTheme();
+  return (
+    <Pressable onPress={onPress} disabled={isMe} accessibilityRole="button"
+      accessibilityLabel={isMe ? `${pick.name}, you` : `Remove ${pick.name}`} style={[styles.chip, { backgroundColor: colors.primaryContainer }]}>
+      <View style={[styles.chipDot, { backgroundColor: seatColor(index) }]}>
+        <Text style={styles.chipInitials}>{chipInitials(pick.name)}</Text>
+      </View>
+      <Text variant="labelSmall" style={{ color: colors.onPrimaryContainer }}>{isMe ? 'You' : pick.playerCode ?? '—'}</Text>
+      {!isMe ? <Text style={[styles.chipX, { color: colors.onPrimaryContainer }]}>×</Text> : null}
+    </Pressable>
+  );
+}
 
 export default function NewGame() {
-  const theme = useTheme();
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
-  const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [gameType, setGameType] = useState<'stake' | 'pool'>('stake');
-  const [expenseEnabled, setExpenseEnabled] = useState(true);
-  const [expenseDigits, setExpenseDigits] = useState('10');
+  const { colors } = useAppTheme();
+  const [me, setMe] = useState<Player | null>(null);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [selected, setSelected] = useState<Pick[]>([]);
+  const [query, setQuery] = useState('');
+  const [rules, setRules] = useState<PointsRules>(DEFAULT_POINTS_RULES);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [newCount, setNewCount] = useState(1);
+  const [addOpen, setAddOpen] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadPlayers();
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const userId = isSupabaseConfigured ? await authService.getCurrentUserId() : await storage.getCurrentPlayer();
+      const current = await authService.getCurrentPlayer();
+      setMe(current);
+      if (!userId || !current) {
+        setError('You must be signed in to create a game.');
+        return;
+      }
+      const [list, defaults] = await Promise.all([
+        playerIdentityService.listCandidates(current.id),
+        userSettingsService.get(current.id),
+      ]);
+      setCandidates(list);
+      setRules(defaults);
+      const pending = takePlayerToCheck();
+      if (pending) {
+        const found = list.find((c) => c.id === pending);
+        if (found) setSelected((cur) => (cur.some((p) => p.id === pending) ? cur : [...cur, found]));
+      }
+    } catch (err) {
+      setError(formatSupabaseError(err));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const loadPlayers = async () => {
-    try {
-      const [players, userId] = await Promise.all([
-        isSupabaseConfigured ? playersService.listPlayers() : storage.getPlayers(),
-        isSupabaseConfigured ? authService.getCurrentUserId() : storage.getCurrentPlayer(),
-      ]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
-      setAvailablePlayers(players);
-      setCurrentUserId(userId);
+  const selectedIds = selected.map((p) => p.id);
+  const seatedCount = selected.length + (me ? 1 : 0);
+  const atCap = seatedCount >= MAX_SEATED_PLAYERS;
 
-      if (userId) {
-        setSelectedPlayers((prev) => (prev.includes(userId) ? prev : [userId, ...prev]));
-      }
-    } catch (error) {
-      console.error('Failed to load players:', error);
-      Alert.alert('Error', formatSupabaseError(error));
-    }
+  const grid = useMemo(() => {
+    const pool = query.trim()
+      ? candidates.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query))
+      : candidates;
+    return pickerGrid(pool, selectedIds, me?.id, PICKER_PAGE);
+  }, [candidates, selectedIds, me?.id, query]);
+
+  const pick = (c: Pick) => {
+    if (atCap) return;
+    setSelected((cur) => [...cur, { id: c.id, name: c.name, playerCode: c.playerCode }]);
+    setQuery('');
   };
+  const unpick = (id: string) => setSelected((cur) => cur.filter((p) => p.id !== id));
 
-  const togglePlayerSelection = (playerId: string) => {
-    if (playerId === currentUserId) return;
-
-    if (selectedPlayers.includes(playerId)) {
-      setSelectedPlayers(selectedPlayers.filter((id) => id !== playerId));
-    } else {
-      setSelectedPlayers([...selectedPlayers, playerId]);
-    }
+  const onNewSaved = (player: Player) => {
+    setCandidates((cur) => [{ id: player.id, name: player.name, playerCode: player.playerCode, status: 'unregistered', totalGames: 0, lastPlayedAt: null }, ...cur.filter((c) => c.id !== player.id)]);
+    setSelected((cur) => (cur.some((p) => p.id === player.id)
+      ? cur.map((p) => (p.id === player.id ? { ...p, name: player.name } : p))
+      : (seatedCount >= MAX_SEATED_PLAYERS ? cur : [...cur, { id: player.id, name: player.name, playerCode: player.playerCode }])));
+  };
+  const onNewDeleted = (id: string) => {
+    setCandidates((cur) => cur.filter((c) => c.id !== id));
+    unpick(id);
   };
 
   const startGame = async () => {
-    if (selectedPlayers.length < 2) {
-      Alert.alert(
-        'Need more players',
-        'Select at least one other registered player. Ask friends to create an account first, then use Find Players.',
-      );
-      return;
-    }
-
+    if (!me) return;
+    const playerIds = seatedOrder(me.id, selectedIds);
+    if (playerIds.length < 2) return;
+    if (playerIds.length > MAX_SEATED_PLAYERS) { setError(SEATED_PLAYER_LIMIT); return; }
     setCreating(true);
     try {
-      const createdBy = currentUserId
-        ?? (isSupabaseConfigured
-          ? await authService.getCurrentUserId()
-          : await storage.getCurrentPlayer());
-
-      if (!createdBy) {
-        throw new Error('You must be signed in to create a game.');
-      }
-
-      const playerIds = selectedPlayers.includes(createdBy)
-        ? selectedPlayers
-        : [createdBy, ...selectedPlayers];
-
-      const newGame = await gamesService.createGame({
+      const game = await gamesService.createGame({
         playerIds,
-        gameType,
-        expenseEnabled,
-        expenseAmount: -Math.abs(parseInt(expenseDigits || '0', 10) || 0),
-        createdBy,
+        gameType: gameTypeForKind(rules.gameKind),
+        expenseEnabled: true,
+        createdBy: me.id,
+        rules,
       });
-
-      router.push(`/(screens)/games/${newGame.id}`);
-    } catch (error: any) {
-      console.error('Error creating game:', error);
-      Alert.alert('Could not create game', formatSupabaseError(error));
+      router.replace(`/(screens)/games/${game.id}`);
+    } catch (err) {
+      setError(formatSupabaseError(err));
     } finally {
       setCreating(false);
     }
   };
 
-  const otherPlayers = useMemo(() => {
-    const others = availablePlayers.filter((player) => player.id !== currentUserId);
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return others;
-    return others.filter(
-      (player) =>
-        player.name.toLowerCase().includes(q) ||
-        (player.email ?? '').toLowerCase().includes(q),
-    );
-  }, [availablePlayers, currentUserId, searchQuery]);
-
-  const currentUserName = availablePlayers.find((p) => p.id === currentUserId)?.name ?? 'You';
-
-  const renderPlayerRow = (player: Player, isSelf: boolean) => {
-    const checked = isSelf || selectedPlayers.includes(player.id);
-
-    return (
-      <TouchableRipple
-        key={player.id}
-        onPress={isSelf ? undefined : () => togglePlayerSelection(player.id)}
-        disabled={isSelf}
-        style={styles.playerRow}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked, disabled: isSelf }}
-      >
-        <View style={styles.playerRowInner}>
-          <Avatar.Text
-            size={40}
-            label={getInitials(player.name)}
-            style={{
-              backgroundColor: checked ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
-            }}
-            color={checked ? theme.colors.onPrimaryContainer : theme.colors.onSurfaceVariant}
-          />
-          <View style={styles.playerText}>
-            <Text variant="bodyLarge" numberOfLines={1}>
-              {player.name}
-            </Text>
-            <Text
-              variant="bodySmall"
-              style={{ color: theme.colors.onSurfaceVariant }}
-              numberOfLines={1}
-            >
-              {isSelf ? 'You (always included)' : player.email ?? 'No email on file'}
-            </Text>
-          </View>
-          <Checkbox.Android
-            status={checked ? 'checked' : 'unchecked'}
-            disabled={isSelf}
-            onPress={isSelf ? undefined : () => togglePlayerSelection(player.id)}
-          />
-        </View>
-      </TouchableRipple>
-    );
-  };
-
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <SectionCard title="Game type">
-          <SegmentedButtons
-            value={gameType}
-            onValueChange={(value) => setGameType(value as 'stake' | 'pool')}
-            buttons={[
-              {
-                value: 'stake',
-                label: 'Stake',
-                icon: 'cash-multiple',
-                checkedColor: gameTypeColors.stake.on,
-                style: gameType === 'stake' ? { backgroundColor: gameTypeColors.stake.container } : undefined,
-              },
-              {
-                value: 'pool',
-                label: 'Pool',
-                icon: 'trophy-outline',
-                checkedColor: gameTypeColors.pool.on,
-                style: gameType === 'pool' ? { backgroundColor: gameTypeColors.pool.container } : undefined,
-              },
-            ]}
-          />
+    <Screen contentStyle={styles.content}>
+      <Stack.Screen
+        options={{
+          title: 'New game',
+          headerRight: () => (
+            <View style={styles.headerActions}>
+              <HelpButton text={HELP.newGame} />
+              <Menu visible={menuOpen} onDismiss={() => setMenuOpen(false)}
+                anchor={<IconButton icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="New game menu" />}>
+                <Menu.Item leadingIcon="cog-outline" title="Game settings" onPress={() => { setMenuOpen(false); setSettingsOpen(true); }} />
+              </Menu>
+            </View>
+          ),
+        }}
+      />
 
-          <Divider />
+      <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }}>Playing · {seatedCount}</Text>
+      <View style={styles.chips}>
+        {me ? <Chip pick={{ id: me.id, name: me.name, playerCode: me.playerCode }} index={0} isMe /> : null}
+        {selected.map((p, i) => <Chip key={p.id} pick={p} index={i + 1} isMe={false} onPress={() => unpick(p.id)} />)}
+      </View>
+      {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
 
-          <View style={styles.settingRow}>
-            <View style={styles.settingText}>
-              <Text variant="bodyLarge">Add expense to each round</Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                Charges the table a fixed amount every round.
+      <Searchbar placeholder="Search my players" value={query} onChangeText={setQuery} style={styles.search} inputStyle={styles.searchInput} />
+      {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+      {loading && candidates.length === 0 ? <LoadingRows /> : null}
+
+      <View style={styles.grid}>
+        {grid.map((c) => (
+          <Pressable key={c.id} onPress={() => pick(c)} disabled={atCap} accessibilityRole="checkbox" accessibilityState={{ checked: false }}
+            accessibilityLabel={`Add ${c.name}`} style={[styles.cell, { borderColor: colors.outlineVariant, opacity: atCap ? 0.5 : 1 }]}>
+            <View style={[styles.cellDot, { backgroundColor: colors.surfaceVariant }]}>
+              <Text style={[styles.cellInitials, { color: colors.onSurface }]}>{chipInitials(c.name)}</Text>
+            </View>
+            <View style={styles.flex}>
+              <Text variant="labelLarge" numberOfLines={1}>{c.name}</Text>
+              <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
+                {c.playerCode ?? '—'}{c.status === 'unregistered' || c.status === 'pending' ? ' · Unregistered' : ''}
               </Text>
             </View>
-            <Switch value={expenseEnabled} onValueChange={setExpenseEnabled} />
-          </View>
+          </Pressable>
+        ))}
+      </View>
+      {!loading && grid.length === 0 ? (
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+          {query ? 'No one in My players matches. Try Find player in database.' : 'No more players in My players. Add a new player below.'}
+        </Text>
+      ) : null}
 
-          {expenseEnabled ? (
-            <View style={styles.expenseRow}>
-              <TextInput
-                label="Expense per round"
-                value={expenseDigits}
-                onChangeText={(text) => setExpenseDigits(text.replace(/[^0-9]/g, ''))}
-                keyboardType="number-pad"
-                mode="outlined"
-                maxLength={4}
-                left={<TextInput.Affix text="−" />}
-                style={styles.expenseInput}
-              />
-              <Text variant="bodySmall" style={[styles.expenseHint, { color: theme.colors.onSurfaceVariant }]}>
-                Recorded as −{expenseDigits || '0'} on every round.
-              </Text>
-            </View>
-          ) : null}
-        </SectionCard>
+      <View style={styles.bottomTools}>
+        <NewPlayerStepper count={newCount} onChange={setNewCount} onAdd={() => setAddOpen(true)} />
+        <Button mode="outlined" icon="database-search" onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game' } })}>
+          Find player in database
+        </Button>
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+          Not in the database? Use Add new player. After you start the game, you can register these players from the ⋮ menu so they can download the app and see their games.
+        </Text>
+      </View>
 
-        <SectionCard
-          title="Players"
-          supportingText="You are included automatically. Pick at least one other registered player."
-        >
-          <Searchbar
-            placeholder="Search name or email"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            mode="bar"
-            style={{ backgroundColor: theme.colors.surfaceVariant, borderRadius: radius.full }}
-            inputStyle={styles.searchInput}
-          />
+      <BottomBar>
+        <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} style={styles.flex}>
+          {seatedCount < 2 ? 'Pick at least one more player' : `Start game · ${seatedCount} players`}
+        </Button>
+      </BottomBar>
 
-          <View style={styles.playerList}>
-            {currentUserId
-              ? renderPlayerRow(
-                  { id: currentUserId, name: currentUserName, role: 'player' } as Player,
-                  true,
-                )
-              : null}
-
-            {otherPlayers.map((player) => renderPlayerRow(player, false))}
-          </View>
-
-          {otherPlayers.length === 0 ? (
-            <EmptyState
-              icon="account-search-outline"
-              title={searchQuery.trim() ? 'No matches' : 'No other players yet'}
-              message={
-                searchQuery.trim()
-                  ? `Nobody matches “${searchQuery}”.`
-                  : 'Ask a friend to sign up, then invite them from Find Players.'
-              }
-              actionLabel={searchQuery.trim() ? undefined : 'Find Players'}
-              onAction={searchQuery.trim() ? undefined : () => router.push('/(screens)/players/new')}
-            />
-          ) : null}
-        </SectionCard>
-      </ScrollView>
-
-      <Card
-        mode="contained"
-        style={[styles.bottomBar, { backgroundColor: theme.colors.elevation.level2 }]}
-      >
-        <View style={styles.bottomBarInner}>
-          <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-            {selectedPlayers.length} selected
-          </Text>
-          <Button
-            mode="contained"
-            onPress={startGame}
-            disabled={selectedPlayers.length < 2 || creating}
-            loading={creating}
-            icon="play"
-            contentStyle={styles.startButtonContent}
-            labelStyle={styles.startButtonLabel}
-            style={styles.startButton}
-          >
-            Start Game
-          </Button>
-        </View>
-      </Card>
-    </View>
+      {me ? (
+        <AddPlayersDialog visible={addOpen} count={newCount} ownerId={me.id} onClose={() => setAddOpen(false)} onSaved={onNewSaved} onDeleted={onNewDeleted} />
+      ) : null}
+      <GameSettingsDialog visible={settingsOpen} rules={rules} onDismiss={() => setSettingsOpen(false)} onSave={(r) => setRules(r)} />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
-    gap: spacing.lg,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    minHeight: MIN_TOUCH_TARGET,
-  },
-  settingText: {
-    flex: 1,
-    gap: 2,
-  },
-  searchInput: {
-    minHeight: 0,
-  },
-  expenseRow: {
-    gap: spacing.xs,
-  },
-  expenseInput: {
-    maxWidth: 200,
-  },
-  expenseHint: {
-    lineHeight: 18,
-  },
-  playerList: {
-    marginHorizontal: -spacing.sm,
-  },
-  playerRow: {
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.sm,
-  },
-  playerRowInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    minHeight: 64,
-    paddingVertical: spacing.sm,
-  },
-  playerText: {
-    flex: 1,
-    gap: 2,
-  },
-  bottomBar: {
-    borderRadius: 0,
-  },
-  bottomBarInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  startButton: {
-    minWidth: 160,
-  },
-  startButtonContent: {
-    height: 52,
-  },
-  startButtonLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  content: { paddingBottom: 120, gap: spacing.sm },
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 16, paddingRight: 8, paddingVertical: 2, paddingLeft: 2 },
+  chipDot: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  chipInitials: { color: '#fff', fontWeight: '700', fontSize: 11 },
+  chipX: { fontSize: 14, marginLeft: 2 },
+  search: { height: 44 },
+  searchInput: { minHeight: 44 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6 },
+  cell: { width: '49%', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, padding: 6 },
+  cellDot: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  cellInitials: { fontWeight: '700', fontSize: 12 },
+  bottomTools: { gap: spacing.sm, marginTop: spacing.sm },
+  flex: { flex: 1 },
 });

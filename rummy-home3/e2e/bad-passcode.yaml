@@ -1,0 +1,9 @@
+appId: com.rummyhome.app
+---
+- launchApp
+- tapOn: "Email"
+- inputText: "host@example.com"
+- tapOn: "Passcode"
+- inputText: "000000"
+- tapOn: "Sign in"
+- assertVisible: "Sign in"

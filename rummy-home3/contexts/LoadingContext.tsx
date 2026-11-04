@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
-import { Portal, ActivityIndicator, MD2Colors, Text } from 'react-native-paper';
+import { Portal, ActivityIndicator, Text } from 'react-native-paper';
 import { View, StyleSheet } from 'react-native';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 type LoadingContextType = {
   loading: boolean;
@@ -11,6 +12,7 @@ type LoadingContextType = {
 const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 
 export function LoadingProvider({ children }: { children: React.ReactNode }) {
+  const theme = useAppTheme();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,15 +21,15 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
       {children}
       {loading && (
         <Portal>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={MD2Colors.blue500} />
+          <View style={[styles.loadingContainer, { backgroundColor: theme.colors.backdrop }]}>
+            <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
         </Portal>
       )}
       {error && (
         <Portal>
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View style={[styles.errorContainer, { backgroundColor: theme.colors.errorContainer }]}>
+            <Text style={{ color: theme.colors.onErrorContainer }}>{error}</Text>
           </View>
         </Portal>
       )}
@@ -38,21 +40,16 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorContainer: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: MD2Colors.red100,
-    padding: 16,
-    borderRadius: 8,
-  },
-  errorText: {
-    color: MD2Colors.red800,
+    bottom: spacing.xl,
+    left: spacing.xl,
+    right: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radius.md,
   },
 });
 
@@ -62,4 +59,4 @@ export function useLoading() {
     throw new Error('useLoading must be used within a LoadingProvider');
   }
   return context;
-} 
+}

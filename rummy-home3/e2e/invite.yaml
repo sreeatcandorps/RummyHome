@@ -1,0 +1,5 @@
+appId: com.rummyhome.app
+---
+- launchApp
+- tapOn: "Players"
+- tapOn: "Invite"
