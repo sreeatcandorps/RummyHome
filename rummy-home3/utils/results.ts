@@ -243,8 +243,11 @@ export function playersByFirstName<T extends { id: string; name: string }>(playe
  */
 export const RESULTS_GAME_COL = 48;
 export const RESULTS_TOTAL_COL = 54;
-/** The player column never gets narrower than this; past it the table scrolls sideways. */
-export const RESULTS_NAME_MIN = 80;
+/**
+ * The player column never gets narrower than this; past it the table scrolls sideways.
+ * 96 keeps a 12-letter surname ("Yalamanchili") on one line instead of breaking mid-word.
+ */
+export const RESULTS_NAME_MIN = 96;
 
 /**
  * Pixel widths: name, then one width per game, then Total.

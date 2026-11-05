@@ -132,28 +132,29 @@ test('a missing seat is a dash, a zero is a score, and names sort by first name'
 test('game and Total columns are fixed; the player column takes the rest and only then scrolls', () => {
   const gutter = 32;
   const small = 360 - gutter;
-  const typical = 412 - gutter;
+  const phone = 390 - gutter;
   const tablet = 1024 - gutter;
 
-  // Four games on a small phone: no sideways scroll, the name column keeps the leftover width.
-  assert.equal(resultsTableScrollsHorizontally(small, 4), false);
-  const four = resultsColumnWidths(small, 4);
+  // Four games on a 390 phone: no sideways scroll, the name column keeps the leftover width.
+  assert.equal(resultsTableScrollsHorizontally(phone, 4), false);
+  const four = resultsColumnWidths(phone, 4);
   assert.equal(four.length, 6);
-  assert.equal(four.reduce((sum, value) => sum + value, 0), small);
-  assert.equal(four[0], small - 4 * RESULTS_GAME_COL - RESULTS_TOTAL_COL);
+  assert.equal(four.reduce((sum, value) => sum + value, 0), phone);
+  assert.equal(four[0], phone - 4 * RESULTS_GAME_COL - RESULTS_TOTAL_COL);
   assert.ok(four[0] >= RESULTS_NAME_MIN);
   assert.deepEqual(four.slice(1, 5), Array(4).fill(RESULTS_GAME_COL));
   assert.equal(four[5], RESULTS_TOTAL_COL);
 
   // More games shrink the name column until its floor, then the table scrolls.
-  assert.ok(resultsColumnWidths(small, 2)[0] > resultsColumnWidths(small, 4)[0]);
-  assert.equal(resultsColumnWidths(small, 8)[0], RESULTS_NAME_MIN);
-  assert.equal(resultsTableScrollsHorizontally(small, 8), true);
-  assert.equal(resultsVisibleGameCount(small, 8), Math.floor((small - RESULTS_NAME_MIN - RESULTS_TOTAL_COL) / RESULTS_GAME_COL));
-  assert.ok(resultsVisibleGameCount(typical, 8) >= resultsVisibleGameCount(small, 8));
+  assert.ok(resultsColumnWidths(phone, 2)[0] > resultsColumnWidths(phone, 4)[0]);
+  assert.equal(resultsColumnWidths(phone, 8)[0], RESULTS_NAME_MIN);
+  assert.equal(resultsTableScrollsHorizontally(phone, 8), true);
+  assert.equal(resultsVisibleGameCount(phone, 8), Math.floor((phone - RESULTS_NAME_MIN - RESULTS_TOTAL_COL) / RESULTS_GAME_COL));
+  assert.equal(resultsVisibleGameCount(phone, 7), 4);
+  assert.ok(resultsVisibleGameCount(phone, 8) >= resultsVisibleGameCount(small, 8));
   assert.equal(resultsTableScrollsHorizontally(tablet, 8), false);
   assert.equal(resultsVisibleGameCount(tablet, 8), 8);
-  assert.equal(resultsVisibleGameCount(small, 0), 0);
+  assert.equal(resultsVisibleGameCount(phone, 0), 0);
 });
 
 test('results stop at 50 players and a game stops at 15', () => {

@@ -106,17 +106,19 @@ export function GameScoreGrid({
     </View>
   );
 
+  // Measured on the scroll area itself, inside the frame border, so the table is exactly as wide as the space it has.
+  const onLayout = (event: { nativeEvent: { layout: { width: number } } }) => setFrameWidth(Math.floor(event.nativeEvent.layout.width));
+
   return (
     <View
       style={[styles.frame, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}
       testID="results-grid-scroll"
       accessibilityLabel="Scores by player"
-      onLayout={(event) => setFrameWidth(Math.floor(event.nativeEvent.layout.width))}
     >
       {isWeb ? (
-        <View style={{ overflow: (scrolls ? 'auto' : 'hidden') as 'scroll' }}>{table}</View>
+        <View onLayout={onLayout} style={{ overflow: (scrolls ? 'auto' : 'hidden') as 'scroll' }}>{table}</View>
       ) : (
-        <ScrollView horizontal scrollEnabled={scrolls} nestedScrollEnabled showsHorizontalScrollIndicator={scrolls}>
+        <ScrollView onLayout={onLayout} horizontal scrollEnabled={scrolls} nestedScrollEnabled showsHorizontalScrollIndicator={scrolls}>
           {table}
         </ScrollView>
       )}
