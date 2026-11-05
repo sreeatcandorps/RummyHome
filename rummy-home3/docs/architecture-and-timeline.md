@@ -201,6 +201,12 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Numeric player IDs in the lists depend on migration `012` being applied; a database still on letter codes shows no badge.
 - All help popups (`constants/help.ts`) are now short prose covering only what the screen cannot show.
 
+### 2026-11-05 — Build 3 feedback: full-screen Add New Players, Profile redesign, closed games warn instead of block
+- Add New Players by Initials is a dedicated stack screen (`players/add`), left only through Done; the add-by-initials sheet component is gone. Both My players and New game push it. Initials ending in a digit are refused inline (digits stay reserved for H2/H3 duplicate labels).
+- Results: Closed games are listed and selectable again; a yellow warning says they were already counted. This is client-only — `declare_game_result` never rejected closed games, so no migration.
+- Profile tab is avatar-only (the SK chip); the screen is "Profile". Phone has its own one-column save (`authService.updatePhone`) with inline Saved/error text. A "Which setting wins" ladder (Game settings > User settings > Game defaults) sits on Profile and on User settings.
+- New game no longer pre-seats the creator; they are offered first and tap themselves to play. Home opens on Last 10 days; My players opens on Frequent and labels everyone Registered / Pending registration / Unregistered. No new dependencies, no schema changes.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -214,12 +220,12 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Auth (email/passcode, session refresh) | Done enough for testing |
 | Profiles / Player ID + share | Done |
 | Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
-| New game (points, my players) | Done. Full names on chips and cards; Add players / Add player from database. Stored type is still the points game |
+| New game (points, my players) | Done. Creator is not pre-seated; big animated Playing · N; Add players (full screen) / Add player from database. Stored type is still the points game |
 | Game table + score entry | Done, portrait + landscape. Add round rebuilt from the owner's sketch: grid, presets, keypad, Balance gate |
-| Home | Done. Results → every live game → Recent (Completed/Closed, All / Last 10 days). History screen redirects home |
+| Home | Done. Results → every live game → Recent (Completed/Closed, Last 10 days default / All). History screen redirects home |
 | Results | Done in the app. Totals, players-by-game table, places, a podium image, and a full-details PDF. Apply `008_results.sql` before declare works on the live database |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
-| Theming (light/dark) | Done; dark mode is on Me and saved on the phone |
+| Theming (light/dark) | Done; dark mode is on Profile and saved on the phone |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
 | Public scorecard | Static HTML on ezscore.mindweavetech.com. Placeholders filled by `scripts/inject-scorecard-config.mjs` at publish time. The key is not in git |
 | Expo Go local preview | Working |

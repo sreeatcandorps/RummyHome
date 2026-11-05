@@ -10,10 +10,12 @@ type TagProps = {
   tone?: TagTone;
   icon?: string;
   style?: ViewStyle;
+  /** Let a long label ("Pending registration") break onto a second line in narrow cards. */
+  wrap?: boolean;
 };
 
 /** Small rounded label for game type, status and metadata. */
-export function Tag({ label, tone = 'neutral', icon, style }: TagProps) {
+export function Tag({ label, tone = 'neutral', icon, style, wrap = false }: TagProps) {
   const theme = useAppTheme();
   const { colors, gameTypes } = theme;
 
@@ -32,7 +34,7 @@ export function Tag({ label, tone = 'neutral', icon, style }: TagProps) {
   return (
     <View style={[styles.tag, { backgroundColor: bg }, style]}>
       {icon ? <Icon source={icon} size={13} color={fg} /> : null}
-      <Text variant="labelMedium" numberOfLines={1} style={[styles.label, { color: fg }]}>
+      <Text variant="labelMedium" numberOfLines={wrap ? 2 : 1} style={[styles.label, wrap && styles.wrapLabel, { color: fg }]}>
         {label}
       </Text>
     </View>
@@ -53,4 +55,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flexShrink: 1,
   },
+  wrapLabel: { lineHeight: 14 },
 });

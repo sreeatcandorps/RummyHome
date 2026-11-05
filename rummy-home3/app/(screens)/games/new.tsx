@@ -45,28 +45,53 @@ function Chip({ pick, index, isMe, onPress }: { pick: Pick; index: number; isMe:
   );
 }
 
-/** "Playing · N" with a number that grows and glows for a moment each time it changes. */
+/**
+ * "Playing · N". The number sits in a big yellow badge with a soft green halo
+ * that keeps breathing while anyone is seated, and it pops each time N changes.
+ */
 function PlayingCount({ count }: { count: number }) {
   const { colors } = useAppTheme();
-  const pulse = useRef(new Animated.Value(0)).current;
+  const pop = useRef(new Animated.Value(0)).current;
+  const halo = useRef(new Animated.Value(0)).current;
   const first = useRef(true);
+
   useEffect(() => {
     if (first.current) { first.current = false; return; }
-    pulse.setValue(0);
+    pop.setValue(0);
     Animated.sequence([
-      Animated.timing(pulse, { toValue: 1, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: false }),
-      Animated.timing(pulse, { toValue: 0, duration: 520, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+      Animated.timing(pop, { toValue: 1, duration: 140, easing: Easing.out(Easing.quad), useNativeDriver: false }),
+      Animated.timing(pop, { toValue: 0, duration: 460, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
     ]).start();
-  }, [count, pulse]);
-  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
-  const glow = pulse.interpolate({ inputRange: [0, 1], outputRange: [colors.primaryContainer, colors.secondaryContainer] });
+  }, [count, pop]);
+
+  useEffect(() => {
+    if (count === 0) { halo.stopAnimation(); halo.setValue(0); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(halo, { toValue: 1, duration: 1100, easing: Easing.out(Easing.quad), useNativeDriver: false }),
+      Animated.timing(halo, { toValue: 0, duration: 1100, easing: Easing.in(Easing.quad), useNativeDriver: false }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [count === 0, halo]);
+
+  const scale = pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.22] });
+  const fill = pop.interpolate({ inputRange: [0, 1], outputRange: [colors.secondaryContainer, colors.positiveContainer] });
+  const haloScale = halo.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] });
+  const haloOpacity = halo.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0.05] });
+  const seated = count > 0;
+
   return (
     <View style={styles.playingRow} accessibilityLiveRegion="polite" accessibilityLabel={`Playing, ${count} ${count === 1 ? 'player' : 'players'}`}>
-      <Text variant="titleMedium" style={{ color: colors.onSurfaceVariant }}>Playing</Text>
-      <Animated.View style={[styles.countBubble, { backgroundColor: glow, borderColor: colors.primary, transform: [{ scale }] }]}>
-        <Text style={[styles.countText, { color: colors.onPrimaryContainer }]}>{count}</Text>
-      </Animated.View>
-      <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{count === 0 ? 'Tap players below. Tap yourself if you are playing.' : count === 1 ? 'player' : 'players'}</Text>
+      <Text variant="titleLarge" style={{ color: colors.onSurface, fontWeight: '800' }}>Playing</Text>
+      <View style={styles.countWrap}>
+        {seated ? <Animated.View pointerEvents="none" style={[styles.countHalo, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} /> : null}
+        <Animated.View style={[styles.countBubble, { backgroundColor: seated ? fill : colors.surfaceVariant, borderColor: seated ? colors.primary : colors.outlineVariant, transform: [{ scale }] }]}>
+          <Text style={[styles.countText, { color: seated ? colors.onSecondaryContainer : colors.onSurfaceVariant }]}>{count}</Text>
+        </Animated.View>
+      </View>
+      <Text variant="bodyMedium" style={[styles.flex, { color: colors.onSurfaceVariant }]}>
+        {count === 0 ? 'Nobody yet. Tap players below; tap yourself if you are playing.' : count === 1 ? 'player · pick one more to start' : 'players'}
+      </Text>
     </View>
   );
 }
@@ -204,7 +229,7 @@ export default function NewGame() {
             <View style={styles.flex}>
               <Text variant="labelLarge" numberOfLines={2} style={styles.cellName}>{c.id === me?.id ? `${c.name} (you)` : c.name}</Text>
               <View style={styles.cellMeta}>
-                <Tag label={registrationLabel(c.status)} tone={REGISTRATION_TONE[registrationLabel(c.status)]} />
+                <Tag label={registrationLabel(c.status)} tone={REGISTRATION_TONE[registrationLabel(c.status)]} wrap />
                 {playerIdBadge(c) ? <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{playerIdBadge(c)}</Text> : null}
               </View>
             </View>
@@ -244,9 +269,11 @@ export default function NewGame() {
 const styles = StyleSheet.create({
   content: { paddingBottom: 120, gap: spacing.sm },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
-  playingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 44 },
-  countBubble: { minWidth: 44, height: 44, paddingHorizontal: 10, borderRadius: 22, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  countText: { fontSize: 24, fontWeight: '900', lineHeight: 28 },
+  playingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 60 },
+  countWrap: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
+  countHalo: { position: 'absolute', width: 56, height: 56, borderRadius: 28 },
+  countBubble: { minWidth: 56, height: 56, paddingHorizontal: 12, borderRadius: 28, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  countText: { fontSize: 30, fontWeight: '900', lineHeight: 34 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 22, paddingRight: 12, paddingVertical: 4, paddingLeft: 4, minHeight: 44 },
   chipDot: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },

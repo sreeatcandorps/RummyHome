@@ -71,6 +71,14 @@ export default function AddPlayersScreen() {
     setRows((all) => all.map((row) => (row.key === key ? { ...row, ...next } : row)));
   }, []);
 
+  // Digits are refused the moment they are typed, not only on Save.
+  const typed = (row: Row, next: { first?: string; last?: string }) => {
+    const first = next.first ?? row.first;
+    const last = next.last ?? row.last;
+    const digit = /^\d/.test(first.trim()) || /^\d/.test(last.trim());
+    patch(row.key, { ...next, error: digit ? validateInitials(first.trim() || 'x', last.trim() || 'x') ?? undefined : undefined });
+  };
+
   const save = async (row: Row) => {
     const problem = validateInitials(row.first, row.last);
     if (problem) {
@@ -144,8 +152,9 @@ export default function AddPlayersScreen() {
                   dense
                   value={row.first}
                   placeholder="A"
+                  placeholderTextColor={colors.outlineVariant}
                   disabled={saved || row.busy}
-                  onChangeText={(first) => patch(row.key, { first, error: undefined })}
+                  onChangeText={(first) => typed(row, { first })}
                   style={styles.input}
                   contentStyle={styles.inputText}
                   autoCapitalize="characters"
@@ -160,8 +169,9 @@ export default function AddPlayersScreen() {
                   dense
                   value={row.last}
                   placeholder="B"
+                  placeholderTextColor={colors.outlineVariant}
                   disabled={saved || row.busy}
-                  onChangeText={(last) => patch(row.key, { last, error: undefined })}
+                  onChangeText={(last) => typed(row, { last })}
                   style={styles.input}
                   contentStyle={styles.inputText}
                   autoCapitalize="characters"

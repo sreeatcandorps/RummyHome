@@ -96,8 +96,10 @@ function HeaderTools() {
 export default function TabLayout() {
   const theme = useAppTheme();
   const { insets, isShort } = useLayout();
+  const path = usePathname();
   const [playerCount, setPlayerCount] = useState<number | null>(null);
 
+  // Re-count on every tab change so "My players · N" matches the list right after adding people.
   useEffect(() => {
     const loadPlayerCount = async () => {
       try {
@@ -115,7 +117,7 @@ export default function TabLayout() {
       }
     };
     loadPlayerCount();
-  }, []);
+  }, [path]);
 
   return (
     <Tabs

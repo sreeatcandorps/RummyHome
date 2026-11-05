@@ -11,19 +11,23 @@ type StackedActionProps = {
   height?: number;
   style?: ViewStyle;
   accessibilityLabel?: string;
+  /** Filled with the soft brand yellow instead of outlined. */
+  tonal?: boolean;
 };
 
 /** Secondary action with the icon above its label, so it fits narrow phones. */
-export function StackedAction({ icon, label, onPress, disabled, height = 56, style, accessibilityLabel }: StackedActionProps) {
+export function StackedAction({ icon, label, onPress, disabled, height = 56, style, accessibilityLabel, tonal = false }: StackedActionProps) {
   const theme = useAppTheme();
-  const color = disabled ? theme.colors.onSurfaceDisabled : theme.colors.primary;
+  const color = disabled ? theme.colors.onSurfaceDisabled : tonal ? theme.colors.onSecondaryContainer : theme.colors.primary;
   const compact = height < 52;
+  const fill = tonal ? { backgroundColor: disabled ? theme.colors.surfaceDisabled : theme.colors.secondaryContainer, borderColor: 'transparent' } : null;
 
   return (
     <View
       style={[
         styles.wrap,
         { height, borderColor: disabled ? theme.colors.surfaceDisabled : theme.colors.outline },
+        fill,
         style,
       ]}
     >

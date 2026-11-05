@@ -392,17 +392,15 @@ export default function GameScreen() {
   );
 
   const addRoundButton = (
-    <Button
-      mode="contained-tonal"
-      onPress={openScoreEntry}
+    <StackedAction
       icon="plus"
-      style={styles.secondaryAction}
-      contentStyle={isShort ? styles.compactPrimaryContent : styles.primaryActionContent}
-      labelStyle={styles.secondaryActionLabel}
+      label="Add round"
+      onPress={openScoreEntry}
+      height={isShort ? 44 : 56}
+      tonal
+      style={styles.addRound}
       accessibilityLabel="Add round"
-    >
-      Add round
-    </Button>
+    />
   );
 
   return (
@@ -724,16 +722,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   primaryAction: {
-    flex: 1.5,
+    flex: 1.6,
     borderRadius: radius.full,
   },
-  secondaryAction: {
-    flex: 1.3,
-    borderRadius: radius.full,
-  },
-  secondaryActionLabel: {
-    fontSize: 15,
-    fontWeight: '700',
+  addRound: {
+    flex: 1.05,
   },
   primaryActionContent: {
     height: 56,
