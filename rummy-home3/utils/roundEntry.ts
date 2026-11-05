@@ -258,6 +258,19 @@ export function setNegative(state: RoundEntryState, negative: boolean): RoundEnt
 
 export type CellStatus = 'empty' | 'selected' | 'pending' | 'confirmed';
 
+export type CellTone = 'neutral' | 'selected' | 'confirmed';
+
+/**
+ * Colour family for a cell: beige while nothing is entered, light green while
+ * the player is selected (or a number is being typed for them), light grey once
+ * a score is confirmed for this round.
+ */
+export function cellTone(status: CellStatus): CellTone {
+  if (status === 'selected' || status === 'pending') return 'selected';
+  if (status === 'confirmed') return 'confirmed';
+  return 'neutral';
+}
+
 /**
  * What a cell shows: a confirmed score (green), the number being typed for it
  * (pending), just a selection ring, or nothing.

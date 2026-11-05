@@ -7,10 +7,13 @@ export type HomeGame = { isComplete?: boolean; closedAt?: string | null; date: s
 
 export type RecentChip = 'all' | 'last10d';
 
+/** Last 10 days is the default and sits first; All is the secondary choice. */
 export const RECENT_CHIPS: { value: RecentChip; label: string }[] = [
-  { value: 'all', label: 'All' },
   { value: 'last10d', label: 'Last 10 days' },
+  { value: 'all', label: 'All' },
 ];
+
+export const DEFAULT_RECENT_CHIP: RecentChip = 'last10d';
 
 export const RECENT_WINDOW_DAYS = 10;
 

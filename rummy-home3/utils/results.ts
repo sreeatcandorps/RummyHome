@@ -66,9 +66,21 @@ export function resultsShowMode(games: { isComplete?: boolean }[]): 'save' | 'pr
   return games.every((game) => Boolean(game.isComplete)) ? 'save' : 'preview';
 }
 
-/** Games the Results page lists: open and finished, never Closed. */
+/**
+ * Games the Results page lists. Closed games stay in the list: picking one again
+ * is allowed, with a warning, because its points were already counted once.
+ */
 export function selectableResultGames<T extends { closedAt?: string | null }>(games: T[]): T[] {
-  return games.filter((game) => !game.closedAt);
+  return [...games];
+}
+
+/** Warning shown above Show results when any picked game is already Closed. */
+export function closedSelectionWarning(selected: { closedAt?: string | null; gameNumber?: number | null }[]): string | null {
+  const closed = selected.filter((game) => Boolean(game.closedAt));
+  if (closed.length === 0) return null;
+  const names = closed.map((game) => (game.gameNumber != null ? `G${game.gameNumber}` : 'A closed game'));
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  return `${list} ${closed.length === 1 ? 'is' : 'are'} already counted in an earlier result. Showing results again counts ${closed.length === 1 ? 'it' : 'them'} twice.`;
 }
 
 /** Top 3 places, for the past results list. */

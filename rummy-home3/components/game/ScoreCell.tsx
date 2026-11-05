@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { CellStatus } from '@/utils/roundEntry';
+import { CellStatus, cellTone } from '@/utils/roundEntry';
 
 type ScoreCellProps = {
   name: string;
@@ -33,9 +33,8 @@ const nameFontSize = (name: string, compact?: boolean) => {
 
 /**
  * One player on the Add round grid: the full name over the score and an X.
- * White while empty, light green once a score is saved, with a ring while the
- * player is selected for the next number. A number still being typed shows
- * in the brand green until it is saved.
+ * Beige while nothing is entered, light green while selected (or while a
+ * number is being typed), light grey once a score is confirmed for the round.
  */
 export function ScoreCell({ name, status, value, flashKey, width, compact, onPress, onClear }: ScoreCellProps) {
   const { colors } = useAppTheme();
@@ -43,6 +42,7 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
   const isConfirmed = status === 'confirmed';
   const isPending = status === 'pending';
   const isSelected = status === 'selected' || isPending;
+  const tone = cellTone(status);
   const hasValue = value !== undefined;
   const canClear = hasValue || isPending;
 
@@ -73,16 +73,18 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
   const pressOut = () =>
     Animated.spring(scale, { toValue: 1, speed: 24, bounciness: 6, useNativeDriver: false }).start();
 
-  const backgroundColor = fill.interpolate({
+  const confirmedGrey = colors.cellConfirmed;
+  const animatedBackground = fill.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors.surface, colors.positiveContainer],
+    outputRange: [colors.cellNeutral, confirmedGrey],
   });
+  const backgroundColor = tone === 'selected' ? colors.positiveContainer : animatedBackground;
 
-  const ringColor = isSelected ? colors.primary : isConfirmed ? colors.positive : colors.outlineVariant;
+  const ringColor = tone === 'selected' ? colors.primary : tone === 'confirmed' ? colors.outline : colors.outlineVariant;
   const valueColor = isPending
     ? colors.primary
     : isConfirmed
-      ? (value ?? 0) > 0 ? colors.positive : colors.onPositiveContainer
+      ? (value ?? 0) > 0 ? colors.positive : colors.onSurface
       : colors.onSurface;
 
   const statusLabel = isPending
@@ -116,7 +118,7 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
           numberOfLines={1}
           style={[
             styles.name,
-            { fontSize: nameFontSize(name, compact), color: isConfirmed ? colors.onPositiveContainer : colors.onSurface },
+            { fontSize: nameFontSize(name, compact), color: isConfirmed ? colors.onSurfaceVariant : colors.onSurface },
           ]}
         >
           {name}

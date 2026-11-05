@@ -207,4 +207,24 @@ export const authService = {
     if (error) throw error;
     return toProfile(data);
   },
+
+  /**
+   * Phone only. Sends exactly one column, so nothing else about the profile can
+   * be clobbered, and null really clears the number. A zero-row update (RLS or a
+   * missing profile row) is reported instead of silently "succeeding".
+   */
+  async updatePhone(phone: string | null): Promise<string | null> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('You must be signed in to update your profile.');
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ phone })
+      .eq('id', userId)
+      .select('phone');
+
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error('Your profile could not be updated. Sign out and back in, then try again.');
+    return data[0].phone ?? null;
+  },
 };

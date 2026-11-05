@@ -112,6 +112,19 @@ export function newPlayerDisplayName(first: string, last: string): string {
   return `${given} ${family}`;
 }
 
+/**
+ * Add new players by initials. A digit cannot be the last initial: digits are
+ * how the app marks duplicate initials (H2, H3), so "H 2" would collide with them.
+ */
+export function validateInitials(first: string, last: string): string | null {
+  const given = first.trim();
+  const family = last.trim();
+  if (!given || !family) return 'Type a first and a last initial.';
+  if (/^\d/.test(given)) return 'The first initial must be a letter.';
+  if (/^\d/.test(family)) return 'The last initial must be a letter. Numbers are kept for duplicate initials like H2.';
+  return null;
+}
+
 export function chipInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';
@@ -177,6 +190,22 @@ export function pickerGrid<T extends { id: string }>(sorted: T[], selectedIds: s
 /** Viewer first, then the order players were picked. */
 export function seatedOrder(meId: string, selectedIds: string[]): string[] {
   return [meId, ...selectedIds.filter((id) => id !== meId)];
+}
+
+/**
+ * New game list: the creator is offered first but never pre-selected, because
+ * they may only be scoring. Then everyone else not yet picked, one page at a time.
+ */
+export function newGameGrid<T extends { id: string }>(sorted: T[], selectedIds: string[], me: T | null | undefined, size = PICKER_PAGE): T[] {
+  const taken = new Set(selectedIds);
+  const others = sorted.filter((player) => !taken.has(player.id) && player.id !== me?.id);
+  const list = me && !taken.has(me.id) ? [me, ...others] : others;
+  return list.slice(0, size);
+}
+
+/** Only the people tapped are seated, in the order they were tapped. */
+export function newGameSeats(selectedIds: string[]): string[] {
+  return selectedIds.filter((id, index) => selectedIds.indexOf(id) === index);
 }
 
 // ---------- add-new-players stepper ----------

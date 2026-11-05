@@ -10,14 +10,19 @@ import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isAdminEmail } from '@/utils/adminAccess';
 import { sharePlayerId } from '@/utils/invite';
 import { authRedirectUrl } from '@/utils/authRedirect';
+import { normalizePhone, phoneProblem } from '@/utils/phone';
+import { playerIdBadge } from '@/utils/myPlayersList';
 import { clearDemoData, loadDemoData } from '@/services/demoSeed';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
+import { SettingsPriority } from '@/components/ui/SettingsPriority';
 import { usePreferences } from '@/contexts/PreferencesContext';
-import { spacing, useAppTheme } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
+
+type PhoneState = { kind: 'idle' } | { kind: 'saved' } | { kind: 'error'; message: string };
 
 export default function MeScreen() {
   const { colors } = useAppTheme();
@@ -29,7 +34,10 @@ export default function MeScreen() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [savedPhone, setSavedPhone] = useState('');
   const [saving, setSaving] = useState(false);
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [phoneState, setPhoneState] = useState<PhoneState>({ kind: 'idle' });
   const [showDemo, setShowDemo] = useState(false);
   const [demoBusy, setDemoBusy] = useState<null | 'load' | 'clear'>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -46,6 +54,7 @@ export default function MeScreen() {
       setPlayer(current);
       setName(current.name);
       setPhone(current.phone ?? '');
+      setSavedPhone(current.phone ?? '');
       let email = current.email ?? null;
       if (isSupabaseConfigured) {
         const { data } = await supabase.auth.getSession();
@@ -64,7 +73,7 @@ export default function MeScreen() {
   }, [load]));
 
   React.useLayoutEffect(() => {
-    navigation.setOptions({ title: 'Me' });
+    navigation.setOptions({ title: 'Profile' });
   }, [navigation]);
 
   const saveName = async () => {
@@ -75,17 +84,10 @@ export default function MeScreen() {
     try {
       if (isSupabaseConfigured) {
         const parts = trimmed.split(/\s+/);
-        await authService.updateProfile({
-          displayName: trimmed,
-          firstName: parts[0],
-          lastName: parts.slice(1).join(' '),
-          phone: phone.trim() || undefined,
-        });
+        await authService.updateProfile({ displayName: trimmed, firstName: parts[0], lastName: parts.slice(1).join(' ') });
       } else {
         const players = await storage.getPlayers();
-        await storage.savePlayers(players.map((item) => (
-          item.id === player.id ? { ...item, name: trimmed, phone: phone.trim() || undefined } : item
-        )));
+        await storage.savePlayers(players.map((item) => (item.id === player.id ? { ...item, name: trimmed } : item)));
       }
       setEditing(false);
       await load();
@@ -93,6 +95,35 @@ export default function MeScreen() {
       Alert.alert('Couldn’t save', formatSupabaseError(err));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const savePhone = async () => {
+    if (!player) return;
+    const problem = phoneProblem(phone);
+    if (problem) {
+      setPhoneState({ kind: 'error', message: problem });
+      return;
+    }
+    const clean = normalizePhone(phone);
+    setSavingPhone(true);
+    setPhoneState({ kind: 'idle' });
+    try {
+      if (isSupabaseConfigured) {
+        const stored = await authService.updatePhone(clean || null);
+        setPhone(stored ?? '');
+        setSavedPhone(stored ?? '');
+      } else {
+        const players = await storage.getPlayers();
+        await storage.savePlayers(players.map((item) => (item.id === player.id ? { ...item, phone: clean || undefined } : item)));
+        setPhone(clean);
+        setSavedPhone(clean);
+      }
+      setPhoneState({ kind: 'saved' });
+    } catch (err) {
+      setPhoneState({ kind: 'error', message: formatSupabaseError(err) });
+    } finally {
+      setSavingPhone(false);
     }
   };
 
@@ -152,67 +183,125 @@ export default function MeScreen() {
     );
   }
 
+  const phoneDirty = normalizePhone(phone) !== normalizePhone(savedPhone);
+  const badge = playerIdBadge(player);
+
   return (
-    <Screen>
+    <Screen contentStyle={styles.content}>
       {error ? <Text variant="bodyMedium" style={{ color: colors.error }}>{error}</Text> : null}
-      <View style={styles.identity}>
-        <SeatAvatar name={player.name} size={56} />
-        <View style={styles.identityText}>
-          <Text variant="headlineSmall">{player.name}</Text>
-          <Text variant="bodyMedium">{player.email}</Text>
-          <Text variant="bodyMedium">Player ID {player.playerCode || '—'}</Text>
+
+      <View style={[styles.identityCard, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
+        <View style={styles.identity}>
+          <SeatAvatar name={player.name} size={56} />
+          <View style={styles.identityText}>
+            {editing ? (
+              <TextInput
+                mode="outlined"
+                dense
+                label="Name"
+                value={name}
+                onChangeText={setName}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={saveName}
+                accessibilityLabel="Name"
+              />
+            ) : (
+              <Text variant="headlineSmall" numberOfLines={1}>{player.name}</Text>
+            )}
+            {player.email ? <Text variant="bodySmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{player.email}</Text> : null}
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{badge ?? 'Player ID pending'}</Text>
+          </View>
+        </View>
+        <View style={styles.identityActions}>
+          {editing ? (
+            <>
+              <Button mode="contained" icon="check" onPress={saveName} loading={saving} disabled={saving} style={styles.half} contentStyle={styles.action} accessibilityLabel="Save name">
+                Save name
+              </Button>
+              <Button mode="outlined" onPress={() => { setEditing(false); setName(player.name); }} style={styles.half} contentStyle={styles.action} accessibilityLabel="Cancel name edit">
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button mode="contained-tonal" icon="share-variant" onPress={() => player.playerCode && sharePlayerId(player.playerCode).catch(() => {})} disabled={!player.playerCode} style={styles.half} contentStyle={styles.action} accessibilityLabel="Share your Player ID">
+                Share
+              </Button>
+              <Button mode="outlined" icon="pencil-outline" onPress={() => setEditing(true)} style={styles.half} contentStyle={styles.action} accessibilityLabel="Edit name">
+                Edit name
+              </Button>
+            </>
+          )}
         </View>
       </View>
-      {player.playerCode ? (
-        <Button
-          mode="outlined"
-          icon="share-variant"
-          onPress={() => sharePlayerId(player.playerCode!).catch(() => {})}
-          style={styles.block}
-        >
-          Share
-        </Button>
-      ) : null}
 
-      <SectionCard title="Name" icon="account-edit-outline">
-        {editing ? (
-          <View style={styles.gap}>
-            <TextInput mode="outlined" label="Name" value={name} onChangeText={setName} />
-            <Button mode="contained" onPress={saveName} loading={saving}>Save</Button>
-          </View>
-        ) : (
-          <Button mode="outlined" onPress={() => setEditing(true)}>Edit</Button>
-        )}
-      </SectionCard>
+      <View style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
+        <Icon source={darkMode ? 'weather-night' : 'white-balance-sunny'} size={20} color={colors.onSurfaceVariant} />
+        <Text variant="titleMedium" style={styles.flex}>Dark mode</Text>
+        <Switch value={darkMode} onValueChange={setDarkMode} accessibilityLabel="Dark mode" />
+      </View>
 
-      <SectionCard title="Phone" icon="phone-outline" supportingText="Optional. We never text this number.">
-        <TextInput mode="outlined" label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-        <Button mode="text" onPress={saveName} loading={saving}>Save phone</Button>
-      </SectionCard>
-
-      <TouchableRipple
-        onPress={() => router.push('/(screens)/settings')}
-        style={[styles.settingsButton, { backgroundColor: colors.secondaryContainer }]}
-        borderless
-        accessibilityRole="button"
-        accessibilityLabel="User settings: game type, Drop, Middle drop, Full count"
-      >
-        <View style={styles.settingsInner}>
-          <Icon source="cog-outline" size={18} color={colors.onSecondaryContainer} />
-          <Text variant="labelLarge" style={[styles.settingsLabel, { color: colors.onSecondaryContainer }]}>
-            User settings: game type, Drop, Middle drop, Full count
-          </Text>
+      <SectionCard title="Phone" icon="phone-outline" supportingText="Optional. Never texted, never shown to other players.">
+        <View style={styles.phoneRow}>
+          <TextInput
+            mode="outlined"
+            dense
+            value={phone}
+            onChangeText={(value) => { setPhone(value); if (phoneState.kind !== 'idle') setPhoneState({ kind: 'idle' }); }}
+            keyboardType="phone-pad"
+            placeholder="Add a number"
+            style={styles.flex}
+            error={phoneState.kind === 'error'}
+            returnKeyType="done"
+            onSubmitEditing={savePhone}
+            accessibilityLabel="Phone"
+          />
+          <Button
+            mode="contained"
+            onPress={savePhone}
+            loading={savingPhone}
+            disabled={savingPhone || !phoneDirty}
+            contentStyle={styles.action}
+            accessibilityLabel="Save phone"
+          >
+            Save
+          </Button>
         </View>
-      </TouchableRipple>
-      <Button mode="outlined" icon="lock-reset" onPress={changePasscode} style={styles.block}>
+        {phoneState.kind === 'saved' ? (
+          <View style={styles.inline}>
+            <Icon source="check-circle" size={16} color={colors.positive} />
+            <Text variant="labelMedium" style={{ color: colors.positive }}>{savedPhone ? 'Phone saved.' : 'Phone cleared.'}</Text>
+          </View>
+        ) : null}
+        {phoneState.kind === 'error' ? (
+          <Text variant="labelMedium" style={{ color: colors.error }}>{phoneState.message}</Text>
+        ) : null}
+      </SectionCard>
+
+      <SectionCard title="Settings" icon="cog-outline">
+        <TouchableRipple
+          onPress={() => router.push('/(screens)/settings')}
+          style={[styles.settingsButton, { backgroundColor: colors.secondaryContainer }]}
+          borderless
+          accessibilityRole="button"
+          accessibilityLabel="User settings: game type, Drop, Middle drop, Full count"
+        >
+          <View style={styles.settingsInner}>
+            <Icon source="tune-variant" size={18} color={colors.onSecondaryContainer} />
+            <Text variant="labelLarge" style={[styles.flex, { color: colors.onSecondaryContainer }]}>
+              User settings: game type, Drop, Middle drop, Full count
+            </Text>
+            <Icon source="chevron-right" size={18} color={colors.onSecondaryContainer} />
+          </View>
+        </TouchableRipple>
+        <SettingsPriority highlight="User settings" />
+      </SectionCard>
+
+      <Button mode="outlined" icon="lock-reset" onPress={changePasscode} contentStyle={styles.action}>
         Change passcode
       </Button>
       {notice ? <Text variant="bodyMedium">{notice}</Text> : null}
-
-      <View style={styles.darkRow}>
-        <Text variant="titleMedium">Dark mode</Text>
-        <Switch value={darkMode} onValueChange={setDarkMode} accessibilityLabel="Dark mode" />
-      </View>
 
       {showDemo ? (
         <SectionCard title="Demo data" icon="flask-outline" supportingText="Sample players and games for this account.">
@@ -223,7 +312,7 @@ export default function MeScreen() {
         </SectionCard>
       ) : null}
 
-      <Button mode="contained" buttonColor={colors.error} onPress={logout} style={styles.block}>
+      <Button mode="contained" icon="logout" buttonColor={colors.error} onPress={logout} contentStyle={styles.action} accessibilityLabel="Log out">
         Log out
       </Button>
     </Screen>
@@ -231,42 +320,49 @@ export default function MeScreen() {
 }
 
 const styles = StyleSheet.create({
+  content: { gap: spacing.sm },
+  identityCard: {
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
   identity: {
     flexDirection: 'row',
     gap: spacing.md,
     alignItems: 'center',
-    marginBottom: spacing.md,
   },
   identityText: {
     flex: 1,
     gap: 2,
   },
-  block: {
-    marginBottom: spacing.md,
+  identityActions: { flexDirection: 'row', gap: spacing.sm },
+  half: { flex: 1 },
+  action: { height: 44 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    minHeight: 52,
   },
+  flex: { flex: 1 },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  inline: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   settingsButton: {
-    borderRadius: 20,
-    marginBottom: spacing.md,
+    borderRadius: radius.md,
     overflow: 'hidden',
+    marginBottom: spacing.sm,
   },
   settingsInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  settingsLabel: {
-    flex: 1,
-  },
-  gap: {
-    gap: spacing.sm,
-  },
-  darkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: spacing.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   demo: {
     flexDirection: 'row',

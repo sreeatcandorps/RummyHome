@@ -1,58 +1,126 @@
 /**
- * Help popups. Each one is short and only says what the screen itself cannot:
- * what a word means, what happens after a tap, and the limits. Nothing in here
- * describes buttons that are already visible.
+ * Help popups. Short bullets only, one idea each, covering what the screen
+ * itself cannot say. Every line starts with a bullet so the dialog can render
+ * them with a hanging indent.
  */
 
+const bullets = (...lines: string[]) => lines.map((line) => `• ${line}`).join('\n');
+
 export const HELP = {
-  signIn:
-    'Your passcode is 6 digits, not a password. Forgot passcode emails you a link to set a new one.',
-  createAccount:
-    'Email is how you sign in and cannot be changed later. Phone and zip code are optional; we never text you. Came from a friend’s link? After you confirm your email, tap Yes on "Is this you?" and your past scores move to this account. Have a player ID like 42 but no link? Enter it here and the friend who added you approves it. A player ID is never used to sign in.',
-  reset:
-    'We email a link, not a text. It opens a page where you choose a new 6-digit passcode.',
-  home: `Results show the consolidated winners from one or more games. Once results are announced, those games move from Completed to Closed.
-
-Completed: every score is in, and the game can still be picked for Results. Closed: already counted in a result, so it cannot be picked again. Recent lists both; Last 10 days hides the older ones.
-
-My players is your own list of the people you play with, not everyone in the database. Add more from the EZ Score database on the My players page or on the New game page.`,
-  newGame: `You are always seated first. Tap a chip to take someone out.
-
-The list shows people who played with you in the last 2 weeks first, then everyone else by how often you play together, 10 at a time.
-
-Add players opens 3 rows for new people by initials; each row seats them as you save it, and they show as Unregistered until they sign up. Add player from database seats a registered player here and adds them to My players at once.
-
-Drop, Middle drop, and Full count for this game are in the ⋮ menu (defaults -10, -30, -80) and can change mid-game. After you start, the ⋮ menu also has Register players, which sends each new player their own sign-up link. A game can have at most 15 players.`,
-  scorecard:
-    'View only means you can watch but not change scores. Totals sit in the header next to each name. Undo asks before removing the last round. The ⋮ menu is where you change this game’s Drop, Middle drop, and Full count, choose who can score, send sign-up links to unregistered players, and share the live link or, once the game is complete, the results.',
-  playersSheet:
-    'Admin can change scores. View only can watch and does not get a column. A non-player admin runs the game without sitting in it. Everyone here must already be in My players; add them there first and come back. Admins can also be set after the game is over.',
-  share:
-    'Anyone with the live link can watch the rounds and totals without the app or an account. Share results only appears once the game is complete and sends a picture of the full scorecard with 1st, 2nd, and 3rd named.',
-  scoreEntry:
-    'Tap one or more players, then type a number or tap Drop, Middle drop, or Full count; everyone you tapped gets it. Scores are minus by default; tap + for a hand-entered win. Tap the winners and then Rummy to split what the table lost so the round adds to 0; an uneven split gives the extra point to the players you tapped first. Moving to another player saves the number you were typing. Save round unlocks when Balance is 0.',
-  complete: 'Completing the game locks the scores. It can then be picked for Results.',
-  settle: 'Finished games stay on Home under Recent.',
-  players: `My players is your own list of the people you play with; New game picks from it. A player must be registered in the database to see their games in the app. Anyone can still watch a game live, without the app or registering, when the admin shares the live link.
-
-Add new players creates people by initials. They get a player ID right away and show as Unregistered until they sign up. Find player in database adds someone already registered to your list only; it does not seat them in a game. Register players sends each unregistered player their own sign-up link, good once and for 14 days; when they tap Yes on "Is this you?", their scores join their account.
-
-Sort by Frequent puts the people you play with most first. Tap a card to register or remove someone. Removing keeps their account and past games. Pending means a link was sent or someone asked to claim that player with their ID; only Approve links the scores.`,
-  find:
-    'Registered players only. Type at least two letters of a name, or a player ID such as 42. + My players adds the person to your list; it does not seat them in a game. "In your player list" means they are already there. Someone not in the database? Go back and use Add new players.',
-  addToGame:
-    'Registered players only. Type at least two letters of a name, or a player ID such as 42. + Add seats the person in this game and adds them to My players at the same time. Someone not in the database? Go back and use Add players.',
-  me:
-    'Your email is how you sign in and cannot be changed for now. Your player ID is what you give someone so they can find you; it is never used to sign in. Phone is optional and never texted. User settings are the defaults every new game starts with. Dark mode is saved on this phone only.',
-  userSettings:
-    'These are defaults. Every new game starts with these Drop, Middle drop, and Full count points (-10, -30, -80). To change one game only, open it and tap ⋮ > Game settings.',
-  results: `Pick one or more games and tap Show results to add up their points; the highest total is the winner and 1st, 2nd, and 3rd place are named.
-
-If every picked game is Completed, the result is saved and those games become Closed, so they cannot be counted twice. If any picked game is still Active, you only see running totals and nothing is saved. Closed games are not listed here.
-
-Share on a result sends a picture of the totals (with a small per-game grid when there are 5 games or fewer) or a PDF with every round of every game. Results can include at most 50 players.`,
-  publicScorecard:
-    'This page updates on its own and needs no login. Anyone with the link can watch.',
+  signIn: bullets(
+    'Your passcode is 6 digits, not a password.',
+    'Forgot passcode emails you a link to set a new one.',
+  ),
+  createAccount: bullets(
+    'Email is how you sign in. It cannot be changed later.',
+    'Phone and zip code are optional. We never text you.',
+    'Came from a friend’s link? Confirm your email, then tap Yes on "Is this you?" to move your past scores here.',
+    'Have a player ID like 42 but no link? Enter it and the friend who added you approves it.',
+    'A player ID is never used to sign in.',
+  ),
+  reset: bullets(
+    'We email a link, not a text.',
+    'The link opens a page where you choose a new 6-digit passcode.',
+  ),
+  home: bullets(
+    'Results show the consolidated winners from one or more games.',
+    'Once results are announced, those games move from Completed to Closed.',
+    'Completed: every score is in. It can be picked for Results.',
+    'Closed = already counted in a result. You can still pick a closed game in a new result, but the app shows a warning.',
+    'My players is your own list of people you play with, not everyone in the database. Add more from the EZ Score database on My players or New game.',
+  ),
+  newGame: bullets(
+    'Tap yourself if you are playing. You can run a game without sitting in it.',
+    'Tap a chip under Playing to take someone out. Up to 15 players.',
+    'Recent partners come first, then everyone else by how often you play together.',
+    'Add players: new people by initials. They are seated as you save them and show as Unregistered until they sign up.',
+    'Add player from database: seats a registered player here and adds them to My players at once.',
+    'Drop, Middle drop, and Full count for this game are in the ⋮ menu and can change mid-game.',
+    'After you start, the ⋮ menu has Register players to send sign-up links.',
+  ),
+  scorecard: bullets(
+    'View only means you can watch but not change scores.',
+    'Totals sit in the header next to each name.',
+    'Undo asks before removing the last round.',
+    'Complete locks the scores. The game can then be picked for Results.',
+    'The ⋮ menu changes this game’s Drop, Middle drop, and Full count, picks who can score, sends sign-up links, and shares the live link.',
+  ),
+  playersSheet: bullets(
+    'Admin can change scores.',
+    'View only can watch and does not get a column.',
+    'A non-player admin runs the game without sitting in it.',
+    'Everyone here must already be in My players.',
+    'Admins can be set after the game is over too.',
+  ),
+  share: bullets(
+    'Anyone with the live link can watch rounds and totals without the app or an account.',
+    'Share results appears once the game is complete and sends a picture of the scorecard with 1st, 2nd, and 3rd named.',
+  ),
+  scoreEntry: bullets(
+    'Tap one or more players, then type a number or tap Drop, Middle drop, or Full count. Everyone you tapped gets it.',
+    'Green: selected now. Grey: score saved for this round. Beige: nothing yet.',
+    'Scores are minus by default. Tap + for a hand-entered win.',
+    'Rummy: tap the winners first. They split what the table lost so the round adds to 0; the extra point goes to the player tapped first.',
+    'Moving to another player saves the number you were typing.',
+    'Save round unlocks when Balance is 0.',
+  ),
+  complete: bullets(
+    'Completing the game locks the scores.',
+    'The game can then be picked for Results.',
+  ),
+  settle: bullets('Finished games stay on Home under Recent.'),
+  players: bullets(
+    'My players is your own list, not everyone in the EZ Score database. New game picks from it. Sorted by Frequent first.',
+    'Find player in database: add more people from the EZ Score database.',
+    'Add new players: new people by initials. They get a player ID at once and show as Unregistered until they sign up.',
+    'Register players: sends each unregistered player a sign-up link, good once for 14 days. They show Pending registration until they tap Yes on "Is this you?".',
+    'A player must be registered to see their games in the app. Anyone can watch a game live from the shared live link, no app needed.',
+    'Tap a card to register or remove someone. Removing keeps their account and past games.',
+  ),
+  find: bullets(
+    'Registered players only.',
+    'Type at least two letters of a name, or a player ID such as 42.',
+    '+ My players adds the person to your list. It does not seat them in a game.',
+    '"In your player list" means they are already there.',
+    'Not in the database? Go back and use Add new players.',
+  ),
+  addToGame: bullets(
+    'Registered players only.',
+    'Type at least two letters of a name, or a player ID such as 42.',
+    '+ Add seats the person in this game and adds them to My players at the same time.',
+    'Not in the database? Go back and use Add players.',
+  ),
+  addPlayers: bullets(
+    'Type a first initial and a last initial for each person. More letters are fine.',
+    'The last initial cannot be a number. Numbers are kept for duplicate initials like H2.',
+    'Each row saves on its own. Saved players show as Unregistered until they sign up.',
+    'Tap Done to go back. Nothing else closes this screen.',
+  ),
+  me: bullets(
+    'Your email is how you sign in. It cannot be changed for now.',
+    'Your player ID is what you give someone so they can find you. It is never used to sign in.',
+    'Phone is optional and never texted.',
+    'User settings are the defaults every new game starts with.',
+    'Dark mode is saved on this phone only.',
+  ),
+  userSettings: bullets(
+    'Which settings win, highest first: Game settings for one game, then User settings, then Game defaults.',
+    'Game settings: change one game from its ⋮ menu. They override everything for that game.',
+    'User settings: what every new game starts with for you.',
+    'Game defaults: Rummy’s standard -10, -30, -80, used when you have set nothing else.',
+  ),
+  results: bullets(
+    'Pick one or more games and tap Show results. The highest total is the winner; 1st, 2nd, and 3rd place are named.',
+    'If every picked game is Completed, the result is saved and those games become Closed.',
+    'If any picked game is still Active, you only see running totals. Nothing is saved.',
+    'A Closed game can be picked again, but the app warns you: its points were already counted once.',
+    'Share sends a picture of the totals, or a PDF with every round of every game.',
+    'Results can include at most 50 players.',
+  ),
+  publicScorecard: bullets(
+    'This page updates on its own and needs no login.',
+    'Anyone with the link can watch.',
+  ),
 } as const;
 
 export const EMPTY_SETTLE = 'Finished games stay on Home under Recent.';
@@ -62,3 +130,10 @@ export const FIND_HANDOFF =
 
 export const PLAYERS_NOTE =
   'A player must be registered in the database to see their games in the app. Anyone can watch a game live, without the app or registering, when the admin shares the live link.';
+
+/** Settings priority, highest first, for the ladder graphic on User settings. */
+export const SETTINGS_PRIORITY = [
+  { level: 'Highest', title: 'Game settings', detail: 'One game, from its ⋮ menu' },
+  { level: 'Medium', title: 'User settings', detail: 'Your defaults for new games' },
+  { level: 'Lowest', title: 'Game defaults', detail: 'Rummy standard: -10, -30, -80' },
+] as const;

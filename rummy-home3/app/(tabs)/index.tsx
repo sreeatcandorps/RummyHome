@@ -10,7 +10,7 @@ import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { settleEnabled } from '@/constants/features';
-import { filterRecentGames, RECENT_CHIPS, RecentChip, splitHomeGames } from '@/utils/homeGames';
+import { filterRecentGames, RECENT_CHIPS, RecentChip, splitHomeGames, DEFAULT_RECENT_CHIP } from '@/utils/homeGames';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -30,7 +30,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [chip, setChip] = useState<RecentChip>('all');
+  const [chip, setChip] = useState<RecentChip>(DEFAULT_RECENT_CHIP);
   const [notices, setNotices] = useState<string[]>([]);
   const addNotice = useCallback((text: string) => setNotices((cur) => (cur.includes(text) ? cur : [...cur, text])), []);
 

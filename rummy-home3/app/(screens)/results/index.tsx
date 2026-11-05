@@ -24,6 +24,7 @@ import {
   resultsCountLine,
   resultsShowMode,
   selectableResultGames,
+  closedSelectionWarning,
   withinResultsPlayerLimit,
 } from '@/utils/results';
 import { storage } from '@/utils/storage';
@@ -46,6 +47,7 @@ function GameRow({ game, on, onPress }: { game: Game; on: boolean; onPress: () =
   const theme = useAppTheme();
   const tint = gameTypeTint(game.gameType, theme.gameTypes);
   const open = gameStatusLabel(game) === 'Active';
+  const closed = Boolean(game.closedAt);
   const gNumber = gameNumberLabel(game);
   const when = formatGameDateTime(game.date);
   return (
@@ -65,7 +67,7 @@ function GameRow({ game, on, onPress }: { game: Game; on: boolean; onPress: () =
         style={styles.ripple}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: on }}
-        accessibilityLabel={`${gNumber ?? 'Game'}, ${when}, ${open ? 'open' : 'completed'}, ${gameTypeLabel(game.gameType)}`}
+        accessibilityLabel={`${gNumber ?? 'Game'}, ${when}, ${closed ? 'closed, already in a result' : open ? 'open' : 'completed'}, ${gameTypeLabel(game.gameType)}`}
       >
         <View style={styles.rowInner}>
           <Icon source={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={on ? theme.colors.primary : theme.colors.onSurfaceVariant} />
@@ -77,7 +79,9 @@ function GameRow({ game, on, onPress }: { game: Game; on: boolean; onPress: () =
           <View style={styles.rowBody}>
             <Text variant="titleSmall" style={styles.left} numberOfLines={1}>{when}</Text>
             <View style={styles.meta}>
-              <Tag label={open ? 'Active' : 'Completed'} tone={open ? 'positive' : 'neutral'} icon={open ? 'circle-medium' : 'flag-checkered'} />
+              {closed
+                ? <Tag label="Closed" tone="leader" icon="lock-outline" />
+                : <Tag label={open ? 'Active' : 'Completed'} tone={open ? 'positive' : 'neutral'} icon={open ? 'circle-medium' : 'flag-checkered'} />}
               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>{gameTypeLabel(game.gameType)}</Text>
             </View>
           </View>
@@ -189,6 +193,7 @@ export default function ResultsScreen() {
     [checked, games],
   );
 
+  const closedWarning = useMemo(() => closedSelectionWarning(selected), [selected]);
   const tooMany = selected.length > 0 && !withinResultsPlayerLimit(selected.map((game) => ({
     players: game.players,
     scores: game.scores,
@@ -250,6 +255,12 @@ export default function ResultsScreen() {
         ))}
       </View>
       {tooMany ? <Text style={{ color: colors.error }}>{RESULTS_PLAYER_LIMIT}</Text> : null}
+      {closedWarning ? (
+        <View style={[styles.warn, { backgroundColor: colors.secondaryContainer }]} accessibilityRole="alert">
+          <Icon source="alert-outline" size={20} color={colors.onSecondaryContainer} />
+          <Text variant="bodyMedium" style={[styles.flex, { color: colors.onSecondaryContainer }]}>{closedWarning}</Text>
+        </View>
+      ) : null}
       <Button
         mode="contained"
         icon="view-list"
@@ -279,6 +290,8 @@ export default function ResultsScreen() {
 const styles = StyleSheet.create({
   left: { textAlign: 'left' },
   list: { gap: spacing.sm },
+  warn: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, borderRadius: radius.md },
+  flex: { flex: 1 },
   card: {
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth * 2,

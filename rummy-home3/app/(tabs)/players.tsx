@@ -9,7 +9,7 @@ import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { chipInitials } from '@/utils/playerIdentity';
-import { MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, nextSort, playerIdBadge, SORT_LABEL, sortMyPlayers } from '@/utils/myPlayersList';
+import { DEFAULT_MY_PLAYERS_SORT, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, nextSort, playerIdBadge, registrationLabel, REGISTRATION_TONE, SORT_LABEL, sortMyPlayers } from '@/utils/myPlayersList';
 import { shareInvite } from '@/utils/invite';
 import { PLAYERS_NOTE } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
@@ -19,7 +19,6 @@ import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { Tag } from '@/components/ui/Tag';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
-import { AddPlayersDialog, DEFAULT_NEW_PLAYER_ROWS } from '@/components/players/AddPlayersDialog';
 import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
 import { playerIdentityService } from '@/services/playerIdentity';
 
@@ -49,13 +48,12 @@ export default function PlayersTab() {
   const [me, setMe] = useState<Player | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<MyPlayersSort>('name');
+  const [sort, setSort] = useState<MyPlayersSort>(DEFAULT_MY_PLAYERS_SORT);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Player | null>(null);
   const [removing, setRemoving] = useState(false);
   const [unregistered, setUnregistered] = useState<Record<string, Player>>({});
-  const [addOpen, setAddOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -134,12 +132,13 @@ export default function PlayersTab() {
     const badge = playerIdBadge(player);
     const open = unregistered[player.id];
     const isMe = me?.id === player.id;
+    const status = registrationLabel(open?.status ?? player.status);
     return (
       <TouchableRipple
         onPress={() => openRow(player)}
         style={[styles.card, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}
         accessibilityRole="button"
-        accessibilityLabel={`${player.name}, ${badge ?? 'no player ID yet'}${open ? `, ${open.status === 'pending' ? 'pending' : 'unregistered'}` : ''}`}
+        accessibilityLabel={`${player.name}, ${badge ?? 'no player ID yet'}, ${status.toLowerCase()}`}
       >
         <View style={styles.cardInner}>
           <View style={styles.cardTop}>
@@ -150,12 +149,12 @@ export default function PlayersTab() {
           </View>
           <View style={styles.cardMeta}>
             {badge ? (
-              <View style={[styles.idBadge, { backgroundColor: colors.surfaceVariant }]}>
+              <View style={[styles.idBadge, { borderColor: colors.outline }]}>
                 <Text variant="labelSmall" style={[styles.idText, { color: colors.onSurfaceVariant }]}>{badge}</Text>
               </View>
             ) : null}
             {isMe ? <Tag label="You" tone="primary" /> : null}
-            {open ? <Tag label={open.status === 'pending' ? 'Pending' : 'Unregistered'} /> : null}
+            <Tag label={status} tone={REGISTRATION_TONE[status]} icon={status === 'Registered' ? 'check-decagram-outline' : status === 'Unregistered' ? 'account-clock-outline' : 'email-fast-outline'} />
           </View>
         </View>
       </TouchableRipple>
@@ -190,7 +189,7 @@ export default function PlayersTab() {
           title="No one in My players yet."
           message="Add new players with just initials, or find registered players in the database."
           actionLabel="Add new players"
-          onAction={() => setAddOpen(true)}
+          onAction={() => router.push('/(screens)/players/add')}
         />
       ) : null}
       {!loading && players.length > 0 && shown.length === 0 ? (
@@ -215,7 +214,7 @@ export default function PlayersTab() {
         <Button
           mode="contained"
           icon="account-plus-outline"
-          onPress={() => setAddOpen(true)}
+          onPress={() => router.push('/(screens)/players/add')}
           contentStyle={styles.actionContent}
           accessibilityLabel="Add new players"
         >
@@ -244,16 +243,6 @@ export default function PlayersTab() {
         ) : null}
       </View>
 
-      {me ? (
-        <AddPlayersDialog
-          visible={addOpen}
-          count={DEFAULT_NEW_PLAYER_ROWS}
-          ownerId={me.id}
-          onClose={() => { setAddOpen(false); load(); }}
-          onSaved={() => {}}
-          onDeleted={() => {}}
-        />
-      ) : null}
       <RegisterPlayersDialog visible={registerOpen} me={me} onDismiss={() => { setRegisterOpen(false); load(); }} />
       <Portal>
         <Dialog visible={!!selected} onDismiss={() => setSelected(null)}>
@@ -349,9 +338,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   idBadge: {
-    borderRadius: radius.full,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
   },
   idText: {
     fontWeight: '700',

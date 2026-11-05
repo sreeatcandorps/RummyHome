@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { Button, IconButton, Menu, Searchbar, Text } from 'react-native-paper';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { Player } from '@/types/player';
@@ -14,7 +14,7 @@ import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { takePlayersToCheck } from '@/utils/pendingPlayer';
 import { DEFAULT_POINTS_RULES, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
-import { Candidate, chipInitials, pickerGrid, PICKER_PAGE, seatedOrder } from '@/utils/playerIdentity';
+import { Candidate, chipInitials, newGameGrid, newGameSeats, PICKER_PAGE } from '@/utils/playerIdentity';
 import { MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 import { HELP } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
@@ -22,25 +22,52 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
-import { AddPlayersDialog, DEFAULT_NEW_PLAYER_ROWS } from '@/components/players/AddPlayersDialog';
-import { playerIdBadge } from '@/utils/myPlayersList';
+import { playerIdBadge, registrationLabel } from '@/utils/myPlayersList';
+import { Tag } from '@/components/ui/Tag';
+import { REGISTRATION_TONE } from '@/utils/myPlayersList';
 import { seatColor, spacing, useAppTheme } from '@/constants/theme';
 
 type Pick = { id: string; name: string; playerCode?: string };
 
-function Chip({ pick, index, isMe, onPress }: { pick: Pick; index: number; isMe: boolean; onPress?: () => void }) {
+function Chip({ pick, index, isMe, onPress }: { pick: Pick; index: number; isMe: boolean; onPress: () => void }) {
   const { colors } = useAppTheme();
   return (
-    <Pressable onPress={onPress} disabled={isMe} accessibilityRole="button"
-      accessibilityLabel={isMe ? `${pick.name}, you` : `Remove ${pick.name}`} style={[styles.chip, { backgroundColor: colors.primaryContainer }]}>
+    <Pressable onPress={onPress} accessibilityRole="button" hitSlop={6}
+      accessibilityLabel={`Remove ${pick.name}${isMe ? ' (you)' : ''}`} style={[styles.chip, { backgroundColor: colors.primaryContainer }]}>
       <View style={[styles.chipDot, { backgroundColor: seatColor(index) }]}>
         <Text style={styles.chipInitials}>{chipInitials(pick.name)}</Text>
       </View>
-      <Text variant="labelMedium" numberOfLines={1} style={[styles.chipName, { color: colors.onPrimaryContainer }]}>
+      <Text variant="labelLarge" numberOfLines={1} style={[styles.chipName, { color: colors.onPrimaryContainer }]}>
         {isMe ? `${pick.name} (you)` : pick.name}
       </Text>
-      {!isMe ? <Text style={[styles.chipX, { color: colors.onPrimaryContainer }]}>×</Text> : null}
+      <Text style={[styles.chipX, { color: colors.onPrimaryContainer }]}>×</Text>
     </Pressable>
+  );
+}
+
+/** "Playing · N" with a number that grows and glows for a moment each time it changes. */
+function PlayingCount({ count }: { count: number }) {
+  const { colors } = useAppTheme();
+  const pulse = useRef(new Animated.Value(0)).current;
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    pulse.setValue(0);
+    Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 160, easing: Easing.out(Easing.quad), useNativeDriver: false }),
+      Animated.timing(pulse, { toValue: 0, duration: 520, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+    ]).start();
+  }, [count, pulse]);
+  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
+  const glow = pulse.interpolate({ inputRange: [0, 1], outputRange: [colors.primaryContainer, colors.secondaryContainer] });
+  return (
+    <View style={styles.playingRow} accessibilityLiveRegion="polite" accessibilityLabel={`Playing, ${count} ${count === 1 ? 'player' : 'players'}`}>
+      <Text variant="titleMedium" style={{ color: colors.onSurfaceVariant }}>Playing</Text>
+      <Animated.View style={[styles.countBubble, { backgroundColor: glow, borderColor: colors.primary, transform: [{ scale }] }]}>
+        <Text style={[styles.countText, { color: colors.onPrimaryContainer }]}>{count}</Text>
+      </Animated.View>
+      <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{count === 0 ? 'Tap players below. Tap yourself if you are playing.' : count === 1 ? 'player' : 'players'}</Text>
+    </View>
   );
 }
 
@@ -53,7 +80,6 @@ export default function NewGame() {
   const [rules, setRules] = useState<PointsRules>(DEFAULT_POINTS_RULES);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +106,7 @@ export default function NewGame() {
           let next = cur;
           for (const row of pending) {
             if (next.some((p) => p.id === row.id)) continue;
-            if (next.length + 1 >= MAX_SEATED_PLAYERS) break;
+            if (next.length >= MAX_SEATED_PLAYERS) break;
             const found = list.find((c) => c.id === row.id);
             next = [...next, found ? { id: found.id, name: found.name, playerCode: found.playerCode } : row];
           }
@@ -97,15 +123,20 @@ export default function NewGame() {
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const selectedIds = selected.map((p) => p.id);
-  const seatedCount = selected.length + (me ? 1 : 0);
+  const seatedCount = selected.length;
   const atCap = seatedCount >= MAX_SEATED_PLAYERS;
+
+  const meCandidate = useMemo<Candidate | null>(() => (me
+    ? { id: me.id, name: me.name, playerCode: me.playerCode, status: 'registered', totalGames: 0, lastPlayedAt: null }
+    : null), [me]);
 
   const grid = useMemo(() => {
     const pool = query.trim()
       ? candidates.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query))
       : candidates;
-    return pickerGrid(pool, selectedIds, me?.id, PICKER_PAGE);
-  }, [candidates, selectedIds, me?.id, query]);
+    const meMatches = !query.trim() || (meCandidate ? matchesMyPlayer({ name: meCandidate.name, playerCode: meCandidate.playerCode }, query) : false);
+    return newGameGrid(pool, selectedIds, meMatches ? meCandidate : null, PICKER_PAGE);
+  }, [candidates, selectedIds, meCandidate, query]);
 
   const pick = (c: Pick) => {
     if (atCap) return;
@@ -114,20 +145,9 @@ export default function NewGame() {
   };
   const unpick = (id: string) => setSelected((cur) => cur.filter((p) => p.id !== id));
 
-  const onNewSaved = (player: Player) => {
-    setCandidates((cur) => [{ id: player.id, name: player.name, playerCode: player.playerCode, status: 'unregistered', totalGames: 0, lastPlayedAt: null }, ...cur.filter((c) => c.id !== player.id)]);
-    setSelected((cur) => (cur.some((p) => p.id === player.id)
-      ? cur.map((p) => (p.id === player.id ? { ...p, name: player.name } : p))
-      : (seatedCount >= MAX_SEATED_PLAYERS ? cur : [...cur, { id: player.id, name: player.name, playerCode: player.playerCode }])));
-  };
-  const onNewDeleted = (id: string) => {
-    setCandidates((cur) => cur.filter((c) => c.id !== id));
-    unpick(id);
-  };
-
   const startGame = async () => {
     if (!me) return;
-    const playerIds = seatedOrder(me.id, selectedIds);
+    const playerIds = newGameSeats(selectedIds);
     if (playerIds.length < 2) return;
     if (playerIds.length > MAX_SEATED_PLAYERS) { setError(SEATED_PLAYER_LIMIT); return; }
     setCreating(true);
@@ -163,10 +183,9 @@ export default function NewGame() {
         }}
       />
 
-      <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }}>Playing · {seatedCount}</Text>
+      <PlayingCount count={seatedCount} />
       <View style={styles.chips}>
-        {me ? <Chip pick={{ id: me.id, name: me.name, playerCode: me.playerCode }} index={0} isMe /> : null}
-        {selected.map((p, i) => <Chip key={p.id} pick={p} index={i + 1} isMe={false} onPress={() => unpick(p.id)} />)}
+        {selected.map((p, i) => <Chip key={p.id} pick={p} index={i} isMe={p.id === me?.id} onPress={() => unpick(p.id)} />)}
       </View>
       {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
 
@@ -177,15 +196,17 @@ export default function NewGame() {
       <View style={styles.grid}>
         {grid.map((c) => (
           <Pressable key={c.id} onPress={() => pick(c)} disabled={atCap} accessibilityRole="checkbox" accessibilityState={{ checked: false }}
-            accessibilityLabel={`Add ${c.name}`} style={[styles.cell, { borderColor: colors.outlineVariant, opacity: atCap ? 0.5 : 1 }]}>
-            <View style={[styles.cellDot, { backgroundColor: colors.surfaceVariant }]}>
+            accessibilityLabel={`Add ${c.name}${c.id === me?.id ? ' (you)' : ''}`}
+            style={[styles.cell, { borderColor: c.id === me?.id ? colors.primary : colors.outlineVariant, backgroundColor: colors.surface, opacity: atCap ? 0.5 : 1 }]}>
+            <View style={[styles.cellDot, { backgroundColor: c.id === me?.id ? colors.primaryContainer : colors.surfaceVariant }]}>
               <Text style={[styles.cellInitials, { color: colors.onSurface }]}>{chipInitials(c.name)}</Text>
             </View>
             <View style={styles.flex}>
-              <Text variant="labelLarge" numberOfLines={2} style={styles.cellName}>{c.name}</Text>
-              <Text variant="labelSmall" numberOfLines={2} style={{ color: colors.onSurfaceVariant }}>
-                {[playerIdBadge(c), c.status === 'unregistered' || c.status === 'pending' ? 'Unregistered' : null].filter(Boolean).join(' · ') || ' '}
-              </Text>
+              <Text variant="labelLarge" numberOfLines={2} style={styles.cellName}>{c.id === me?.id ? `${c.name} (you)` : c.name}</Text>
+              <View style={styles.cellMeta}>
+                <Tag label={registrationLabel(c.status)} tone={REGISTRATION_TONE[registrationLabel(c.status)]} />
+                {playerIdBadge(c) ? <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{playerIdBadge(c)}</Text> : null}
+              </View>
             </View>
           </Pressable>
         ))}
@@ -197,7 +218,7 @@ export default function NewGame() {
       ) : null}
 
       <View style={styles.bottomTools}>
-        <Button mode="contained" icon="account-plus-outline" onPress={() => setAddOpen(true)} contentStyle={styles.toolContent} accessibilityLabel="Add players">
+        <Button mode="contained" icon="account-plus-outline" onPress={() => router.push({ pathname: '/(screens)/players/add', params: { from: 'new-game' } })} contentStyle={styles.toolContent} accessibilityLabel="Add players">
           Add players
         </Button>
         <Button mode="contained-tonal" icon="database-search" contentStyle={styles.toolContent}
@@ -211,13 +232,10 @@ export default function NewGame() {
 
       <BottomBar>
         <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} style={styles.flex}>
-          {seatedCount < 2 ? 'Pick at least one more player' : `Start game · ${seatedCount} players`}
+          {seatedCount < 2 ? (seatedCount === 0 ? 'Pick at least two players' : 'Pick at least one more player') : `Start game · ${seatedCount} players`}
         </Button>
       </BottomBar>
 
-      {me ? (
-        <AddPlayersDialog visible={addOpen} count={DEFAULT_NEW_PLAYER_ROWS} ownerId={me.id} onClose={() => setAddOpen(false)} onSaved={onNewSaved} onDeleted={onNewDeleted} />
-      ) : null}
       <GameSettingsDialog visible={settingsOpen} rules={rules} onDismiss={() => setSettingsOpen(false)} onSave={(r) => setRules(r)} />
     </Screen>
   );
@@ -226,15 +244,19 @@ export default function NewGame() {
 const styles = StyleSheet.create({
   content: { paddingBottom: 120, gap: spacing.sm },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 16, paddingRight: 8, paddingVertical: 2, paddingLeft: 2 },
-  chipDot: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  chipInitials: { color: '#fff', fontWeight: '700', fontSize: 11 },
-  chipName: { maxWidth: 150 },
-  chipX: { fontSize: 14, marginLeft: 2 },
+  playingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 44 },
+  countBubble: { minWidth: 44, height: 44, paddingHorizontal: 10, borderRadius: 22, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  countText: { fontSize: 24, fontWeight: '900', lineHeight: 28 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 22, paddingRight: 12, paddingVertical: 4, paddingLeft: 4, minHeight: 44 },
+  chipDot: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  chipInitials: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  chipName: { maxWidth: 170 },
+  chipX: { fontSize: 18, marginLeft: 2, fontWeight: '700' },
   search: { marginVertical: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6 },
-  cell: { width: '49%', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, padding: 6 },
+  cell: { width: '49%', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1.5, borderRadius: 12, padding: 8, minHeight: 64 },
+  cellMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 },
   cellDot: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   cellInitials: { fontWeight: '700', fontSize: 12 },
   cellName: { lineHeight: 16 },

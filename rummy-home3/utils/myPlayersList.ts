@@ -20,6 +20,28 @@ export const SORT_LABEL: Record<MyPlayersSort, string> = {
 
 export const nextSort = (sort: MyPlayersSort): MyPlayersSort => (sort === 'name' ? 'frequent' : 'name');
 
+/** People you play with most come first until the user flips it. */
+export const DEFAULT_MY_PLAYERS_SORT: MyPlayersSort = 'frequent';
+
+export type RegistrationLabel = 'Registered' | 'Pending registration' | 'Unregistered';
+
+/**
+ * Every player shows one of three words. An absent status is an older row for a
+ * registered account; deleted and merged rows are not listed, so they read Registered too.
+ */
+export function registrationLabel(status?: string | null): RegistrationLabel {
+  if (status === 'unregistered') return 'Unregistered';
+  if (status === 'pending') return 'Pending registration';
+  return 'Registered';
+}
+
+/** Tag tone per status: green, amber, and blue. The Player ID badge is an outlined pill, so none of these look like it. */
+export const REGISTRATION_TONE: Record<RegistrationLabel, 'positive' | 'leader' | 'info'> = {
+  Registered: 'positive',
+  'Pending registration': 'leader',
+  Unregistered: 'info',
+};
+
 /**
  * The public player ID as a number. Older databases still hand out letter codes
  * such as QTGFJH; those are never shown, so this is null for them.

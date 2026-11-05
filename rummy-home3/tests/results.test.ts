@@ -283,7 +283,7 @@ test('game headers use h:mm with am/pm', async () => {
   assert.equal(gameShortLabel(0), 'G1');
 });
 
-import { resultsCountLine, resultsPdfFileName, resultsShowMode, selectableResultGames, summaryFrom as summaryOf, topThree } from '../utils/results';
+import { closedSelectionWarning, resultsCountLine, resultsPdfFileName, resultsShowMode, selectableResultGames, summaryFrom as summaryOf, topThree } from '../utils/results';
 
 test('round 2: show results saves only when every selected game is finished', () => {
   assert.equal(resultsShowMode([{ isComplete: true }, { isComplete: true }]), 'save');
@@ -291,13 +291,19 @@ test('round 2: show results saves only when every selected game is finished', ()
   assert.equal(resultsShowMode([]), 'preview');
 });
 
-test('round 2: the Results list hides Closed games and keeps open and finished ones', () => {
+test('build 3: the Results list keeps Closed games selectable and warns instead of blocking', () => {
   const listed = selectableResultGames([
     { id: 'open', closedAt: null },
     { id: 'done' },
     { id: 'closed', closedAt: '2026-10-29T10:00:00Z' },
   ]);
-  assert.deepEqual(listed.map((g) => g.id), ['open', 'done']);
+  assert.deepEqual(listed.map((g) => g.id), ['open', 'done', 'closed']);
+  assert.equal(closedSelectionWarning([{ closedAt: null, gameNumber: 1 }, { gameNumber: 2 }]), null);
+  const one = closedSelectionWarning([{ closedAt: '2026-10-29T10:00:00Z', gameNumber: 2 }, { gameNumber: 3 }]);
+  assert.match(one!, /G2 is already counted/);
+  assert.match(one!, /counts it twice/);
+  const two = closedSelectionWarning([{ closedAt: '2026-10-29T10:00:00Z', gameNumber: 2 }, { closedAt: '2026-10-30T10:00:00Z', gameNumber: 5 }]);
+  assert.match(two!, /G2 and G5 are already counted/);
 });
 
 test('round 2: past results carry the top 3, players, and games', () => {

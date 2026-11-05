@@ -29,6 +29,7 @@ import {
 import { MAX_CONTENT_WIDTH, radius, spacing, tabularNums, useAppTheme } from '../../constants/theme';
 import { useLayout } from '../../hooks/useLayout';
 import { HELP } from '../../constants/help';
+import { HelpText } from '../../components/ui/HelpText';
 import { BottomBar } from '../../components/ui/BottomBar';
 import { SeatAvatar } from '../../components/ui/SeatAvatar';
 import { ScoreCell } from '../../components/game/ScoreCell';
@@ -484,9 +485,13 @@ export default function ScoreEntryScreen() {
           <Dialog.Icon icon={notice?.icon ?? 'information-outline'} />
           <Dialog.Title style={styles.dialogTitle}>{notice?.title}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
-              {notice?.body}
-            </Text>
+            {notice?.body.startsWith('•') ? (
+              <HelpText text={notice.body} color={colors.onSurfaceVariant} />
+            ) : (
+              <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
+                {notice?.body}
+              </Text>
+            )}
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
             <Button mode="contained" onPress={() => setNotice(null)} contentStyle={styles.dialogButtonContent}>

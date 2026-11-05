@@ -10,7 +10,7 @@ import { authService } from '@/services/auth';
 import { playersService } from '@/services/players';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
-import { helpVersionText, shortVersionLabel } from '@/utils/appVersion';
+import { shortVersionLabel } from '@/utils/appVersion';
 import { readAppVersion } from '@/utils/appVersionRuntime';
 
 const APP_VERSION = readAppVersion();
@@ -44,19 +44,36 @@ function BrandTitle() {
   );
 }
 
+/** The signed-in person's initials, refreshed on every tab change so a renamed profile shows up. */
+function useMyName() {
+  const path = usePathname();
+  const [name, setName] = useState('?');
+  useEffect(() => {
+    authService.getCurrentPlayer().then((player) => setName(player?.name ?? '?')).catch(() => {});
+  }, [path]);
+  return name;
+}
+
+/** Bottom-tab avatar: same initials circle as the header, with a ring when the tab is active. */
+function ProfileTabIcon({ focused, color }: { focused: boolean; color: string }) {
+  const theme = useAppTheme();
+  const name = useMyName();
+  return (
+    <View style={[styles.tabAvatarRing, { borderColor: focused ? color : 'transparent' }]}>
+      <SeatAvatar name={name} size={28} color={focused ? theme.colors.primary : theme.colors.onSurfaceVariant} />
+    </View>
+  );
+}
+
 function HeaderTools() {
   const path = usePathname();
   const theme = useAppTheme();
-  const [name, setName] = useState('?');
+  const name = useMyName();
   const text = path.includes('/players')
     ? HELP.players
     : path.includes('/me')
       ? HELP.me
-      : `${HELP.home}\n\n${helpVersionText(APP_VERSION)}`;
-
-  useEffect(() => {
-    authService.getCurrentPlayer().then((player) => setName(player?.name ?? '?')).catch(() => {});
-  }, [path]);
+      : HELP.home;
 
   return (
     <View style={styles.headerRight}>
@@ -142,8 +159,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="me"
         options={{
-          title: 'Me',
-          tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'person' : 'person-outline'} color={color} />,
+          title: 'Profile',
+          tabBarLabel: () => null,
+          tabBarAccessibilityLabel: 'Your profile',
+          tabBarIcon: ({ color, focused }) => <ProfileTabIcon focused={focused} color={color} />,
         }}
       />
     </Tabs>
@@ -151,6 +170,7 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+  tabAvatarRing: { borderWidth: 2, borderRadius: 18, padding: 1 },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',

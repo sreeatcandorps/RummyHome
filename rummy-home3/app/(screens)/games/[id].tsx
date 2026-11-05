@@ -376,24 +376,30 @@ export default function GameScreen() {
     />
   );
 
+  // Complete is the end of a game, so it is the filled button; Add round sits beside it a step quieter.
   const completeButton = (
-    <StackedAction
-      icon="flag-checkered"
-      label="Done"
+    <Button
+      mode="contained"
       onPress={openComplete}
-      height={isShort ? 44 : 56}
-      accessibilityLabel="Done"
-    />
+      icon="flag-checkered"
+      style={styles.primaryAction}
+      contentStyle={isShort ? styles.compactPrimaryContent : styles.primaryActionContent}
+      labelStyle={styles.primaryActionLabel}
+      accessibilityLabel="Complete game"
+    >
+      Complete
+    </Button>
   );
 
   const addRoundButton = (
     <Button
-      mode="contained"
+      mode="contained-tonal"
       onPress={openScoreEntry}
       icon="plus"
-      style={styles.primaryAction}
+      style={styles.secondaryAction}
       contentStyle={isShort ? styles.compactPrimaryContent : styles.primaryActionContent}
-      labelStyle={styles.primaryActionLabel}
+      labelStyle={styles.secondaryActionLabel}
+      accessibilityLabel="Add round"
     >
       Add round
     </Button>
@@ -718,8 +724,16 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   primaryAction: {
-    flex: 2,
+    flex: 1.5,
     borderRadius: radius.full,
+  },
+  secondaryAction: {
+    flex: 1.3,
+    borderRadius: radius.full,
+  },
+  secondaryActionLabel: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   primaryActionContent: {
     height: 56,

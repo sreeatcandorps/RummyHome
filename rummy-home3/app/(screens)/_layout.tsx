@@ -69,6 +69,15 @@ export default function ScreensLayout() {
         name="players/new"
         options={{ title: 'Find player in database', headerRight: () => <HelpButton text={HELP.find} /> }}
       />
+      <Stack.Screen
+        name="players/add"
+        options={{
+          title: 'Add New Players by Initials',
+          headerBackVisible: false,
+          gestureEnabled: false,
+          headerRight: () => <HelpButton text={HELP.addPlayers} />,
+        }}
+      />
       <Stack.Screen name="players/[id]" options={{ title: 'Players' }} />
       <Stack.Screen name="players/[id]/edit" options={{ title: 'Me' }} />
     </Stack>

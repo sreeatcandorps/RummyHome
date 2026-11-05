@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { HELP } from '../constants/help';
-import { filterRecentGames, isWithinLastDays, RECENT_CHIPS, splitHomeGames } from '../utils/homeGames';
+import { DEFAULT_RECENT_CHIP, filterRecentGames, isWithinLastDays, RECENT_CHIPS, splitHomeGames } from '../utils/homeGames';
 import {
   myPlayersGridHeight,
   MY_PLAYERS_CARD_HEIGHT,
@@ -29,8 +29,9 @@ test('Home lists every live game and keeps Completed and Closed games for Recent
   assert.deepEqual(recent.map((g) => g.id), ['c', 'd'], 'completed and closed, never live');
 });
 
-test('Recent filters are All and Last 10 days; there is no Live filter', () => {
-  assert.deepEqual(RECENT_CHIPS.map((chip) => chip.label), ['All', 'Last 10 days']);
+test('Recent filters are Last 10 days (default) and All; there is no Live filter', () => {
+  assert.deepEqual(RECENT_CHIPS.map((chip) => chip.label), ['Last 10 days', 'All']);
+  assert.equal(DEFAULT_RECENT_CHIP, 'last10d');
   const games = [
     { id: 'recent', isComplete: true, date: daysAgo(9) },
     { id: 'edge', isComplete: true, date: daysAgo(10) },
