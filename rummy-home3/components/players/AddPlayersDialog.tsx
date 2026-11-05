@@ -4,6 +4,7 @@ import { Button, IconButton, Modal, Portal, Text, TextInput } from 'react-native
 import { Player } from '@/types/player';
 import { playerIdentityService } from '@/services/playerIdentity';
 import { chipInitials } from '@/utils/playerIdentity';
+import { playerIdBadge } from '@/utils/myPlayersList';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { spacing, useAppTheme } from '@/constants/theme';
@@ -15,11 +16,14 @@ const blank = (i: number): Row => ({ key: `r${Date.now()}-${i}`, first: '', last
 /**
  * Sits at the top of the screen so the keyboard does not cover the rows.
  * Players are added by initials (more letters are allowed). Each row saves
- * on its own. Done can be tapped at any time.
+ * on its own. Opens with three rows; Add a row adds more. Done can be tapped at any time.
  */
-export function AddPlayersDialog({ visible, count, ownerId, onClose, onSaved, onDeleted }: {
+export const DEFAULT_NEW_PLAYER_ROWS = 3;
+
+export function AddPlayersDialog({ visible, count = DEFAULT_NEW_PLAYER_ROWS, ownerId, onClose, onSaved, onDeleted }: {
   visible: boolean;
-  count: number;
+  /** Rows shown when the sheet opens. More can be added from inside. */
+  count?: number;
   ownerId: string;
   onClose: () => void;
   onSaved: (player: Player) => void;
@@ -93,7 +97,7 @@ export function AddPlayersDialog({ visible, count, ownerId, onClose, onSaved, on
                   )}
                   <IconButton icon="delete-outline" size={18} iconColor={colors.error} onPress={() => remove(row)} accessibilityLabel="Delete" />
                 </View>
-                {row.player ? <Text variant="labelSmall" style={styles.meta}>{shown} · Player ID {row.player.playerCode ?? '—'}</Text> : null}
+                {row.player ? <Text variant="labelSmall" style={styles.meta}>{shown} · {playerIdBadge(row.player) ?? 'Player ID pending'}</Text> : null}
                 {row.error ? <Text variant="labelSmall" style={[styles.meta, { color: isNotReadyMessage(row.error) ? colors.onSurfaceVariant : colors.error }]}>{row.error}</Text> : null}
               </View>
             );
@@ -101,6 +105,9 @@ export function AddPlayersDialog({ visible, count, ownerId, onClose, onSaved, on
         </ScrollView>
         <View style={styles.footer}>
           <Text variant="labelMedium" style={styles.flex}>{savedCount} saved</Text>
+          <Button compact icon="plus" onPress={() => setRows((all) => [...all, blank(all.length)])} accessibilityLabel="Add a row">
+            Add a row
+          </Button>
           <Button onPress={onClose}>Done</Button>
         </View>
       </Modal>

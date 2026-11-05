@@ -12,7 +12,7 @@ import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
-import { takePlayerToCheck } from '@/utils/pendingPlayer';
+import { takePlayersToCheck } from '@/utils/pendingPlayer';
 import { DEFAULT_POINTS_RULES, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
 import { Candidate, chipInitials, pickerGrid, PICKER_PAGE, seatedOrder } from '@/utils/playerIdentity';
 import { MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
@@ -22,8 +22,8 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
-import { NewPlayerStepper } from '@/components/players/NewPlayerStepper';
-import { AddPlayersDialog } from '@/components/players/AddPlayersDialog';
+import { AddPlayersDialog, DEFAULT_NEW_PLAYER_ROWS } from '@/components/players/AddPlayersDialog';
+import { playerIdBadge } from '@/utils/myPlayersList';
 import { seatColor, spacing, useAppTheme } from '@/constants/theme';
 
 type Pick = { id: string; name: string; playerCode?: string };
@@ -36,7 +36,9 @@ function Chip({ pick, index, isMe, onPress }: { pick: Pick; index: number; isMe:
       <View style={[styles.chipDot, { backgroundColor: seatColor(index) }]}>
         <Text style={styles.chipInitials}>{chipInitials(pick.name)}</Text>
       </View>
-      <Text variant="labelSmall" style={{ color: colors.onPrimaryContainer }}>{isMe ? 'You' : pick.playerCode ?? '—'}</Text>
+      <Text variant="labelMedium" numberOfLines={1} style={[styles.chipName, { color: colors.onPrimaryContainer }]}>
+        {isMe ? `${pick.name} (you)` : pick.name}
+      </Text>
       {!isMe ? <Text style={[styles.chipX, { color: colors.onPrimaryContainer }]}>×</Text> : null}
     </Pressable>
   );
@@ -51,7 +53,6 @@ export default function NewGame() {
   const [rules, setRules] = useState<PointsRules>(DEFAULT_POINTS_RULES);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [newCount, setNewCount] = useState(3);
   const [addOpen, setAddOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -73,10 +74,18 @@ export default function NewGame() {
       ]);
       setCandidates(list);
       setRules(defaults);
-      const pending = takePlayerToCheck();
-      if (pending) {
-        const found = list.find((c) => c.id === pending);
-        if (found) setSelected((cur) => (cur.some((p) => p.id === pending) ? cur : [...cur, found]));
+      const pending = takePlayersToCheck();
+      if (pending.length) {
+        setSelected((cur) => {
+          let next = cur;
+          for (const row of pending) {
+            if (next.some((p) => p.id === row.id)) continue;
+            if (next.length + 1 >= MAX_SEATED_PLAYERS) break;
+            const found = list.find((c) => c.id === row.id);
+            next = [...next, found ? { id: found.id, name: found.name, playerCode: found.playerCode } : row];
+          }
+          return next;
+        });
       }
     } catch (err) {
       setError(formatSupabaseError(err));
@@ -173,9 +182,9 @@ export default function NewGame() {
               <Text style={[styles.cellInitials, { color: colors.onSurface }]}>{chipInitials(c.name)}</Text>
             </View>
             <View style={styles.flex}>
-              <Text variant="labelLarge" numberOfLines={1}>{chipInitials(c.name)}</Text>
+              <Text variant="labelLarge" numberOfLines={2} style={styles.cellName}>{c.name}</Text>
               <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
-                {c.playerCode ?? '—'}{c.status === 'unregistered' || c.status === 'pending' ? ' · Unregistered' : ''}
+                {[playerIdBadge(c), c.status === 'unregistered' || c.status === 'pending' ? 'Unregistered' : null].filter(Boolean).join(' · ') || ' '}
               </Text>
             </View>
           </Pressable>
@@ -183,17 +192,20 @@ export default function NewGame() {
       </View>
       {!loading && grid.length === 0 ? (
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          {query ? 'No one in My players matches. Try Find player in database.' : 'No more players in My players. Add a new player below.'}
+          {query ? 'No one in My players matches. Try Add player from database.' : 'No more players in My players. Add players below.'}
         </Text>
       ) : null}
 
       <View style={styles.bottomTools}>
-        <NewPlayerStepper count={newCount} onChange={setNewCount} onAdd={() => setAddOpen(true)} />
-        <Button mode="outlined" icon="database-search" onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game' } })}>
-          Find player in database
+        <Button mode="contained" icon="account-plus-outline" onPress={() => setAddOpen(true)} contentStyle={styles.toolContent} accessibilityLabel="Add players">
+          Add players
+        </Button>
+        <Button mode="contained-tonal" icon="database-search" contentStyle={styles.toolContent}
+          onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game' } })}>
+          Add player from database
         </Button>
         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          Not in the database? Use Add new player. After you start the game, you can register these players from the ⋮ menu so they can download the app and see their games.
+          New players by initials are seated as you save them. Players from the database are seated here and added to My players at once.
         </Text>
       </View>
 
@@ -204,7 +216,7 @@ export default function NewGame() {
       </BottomBar>
 
       {me ? (
-        <AddPlayersDialog visible={addOpen} count={newCount} ownerId={me.id} onClose={() => setAddOpen(false)} onSaved={onNewSaved} onDeleted={onNewDeleted} />
+        <AddPlayersDialog visible={addOpen} count={DEFAULT_NEW_PLAYER_ROWS} ownerId={me.id} onClose={() => setAddOpen(false)} onSaved={onNewSaved} onDeleted={onNewDeleted} />
       ) : null}
       <GameSettingsDialog visible={settingsOpen} rules={rules} onDismiss={() => setSettingsOpen(false)} onSave={(r) => setRules(r)} />
     </Screen>
@@ -218,12 +230,15 @@ const styles = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 16, paddingRight: 8, paddingVertical: 2, paddingLeft: 2 },
   chipDot: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   chipInitials: { color: '#fff', fontWeight: '700', fontSize: 11 },
+  chipName: { maxWidth: 150 },
   chipX: { fontSize: 14, marginLeft: 2 },
   search: { marginVertical: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6 },
   cell: { width: '49%', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, padding: 6 },
   cellDot: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   cellInitials: { fontWeight: '700', fontSize: 12 },
+  cellName: { lineHeight: 16 },
   bottomTools: { gap: spacing.sm, marginTop: spacing.sm },
+  toolContent: { minHeight: 48 },
   flex: { flex: 1 },
 });

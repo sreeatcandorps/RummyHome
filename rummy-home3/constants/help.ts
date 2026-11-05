@@ -1,27 +1,16 @@
 const scorecardBase =
   'View only means you can watch and cannot change the scores. The ⋮ menu has Game settings (Drop, Middle drop, and Full count for this game, which you can change any time), Players (who can score), Register players (share each unregistered player their own sign-up link), Share live scorecard, and Share results once the game is complete. Totals sit in the header next to each name. Undo asks before it removes the last round.';
 
-const homeHelp = `This is your Home screen.
+const homeHelp = `Results show the consolidated winners from one or more games. Pick the games on the Results page and tap Show results. Once results are announced, those games move from Completed to Closed.
 
-What you see:
-- Your name at the top with a greeting.
-- New game button to start a fresh game.
-- Live section shows your current active game (if any). Tap it or tap Resume to continue scoring.
-- Results button adds up finished games you pick and shows the winners.
-- Recent section lists all your games. Use the filter buttons (All, Live, Last 24 hours) to narrow them down.
+Game statuses:
+- Active: still being scored. Every active game is listed under Live; tap one to carry on.
+- Completed: finished, with every score in. It can still be picked for Results.
+- Closed: already included in announced results. It cannot be picked again.
 
-Each game card shows:
-- A G-number badge (G1, G2...) so you can tell your games apart quickly.
-- The date and time when the game started.
-- Status: Active (still going), Completed (finished), or Closed (included in a declared result).
-- Game type: Points or Pool.
-- How many players are in the game.
+Recent lists only Completed and Closed games. All shows every one; Last 10 days keeps the newest.
 
-What you can do:
-- Tap any game card to open its scorecard.
-- Tap New game to create a game with players from your list.
-- Tap Results to combine finished games and see who won overall.
-- Tap your avatar (top right) to go to the Me tab.`;
+My players is your own list of the people you play with, not everyone in the database. Add more from the EZ Score database on the My players page or on the New game page.`;
 
 export const HELP = {
   signIn:
@@ -31,18 +20,16 @@ export const HELP = {
   reset:
     'We email a link. It opens a page where you choose a new 6-digit code. It is not a text message.',
   home: homeHelp,
-  newGame: `This is the New game screen.
+  newGame: `Playing: you are always first. Everyone you pick moves up as a chip with their initials and full name. Tap a chip to take them out.
 
-What you see, top to bottom:
-- Playing: you are always first. Everyone you pick moves up here as a small chip with their initials and player ID (#42). Tap a chip to take them out.
-- Search my players.
-- My players: 10 at a time. People who played with you in the last 2 weeks come first, then everyone else, most games first. Only players from games you created or ran show here. When you pick someone, the next player fills the spot.
-- Add new player: use − and + to pick how many (1 to 5). It opens with 3 rows at the top of the screen, titled Add new players by initials. First initial and Last initial are both required; you can type more letters if you want. The app shows the first letter of each, such as SK. Tap Save on each row. Saved turns green. Edit changes a name, Delete removes it. Done can be tapped any time.
-- Find player in database: search registered players by name, player ID (#42) or full email.
+My players shows 10 at a time: people who played with you in the last 2 weeks first, then everyone else, most games first. Pick someone and the next player fills the spot. Search by name or player ID.
 
-Game settings are in the ⋮ menu (top right): Drop, Middle drop, and Full count for this game. They start from your User settings, and you can change them any time during the game too. Defaults are -10, -30, and -80.
+- Add players: opens 3 rows. Type a first initial and a last initial (more letters are fine) and tap Save on each. New players are seated in this game as they are saved and show as Unregistered.
+- Add player from database: search registered players by name or player ID. + Add seats them here and adds them to My players at once.
 
-After you start the game, open its ⋮ menu and tap Register players. Share sends each new player their own link so they can download the app, sign up and see their games.
+Game settings are in the ⋮ menu: Drop, Middle drop, and Full count for this game (defaults -10, -30, -80). They start from your User settings and can change during the game.
+
+After you start the game, its ⋮ menu has Register players: each new player gets their own link to sign up and see their games.
 
 A game can have at most 15 players.`,
   scorecard: scorecardBase,
@@ -54,17 +41,22 @@ A game can have at most 15 players.`,
     'Tap one or more players, then type a number or tap Drop, Middle drop, or Full count. Everyone you tapped gets that score and turns green. Minus is on by default; tap + for a hand-entered win. Tap the winners and then Rummy: they split what the table lost so the round adds to 0. If a split is uneven, the players you tapped first get the extra point. Tap a green cell to change it, X to clear it. Moving to another player saves the number you were typing. Save round stays off until Balance is 0.',
   complete: 'This closes the game. The points stay as they are.',
   settle: 'Finished games stay on Home under Recent.',
-  players: `This is My players: the people you play with, not everyone in the database.
+  players: `My players is your own list of the people you play with. New game picks from it.
 
-- Every player has a player ID: a number like #42. It never changes and is never used to sign in.
-- Add new player: pick how many with − and + (up to 5). It opens with 3 rows. Type a first initial and a last initial (more letters are fine) and tap Save on each one. The list shows two initials, such as SK. Each gets the next player ID right away. They show as Unregistered.
-- Find player in database: search people who already registered.
-- Register players: tap Share next to a player to send their own sign-up link on WhatsApp, text, or anything. When they sign up with it and tap Yes on "Is this you?", their scores join their account. A link works once and lasts 14 days. Share again makes a new link and turns off the old one. Turn off link stops it.
-- Pending means a link was sent, or someone asked to claim the player with their ID.
-- "#42 wants to claim R K. Approve?" shows here and on Home when someone signs up and types a player ID. Only Approve links the scores. Decline keeps the player with you.
-- Unlink player: if a player was linked to the wrong person, Unlink moves the player back to an unregistered player under you, same initials. No scores are lost.`,
+A player must be registered in the database to see their games in the app. Anyone can still watch a game live, without the app or registering, when the admin shares the live link.
+
+The three buttons:
+- Add new players: opens 3 rows. Type a first initial and a last initial (more letters are fine) and tap Save on each. They get a player ID right away and show as Unregistered until they sign up.
+- Find player in database: search people who already registered, by name or player ID. + My players adds them to your list only; it does not put them in a game. Someone already on your list shows "In your player list".
+- Register players: send each unregistered player their own sign-up link. When they sign up with it and tap Yes on "Is this you?", their scores join their account. A link works once and lasts 14 days.
+
+Sort by Name or Sort by Frequent (most games with you first) is next to the title. Tap a card to see games together, register, or remove the player. Removing keeps their account and past games.
+
+Pending means a link was sent or someone asked to claim the player with their ID. "#42 wants to claim R K. Approve?" appears here and on Home; only Approve links the scores.`,
   find:
-    "This searches the database: registered players only. Search a first name, last name, or player ID (#42). An email works only if you type the whole address, and the address is never shown. + adds them to My players only. It does not put them in a game. Not in the database? Use Add new player.",
+    'Registered players only. Type at least two letters of a first or last name, or a player ID such as 42. A full email address also works, but email is never shown. + My players adds the person to your list; it does not put them in a game. "In your player list" means they are already there. Someone not in the database? Go back and use Add new players.',
+  addToGame:
+    'Registered players only. Type at least two letters of a name, or a player ID such as 42. + Add seats the person in this game and adds them to My players at the same time; they appear under Playing when you go back. Someone not in the database? Go back and use Add players.',
   me:
     'The email here is yours. It is how you sign in, and it cannot be changed for now. Your player ID (#42) is what you give someone so they can find you. It is never used to sign in. Phone is optional and is never texted. User settings holds your game defaults (Points, Drop, Middle drop, Full count). Dark mode is saved on this phone.',
   userSettings:
@@ -94,4 +86,7 @@ Results can include at most 50 players.`,
 export const EMPTY_SETTLE = 'Finished games stay on Home under Recent.';
 
 export const FIND_HANDOFF =
-  "Can't find them? Use Find player in database, or Add new player if they are not registered yet, then come back.";
+  "Can't find them? Use Find player in database, or Add new players if they are not registered yet, then come back.";
+
+export const PLAYERS_NOTE =
+  'A player must be registered in the database to see their games in the app. Anyone can watch a game live, without the app or registering, when the admin shares the live link.';

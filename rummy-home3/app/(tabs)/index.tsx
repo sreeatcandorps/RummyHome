@@ -10,7 +10,7 @@ import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { settleEnabled } from '@/constants/features';
-import { isWithinLast24Hours } from '@/utils/gameDisplay';
+import { filterRecentGames, RECENT_CHIPS, RecentChip, splitHomeGames } from '@/utils/homeGames';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -22,8 +22,6 @@ import { JoinRequestsDialog } from '@/components/players/JoinRequestsDialog';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
 import { playerIdentityService } from '@/services/playerIdentity';
 
-type Chip = 'all' | 'live' | 'last24h';
-
 export default function Dashboard() {
   const { colors } = useAppTheme();
   const { isWide } = useLayout();
@@ -32,7 +30,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [chip, setChip] = useState<Chip>('all');
+  const [chip, setChip] = useState<RecentChip>('all');
   const [notices, setNotices] = useState<string[]>([]);
   const addNotice = useCallback((text: string) => setNotices((cur) => (cur.includes(text) ? cur : [...cur, text])), []);
 
@@ -69,47 +67,62 @@ export default function Dashboard() {
     loadData(recentGames.length > 0);
   }, [loadData]));
 
-  const liveGame = recentGames.find((game) => !game.isComplete) ?? null;
-  const filtered = recentGames.filter((game) => {
-    if (chip === 'live') return !game.isComplete;
-    if (chip === 'last24h') return isWithinLast24Hours(game.date);
-    return true;
-  });
+  const { live, recent: finished } = splitHomeGames(recentGames);
+  const filtered = filterRecentGames(finished, chip);
   const firstName = currentPlayer?.name?.split(' ')[0] || 'there';
 
+  const resultsButton = (
+    <Button
+      mode="contained"
+      icon="podium"
+      buttonColor={colors.secondaryContainer}
+      textColor={colors.onSecondaryContainer}
+      onPress={() => router.push('/(screens)/results')}
+      style={styles.results}
+      contentStyle={styles.resultsContent}
+      labelStyle={styles.resultsLabel}
+      accessibilityLabel="Results"
+    >
+      Results
+    </Button>
+  );
+
   const liveCard = (
-    <SectionCard title="Live" icon="cards-playing-outline">
-      {liveGame ? (
-        <GameListItem game={liveGame} onPress={() => router.push(`/(screens)/games/${liveGame.id}`)} />
-      ) : (
+    <SectionCard
+      title={live.length ? `Live · ${live.length}` : 'Live'}
+      icon="cards-playing-outline"
+      supportingText={live.length ? 'Tap a game to carry on scoring.' : undefined}
+    >
+      {live.length === 0 ? (
         <Text variant="bodyLarge" accessibilityLabel="No live game">No live game.</Text>
+      ) : (
+        live.map((game) => (
+          <View key={game.id} style={styles.gameGap}>
+            <GameListItem game={game} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
+          </View>
+        ))
       )}
-      {liveGame ? (
-        <Button mode="contained" style={styles.resume} onPress={() => router.push(`/(screens)/games/${liveGame.id}`)}>
-          Resume
-        </Button>
-      ) : null}
     </SectionCard>
   );
 
   const recent = (
-    <SectionCard title="Recent" icon="history">
+    <SectionCard title="Recent" icon="history" supportingText="Completed and Closed games.">
       <View style={styles.chips}>
-        {(['all', 'live', 'last24h'] as Chip[]).map((value) => (
+        {RECENT_CHIPS.map(({ value, label }) => (
           <Button
             key={value}
             mode={chip === value ? 'contained' : 'outlined'}
             compact
             onPress={() => setChip(value)}
-            accessibilityLabel={value === 'all' ? 'All games' : value === 'live' ? 'Live games' : 'Last 24 hours'}
+            accessibilityLabel={value === 'all' ? 'All finished games' : 'Finished in the last 10 days'}
           >
-            {value === 'all' ? 'All' : value === 'live' ? 'Live' : 'Last 24 hours'}
+            {label}
           </Button>
         ))}
       </View>
       {filtered.length === 0 ? (
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          {recentGames.length === 0 ? 'No games yet.' : 'Nothing in this filter.'}
+          {finished.length === 0 ? 'No finished games yet.' : 'Nothing in the last 10 days.'}
         </Text>
       ) : (
         filtered.map((game) => (
@@ -167,41 +180,25 @@ export default function Dashboard() {
         isWide ? (
           <View style={styles.columns}>
             <View style={styles.column}>
-              {liveCard}
-              <Button
-                mode="outlined"
-                icon="podium"
-                onPress={() => router.push('/(screens)/results')}
-                style={styles.settle}
-                accessibilityLabel="Results"
-              >
-                Results
-              </Button>
+              {resultsButton}
               {settleEnabled ? (
                 <Button mode="outlined" icon="scale-balance" onPress={() => router.push('/(screens)/settle')} style={styles.settle}>
                   Settle
                 </Button>
               ) : null}
+              {liveCard}
             </View>
             <View style={styles.column}>{recent}</View>
           </View>
         ) : (
           <View>
-            {liveCard}
-            <Button
-              mode="outlined"
-              icon="podium"
-              onPress={() => router.push('/(screens)/results')}
-              style={styles.settle}
-              accessibilityLabel="Results"
-            >
-              Results
-            </Button>
+            {resultsButton}
             {settleEnabled ? (
               <Button mode="outlined" icon="scale-balance" onPress={() => router.push('/(screens)/settle')} style={styles.settle}>
                 Settle
               </Button>
             ) : null}
+            {liveCard}
             {recent}
           </View>
         )
@@ -227,12 +224,20 @@ const styles = StyleSheet.create({
   errorBox: {
     marginBottom: spacing.md,
   },
-  resume: {
-    marginTop: spacing.sm,
-    alignSelf: 'flex-start',
+  results: {
+    marginBottom: spacing.lg,
+    borderRadius: 16,
+  },
+  resultsContent: {
+    minHeight: 56,
+  },
+  resultsLabel: {
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   settle: {
-    marginVertical: spacing.md,
+    marginBottom: spacing.md,
   },
   chips: {
     flexDirection: 'row',

@@ -19,8 +19,8 @@ export function GameListItem({ game, onPress, selected = false }: GameListItemPr
   const playerCount = game.players?.length ?? 0;
   const gNumber = gameNumberLabel(game);
   const status = gameStatusLabel(game);
-  const statusTone = status === 'Active' ? 'positive' : 'neutral';
-  const statusIcon = status === 'Active' ? 'circle-medium' : 'flag-checkered';
+  const statusTone = status === 'Active' ? 'positive' : status === 'Completed' ? 'primary' : 'neutral';
+  const statusIcon = status === 'Active' ? 'circle-medium' : status === 'Completed' ? 'flag-checkered' : 'lock-outline';
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
