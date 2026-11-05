@@ -154,7 +154,7 @@ export default function PlayersTab() {
               </View>
             ) : null}
             {isMe ? <Tag label="You" tone="primary" /> : null}
-            <Tag label={status} tone={REGISTRATION_TONE[status]} icon={status === 'Registered' ? 'check-decagram-outline' : status === 'Unregistered' ? 'account-clock-outline' : 'email-fast-outline'} />
+            <Tag label={status} tone={REGISTRATION_TONE[status]} small />
           </View>
         </View>
       </TouchableRipple>

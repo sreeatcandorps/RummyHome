@@ -229,7 +229,7 @@ export default function NewGame() {
             <View style={styles.flex}>
               <Text variant="labelLarge" numberOfLines={2} style={styles.cellName}>{c.id === me?.id ? `${c.name} (you)` : c.name}</Text>
               <View style={styles.cellMeta}>
-                <Tag label={registrationLabel(c.status)} tone={REGISTRATION_TONE[registrationLabel(c.status)]} wrap />
+                <Tag label={registrationLabel(c.status)} tone={REGISTRATION_TONE[registrationLabel(c.status)]} small wrap />
                 {playerIdBadge(c) ? <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{playerIdBadge(c)}</Text> : null}
               </View>
             </View>
