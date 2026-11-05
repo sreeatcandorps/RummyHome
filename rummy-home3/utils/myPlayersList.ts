@@ -59,7 +59,7 @@ export function orderDatabaseResults<T extends { id: string }>(results: T[], myP
 
 /** Fixed-height list on My players: this many rows of the two-column grid are visible before it scrolls. */
 export const MY_PLAYERS_VISIBLE_ROWS = 4;
-export const MY_PLAYERS_CARD_HEIGHT = 92;
+export const MY_PLAYERS_CARD_HEIGHT = 104;
 
 export function myPlayersGridHeight(playerCount: number, columns = 2): number {
   const rows = Math.ceil(Math.max(0, playerCount) / columns);

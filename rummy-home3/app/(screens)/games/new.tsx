@@ -183,7 +183,7 @@ export default function NewGame() {
             </View>
             <View style={styles.flex}>
               <Text variant="labelLarge" numberOfLines={2} style={styles.cellName}>{c.name}</Text>
-              <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
+              <Text variant="labelSmall" numberOfLines={2} style={{ color: colors.onSurfaceVariant }}>
                 {[playerIdBadge(c), c.status === 'unregistered' || c.status === 'pending' ? 'Unregistered' : null].filter(Boolean).join(' · ') || ' '}
               </Text>
             </View>
@@ -201,7 +201,7 @@ export default function NewGame() {
           Add players
         </Button>
         <Button mode="contained-tonal" icon="database-search" contentStyle={styles.toolContent}
-          onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game' } })}>
+          onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game', seated: selectedIds.join(',') } })}>
           Add player from database
         </Button>
         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>

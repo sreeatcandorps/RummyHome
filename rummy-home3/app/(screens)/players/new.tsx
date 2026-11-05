@@ -26,8 +26,10 @@ import { radius, spacing, useAppTheme } from '@/constants/theme';
 export default function FindPlayersScreen() {
   const { colors } = useAppTheme();
   const navigation = useNavigation();
-  const params = useLocalSearchParams<{ from?: string }>();
+  const params = useLocalSearchParams<{ from?: string; seated?: string }>();
   const fromNewGame = params.from === 'new-game';
+  const seatedIds = React.useMemo(() => new Set((params.seated ?? '').split(',').filter(Boolean)), [params.seated]);
+  const [addedHere, setAddedHere] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Player[]>([]);
   const [myIds, setMyIds] = useState<Set<string>>(new Set());
@@ -89,7 +91,10 @@ export default function FindPlayersScreen() {
     try {
       await playersService.addMyPlayer(ownerId, player);
       setMyIds((current) => new Set([...current, player.id]));
-      if (fromNewGame) markPlayerToCheck({ id: player.id, name: player.name, playerCode: player.playerCode });
+      if (fromNewGame) {
+        markPlayerToCheck({ id: player.id, name: player.name, playerCode: player.playerCode });
+        setAddedHere((current) => new Set([...current, player.id]));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : formatSupabaseError(err));
     } finally {
@@ -97,7 +102,8 @@ export default function FindPlayersScreen() {
     }
   }, [ownerId, fromNewGame]);
 
-  const ordered = orderDatabaseResults(results, myIds);
+  // From New game the question is "already seated?", not "already in My players?".
+  const ordered = orderDatabaseResults(results, fromNewGame ? new Set([...seatedIds, ...addedHere]) : myIds);
   const nothing = playerSearchMode(query) !== 'none' && !searching && results.length === 0;
 
   return (
@@ -114,20 +120,28 @@ export default function FindPlayersScreen() {
       <View style={styles.list}>
       {ordered.map((player) => {
         const badge = playerIdBadge(player);
+        const isMe = player.id === ownerId;
         const inList = player.inMyPlayers;
         return (
           <View key={player.id} style={[styles.row, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}>
-            <SeatAvatar name={player.name} label={chipInitials(player.name)} size={36} muted={inList} />
+            <SeatAvatar name={player.name} label={chipInitials(player.name)} size={36} muted={inList || isMe} />
             <View style={styles.text}>
               <Text variant="titleMedium" numberOfLines={2} style={styles.name}>{player.name}</Text>
               {badge ? (
                 <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{badge}</Text>
               ) : null}
             </View>
-            {inList && !fromNewGame ? (
-              <View style={[styles.inList, { backgroundColor: colors.surfaceVariant }]} accessibilityLabel={`${player.name} is in your player list`}>
+            {isMe ? (
+              <View style={[styles.inList, { backgroundColor: colors.surfaceVariant }]} accessibilityLabel="This is you">
+                <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>This is you</Text>
+              </View>
+            ) : inList ? (
+              <View
+                style={[styles.inList, { backgroundColor: colors.surfaceVariant }]}
+                accessibilityLabel={fromNewGame ? `${player.name} is in this game` : `${player.name} is in your player list`}
+              >
                 <Icon source="check" size={16} color={colors.onSurfaceVariant} />
-                <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>In your player list</Text>
+                <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>{fromNewGame ? 'In this game' : 'In your player list'}</Text>
               </View>
             ) : (
               <Button
@@ -135,10 +149,10 @@ export default function FindPlayersScreen() {
                 compact
                 onPress={() => add(player)}
                 loading={!!busy[player.id]}
-                disabled={!!busy[player.id] || (fromNewGame && inList)}
+                disabled={!!busy[player.id]}
                 accessibilityLabel={fromNewGame ? `Add ${player.name} to this game` : `Add ${player.name} to My players`}
               >
-                {fromNewGame ? (inList ? 'Added' : '+ Add') : '+ My players'}
+                {fromNewGame ? '+ Add' : '+ My players'}
               </Button>
             )}
           </View>

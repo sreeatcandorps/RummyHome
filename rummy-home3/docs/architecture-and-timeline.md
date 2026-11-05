@@ -196,6 +196,11 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Fix: `app.config.js` layers over `app.json` and turns `updates.enabled` on only when `EXPO_UPDATES_ENABLED=true`. `eas.json` sets it `false` for development and preview and `true` for production, so preview/development APKs always run the JavaScript built into them. The version is bumped to 1.1.0 (also a new runtime version), and preview builds `autoIncrement` so each APK has its own build number. Nothing was published.
 - Home shows `v1.1.0 (build N)` next to the title (expo-application, falling back to the config in Expo Go / web) and Help adds the same plus whether the code is embedded or an OTA update. New dependency: `expo-application`.
 
+### 2026-11-05 — Home, My players, New game reshaped from build 2 feedback; every help popup rewritten
+- Home: Results (light yellow) sits above a Live card that lists every active game, then Recent with only Completed/Closed games (All or Last 10 days). My players: sort toggle in the header, two-column fixed-height grid with full names and a numeric "Player ID N" badge (letter codes are never shown), three plain buttons; the −/+ stepper is gone and the add-by-initials sheet opens with 3 rows. Find player in database marks people already on your list and sorts them last; from New game it is "Add player to new game" and seats them as well. No new dependencies, no schema changes.
+- Numeric player IDs in the lists depend on migration `012` being applied; a database still on letter codes shows no badge.
+- All help popups (`constants/help.ts`) are now short prose covering only what the screen cannot show.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -208,10 +213,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | --- | --- |
 | Auth (email/passcode, session refresh) | Done enough for testing |
 | Profiles / Player ID + share | Done |
-| Find players (name, player ID, exact email, +) | Done; needs `007` on the live database |
-| New game (points, my players) | Done. Stored type is still the points game |
+| Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
+| New game (points, my players) | Done. Full names on chips and cards; Add players / Add player from database. Stored type is still the points game |
 | Game table + score entry | Done, portrait + landscape. Add round rebuilt from the owner's sketch: grid, presets, keypad, Balance gate |
-| Home Recent | Done. History screen redirects home |
+| Home | Done. Results → every live game → Recent (Completed/Closed, All / Last 10 days). History screen redirects home |
 | Results | Done in the app. Totals, players-by-game table, places, a podium image, and a full-details PDF. Apply `008_results.sql` before declare works on the live database |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; dark mode is on Me and saved on the phone |
