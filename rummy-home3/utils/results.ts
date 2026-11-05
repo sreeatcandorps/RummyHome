@@ -24,6 +24,8 @@ export type ResultSheetGame = {
   name: string;
   date: string;
   scores: Record<string, number>;
+  /** Round-by-round scores for the PDF. Results saved before this was added have none. */
+  rounds?: Record<string, number[]>;
 };
 
 export type ResultSheet = {
@@ -235,42 +237,25 @@ export function playersByFirstName<T extends { id: string; name: string }>(playe
 }
 
 /**
- * A score column has to show a signed total such as "-1234" without crowding.
- * 50 is the floor, so name + 4 games + Total fit on a 360dp phone; extra space is spread evenly.
- * The scorecard uses the same idea, stepping type up once a column reaches the 50s and 64.
+ * Results table widths. Game columns hold a sign plus four digits ("-1234"),
+ * Total a sign plus five. Both are fixed; the player column takes what is left
+ * so full names can wrap onto a second line instead of being cut.
  */
-export const RESULTS_SCORE_MIN = 50;
-/** The player name stays a fixed width. Game columns take the rest. */
-export const RESULTS_NAME_COL = 76;
-
-function splitEven(available: number, count: number): number[] {
-  if (count <= 0) return [];
-  const base = Math.floor(available / count);
-  const extra = available - base * count;
-  return Array.from({ length: count }, (_, index) => base + (index < extra ? 1 : 0));
-}
+export const RESULTS_GAME_COL = 48;
+export const RESULTS_TOTAL_COL = 54;
+/** The player column never gets narrower than this; past it the table scrolls sideways. */
+export const RESULTS_NAME_MIN = 80;
 
 /**
  * Pixel widths: name, then one width per game, then Total.
- * The name is fixed. Total is always one of the score columns, so it can stay on screen.
- * As many game columns as fit at RESULTS_SCORE_MIN are shown; the rest scroll sideways.
+ * Name = frame − games − Total, floored at RESULTS_NAME_MIN.
  */
 export function resultsColumnWidths(frameWidth: number, gameCount: number): number[] {
   const width = Math.max(0, Math.floor(frameWidth));
   const games = Math.max(0, gameCount);
-  const nameWidth = width >= RESULTS_NAME_COL + RESULTS_SCORE_MIN * 2
-    ? RESULTS_NAME_COL
-    : Math.max(64, Math.min(RESULTS_NAME_COL, width - RESULTS_SCORE_MIN * 2));
-  const scoreCount = games + 1;
-  const available = Math.max(0, width - nameWidth);
-  const slotsThatFit = Math.max(1, Math.min(scoreCount, Math.floor(available / RESULTS_SCORE_MIN) || 1));
-  if (slotsThatFit >= scoreCount) {
-    return [nameWidth, ...splitEven(available, scoreCount)];
-  }
-  const base = Math.floor(available / slotsThatFit);
-  const gameWidth = Math.max(RESULTS_SCORE_MIN, base);
-  const remainder = gameWidth === base ? available - base * slotsThatFit : 0;
-  return [nameWidth, ...Array(games).fill(gameWidth), gameWidth + remainder];
+  const scores = games * RESULTS_GAME_COL + RESULTS_TOTAL_COL;
+  const nameWidth = Math.max(RESULTS_NAME_MIN, width - scores);
+  return [nameWidth, ...Array(games).fill(RESULTS_GAME_COL), RESULTS_TOTAL_COL];
 }
 
 /** How many game columns are on screen. Total has its own slot and is not counted here. */
@@ -278,17 +263,13 @@ export function resultsVisibleGameCount(frameWidth: number, gameCount: number): 
   const games = Math.max(0, gameCount);
   if (games === 0) return 0;
   if (!resultsTableScrollsHorizontally(frameWidth, games)) return games;
-  const widths = resultsColumnWidths(frameWidth, games);
-  const name = widths[0] ?? 0;
-  const gameWidth = Math.max(1, widths[1] ?? RESULTS_SCORE_MIN);
-  const totalWidth = widths[widths.length - 1] ?? gameWidth;
-  const room = Math.max(0, Math.floor(frameWidth) - name - totalWidth);
-  return Math.min(games, Math.floor(room / gameWidth));
+  const room = Math.max(0, Math.floor(frameWidth) - RESULTS_NAME_MIN - RESULTS_TOTAL_COL);
+  return Math.min(games, Math.floor(room / RESULTS_GAME_COL));
 }
 
 export function resultsTableScrollsHorizontally(frameWidth: number, gameCount: number): boolean {
   const content = resultsColumnWidths(frameWidth, gameCount).reduce((sum, value) => sum + value, 0);
-  return content > frameWidth + 1;
+  return content > Math.floor(frameWidth);
 }
 
 /**
@@ -304,12 +285,15 @@ export function buildResultSheet(
     players: standings.map((row) => ({ id: row.id, name: row.name })),
     games: ordered.map((game) => {
       const scores: Record<string, number> = {};
+      const rounds: Record<string, number[]> = {};
       const seated = new Set(game.players.filter((id) => id && id !== RESULT_EXPENSE_ID));
       standings.forEach((row) => {
         if (!seated.has(row.id)) return;
-        scores[row.id] = (game.scores[row.id] ?? []).reduce((sum, value) => sum + (Number(value) || 0), 0);
+        const values = (game.scores[row.id] ?? []).map((value) => Number(value) || 0);
+        scores[row.id] = values.reduce((sum, value) => sum + value, 0);
+        rounds[row.id] = values;
       });
-      return { id: game.id, name: game.name, date: game.date, scores };
+      return { id: game.id, name: game.name, date: game.date, scores, rounds };
     }),
   };
 }
@@ -328,15 +312,20 @@ export function canDeclareResults(
   return games.every((game) => userAdminsGame(game, userId));
 }
 
-/** Start time for a Results column header: h:mm, no AM/PM (10:05). */
+/** Start time for a Results column header: h:mm am/pm (10:05 pm). */
 export function gameClock(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   const hour = date.getHours() % 12 || 12;
-  return `${hour}:${String(date.getMinutes()).padStart(2, '0')}`;
+  return `${hour}:${String(date.getMinutes()).padStart(2, '0')} ${date.getHours() < 12 ? 'am' : 'pm'}`;
 }
 
-/** "Game 1 10:05" for the image and PDF; games are already in start order. */
+/** "G1", "G2"… for table headers; games are already in start order. */
+export function gameShortLabel(index: number): string {
+  return `G${index + 1}`;
+}
+
+/** "G1 10:05 pm" for the PDF; games are already in start order. */
 export function gameColumnLabel(index: number, when: string): string {
-  return when ? `Game ${index + 1} ${when}` : `Game ${index + 1}`;
+  return when ? `${gameShortLabel(index)} ${when}` : gameShortLabel(index);
 }

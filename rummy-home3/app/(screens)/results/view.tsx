@@ -88,11 +88,12 @@ export default function ShownResults() {
     return buildResultsShareCard({
       title: 'Results',
       date: formatGameDateTime(createdAt),
-      rows: standings.map((row) => ({ name: row.name, points: row.points })),
+      rows: standings.map((row) => ({ id: row.id, name: row.name, points: row.points, place: row.place })),
       places: sharePlaces(standings),
       gameCount,
+      games: sheet.games,
     });
-  }, [standings, createdAt, gameCount]);
+  }, [standings, createdAt, gameCount, sheet]);
 
   const details = useMemo(() => {
     if (standings.length === 0) return null;
@@ -105,6 +106,7 @@ export default function ShownResults() {
         name: game.name,
         when: gameClock(game.date),
         scores: game.scores,
+        rounds: game.rounds,
       })),
     });
   }, [standings, sheet, createdAt]);

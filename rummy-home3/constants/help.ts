@@ -84,7 +84,7 @@ What you can do:
   - If every selected game is Completed, the result is saved and those games become Closed.
   - If any selected game is still Active, you see the running totals only. Nothing is saved and no game is closed.
 - Tap a past result to open it again.
-- On a result, tap Share to send a picture of the Totals with the top 3, or a PDF with everything.
+- On a result, tap Share to send a picture of the Totals (crowns mark 1st, 2nd and 3rd, and a small G1, G2… grid shows how each game adds up when there are 5 games or fewer), or a PDF with everything: the games, both totals, the top 3, and every round of every game.
 
 Results can include at most 50 players.`,
   publicScorecard:

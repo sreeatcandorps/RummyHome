@@ -10,7 +10,9 @@ import {
   playersByFirstName,
   podiumPlaces,
   presentResults,
-  RESULTS_SCORE_MIN,
+  RESULTS_GAME_COL,
+  RESULTS_NAME_MIN,
+  RESULTS_TOTAL_COL,
   resultsColumnWidths,
   resultsPlayerCount,
   resultsTableScrollsHorizontally,
@@ -127,35 +129,31 @@ test('a missing seat is a dash, a zero is a score, and names sort by first name'
   );
 });
 
-test('game columns follow the width, and the total keeps a slot', () => {
+test('game and Total columns are fixed; the player column takes the rest and only then scrolls', () => {
   const gutter = 32;
   const small = 360 - gutter;
   const typical = 412 - gutter;
-  const largePhone = 430 - gutter;
   const tablet = 1024 - gutter;
-  const games = 8;
 
-  assert.equal(resultsVisibleGameCount(small, games), 4);
+  // Four games on a small phone: no sideways scroll, the name column keeps the leftover width.
   assert.equal(resultsTableScrollsHorizontally(small, 4), false);
-  assert.equal(resultsTableScrollsHorizontally(small, games), true);
-  assert.equal(resultsColumnWidths(small, 4).reduce((sum, value) => sum + value, 0), small);
+  const four = resultsColumnWidths(small, 4);
+  assert.equal(four.length, 6);
+  assert.equal(four.reduce((sum, value) => sum + value, 0), small);
+  assert.equal(four[0], small - 4 * RESULTS_GAME_COL - RESULTS_TOTAL_COL);
+  assert.ok(four[0] >= RESULTS_NAME_MIN);
+  assert.deepEqual(four.slice(1, 5), Array(4).fill(RESULTS_GAME_COL));
+  assert.equal(four[5], RESULTS_TOTAL_COL);
 
-  const typicalVisible = resultsVisibleGameCount(typical, games);
-  assert.ok(typicalVisible >= 4 && typicalVisible <= 5, `typical phone shows ${typicalVisible}`);
-  assert.ok(resultsVisibleGameCount(largePhone, games) >= typicalVisible);
-  assert.equal(resultsTableScrollsHorizontally(tablet, games), false);
-  assert.equal(resultsVisibleGameCount(tablet, games), games);
-  assert.ok(resultsVisibleGameCount(tablet, 20) > resultsVisibleGameCount(largePhone, 20));
-
-  for (const width of [small, typical, largePhone, tablet]) {
-    const widths = resultsColumnWidths(width, games);
-    assert.equal(widths.length, games + 2);
-    assert.ok(widths.slice(1).every((value) => value >= RESULTS_SCORE_MIN));
-    assert.equal(widths[0], 76);
-  }
-
-  const landscape = 844 - 24;
-  assert.ok(resultsVisibleGameCount(landscape, games) > resultsVisibleGameCount(small, games));
+  // More games shrink the name column until its floor, then the table scrolls.
+  assert.ok(resultsColumnWidths(small, 2)[0] > resultsColumnWidths(small, 4)[0]);
+  assert.equal(resultsColumnWidths(small, 8)[0], RESULTS_NAME_MIN);
+  assert.equal(resultsTableScrollsHorizontally(small, 8), true);
+  assert.equal(resultsVisibleGameCount(small, 8), Math.floor((small - RESULTS_NAME_MIN - RESULTS_TOTAL_COL) / RESULTS_GAME_COL));
+  assert.ok(resultsVisibleGameCount(typical, 8) >= resultsVisibleGameCount(small, 8));
+  assert.equal(resultsTableScrollsHorizontally(tablet, 8), false);
+  assert.equal(resultsVisibleGameCount(tablet, 8), 8);
+  assert.equal(resultsVisibleGameCount(small, 0), 0);
 });
 
 test('results stop at 50 players and a game stops at 15', () => {
@@ -191,7 +189,8 @@ test('the share image names EZ Score: Rummy and shortens a long list', () => {
   // Round 2: the image is the Totals section, so every player is on it.
   assert.equal(resultsCard.lines.length, RESULTS_IMAGE_TOTAL_CAP + 2);
   assert.equal(resultsCard.moreCount, 0);
-  assert.equal(resultsCard.places[0].label, '1st');
+  // The crowns beside the rows replace the 1st/2nd/3rd paragraph.
+  assert.deepEqual(resultsCard.places, []);
   assert.equal(resultsCard.lines[0].points, `+${RESULTS_IMAGE_TOTAL_CAP + 1}`);
 });
 
@@ -221,18 +220,29 @@ test('the full details include the games, the player table, both totals, and the
     games: sheet.games.map((game) => ({ ...game, when: game.date })),
   });
   assert.deepEqual(details.rows.map((row) => row.name), ['Ada', 'Bea']);
-  assert.deepEqual(details.columns, ['Game 1 2026-10-28T15:00:00.000Z', 'Game 2 2026-10-28T17:00:00.000Z', 'Total']);
+  assert.deepEqual(details.columns, ['G1 2026-10-28T15:00:00.000Z', 'G2 2026-10-28T17:00:00.000Z', 'Total']);
+  assert.equal(details.gameCount, 2);
+  assert.equal(details.playerCount, 2, 'Ada played both games but is counted once');
+  assert.equal(details.roundTables.length, 2);
+  assert.deepEqual(details.roundTables[0].initials, ['A', 'B']);
+  assert.deepEqual(details.roundTables[0].rows, [{ round: 1, cells: ['+20', '-20'] }]);
+  assert.deepEqual(details.roundTables[0].totals, ['+20', '-20']);
+  assert.equal(details.roundTables[1].totalsOnly, false);
   assert.equal(details.rows[1].cells[1], '—');
   assert.equal(details.rows[0].cells[2], '+25');
   const html = resultsDetailsHtml(details);
   assert.match(html, /EZ Score: Rummy/);
-  assert.match(html, /Created Wed, Oct 28/);
-  assert.match(html, /class="n">1</);
-  assert.match(html, /class="n">2</);
-  assert.match(html, />Total</);
+  assert.match(html, /Created Wed, Oct 28 · 6:40 PM/);
+  assert.match(html, /2 games · 2 players/);
+  assert.match(html, /<li>G1 — /);
+  assert.match(html, /<li>G2 — /);
+  assert.match(html, /class="totals-row"/);
   assert.match(html, /Positive/);
   assert.match(html, /Negative/);
   assert.match(html, /1st/);
+  assert.match(html, /<th>Round<\/th>/);
+  assert.match(html, /max-width: 420px/);
+  assert.match(html, /width: auto/);
   const many = buildResultsDetails({
     createdAtLabel: 'Wed, Oct 28 · 6:40 PM',
     standings: Array.from({ length: 50 }, (_, index) => ({
@@ -247,7 +257,7 @@ test('the full details include the games, the player table, both totals, and the
   });
   const pdf = new TextDecoder().decode(resultsDetailsPdf(many));
   assert.match(pdf, /^%PDF-1\.4/);
-  assert.match(pdf, /Game 1/);
+  assert.match(pdf, /G1/);
   assert.match(pdf, /P00/);
   assert.match(pdf, /P49/);
   const pageCount = pdf.match(/\/Count (\d+)/);
@@ -263,11 +273,13 @@ test('only an admin of every selected game can declare', () => {
   assert.equal(canDeclareResults([host], null), false);
 });
 
-test('game headers use h:mm with no AM/PM', async () => {
-  const { gameClock } = await import('@/utils/results');
+test('game headers use h:mm with am/pm', async () => {
+  const { gameClock, gameShortLabel } = await import('@/utils/results');
   const d = new Date(2026, 9, 28, 22, 5);
-  assert.equal(gameClock(d.toISOString()), '10:05');
-  assert.equal(gameClock(new Date(2026, 9, 28, 0, 7).toISOString()), '12:07');
+  assert.equal(gameClock(d.toISOString()), '10:05 pm');
+  assert.equal(gameClock(new Date(2026, 9, 28, 0, 7).toISOString()), '12:07 am');
+  assert.equal(gameClock(new Date(2026, 9, 28, 11, 51).toISOString()), '11:51 am');
+  assert.equal(gameShortLabel(0), 'G1');
 });
 
 import { resultsCountLine, resultsPdfFileName, resultsShowMode, selectableResultGames, summaryFrom as summaryOf, topThree } from '../utils/results';

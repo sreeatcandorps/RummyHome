@@ -66,6 +66,15 @@ function numberRecord(value: unknown): Record<string, number> {
   return scores;
 }
 
+function roundsRecord(value: unknown): Record<string, number[]> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const rounds: Record<string, number[]> = {};
+  Object.entries(value as Record<string, unknown>).forEach(([key, raw]) => {
+    if (Array.isArray(raw)) rounds[key] = raw.map((item) => Number(item) || 0);
+  });
+  return rounds;
+}
+
 function sheetFrom(value: unknown, standings: ResultStanding[]): ResultSheet {
   const fallback: ResultSheet = {
     players: standings.map((row) => ({ id: row.id, name: row.name })),
@@ -84,13 +93,15 @@ function sheetFrom(value: unknown, standings: ResultStanding[]): ResultSheet {
   const games = Array.isArray(row.games)
     ? row.games.flatMap((item) => {
       if (!item || typeof item !== 'object') return [];
-      const game = item as { id?: unknown; name?: unknown; date?: unknown; scores?: unknown };
+      const game = item as { id?: unknown; name?: unknown; date?: unknown; scores?: unknown; rounds?: unknown };
       if (typeof game.id !== 'string') return [];
+      const rounds = roundsRecord(game.rounds);
       return [{
         id: game.id,
         name: typeof game.name === 'string' && game.name.trim() ? game.name : game.id.slice(-6).toUpperCase(),
         date: typeof game.date === 'string' ? game.date : '',
         scores: numberRecord(game.scores),
+        ...(rounds ? { rounds } : {}),
       }];
     })
     : [];
