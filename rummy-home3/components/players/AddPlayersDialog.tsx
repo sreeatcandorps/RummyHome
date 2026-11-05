@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button, IconButton, Modal, Portal, Text, TextInput } from 'react-native-paper';
 import { Player } from '@/types/player';
 import { playerIdentityService } from '@/services/playerIdentity';
-import { chipInitials } from '@/utils/playerIdentity';
+import { buildPlayerInitials } from '@/utils/playerInitials';
 import { playerIdBadge } from '@/utils/myPlayersList';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
@@ -70,6 +70,10 @@ export function AddPlayersDialog({ visible, count = DEFAULT_NEW_PLAYER_ROWS, own
   };
 
   const savedCount = rows.filter((r) => r.player && !r.editing).length;
+  // Two people with the same initials in this sheet read HY and H2, in row order.
+  const savedRows = rows.filter((r) => r.player);
+  const labels = buildPlayerInitials(savedRows.map((r) => r.player!.name));
+  const labelFor = (key: string) => labels[savedRows.findIndex((r) => r.key === key)] ?? '';
 
   return (
     <Portal>
@@ -78,7 +82,7 @@ export function AddPlayersDialog({ visible, count = DEFAULT_NEW_PLAYER_ROWS, own
         <ScrollView keyboardShouldPersistTaps="handled" style={styles.scroll}>
           {rows.map((row, i) => {
             const saved = Boolean(row.player) && !row.editing;
-            const shown = row.player ? chipInitials(row.player.name) : '';
+            const shown = row.player ? labelFor(row.key) : '';
             return (
               <View key={row.key} style={[styles.row, { borderColor: saved ? '#2E7D32' : colors.outlineVariant }]}>
                 <Text variant="labelLarge" style={styles.num}>{i + 1}</Text>

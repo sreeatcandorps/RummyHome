@@ -1,4 +1,4 @@
-import { buildPlayerInitials } from '@/utils/playerInitials';
+import { firstAppearanceOrder, initialsById } from '@/utils/playerInitials';
 import {
   formatPoints,
   gameColumnLabel,
@@ -60,15 +60,20 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** One game's rounds: every round, every seated player, game totals. */
+/**
+ * One game's rounds: every round, every seated player, game totals.
+ * Labels are shared across the whole result (first appearance order) so the
+ * same person reads the same in every table; pass them in when there are several games.
+ */
 export function buildRoundTable(
   game: ResultsDetailGame,
   index: number,
   players: { id: string; name: string }[],
+  labels: Map<string, string> = initialsById(firstAppearanceOrder(players, [game])),
 ): ResultsRoundTable {
   const seated = playersByFirstName(players.filter((player) => Object.prototype.hasOwnProperty.call(game.scores, player.id)));
   const names = seated.map((player) => player.name);
-  const initials = buildPlayerInitials(names);
+  const initials = seated.map((player) => labels.get(player.id) ?? '?');
   const rounds = game.rounds;
   const roundCount = rounds ? seated.reduce((max, player) => Math.max(max, rounds[player.id]?.length ?? 0), 0) : 0;
   const rows = Array.from({ length: roundCount }, (_, roundIndex) => ({
@@ -98,6 +103,7 @@ export function buildResultsDetails(input: {
   games: ResultsDetailGame[];
 }): ResultsDetails {
   const players = playersByFirstName(input.players);
+  const labels = initialsById(firstAppearanceOrder(input.players, input.games));
   const points = new Map(input.standings.map((row) => [row.id, row.points]));
   const rows = players.map((player) => ({
     name: player.name,
@@ -123,7 +129,7 @@ export function buildResultsDetails(input: {
       names: group.map((row) => row.name).join(', '),
       points: formatPoints(group[0].points),
     })),
-    roundTables: input.games.map((game, index) => buildRoundTable(game, index, input.players)),
+    roundTables: input.games.map((game, index) => buildRoundTable(game, index, input.players, labels)),
   };
 }
 

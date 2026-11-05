@@ -329,7 +329,6 @@ export default function GameScreen() {
   const roundTotals = Array.from({ length: maxRounds }, (_, roundIndex) => getRoundTotal(roundIndex));
   const grandTotal = players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0);
 
-  const startedOn = formatGameDateTime(game.date);
   const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : settleEnabled ? 'cash-multiple' : 'numeric'} />;
   const statusTag = game.isComplete ? (
     <Tag label="Completed" icon="flag-checkered" />
@@ -339,11 +338,6 @@ export default function GameScreen() {
       tone="primary"
       icon="cards-outline"
     />
-  );
-  const idText = (
-    <Text variant="labelMedium" numberOfLines={1} style={[{ color: colors.onSurfaceVariant }, tabularNums]}>
-      ID {gameIdLabel(game)}
-    </Text>
   );
 
   const table = (
@@ -445,11 +439,6 @@ export default function GameScreen() {
           {typeTag}
           {statusTag}
           {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
-          <View style={styles.flex} />
-          <Text variant="labelMedium" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
-            Started {startedOn}
-          </Text>
-          {idText}
         </View>
         {!canScore && !game.isComplete ? (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>View only.</Text>
@@ -512,7 +501,7 @@ export default function GameScreen() {
           </Dialog.Title>
           <Dialog.ScrollArea style={styles.resultScroll}>
             <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
-              ID {gameIdLabel(game)}. The scores stay as they are.
+              The scores stay as they are.
             </Text>
             {playingSeats().map((seat) => (
               <View key={seat.id} style={styles.prizeRow}>

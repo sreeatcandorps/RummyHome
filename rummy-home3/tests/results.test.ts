@@ -225,7 +225,7 @@ test('the full details include the games, the player table, both totals, and the
   assert.equal(details.gameCount, 2);
   assert.equal(details.playerCount, 2, 'Ada played both games but is counted once');
   assert.equal(details.roundTables.length, 2);
-  assert.deepEqual(details.roundTables[0].initials, ['A', 'B']);
+  assert.deepEqual(details.roundTables[0].initials, ['AD', 'BE']);
   assert.deepEqual(details.roundTables[0].rows, [{ round: 1, cells: ['+20', '-20'] }]);
   assert.deepEqual(details.roundTables[0].totals, ['+20', '-20']);
   assert.equal(details.roundTables[1].totalsOnly, false);

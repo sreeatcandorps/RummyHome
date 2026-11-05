@@ -1,4 +1,4 @@
-import { buildPlayerInitials } from '@/utils/playerInitials';
+import { firstAppearanceOrder, initialsById } from '@/utils/playerInitials';
 import { formatPoints, gameShortLabel, playersByFirstName, scoreCell } from '@/utils/results';
 
 /** The share image breaks totals down per game only up to this many games. */
@@ -31,11 +31,11 @@ export function buildShareBreakdown(input: {
 }): ShareBreakdown | null {
   if (input.games.length === 0 || input.games.length > SHARE_BREAKDOWN_MAX_GAMES) return null;
   const players = playersByFirstName(input.players);
-  const initials = buildPlayerInitials(players.map((player) => player.name));
+  const initials = initialsById(firstAppearanceOrder(input.players, input.games));
   return {
     columns: [...input.games.map((_, index) => gameShortLabel(index)), 'Total'],
-    rows: players.map((player, index) => ({
-      initials: initials[index],
+    rows: players.map((player) => ({
+      initials: initials.get(player.id) ?? '?',
       name: player.name,
       cells: input.games.map((game) => scoreCell(game.scores, player.id)),
       total: formatPoints(input.totals[player.id] ?? 0),

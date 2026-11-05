@@ -289,12 +289,13 @@ export function buildResultSheet(
     games: ordered.map((game) => {
       const scores: Record<string, number> = {};
       const rounds: Record<string, number[]> = {};
-      const seated = new Set(game.players.filter((id) => id && id !== RESULT_EXPENSE_ID));
-      standings.forEach((row) => {
-        if (!seated.has(row.id)) return;
-        const values = (game.scores[row.id] ?? []).map((value) => Number(value) || 0);
-        scores[row.id] = values.reduce((sum, value) => sum + value, 0);
-        rounds[row.id] = values;
+      // Seat order is kept in the key order, so labels can follow first appearance.
+      const known = new Set(standings.map((row) => row.id));
+      game.players.forEach((id) => {
+        if (!id || id === RESULT_EXPENSE_ID || !known.has(id) || id in scores) return;
+        const values = (game.scores[id] ?? []).map((value) => Number(value) || 0);
+        scores[id] = values.reduce((sum, value) => sum + value, 0);
+        rounds[id] = values;
       });
       return { id: game.id, name: game.name, date: game.date, scores, rounds };
     }),
