@@ -114,7 +114,7 @@ function PastResult({ item }: { item: GameResultSummary }) {
           <View style={styles.pastBody}>
             <Text variant="titleSmall" style={styles.left} numberOfLines={1}>{formatGameDateTime(item.declaredAt)}</Text>
             <View style={styles.meta}>
-              <Tag label="Results" tone="stake" icon="podium" />
+              <Tag label="Results" tone="results" icon="podium" />
               <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{resultsCountLine(item.gameCount, item.playerCount)}</Text>
             </View>
             {item.top.length === 0 ? (
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontWeight: '800', fontSize: 15 },
   rowBody: { flex: 1, gap: 4, alignItems: 'flex-start' },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
   filterChip: { borderRadius: radius.full },
   past: {

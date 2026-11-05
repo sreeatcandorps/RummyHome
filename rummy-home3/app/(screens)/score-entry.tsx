@@ -81,6 +81,8 @@ export default function ScoreEntryScreen() {
   const [gridWidth, setGridWidth] = useState(0);
 
   const balancePulse = useRef(new Animated.Value(1)).current;
+  const presetFlash = useRef<Record<string, Animated.Value>>({}).current;
+  const flashFor = (id: string) => (presetFlash[id] ??= new Animated.Value(0));
 
   useEffect(() => {
     loadGameData();
@@ -347,8 +349,6 @@ export default function ScoreEntryScreen() {
   ];
 
   // Each preset key gets a green flash when tapped so the hand knows it landed.
-  const presetFlash = useRef<Record<string, Animated.Value>>({}).current;
-  const flashFor = (id: string) => (presetFlash[id] ??= new Animated.Value(0));
   const flashPreset = (id: string) => {
     const value = flashFor(id);
     value.setValue(1);
@@ -461,7 +461,7 @@ export default function ScoreEntryScreen() {
       contentStyle={styles.saveRoundContent}
       labelStyle={styles.saveRoundLabel}
     >
-      {editRound ? 'Save changes' : 'Save round'}
+      {editRound ? 'Save edit' : 'Save round'}
     </Button>
   );
 

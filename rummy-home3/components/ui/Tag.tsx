@@ -3,7 +3,7 @@ import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
-export type TagTone = 'neutral' | 'primary' | 'positive' | 'leader' | 'danger' | 'stake' | 'pool' | 'info';
+export type TagTone = 'neutral' | 'primary' | 'positive' | 'leader' | 'danger' | 'stake' | 'pool' | 'info' | 'results';
 
 type TagProps = {
   label: string;
@@ -28,6 +28,7 @@ export function Tag({ label, tone = 'neutral', icon, style, wrap = false, small 
     leader: { bg: colors.leaderContainer, fg: colors.onLeaderContainer },
     danger: { bg: colors.errorContainer, fg: colors.onErrorContainer },
     info: { bg: colors.tertiaryContainer, fg: colors.onTertiaryContainer },
+    results: { bg: colors.secondaryContainer, fg: colors.onSecondaryContainer },
     stake: { bg: gameTypes.stake.container, fg: gameTypes.stake.on },
     pool: { bg: gameTypes.pool.container, fg: gameTypes.pool.on },
   };

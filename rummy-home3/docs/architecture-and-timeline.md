@@ -207,6 +207,12 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Profile tab is avatar-only (the SK chip); the screen is "Profile". Phone has its own one-column save (`authService.updatePhone`) with inline Saved/error text. A "Which setting wins" ladder (Game settings > User settings > Game defaults) sits on Profile and on User settings.
 - New game no longer pre-seats the creator; they are offered first and tap themselves to play. Home opens on Last 10 days; My players opens on Frequent and labels everyone Registered / Pending registration / Unregistered. No new dependencies, no schema changes.
 
+### 2026-11-05 — Build 4 feedback: Edit round without a migration, Results defaults and warnings, names replace avatars
+- Edit round (Scorecard ⋮ → Edit round → pick a round) reopens Add round pre-filled and saves through `gamesService.replaceRound`. On Supabase it retires the old `rounds` row (sets `undone_at`, moves `round_number` to 1000+n to dodge the unique index) and inserts a fresh row + scores, because clients have no update/delete on `scores`. Every reader already skips undone rounds, so no migration.
+- Results opens on Completed with every completed game ticked; All adds Active and Closed. Two client-side warnings (active game used; game already in another result) show on the picker and on opened results. Clients cannot read `game_result_games`, so "already in another result" is a heuristic: a game whose `closed_at` predates the result by more than a minute. Deleting a past result needs a server RPC and is deferred.
+- Player avatars are gone from lists; names show with bold first/last initials (`BoldName`). A shared in-memory draft (`newGameDraft`) keeps New game seats and the Add New Players strip in sync.
+- Score-entry palette is final (beige / yellow / green / blue); `cellConfirmed` token removed. No new dependencies, no schema changes.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.

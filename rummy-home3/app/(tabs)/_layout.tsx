@@ -54,13 +54,15 @@ function useMyName() {
   return name;
 }
 
-/** Bottom-tab avatar: the same filled green SK chip as the header, dimmed when the tab is not active. */
+/** Bottom-tab avatar: the exact header SK chip (same size, weight, green); focus adds a ring instead of fading it. */
+const HEADER_AVATAR = 36;
+
 function ProfileTabIcon({ focused }: { focused: boolean }) {
   const theme = useAppTheme();
   const name = useMyName();
   return (
-    <View style={[styles.tabAvatar, { opacity: focused ? 1 : 0.55 }]}>
-      <SeatAvatar name={name} size={32} color={theme.colors.primary} />
+    <View style={[styles.tabAvatar, { borderColor: focused ? theme.colors.secondary : 'transparent' }]}>
+      <SeatAvatar name={name} size={HEADER_AVATAR} color={theme.colors.primary} />
     </View>
   );
 }
@@ -86,7 +88,7 @@ function HeaderTools() {
           accessibilityRole="button"
           accessibilityLabel="Open Me"
         >
-          <SeatAvatar name={name} size={36} color={theme.colors.primary} />
+          <SeatAvatar name={name} size={HEADER_AVATAR} color={theme.colors.primary} />
         </TouchableRipple>
       )}
     </View>
@@ -172,7 +174,7 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabAvatar: { alignItems: 'center', justifyContent: 'center', marginTop: -2 },
+  tabAvatar: { alignItems: 'center', justifyContent: 'center', marginTop: -2, borderWidth: 2, borderRadius: 999, padding: 2 },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
