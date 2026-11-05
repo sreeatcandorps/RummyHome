@@ -124,7 +124,6 @@ const lightColors = {
   onFeltMuted: 'rgba(251, 241, 225, 0.72)',
   // Add round cells: beige before anything is entered, grey once a score is confirmed.
   cellNeutral: '#F3EEE3',
-  cellConfirmed: '#E3E3E0',
   tableHeader: '#EFE9DC',
   tableStripe: '#FAF7F0',
   tableLatest: '#EAF5EE',
@@ -182,7 +181,6 @@ const darkColors: typeof lightColors = {
   onFelt: brand.cream,
   onFeltMuted: 'rgba(251, 241, 225, 0.7)',
   cellNeutral: '#1B2420',
-  cellConfirmed: '#2C312E',
   tableHeader: '#1F2924',
   tableStripe: '#18211D',
   tableLatest: '#1A3327',

@@ -203,6 +203,14 @@ export function newGameGrid<T extends { id: string }>(sorted: T[], selectedIds: 
   return list.slice(0, size);
 }
 
+export type CandidateSort = 'frequent' | 'name';
+
+/** Frequent keeps sortCandidates' order (recent partners, then most games); Alphabetical is by name. */
+export function orderCandidates<T extends { name: string }>(sorted: T[], sort: CandidateSort): T[] {
+  if (sort === 'name') return [...sorted].sort((a, b) => a.name.localeCompare(b.name));
+  return sorted;
+}
+
 /** Only the people tapped are seated, in the order they were tapped. */
 export function newGameSeats(selectedIds: string[]): string[] {
   return selectedIds.filter((id, index) => selectedIds.indexOf(id) === index);

@@ -74,6 +74,68 @@ export function selectableResultGames<T extends { closedAt?: string | null }>(ga
   return [...games];
 }
 
+// ---------- Results page filter, default selection, and warnings ----------
+
+export type ResultsFilter = 'completed' | 'all';
+export const DEFAULT_RESULTS_FILTER: ResultsFilter = 'completed';
+export const RESULTS_FILTER_LABEL: Record<ResultsFilter, string> = { completed: 'Completed', all: 'All' };
+
+type FilterableGame = { isComplete?: boolean; closedAt?: string | null };
+
+/** Completed shows only finished games not yet in a result; All shows active, completed, and closed. */
+export function filterResultGames<T extends FilterableGame>(games: T[], filter: ResultsFilter): T[] {
+  if (filter === 'all') return games;
+  return games.filter((game) => Boolean(game.isComplete) && !game.closedAt);
+}
+
+/** On Completed every listed game starts ticked, so Show results is one tap. On All nothing is pre-ticked. */
+export function defaultResultSelection<T extends FilterableGame & { id: string }>(games: T[], filter: ResultsFilter): string[] {
+  return filter === 'completed' ? filterResultGames(games, filter).map((game) => game.id) : [];
+}
+
+export type ResultWarning = { kind: 'active' | 'reused'; text: string };
+
+const gameNames = (games: { gameNumber?: number | null }[]) => {
+  const names = games.map((game) => (game.gameNumber != null ? `G${game.gameNumber}` : 'a game'));
+  return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+};
+
+/**
+ * The two flags a result can carry, for the picker and for an opened result:
+ * an Active game was included (totals can still change), or a game was already
+ * part of another result (its points are counted twice).
+ */
+export function resultWarnings(games: { isComplete?: boolean; closedAt?: string | null; gameNumber?: number | null; reused?: boolean }[]): ResultWarning[] {
+  const warnings: ResultWarning[] = [];
+  const active = games.filter((game) => !game.isComplete);
+  if (active.length > 0) {
+    warnings.push({
+      kind: 'active',
+      text: `An active game was used in these results (${gameNames(active)}). Totals can still change and nothing is saved.`,
+    });
+  }
+  const reused = games.filter((game) => game.reused ?? Boolean(game.closedAt));
+  if (reused.length > 0) {
+    warnings.push({
+      kind: 'reused',
+      text: `${gameNames(reused)} ${reused.length === 1 ? 'was' : 'were'} already part of another result. Those points count twice.`,
+    });
+  }
+  return warnings;
+}
+
+/**
+ * For an opened past result: a game whose closedAt is well before this result's
+ * declaredAt was closed by an earlier result, so it appears in more than one.
+ */
+export function reusedInResult(declaredAt: string, game: { closedAt?: string | null }, slackMs = 60_000): boolean {
+  if (!game.closedAt) return false;
+  const closed = Date.parse(game.closedAt);
+  const declared = Date.parse(declaredAt);
+  if (Number.isNaN(closed) || Number.isNaN(declared)) return false;
+  return declared - closed > slackMs;
+}
+
 /** Warning shown above Show results when any picked game is already Closed. */
 export function closedSelectionWarning(selected: { closedAt?: string | null; gameNumber?: number | null }[]): string | null {
   const closed = selected.filter((game) => Boolean(game.closedAt));

@@ -9,14 +9,13 @@ import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { playerSearchMode } from '@/utils/playerSearch';
-import { chipInitials } from '@/utils/playerIdentity';
 import { orderDatabaseResults, playerIdBadge } from '@/utils/myPlayersList';
 import { shareInvite } from '@/utils/invite';
-import { markPlayerToCheck } from '@/utils/pendingPlayer';
+import { newGameDraft } from '@/utils/newGameDraft';
 import { HELP } from '@/constants/help';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { Screen } from '@/components/ui/Screen';
-import { SeatAvatar } from '@/components/ui/SeatAvatar';
+import { BoldName } from '@/components/ui/BoldName';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 /**
@@ -92,7 +91,7 @@ export default function FindPlayersScreen() {
       await playersService.addMyPlayer(ownerId, player);
       setMyIds((current) => new Set([...current, player.id]));
       if (fromNewGame) {
-        markPlayerToCheck({ id: player.id, name: player.name, playerCode: player.playerCode });
+        newGameDraft.add({ id: player.id, name: player.name, playerCode: player.playerCode });
         setAddedHere((current) => new Set([...current, player.id]));
       }
     } catch (err) {
@@ -124,9 +123,8 @@ export default function FindPlayersScreen() {
         const inList = player.inMyPlayers;
         return (
           <View key={player.id} style={[styles.row, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}>
-            <SeatAvatar name={player.name} label={chipInitials(player.name)} size={36} muted={inList || isMe} />
             <View style={styles.text}>
-              <Text variant="titleMedium" numberOfLines={2} style={styles.name}>{player.name}</Text>
+              <BoldName name={player.name} variant="titleMedium" numberOfLines={2} style={styles.name} />
               {badge ? (
                 <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{badge}</Text>
               ) : null}

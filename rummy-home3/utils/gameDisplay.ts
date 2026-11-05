@@ -47,6 +47,9 @@ export function gameStatusLabel(game: Pick<Game, 'isComplete' | 'closedAt'>): 'A
   return game.isComplete ? 'Completed' : 'Active';
 }
 
+export { GAME_STATUS_ICON, GAME_STATUS_TONE } from '@/utils/gameStatus';
+export type { GameStatus } from '@/utils/gameStatus';
+
 /** True if the game has been included in a declared result. */
 export function isGameClosed(game: Pick<Game, 'closedAt'>): boolean {
   return Boolean(game.closedAt);

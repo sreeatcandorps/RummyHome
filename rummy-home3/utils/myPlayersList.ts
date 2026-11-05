@@ -18,6 +18,25 @@ export const SORT_LABEL: Record<MyPlayersSort, string> = {
   frequent: 'Sort by Frequent',
 };
 
+/** Short chip labels for the sort control beside Search. */
+export const SORT_CHIP: Record<MyPlayersSort, string> = {
+  frequent: 'Frequent',
+  name: 'Alphabetical',
+};
+export const SORT_OPTIONS: MyPlayersSort[] = ['frequent', 'name'];
+
+/** "Unregistered" means anyone who has not finished signing up: Unregistered and Pending registration. */
+export type MyPlayersFilter = 'all' | 'unregistered';
+
+export function matchesPlayerFilter(status: RegistrationLabel, filter: MyPlayersFilter): boolean {
+  if (filter === 'all') return true;
+  return status !== 'Registered';
+}
+
+export function filterMyPlayers<T>(players: T[], filter: MyPlayersFilter, statusOf: (player: T) => RegistrationLabel): T[] {
+  return players.filter((player) => matchesPlayerFilter(statusOf(player), filter));
+}
+
 export const nextSort = (sort: MyPlayersSort): MyPlayersSort => (sort === 'name' ? 'frequent' : 'name');
 
 /** People you play with most come first until the user flips it. */

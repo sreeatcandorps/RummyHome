@@ -54,13 +54,13 @@ function useMyName() {
   return name;
 }
 
-/** Bottom-tab avatar: same initials circle as the header, with a ring when the tab is active. */
-function ProfileTabIcon({ focused, color }: { focused: boolean; color: string }) {
+/** Bottom-tab avatar: the same filled green SK chip as the header, dimmed when the tab is not active. */
+function ProfileTabIcon({ focused }: { focused: boolean }) {
   const theme = useAppTheme();
   const name = useMyName();
   return (
-    <View style={[styles.tabAvatarRing, { borderColor: focused ? color : 'transparent' }]}>
-      <SeatAvatar name={name} size={28} color={focused ? theme.colors.primary : theme.colors.onSurfaceVariant} />
+    <View style={[styles.tabAvatar, { opacity: focused ? 1 : 0.55 }]}>
+      <SeatAvatar name={name} size={32} color={theme.colors.primary} />
     </View>
   );
 }
@@ -164,7 +164,7 @@ export default function TabLayout() {
           title: 'Profile',
           tabBarLabel: () => null,
           tabBarAccessibilityLabel: 'Your profile',
-          tabBarIcon: ({ color, focused }) => <ProfileTabIcon focused={focused} color={color} />,
+          tabBarIcon: ({ focused }) => <ProfileTabIcon focused={focused} />,
         }}
       />
     </Tabs>
@@ -172,7 +172,7 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabAvatarRing: { borderWidth: 2, borderRadius: 18, padding: 1 },
+  tabAvatar: { alignItems: 'center', justifyContent: 'center', marginTop: -2 },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',

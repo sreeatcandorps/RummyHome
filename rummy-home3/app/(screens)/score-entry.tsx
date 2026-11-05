@@ -8,8 +8,11 @@ import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
 import { storage } from '../../utils/storage';
 import {
+  actionFill,
   applyPreset,
   applyRummy,
+  PRESET_FLASH_FILL,
+  PRESET_FLASH_MS,
   balance as roundBalance,
   canSaveRound,
   cellView,
@@ -29,6 +32,7 @@ import {
 import { MAX_CONTENT_WIDTH, radius, spacing, tabularNums, useAppTheme } from '../../constants/theme';
 import { useLayout } from '../../hooks/useLayout';
 import { HELP } from '../../constants/help';
+import { entryFromRound } from '../../utils/editRound';
 import { HelpText } from '../../components/ui/HelpText';
 import { BottomBar } from '../../components/ui/BottomBar';
 import { SeatAvatar } from '../../components/ui/SeatAvatar';
@@ -59,7 +63,9 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
 export default function ScoreEntryScreen() {
   const { colors } = useAppTheme();
   const { isShort, insets, gutterLeft, gutterRight } = useLayout();
-  const { gameId } = useLocalSearchParams();
+  const { gameId, round } = useLocalSearchParams<{ gameId?: string; round?: string }>();
+  // Edit mode: `round=N` opens a finished round with its scores already in the cells.
+  const editRound = round && /^\d+$/.test(String(round)) ? Number(round) : null;
 
   const [game, setGame] = useState<Game | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -109,6 +115,7 @@ export default function ScoreEntryScreen() {
       }
 
       setGame(currentGame);
+      if (editRound) setEntry(entryFromRound(currentGame, editRound));
 
       const [gamePlayers, scorer] = await Promise.all([
         gamesService.listGamePlayers(currentGame.id),
@@ -180,12 +187,16 @@ export default function ScoreEntryScreen() {
         : await storage.getCurrentPlayer();
       if (!createdBy) throw new Error('You must be signed in to save a round.');
 
-      await gamesService.addRound({
-        gameId: game.id,
-        roundNumber: game.currentRound || 1,
-        scores: toRoundScores(finalState),
-        createdBy,
-      });
+      if (editRound) {
+        await gamesService.replaceRound({ gameId: game.id, roundNumber: editRound, scores: toRoundScores(finalState), createdBy });
+      } else {
+        await gamesService.addRound({
+          gameId: game.id,
+          roundNumber: game.currentRound || 1,
+          scores: toRoundScores(finalState),
+          createdBy,
+        });
+      }
       router.back();
     } catch (error) {
       console.error('Score submission error:', error);
@@ -249,7 +260,7 @@ export default function ScoreEntryScreen() {
             </View>
           ) : null}
           <Text variant="titleLarge" numberOfLines={1} style={[styles.title, { color: colors.onSurface }]}>
-            Round {game.currentRound || 1}
+            {editRound ? `Edit round ${editRound}` : `Round ${game.currentRound || 1}`}
           </Text>
         </View>
         <Text variant="labelMedium" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
@@ -279,7 +290,7 @@ export default function ScoreEntryScreen() {
           leadingIcon="eraser-variant"
           title="Clear this round"
           disabled={!hasAnything}
-          onPress={() => { setMenuOpen(false); setEntry(initialRoundEntryState()); }}
+          onPress={() => { setMenuOpen(false); setEntry(editRound && game ? entryFromRound(game, editRound) : initialRoundEntryState()); }}
         />
         <Menu.Item
           leadingIcon="help-circle-outline"
@@ -335,11 +346,21 @@ export default function ScoreEntryScreen() {
     { id: 'rummy', label: 'Rummy' },
   ];
 
+  // Each preset key gets a green flash when tapped so the hand knows it landed.
+  const presetFlash = useRef<Record<string, Animated.Value>>({}).current;
+  const flashFor = (id: string) => (presetFlash[id] ??= new Animated.Value(0));
+  const flashPreset = (id: string) => {
+    const value = flashFor(id);
+    value.setValue(1);
+    Animated.timing(value, { toValue: 0, duration: PRESET_FLASH_MS, delay: 80, easing: Easing.out(Easing.quad), useNativeDriver: false }).start();
+  };
+
   const pressAction = (key: ActionKey) => {
     if (key.id === 'plus') return update((state) => setNegative(state, false));
     if (key.id === 'minus') return update((state) => setNegative(state, true));
     if (key.id === 'rummy') return update(applyRummy);
     const kind: PresetKind = key.id;
+    flashPreset(key.id);
     return update((state) => applyPreset(state, kind, presets));
   };
 
@@ -351,16 +372,19 @@ export default function ScoreEntryScreen() {
         const isRummy = key.id === 'rummy';
         const signOn = isSign && entry.draft.negative === (key.id === 'minus');
         const enabled = isSign || hasSelection;
-        const background = signOn ? colors.primary : isRummy ? colors.leaderContainer : colors.surface;
-        const border = signOn ? colors.primary : isRummy ? colors.leaderContainer : colors.outlineVariant;
-        const foreground = signOn ? colors.onPrimary : isRummy ? colors.onLeaderContainer : colors.onSurface;
+        const restFill = colors[actionFill(isSign ? 'sign' : isRummy ? 'rummy' : 'preset', signOn)];
+        const background = isSign || isRummy
+          ? restFill
+          : flashFor(key.id).interpolate({ inputRange: [0, 1], outputRange: [restFill, colors[PRESET_FLASH_FILL]] });
+        const border = signOn ? colors.secondary : isRummy ? colors.tertiary : colors.outlineVariant;
+        const foreground = signOn ? colors.onSecondaryContainer : isRummy ? colors.onTertiaryContainer : colors.onSurface;
         const accessibilityLabel = isSign
           ? key.label
           : isRummy
             ? 'Rummy'
             : `${key.id === 'drop' ? 'Drop' : key.id === 'middle_drop' ? 'Middle drop' : 'Full count'} ${key.label}`;
         return (
-          <View
+          <Animated.View
             key={key.id}
             style={[
               styles.action,
@@ -391,7 +415,7 @@ export default function ScoreEntryScreen() {
                 )}
               </View>
             </TouchableRipple>
-          </View>
+          </Animated.View>
         );
       })}
     </View>
@@ -437,7 +461,7 @@ export default function ScoreEntryScreen() {
       contentStyle={styles.saveRoundContent}
       labelStyle={styles.saveRoundLabel}
     >
-      Save round
+      {editRound ? 'Save changes' : 'Save round'}
     </Button>
   );
 

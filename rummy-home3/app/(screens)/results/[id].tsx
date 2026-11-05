@@ -11,7 +11,8 @@ import { resultsService } from '@/services/results';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { GameResult, RESULT_EXPENSE_ID, ResultSheet, gameClock } from '@/utils/results';
+import { GameResult, RESULT_EXPENSE_ID, ResultSheet, ResultWarning, resultWarnings, reusedInResult, gameClock } from '@/utils/results';
+import { ResultWarnings } from '@/components/results/ResultWarnings';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
 function sheetFor(result: GameResult): ResultSheet {
@@ -52,6 +53,19 @@ export default function DeclaredResult() {
   const [result, setResult] = useState<GameResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<ResultWarning[]>([]);
+
+  // Was any game here already in an earlier result? Its closedAt predates this declaration.
+  const flagReuse = useCallback(async (loaded: GameResult) => {
+    const games = await Promise.all(loaded.gameIds.map((gameId) => gamesService.getGame(gameId).catch(() => null)));
+    const present = games.filter((game): game is NonNullable<typeof game> => Boolean(game));
+    setWarnings(resultWarnings(present.map((game) => ({
+      isComplete: true,
+      closedAt: game.closedAt,
+      gameNumber: game.gameNumber,
+      reused: reusedInResult(loaded.declaredAt, game),
+    }))));
+  }, []);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -59,13 +73,16 @@ export default function DeclaredResult() {
     try {
       const loaded = await resultsService.get(id);
       setResult(loaded);
-      if (loaded) withRounds(loaded).then(setResult).catch(() => {});
+      if (loaded) {
+        withRounds(loaded).then(setResult).catch(() => {});
+        flagReuse(loaded).catch(() => {});
+      }
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, flagReuse]);
 
   useEffect(() => {
     load();
@@ -103,6 +120,7 @@ export default function DeclaredResult() {
   return (
     <Screen>
       <ResultsShare card={card} details={details} createdAt={result?.declaredAt} />
+      <ResultWarnings warnings={warnings} />
       {error ? (
         <>
           <Text style={{ color: colors.error }}>{error}</Text>

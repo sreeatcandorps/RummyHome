@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Icon, Text, TouchableRipple } from 'react-native-paper';
 import { Game } from '@/types/game';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
-import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, gameTypeTint } from '@/utils/gameDisplay';
+import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, gameTypeTint, GAME_STATUS_ICON, GAME_STATUS_TONE } from '@/utils/gameDisplay';
 import { Tag } from '@/components/ui/Tag';
 
 type GameListItemProps = {
@@ -19,8 +19,8 @@ export function GameListItem({ game, onPress, selected = false }: GameListItemPr
   const playerCount = game.players?.length ?? 0;
   const gNumber = gameNumberLabel(game);
   const status = gameStatusLabel(game);
-  const statusTone = status === 'Active' ? 'positive' : status === 'Completed' ? 'primary' : 'neutral';
-  const statusIcon = status === 'Active' ? 'circle-medium' : status === 'Completed' ? 'flag-checkered' : 'lock-outline';
+  const statusTone = GAME_STATUS_TONE[status];
+  const statusIcon = GAME_STATUS_ICON[status];
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>

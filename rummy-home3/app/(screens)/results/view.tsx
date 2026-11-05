@@ -13,7 +13,8 @@ import { Player } from '@/types/player';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { gameResultName, presentResults, ResultSheet, ResultStanding, withinResultsPlayerLimit, gameClock } from '@/utils/results';
+import { gameResultName, presentResults, ResultSheet, ResultStanding, ResultWarning, resultWarnings, withinResultsPlayerLimit, gameClock } from '@/utils/results';
+import { ResultWarnings } from '@/components/results/ResultWarnings';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
 function param(value: string | string[] | undefined): string {
@@ -42,6 +43,7 @@ export default function ShownResults() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
+  const [warnings, setWarnings] = useState<ResultWarning[]>([]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -69,6 +71,7 @@ export default function ShownResults() {
         return;
       }
       const presented = presentResults(shaped);
+      setWarnings(resultWarnings(loaded));
       setGameCount(loaded.length);
       setStandings(presented.standings);
       setSheet(presented.sheet);
@@ -114,6 +117,7 @@ export default function ShownResults() {
   return (
     <Screen>
       <ResultsShare card={card} details={details} createdAt={createdAt} />
+      <ResultWarnings warnings={warnings} />
       {previewReason ? (
         <Text variant="bodyMedium" testID="results-preview-note" style={{ color: colors.onSurfaceVariant }}>
           {previewReason === 'admin'

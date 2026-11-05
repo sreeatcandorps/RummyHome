@@ -12,7 +12,8 @@ import { isNotReadyMessage } from '@/utils/notReady';
 import { validateInitials } from '@/utils/playerIdentity';
 import { buildPlayerInitials } from '@/utils/playerInitials';
 import { playerIdBadge } from '@/utils/myPlayersList';
-import { markPlayerToCheck } from '@/utils/pendingPlayer';
+import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
+import { SelectedPlayersStrip } from '@/components/players/SelectedPlayersStrip';
 import { HELP } from '@/constants/help';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { BottomBar } from '@/components/ui/BottomBar';
@@ -38,6 +39,14 @@ export default function AddPlayersScreen() {
   const fromNewGame = params.from === 'new-game';
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[]>(() => Array.from({ length: DEFAULT_NEW_PLAYER_ROWS }, blank));
+  const [seated, setSeated] = useState<DraftPick[]>(() => (fromNewGame ? newGameDraft.get() : []));
+
+  // The New game behind us owns the seats; we show and edit the same list.
+  useEffect(() => {
+    if (!fromNewGame) return;
+    setSeated(newGameDraft.get());
+    return newGameDraft.subscribe(setSeated);
+  }, [fromNewGame]);
   const leaving = useRef(false);
   const lastInputs = useRef<Record<string, NativeTextInput | null>>({});
 
@@ -95,7 +104,7 @@ export default function AddPlayersScreen() {
         ? await playerIdentityService.updateNewPlayer(ownerId, row.player.id, row.first, row.last)
         : await playerIdentityService.createNewPlayer(ownerId, row.first, row.last);
       patch(row.key, { player, editing: false, busy: false });
-      if (fromNewGame) markPlayerToCheck({ id: player.id, name: player.name, playerCode: player.playerCode });
+      if (fromNewGame) newGameDraft.add({ id: player.id, name: player.name, playerCode: player.playerCode });
     } catch (err) {
       patch(row.key, { busy: false, error: formatSupabaseError(err) });
     }
@@ -106,6 +115,7 @@ export default function AddPlayersScreen() {
       patch(row.key, { busy: true, error: undefined });
       try {
         await playerIdentityService.deleteNewPlayer(ownerId, row.player.id);
+        if (fromNewGame) newGameDraft.remove(row.player.id);
       } catch (err) {
         patch(row.key, { busy: false, error: formatSupabaseError(err) });
         return;
@@ -228,9 +238,19 @@ export default function AddPlayersScreen() {
 
       <BottomBar>
         <View style={styles.footer}>
-          <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }}>
-            {savedCount === 0 ? 'Nothing saved yet' : `${savedCount} saved${fromNewGame ? ' · seated in this game' : ''}`}
-          </Text>
+          {fromNewGame ? (
+            <SelectedPlayersStrip
+              picks={seated}
+              meId={ownerId}
+              onRemove={(id) => newGameDraft.remove(id)}
+              title="Playing in this game"
+              emptyText="Nobody seated yet. Saved players are seated as you go."
+            />
+          ) : (
+            <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }}>
+              {savedCount === 0 ? 'Nothing saved yet' : `${savedCount} saved`}
+            </Text>
+          )}
           <Button
             mode="contained"
             onPress={done}

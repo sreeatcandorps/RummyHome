@@ -11,7 +11,7 @@ import { playersService } from '@/services/players';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
 import { storage } from '@/utils/storage';
-import { MIN_TOUCH_TARGET, radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime, gameIdLabel, gameNumberLabel, gameTypeLabel } from '@/utils/gameDisplay';
 import { buildPlayerInitials } from '@/utils/playerInitials';
 import { scorecardUrl } from '@/utils/shareLink';
@@ -30,6 +30,7 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { StackedAction } from '@/components/ui/StackedAction';
+import { editableRounds } from '@/utils/editRound';
 import { Tag } from '@/components/ui/Tag';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
 import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
@@ -53,6 +54,7 @@ export default function GameScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [playersOpen, setPlayersOpen] = useState(false);
   const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
+  const [editRoundOpen, setEditRoundOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [viewer, setViewer] = useState<Player | null>(null);
   const [linkNote, setLinkNote] = useState<string | null>(null);
@@ -376,19 +378,18 @@ export default function GameScreen() {
     />
   );
 
-  // Complete is the end of a game, so it is the filled button; Add round sits beside it a step quieter.
+  // Same stacked icon-over-label shape for all three. Add round is the everyday tap, so it is the widest;
+  // Complete is the only filled (dark green) one because it ends the game.
   const completeButton = (
-    <Button
-      mode="contained"
-      onPress={openComplete}
+    <StackedAction
       icon="flag-checkered"
-      style={styles.primaryAction}
-      contentStyle={isShort ? styles.compactPrimaryContent : styles.primaryActionContent}
-      labelStyle={styles.primaryActionLabel}
+      label="Complete"
+      onPress={openComplete}
+      height={isShort ? 44 : 56}
+      filled
+      style={styles.completeAction}
       accessibilityLabel="Complete game"
-    >
-      Complete
-    </Button>
+    />
   );
 
   const addRoundButton = (
@@ -398,10 +399,16 @@ export default function GameScreen() {
       onPress={openScoreEntry}
       height={isShort ? 44 : 56}
       tonal
+      emphasis
       style={styles.addRound}
       accessibilityLabel="Add round"
     />
   );
+
+  const openEditRound = (roundNumber: number) => {
+    setEditRoundOpen(false);
+    router.push({ pathname: '/(screens)/score-entry', params: { gameId: game.id, round: String(roundNumber) } });
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -421,6 +428,9 @@ export default function GameScreen() {
               >
                 <Menu.Item leadingIcon="cog-outline" onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title="Game settings" />
                 <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title="Players" />
+                {canScore && !game.isComplete ? (
+                  <Menu.Item leadingIcon="pencil-outline" title="Edit round" disabled={maxRounds === 0} onPress={() => { setMenuOpen(false); setEditRoundOpen(true); }} />
+                ) : null}
                 {canScore ? (
                   <Menu.Item leadingIcon="account-check-outline" title="Register players" onPress={async () => {
                     setMenuOpen(false);
@@ -481,6 +491,31 @@ export default function GameScreen() {
       ) : null}
 
       <Portal>
+        <Dialog visible={editRoundOpen} onDismiss={() => setEditRoundOpen(false)} style={styles.dialog}>
+          <Dialog.Title>Edit which round?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+              The round opens in Add round with its scores filled in. Save changes to replace it.
+            </Text>
+            <View style={styles.roundPicker}>
+              {editableRounds(game.scores).map((n) => (
+                <Button
+                  key={n}
+                  mode={n === maxRounds ? 'contained-tonal' : 'outlined'}
+                  compact
+                  onPress={() => openEditRound(n)}
+                  style={styles.roundChip}
+                  accessibilityLabel={`Edit round ${n}`}
+                >
+                  {`Round ${n}`}
+                </Button>
+              ))}
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setEditRoundOpen(false)}>Cancel</Button>
+          </Dialog.Actions>
+        </Dialog>
         <Dialog
           visible={showUndoConfirm}
           onDismiss={() => setShowUndoConfirm(false)}
@@ -721,23 +756,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  primaryAction: {
-    flex: 1.6,
-    borderRadius: radius.full,
+  completeAction: {
+    flex: 1.1,
   },
   addRound: {
-    flex: 1.05,
+    flex: 1.7,
   },
-  primaryActionContent: {
-    height: 56,
-  },
-  compactPrimaryContent: {
-    height: MIN_TOUCH_TARGET,
-  },
-  primaryActionLabel: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
+  roundPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  roundChip: { minWidth: 96 },
   dialog: {
     borderRadius: radius.xl,
     maxWidth: 480,

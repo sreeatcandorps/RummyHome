@@ -38,6 +38,7 @@ export default function MeScreen() {
   const [saving, setSaving] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
   const [phoneState, setPhoneState] = useState<PhoneState>({ kind: 'idle' });
+  const [editingPhone, setEditingPhone] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
   const [demoBusy, setDemoBusy] = useState<null | 'load' | 'clear'>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -120,6 +121,7 @@ export default function MeScreen() {
         setSavedPhone(clean);
       }
       setPhoneState({ kind: 'saved' });
+      setEditingPhone(false);
     } catch (err) {
       setPhoneState({ kind: 'error', message: formatSupabaseError(err) });
     } finally {
@@ -210,8 +212,12 @@ export default function MeScreen() {
               <Text variant="headlineSmall" numberOfLines={1}>{player.name}</Text>
             )}
             {player.email ? <Text variant="bodySmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{player.email}</Text> : null}
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{badge ?? 'Player ID pending'}</Text>
           </View>
+        </View>
+        <View style={[styles.idBadge, { borderColor: colors.primary, backgroundColor: colors.surface }]} accessibilityLabel={badge ? `Your ${badge}` : 'Player ID pending'}>
+          <Icon source="card-account-details-outline" size={20} color={colors.primary} />
+          <Text variant="titleMedium" style={[styles.idText, { color: colors.onSurface }]}>{badge ?? 'Player ID pending'}</Text>
+          <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>Share it so friends can find you</Text>
         </View>
         <View style={styles.identityActions}>
           {editing ? (
@@ -243,40 +249,51 @@ export default function MeScreen() {
       </View>
 
       <SectionCard title="Phone" icon="phone-outline" supportingText="Optional. Never texted, never shown to other players.">
-        <View style={styles.phoneRow}>
-          <TextInput
-            mode="outlined"
-            dense
-            value={phone}
-            onChangeText={(value) => { setPhone(value); if (phoneState.kind !== 'idle') setPhoneState({ kind: 'idle' }); }}
-            keyboardType="phone-pad"
-            placeholder="Add a number"
-            style={styles.flex}
-            error={phoneState.kind === 'error'}
-            returnKeyType="done"
-            onSubmitEditing={savePhone}
-            accessibilityLabel="Phone"
-          />
-          <Button
-            mode="contained"
-            onPress={savePhone}
-            loading={savingPhone}
-            disabled={savingPhone || !phoneDirty}
-            contentStyle={styles.action}
-            accessibilityLabel="Save phone"
-          >
-            Save
-          </Button>
-        </View>
-        {phoneState.kind === 'saved' ? (
-          <View style={styles.inline}>
-            <Icon source="check-circle" size={16} color={colors.positive} />
-            <Text variant="labelMedium" style={{ color: colors.positive }}>{savedPhone ? 'Phone saved.' : 'Phone cleared.'}</Text>
+        {editingPhone ? (
+          <View style={styles.gap}>
+            <TextInput
+              mode="outlined"
+              dense
+              value={phone}
+              onChangeText={(value) => { setPhone(value); if (phoneState.kind !== 'idle') setPhoneState({ kind: 'idle' }); }}
+              keyboardType="phone-pad"
+              placeholder="Add a number"
+              autoFocus
+              error={phoneState.kind === 'error'}
+              returnKeyType="done"
+              onSubmitEditing={savePhone}
+              accessibilityLabel="Phone"
+            />
+            {phoneState.kind === 'error' ? (
+              <Text variant="labelMedium" style={{ color: colors.error }}>{phoneState.message}</Text>
+            ) : null}
+            <View style={styles.identityActions}>
+              <Button mode="contained" icon="check" onPress={savePhone} loading={savingPhone} disabled={savingPhone || !phoneDirty} style={styles.half} contentStyle={styles.action} accessibilityLabel="Save phone">
+                Save phone
+              </Button>
+              <Button mode="outlined" onPress={() => { setEditingPhone(false); setPhone(savedPhone); setPhoneState({ kind: 'idle' }); }} style={styles.half} contentStyle={styles.action} accessibilityLabel="Cancel phone edit">
+                Cancel
+              </Button>
+            </View>
           </View>
-        ) : null}
-        {phoneState.kind === 'error' ? (
-          <Text variant="labelMedium" style={{ color: colors.error }}>{phoneState.message}</Text>
-        ) : null}
+        ) : (
+          <View style={styles.valueRow}>
+            <View style={styles.flex}>
+              <Text variant="titleMedium" style={{ color: savedPhone ? colors.onSurface : colors.onSurfaceVariant }}>
+                {savedPhone || 'No number yet'}
+              </Text>
+              {phoneState.kind === 'saved' ? (
+                <View style={styles.inline}>
+                  <Icon source="check-circle" size={16} color={colors.positive} />
+                  <Text variant="labelMedium" style={{ color: colors.positive }}>{savedPhone ? 'Phone saved.' : 'Phone cleared.'}</Text>
+                </View>
+              ) : null}
+            </View>
+            <Button mode="outlined" icon="pencil-outline" onPress={() => { setEditingPhone(true); setPhoneState({ kind: 'idle' }); }} contentStyle={styles.action} accessibilityLabel={savedPhone ? 'Edit phone' : 'Add phone'}>
+              {savedPhone ? 'Edit' : 'Add'}
+            </Button>
+          </View>
+        )}
       </SectionCard>
 
       <SectionCard title="Settings" icon="cog-outline">
@@ -350,7 +367,19 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   flex: { flex: 1 },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  gap: { gap: spacing.sm },
+  valueRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  idBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 2,
+    borderRadius: radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    flexWrap: 'wrap',
+  },
+  idText: { fontWeight: '800' },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   settingsButton: {
     borderRadius: radius.md,

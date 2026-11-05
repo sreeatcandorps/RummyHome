@@ -3,6 +3,7 @@ import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { MIGRATION_007_HINT, playersService } from '@/services/players';
+import { retiredRoundNumber } from '@/utils/editRound';
 import { GameType, ProfileDefaults, ScoreType } from '@/types/database';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
@@ -499,6 +500,90 @@ export const gamesService = {
       .eq('id', input.gameId);
 
     if (gameError) throw gameError;
+    return this.getGame(input.gameId);
+  },
+
+  /**
+   * Edit a finished round. No table changes needed: the old round row is
+   * retired (marked undone and moved to a spare number) and a fresh row with
+   * the corrected scores takes its place. Every reader already skips undone rounds.
+   */
+  async replaceRound(input: AddRoundInput) {
+    const validation = validateRoundScores(input.scores);
+    if (!validation.valid) throw new Error(validation.error ?? 'Invalid round scores.');
+
+    if (!isSupabaseConfigured) {
+      const game = await this.getGame(input.gameId);
+      if (!game) throw new Error('Game not found.');
+      const roundIndex = input.roundNumber - 1;
+      const updatedScores = { ...game.scores };
+      game.players.forEach((playerId) => {
+        const column = [...(updatedScores[playerId] ?? [])];
+        while (column.length <= roundIndex) column.push(0);
+        column[roundIndex] = 0;
+        updatedScores[playerId] = column;
+      });
+      input.scores.forEach((score) => {
+        if (score.scoreType === 'expense' || !score.playerId) return;
+        const column = [...(updatedScores[score.playerId] ?? [])];
+        while (column.length <= roundIndex) column.push(0);
+        column[roundIndex] = score.value;
+        updatedScores[score.playerId] = column;
+      });
+      const updatedGame = { ...game, scores: updatedScores };
+      await storage.updateGame(updatedGame);
+      return updatedGame;
+    }
+
+    const { data: old, error: oldError } = await supabase
+      .from('rounds')
+      .select('id, round_number')
+      .eq('game_id', input.gameId)
+      .eq('round_number', input.roundNumber)
+      .is('undone_at', null)
+      .maybeSingle();
+    if (oldError) throw oldError;
+
+    if (old) {
+      let retired: { error: { code?: string } | null } = { error: null };
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        retired = await supabase
+          .from('rounds')
+          .update({
+            undone_at: new Date().toISOString(),
+            undone_by: input.createdBy,
+            undo_reason: `edited round ${input.roundNumber}`,
+            round_number: retiredRoundNumber(input.roundNumber, attempt),
+          })
+          .eq('id', old.id);
+        if (!retired.error || retired.error.code !== '23505') break;
+      }
+      if (retired.error) throw retired.error;
+    }
+
+    const dealerId = calculateDealerId((await this.getGame(input.gameId))?.players ?? [], input.roundNumber);
+    const { data: round, error: roundError } = await supabase
+      .from('rounds')
+      .insert({
+        game_id: input.gameId,
+        round_number: input.roundNumber,
+        dealer_profile_id: dealerId,
+        created_by: input.createdBy,
+      })
+      .select('*')
+      .single();
+    if (roundError) throw roundError;
+
+    const { error: scoresError } = await supabase.from('scores').insert(
+      input.scores.map((score) => ({
+        round_id: round.id,
+        game_id: input.gameId,
+        profile_id: score.playerId,
+        score_type: score.scoreType,
+        value: score.value,
+      })),
+    );
+    if (scoresError) throw scoresError;
     return this.getGame(input.gameId);
   },
 

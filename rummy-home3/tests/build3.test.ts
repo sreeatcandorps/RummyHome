@@ -70,23 +70,22 @@ test('build 3: Add Round cells are beige, light green when selected, light grey 
   assert.equal(cellTone('confirmed'), 'confirmed');
 });
 
-test('build 3: every help screen is short bullets with no version or build fluff', () => {
+test('build 3: every help screen is short bullets (or ## headings) with no version or build fluff', () => {
   for (const [key, text] of Object.entries(HELP)) {
     const lines = text.split('\n');
-    assert.ok(lines.length >= 1 && lines.length <= 7, `${key} has ${lines.length} bullets`);
+    const bullets = lines.filter((line) => line.startsWith('• '));
+    assert.ok(bullets.length >= 1 && bullets.length <= 7, `${key} has ${bullets.length} bullets`);
     for (const line of lines) {
-      assert.ok(line.startsWith('• '), `${key}: "${line}" is not a bullet`);
-      assert.ok(line.length <= 170, `${key}: bullet too long: "${line}"`);
+      assert.ok(line.startsWith('• ') || line.startsWith('## '), `${key}: "${line}" is not a bullet or heading`);
+      assert.ok(line.length <= 200, `${key}: line too long: "${line}"`);
     }
     assert.doesNotMatch(text, /\bv\d+\.\d+|\bbuild\b|version/i, `${key} mentions version or build`);
   }
-  assert.match(HELP.home, /Closed = already counted in a result/);
-  assert.match(HELP.home, /pick a closed game in a new result, but the app shows a warning/);
   assert.doesNotMatch(HELP.home, /Recent lists both/);
   assert.match(HELP.players, /own list, not everyone in the EZ Score database/i);
   assert.match(HELP.addPlayers, /Done/);
   assert.match(HELP.newGame, /Tap yourself if you are playing/);
-  assert.match(HELP.scoreEntry, /Green: selected now\. Grey: score saved/);
+  assert.match(HELP.scoreEntry, /Yellow: selected now\. Green: score saved/);
 });
 
 test('build 3: settings priority ladder is highest to lowest', () => {

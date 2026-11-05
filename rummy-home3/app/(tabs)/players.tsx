@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, FlatList, StyleSheet, View } from 'react-native';
-import { Button, Dialog, Icon, Portal, Searchbar, Text, TouchableRipple } from 'react-native-paper';
+import { Button, Chip, Dialog, Icon, Portal, Searchbar, Text, TouchableRipple } from 'react-native-paper';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
@@ -8,39 +8,18 @@ import { playersService } from '@/services/players';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
-import { chipInitials } from '@/utils/playerIdentity';
-import { DEFAULT_MY_PLAYERS_SORT, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, nextSort, playerIdBadge, registrationLabel, REGISTRATION_TONE, SORT_LABEL, sortMyPlayers } from '@/utils/myPlayersList';
+import { DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, playerIdBadge, registrationLabel, REGISTRATION_TONE, SORT_CHIP, SORT_OPTIONS, sortMyPlayers } from '@/utils/myPlayersList';
 import { shareInvite } from '@/utils/invite';
 import { PLAYERS_NOTE } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
-import { SeatAvatar } from '@/components/ui/SeatAvatar';
+import { BoldName } from '@/components/ui/BoldName';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { Tag } from '@/components/ui/Tag';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
 import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
 import { playerIdentityService } from '@/services/playerIdentity';
-
-function PlayersHeader({ count, sort, onToggleSort, color }: { count: number; sort: MyPlayersSort; onToggleSort: () => void; color: string }) {
-  return (
-    <View style={styles.headerTitle}>
-      <Text variant="titleLarge" numberOfLines={1} style={[styles.headerText, { color }]}>
-        My players · {count}
-      </Text>
-      <Button
-        compact
-        mode="text"
-        icon={sort === 'name' ? 'sort-alphabetical-ascending' : 'sort-numeric-descending'}
-        onPress={onToggleSort}
-        labelStyle={styles.sortLabel}
-        accessibilityLabel={`${SORT_LABEL[sort]}. Tap to ${SORT_LABEL[nextSort(sort)].toLowerCase()}`}
-      >
-        {SORT_LABEL[sort]}
-      </Button>
-    </View>
-  );
-}
 
 export default function PlayersTab() {
   const { colors } = useAppTheme();
@@ -49,6 +28,7 @@ export default function PlayersTab() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<MyPlayersSort>(DEFAULT_MY_PLAYERS_SORT);
+  const [filter, setFilter] = useState<MyPlayersFilter>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Player | null>(null);
@@ -82,18 +62,17 @@ export default function PlayersTab() {
     load();
   }, [load]));
 
-  const toggleSort = useCallback(() => setSort((current) => nextSort(current)), []);
 
   React.useLayoutEffect(() => {
-    navigation.setOptions({
-      title: `My players · ${players.length}`,
-      headerTitle: () => (
-        <PlayersHeader count={players.length} sort={sort} onToggleSort={toggleSort} color={colors.onSurface} />
-      ),
-    });
-  }, [navigation, players.length, sort, toggleSort, colors.onSurface]);
+    navigation.setOptions({ title: `My players · ${players.length}` });
+  }, [navigation, players.length]);
 
-  const shown = sortMyPlayers(players.filter((player) => matchesMyPlayer(player, query)), sort);
+  const statusOf = (player: Player) => registrationLabel(unregistered[player.id]?.status ?? player.status);
+  const shown = sortMyPlayers(
+    filterMyPlayers(players.filter((player) => matchesMyPlayer(player, query)), filter, statusOf),
+    sort,
+  );
+  const openCount = players.filter((player) => statusOf(player) !== 'Registered').length;
   const unregisteredCount = Object.keys(unregistered).length;
 
   const openRow = (player: Player) => {
@@ -132,7 +111,7 @@ export default function PlayersTab() {
     const badge = playerIdBadge(player);
     const open = unregistered[player.id];
     const isMe = me?.id === player.id;
-    const status = registrationLabel(open?.status ?? player.status);
+    const status = statusOf(player);
     return (
       <TouchableRipple
         onPress={() => openRow(player)}
@@ -141,12 +120,7 @@ export default function PlayersTab() {
         accessibilityLabel={`${player.name}, ${badge ?? 'no player ID yet'}, ${status.toLowerCase()}`}
       >
         <View style={styles.cardInner}>
-          <View style={styles.cardTop}>
-            <SeatAvatar name={player.name} label={chipInitials(player.name)} size={34} />
-            <Text variant="titleSmall" numberOfLines={2} style={styles.cardName}>
-              {player.name}
-            </Text>
-          </View>
+          <BoldName name={player.name} numberOfLines={2} style={styles.cardName} />
           <View style={styles.cardMeta}>
             {badge ? (
               <View style={[styles.idBadge, { borderColor: colors.outline }]}>
@@ -175,6 +149,40 @@ export default function PlayersTab() {
         onChangeText={setQuery}
         style={styles.search}
       />
+      <View style={styles.controls}>
+        <View style={styles.sortGroup}>
+          {SORT_OPTIONS.map((option) => (
+            <Chip
+              key={option}
+              compact
+              selected={sort === option}
+              showSelectedCheck={false}
+              mode={sort === option ? 'flat' : 'outlined'}
+              onPress={() => setSort(option)}
+              style={[styles.chip, sort === option && { backgroundColor: colors.secondaryContainer }]}
+              textStyle={styles.chipText}
+              accessibilityLabel={`Sort by ${SORT_CHIP[option]}`}
+              accessibilityState={{ selected: sort === option }}
+            >
+              {SORT_CHIP[option]}
+            </Chip>
+          ))}
+        </View>
+        <Chip
+          compact
+          icon={filter === 'unregistered' ? 'filter-check' : 'filter-outline'}
+          selected={filter === 'unregistered'}
+          showSelectedCheck={false}
+          mode={filter === 'unregistered' ? 'flat' : 'outlined'}
+          onPress={() => setFilter((cur) => (cur === 'all' ? 'unregistered' : 'all'))}
+          style={[styles.chip, filter === 'unregistered' && { backgroundColor: colors.tertiaryContainer }]}
+          textStyle={styles.chipText}
+          accessibilityLabel={filter === 'unregistered' ? 'Showing unregistered only. Tap to show everyone' : 'Show unregistered only'}
+          accessibilityState={{ selected: filter === 'unregistered' }}
+        >
+          {`Unregistered · ${openCount}`}
+        </Chip>
+      </View>
       {me ? <ClaimRequestsCard ownerId={me.id} onChanged={load} /> : null}
       {error ? (
         <View>
@@ -194,7 +202,9 @@ export default function PlayersTab() {
       ) : null}
       {!loading && players.length > 0 && shown.length === 0 ? (
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          No one in My players matches that. Try the name, the initials, or the player ID.
+          {filter === 'unregistered' && !query.trim()
+            ? 'Everyone in My players is registered.'
+            : 'No one in My players matches that. Try the name, the initials, or the player ID.'}
         </Text>
       ) : null}
       {shown.length > 0 ? (
@@ -269,20 +279,16 @@ export default function PlayersTab() {
 }
 
 const styles = StyleSheet.create({
-  headerTitle: {
+  controls: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.xs,
-    flexShrink: 1,
+    marginBottom: spacing.sm,
   },
-  headerText: {
-    fontWeight: '700',
-    flexShrink: 1,
-  },
-  sortLabel: {
-    fontSize: 13,
-    marginVertical: 6,
-  },
+  sortGroup: { flexDirection: 'row', gap: spacing.xs },
+  chip: { borderRadius: radius.full },
+  chipText: { fontSize: 12, marginVertical: 2 },
   note: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -321,15 +327,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     justifyContent: 'space-between',
   },
-  cardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
   cardName: {
-    flex: 1,
-    minWidth: 0,
-    lineHeight: 18,
+    lineHeight: 19,
   },
   cardMeta: {
     flexDirection: 'row',
