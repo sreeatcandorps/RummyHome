@@ -53,6 +53,14 @@ Likely cause of the blank round seen on Nov 6: the rounds row was written, the c
 
 Repair for an existing blank round: open the scorecard, choose Edit round, pick that round, enter the scores and Save. The empty row is retired and the real scores take its number. No SQL needed.
 
+## 015 — link an unregistered seat to a Player ID
+
+File: `supabase/migrations/015_link_seat_to_player.sql`. Run after 012. Safe to re-run.
+
+Not applied by this change. Until it runs, Players in this game → ⋮ → Link to a Player ID shows "needs a database update (migration 015)"; everything else on that page works.
+
+What it does: `link_seat_to_player(game, seat, target)` lets a game admin who manages an unregistered player hand that seat, with its scores and dealer turns in this game only, to a registered account found by its Player ID. It refuses when the caller is not a game admin, when the seat is not an unregistered/pending player the caller manages, when the target is not a registered unmanaged account, or when the target is already in the game. A placeholder left with no games is marked merged and its open claim links are revoked.
+
 ## Public scorecard page
 
 This is not a database change. `public/scorecard.html` (and the same file at `web/scorecard.html`) does not contain the project URL or the anon key. It contains the placeholders `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__`.

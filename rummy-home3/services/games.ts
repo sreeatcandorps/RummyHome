@@ -3,7 +3,8 @@ import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { MIGRATION_007_HINT, playersService } from '@/services/players';
-import { retiredRoundNumber } from '@/utils/editRound';
+import { RETIRED_ROUND_OFFSET, retiredRoundNumber } from '@/utils/editRound';
+import { zerosForJoiner } from '@/utils/gamePlayers';
 import { GameType, ProfileDefaults, ScoreType } from '@/types/database';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
@@ -512,7 +513,7 @@ export const gamesService = {
 
     const withSeat = await supabase
       .from('game_players')
-      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, public_player_no, email, player_status)')
+      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, public_player_no, email, player_status, managed_by, first_name, last_name)')
       .eq('game_id', gameId)
       .order('player_order', { ascending: true });
 
@@ -531,6 +532,10 @@ export const gamesService = {
       playerCode: displayPlayerId(membership.profiles),
       email: membership.profiles?.email ?? undefined,
       status: membership.profiles?.player_status ?? undefined,
+      managedBy: membership.profiles?.managed_by ?? undefined,
+      playerNo: membership.profiles?.public_player_no ?? undefined,
+      firstName: membership.profiles?.first_name ?? undefined,
+      lastName: membership.profiles?.last_name ?? undefined,
       role: membership.role === 'game_admin' ? 'admin' as const : 'player' as const,
       seatRole: (membership.role ?? 'player') as SeatRole,
       seated: membership.seated !== false && membership.role !== 'spectator',
@@ -832,7 +837,8 @@ export const gamesService = {
 
     if (!isSupabaseConfigured) {
       const updated = { ...game, players: [...game.players, profileId] };
-      if (!updated.scores[profileId]) updated.scores = { ...updated.scores, [profileId]: [] };
+      // Joining mid-game: every round already played is an explicit 0 for them.
+      updated.scores = { ...updated.scores, [profileId]: zerosForJoiner(game.scores, seated) };
       await storage.updateGame(updated);
       await playersService.rememberTogether(game.createdBy ?? profileId, [profileId]).catch(() => {});
       return updated;
@@ -863,8 +869,25 @@ export const gamesService = {
         throw error;
       }
     }
+    await this.backfillZeroScores(gameId, profileId);
     if (game.createdBy) await playersService.rememberTogether(game.createdBy, [profileId]).catch(() => {});
     return this.getGame(gameId);
+  },
+
+  /** A player who joins mid-game gets an explicit 0 in every round already played. */
+  async backfillZeroScores(gameId: string, profileId: string) {
+    const { data: rounds, error } = await supabase
+      .from('rounds')
+      .select('id')
+      .eq('game_id', gameId)
+      .is('undone_at', null)
+      .lt('round_number', RETIRED_ROUND_OFFSET);
+    if (error) throw error;
+    if (!rounds || rounds.length === 0) return;
+    const { error: insertError } = await supabase.from('scores').insert(
+      rounds.map((round) => ({ round_id: round.id, game_id: gameId, profile_id: profileId, score_type: 'count', value: 0 })),
+    );
+    if (insertError) throw insertError;
   },
 
   async addNonPlayerAdmin(gameId: string, profileId: string) {

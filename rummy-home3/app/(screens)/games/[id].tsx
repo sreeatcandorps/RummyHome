@@ -7,7 +7,6 @@ import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
-import { playersService } from '@/services/players';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
 import { storage } from '@/utils/storage';
@@ -24,7 +23,6 @@ import { HELP } from '@/constants/help';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { useLayout } from '@/hooks/useLayout';
 import { useMenuThenShare } from '@/hooks/useMenuThenShare';
-import { PlayersSheet } from '@/components/game/PlayersSheet';
 import { ScoreColumn, ScoreTable } from '@/components/game/ScoreTable';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -51,14 +49,11 @@ export default function GameScreen() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [canScore, setCanScore] = useState(true);
   const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
-  const [playersOpen, setPlayersOpen] = useState(false);
   const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
   const [editRoundOpen, setEditRoundOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [viewer, setViewer] = useState<Player | null>(null);
   const [linkNote, setLinkNote] = useState<string | null>(null);
-  const [roster, setRoster] = useState<Player[]>([]);
-  const [directory, setDirectory] = useState<Player[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -96,7 +91,6 @@ export default function GameScreen() {
       if (currentGame) {
         const seated = gamePlayers.filter((player) => player.seatRole !== 'spectator' && player.seated !== false);
         setGame(currentGame);
-        setRoster(gamePlayers);
         setCanScore(access.canScore);
         setLoadError(null);
         setPlayers(seated.filter((player) => player.id !== 'EX'));
@@ -185,67 +179,10 @@ export default function GameScreen() {
     router.push({ pathname: '/(screens)/games/final-scores', params: { id: game.id } });
   };
 
-  const openPlayers = async () => {
+  const openPlayers = () => {
+    if (!game) return;
     setMenuOpen(false);
-    setPlayersOpen(true);
-    try {
-      const userId = isSupabaseConfigured ? await authService.getCurrentUserId() : await storage.getCurrentPlayer();
-      const everyone = userId ? await playersService.listMyPlayers(userId) : [];
-      setDirectory(everyone.map((player) => ({ ...player, email: undefined, phone: undefined })));
-    } catch (error) {
-      setActionError(formatSupabaseError(error));
-    }
-  };
-
-  const changeAdmin = async (player: Player, makeAdmin: boolean) => {
-    if (!game) return;
-    try {
-      await gamesService.setSeatRole(game.id, player.id, makeAdmin ? 'game_admin' : 'player');
-      await loadGameData();
-    } catch (error) {
-      setActionError(formatSupabaseError(error));
-    }
-  };
-
-  const addViewer = async (player: Player) => {
-    if (!game) return;
-    try {
-      await gamesService.setSeatRole(game.id, player.id, 'spectator');
-      await loadGameData();
-    } catch (error) {
-      setActionError(formatSupabaseError(error));
-    }
-  };
-
-  const addPlayer = async (player: Player) => {
-    if (!game) return;
-    try {
-      await gamesService.addSeatedPlayer(game.id, player.id);
-      await loadGameData();
-    } catch (error) {
-      setActionError(formatSupabaseError(error));
-    }
-  };
-
-  const addScorekeeper = async (player: Player) => {
-    if (!game) return;
-    try {
-      await gamesService.addNonPlayerAdmin(game.id, player.id);
-      await loadGameData();
-    } catch (error) {
-      setActionError(formatSupabaseError(error));
-    }
-  };
-
-  const moveSeat = async (player: Player, direction: -1 | 1) => {
-    if (!game) return;
-    try {
-      const next = await gamesService.moveSeat(game.id, player.id, direction);
-      if (next) setGame(next);
-      await loadGameData();
-    } catch (error) {
-      setActionError(formatSupabaseError(error));
-    }
+    router.push({ pathname: '/(screens)/games/players', params: { id: game.id } });
   };
 
   if (loading) {
@@ -540,23 +477,6 @@ export default function GameScreen() {
         </Dialog>
 
         <Snackbar visible={Boolean(linkNote)} onDismiss={() => setLinkNote(null)} duration={2500}>{linkNote ?? ''}</Snackbar>
-        <PlayersSheet
-          visible={playersOpen}
-          seats={roster}
-          canManage={canScore}
-          candidates={directory}
-          canReorder={getMaxRounds() === 0}
-          onDismiss={() => setPlayersOpen(false)}
-          onToggleAdmin={changeAdmin}
-          onAddPlayer={addPlayer}
-          onAddSpectator={addViewer}
-          onAddNonPlayerAdmin={addScorekeeper}
-          onFindPlayers={() => {
-            setPlayersOpen(false);
-            router.push('/(screens)/players/new');
-          }}
-          onMove={moveSeat}
-        />
       </Portal>
       <GameSettingsDialog
         visible={gameSettingsOpen}

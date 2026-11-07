@@ -51,11 +51,11 @@ export const HELP = {
     'The ⋮ menu changes this game’s Drop, Middle drop, and Full count, picks who can score, sends sign-up links, and shares the live link.',
   ),
   playersSheet: bullets(
-    'Admin can change scores.',
-    'View only can watch and does not get a column.',
-    'A non-player admin runs the game without sitting in it.',
-    'Everyone here must already be in My players.',
-    'Admins can be set after the game is over too.',
+    'Each row shows the name, Player ID, role (Creator, Admin, Player, View only) and whether they are Registered, Pending or Unregistered.',
+    'Admins can change scores. The creator is always an admin. Admins can be set after the game is over too.',
+    'The ⋮ on a row: make or remove admin; for an unregistered player you added, edit the name, invite them to register, or link the seat to an existing Player ID.',
+    'Add a player picks from My players. Someone added mid-game gets 0 for every round already played.',
+    'Nobody can be removed from a game.',
   ),
   share: bullets(
     'Anyone with the live link can watch rounds and totals without the app or an account.',
