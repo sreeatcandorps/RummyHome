@@ -217,6 +217,12 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Results privacy (P1-A): `013_results_privacy.sql` adds `can_see_game_result` and routes `get_game_result` / `list_game_results` / `list_game_results_page` through it (declarer, seated player, game creator/admin, app admin). Written and tested as text; **not applied** to the project from here. The client repeats the rule for the detail screen and the local store, but the paged list can only be fixed server-side.
 - Passcode recovery (P1-B): no more browser reset page. Forgot passcode emails a 6-digit code (`resetPasswordForEmail` → `verifyOtp type=recovery` → `updateUser`) typed back in the app; Profile → Change passcode checks the current passcode and sets the new one in-app, with a reauthentication-nonce step if the project demands it. Depends on the Supabase "Reset Password" template including `{{ .Token }}` (`supabase/templates/recovery-passcode.html`) and digit-only password requirements — dashboard settings, not code. Flow logic lives in `utils/passcodeFlow.ts` behind an injectable client and was exercised in a browser against a local GoTrue fake; real email delivery was not tested from the build box.
 
+### 2026-11-07 — Nov 6 phone test, P2: roles, scoring, complete-game flow, players page, Results
+- Two more migrations are written as text and **not applied** from here: `014_save_round_atomic.sql` (`save_round` RPC: round + scores + `current_round` in one transaction, the cause of the blank round 6; the client falls back to a self-healing multi-step save when the RPC is missing) and `015_link_seat_to_player.sql` (`link_seat_to_player`: move an unregistered seat's game rows to a registered Player ID). `docs/migrations-to-apply.md` lists the order and the repair steps.
+- Game flow split into pages instead of dialogs: Complete game (own page, second confirmation) → Final scores preview → share (yellow sheet, five square cells per row, started/generated/completed times, Game ID footer); Players in this game (own page: Creator/Admin/Player/View only tags, per-player menu for admin, edit name, invite, link to a Player ID). Admins can reopen a Completed game that is not Closed. Home Recent sorts by completion time (`completed_at` is now read by the client; the column already existed).
+- Results: Completed / Closed / Active chips are multi-select; a game keeps its own number everywhere (`ResultSheetGame.label` is stored at declare time; older results show their code); every selected game is on the share image (games down the side past five) with a "Result ID · XXXXXX" footer on image and PDF; previews are marked "Preview · not saved" and never write. The web canvas now draws the same card as the native view (grid, crowns, legend, footer). No new dependencies.
+- Verified in a browser (Expo web + local storage fixtures, puppeteer); Android/iOS not run from the build box — the native share-sheet crash fix (menu closes before the share Activity opens, remounts after) and `react-native-view-shot` capture of the new sheets need a phone pass.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -231,9 +237,9 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Profiles / Player ID + share | Done |
 | Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
 | New game (points, my players) | Done. Creator is not pre-seated; big animated Playing · N; Add players (full screen) / Add player from database. Stored type is still the points game |
-| Game table + score entry | Done, portrait + landscape. Add round rebuilt from the owner's sketch: grid, presets, keypad, Balance gate |
+| Game table + score entry | Done, portrait + landscape. Add round: grid, presets, keypad, Balance gate, explicit 0, big losses in red. Complete game, Final scores, and Players are their own pages. Apply `014_save_round_atomic.sql` for the one-transaction save |
 | Home | Done. Results → every live game → Recent (Completed/Closed, Last 10 days default / All). History screen redirects home |
-| Results | Done in the app. Totals, players-by-game table, places, a podium image, and a full-details PDF. Apply `008_results.sql` before declare works on the live database |
+| Results | Done in the app. Status chips, totals, players-by-game table, places, a share image with every game and the result id, and a full-details PDF. Apply `008_results.sql` (declare) and `013_results_privacy.sql` (who can read) on the live database |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; dark mode is on Profile and saved on the phone |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
