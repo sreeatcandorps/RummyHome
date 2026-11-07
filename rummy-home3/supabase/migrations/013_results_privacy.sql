@@ -42,6 +42,16 @@ as $$
       where grg.result_id = p_result_id
         and public.is_game_member(grg.game_id)
     )
+    -- games.created_by directly: the creator normally also has a game_players row
+    -- (unseated admin), but games made before 007 or where that row failed to insert
+    -- would otherwise lock the organiser out of their own result.
+    or exists (
+      select 1
+      from public.game_result_games grg
+      join public.games g on g.id = grg.game_id
+      where grg.result_id = p_result_id
+        and g.created_by = auth.uid()
+    )
   );
 $$;
 
@@ -72,7 +82,19 @@ as $$
         'standings', coalesce(r.places->'standings', '[]'::jsonb),
         'sheet', jsonb_build_object(
           'players', coalesce(r.places->'players', '[]'::jsonb),
-          'games', coalesce(r.places->'games', '[]'::jsonb)
+          -- Each stored game element gains 'label' ("G7") from the live games row, so a game
+          -- keeps its own number in every result. Stored rows are read, never rewritten;
+          -- a game with no number (pre-009 closed games) keeps its short code.
+          'games', coalesce((
+            select jsonb_agg(
+              case
+                when g.game_number is not null then e || jsonb_build_object('label', 'G' || g.game_number::text)
+                else e
+              end
+              order by t.ord)
+            from jsonb_array_elements(coalesce(r.places->'games', '[]'::jsonb)) with ordinality as t(e, ord)
+            left join public.games g on g.id::text = t.e->>'id'
+          ), '[]'::jsonb)
         )
       )
       from public.game_results r

@@ -40,6 +40,8 @@ What it does:
 - Adds `can_see_game_result(result_id)`: true for the person who declared the result, for anyone seated in one of its games, for the creator or an admin of one of its games (even if they did not play), and for app admins. Watching a game through its public live link does not count.
 - `get_game_result`, `list_game_results` and `list_game_results_page` now return only those results. A result that is not yours comes back as nothing, exactly like one that does not exist.
 - A combined result (several games) is visible to anyone connected to at least one of them. The declarer chose to publish those games together.
+- The creator of a game (`games.created_by`) counts even without a `game_players` row, so an organiser who never sat down still opens their own result.
+- `get_game_result` adds each game's own number (`label`: "G7") from the live `games` row to the stored sheet, so a game keeps its number in every result. Stored result rows are read, never rewritten.
 
 Check after running it: sign in as an account with no games and open Results. The past-results list must be empty.
 
