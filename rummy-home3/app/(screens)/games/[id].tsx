@@ -23,6 +23,7 @@ import { settleEnabled } from '@/constants/features';
 import { HELP } from '@/constants/help';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { useLayout } from '@/hooks/useLayout';
+import { useMenuThenShare } from '@/hooks/useMenuThenShare';
 import { PlayersSheet } from '@/components/game/PlayersSheet';
 import { ScoreColumn, ScoreTable } from '@/components/game/ScoreTable';
 import { ScorecardImageView } from '@/components/share/ScorecardImageView';
@@ -51,7 +52,7 @@ export default function GameScreen() {
   const [completing, setCompleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [canScore, setCanScore] = useState(true);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
   const [playersOpen, setPlayersOpen] = useState(false);
   const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
   const [editRoundOpen, setEditRoundOpen] = useState(false);
@@ -170,9 +171,8 @@ export default function GameScreen() {
     }
   };
 
-  const shareLive = async () => {
+  const shareLive = () => afterMenu(async () => {
     if (!game) return;
-    setMenuOpen(false);
     setLinkNote(null);
     try {
       const token = game.viewToken ?? await gamesService.ensureViewToken(game.id);
@@ -182,11 +182,10 @@ export default function GameScreen() {
     } catch (error) {
       setActionError(formatSupabaseError(error));
     }
-  };
+  });
 
-  const shareResults = async () => {
+  const shareResults = () => afterMenu(async () => {
     if (!game || !canShareResults(game.isComplete)) return;
-    setMenuOpen(false);
     try {
       const sheet = buildScorecardSheet({
         gameNumber: game.gameNumber ?? null,
@@ -200,7 +199,7 @@ export default function GameScreen() {
     } catch (error) {
       setActionError(formatSupabaseError(error));
     }
-  };
+  });
 
   const openPlayers = async () => {
     setMenuOpen(false);
@@ -422,6 +421,7 @@ export default function GameScreen() {
             <View style={styles.headerActions}>
               <HelpButton text={HELP.scorecard} />
               <Menu
+                key={menuKey}
                 visible={menuOpen}
                 onDismiss={() => setMenuOpen(false)}
                 anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu"> </Button>}
@@ -454,9 +454,6 @@ export default function GameScreen() {
           {statusTag}
           {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
         </View>
-        {!canScore && !game.isComplete ? (
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>View only.</Text>
-        ) : null}
         {game.isComplete ? (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Completed.</Text>
         ) : null}

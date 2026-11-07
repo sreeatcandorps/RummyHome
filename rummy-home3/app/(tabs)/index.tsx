@@ -98,7 +98,7 @@ export default function Dashboard() {
       ) : (
         live.map((game) => (
           <View key={game.id} style={styles.gameGap}>
-            <GameListItem game={game} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
+            <GameListItem game={game} viewerId={currentPlayer?.id} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
           </View>
         ))
       )}
@@ -127,7 +127,7 @@ export default function Dashboard() {
       ) : (
         filtered.map((game) => (
           <View key={game.id} style={styles.gameGap}>
-            <GameListItem game={game} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
+            <GameListItem game={game} viewerId={currentPlayer?.id} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
           </View>
         ))
       )}
