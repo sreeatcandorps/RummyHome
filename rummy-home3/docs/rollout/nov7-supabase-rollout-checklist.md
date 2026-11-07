@@ -1,6 +1,6 @@
 # EZ Score: Rummy — Nov 7 rollout bundle (DB migrations 013/014/015 + passcode-recovery email)
 
-Prepared from branch `cursor/ezscore-apk-ready` @ `df0ae14be44a01fae95c02080d07785236580552` (PR #7, base `cursor/add-round-redesign-0a03`).
+Prepared from branch `cursor/ezscore-apk-ready` (PR #7, base `cursor/add-round-redesign-0a03`). Build the next APK from the branch head; last app-code change is `df0ae14be44a01fae95c02080d07785236580552`, every commit after it is docs/rollout files only (`bcef2457d55efb121ab3aa005379e8f7068a6c13` at export time).
 No credentials appear in this bundle. Nothing in this bundle was run against the live project.
 
 ## 0. Targets (non-secret identifiers from the repo)
@@ -90,7 +90,7 @@ Security trade-off to acknowledge once: Supabase recommends ≥ 8 chars with mix
 
 ## 5. Release readiness (no token needed; done on the build box)
 
-- Branch `cursor/ezscore-apk-ready`, head `df0ae14be44a01fae95c02080d07785236580552`, in sync with `origin`.
+- Branch `cursor/ezscore-apk-ready`, head `bcef2457d55efb121ab3aa005379e8f7068a6c13` at export (last app-code change `df0ae14be44a01fae95c02080d07785236580552`), pushed to `origin`.
 - `npx tsc --noEmit` clean; `node --import tsx --test tests/*.test.ts` → 203 passing.
 - `npx expo-doctor` → 18/18 checks passed. `npx expo config --type public` resolves version `1.1.0`, owner `mindweave`, projectId above.
 - No new native dependencies since build 4 (the Nov 6 work is TS/SQL only), so a `preview` build from this SHA is a drop-in for the same runtime version. `EXPO_UPDATES_ENABLED=false` on preview, so phones get the new code only via the APK.
