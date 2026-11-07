@@ -12,6 +12,7 @@ import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
 import { GameResult, RESULT_EXPENSE_ID, ResultSheet, ResultWarning, resultWarnings, reusedInResult, gameClock } from '@/utils/results';
+import { RESULT_NOT_AVAILABLE } from '@/utils/resultsAccess';
 import { ResultWarnings } from '@/components/results/ResultWarnings';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
@@ -129,7 +130,7 @@ export default function DeclaredResult() {
       ) : null}
       {loading ? <LoadingRows /> : null}
       {!loading && !error && !result ? (
-        <Text variant="bodyLarge">These results are not here.</Text>
+        <Text variant="bodyLarge">{RESULT_NOT_AVAILABLE}</Text>
       ) : null}
       {result ? (
         <ResultsPage createdAt={result.declaredAt} standings={result.standings} sheet={sheetFor(result)} />
