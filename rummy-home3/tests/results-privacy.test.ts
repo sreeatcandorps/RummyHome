@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
 import { canSeeResult, RESULT_NOT_AVAILABLE, userConnectedToGame } from '../utils/resultsAccess';
 
@@ -37,7 +38,7 @@ test('P1-A: watching through the public live link is not membership', () => {
 });
 
 test('P1-A: migration 013 gates every results reader through can_see_game_result', () => {
-  const sql = readFileSync(new URL('../supabase/migrations/013_results_privacy.sql', import.meta.url), 'utf8');
+  const sql = readFileSync(path.join(process.cwd(), 'supabase/migrations/013_results_privacy.sql'), 'utf8');
   assert.match(sql, /create or replace function public\.can_see_game_result\(p_result_id uuid\)/);
   assert.match(sql, /public\.is_app_admin\(\)/);
   assert.match(sql, /r\.declared_by = auth\.uid\(\)/);
