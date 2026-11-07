@@ -2,6 +2,7 @@ import { displayPlayerId } from '@/utils/playerIdentity';
 import { normalizeEmail } from '@/utils/playerIdentity';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { authRedirectUrl } from '@/utils/authRedirect';
+import type { PasscodeAuthClient } from '@/utils/passcodeFlow';
 import { ProfileDefaults } from '@/types/database';
 import { Player } from '@/types/player';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
@@ -43,6 +44,36 @@ const toProfile = (row: any): Profile => ({
   defaultSettings: row.default_settings ?? DEFAULT_PROFILE_SETTINGS,
   role: row.role ?? 'player',
 });
+
+const errorText = (error: { message?: string } | null | undefined) => (error ? error.message || 'Something went wrong.' : null);
+
+/** The passcode flows (utils/passcodeFlow.ts) talk to Supabase through this adapter. */
+export const passcodeClient: PasscodeAuthClient = {
+  async requestCode(email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizeEmail(email), { redirectTo: authRedirectUrl() });
+    return { error: errorText(error) };
+  },
+  async verifyCode(email, code) {
+    const { error } = await supabase.auth.verifyOtp({ email: normalizeEmail(email), token: code, type: 'recovery' });
+    return { error: errorText(error) };
+  },
+  async setPasscode(next, nonce) {
+    const { error } = await supabase.auth.updateUser(nonce ? { password: next, nonce } : { password: next });
+    return { error: errorText(error) };
+  },
+  async checkCurrent(email, current) {
+    const { error } = await supabase.auth.signInWithPassword({ email: normalizeEmail(email), password: current });
+    return { error: errorText(error) };
+  },
+  async requestReauthentication() {
+    const { error } = await supabase.auth.reauthenticate();
+    return { error: errorText(error) };
+  },
+  async signOut() {
+    await supabase.auth.signOut();
+    await storage.setCurrentPlayer(null);
+  },
+};
 
 export const authService = {
   async signIn(email: string, password: string) {

@@ -14,15 +14,16 @@ import { HELP } from '@/constants/help';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
-  const params = useLocalSearchParams<{ email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; notice?: string }>();
   const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
   const [passcode, setPasscode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState(typeof params.notice === 'string' ? params.notice : '');
 
   useEffect(() => {
-    const notice = takeStartupNotice();
-    if (notice) setError(notice);
+    const startup = takeStartupNotice();
+    if (startup) setError(startup);
   }, []);
 
   const handleEmailLogin = async () => {
@@ -129,9 +130,11 @@ export default function LoginScreen() {
       />
 
       <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} />
-      <HelperText type="info" visible>
-        Numbers only. Use the eye to check the digits as you type.
-      </HelperText>
+      {notice ? (
+        <HelperText type="info" visible style={styles.notice} onPress={() => setNotice('')}>
+          {notice}
+        </HelperText>
+      ) : null}
 
       {error ? (
         <HelperText type="error" visible={!!error}>
@@ -153,7 +156,7 @@ export default function LoginScreen() {
 
       <Button
         mode="text"
-        onPress={() => router.push('/(auth)/forgot-password')}
+        onPress={() => router.push({ pathname: '/(auth)/forgot-password', params: email ? { email: email.trim() } : {} })}
         contentStyle={styles.secondaryContent}
       >
         Forgot passcode?
@@ -163,6 +166,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  notice: { fontWeight: '700' },
   pill: {
     borderRadius: radius.full,
   },

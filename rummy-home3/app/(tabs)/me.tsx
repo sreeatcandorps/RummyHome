@@ -9,10 +9,10 @@ import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isAdminEmail } from '@/utils/adminAccess';
 import { sharePlayerId } from '@/utils/invite';
-import { authRedirectUrl } from '@/utils/authRedirect';
 import { normalizePhone, phoneProblem } from '@/utils/phone';
 import { playerIdBadge } from '@/utils/myPlayersList';
 import { clearDemoData, loadDemoData } from '@/services/demoSeed';
+import { ChangePasscodeDialog } from '@/components/auth/ChangePasscodeDialog';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
@@ -129,15 +129,14 @@ export default function MeScreen() {
     }
   };
 
-  const changePasscode = async () => {
-    const email = player?.email;
-    if (!email || !isSupabaseConfigured) {
-      setNotice('Sign in with an account to email yourself a reset link.');
+  const [passcodeOpen, setPasscodeOpen] = useState(false);
+  const changePasscode = () => {
+    if (!player?.email || !isSupabaseConfigured) {
+      setNotice('Passcodes belong to online accounts. This build is running without the account service.');
       return;
     }
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() });
-    if (resetError) setNotice(resetError.message);
-    else setNotice('Check your email. We sent a link to set a new 6-digit code.');
+    setNotice(null);
+    setPasscodeOpen(true);
   };
 
   const logout = async () => {
@@ -315,10 +314,19 @@ export default function MeScreen() {
         <SettingsPriority highlight="User settings" />
       </SectionCard>
 
-      <Button mode="outlined" icon="lock-reset" onPress={changePasscode} contentStyle={styles.action}>
+      <Button mode="outlined" icon="lock-reset" onPress={changePasscode} contentStyle={styles.action} accessibilityLabel="Change passcode">
         Change passcode
       </Button>
       {notice ? <Text variant="bodyMedium">{notice}</Text> : null}
+      <ChangePasscodeDialog
+        visible={passcodeOpen}
+        email={player?.email ?? ''}
+        onDismiss={() => setPasscodeOpen(false)}
+        onChanged={() => {
+          setPasscodeOpen(false);
+          setNotice('Passcode changed. Use the new 6 digits next time you sign in.');
+        }}
+      />
 
       {showDemo ? (
         <SectionCard title="Demo data" icon="flask-outline" supportingText="Sample players and games for this account.">

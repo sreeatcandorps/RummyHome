@@ -213,6 +213,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Player avatars are gone from lists; names show with bold first/last initials (`BoldName`). A shared in-memory draft (`newGameDraft`) keeps New game seats and the Add New Players strip in sync.
 - Score-entry palette is final (beige / yellow / green / blue); `cellConfirmed` token removed. No new dependencies, no schema changes.
 
+### 2026-11-07 — Nov 6 phone test, P1: results privacy and in-app passcode recovery
+- Results privacy (P1-A): `013_results_privacy.sql` adds `can_see_game_result` and routes `get_game_result` / `list_game_results` / `list_game_results_page` through it (declarer, seated player, game creator/admin, app admin). Written and tested as text; **not applied** to the project from here. The client repeats the rule for the detail screen and the local store, but the paged list can only be fixed server-side.
+- Passcode recovery (P1-B): no more browser reset page. Forgot passcode emails a 6-digit code (`resetPasswordForEmail` → `verifyOtp type=recovery` → `updateUser`) typed back in the app; Profile → Change passcode checks the current passcode and sets the new one in-app, with a reauthentication-nonce step if the project demands it. Depends on the Supabase "Reset Password" template including `{{ .Token }}` (`supabase/templates/recovery-passcode.html`) and digit-only password requirements — dashboard settings, not code. Flow logic lives in `utils/passcodeFlow.ts` behind an injectable client and was exercised in a browser against a local GoTrue fake; real email delivery was not tested from the build box.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.

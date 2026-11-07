@@ -8,8 +8,8 @@ const bullets = (...lines: string[]) => lines.map((line) => `• ${line}`).join(
 
 export const HELP = {
   signIn: bullets(
-    'Your passcode is 6 digits, not a password.',
-    'Forgot passcode emails you a link to set a new one.',
+    'Your passcode is 6 digits. Numbers only.',
+    'Forgot passcode emails you a 6-digit code to type back here, then you choose a new passcode.',
   ),
   createAccount: bullets(
     'Email is how you sign in. It cannot be changed later.',
@@ -19,8 +19,9 @@ export const HELP = {
     'A player ID is never used to sign in.',
   ),
   reset: bullets(
-    'We email a link, not a text.',
-    'The link opens a page where you choose a new 6-digit passcode.',
+    'We email a 6-digit code, never a text. Type it here; no web page.',
+    'The code works once and expires. Ask for a new one if it is refused.',
+    'Your old passcode keeps working until the new one is saved.',
   ),
   home: [
     '## Statuses',
