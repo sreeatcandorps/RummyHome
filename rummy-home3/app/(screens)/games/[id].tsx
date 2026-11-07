@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Button, Text, Dialog, Icon, Menu, Portal } from 'react-native-paper';
+import { Button, Text, Dialog, Menu, Portal, Snackbar } from 'react-native-paper';
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Game } from '@/types/game';
@@ -12,11 +12,11 @@ import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
 import { storage } from '@/utils/storage';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { formatGameDateTime, gameIdLabel, gameNumberLabel, gameTypeLabel } from '@/utils/gameDisplay';
+import { gameTypeLabel } from '@/utils/gameDisplay';
 import { buildPlayerInitials } from '@/utils/playerInitials';
 import { scorecardUrl } from '@/utils/shareLink';
-import { buildScorecardSheet, canShareResults } from '@/utils/scorecardSheet';
-import { shareLiveScorecard, shareScorecardImage } from '@/utils/shareImage';
+import { canShareResults } from '@/utils/scorecardSheet';
+import { shareLiveScorecard } from '@/utils/shareImage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { settleEnabled } from '@/constants/features';
@@ -26,10 +26,8 @@ import { useLayout } from '@/hooks/useLayout';
 import { useMenuThenShare } from '@/hooks/useMenuThenShare';
 import { PlayersSheet } from '@/components/game/PlayersSheet';
 import { ScoreColumn, ScoreTable } from '@/components/game/ScoreTable';
-import { ScorecardImageView } from '@/components/share/ScorecardImageView';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { StackedAction } from '@/components/ui/StackedAction';
 import { editableRounds } from '@/utils/editRound';
 import { Tag } from '@/components/ui/Tag';
@@ -47,12 +45,9 @@ export default function GameScreen() {
   const [game, setGame] = useState<Game | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const [reopening, setReopening] = useState(false);
-  const [showCompleteResult, setShowCompleteResult] = useState(false);
-  const [completing, setCompleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [canScore, setCanScore] = useState(true);
   const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
@@ -62,7 +57,6 @@ export default function GameScreen() {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [viewer, setViewer] = useState<Player | null>(null);
   const [linkNote, setLinkNote] = useState<string | null>(null);
-  const resultsShot = useRef<View>(null);
   const [roster, setRoster] = useState<Player[]>([]);
   const [directory, setDirectory] = useState<Player[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -168,25 +162,8 @@ export default function GameScreen() {
   const playingSeats = () => players;
 
   const openComplete = () => {
-    setShowCompleteConfirm(true);
-  };
-
-  const handleCompleteGame = async () => {
     if (!game) return;
-
-    setCompleting(true);
-    try {
-      const updatedGame = await gamesService.completeGame(game.id);
-      if (updatedGame) setGame(updatedGame);
-      setShowCompleteConfirm(false);
-      setShowCompleteResult(true);
-    } catch (error) {
-      console.error('Error completing game:', error);
-      setShowCompleteConfirm(false);
-      setActionError(formatSupabaseError(error));
-    } finally {
-      setCompleting(false);
-    }
+    router.push({ pathname: '/(screens)/games/complete', params: { id: game.id } });
   };
 
   const shareLive = () => afterMenu(async () => {
@@ -202,22 +179,11 @@ export default function GameScreen() {
     }
   });
 
-  const shareResults = () => afterMenu(async () => {
-    if (!game || !canShareResults(game.isComplete)) return;
-    try {
-      const sheet = buildScorecardSheet({
-        gameNumber: game.gameNumber ?? null,
-        gameLabel: gameNumberLabel(game) ?? gameIdLabel(game),
-        when: formatGameDateTime(game.date),
-        isComplete: true,
-        players: players.map((player) => ({ id: player.id, name: player.name })),
-        scores: game.scores,
-      });
-      await shareScorecardImage(sheet, resultsShot.current);
-    } catch (error) {
-      setActionError(formatSupabaseError(error));
-    }
-  });
+  const shareFinalScores = () => {
+    if (!game) return;
+    setMenuOpen(false);
+    router.push({ pathname: '/(screens)/games/final-scores', params: { id: game.id } });
+  };
 
   const openPlayers = async () => {
     setMenuOpen(false);
@@ -325,14 +291,6 @@ export default function GameScreen() {
   const standings = [...players]
     .map((player) => ({ player, total: getPlayerTotal(player.id) }))
     .sort((a, b) => b.total - a.total);
-  const resultsSheet = canShareResults(game.isComplete) ? buildScorecardSheet({
-    gameNumber: game.gameNumber ?? null,
-    gameLabel: gameNumberLabel(game) ?? gameIdLabel(game),
-    when: formatGameDateTime(game.date),
-    isComplete: true,
-    players: seats.map((seat) => ({ id: seat.id, name: seat.name })),
-    scores: game.scores,
-  }) : null;
 
   const bestTotal = standings[0]?.total;
   const hasLeader = maxRounds > 0 && standings.length > 0;
@@ -462,7 +420,7 @@ export default function GameScreen() {
                 ) : null}
                 <Menu.Item leadingIcon="share-variant" onPress={shareLive} title="Share live scorecard" />
                 {canShareResults(game.isComplete) ? (
-                  <Menu.Item leadingIcon="image" onPress={shareResults} title="Share results" />
+                  <Menu.Item leadingIcon="image" onPress={shareFinalScores} title="Share final scores" />
                 ) : null}
               </Menu>
             </View>
@@ -563,117 +521,6 @@ export default function GameScreen() {
           </Dialog.Actions>
         </Dialog>
         <Dialog
-          visible={showCompleteConfirm}
-          onDismiss={() => setShowCompleteConfirm(false)}
-          style={[styles.dialog, { backgroundColor: colors.surface }]}
-        >
-          <Dialog.Title style={styles.dialogTitle}>
-            <View style={styles.headerActions}>
-              <Text variant="titleLarge">Complete this game?</Text>
-              <HelpButton text={HELP.complete} />
-            </View>
-          </Dialog.Title>
-          <Dialog.ScrollArea style={styles.resultScroll}>
-            <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
-              The scores stay as they are.
-            </Text>
-            {playingSeats().map((seat) => (
-              <View key={seat.id} style={styles.prizeRow}>
-                <Text variant="bodyLarge" style={styles.standingName} numberOfLines={1}>
-                  {seat.name}
-                </Text>
-                <Text variant="titleMedium" style={tabularNums}>
-                  {getPlayerTotal(seat.id) > 0 ? `+${getPlayerTotal(seat.id)}` : getPlayerTotal(seat.id)}
-                </Text>
-              </View>
-            ))}
-          </Dialog.ScrollArea>
-          <Dialog.Actions style={styles.dialogActions}>
-            <Button onPress={() => setShowCompleteConfirm(false)}>Not yet</Button>
-            <Button
-              mode="contained"
-              onPress={handleCompleteGame}
-              loading={completing}
-              disabled={completing}
-              contentStyle={styles.dialogButtonContent}
-            >
-              Confirm
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-
-        <Dialog
-          visible={showCompleteResult}
-          onDismiss={() => setShowCompleteResult(false)}
-          style={[styles.dialog, { backgroundColor: colors.surface }]}
-        >
-          <Dialog.Icon icon="trophy" color={colors.leader} />
-          <Dialog.Title style={styles.dialogTitle}>Game complete</Dialog.Title>
-          <Dialog.ScrollArea style={styles.resultScroll}>
-            {standings.length > 0 ? (
-              <View style={styles.standings}>
-                {standings.map((entry, index) => {
-                  const winner = index === 0 && entry.total === bestTotal && maxRounds > 0;
-                  return (
-                    <View
-                      key={entry.player.id}
-                      style={[
-                        styles.standingRow,
-                        { backgroundColor: winner ? colors.leaderContainer : 'transparent' },
-                      ]}
-                    >
-                      <Text
-                        variant="labelLarge"
-                        style={[styles.standingRank, { color: winner ? colors.onLeaderContainer : colors.onSurfaceVariant }]}
-                      >
-                        {index + 1}
-                      </Text>
-                      <SeatAvatar name={entry.player.name} color={colorFor(entry.player.id)} size={30} />
-                      <Text
-                        variant="bodyLarge"
-                        style={[styles.standingName, { color: winner ? colors.onLeaderContainer : colors.onSurface }]}
-                        numberOfLines={1}
-                      >
-                        {entry.player.name}
-                      </Text>
-                      {winner ? <Icon source="crown" size={18} color={colors.leader} /> : null}
-                      <Text
-                        variant="titleMedium"
-                        style={[
-                          styles.standingTotal,
-                          tabularNums,
-                          {
-                            color: winner
-                              ? colors.onLeaderContainer
-                              : entry.total > 0
-                                ? colors.positive
-                                : colors.onSurfaceVariant,
-                          },
-                        ]}
-                      >
-                        {entry.total}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <Text variant="bodyMedium">This game was closed with no scores.</Text>
-            )}
-          </Dialog.ScrollArea>
-          <Dialog.Actions style={styles.dialogActions}>
-            <Button onPress={() => setShowCompleteResult(false)}>Stay here</Button>
-            <Button
-              mode="contained"
-              onPress={() => { setShowCompleteResult(false); router.back(); }}
-              contentStyle={styles.dialogButtonContent}
-            >
-              Done
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-
-        <Dialog
           visible={!!actionError}
           onDismiss={() => setActionError(null)}
           style={[styles.dialog, { backgroundColor: colors.surface }]}
@@ -692,12 +539,7 @@ export default function GameScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        {linkNote ? <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, padding: spacing.sm }}>{linkNote}</Text> : null}
-        {resultsSheet ? (
-          <View style={styles.offscreen} pointerEvents="none">
-            <ScorecardImageView sheet={resultsSheet} viewRef={resultsShot} />
-          </View>
-        ) : null}
+        <Snackbar visible={Boolean(linkNote)} onDismiss={() => setLinkNote(null)} duration={2500}>{linkNote ?? ''}</Snackbar>
         <PlayersSheet
           visible={playersOpen}
           seats={roster}
@@ -740,11 +582,6 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  offscreen: {
-    position: 'absolute',
-    left: -4000,
-    top: 0,
   },
   flex: {
     flex: 1,
@@ -823,42 +660,6 @@ const styles = StyleSheet.create({
   },
   dialogButtonContent: {
     paddingHorizontal: spacing.sm,
-  },
-  resultScroll: {
-    maxHeight: 320,
-    borderTopWidth: 0,
-    borderBottomWidth: 0,
-    paddingHorizontal: spacing.lg,
-  },
-  standings: {
-    gap: 2,
-    paddingVertical: spacing.xs,
-  },
-  standingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-  },
-  standingRank: {
-    width: 18,
-    textAlign: 'center',
-    fontWeight: '800',
-  },
-  standingName: {
-    flex: 1,
-    fontWeight: '600',
-  },
-  standingTotal: {
-    fontWeight: '800',
-  },
-  prizeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.xs,
   },
   prizeInput: {
     width: 96,

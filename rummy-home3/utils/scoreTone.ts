@@ -6,8 +6,10 @@ export type ScoreTone = 'positive' | 'zero' | 'negative' | 'bigNegative';
  * makes -40 and worse red). Wins stay green; small losses are plain.
  */
 export function bigNegativeThreshold(fullCount: number | undefined | null): number | null {
-  if (!fullCount || fullCount <= 0) return null;
-  return Math.ceil(fullCount / 2);
+  // Settings store Full count as a loss (-80) in older games and as 80 in newer ones.
+  const magnitude = Math.abs(Number(fullCount) || 0);
+  if (magnitude === 0) return null;
+  return Math.ceil(magnitude / 2);
 }
 
 export function scoreTone(score: number, fullCount?: number | null): ScoreTone {

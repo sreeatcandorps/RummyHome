@@ -69,6 +69,7 @@ test('Edit round loads a saved 0 as a confirmed cell, and a missing cell as empt
 
 test('big losses turn red from half the Full count; wins stay green', () => {
   assert.equal(bigNegativeThreshold(80), 40);
+  assert.equal(bigNegativeThreshold(-80), 40, 'older games store Full count as a loss');
   assert.equal(bigNegativeThreshold(75), 38);
   assert.equal(bigNegativeThreshold(0), null);
   assert.equal(bigNegativeThreshold(undefined), null);

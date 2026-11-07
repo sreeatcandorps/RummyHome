@@ -46,7 +46,8 @@ export const HELP = {
     'View only means you can watch but not change scores.',
     'Totals sit in the header next to each name.',
     'Undo asks before removing the last round.',
-    'Complete locks the scores. The game can then be picked for Results.',
+    'Complete opens a page with the final totals and asks once more before locking the scores. The game can then be picked for Results.',
+    'A Completed game can be reopened from the ⋮ menu until it is added to Results.',
     'The ⋮ menu changes this game’s Drop, Middle drop, and Full count, picks who can score, sends sign-up links, and shares the live link.',
   ),
   playersSheet: bullets(
@@ -58,7 +59,7 @@ export const HELP = {
   ),
   share: bullets(
     'Anyone with the live link can watch rounds and totals without the app or an account.',
-    'Share results appears once the game is complete and sends a picture of the scorecard with 1st, 2nd, and 3rd named.',
+    'Share final scores appears once the game is complete: a yellow picture of this game’s totals and every round, shown to you before the share sheet opens.',
   ),
   scoreEntry: bullets(
     'Tap one or more players, then type a number or tap Drop, Middle drop, or Full count. Everyone you tapped gets it.',
@@ -69,8 +70,9 @@ export const HELP = {
     'Save round unlocks when Balance is 0.',
   ),
   complete: bullets(
-    'Completing the game locks the scores.',
+    'Completing the game locks the scores. Every round must add to 0 first.',
     'The game can then be picked for Results.',
+    'Pressed too early? Reopen it from the scorecard ⋮ menu until it is added to Results.',
   ),
   settle: bullets('Finished games stay on Home under Recent.'),
   players: bullets(

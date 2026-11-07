@@ -1,6 +1,7 @@
 import { Platform, Share, View } from 'react-native';
 import { ShareCard } from '@/utils/shareCard';
 import { placeLine, ScorecardSheet } from '@/utils/scorecardSheet';
+import { CELLS_PER_ROW, FINAL_SCORES_FILE, FinalScoresSheet } from '@/utils/finalScoresSheet';
 
 export const IMAGE_READY = 'Image ready.';
 
@@ -267,6 +268,124 @@ export async function shareCardImage(view: View | null, card: ShareCard): Promis
   try {
     if (Platform.OS === 'web') return await shareWeb(card);
     return await shareNative(view, card);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (/cancel|abort|dismiss/i.test(message)) return IMAGE_READY;
+    throw error instanceof Error ? error : new Error('Could not make the image.');
+  }
+}
+
+/** Same geometry as FinalScoresView, drawn on a canvas for the web build. */
+export function drawFinalScores(sheet: FinalScoresSheet): HTMLCanvasElement {
+  if (typeof document === 'undefined') throw new Error('Could not make the image.');
+  const width = 720;
+  const pad = 24;
+  const cell = Math.floor((width - pad * 2 - 32 - (CELLS_PER_ROW - 1) * 8) / CELLS_PER_ROW);
+  const headerH = 150;
+  const summaryH = 16 + 16 + 24 + sheet.summary.length * 34 + 28 + 16;
+  const playerH = (player: FinalScoresSheet['players'][number]) => 16 + 16 + 34 + player.rows.length * (cell + 8) + 16;
+  const height = headerH + summaryH + sheet.players.reduce((sum, player) => sum + playerH(player), 0) + 70;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = Math.max(height, 420);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not make the image.');
+
+  const paint = (text: string, x: number, y: number, color: string, font: string, align: CanvasTextAlign = 'left') => {
+    ctx.fillStyle = color;
+    ctx.font = font;
+    ctx.textAlign = align;
+    ctx.fillText(text, x, y);
+    ctx.textAlign = 'left';
+  };
+  const roundRect = (x: number, y: number, w: number, h: number, r: number, fill: string, stroke?: string) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.stroke();
+    }
+  };
+  const tone = (sign: 'pos' | 'neg' | 'zero') =>
+    sign === 'pos' ? { fg: '#0E7A43', bg: '#E3F4E8' } : sign === 'neg' ? { fg: '#8C2F2F', bg: '#FBE7E6' } : { fg: '#1B1F1C', bg: '#F4F1EA' };
+  const totalColor = (total: number) => (total < 0 ? '#8C2F2F' : total > 0 ? '#0E7A43' : '#1B1F1C');
+
+  ctx.fillStyle = '#FFF8E6';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#F2C14E';
+  ctx.fillRect(0, 0, width, headerH);
+  paint('EZ SCORE: RUMMY', pad, 40, '#5A4A10', '700 15px sans-serif');
+  paint(sheet.heading.slice(0, 30), pad, 84, '#2E2300', '800 34px sans-serif');
+  paint(sheet.startedLine, pad, 112, '#5A4A10', '600 15px sans-serif');
+  paint(sheet.completedLine, pad, 134, '#5A4A10', '600 15px sans-serif');
+
+  let y = headerH + 16;
+  const blockX = pad;
+  const blockW = width - pad * 2;
+
+  roundRect(blockX, y, blockW, summaryH - 16, 14, '#FFFFFF', '#EADFC2');
+  paint('TOTALS', blockX + 16, y + 30, '#6B6455', '800 13px sans-serif');
+  let rowY = y + 30 + 34;
+  sheet.summary.forEach((row) => {
+    paint(row.name.slice(0, 28), blockX + 16, rowY, '#1B1F1C', '700 20px sans-serif');
+    paint(row.totalText, blockX + blockW - 16, rowY, totalColor(row.total), '800 22px sans-serif', 'right');
+    rowY += 34;
+  });
+  paint(
+    `${sheet.roundCount === 1 ? '1 round' : `${sheet.roundCount} rounds`} · ${sheet.totalSum === 0 ? 'Totals add to 0' : `Totals add to ${sheet.totalSum}`}`,
+    blockX + 16,
+    rowY + 2,
+    '#6B6455',
+    '600 13px sans-serif',
+  );
+  y += summaryH;
+
+  sheet.players.forEach((player) => {
+    const h = playerH(player) - 16;
+    roundRect(blockX, y, blockW, h, 14, '#FFFFFF', '#EADFC2');
+    paint(player.name.slice(0, 28), blockX + 16, y + 36, '#1B1F1C', '800 18px sans-serif');
+    paint(player.totalText, blockX + blockW - 16, y + 36, totalColor(player.total), '800 20px sans-serif', 'right');
+    let cellY = y + 52;
+    player.rows.forEach((row) => {
+      row.forEach((c, index) => {
+        const x = blockX + 16 + index * (cell + 8);
+        const t = tone(c.sign);
+        roundRect(x, cellY, cell, cell, 10, t.bg);
+        paint(`R${c.round}`, x + cell / 2, cellY + 22, '#6B6455', '700 12px sans-serif', 'center');
+        paint(c.text, x + cell / 2, cellY + cell / 2 + 14, t.fg, '800 22px sans-serif', 'center');
+      });
+      cellY += cell + 8;
+    });
+    y += playerH(player);
+  });
+
+  paint(sheet.footer, pad, y + 24, '#6B6455', '600 13px sans-serif');
+  paint(sheet.generatedLine, pad, y + 44, '#6B6455', '600 13px sans-serif');
+  return canvas;
+}
+
+/** The long "Final scores" picture of one game. Web draws it; the phone captures the same layout. */
+export async function shareFinalScoresImage(sheet: FinalScoresSheet, view: View | null): Promise<string> {
+  try {
+    if (Platform.OS === 'web') return await shareDrawnImage(drawFinalScores(sheet).toDataURL('image/png'), FINAL_SCORES_FILE, sheet.heading);
+    if (!view) throw new Error('Could not make the image.');
+    const { captureRef } = await import('react-native-view-shot');
+    const uri = await captureRef(view, { format: 'png', quality: 1, result: 'tmpfile' });
+    const Sharing = await import('expo-sharing');
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: sheet.heading, UTI: 'public.png' });
+      return IMAGE_READY;
+    }
+    await Share.share({ url: uri, title: sheet.heading });
+    return IMAGE_READY;
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     if (/cancel|abort|dismiss/i.test(message)) return IMAGE_READY;
