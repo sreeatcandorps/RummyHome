@@ -36,6 +36,7 @@ import { Tag } from '@/components/ui/Tag';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
 import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
 import { rulesFromGame } from '@/utils/gameSettings';
+import { canReopenGame } from '@/utils/gameStatus';
 
 export default function GameScreen() {
   const { id } = useLocalSearchParams();
@@ -48,6 +49,8 @@ export default function GameScreen() {
   const [loading, setLoading] = useState(true);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false);
+  const [reopening, setReopening] = useState(false);
   const [showCompleteResult, setShowCompleteResult] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -144,6 +147,21 @@ export default function GameScreen() {
       if (nextGame) setGame(nextGame);
     } catch (error) {
       setActionError(formatSupabaseError(error));
+    }
+  };
+
+  const confirmReopen = async () => {
+    if (!game) return;
+    setReopening(true);
+    try {
+      const nextGame = await gamesService.reopenGame(game.id);
+      if (nextGame) setGame(nextGame);
+      setShowReopenConfirm(false);
+    } catch (error) {
+      setShowReopenConfirm(false);
+      setActionError(formatSupabaseError(error));
+    } finally {
+      setReopening(false);
     }
   };
 
@@ -439,6 +457,9 @@ export default function GameScreen() {
                     setRegisterOpen(true);
                   }} />
                 ) : null}
+                {canScore && canReopenGame(game) ? (
+                  <Menu.Item leadingIcon="lock-open-variant-outline" title="Reopen game" onPress={() => { setMenuOpen(false); setShowReopenConfirm(true); }} />
+                ) : null}
                 <Menu.Item leadingIcon="share-variant" onPress={shareLive} title="Share live scorecard" />
                 {canShareResults(game.isComplete) ? (
                   <Menu.Item leadingIcon="image" onPress={shareResults} title="Share results" />
@@ -523,6 +544,22 @@ export default function GameScreen() {
           <Dialog.Actions>
             <Button onPress={() => setShowUndoConfirm(false)}>Cancel</Button>
             <Button mode="contained" onPress={confirmUndoLastRound}>Remove</Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog
+          visible={showReopenConfirm}
+          onDismiss={() => reopening || setShowReopenConfirm(false)}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
+        >
+          <Dialog.Title>Reopen this game?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+              It goes back to Active so rounds can be added or edited. Scores stay as they are. Use this when Complete game was pressed too early.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowReopenConfirm(false)} disabled={reopening}>Cancel</Button>
+            <Button mode="contained" onPress={confirmReopen} loading={reopening} disabled={reopening}>Reopen</Button>
           </Dialog.Actions>
         </Dialog>
         <Dialog

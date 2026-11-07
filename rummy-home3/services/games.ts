@@ -8,6 +8,7 @@ import { GameType, ProfileDefaults, ScoreType } from '@/types/database';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { canEnterScores, gameVisibleToUser, SeatRole } from '@/utils/gameAccess';
+import { canReopenGame, REOPEN_BLOCKED_MESSAGE } from '@/utils/gameStatus';
 import { createViewToken } from '@/utils/shareLink';
 import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validateRoundScores } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
@@ -119,6 +120,7 @@ const legacyGameFromServer = (
       .map((membership) => membership.profile_id),
     gameNumber: game.game_number ?? null,
     closedAt: game.closed_at ?? null,
+    completedAt: game.completed_at ?? null,
   };
 };
 
@@ -672,6 +674,7 @@ export const gamesService = {
       const updatedGame = {
         ...game,
         isComplete: true,
+        completedAt: game.completedAt ?? new Date().toISOString(),
         prize: settlement?.prize ?? game.prize ?? null,
         prizeShares: settlement?.prizeShares ?? game.prizeShares ?? null,
       };
@@ -701,6 +704,33 @@ export const gamesService = {
       return this.getGame(gameId);
     }
     if (error) throw error;
+    return this.getGame(gameId);
+  },
+
+  /**
+   * Undo an accidental Complete game. Only a game that is Completed and not yet
+   * Closed (not part of a declared result) can go back to Active.
+   */
+  async reopenGame(gameId: string): Promise<Game | null> {
+    const game = await this.getGame(gameId);
+    if (!game) throw new Error('Game not found.');
+    if (!canReopenGame(game)) throw new Error(REOPEN_BLOCKED_MESSAGE);
+
+    if (!isSupabaseConfigured) {
+      const updatedGame = { ...game, isComplete: false, completedAt: null };
+      await storage.updateGame(updatedGame);
+      return updatedGame;
+    }
+
+    const { data, error } = await supabase
+      .from('games')
+      .update({ status: 'active', completed_at: null })
+      .eq('id', gameId)
+      .eq('status', 'completed')
+      .is('closed_at', null)
+      .select('id');
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error(REOPEN_BLOCKED_MESSAGE);
     return this.getGame(gameId);
   },
 
