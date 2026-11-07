@@ -11,19 +11,33 @@ type StackedActionProps = {
   height?: number;
   style?: ViewStyle;
   accessibilityLabel?: string;
+  /** Filled with the soft brand yellow instead of outlined. */
+  tonal?: boolean;
+  /** Filled dark green: the one primary action in the bar. */
+  filled?: boolean;
+  /** Bigger icon and label for the action that should dominate the bar. */
+  emphasis?: boolean;
 };
 
 /** Secondary action with the icon above its label, so it fits narrow phones. */
-export function StackedAction({ icon, label, onPress, disabled, height = 56, style, accessibilityLabel }: StackedActionProps) {
+export function StackedAction({ icon, label, onPress, disabled, height = 56, style, accessibilityLabel, tonal = false, filled = false, emphasis = false }: StackedActionProps) {
   const theme = useAppTheme();
-  const color = disabled ? theme.colors.onSurfaceDisabled : theme.colors.primary;
+  const color = disabled
+    ? theme.colors.onSurfaceDisabled
+    : filled ? theme.colors.onPrimary : tonal ? theme.colors.onSecondaryContainer : theme.colors.primary;
   const compact = height < 52;
+  const fill = filled
+    ? { backgroundColor: disabled ? theme.colors.surfaceDisabled : theme.colors.primary, borderColor: 'transparent' }
+    : tonal
+      ? { backgroundColor: disabled ? theme.colors.surfaceDisabled : theme.colors.secondaryContainer, borderColor: 'transparent' }
+      : null;
 
   return (
     <View
       style={[
         styles.wrap,
         { height, borderColor: disabled ? theme.colors.surfaceDisabled : theme.colors.outline },
+        fill,
         style,
       ]}
     >
@@ -37,8 +51,8 @@ export function StackedAction({ icon, label, onPress, disabled, height = 56, sty
         accessibilityState={{ disabled: !!disabled }}
       >
         <View style={[styles.content, compact && styles.contentRow]}>
-          <Icon source={icon} size={compact ? 18 : 20} color={color} />
-          <Text variant="labelLarge" numberOfLines={1} style={[styles.label, { color }]}>
+          <Icon source={icon} size={compact ? 18 : emphasis ? 24 : 20} color={color} />
+          <Text variant="labelLarge" numberOfLines={1} style={[styles.label, emphasis && styles.labelEmphasis, { color }]}>
             {label}
           </Text>
         </View>
@@ -72,5 +86,9 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '700',
     fontSize: 13,
+  },
+  labelEmphasis: {
+    fontSize: 15,
+    fontWeight: '800',
   },
 });

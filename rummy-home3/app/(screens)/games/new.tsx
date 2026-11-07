@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Button, IconButton, Menu, Searchbar, Text } from 'react-native-paper';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
+import { Button, IconButton, Menu, Searchbar, SegmentedButtons, Text } from 'react-native-paper';
 import { router, Stack, useFocusEffect } from 'expo-router';
 import { Player } from '@/types/player';
 import { gamesService } from '@/services/games';
@@ -12,9 +12,12 @@ import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
-import { takePlayerToCheck } from '@/utils/pendingPlayer';
+import { takePlayersToCheck } from '@/utils/pendingPlayer';
 import { DEFAULT_POINTS_RULES, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
-import { Candidate, chipInitials, pickerGrid, PICKER_PAGE, seatedOrder } from '@/utils/playerIdentity';
+import { Candidate, CandidateSort, newGameGrid, newGameSeats, orderCandidates, PICKER_PAGE } from '@/utils/playerIdentity';
+import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
+import { SelectedPlayersStrip } from '@/components/players/SelectedPlayersStrip';
+import { BoldName } from '@/components/ui/BoldName';
 import { MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 import { HELP } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
@@ -22,23 +25,61 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
-import { NewPlayerStepper } from '@/components/players/NewPlayerStepper';
-import { AddPlayersDialog } from '@/components/players/AddPlayersDialog';
-import { seatColor, spacing, useAppTheme } from '@/constants/theme';
+import { playerIdBadge, registrationLabel } from '@/utils/myPlayersList';
+import { Tag } from '@/components/ui/Tag';
+import { REGISTRATION_TONE } from '@/utils/myPlayersList';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
 
-type Pick = { id: string; name: string; playerCode?: string };
+type Pick = DraftPick;
 
-function Chip({ pick, index, isMe, onPress }: { pick: Pick; index: number; isMe: boolean; onPress?: () => void }) {
+/**
+ * "Playing · N". The number sits in a big yellow badge with a soft green halo
+ * that keeps breathing while anyone is seated, and it pops each time N changes.
+ */
+function PlayingCount({ count }: { count: number }) {
   const { colors } = useAppTheme();
+  const pop = useRef(new Animated.Value(0)).current;
+  const halo = useRef(new Animated.Value(0)).current;
+  const first = useRef(true);
+
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    pop.setValue(0);
+    Animated.sequence([
+      Animated.timing(pop, { toValue: 1, duration: 140, easing: Easing.out(Easing.quad), useNativeDriver: false }),
+      Animated.timing(pop, { toValue: 0, duration: 460, easing: Easing.inOut(Easing.quad), useNativeDriver: false }),
+    ]).start();
+  }, [count, pop]);
+
+  useEffect(() => {
+    if (count === 0) { halo.stopAnimation(); halo.setValue(0); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(halo, { toValue: 1, duration: 1100, easing: Easing.out(Easing.quad), useNativeDriver: false }),
+      Animated.timing(halo, { toValue: 0, duration: 1100, easing: Easing.in(Easing.quad), useNativeDriver: false }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [count === 0, halo]);
+
+  const scale = pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.22] });
+  const fill = pop.interpolate({ inputRange: [0, 1], outputRange: [colors.secondaryContainer, colors.positiveContainer] });
+  const haloScale = halo.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] });
+  const haloOpacity = halo.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0.05] });
+  const seated = count > 0;
+
   return (
-    <Pressable onPress={onPress} disabled={isMe} accessibilityRole="button"
-      accessibilityLabel={isMe ? `${pick.name}, you` : `Remove ${pick.name}`} style={[styles.chip, { backgroundColor: colors.primaryContainer }]}>
-      <View style={[styles.chipDot, { backgroundColor: seatColor(index) }]}>
-        <Text style={styles.chipInitials}>{chipInitials(pick.name)}</Text>
+    <View style={styles.playingRow} accessibilityLiveRegion="polite" accessibilityLabel={`Playing, ${count} ${count === 1 ? 'player' : 'players'}`}>
+      <Text variant="titleLarge" style={{ color: colors.onSurface, fontWeight: '800' }}>Playing</Text>
+      <View style={styles.countWrap}>
+        {seated ? <Animated.View pointerEvents="none" style={[styles.countHalo, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} /> : null}
+        <Animated.View style={[styles.countBubble, { backgroundColor: seated ? fill : colors.surfaceVariant, borderColor: seated ? colors.primary : colors.outlineVariant, transform: [{ scale }] }]}>
+          <Text style={[styles.countText, { color: seated ? colors.onSecondaryContainer : colors.onSurfaceVariant }]}>{count}</Text>
+        </Animated.View>
       </View>
-      <Text variant="labelSmall" style={{ color: colors.onPrimaryContainer }}>{isMe ? 'You' : pick.playerCode ?? '—'}</Text>
-      {!isMe ? <Text style={[styles.chipX, { color: colors.onPrimaryContainer }]}>×</Text> : null}
-    </Pressable>
+      <Text variant="bodyMedium" style={[styles.flex, { color: colors.onSurfaceVariant }]}>
+        {count === 0 ? 'Nobody yet. Tap players below; tap yourself if you are playing.' : count === 1 ? 'player · pick one more to start' : 'players'}
+      </Text>
+    </View>
   );
 }
 
@@ -48,11 +89,10 @@ export default function NewGame() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selected, setSelected] = useState<Pick[]>([]);
   const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<CandidateSort>('frequent');
   const [rules, setRules] = useState<PointsRules>(DEFAULT_POINTS_RULES);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [newCount, setNewCount] = useState(3);
-  const [addOpen, setAddOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,11 +113,17 @@ export default function NewGame() {
       ]);
       setCandidates(list);
       setRules(defaults);
-      const pending = takePlayerToCheck();
-      if (pending) {
-        const found = list.find((c) => c.id === pending);
-        if (found) setSelected((cur) => (cur.some((p) => p.id === pending) ? cur : [...cur, found]));
+      // Seats edited on the screens above us (Add New Players, Add player from database) come back through the draft.
+      const pending = takePlayersToCheck();
+      let next = newGameDraft.get();
+      for (const row of pending) {
+        if (next.some((p) => p.id === row.id)) continue;
+        if (next.length >= MAX_SEATED_PLAYERS) break;
+        const found = list.find((c) => c.id === row.id);
+        next = [...next, found ? { id: found.id, name: found.name, playerCode: found.playerCode } : row];
       }
+      newGameDraft.set(next);
+      setSelected(next);
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
@@ -87,38 +133,40 @@ export default function NewGame() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  // Leaving New game without starting forgets the draft.
+  useEffect(() => () => newGameDraft.clear(), []);
+
   const selectedIds = selected.map((p) => p.id);
-  const seatedCount = selected.length + (me ? 1 : 0);
+  const seatedCount = selected.length;
   const atCap = seatedCount >= MAX_SEATED_PLAYERS;
 
+  const meCandidate = useMemo<Candidate | null>(() => (me
+    ? { id: me.id, name: me.name, playerCode: me.playerCode, status: 'registered', totalGames: 0, lastPlayedAt: null }
+    : null), [me]);
+
   const grid = useMemo(() => {
+    // The organizer is one more candidate, placed by the same sort as everyone else.
+    const everyone = meCandidate && !candidates.some((c) => c.id === meCandidate.id) ? [...candidates, meCandidate] : candidates;
     const pool = query.trim()
-      ? candidates.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query))
-      : candidates;
-    return pickerGrid(pool, selectedIds, me?.id, PICKER_PAGE);
-  }, [candidates, selectedIds, me?.id, query]);
+      ? everyone.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query))
+      : everyone;
+    return newGameGrid(orderCandidates(pool, sort), selectedIds, PICKER_PAGE);
+  }, [candidates, selectedIds, meCandidate, query, sort]);
 
   const pick = (c: Pick) => {
     if (atCap) return;
-    setSelected((cur) => [...cur, { id: c.id, name: c.name, playerCode: c.playerCode }]);
+    newGameDraft.add({ id: c.id, name: c.name, playerCode: c.playerCode });
+    setSelected(newGameDraft.get());
     setQuery('');
   };
-  const unpick = (id: string) => setSelected((cur) => cur.filter((p) => p.id !== id));
-
-  const onNewSaved = (player: Player) => {
-    setCandidates((cur) => [{ id: player.id, name: player.name, playerCode: player.playerCode, status: 'unregistered', totalGames: 0, lastPlayedAt: null }, ...cur.filter((c) => c.id !== player.id)]);
-    setSelected((cur) => (cur.some((p) => p.id === player.id)
-      ? cur.map((p) => (p.id === player.id ? { ...p, name: player.name } : p))
-      : (seatedCount >= MAX_SEATED_PLAYERS ? cur : [...cur, { id: player.id, name: player.name, playerCode: player.playerCode }])));
-  };
-  const onNewDeleted = (id: string) => {
-    setCandidates((cur) => cur.filter((c) => c.id !== id));
-    unpick(id);
+  const unpick = (id: string) => {
+    newGameDraft.remove(id);
+    setSelected(newGameDraft.get());
   };
 
   const startGame = async () => {
     if (!me) return;
-    const playerIds = seatedOrder(me.id, selectedIds);
+    const playerIds = newGameSeats(selectedIds);
     if (playerIds.length < 2) return;
     if (playerIds.length > MAX_SEATED_PLAYERS) { setError(SEATED_PLAYER_LIMIT); return; }
     setCreating(true);
@@ -129,6 +177,7 @@ export default function NewGame() {
         createdBy: me.id,
         rules,
       });
+      newGameDraft.clear();
       router.replace(`/(screens)/games/${game.id}`);
     } catch (err) {
       setError(formatSupabaseError(err));
@@ -138,7 +187,7 @@ export default function NewGame() {
   };
 
   return (
-    <Screen contentStyle={styles.content}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
           title: 'New game',
@@ -154,76 +203,97 @@ export default function NewGame() {
         }}
       />
 
-      <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }}>Playing · {seatedCount}</Text>
-      <View style={styles.chips}>
-        {me ? <Chip pick={{ id: me.id, name: me.name, playerCode: me.playerCode }} index={0} isMe /> : null}
-        {selected.map((p, i) => <Chip key={p.id} pick={p} index={i + 1} isMe={false} onPress={() => unpick(p.id)} />)}
-      </View>
-      {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
+      <Screen contentStyle={styles.content} safeBottom={false}>
+        <PlayingCount count={seatedCount} />
+        <SelectedPlayersStrip picks={selected} meId={me?.id} onRemove={unpick} />
+        {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
 
-      <Searchbar placeholder="Search name, initials, or player ID" value={query} onChangeText={setQuery} style={styles.search} />
-      {error ? <Text style={{ color: isNotReadyMessage(error) ? colors.onSurfaceVariant : colors.error }}>{error}</Text> : null}
-      {loading && candidates.length === 0 ? <LoadingRows /> : null}
-
-      <View style={styles.grid}>
-        {grid.map((c) => (
-          <Pressable key={c.id} onPress={() => pick(c)} disabled={atCap} accessibilityRole="checkbox" accessibilityState={{ checked: false }}
-            accessibilityLabel={`Add ${c.name}`} style={[styles.cell, { borderColor: colors.outlineVariant, opacity: atCap ? 0.5 : 1 }]}>
-            <View style={[styles.cellDot, { backgroundColor: colors.surfaceVariant }]}>
-              <Text style={[styles.cellInitials, { color: colors.onSurface }]}>{chipInitials(c.name)}</Text>
-            </View>
-            <View style={styles.flex}>
-              <Text variant="labelLarge" numberOfLines={1}>{chipInitials(c.name)}</Text>
-              <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
-                {c.playerCode ?? '—'}{c.status === 'unregistered' || c.status === 'pending' ? ' · Unregistered' : ''}
-              </Text>
-            </View>
-          </Pressable>
-        ))}
-      </View>
-      {!loading && grid.length === 0 ? (
-        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          {query ? 'No one in My players matches. Try Find player in database.' : 'No more players in My players. Add a new player below.'}
+        <View style={styles.searchRow}>
+          <Searchbar placeholder="Search name, initials, or ID" value={query} onChangeText={setQuery} style={[styles.search, styles.flex]} inputStyle={styles.searchInput} />
+          <SegmentedButtons
+            value={sort}
+            onValueChange={(value) => setSort(value as CandidateSort)}
+            density="small"
+            style={styles.sortControl}
+            buttons={[
+              { value: 'frequent', icon: 'fire', accessibilityLabel: 'Sort by Frequent', style: styles.sortButton },
+              { value: 'name', icon: 'sort-alphabetical-ascending', accessibilityLabel: 'Sort alphabetically', style: styles.sortButton },
+            ]}
+          />
+        </View>
+        <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
+          {sort === 'frequent' ? 'Sorted by Frequent: recent partners first, then most games together.' : 'Sorted alphabetically.'}
         </Text>
-      ) : null}
+        {error ? <Text style={{ color: isNotReadyMessage(error) ? colors.onSurfaceVariant : colors.error }}>{error}</Text> : null}
+        {loading && candidates.length === 0 ? <LoadingRows /> : null}
 
-      <View style={styles.bottomTools}>
-        <NewPlayerStepper count={newCount} onChange={setNewCount} onAdd={() => setAddOpen(true)} />
-        <Button mode="outlined" icon="database-search" onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game' } })}>
-          Find player in database
-        </Button>
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          Not in the database? Use Add new player. After you start the game, you can register these players from the ⋮ menu so they can download the app and see their games.
-        </Text>
-      </View>
+        <View style={styles.grid}>
+          {grid.map((c) => {
+            const status = registrationLabel(c.status);
+            return (
+              <Pressable key={c.id} onPress={() => pick(c)} disabled={atCap} accessibilityRole="checkbox" accessibilityState={{ checked: false }}
+                accessibilityLabel={`Add ${c.name}`}
+                style={[styles.cell, { borderColor: colors.outlineVariant, backgroundColor: colors.surface, opacity: atCap ? 0.5 : 1 }]}>
+                <BoldName name={c.name} variant="titleSmall" numberOfLines={2} style={styles.cellName} />
+                <View style={styles.cellMeta}>
+                  <Tag label={status} tone={REGISTRATION_TONE[status]} small wrap />
+                  {playerIdBadge(c) ? <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{playerIdBadge(c)}</Text> : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+        {!loading && grid.length === 0 ? (
+          <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+            {query ? 'No one in My players matches. Try Add player from database.' : 'No more players in My players. Add players below.'}
+          </Text>
+        ) : null}
+      </Screen>
 
-      <BottomBar>
-        <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} style={styles.flex}>
-          {seatedCount < 2 ? 'Pick at least one more player' : `Start game · ${seatedCount} players`}
+      <BottomBar style={styles.bottom}>
+        <View style={styles.addRow}>
+          <Button mode="contained-tonal" icon="account-plus-outline" style={styles.flex} contentStyle={styles.toolContent} labelStyle={styles.toolLabel}
+            onPress={() => router.push({ pathname: '/(screens)/players/add', params: { from: 'new-game' } })} accessibilityLabel="Add players">
+            Add players
+          </Button>
+          <Button mode="contained-tonal" icon="database-search" style={styles.flex} contentStyle={styles.toolContent} labelStyle={styles.toolLabel}
+            onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game', seated: selectedIds.join(',') } })} accessibilityLabel="Add player from database">
+            From database
+          </Button>
+        </View>
+        <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} contentStyle={styles.startContent} labelStyle={styles.startLabel} accessibilityLabel="Start game">
+          {seatedCount < 2 ? (seatedCount === 0 ? 'Pick at least two players' : 'Pick at least one more player') : `Start game · ${seatedCount} players`}
         </Button>
       </BottomBar>
 
-      {me ? (
-        <AddPlayersDialog visible={addOpen} count={newCount} ownerId={me.id} onClose={() => setAddOpen(false)} onSaved={onNewSaved} onDeleted={onNewDeleted} />
-      ) : null}
       <GameSettingsDialog visible={settingsOpen} rules={rules} onDismiss={() => setSettingsOpen(false)} onSave={(r) => setRules(r)} />
-    </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingBottom: 120, gap: spacing.sm },
+  root: { flex: 1 },
+  content: { paddingBottom: spacing.md, gap: spacing.sm },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 16, paddingRight: 8, paddingVertical: 2, paddingLeft: 2 },
-  chipDot: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  chipInitials: { color: '#fff', fontWeight: '700', fontSize: 11 },
-  chipX: { fontSize: 14, marginLeft: 2 },
+  playingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 60 },
+  countWrap: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
+  countHalo: { position: 'absolute', width: 56, height: 56, borderRadius: 28 },
+  countBubble: { minWidth: 56, height: 56, paddingHorizontal: 12, borderRadius: 28, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  countText: { fontSize: 30, fontWeight: '900', lineHeight: 34 },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   search: { marginVertical: 2 },
+  searchInput: { fontSize: 15, minHeight: 0 },
+  sortControl: { width: 104 },
+  sortButton: { minWidth: 0 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6 },
-  cell: { width: '49%', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, padding: 6 },
-  cellDot: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  cellInitials: { fontWeight: '700', fontSize: 12 },
-  bottomTools: { gap: spacing.sm, marginTop: spacing.sm },
+  cell: { width: '49%', borderWidth: 1.5, borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 10, minHeight: 72, gap: 4, justifyContent: 'center' },
+  cellMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  cellName: { lineHeight: 18 },
+  bottom: { flexDirection: 'column', alignItems: 'stretch', gap: spacing.sm },
+  addRow: { flexDirection: 'row', gap: spacing.sm },
+  toolContent: { minHeight: 44 },
+  toolLabel: { fontSize: 14 },
+  startContent: { minHeight: 52 },
+  startLabel: { fontSize: 16, fontWeight: '800' },
   flex: { flex: 1 },
 });

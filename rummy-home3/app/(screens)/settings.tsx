@@ -8,6 +8,7 @@ import { DEFAULT_POINTS_RULES, parseRuleInput, validateRules } from '@/utils/gam
 import { draftFromRules, RulesDraft, RulesForm } from '@/components/game/RulesForm';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { SettingsPriority } from '@/components/ui/SettingsPriority';
 import { spacing, useAppTheme } from '@/constants/theme';
 
 /** User settings: the defaults every new game starts with. Each game can still change its own. */
@@ -42,8 +43,11 @@ export default function UserSettings() {
 
   return (
     <Screen contentStyle={styles.content}>
-      <SectionCard title="Game defaults" icon="cards-playing-outline" supportingText="Every new game starts with these. Change one game from its ⋮ menu > Game settings.">
+      <SectionCard title="Your defaults" icon="cards-playing-outline" supportingText="Every new game starts with these. Change one game from its ⋮ menu > Game settings.">
         <RulesForm draft={draft} onChange={setDraft} showType />
+      </SectionCard>
+      <SectionCard title="Which setting wins" icon="sort-variant" mode="outlined">
+        <SettingsPriority highlight="User settings" showTitle={false} />
       </SectionCard>
       <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Points is the only game type for now. Pool is coming later.</Text>
       {notice ? <Text variant="bodyMedium">{notice}</Text> : null}

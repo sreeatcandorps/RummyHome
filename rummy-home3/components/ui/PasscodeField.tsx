@@ -10,10 +10,10 @@ type PasscodeFieldProps = {
   label?: string;
 };
 
-/** Six large cells so each digit is obvious, with an eye toggle to reveal them. */
+/** Six large cells, digits visible by default, with an eye toggle to hide them. */
 export function PasscodeField({ value, onChangeText, disabled, label = '6-digit passcode' }: PasscodeFieldProps) {
   const { colors } = useAppTheme();
-  const [revealed, setRevealed] = useState(false);
+  const [revealed, setRevealed] = useState(true);
   const inputRef = useRef<NativeInput>(null);
   const digits = value.replace(/\D/g, '').slice(0, 6);
 

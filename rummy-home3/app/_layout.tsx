@@ -14,6 +14,7 @@ import { darkTheme, lightTheme, brand, spacing } from '@/constants/theme';
 import { isClockSkewError } from '@/utils/supabaseErrors';
 import { setStartupNotice } from '@/utils/startupNotice';
 import { withTimeout } from '@/utils/withTimeout';
+import { passcodeRecovery } from '@/utils/authFlow';
 
 const STARTUP_TIMEOUT_MS = 4000;
 
@@ -78,6 +79,8 @@ function ThemedApp() {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Passcode recovery signs in (to set the new code) and out again on its own screen.
+      if (passcodeRecovery.inProgress()) return;
       if (event === 'SIGNED_IN' && session) {
         await storage.setCurrentPlayer(session.user.id);
         router.replace('/(tabs)');

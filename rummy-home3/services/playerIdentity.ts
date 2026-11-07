@@ -157,6 +157,41 @@ export const playerIdentityService = {
     return next;
   },
 
+  /**
+   * Hand an unregistered seat in one game to a registered account found by its
+   * Player ID. Seat order and scores in that game stay with the seat. Needs
+   * migration 015 on the server.
+   */
+  async linkSeatToPlayer(gameId: string, seat: Player, target: Player, ownerId: string): Promise<void> {
+    if (isSupabaseConfigured) {
+      const { error } = await (supabase.rpc as any)('link_seat_to_player', { p_game_id: gameId, p_seat_profile: seat.id, p_target_profile: target.id });
+      if (error) {
+        if (missingRpc(error)) throw new Error('Linking to a Player ID needs a database update (migration 015) before it works here.');
+        throw error;
+      }
+      return;
+    }
+    const games = await storage.getGames();
+    const game = games.find((g) => g.id === gameId);
+    if (!game) throw new Error('Game not found.');
+    if (!game.players.includes(seat.id)) throw new Error('That player is not in this game.');
+    if (game.players.includes(target.id)) throw new Error('They are already in this game.');
+    if (seat.managedBy !== ownerId) throw new Error('Only the organiser who added this player can change them.');
+    if (!isUnregistered(seat.status)) throw new Error('Only an unregistered player can be linked to a Player ID.');
+    const swap = (id: string) => (id === seat.id ? target.id : id);
+    const scores = Object.fromEntries(Object.entries(game.scores).map(([id, column]) => [swap(id), column]));
+    await storage.updateGame({
+      ...game,
+      players: game.players.map(swap),
+      adminIds: game.adminIds?.map(swap),
+      unseatedAdminIds: game.unseatedAdminIds?.map(swap),
+      scores,
+    });
+    const elsewhere = games.some((g) => g.id !== gameId && g.players.includes(seat.id));
+    if (!elsewhere) await setLocalStatus(seat.id, 'merged');
+    await playersService.addMyPlayer(ownerId, target).catch(() => {});
+  },
+
   /** Soft delete. Past scores stay; the player leaves My players; any claim link stops working. */
   async deleteNewPlayer(ownerId: string, playerId: string): Promise<void> {
     if (isSupabaseConfigured) {

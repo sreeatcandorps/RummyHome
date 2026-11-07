@@ -89,10 +89,10 @@ test('the plus toggle saves a hand-entered positive score', () => {
   assert.equal(state.entries.a.scoreType, 'rummy');
 });
 
-test('a lone 0 never starts a number and digits cap at four', () => {
+test('a lone 0 is an explicit zero, the next digit replaces it, and digits cap at four', () => {
   let state = pressDigit(select(initialRoundEntryState(), 'a'), '0');
-  assert.equal(state.draft.digits, '');
-  assert.equal(saveScore(state), state, 'nothing to save yet');
+  assert.equal(state.draft.digits, '0');
+  assert.equal(saveScore(state).entries.a?.value, 0, 'an explicit 0 can be saved');
   state = type(state, '12345');
   assert.equal(state.draft.digits, '1234');
 });

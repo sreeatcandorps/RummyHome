@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Animated, LayoutChangeEvent, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { scoreTone } from '@/utils/scoreTone';
 
 export type ScoreColumn = {
   id: string;
@@ -22,6 +23,8 @@ type ScoreTableProps = {
   leaderIds: string[];
   /** Short screens (phone landscape) trade padding for visible rows. */
   compact?: boolean;
+  /** Full count of the game; losses of half this or more are shown in red. */
+  fullCount?: number | null;
   emptyMessage: string;
 };
 
@@ -46,6 +49,7 @@ export function ScoreTable({
   nextDealerId,
   leaderIds,
   compact = false,
+  fullCount,
   emptyMessage,
 }: ScoreTableProps) {
   const theme = useAppTheme();
@@ -219,14 +223,25 @@ export function ScoreTable({
                   ]}
                 >
                   {columns.map((column) => {
-                    const score = scores[column.id]?.[roundIndex] || 0;
-                    const positive = score > 0;
+                    const stored = scores[column.id]?.[roundIndex];
+                    // A saved 0 is a real score; a missing cell (player not in that round) shows a dash.
+                    const hasScore = typeof stored === 'number';
+                    const score = hasScore ? stored : 0;
+                    const tone = scoreTone(score, fullCount);
+                    const positive = tone === 'positive';
+                    const bigLoss = tone === 'bigNegative';
                     return (
                       <View
                         key={column.id}
                         style={[styles.cell, { width: columnWidth, height: rowHeight, borderRightColor: colors.hairline }]}
                       >
-                        <View style={[styles.scorePill, positive && { backgroundColor: colors.positiveContainer }]}>
+                        <View
+                          style={[
+                            styles.scorePill,
+                            positive && { backgroundColor: colors.positiveContainer },
+                            bigLoss && { backgroundColor: colors.errorContainer },
+                          ]}
+                        >
                           <Text
                             numberOfLines={1}
                             adjustsFontSizeToFit
@@ -236,12 +251,14 @@ export function ScoreTable({
                               { fontSize },
                               positive
                                 ? { color: colors.onPositiveContainer, fontWeight: '800' }
-                                : score === 0
-                                  ? { color: colors.outline }
-                                  : { color: colors.onSurface },
+                                : bigLoss
+                                  ? { color: colors.onErrorContainer, fontWeight: '800' }
+                                  : tone === 'zero'
+                                    ? { color: colors.outline }
+                                    : { color: colors.onSurface },
                             ]}
                           >
-                            {score !== 0 ? (positive ? `+${score}` : score) : '–'}
+                            {!hasScore ? '–' : positive ? `+${score}` : `${score}`}
                           </Text>
                         </View>
                       </View>

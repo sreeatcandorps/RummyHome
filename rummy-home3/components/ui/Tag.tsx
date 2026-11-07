@@ -3,17 +3,21 @@ import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
-export type TagTone = 'neutral' | 'primary' | 'positive' | 'leader' | 'danger' | 'stake' | 'pool';
+export type TagTone = 'neutral' | 'primary' | 'positive' | 'leader' | 'danger' | 'stake' | 'pool' | 'info' | 'results';
 
 type TagProps = {
   label: string;
   tone?: TagTone;
   icon?: string;
   style?: ViewStyle;
+  /** Let a long label ("Pending registration") break onto a second line in narrow cards. */
+  wrap?: boolean;
+  /** Slightly smaller type and padding for two-column cards. */
+  small?: boolean;
 };
 
 /** Small rounded label for game type, status and metadata. */
-export function Tag({ label, tone = 'neutral', icon, style }: TagProps) {
+export function Tag({ label, tone = 'neutral', icon, style, wrap = false, small = false }: TagProps) {
   const theme = useAppTheme();
   const { colors, gameTypes } = theme;
 
@@ -23,15 +27,17 @@ export function Tag({ label, tone = 'neutral', icon, style }: TagProps) {
     positive: { bg: colors.positiveContainer, fg: colors.onPositiveContainer },
     leader: { bg: colors.leaderContainer, fg: colors.onLeaderContainer },
     danger: { bg: colors.errorContainer, fg: colors.onErrorContainer },
+    info: { bg: colors.tertiaryContainer, fg: colors.onTertiaryContainer },
+    results: { bg: colors.secondaryContainer, fg: colors.onSecondaryContainer },
     stake: { bg: gameTypes.stake.container, fg: gameTypes.stake.on },
     pool: { bg: gameTypes.pool.container, fg: gameTypes.pool.on },
   };
   const { bg, fg } = palette[tone];
 
   return (
-    <View style={[styles.tag, { backgroundColor: bg }, style]}>
-      {icon ? <Icon source={icon} size={13} color={fg} /> : null}
-      <Text variant="labelMedium" numberOfLines={1} style={[styles.label, { color: fg }]}>
+    <View style={[styles.tag, small && styles.smallTag, { backgroundColor: bg }, style]}>
+      {icon ? <Icon source={icon} size={small ? 12 : 13} color={fg} /> : null}
+      <Text variant={small ? 'labelSmall' : 'labelMedium'} numberOfLines={wrap ? 2 : 1} style={[styles.label, wrap && styles.wrapLabel, { color: fg }]}>
         {label}
       </Text>
     </View>
@@ -52,4 +58,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flexShrink: 1,
   },
+  wrapLabel: { lineHeight: 14 },
+  smallTag: { paddingHorizontal: 7, paddingVertical: 2 },
 });

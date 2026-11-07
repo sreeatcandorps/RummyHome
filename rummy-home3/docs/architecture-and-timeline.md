@@ -53,7 +53,7 @@ Same codebase either way.
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / production | Real store binaries |
-| OTA | `expo-updates` enabled + EAS Update channels | Fix JS during the 14-day test without new Play review every time |
+| OTA | `expo-updates`, on for the production profile only (`EXPO_UPDATES_ENABLED` in `eas.json` → `app.config.js`). Preview/development APKs run their embedded JS | Fix JS during the 14-day test without new Play review every time; preview builds can't be replaced by a stale update |
 | Version codes | `appVersionSource: "remote"` in `eas.json` | EAS tracks Android versionCode; no manual bumps in `app.json` |
 | Secrets for builds | EAS Environment Variables (`EXPO_PUBLIC_SUPABASE_*`) | `.env.local` never reaches EAS builders |
 | Privacy page | `docs/privacy-policy.html` (repo root) | Play Store requires a public privacy URL |
@@ -191,6 +191,38 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Score entry is one screen again: G-number / round / start time / scorer header with a ⋮ menu, a two-column player grid, a Drop / Middle drop / Full count / Rummy row, an on-screen keypad with a +/- toggle (minus default), and a Balance + Save round bar. Multi-select players, then type or tap a preset. Rummy winners split the table's losses (remainder to the players tapped first). Moving to another player auto-saves. Save round unlocks only at Balance 0. No new dependencies; animations use React Native `Animated`.
 - The rules live in `utils/roundEntry.ts` with their own node tests, separate from the screen.
 
+### 2026-11-04 — Preview APKs stop reverting; version shown on Home
+- Cause of "the phone goes back to an old version": `expo-updates` was on for every build with `runtimeVersion: appVersion` (always `1.0.0`) and the preview profile on the `preview` channel. Any update ever published to that channel matched every 1.0.0 preview APK, and with `checkAutomatically: ON_LOAD` + `fallbackToCacheTimeout: 0` the APK ran its own code on the first launch, downloaded the channel's latest update in the background, and ran that (older) code from the second launch on.
+- Fix: `app.config.js` layers over `app.json` and turns `updates.enabled` on only when `EXPO_UPDATES_ENABLED=true`. `eas.json` sets it `false` for development and preview and `true` for production, so preview/development APKs always run the JavaScript built into them. The version is bumped to 1.1.0 (also a new runtime version), and preview builds `autoIncrement` so each APK has its own build number. Nothing was published.
+- Home shows `v1.1.0 (build N)` next to the title (expo-application, falling back to the config in Expo Go / web) and Help adds the same plus whether the code is embedded or an OTA update. New dependency: `expo-application`.
+
+### 2026-11-05 — Home, My players, New game reshaped from build 2 feedback; every help popup rewritten
+- Home: Results (light yellow) sits above a Live card that lists every active game, then Recent with only Completed/Closed games (All or Last 10 days). My players: sort toggle in the header, two-column fixed-height grid with full names and a numeric "Player ID N" badge (letter codes are never shown), three plain buttons; the −/+ stepper is gone and the add-by-initials sheet opens with 3 rows. Find player in database marks people already on your list and sorts them last; from New game it is "Add player to new game" and seats them as well. No new dependencies, no schema changes.
+- Numeric player IDs in the lists depend on migration `012` being applied; a database still on letter codes shows no badge.
+- All help popups (`constants/help.ts`) are now short prose covering only what the screen cannot show.
+
+### 2026-11-05 — Build 3 feedback: full-screen Add New Players, Profile redesign, closed games warn instead of block
+- Add New Players by Initials is a dedicated stack screen (`players/add`), left only through Done; the add-by-initials sheet component is gone. Both My players and New game push it. Initials ending in a digit are refused inline (digits stay reserved for H2/H3 duplicate labels).
+- Results: Closed games are listed and selectable again; a yellow warning says they were already counted. This is client-only — `declare_game_result` never rejected closed games, so no migration.
+- Profile tab is avatar-only (the SK chip); the screen is "Profile". Phone has its own one-column save (`authService.updatePhone`) with inline Saved/error text. A "Which setting wins" ladder (Game settings > User settings > Game defaults) sits on Profile and on User settings.
+- New game no longer pre-seats the creator; they are offered first and tap themselves to play. Home opens on Last 10 days; My players opens on Frequent and labels everyone Registered / Pending registration / Unregistered. No new dependencies, no schema changes.
+
+### 2026-11-05 — Build 4 feedback: Edit round without a migration, Results defaults and warnings, names replace avatars
+- Edit round (Scorecard ⋮ → Edit round → pick a round) reopens Add round pre-filled and saves through `gamesService.replaceRound`. On Supabase it retires the old `rounds` row (sets `undone_at`, moves `round_number` to 1000+n to dodge the unique index) and inserts a fresh row + scores, because clients have no update/delete on `scores`. Every reader already skips undone rounds, so no migration.
+- Results opens on Completed with every completed game ticked; All adds Active and Closed. Two client-side warnings (active game used; game already in another result) show on the picker and on opened results. Clients cannot read `game_result_games`, so "already in another result" is a heuristic: a game whose `closed_at` predates the result by more than a minute. Deleting a past result needs a server RPC and is deferred.
+- Player avatars are gone from lists; names show with bold first/last initials (`BoldName`). A shared in-memory draft (`newGameDraft`) keeps New game seats and the Add New Players strip in sync.
+- Score-entry palette is final (beige / yellow / green / blue); `cellConfirmed` token removed. No new dependencies, no schema changes.
+
+### 2026-11-07 — Nov 6 phone test, P1: results privacy and in-app passcode recovery
+- Results privacy (P1-A): `013_results_privacy.sql` adds `can_see_game_result` and routes `get_game_result` / `list_game_results` / `list_game_results_page` through it (declarer, seated player, game creator/admin, app admin). Written and tested as text; **not applied** to the project from here. The client repeats the rule for the detail screen and the local store, but the paged list can only be fixed server-side.
+- Passcode recovery (P1-B): no more browser reset page. Forgot passcode emails a 6-digit code (`resetPasswordForEmail` → `verifyOtp type=recovery` → `updateUser`) typed back in the app; Profile → Change passcode checks the current passcode and sets the new one in-app, with a reauthentication-nonce step if the project demands it. Depends on the Supabase "Reset Password" template including `{{ .Token }}` (`supabase/templates/recovery-passcode.html`) and digit-only password requirements — dashboard settings, not code. Flow logic lives in `utils/passcodeFlow.ts` behind an injectable client and was exercised in a browser against a local GoTrue fake; real email delivery was not tested from the build box.
+
+### 2026-11-07 — Nov 6 phone test, P2: roles, scoring, complete-game flow, players page, Results
+- Two more migrations are written as text and **not applied** from here: `014_save_round_atomic.sql` (`save_round` RPC: round + scores + `current_round` in one transaction, the cause of the blank round 6; the client falls back to a self-healing multi-step save when the RPC is missing) and `015_link_seat_to_player.sql` (`link_seat_to_player`: move an unregistered seat's game rows to a registered Player ID). `docs/migrations-to-apply.md` lists the order and the repair steps.
+- Game flow split into pages instead of dialogs: Complete game (own page, second confirmation) → Final scores preview → share (yellow sheet, five square cells per row, started/generated/completed times, Game ID footer); Players in this game (own page: Creator/Admin/Player/View only tags, per-player menu for admin, edit name, invite, link to a Player ID). Admins can reopen a Completed game that is not Closed. Home Recent sorts by completion time (`completed_at` is now read by the client; the column already existed).
+- Results: Completed / Closed / Active chips are multi-select; a game keeps its own number everywhere (`ResultSheetGame.label` is stored at declare time; older results show their code); every selected game is on the share image (games down the side past five) with a "Result ID · XXXXXX" footer on image and PDF; previews are marked "Preview · not saved" and never write. The web canvas now draws the same card as the native view (grid, crowns, legend, footer). No new dependencies.
+- Verified in a browser (Expo web + local storage fixtures, puppeteer); Android/iOS not run from the build box — the native share-sheet crash fix (menu closes before the share Activity opens, remounts after) and `react-native-view-shot` capture of the new sheets need a phone pass.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -203,13 +235,13 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | --- | --- |
 | Auth (email/passcode, session refresh) | Done enough for testing |
 | Profiles / Player ID + share | Done |
-| Find players (name, player ID, exact email, +) | Done; needs `007` on the live database |
-| New game (points, my players) | Done. Stored type is still the points game |
-| Game table + score entry | Done, portrait + landscape. Add round rebuilt from the owner's sketch: grid, presets, keypad, Balance gate |
-| Home Recent | Done. History screen redirects home |
-| Results | Done in the app. Totals, players-by-game table, places, a podium image, and a full-details PDF. Apply `008_results.sql` before declare works on the live database |
+| Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
+| New game (points, my players) | Done. Creator is not pre-seated; big animated Playing · N; Add players (full screen) / Add player from database. Stored type is still the points game |
+| Game table + score entry | Done, portrait + landscape. Add round: grid, presets, keypad, Balance gate, explicit 0, big losses in red. Complete game, Final scores, and Players are their own pages. Apply `014_save_round_atomic.sql` for the one-transaction save |
+| Home | Done. Results → every live game → Recent (Completed/Closed, Last 10 days default / All). History screen redirects home |
+| Results | Done in the app. Status chips, totals, players-by-game table, places, a share image with every game and the result id, and a full-details PDF. Apply `008_results.sql` (declare) and `013_results_privacy.sql` (who can read) on the live database |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
-| Theming (light/dark) | Done; dark mode is on Me and saved on the phone |
+| Theming (light/dark) | Done; dark mode is on Profile and saved on the phone |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
 | Public scorecard | Static HTML on ezscore.mindweavetech.com. Placeholders filled by `scripts/inject-scorecard-config.mjs` at publish time. The key is not in git |
 | Expo Go local preview | Working |

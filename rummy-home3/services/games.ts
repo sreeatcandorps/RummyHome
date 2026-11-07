@@ -3,10 +3,13 @@ import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { MIGRATION_007_HINT, playersService } from '@/services/players';
+import { RETIRED_ROUND_OFFSET, retiredRoundNumber } from '@/utils/editRound';
+import { zerosForJoiner } from '@/utils/gamePlayers';
 import { GameType, ProfileDefaults, ScoreType } from '@/types/database';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { canEnterScores, gameVisibleToUser, SeatRole } from '@/utils/gameAccess';
+import { canReopenGame, REOPEN_BLOCKED_MESSAGE } from '@/utils/gameStatus';
 import { createViewToken } from '@/utils/shareLink';
 import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validateRoundScores } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
@@ -118,8 +121,129 @@ const legacyGameFromServer = (
       .map((membership) => membership.profile_id),
     gameNumber: game.game_number ?? null,
     closedAt: game.closed_at ?? null,
+    completedAt: game.completed_at ?? null,
   };
 };
+
+/** PostgREST's "function does not exist" code: the migration is not applied yet. */
+const MISSING_FUNCTION = 'PGRST202';
+
+/**
+ * Writes one round (Add or Edit) to Supabase.
+ *
+ * Preferred path: the atomic `save_round` RPC (migration 014). Fallback, used
+ * until that migration is applied: the original request sequence, made
+ * self-healing so an interrupted save can no longer leave a blank round:
+ *  - a live round that already has scores is a duplicate submit → only advance the game;
+ *  - a live round with no scores (an earlier interrupted save) is reused;
+ *  - on Edit, if the new scores fail to land, the old round is put back.
+ */
+async function writeRound(input: AddRoundInput, replace: boolean): Promise<void> {
+  const payload = input.scores
+    .filter((score) => score.scoreType !== 'expense' && score.playerId)
+    .map((score) => ({ playerId: score.playerId, scoreType: score.scoreType, value: score.value }));
+
+  const { error: rpcError } = await supabase.rpc('save_round', {
+    p_game_id: input.gameId,
+    p_round_number: input.roundNumber,
+    p_scores: payload,
+    p_replace: replace,
+  });
+  if (!rpcError) return;
+  if (rpcError.code !== MISSING_FUNCTION) throw rpcError;
+
+  const { data: live, error: liveError } = await supabase
+    .from('rounds')
+    .select('id, round_number, scores(count)')
+    .eq('game_id', input.gameId)
+    .eq('round_number', input.roundNumber)
+    .is('undone_at', null)
+    .maybeSingle();
+  if (liveError) throw liveError;
+  const liveScoreCount = (live?.scores as { count: number }[] | undefined)?.[0]?.count ?? 0;
+
+  const retire = async (roundId: string, reason: string) => {
+    let result: { error: { code?: string } | null } = { error: null };
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      result = await supabase
+        .from('rounds')
+        .update({
+          undone_at: new Date().toISOString(),
+          undone_by: input.createdBy,
+          undo_reason: reason,
+          round_number: retiredRoundNumber(input.roundNumber, attempt),
+        })
+        .eq('id', roundId);
+      if (!result.error || result.error.code !== '23505') break;
+    }
+    if (result.error) throw result.error;
+  };
+
+  const advance = async () => {
+    const { error } = await supabase
+      .from('games')
+      .update({ current_round: input.roundNumber + 1 })
+      .eq('id', input.gameId)
+      .lte('current_round', input.roundNumber);
+    if (error) throw error;
+  };
+
+  let reusableRoundId: string | null = null;
+  if (live) {
+    if (replace) {
+      await retire(live.id, `edited round ${input.roundNumber}`);
+    } else if (liveScoreCount > 0) {
+      await advance();
+      return;
+    } else {
+      reusableRoundId = live.id;
+    }
+  }
+
+  const insertRound = async (): Promise<string> => {
+    const players = (await gamesService.getGame(input.gameId))?.players ?? [];
+    const { data: round, error: roundError } = await supabase
+      .from('rounds')
+      .insert({
+        game_id: input.gameId,
+        round_number: input.roundNumber,
+        dealer_profile_id: calculateDealerId(players, input.roundNumber),
+        created_by: input.createdBy,
+      })
+      .select('id')
+      .single();
+    if (roundError) throw roundError;
+    return round.id as string;
+  };
+  const targetRoundId = reusableRoundId ?? (await insertRound());
+
+  const { error: scoresError } = await supabase.from('scores').insert(
+    payload.map((score) => ({
+      round_id: targetRoundId,
+      game_id: input.gameId,
+      profile_id: score.playerId,
+      score_type: score.scoreType,
+      value: score.value,
+    })),
+  );
+  if (scoresError) {
+    if (replace && live) {
+      // Best effort: park the empty new row and bring the old scores back.
+      try {
+        await retire(targetRoundId, `edit of round ${input.roundNumber} failed`);
+        await supabase
+          .from('rounds')
+          .update({ undone_at: null, undone_by: null, undo_reason: null, round_number: input.roundNumber })
+          .eq('id', live.id);
+      } catch {
+        // The next Edit round reuses or retires whatever is left.
+      }
+    }
+    throw scoresError;
+  }
+
+  if (!replace) await advance();
+}
 
 export const gamesService = {
   async createGame(input: CreateGameInput): Promise<Game> {
@@ -389,7 +513,7 @@ export const gamesService = {
 
     const withSeat = await supabase
       .from('game_players')
-      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, public_player_no, email, player_status)')
+      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, public_player_no, email, player_status, managed_by, first_name, last_name)')
       .eq('game_id', gameId)
       .order('player_order', { ascending: true });
 
@@ -408,6 +532,10 @@ export const gamesService = {
       playerCode: displayPlayerId(membership.profiles),
       email: membership.profiles?.email ?? undefined,
       status: membership.profiles?.player_status ?? undefined,
+      managedBy: membership.profiles?.managed_by ?? undefined,
+      playerNo: membership.profiles?.public_player_no ?? undefined,
+      firstName: membership.profiles?.first_name ?? undefined,
+      lastName: membership.profiles?.last_name ?? undefined,
       role: membership.role === 'game_admin' ? 'admin' as const : 'player' as const,
       seatRole: (membership.role ?? 'player') as SeatRole,
       seated: membership.seated !== false && membership.role !== 'spectator',
@@ -464,41 +592,43 @@ export const gamesService = {
       return updatedGame;
     }
 
-    const game = await this.getGame(input.gameId);
-    if (!game) throw new Error('Game not found.');
+    await writeRound(input, false);
+    return this.getGame(input.gameId);
+  },
 
-    const dealerId = calculateDealerId(game.players, input.roundNumber);
-    const { data: round, error: roundError } = await supabase
-      .from('rounds')
-      .insert({
-        game_id: input.gameId,
-        round_number: input.roundNumber,
-        dealer_profile_id: dealerId,
-        created_by: input.createdBy,
-      })
-      .select('*')
-      .single();
+  /**
+   * Edit a finished round. No table changes needed: the old round row is
+   * retired (marked undone and moved to a spare number) and a fresh row with
+   * the corrected scores takes its place. Every reader already skips undone rounds.
+   */
+  async replaceRound(input: AddRoundInput) {
+    const validation = validateRoundScores(input.scores);
+    if (!validation.valid) throw new Error(validation.error ?? 'Invalid round scores.');
 
-    if (roundError) throw roundError;
+    if (!isSupabaseConfigured) {
+      const game = await this.getGame(input.gameId);
+      if (!game) throw new Error('Game not found.');
+      const roundIndex = input.roundNumber - 1;
+      const updatedScores = { ...game.scores };
+      game.players.forEach((playerId) => {
+        const column = [...(updatedScores[playerId] ?? [])];
+        while (column.length <= roundIndex) column.push(0);
+        column[roundIndex] = 0;
+        updatedScores[playerId] = column;
+      });
+      input.scores.forEach((score) => {
+        if (score.scoreType === 'expense' || !score.playerId) return;
+        const column = [...(updatedScores[score.playerId] ?? [])];
+        while (column.length <= roundIndex) column.push(0);
+        column[roundIndex] = score.value;
+        updatedScores[score.playerId] = column;
+      });
+      const updatedGame = { ...game, scores: updatedScores };
+      await storage.updateGame(updatedGame);
+      return updatedGame;
+    }
 
-    const { error: scoresError } = await supabase.from('scores').insert(
-      input.scores.map((score) => ({
-        round_id: round.id,
-        game_id: input.gameId,
-        profile_id: score.playerId,
-        score_type: score.scoreType,
-        value: score.value,
-      })),
-    );
-
-    if (scoresError) throw scoresError;
-
-    const { error: gameError } = await supabase
-      .from('games')
-      .update({ current_round: input.roundNumber + 1 })
-      .eq('id', input.gameId);
-
-    if (gameError) throw gameError;
+    await writeRound(input, true);
     return this.getGame(input.gameId);
   },
 
@@ -549,6 +679,7 @@ export const gamesService = {
       const updatedGame = {
         ...game,
         isComplete: true,
+        completedAt: game.completedAt ?? new Date().toISOString(),
         prize: settlement?.prize ?? game.prize ?? null,
         prizeShares: settlement?.prizeShares ?? game.prizeShares ?? null,
       };
@@ -578,6 +709,33 @@ export const gamesService = {
       return this.getGame(gameId);
     }
     if (error) throw error;
+    return this.getGame(gameId);
+  },
+
+  /**
+   * Undo an accidental Complete game. Only a game that is Completed and not yet
+   * Closed (not part of a declared result) can go back to Active.
+   */
+  async reopenGame(gameId: string): Promise<Game | null> {
+    const game = await this.getGame(gameId);
+    if (!game) throw new Error('Game not found.');
+    if (!canReopenGame(game)) throw new Error(REOPEN_BLOCKED_MESSAGE);
+
+    if (!isSupabaseConfigured) {
+      const updatedGame = { ...game, isComplete: false, completedAt: null };
+      await storage.updateGame(updatedGame);
+      return updatedGame;
+    }
+
+    const { data, error } = await supabase
+      .from('games')
+      .update({ status: 'active', completed_at: null })
+      .eq('id', gameId)
+      .eq('status', 'completed')
+      .is('closed_at', null)
+      .select('id');
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error(REOPEN_BLOCKED_MESSAGE);
     return this.getGame(gameId);
   },
 
@@ -679,7 +837,8 @@ export const gamesService = {
 
     if (!isSupabaseConfigured) {
       const updated = { ...game, players: [...game.players, profileId] };
-      if (!updated.scores[profileId]) updated.scores = { ...updated.scores, [profileId]: [] };
+      // Joining mid-game: every round already played is an explicit 0 for them.
+      updated.scores = { ...updated.scores, [profileId]: zerosForJoiner(game.scores, seated) };
       await storage.updateGame(updated);
       await playersService.rememberTogether(game.createdBy ?? profileId, [profileId]).catch(() => {});
       return updated;
@@ -710,8 +869,25 @@ export const gamesService = {
         throw error;
       }
     }
+    await this.backfillZeroScores(gameId, profileId);
     if (game.createdBy) await playersService.rememberTogether(game.createdBy, [profileId]).catch(() => {});
     return this.getGame(gameId);
+  },
+
+  /** A player who joins mid-game gets an explicit 0 in every round already played. */
+  async backfillZeroScores(gameId: string, profileId: string) {
+    const { data: rounds, error } = await supabase
+      .from('rounds')
+      .select('id')
+      .eq('game_id', gameId)
+      .is('undone_at', null)
+      .lt('round_number', RETIRED_ROUND_OFFSET);
+    if (error) throw error;
+    if (!rounds || rounds.length === 0) return;
+    const { error: insertError } = await supabase.from('scores').insert(
+      rounds.map((round) => ({ round_id: round.id, game_id: gameId, profile_id: profileId, score_type: 'count', value: 0 })),
+    );
+    if (insertError) throw insertError;
   },
 
   async addNonPlayerAdmin(gameId: string, profileId: string) {

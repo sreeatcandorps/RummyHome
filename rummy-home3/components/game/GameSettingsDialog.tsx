@@ -40,8 +40,12 @@ export function GameSettingsDialog({ visible, rules, title = 'Game settings', on
         <Dialog.Title>{title}</Dialog.Title>
         <Dialog.Content>
           <Text variant="bodyMedium" style={{ marginBottom: 8 }}>Points game</Text>
-          <RulesForm draft={draft} onChange={setDraft} />
-          {readOnly ? <Text style={{ color: colors.onSurfaceVariant, marginTop: 8 }}>Only a game admin can change these.</Text> : null}
+          <RulesForm draft={draft} onChange={setDraft} disabled={readOnly} />
+          {readOnly ? (
+            <Text style={{ color: colors.onSurfaceVariant, marginTop: 8 }} accessibilityLabel="Only a game admin can save changes">
+              You can see this game’s settings, but only a game admin (the organizer or someone they made admin) can save changes. They apply to this game only and win over your User settings.
+            </Text>
+          ) : null}
           {error ? <Text style={{ color: colors.error, marginTop: 8 }}>{error}</Text> : null}
           <Text variant="bodyMedium" accessibilityRole="link" style={{ color: colors.primary, marginTop: 12, textDecorationLine: 'underline' }}
             onPress={() => { onDismiss(); router.push('/(screens)/settings'); }}>
@@ -49,7 +53,7 @@ export function GameSettingsDialog({ visible, rules, title = 'Game settings', on
           </Text>
         </Dialog.Content>
         <Dialog.Actions>
-          <Button onPress={onDismiss}>Cancel</Button>
+          <Button onPress={onDismiss}>{readOnly ? 'Close' : 'Cancel'}</Button>
           {!readOnly ? <Button mode="contained" onPress={save} loading={saving}>Save</Button> : null}
         </Dialog.Actions>
       </Dialog>

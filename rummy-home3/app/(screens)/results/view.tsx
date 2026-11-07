@@ -13,7 +13,8 @@ import { Player } from '@/types/player';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { gameResultName, presentResults, ResultSheet, ResultStanding, withinResultsPlayerLimit, gameClock } from '@/utils/results';
+import { gameLabelFor, gameResultName, presentResults, resultFooter, ResultSheet, ResultStanding, ResultWarning, resultWarnings, withinResultsPlayerLimit, gameClock } from '@/utils/results';
+import { ResultWarnings } from '@/components/results/ResultWarnings';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
 function param(value: string | string[] | undefined): string {
@@ -42,6 +43,7 @@ export default function ShownResults() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
+  const [warnings, setWarnings] = useState<ResultWarning[]>([]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -59,6 +61,7 @@ export default function ShownResults() {
       const shaped = loaded.map((game) => ({
         id: game.id,
         name: gameResultName(game),
+        label: gameLabelFor(game),
         date: game.date,
         players: game.players,
         scores: game.scores,
@@ -69,6 +72,7 @@ export default function ShownResults() {
         return;
       }
       const presented = presentResults(shaped);
+      setWarnings(resultWarnings(loaded));
       setGameCount(loaded.length);
       setStandings(presented.standings);
       setSheet(presented.sheet);
@@ -88,11 +92,13 @@ export default function ShownResults() {
     return buildResultsShareCard({
       title: 'Results',
       date: formatGameDateTime(createdAt),
-      rows: standings.map((row) => ({ name: row.name, points: row.points })),
+      rows: standings.map((row) => ({ id: row.id, name: row.name, points: row.points, place: row.place })),
       places: sharePlaces(standings),
       gameCount,
+      games: sheet.games,
+      footer: resultFooter({ preview: true }),
     });
-  }, [standings, createdAt, gameCount]);
+  }, [standings, createdAt, gameCount, sheet]);
 
   const details = useMemo(() => {
     if (standings.length === 0) return null;
@@ -103,15 +109,19 @@ export default function ShownResults() {
       games: sheet.games.map((game) => ({
         id: game.id,
         name: game.name,
+        label: game.label,
         when: gameClock(game.date),
         scores: game.scores,
+        rounds: game.rounds,
       })),
+      footer: resultFooter({ preview: true }),
     });
   }, [standings, sheet, createdAt]);
 
   return (
     <Screen>
       <ResultsShare card={card} details={details} createdAt={createdAt} />
+      <ResultWarnings warnings={warnings} />
       {previewReason ? (
         <Text variant="bodyMedium" testID="results-preview-note" style={{ color: colors.onSurfaceVariant }}>
           {previewReason === 'admin'

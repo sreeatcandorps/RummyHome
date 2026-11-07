@@ -32,6 +32,8 @@ export type Game = {
   gameNumber?: number | null;
   /** When included in a declared result. A closed game is part of finalized results. */
   closedAt?: string | null;
+  /** When Complete game was pressed. Kept when the game is later Closed. */
+  completedAt?: string | null;
 };
 
 export interface Round {

@@ -72,6 +72,8 @@ export function draftValue(draft: Draft): number | undefined {
   if (draft.digits === '') return undefined;
   const magnitude = parseInt(draft.digits, 10);
   if (Number.isNaN(magnitude)) return undefined;
+  // A typed 0 is a real score (the player neither won nor lost), never -0.
+  if (magnitude === 0) return 0;
   return draft.negative ? -magnitude : magnitude;
 }
 
@@ -101,7 +103,8 @@ export function balance(state: RoundEntryState): number {
  */
 export function canSaveRound(state: RoundEntryState): boolean {
   const effective = commitPending(state);
-  return balance(effective) === 0 && Object.keys(effective.entries).length > 0;
+  const someoneLost = Object.values(effective.entries).some((entry) => entry.value < 0);
+  return balance(effective) === 0 && someoneLost;
 }
 
 /** The round as the scorecard stores it. */
@@ -242,8 +245,9 @@ export function pressDigit(state: RoundEntryState, digit: string): RoundEntrySta
   if (!/^\d$/.test(digit)) return state;
 
   const base = state.draft.typed ? state.draft.digits : '';
-  if (base === '' && digit === '0') {
-    return { ...state, draft: { ...state.draft, digits: '', typed: true, edited: true } };
+  // "0" is a real entry (an explicit zero). A digit after a lone 0 replaces it: 0 → 5, not 05.
+  if (base === '0') {
+    return { ...state, draft: { ...state.draft, digits: digit, typed: true, edited: true }, lastSavedIds: [] };
   }
   if (base.length >= MAX_DIGITS) return state;
 
@@ -257,6 +261,44 @@ export function setNegative(state: RoundEntryState, negative: boolean): RoundEnt
 }
 
 export type CellStatus = 'empty' | 'selected' | 'pending' | 'confirmed';
+
+export type CellTone = 'neutral' | 'selected' | 'confirmed';
+
+/**
+ * Colour family for a cell: beige while nothing is entered, light yellow while
+ * the player is selected (or a number is being typed for them), light green
+ * once a score is confirmed for this round.
+ */
+export function cellTone(status: CellStatus): CellTone {
+  if (status === 'selected' || status === 'pending') return 'selected';
+  if (status === 'confirmed') return 'confirmed';
+  return 'neutral';
+}
+
+/**
+ * The Add round palette, as theme colour names so the screen and the tests
+ * agree. Yellow = what you are doing now, green = done, blue = Rummy, beige = nothing.
+ */
+export type EntryFill = 'cellNeutral' | 'secondaryContainer' | 'positiveContainer' | 'tertiaryContainer' | 'surface';
+
+export const CELL_FILL: Record<CellTone, EntryFill> = {
+  neutral: 'cellNeutral',
+  selected: 'secondaryContainer',
+  confirmed: 'positiveContainer',
+};
+
+export type ActionKind = 'sign' | 'preset' | 'rummy';
+
+/** Fill of a key on the action row. The active sign is yellow; Rummy is always blue; presets rest on surface and flash green when tapped. */
+export function actionFill(kind: ActionKind, active = false): EntryFill {
+  if (kind === 'sign') return active ? 'secondaryContainer' : 'surface';
+  if (kind === 'rummy') return 'tertiaryContainer';
+  return 'surface';
+}
+
+/** How long a tapped preset glows green before settling. */
+export const PRESET_FLASH_MS = 420;
+export const PRESET_FLASH_FILL: EntryFill = 'positiveContainer';
 
 /**
  * What a cell shows: a confirmed score (green), the number being typed for it

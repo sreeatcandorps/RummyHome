@@ -3,24 +3,28 @@ import { StyleSheet, View } from 'react-native';
 import { Icon, Text, TouchableRipple } from 'react-native-paper';
 import { Game } from '@/types/game';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
-import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, gameTypeTint } from '@/utils/gameDisplay';
+import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, gameTypeTint, GAME_STATUS_ICON, GAME_STATUS_TONE } from '@/utils/gameDisplay';
 import { Tag } from '@/components/ui/Tag';
+import { ACCESS_ICON, ACCESS_TONE, gameAccessLabel } from '@/utils/gameAccess';
 
 type GameListItemProps = {
   game: Game;
   onPress: () => void;
   selected?: boolean;
+  /** When given, the card says what the game is to this person: Creator, Admin or View only. */
+  viewerId?: string | null;
 };
 
-export function GameListItem({ game, onPress, selected = false }: GameListItemProps) {
+export function GameListItem({ game, onPress, selected = false, viewerId }: GameListItemProps) {
   const theme = useAppTheme();
   const tint = gameTypeTint(game.gameType, theme.gameTypes);
   const dateLabel = formatGameDateTime(game.date);
   const playerCount = game.players?.length ?? 0;
   const gNumber = gameNumberLabel(game);
   const status = gameStatusLabel(game);
-  const statusTone = status === 'Active' ? 'positive' : 'neutral';
-  const statusIcon = status === 'Active' ? 'circle-medium' : 'flag-checkered';
+  const statusTone = GAME_STATUS_TONE[status];
+  const statusIcon = GAME_STATUS_ICON[status];
+  const access = viewerId ? gameAccessLabel(game, viewerId) : null;
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
@@ -29,7 +33,7 @@ export function GameListItem({ game, onPress, selected = false }: GameListItemPr
         borderless
         style={styles.ripple}
         accessibilityRole="button"
-        accessibilityLabel={`${gameTypeLabel(game.gameType)} game${gNumber ? ` ${gNumber}` : ''}, ${dateLabel}, ${status.toLowerCase()}`}
+        accessibilityLabel={`${gameTypeLabel(game.gameType)} game${gNumber ? ` ${gNumber}` : ''}, ${dateLabel}, ${status.toLowerCase()}${access ? `, ${access.toLowerCase()}` : ''}`}
       >
         <View style={styles.row}>
           {gNumber ? (
@@ -59,6 +63,7 @@ export function GameListItem({ game, onPress, selected = false }: GameListItemPr
                 icon={statusIcon}
                 style={styles.statusTag}
               />
+              {access ? <Tag label={access} tone={ACCESS_TONE[access]} icon={ACCESS_ICON[access]} small /> : null}
               <Text
                 variant="bodySmall"
                 style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}
@@ -131,6 +136,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    flexWrap: 'wrap',
   },
   statusTag: {
     flexShrink: 0,

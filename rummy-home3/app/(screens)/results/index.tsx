@@ -1,20 +1,21 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View } from 'react-native';
-import { Button, Icon, Text, TouchableRipple } from 'react-native-paper';
+import { Button, Chip, Icon, Text, TouchableRipple } from 'react-native-paper';
 import { router, useFocusEffect } from 'expo-router';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { Tag } from '@/components/ui/Tag';
 import { RESULTS_PLAYER_LIMIT } from '@/constants/limits';
-import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { authService } from '@/services/auth';
 import { gamesService } from '@/services/games';
 import { resultsService } from '@/services/results';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
-import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, gameTypeTint } from '@/utils/gameDisplay';
+import { formatGameDateTime, GAME_STATUS_ICON, GAME_STATUS_TONE, gameNumberLabel, gameStatusLabel, gameTypeLabel, gameTypeTint } from '@/utils/gameDisplay';
+import { ResultWarnings } from '@/components/results/ResultWarnings';
 import {
   canDeclareResults,
   formatPoints,
@@ -24,6 +25,18 @@ import {
   resultsCountLine,
   resultsShowMode,
   selectableResultGames,
+  DEFAULT_RESULTS_FILTER,
+  defaultResultSelection,
+  filterResultGames,
+  ResultsFilter,
+  ResultsStatus,
+  RESULTS_FILTER_LABEL,
+  RESULTS_STATUSES,
+  resultsEmptyText,
+  resultsPickerHeading,
+  resultWarnings,
+  toggleResultsStatus,
+  visibleSelection,
   withinResultsPlayerLimit,
 } from '@/utils/results';
 import { storage } from '@/utils/storage';
@@ -45,7 +58,9 @@ function newestFirst(a: Game, b: Game): number {
 function GameRow({ game, on, onPress }: { game: Game; on: boolean; onPress: () => void }) {
   const theme = useAppTheme();
   const tint = gameTypeTint(game.gameType, theme.gameTypes);
-  const open = gameStatusLabel(game) === 'Active';
+  const status = gameStatusLabel(game);
+  const open = status === 'Active';
+  const closed = status === 'Closed';
   const gNumber = gameNumberLabel(game);
   const when = formatGameDateTime(game.date);
   return (
@@ -65,7 +80,7 @@ function GameRow({ game, on, onPress }: { game: Game; on: boolean; onPress: () =
         style={styles.ripple}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: on }}
-        accessibilityLabel={`${gNumber ?? 'Game'}, ${when}, ${open ? 'open' : 'completed'}, ${gameTypeLabel(game.gameType)}`}
+        accessibilityLabel={`${gNumber ?? 'Game'}, ${when}, ${closed ? 'closed, already in a result' : open ? 'open' : 'completed'}, ${gameTypeLabel(game.gameType)}`}
       >
         <View style={styles.rowInner}>
           <Icon source={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={on ? theme.colors.primary : theme.colors.onSurfaceVariant} />
@@ -77,7 +92,7 @@ function GameRow({ game, on, onPress }: { game: Game; on: boolean; onPress: () =
           <View style={styles.rowBody}>
             <Text variant="titleSmall" style={styles.left} numberOfLines={1}>{when}</Text>
             <View style={styles.meta}>
-              <Tag label={open ? 'Active' : 'Completed'} tone={open ? 'positive' : 'neutral'} icon={open ? 'circle-medium' : 'flag-checkered'} />
+              <Tag label={status} tone={GAME_STATUS_TONE[status]} icon={GAME_STATUS_ICON[status]} />
               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>{gameTypeLabel(game.gameType)}</Text>
             </View>
           </View>
@@ -90,30 +105,36 @@ function GameRow({ game, on, onPress }: { game: Game; on: boolean; onPress: () =
 function PastResult({ item }: { item: GameResultSummary }) {
   const { colors } = useAppTheme();
   return (
-    <TouchableRipple
-      onPress={() => router.push(`/(screens)/results/${item.id}`)}
-      style={[styles.past, { borderColor: colors.outlineVariant }]}
-      accessibilityRole="button"
-      accessibilityLabel={`View results from ${formatGameDateTime(item.declaredAt)}`}
-    >
-      <View style={styles.pastInner}>
-        <View style={styles.pastHead}>
-          <Text variant="titleSmall" style={styles.left}>{formatGameDateTime(item.declaredAt)}</Text>
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{resultsCountLine(item.gameCount, item.playerCount)}</Text>
-        </View>
-        {item.top.length === 0 ? (
-          <Text variant="bodyMedium">{item.winnerLine}</Text>
-        ) : item.top.map((row) => (
-          <View key={`${row.place}-${row.name}`} style={styles.topRow}>
-            <Text variant="bodyMedium" style={styles.topPlace}>{placeLabel(row.place)}</Text>
-            <Text variant="bodyMedium" style={styles.topName} numberOfLines={1}>{row.name}</Text>
-            <Text variant="bodyMedium" style={[tabularNums, styles.topPoints, { color: row.points < 0 ? colors.error : colors.primary }]}>
-              {formatPoints(row.points)}
-            </Text>
+    <View style={[styles.past, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderLeftColor: colors.secondary }]}>
+      <TouchableRipple
+        onPress={() => router.push(`/(screens)/results/${item.id}`)}
+        borderless
+        style={styles.ripple}
+        accessibilityRole="button"
+        accessibilityLabel={`Open results from ${formatGameDateTime(item.declaredAt)}`}
+      >
+        <View style={styles.pastInner}>
+          <View style={[styles.pastBadge, { backgroundColor: colors.secondaryContainer }]}>
+            <Icon source="podium" size={22} color={colors.onSecondaryContainer} />
           </View>
-        ))}
-      </View>
-    </TouchableRipple>
+          <View style={styles.pastBody}>
+            <Text variant="titleSmall" style={styles.left} numberOfLines={1}>{formatGameDateTime(item.declaredAt)}</Text>
+            <View style={styles.meta}>
+              <Tag label="Results" tone="results" icon="podium" />
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{resultsCountLine(item.gameCount, item.playerCount)}</Text>
+            </View>
+            {item.top.length === 0 ? (
+              <Text variant="bodySmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{item.winnerLine}</Text>
+            ) : (
+              <Text variant="bodySmall" numberOfLines={2} style={{ color: colors.onSurfaceVariant }}>
+                {item.top.map((row) => `${placeLabel(row.place)} ${row.name} ${formatPoints(row.points)}`).join('  ·  ')}
+              </Text>
+            )}
+          </View>
+          <Icon source="chevron-right" size={24} color={colors.onSurfaceVariant} />
+        </View>
+      </TouchableRipple>
+    </View>
   );
 }
 
@@ -124,7 +145,9 @@ export default function ResultsScreen() {
   const [saved, setSaved] = useState<GameResultSummary[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<ResultsFilter>(DEFAULT_RESULTS_FILTER);
   const [checked, setChecked] = useState<string[]>([]);
+  const touched = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -153,17 +176,28 @@ export default function ResultsScreen() {
       const first = await resultsService.list(0, RESULTS_PAGE_SIZE);
       setSaved(first);
       setHasMore(first.length === RESULTS_PAGE_SIZE);
-      setChecked((current) => current.filter((gameId) => listedGames.some((game) => game.id === gameId)));
+      setChecked((current) => (touched.current
+        ? current.filter((gameId) => listedGames.some((game) => game.id === gameId))
+        : defaultResultSelection(listedGames, filter)));
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filter]);
 
   useFocusEffect(useCallback(() => {
     load();
   }, [load]));
+
+  const shownGames = useMemo(() => filterResultGames(games, filter), [games, filter]);
+
+  const flipStatus = (status: ResultsStatus) => {
+    const next = toggleResultsStatus(filter, status);
+    touched.current = false;
+    setFilter(next);
+    setChecked(defaultResultSelection(games, next));
+  };
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loadingMore.current) return;
@@ -184,11 +218,10 @@ export default function ResultsScreen() {
     if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 200) loadMore();
   };
 
-  const selected = useMemo(
-    () => checked.map((id) => games.find((game) => game.id === id)).filter((game): game is Game => Boolean(game)),
-    [checked, games],
-  );
+  // Only ticked games that are on screen count; a game hidden by a chip never rides along.
+  const selected = useMemo(() => visibleSelection(checked, shownGames), [checked, shownGames]);
 
+  const warnings = useMemo(() => resultWarnings(selected), [selected]);
   const tooMany = selected.length > 0 && !withinResultsPlayerLimit(selected.map((game) => ({
     players: game.players,
     scores: game.scores,
@@ -196,6 +229,7 @@ export default function ResultsScreen() {
   })));
 
   const toggle = (id: string) => {
+    touched.current = true;
     setChecked((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   };
 
@@ -220,6 +254,7 @@ export default function ResultsScreen() {
     setError(null);
     try {
       const result = await resultsService.declare({ games: selected, names, userId });
+      touched.current = false;
       setChecked([]);
       router.push(`/(screens)/results/${result.id}`);
     } catch (err) {
@@ -231,9 +266,29 @@ export default function ResultsScreen() {
 
   return (
     <Screen onScroll={onScroll}>
-      <Text variant="bodyLarge" style={styles.left}>
-        Select games and then show the results.
-      </Text>
+      <Text variant="titleMedium" accessibilityRole="header">{resultsPickerHeading(filter)}</Text>
+      <View style={styles.filterRow}>
+        {RESULTS_STATUSES.map((option) => {
+          const on = filter.includes(option);
+          return (
+            <Chip
+              key={option}
+              selected={on}
+              showSelectedCheck
+              mode={on ? 'flat' : 'outlined'}
+              onPress={() => flipStatus(option)}
+              style={[styles.filterChip, on && { backgroundColor: colors.primary }]}
+              textStyle={on ? { color: colors.onPrimary } : undefined}
+              selectedColor={on ? colors.onPrimary : undefined}
+              accessibilityRole="checkbox"
+              accessibilityLabel={`${RESULTS_FILTER_LABEL[option]} games`}
+              accessibilityState={{ checked: on }}
+            >
+              {RESULTS_FILTER_LABEL[option]}
+            </Chip>
+          );
+        })}
+      </View>
       {error ? (
         <View>
           <Text style={{ color: colors.error }}>{error}</Text>
@@ -241,15 +296,16 @@ export default function ResultsScreen() {
         </View>
       ) : null}
       {loading && games.length === 0 ? <LoadingRows /> : null}
-      {!loading && games.length === 0 ? (
-        <Text variant="bodyLarge">No games to add up yet. Start a game from Home, then select it here.</Text>
+      {!loading && shownGames.length === 0 ? (
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{resultsEmptyText(games, filter)}</Text>
       ) : null}
       <View style={styles.list}>
-        {games.map((game) => (
+        {shownGames.map((game) => (
           <GameRow key={game.id} game={game} on={checked.includes(game.id)} onPress={() => toggle(game.id)} />
         ))}
       </View>
       {tooMany ? <Text style={{ color: colors.error }}>{RESULTS_PLAYER_LIMIT}</Text> : null}
+      <ResultWarnings warnings={warnings} />
       <Button
         mode="contained"
         icon="view-list"
@@ -260,7 +316,7 @@ export default function ResultsScreen() {
       >
         Show results
       </Button>
-      <SectionCard title="Past results">
+      <SectionCard title="Past results" icon="podium" supportingText="Tap one to open it, share it, or save the PDF.">
         {saved.length === 0 ? (
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>None yet.</Text>
         ) : (
@@ -279,6 +335,7 @@ export default function ResultsScreen() {
 const styles = StyleSheet.create({
   left: { textAlign: 'left' },
   list: { gap: spacing.sm },
+  flex: { flex: 1 },
   card: {
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth * 2,
@@ -303,12 +360,22 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontWeight: '800', fontSize: 15 },
   rowBody: { flex: 1, gap: 4, alignItems: 'flex-start' },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  past: { borderWidth: StyleSheet.hairlineWidth * 2, borderRadius: radius.md },
-  pastInner: { padding: spacing.md, gap: 4 },
-  pastHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
-  topRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  topPlace: { width: 36, fontWeight: '800' },
-  topName: { flex: 1 },
-  topPoints: { fontWeight: '800' },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+  filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
+  filterChip: { borderRadius: radius.full },
+  past: {
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderLeftWidth: 5,
+    overflow: 'hidden',
+  },
+  pastInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  pastBadge: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  pastBody: { flex: 1, gap: 4, alignItems: 'flex-start' },
 });
