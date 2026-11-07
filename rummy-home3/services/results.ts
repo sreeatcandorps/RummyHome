@@ -15,6 +15,7 @@ import {
   summaryFrom,
   withinResultsPlayerLimit,
   winnerLineFromNames,
+  gameLabelFor,
 } from '@/utils/results';
 
 const LOCAL_KEY = 'gameResults';
@@ -94,12 +95,13 @@ function sheetFrom(value: unknown, standings: ResultStanding[]): ResultSheet {
   const games = Array.isArray(row.games)
     ? row.games.flatMap((item) => {
       if (!item || typeof item !== 'object') return [];
-      const game = item as { id?: unknown; name?: unknown; date?: unknown; scores?: unknown; rounds?: unknown };
+      const game = item as { id?: unknown; name?: unknown; label?: unknown; date?: unknown; scores?: unknown; rounds?: unknown };
       if (typeof game.id !== 'string') return [];
       const rounds = roundsRecord(game.rounds);
       return [{
         id: game.id,
         name: typeof game.name === 'string' && game.name.trim() ? game.name : game.id.slice(-6).toUpperCase(),
+        ...(typeof game.label === 'string' && game.label.trim() ? { label: game.label.trim() } : {}),
         date: typeof game.date === 'string' ? game.date : '',
         scores: numberRecord(game.scores),
         ...(rounds ? { rounds } : {}),
@@ -258,6 +260,7 @@ export const resultsService = {
     const presented = presentResults(input.games.map((game) => ({
       id: game.id,
       name: gameResultName(game),
+      label: gameLabelFor(game),
       date: game.date,
       players: game.players,
       scores: game.scores,

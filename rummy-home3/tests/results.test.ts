@@ -200,6 +200,7 @@ test('the full details include the games, the player table, both totals, and the
     {
       id: 'g1',
       name: 'ALPHA',
+      label: 'G7',
       date: '2026-10-28T15:00:00.000Z',
       players: ['a', 'b'],
       scores: { a: [20], b: [-20] },
@@ -208,6 +209,7 @@ test('the full details include the games, the player table, both totals, and the
     {
       id: 'g2',
       name: 'BETA',
+      label: 'G3',
       date: '2026-10-28T17:00:00.000Z',
       players: ['a'],
       scores: { a: [5] },
@@ -221,7 +223,7 @@ test('the full details include the games, the player table, both totals, and the
     games: sheet.games.map((game) => ({ ...game, when: game.date })),
   });
   assert.deepEqual(details.rows.map((row) => row.name), ['Ada', 'Bea']);
-  assert.deepEqual(details.columns, ['G1 2026-10-28T15:00:00.000Z', 'G2 2026-10-28T17:00:00.000Z', 'Total']);
+  assert.deepEqual(details.columns, ['G7 2026-10-28T15:00:00.000Z', 'G3 2026-10-28T17:00:00.000Z', 'Total'], 'games keep their own numbers; nothing is renumbered by position');
   assert.equal(details.gameCount, 2);
   assert.equal(details.playerCount, 2, 'Ada played both games but is counted once');
   assert.equal(details.roundTables.length, 2);
@@ -235,8 +237,8 @@ test('the full details include the games, the player table, both totals, and the
   assert.match(html, /EZ Score: Rummy/);
   assert.match(html, /Created Wed, Oct 28 · 6:40 PM/);
   assert.match(html, /2 games · 2 players/);
-  assert.match(html, /<li>G1 — /);
-  assert.match(html, /<li>G2 — /);
+  assert.match(html, /<li>G7 — /);
+  assert.match(html, /<li>G3 — /);
   assert.match(html, /class="totals-row"/);
   assert.match(html, /Positive/);
   assert.match(html, /Negative/);
@@ -254,7 +256,7 @@ test('the full details include the games, the player table, both totals, and the
       place: 1,
     })),
     players: Array.from({ length: 50 }, (_, index) => ({ id: `p${index}`, name: `P${String(index).padStart(2, '0')}` })),
-    games: [{ id: 'g', name: 'ALPHA', when: 'Wed', scores: {} }],
+    games: [{ id: 'g', name: 'ALPHA', label: 'G1', when: 'Wed', scores: {} }],
   });
   const pdf = new TextDecoder().decode(resultsDetailsPdf(many));
   assert.match(pdf, /^%PDF-1\.4/);
@@ -275,12 +277,16 @@ test('only an admin of every selected game can declare', () => {
 });
 
 test('game headers use h:mm with am/pm', async () => {
-  const { gameClock, gameShortLabel } = await import('@/utils/results');
+  const { gameClock, sheetGameLabel, gameLabelFor } = await import('@/utils/results');
   const d = new Date(2026, 9, 28, 22, 5);
   assert.equal(gameClock(d.toISOString()), '10:05 pm');
   assert.equal(gameClock(new Date(2026, 9, 28, 0, 7).toISOString()), '12:07 am');
   assert.equal(gameClock(new Date(2026, 9, 28, 11, 51).toISOString()), '11:51 am');
-  assert.equal(gameShortLabel(0), 'G1');
+  // A game keeps its own number whatever position it has in a result.
+  assert.equal(sheetGameLabel({ label: 'G7', name: 'ABC123' }), 'G7');
+  assert.equal(sheetGameLabel({ name: 'ABC123' }), 'ABC123', 'older results without a stored number show the code, never a positional G1');
+  assert.equal(gameLabelFor({ gameNumber: 7 }), 'G7');
+  assert.equal(gameLabelFor({ gameNumber: null }), undefined);
 });
 
 import { closedSelectionWarning, resultsCountLine, resultsPdfFileName, resultsShowMode, selectableResultGames, summaryFrom as summaryOf, topThree } from '../utils/results';

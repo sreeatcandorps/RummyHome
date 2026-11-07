@@ -30,8 +30,10 @@ export type ShareCard = {
   summary?: string;
   /** Results image: how each game adds up to the total. Null when there are too many games. */
   breakdown?: ShareBreakdown | null;
-  /** Shown in place of the breakdown when it was left off. */
+  /** Shown under the breakdown when the rounds are only in the PDF. */
   breakdownNote?: string;
+  /** Last line: "Result ID · ABC123" on saved results, "Preview · not saved" before. */
+  footer?: string;
 };
 
 /** The results picture stays short: the podium, then the leading totals. */
@@ -79,6 +81,7 @@ export function buildResultsShareCard(input: {
   places?: { label: string; names: string; points: number }[];
   gameCount?: number;
   games?: SheetLikeGame[];
+  footer?: string;
 }): ShareCard {
   const sorted = [...input.rows].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
   const gameCount = input.gameCount ?? input.games?.length;
@@ -104,5 +107,6 @@ export function buildResultsShareCard(input: {
     places: [],
     breakdown,
     breakdownNote: gameCount != null && shareBreakdownOmitted(gameCount) ? SHARE_BREAKDOWN_OMITTED : undefined,
+    footer: input.footer,
   };
 }

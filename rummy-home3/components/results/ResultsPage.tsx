@@ -21,6 +21,7 @@ export function ResultsPage({
   const games = sheet.games.map((game) => ({
     id: game.id,
     name: game.name,
+    label: game.label,
     when: gameClock(game.date),
     scores: game.scores,
   }));

@@ -11,7 +11,7 @@ import { resultsService } from '@/services/results';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { GameResult, RESULT_EXPENSE_ID, ResultSheet, ResultWarning, resultWarnings, reusedInResult, gameClock } from '@/utils/results';
+import { GameResult, RESULT_EXPENSE_ID, resultFooter, ResultSheet, ResultWarning, resultWarnings, reusedInResult, gameClock } from '@/utils/results';
 import { RESULT_NOT_AVAILABLE } from '@/utils/resultsAccess';
 import { ResultWarnings } from '@/components/results/ResultWarnings';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
@@ -98,6 +98,7 @@ export default function DeclaredResult() {
       places: sharePlaces(result.standings),
       gameCount: result.gameIds.length || sheetFor(result).games.length,
       games: sheetFor(result).games,
+      footer: resultFooter({ resultId: result.id }),
     });
   }, [result]);
 
@@ -111,10 +112,12 @@ export default function DeclaredResult() {
       games: sheet.games.map((game) => ({
         id: game.id,
         name: game.name,
+        label: game.label,
         when: gameClock(game.date),
         scores: game.scores,
         rounds: game.rounds,
       })),
+      footer: resultFooter({ resultId: result.id }),
     });
   }, [result]);
 

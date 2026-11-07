@@ -21,7 +21,10 @@ export type ResultStanding = {
 /** One cell in the game × player sheet. A missing key means that player did not play. */
 export type ResultSheetGame = {
   id: string;
+  /** Short code (share code or id tail). */
   name: string;
+  /** The game's own number, "G7". Fixed at creation and never renumbered by position. */
+  label?: string;
   date: string;
   scores: Record<string, number>;
   /** Round-by-round scores for the PDF. Results saved before this was added have none. */
@@ -76,21 +79,80 @@ export function selectableResultGames<T extends { closedAt?: string | null }>(ga
 
 // ---------- Results page filter, default selection, and warnings ----------
 
-export type ResultsFilter = 'completed' | 'all';
-export const DEFAULT_RESULTS_FILTER: ResultsFilter = 'completed';
-export const RESULTS_FILTER_LABEL: Record<ResultsFilter, string> = { completed: 'Completed', all: 'All' };
+/** One status chip on the Results picker. Any mix can be on at once. */
+export type ResultsStatus = 'completed' | 'closed' | 'active';
+export const RESULTS_STATUSES: ResultsStatus[] = ['completed', 'closed', 'active'];
+export type ResultsFilter = ResultsStatus[];
+/** Completed only: finished games that are not in a result yet. */
+export const DEFAULT_RESULTS_FILTER: ResultsFilter = ['completed'];
+export const RESULTS_FILTER_LABEL: Record<ResultsStatus, string> = { completed: 'Completed', closed: 'Closed', active: 'Active' };
 
 type FilterableGame = { isComplete?: boolean; closedAt?: string | null };
 
-/** Completed shows only finished games not yet in a result; All shows active, completed, and closed. */
-export function filterResultGames<T extends FilterableGame>(games: T[], filter: ResultsFilter): T[] {
-  if (filter === 'all') return games;
-  return games.filter((game) => Boolean(game.isComplete) && !game.closedAt);
+/** Closed beats Completed: a game in a result is Closed even though it is also finished. */
+export function resultsStatusOf(game: FilterableGame): ResultsStatus {
+  if (game.closedAt) return 'closed';
+  return game.isComplete ? 'completed' : 'active';
 }
 
-/** On Completed every listed game starts ticked, so Show results is one tap. On All nothing is pre-ticked. */
+/** Flip one status chip. Turning the last one off is allowed; the list then says so. */
+export function toggleResultsStatus(filter: ResultsFilter, status: ResultsStatus): ResultsFilter {
+  return filter.includes(status)
+    ? filter.filter((item) => item !== status)
+    : RESULTS_STATUSES.filter((item) => item === status || filter.includes(item));
+}
+
+/** Only games whose status chip is on. Order is kept. */
+export function filterResultGames<T extends FilterableGame>(games: T[], filter: ResultsFilter): T[] {
+  return games.filter((game) => filter.includes(resultsStatusOf(game)));
+}
+
+/**
+ * Completed games start ticked so Show results is one tap. Closed and Active games
+ * never start ticked: each one carries a warning and has to be a deliberate choice.
+ */
 export function defaultResultSelection<T extends FilterableGame & { id: string }>(games: T[], filter: ResultsFilter): string[] {
-  return filter === 'completed' ? filterResultGames(games, filter).map((game) => game.id) : [];
+  return filterResultGames(games, filter)
+    .filter((game) => resultsStatusOf(game) === 'completed')
+    .map((game) => game.id);
+}
+
+/**
+ * Only ticked games that are on screen count. A game ticked and then hidden by a
+ * chip (or Closed by a result) must not ride along unseen — that was "7 selected, 5 shown".
+ */
+export function visibleSelection<T extends { id: string }>(checked: string[], shown: T[]): T[] {
+  return shown.filter((game) => checked.includes(game.id));
+}
+
+/** "Select completed games", "Select closed games", or "Select games" for a mix. */
+export function resultsPickerHeading(filter: ResultsFilter): string {
+  if (filter.length === 1) return `Select ${RESULTS_FILTER_LABEL[filter[0]].toLowerCase()} games`;
+  return 'Select games';
+}
+
+/** Counts per status, for an honest empty message. */
+export function resultsStatusCounts(games: FilterableGame[]): Record<ResultsStatus, number> {
+  const counts: Record<ResultsStatus, number> = { completed: 0, closed: 0, active: 0 };
+  games.forEach((game) => { counts[resultsStatusOf(game)] += 1; });
+  return counts;
+}
+
+/**
+ * What to say when the list is empty. Never "no games" when games exist but are
+ * hidden by the chips; say which ones are hidden instead.
+ */
+export function resultsEmptyText(games: FilterableGame[], filter: ResultsFilter): string {
+  if (games.length === 0) return 'No games to add up yet. Start a game from Home, then select it here.';
+  const counts = resultsStatusCounts(games);
+  const hidden = RESULTS_STATUSES
+    .filter((status) => !filter.includes(status) && counts[status] > 0)
+    .map((status) => `${counts[status]} ${RESULTS_FILTER_LABEL[status]}`);
+  if (filter.length === 0) return `No status selected. Turn on a chip above to list games (${hidden.join(', ')}).`;
+  const shown = filter.map((status) => RESULTS_FILTER_LABEL[status]).join(' or ');
+  return hidden.length > 0
+    ? `No ${shown} games. Hidden by the chips: ${hidden.join(', ')}.`
+    : `No ${shown} games.`;
 }
 
 export type ResultWarning = { kind: 'active' | 'reused'; text: string };
@@ -260,6 +322,18 @@ export function summaryFrom(result: GameResult): GameResultSummary {
 }
 
 /** Share code when the game has one, otherwise the tail of the id. */
+/** Six stable characters from the result id, the same every time it is shared. */
+export function resultShortId(resultId: string): string {
+  const compact = resultId.replace(/[^a-z0-9]/gi, '');
+  return compact.slice(-6).toUpperCase() || resultId.toUpperCase();
+}
+
+/** The last line on every consolidated share: image, PDF, preview. */
+export function resultFooter(input: { resultId?: string | null; preview?: boolean }): string {
+  if (input.resultId) return `Result ID · ${resultShortId(input.resultId)}`;
+  return input.preview ? 'Preview · not saved' : 'Results';
+}
+
 export function gameResultName(game: { id: string; shareCode?: string | null }): string {
   const code = game.shareCode?.trim();
   if (code) return code;
@@ -354,7 +428,7 @@ export function resultsTableScrollsHorizontally(frameWidth: number, gameCount: n
  * A player who was not seated in that game has no score key.
  */
 export function buildResultSheet(
-  games: Array<ResultGame & { id: string; name: string; date: string }>,
+  games: Array<ResultGame & { id: string; name: string; label?: string; date: string }>,
   standings: ResultStanding[],
 ): ResultSheet {
   const ordered = [...games].sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
@@ -371,12 +445,12 @@ export function buildResultSheet(
         scores[id] = values.reduce((sum, value) => sum + value, 0);
         rounds[id] = values;
       });
-      return { id: game.id, name: game.name, date: game.date, scores, rounds };
+      return { id: game.id, name: game.name, ...(game.label ? { label: game.label } : {}), date: game.date, scores, rounds };
     }),
   };
 }
 
-export function presentResults(games: Array<ResultGame & { id: string; name: string; date: string }>) {
+export function presentResults(games: Array<ResultGame & { id: string; name: string; label?: string; date: string }>) {
   const standings = totalAcrossGames(games);
   return { standings, sheet: buildResultSheet(games, standings) };
 }
@@ -398,12 +472,22 @@ export function gameClock(value: string): string {
   return `${hour}:${String(date.getMinutes()).padStart(2, '0')} ${date.getHours() < 12 ? 'am' : 'pm'}`;
 }
 
-/** "G1", "G2"… for table headers; games are already in start order. */
-export function gameShortLabel(index: number): string {
-  return `G${index + 1}`;
+/**
+ * Column header for a game in a result. A game keeps its own number (G7 stays
+ * G7 whatever else is selected). Results saved before numbers were stored show
+ * their short code instead; nothing is ever renumbered by position.
+ */
+export function sheetGameLabel(game: { label?: string | null; name: string }): string {
+  return game.label?.trim() || game.name;
 }
 
-/** "G1 10:05 pm" for the PDF; games are already in start order. */
-export function gameColumnLabel(index: number, when: string): string {
-  return when ? `${gameShortLabel(index)} ${when}` : gameShortLabel(index);
+/** "G7" label for a live game being added up. */
+export function gameLabelFor(game: { gameNumber?: number | null }): string | undefined {
+  return game.gameNumber != null ? `G${game.gameNumber}` : undefined;
+}
+
+/** "G7 10:05 pm" for the PDF. */
+export function gameColumnLabel(game: { label?: string | null; name: string }, when: string): string {
+  const label = sheetGameLabel(game);
+  return when ? `${label} ${when}` : label;
 }

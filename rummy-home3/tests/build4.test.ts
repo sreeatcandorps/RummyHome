@@ -107,17 +107,19 @@ test('build 4: Edit round lists played rounds newest first and preloads their sc
   assert.equal(retiredRoundNumber(2, 1), 2002);
 });
 
-test('build 4: Results opens on Completed with every completed game ticked; All shows everything unticked', () => {
-  assert.equal(DEFAULT_RESULTS_FILTER, 'completed');
+test('build 4 / nov 6: Results opens on Completed with every completed game ticked; other chips add games unticked', () => {
+  assert.deepEqual(DEFAULT_RESULTS_FILTER, ['completed']);
   const games = [
     { id: 'open', isComplete: false },
     { id: 'done', isComplete: true },
     { id: 'closed', isComplete: true, closedAt: '2026-10-29T10:00:00Z' },
   ];
-  assert.deepEqual(filterResultGames(games, 'completed').map((g) => g.id), ['done']);
-  assert.deepEqual(filterResultGames(games, 'all').map((g) => g.id), ['open', 'done', 'closed']);
-  assert.deepEqual(defaultResultSelection(games, 'completed'), ['done']);
-  assert.deepEqual(defaultResultSelection(games, 'all'), []);
+  assert.deepEqual(filterResultGames(games, ['completed']).map((g) => g.id), ['done']);
+  assert.deepEqual(filterResultGames(games, ['completed', 'closed', 'active']).map((g) => g.id), ['open', 'done', 'closed']);
+  assert.deepEqual(filterResultGames(games, ['closed']).map((g) => g.id), ['closed']);
+  assert.deepEqual(defaultResultSelection(games, ['completed']), ['done']);
+  assert.deepEqual(defaultResultSelection(games, ['completed', 'closed', 'active']), ['done'], 'only Completed games start ticked');
+  assert.deepEqual(defaultResultSelection(games, ['active']), []);
 });
 
 test('build 4: two result warnings — active game used, game already in another result', () => {

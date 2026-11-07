@@ -116,11 +116,12 @@ export const HELP = {
     'Game defaults: Rummy’s standard -10, -30, -80, used when you have set nothing else.',
   ),
   results: bullets(
+    'The Completed, Closed, and Active chips choose which games are listed; any mix can be on. Completed games start ticked.',
     'Pick one or more games and tap Show results. The highest total is the winner; 1st, 2nd, and 3rd place are named.',
     'If every picked game is Completed, the result is saved and those games become Closed.',
     'If any picked game is still Active, you only see running totals. Nothing is saved.',
     'A Closed game can be picked again, but the app warns you: its points were already counted once. Best to first delete the old result that closed it. Deleting past results is coming soon.',
-    'Share sends a picture of the totals, or a PDF with every round of every game.',
+    'Share sends a picture of the totals with every game on it, or a PDF with every round of every game. A game keeps its own number (G7 stays G7) and the result id is at the bottom of both.',
     'Results can include at most 50 players.',
   ),
   publicScorecard: bullets(

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { brand, spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { gameShortLabel, playersByFirstName, resultsColumnWidths, resultsTableScrollsHorizontally, scoreCell } from '@/utils/results';
+import { sheetGameLabel, playersByFirstName, resultsColumnWidths, resultsTableScrollsHorizontally, scoreCell } from '@/utils/results';
 
 export type GridPlayer = { id: string; name: string };
 
@@ -54,10 +54,10 @@ export function GameScoreGrid({
           <View
             key={game.id}
             testID={`col-${index + 1}`}
-            accessibilityLabel={`Game ${index + 1}${game.when ? `, started ${game.when}` : ''}`}
+            accessibilityLabel={`${sheetGameLabel(game)}${game.when ? `, started ${game.when}` : ''}`}
             style={[styles.headCell, { width: scoreWidths[index], backgroundColor: brand.felt }]}
           >
-            <Text numberOfLines={1} style={styles.headLabel}>{gameShortLabel(index)}</Text>
+            <Text numberOfLines={1} style={styles.headLabel}>{sheetGameLabel(game)}</Text>
             <Text numberOfLines={1} style={styles.headSmall}>{game.when}</Text>
           </View>
         ))}

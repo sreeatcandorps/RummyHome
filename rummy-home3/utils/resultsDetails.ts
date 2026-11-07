@@ -2,7 +2,7 @@ import { firstAppearanceOrder, initialsById } from '@/utils/playerInitials';
 import {
   formatPoints,
   gameColumnLabel,
-  gameShortLabel,
+  sheetGameLabel,
   placeLabel,
   playersByFirstName,
   podiumPlaces,
@@ -15,6 +15,8 @@ import { uniquePlayerCount } from '@/utils/resultsLayout';
 export type ResultsDetailGame = {
   id: string;
   name: string;
+  /** "G7" — the game's own number. */
+  label?: string;
   when: string;
   scores: Record<string, number>;
   /** Round-by-round scores, when the games were available. */
@@ -50,6 +52,8 @@ export type ResultsDetails = {
   negative: { name: string; points: string }[];
   places: { label: string; names: string; points: string }[];
   roundTables: ResultsRoundTable[];
+  /** "Result ID · ABC123" — the same stable id as on the image. */
+  footer?: string;
 };
 
 function escapeHtml(value: string): string {
@@ -84,7 +88,7 @@ export function buildRoundTable(
     }),
   }));
   return {
-    label: gameShortLabel(index),
+    label: sheetGameLabel(game),
     when: game.when,
     code: game.name,
     initials,
@@ -101,6 +105,7 @@ export function buildResultsDetails(input: {
   standings: ResultStanding[];
   players: { id: string; name: string }[];
   games: ResultsDetailGame[];
+  footer?: string;
 }): ResultsDetails {
   const players = playersByFirstName(input.players);
   const labels = initialsById(firstAppearanceOrder(input.players, input.games));
@@ -119,8 +124,8 @@ export function buildResultsDetails(input: {
     createdAtLabel: input.createdAtLabel,
     gameCount: input.games.length,
     playerCount: seatedCount > 0 ? seatedCount : players.length,
-    games: input.games.map((game, index) => ({ name: gameShortLabel(index), when: game.when })),
-    columns: [...input.games.map((game, index) => gameColumnLabel(index, game.when)), 'Total'],
+    games: input.games.map((game) => ({ name: sheetGameLabel(game), when: game.when })),
+    columns: [...input.games.map((game) => gameColumnLabel(game, game.when)), 'Total'],
     rows,
     positive: totals.positive.map((row) => ({ name: row.name, points: formatPoints(row.points) })),
     negative: totals.negative.map((row) => ({ name: row.name, points: formatPoints(row.points) })),
@@ -130,6 +135,7 @@ export function buildResultsDetails(input: {
       points: formatPoints(group[0].points),
     })),
     roundTables: input.games.map((game, index) => buildRoundTable(game, index, input.players, labels)),
+    ...(input.footer ? { footer: input.footer } : {}),
   };
 }
 
@@ -202,6 +208,7 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
   .code { font-weight: 400; color: #7A6E5B; font-size: 11px; }
   .legend { font-size: 11px; color: #7A6E5B; margin-top: 4px; }
   .legend b { color: #17402F; }
+  .footer { margin-top: 16px; font-size: 11px; color: #7A6E5B; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -216,6 +223,7 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
   <table class="compact"><tbody>${places}</tbody></table>
   <h2>Games</h2>
   ${rounds}
+  ${details.footer ? `<p class="footer">${escapeHtml(details.footer)}</p>` : ''}
 </body>
 </html>`;
 }
@@ -268,6 +276,7 @@ export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
     if (table.totalsOnly) lines.push('Round scores were not saved with this result.');
     lines.push(table.initials.map((label, index) => `${label} ${table.names[index]}`).join('  '));
   });
+  if (details.footer) lines.push('', details.footer);
   const pageSize = 42;
   const pages: string[][] = [];
   for (let index = 0; index < lines.length; index += pageSize) pages.push(lines.slice(index, index + pageSize));

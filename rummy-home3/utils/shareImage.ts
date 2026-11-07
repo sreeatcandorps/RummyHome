@@ -1,88 +1,165 @@
 import { Platform, Share, View } from 'react-native';
 import { ShareCard } from '@/utils/shareCard';
+import { legendLines, ShareBreakdown } from '@/utils/resultsLayout';
+import { placeLabel } from '@/utils/results';
 import { placeLine, ScorecardSheet } from '@/utils/scorecardSheet';
 import { CELLS_PER_ROW, FINAL_SCORES_FILE, FinalScoresSheet } from '@/utils/finalScoresSheet';
 
 export const IMAGE_READY = 'Image ready.';
 
-function drawShareCard(card: ShareCard): string {
+const CARD_W = 720;
+const CARD_PAD = 36;
+const CARD_FELT = '#17402F';
+const CARD_GOLD = '#E3B341';
+const CARD_CREAM = '#FBF1E1';
+const CARD_POS = '#B7E4C7';
+const CARD_NEG = '#F2B8B5';
+
+function pointsColor(text: string): string {
+  if (text === '—') return 'rgba(251,241,225,0.5)';
+  return text.startsWith('-') ? CARD_NEG : CARD_POS;
+}
+
+/** Row height and type size of the by-game grid, so 20 games still fit in a readable image. */
+function gridMetrics(grid: ShareBreakdown) {
+  const colCount = grid.columns.length;
+  const headW = grid.orientation === 'gamesDown' ? 70 : 90;
+  const avail = CARD_W - CARD_PAD * 2 - headW;
+  const colW = Math.max(30, Math.min(96, Math.floor(avail / Math.max(1, colCount))));
+  const font = grid.dense || colW < 44 ? 15 : 18;
+  return { headW, colW, font, rowH: font + 10, legend: legendLines(grid.legend) };
+}
+
+/**
+ * Web twin of ShareCardView: brand, title, date, summary, totals with crowns,
+ * the by-game grid (every game), the legend, and the footer with the result id.
+ */
+export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   if (typeof document === 'undefined') throw new Error('Could not make the image.');
-  const width = 720;
-  const podiumExtra = card.podiumFirst ? card.places.length * 44 + (card.lines.length > 0 ? 36 : 0) : card.places.length * 36;
-  const height = 240 + card.lines.length * 42 + (card.moreCount > 0 ? 36 : 0) + podiumExtra;
+  const grid = card.breakdown ?? null;
+  const metrics = grid ? gridMetrics(grid) : null;
+  const headerH = 200 + (card.summary ? 30 : 0);
+  const podiumH = card.podiumFirst ? card.places.length * 44 + (card.lines.length > 0 ? 36 : 0) : 0;
+  const linesH = card.lines.length * 40 + (card.moreCount > 0 ? 36 : 0);
+  const gridH = grid && metrics ? 52 + (grid.rows.length + 1) * metrics.rowH + metrics.legend.length * 20 + 24 : 0;
+  const noteH = card.breakdownNote ? 30 : 0;
+  const placesH = !card.podiumFirst ? card.places.length * 36 : 0;
+  const footerH = card.footer ? 56 : 24;
+  const height = headerH + podiumH + linesH + gridH + noteH + placesH + footerH;
+
   const canvas = document.createElement('canvas');
-  canvas.width = width;
+  canvas.width = CARD_W;
   canvas.height = Math.max(height, 360);
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not make the image.');
-
-  ctx.fillStyle = '#17402F';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#E3B341';
-  ctx.fillRect(36, 88, canvas.width - 72, 3);
-
-  ctx.fillStyle = '#E3B341';
-  ctx.font = '700 22px sans-serif';
-  ctx.fillText('RUMMY HOME', 36, 64);
-
-  ctx.fillStyle = '#FBF1E1';
-  ctx.font = '800 36px sans-serif';
-  ctx.fillText(card.title.slice(0, 32), 36, 140);
-  ctx.font = '600 22px sans-serif';
-  ctx.fillText(card.date.slice(0, 40), 36, 176);
-
-  let y = 230;
-  const drawLine = (line: { name: string; points: string }) => {
-    ctx.fillStyle = '#FBF1E1';
-    ctx.font = '600 24px sans-serif';
-    ctx.fillText(line.name.slice(0, 24), 36, y);
-    ctx.fillStyle = line.points.startsWith('-') ? '#F2B8B5' : '#B7E4C7';
-    ctx.font = '800 24px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(line.points, canvas.width - 36, y);
+  const paint = (text: string, x: number, y: number, color: string, font: string, align: CanvasTextAlign = 'left') => {
+    ctx.fillStyle = color;
+    ctx.font = font;
+    ctx.textAlign = align;
+    ctx.fillText(text, x, y);
     ctx.textAlign = 'left';
-    y += 42;
+  };
+  const rule = (y: number) => {
+    ctx.fillStyle = 'rgba(227,179,65,0.7)';
+    ctx.fillRect(CARD_PAD, y, CARD_W - CARD_PAD * 2, 2);
+  };
+  const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
+
+  ctx.fillStyle = CARD_FELT;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  paint(card.brand, CARD_PAD, 60, CARD_GOLD, '800 22px sans-serif');
+  paint(clip(card.title, 32), CARD_PAD, 108, CARD_CREAM, '800 36px sans-serif');
+  paint(clip(card.date, 40), CARD_PAD, 144, CARD_CREAM, '600 22px sans-serif');
+  let y = 160;
+  if (card.summary) {
+    paint(clip(card.summary, 40), CARD_PAD, 174, CARD_CREAM, '600 22px sans-serif');
+    y += 30;
+  }
+  rule(y);
+  y += 40;
+
+  const drawLine = (line: { name: string; points: string; place?: number }) => {
+    const hasBadges = card.lines.some((item) => item.place != null);
+    let x = CARD_PAD;
+    if (hasBadges) {
+      if (line.place != null) paint(`♛ ${placeLabel(line.place)}`, x, y, CARD_GOLD, '800 18px sans-serif');
+      x += 84;
+    }
+    paint(clip(line.name, 26), x, y, CARD_CREAM, '600 24px sans-serif');
+    paint(line.points, CARD_W - CARD_PAD, y, pointsColor(line.points), '800 24px sans-serif', 'right');
+    y += 40;
   };
   if (card.podiumFirst) {
     card.places.forEach((place) => {
-      ctx.fillStyle = '#FBF1E1';
-      ctx.font = '800 28px sans-serif';
-      ctx.fillText(`${place.label}  ${place.names}  ${place.points}`.slice(0, 42), 36, y);
+      paint(clip(`${place.label}  ${place.names}  ${place.points}`, 42), CARD_PAD, y, CARD_CREAM, '800 28px sans-serif');
       y += 44;
     });
     if (card.lines.length > 0) {
-      ctx.fillStyle = '#E3B341';
-      ctx.font = '700 22px sans-serif';
-      ctx.fillText('Totals', 36, y);
+      paint('Totals', CARD_PAD, y, CARD_GOLD, '700 22px sans-serif');
       y += 36;
     }
   }
   card.lines.forEach(drawLine);
   if (card.moreCount > 0) {
-    ctx.fillStyle = '#E3B341';
-    ctx.font = '700 22px sans-serif';
-    ctx.fillText(`and ${card.moreCount} more`, 36, y);
+    paint(`and ${card.moreCount} more`, CARD_PAD, y, CARD_GOLD, '700 22px sans-serif');
     y += 36;
+  }
+
+  if (grid && metrics) {
+    rule(y - 20);
+    paint('By game', CARD_PAD, y + 6, CARD_GOLD, '700 18px sans-serif');
+    y += 30;
+    const { headW, colW, font, rowH } = metrics;
+    const down = grid.orientation === 'gamesDown';
+    const cellX = (index: number) => CARD_PAD + headW + colW * (index + 1);
+    paint(down ? 'Game' : 'Player', CARD_PAD, y, 'rgba(251,241,225,0.8)', `700 ${font - 2}px sans-serif`);
+    grid.columns.forEach((column, index) => {
+      paint(column, cellX(index), y, 'rgba(251,241,225,0.8)', `700 ${font - 2}px sans-serif`, 'right');
+    });
+    y += rowH;
+    grid.rows.forEach((row) => {
+      if (row.total) {
+        ctx.fillStyle = 'rgba(227,179,65,0.7)';
+        ctx.fillRect(CARD_PAD, y - rowH + 8, CARD_W - CARD_PAD * 2, 1);
+      }
+      const weight = row.total ? '800' : '600';
+      paint(row.head, CARD_PAD, y, CARD_CREAM, `${weight} ${font}px sans-serif`);
+      row.cells.forEach((cell, index) => {
+        const isTotal = row.total || (!down && index === row.cells.length - 1);
+        paint(cell, cellX(index), y, pointsColor(cell), `${isTotal ? '800' : weight} ${font}px sans-serif`, 'right');
+      });
+      y += rowH;
+    });
+    metrics.legend.forEach((line) => {
+      paint(line, CARD_PAD, y, 'rgba(251,241,225,0.75)', '600 13px sans-serif');
+      y += 20;
+    });
+    y += 10;
+  }
+  if (card.breakdownNote) {
+    paint(card.breakdownNote, CARD_PAD, y, CARD_GOLD, '700 16px sans-serif');
+    y += 30;
   }
   if (!card.podiumFirst) {
     card.places.forEach((place) => {
-      ctx.fillStyle = '#FBF1E1';
-      ctx.font = '700 22px sans-serif';
-      ctx.fillText(`${place.label}  ${place.names}  ${place.points}`.slice(0, 48), 36, y);
+      paint(clip(`${place.label}  ${place.names}  ${place.points}`, 48), CARD_PAD, y, CARD_CREAM, '700 22px sans-serif');
       y += 36;
     });
   }
-
-  return canvas.toDataURL('image/png');
+  if (card.footer) {
+    rule(y - 12);
+    paint(card.footer, CARD_PAD, y + 22, CARD_GOLD, '700 16px sans-serif');
+  }
+  return canvas;
 }
 
 async function shareWeb(card: ShareCard): Promise<string> {
-  const url = drawShareCard(card);
+  const url = drawShareCard(card).toDataURL('image/png');
   const nav = typeof navigator === 'undefined' ? undefined : navigator;
   if (nav && typeof nav.share === 'function') {
     try {
       const blob = await (await fetch(url)).blob();
-      const file = new File([blob], 'rummy-home.png', { type: 'image/png' });
+      const file = new File([blob], 'ez-score-results.png', { type: 'image/png' });
       const data: ShareData = { files: [file], title: 'EZ Score: Rummy', text: card.title };
       if (!nav.canShare || nav.canShare(data)) {
         await nav.share(data);
@@ -95,7 +172,7 @@ async function shareWeb(card: ShareCard): Promise<string> {
   }
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'rummy-home.png';
+  link.download = 'ez-score-results.png';
   document.body.appendChild(link);
   link.click();
   link.remove();

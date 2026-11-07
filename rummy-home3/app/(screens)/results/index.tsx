@@ -29,8 +29,14 @@ import {
   defaultResultSelection,
   filterResultGames,
   ResultsFilter,
+  ResultsStatus,
   RESULTS_FILTER_LABEL,
+  RESULTS_STATUSES,
+  resultsEmptyText,
+  resultsPickerHeading,
   resultWarnings,
+  toggleResultsStatus,
+  visibleSelection,
   withinResultsPlayerLimit,
 } from '@/utils/results';
 import { storage } from '@/utils/storage';
@@ -186,8 +192,8 @@ export default function ResultsScreen() {
 
   const shownGames = useMemo(() => filterResultGames(games, filter), [games, filter]);
 
-  const changeFilter = (next: ResultsFilter) => {
-    if (next === filter) return;
+  const flipStatus = (status: ResultsStatus) => {
+    const next = toggleResultsStatus(filter, status);
     touched.current = false;
     setFilter(next);
     setChecked(defaultResultSelection(games, next));
@@ -212,10 +218,8 @@ export default function ResultsScreen() {
     if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 200) loadMore();
   };
 
-  const selected = useMemo(
-    () => checked.map((id) => games.find((game) => game.id === id)).filter((game): game is Game => Boolean(game)),
-    [checked, games],
-  );
+  // Only ticked games that are on screen count; a game hidden by a chip never rides along.
+  const selected = useMemo(() => visibleSelection(checked, shownGames), [checked, shownGames]);
 
   const warnings = useMemo(() => resultWarnings(selected), [selected]);
   const tooMany = selected.length > 0 && !withinResultsPlayerLimit(selected.map((game) => ({
@@ -262,25 +266,28 @@ export default function ResultsScreen() {
 
   return (
     <Screen onScroll={onScroll}>
+      <Text variant="titleMedium" accessibilityRole="header">{resultsPickerHeading(filter)}</Text>
       <View style={styles.filterRow}>
-        {(['completed', 'all'] as ResultsFilter[]).map((option) => (
-          <Chip
-            key={option}
-            selected={filter === option}
-            showSelectedCheck={false}
-            mode={filter === option ? 'flat' : 'outlined'}
-            onPress={() => changeFilter(option)}
-            style={[styles.filterChip, filter === option && { backgroundColor: colors.primary }]}
-            textStyle={filter === option ? { color: colors.onPrimary } : undefined}
-            accessibilityLabel={`${RESULTS_FILTER_LABEL[option]} games`}
-            accessibilityState={{ selected: filter === option }}
-          >
-            {RESULTS_FILTER_LABEL[option]}
-          </Chip>
-        ))}
-        <Text variant="bodySmall" style={[styles.flex, { color: colors.onSurfaceVariant }]}>
-          {filter === 'completed' ? 'Finished games, all ticked. Untick any to leave out.' : 'Every game. Active and Closed ones carry a warning.'}
-        </Text>
+        {RESULTS_STATUSES.map((option) => {
+          const on = filter.includes(option);
+          return (
+            <Chip
+              key={option}
+              selected={on}
+              showSelectedCheck
+              mode={on ? 'flat' : 'outlined'}
+              onPress={() => flipStatus(option)}
+              style={[styles.filterChip, on && { backgroundColor: colors.primary }]}
+              textStyle={on ? { color: colors.onPrimary } : undefined}
+              selectedColor={on ? colors.onPrimary : undefined}
+              accessibilityRole="checkbox"
+              accessibilityLabel={`${RESULTS_FILTER_LABEL[option]} games`}
+              accessibilityState={{ checked: on }}
+            >
+              {RESULTS_FILTER_LABEL[option]}
+            </Chip>
+          );
+        })}
       </View>
       {error ? (
         <View>
@@ -289,11 +296,8 @@ export default function ResultsScreen() {
         </View>
       ) : null}
       {loading && games.length === 0 ? <LoadingRows /> : null}
-      {!loading && games.length === 0 ? (
-        <Text variant="bodyLarge">No games to add up yet. Start a game from Home, then select it here.</Text>
-      ) : null}
-      {!loading && games.length > 0 && shownGames.length === 0 ? (
-        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>No Completed games waiting. Switch to All to see active and closed games.</Text>
+      {!loading && shownGames.length === 0 ? (
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{resultsEmptyText(games, filter)}</Text>
       ) : null}
       <View style={styles.list}>
         {shownGames.map((game) => (

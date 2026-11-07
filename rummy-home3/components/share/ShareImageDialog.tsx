@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { Button, IconButton, Text } from 'react-native-paper';
 import { ShareCardView } from '@/components/share/ShareCardView';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { ShareCard } from '@/utils/shareCard';
@@ -50,21 +50,24 @@ export function ShareImageDialog({
       <View style={[styles.backdrop, { backgroundColor: colors.backdrop }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onDismiss} accessibilityLabel="Close share results" />
         <View style={[styles.dialog, { backgroundColor: colors.surface }]}>
-          <Text variant="headlineSmall" accessibilityRole="header" style={styles.title}>{title}</Text>
+          <View style={styles.header}>
+            <Text variant="headlineSmall" accessibilityRole="header" style={styles.title}>{title}</Text>
+            <IconButton icon="close" size={22} onPress={onDismiss} disabled={busy || detailsBusy} accessibilityLabel="Close" />
+          </View>
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
             {card ? <ShareCardView card={card} cardRef={cardRef} /> : null}
             {notice ? <Text variant="bodyMedium" style={styles.notice}>{notice}</Text> : null}
           </ScrollView>
           <View style={styles.actions}>
-            <Button onPress={onDismiss} disabled={busy || detailsBusy}>Close</Button>
-            <Button mode="contained" icon="image" onPress={share} loading={busy} disabled={busy || detailsBusy || !card}>
+            <Button mode="contained" icon="image" onPress={share} loading={busy} disabled={busy || detailsBusy || !card} style={styles.action}>
               {shareLabel}
             </Button>
             {onDetails ? (
-              <Button mode="outlined" icon="file-pdf-box" onPress={onDetails} loading={detailsBusy} disabled={busy || detailsBusy}>
+              <Button mode="outlined" icon="file-pdf-box" onPress={onDetails} loading={detailsBusy} disabled={busy || detailsBusy} style={styles.action}>
                 Share full details (PDF)
               </Button>
             ) : null}
+            <Button onPress={onDismiss} disabled={busy || detailsBusy} style={styles.action}>Close</Button>
           </View>
         </View>
       </View>
@@ -85,11 +88,17 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     maxHeight: '88%',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: spacing.lg,
+    paddingRight: spacing.xs,
+    paddingTop: spacing.sm,
+  },
   title: {
     fontWeight: '700',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
+    flex: 1,
   },
   scroll: {
     flexGrow: 0,
@@ -102,11 +111,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
     gap: spacing.xs,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
+  },
+  action: {
+    width: '100%',
   },
 });

@@ -13,7 +13,7 @@ import { Player } from '@/types/player';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { gameResultName, presentResults, ResultSheet, ResultStanding, ResultWarning, resultWarnings, withinResultsPlayerLimit, gameClock } from '@/utils/results';
+import { gameLabelFor, gameResultName, presentResults, resultFooter, ResultSheet, ResultStanding, ResultWarning, resultWarnings, withinResultsPlayerLimit, gameClock } from '@/utils/results';
 import { ResultWarnings } from '@/components/results/ResultWarnings';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
@@ -61,6 +61,7 @@ export default function ShownResults() {
       const shaped = loaded.map((game) => ({
         id: game.id,
         name: gameResultName(game),
+        label: gameLabelFor(game),
         date: game.date,
         players: game.players,
         scores: game.scores,
@@ -95,6 +96,7 @@ export default function ShownResults() {
       places: sharePlaces(standings),
       gameCount,
       games: sheet.games,
+      footer: resultFooter({ preview: true }),
     });
   }, [standings, createdAt, gameCount, sheet]);
 
@@ -107,10 +109,12 @@ export default function ShownResults() {
       games: sheet.games.map((game) => ({
         id: game.id,
         name: game.name,
+        label: game.label,
         when: gameClock(game.date),
         scores: game.scores,
         rounds: game.rounds,
       })),
+      footer: resultFooter({ preview: true }),
     });
   }, [standings, sheet, createdAt]);
 

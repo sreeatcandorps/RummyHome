@@ -4,12 +4,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Text } from 'react-native-paper';
 import { brand, radius, spacing, tabularNums } from '@/constants/theme';
 import { placeLabel } from '@/utils/results';
+import { legendLines, ShareBreakdown } from '@/utils/resultsLayout';
 import { ShareCard } from '@/utils/shareCard';
 
 const POINTS_W = 64;
 const BADGE_W = 52;
 const GRID_CELL_W = 46;
 const GRID_TOTAL_W = 56;
+const GRID_CELL_DENSE_W = 36;
 
 function pointsStyle(text: string) {
   if (text === '—') return styles.muted;
@@ -50,39 +52,9 @@ export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: Re
       {card.moreCount > 0 ? (
         <Text style={styles.more}>{`and ${card.moreCount} more`}</Text>
       ) : null}
-      {card.breakdown ? (
-        <View testID="share-breakdown">
-          <View style={styles.rule} />
-          <Text style={styles.gridTitle}>By game</Text>
-          <View style={styles.gridRow}>
-            <Text style={[styles.gridHead, styles.gridInitials]}>Player</Text>
-            {card.breakdown.columns.map((column) => (
-              <Text
-                key={column}
-                style={[styles.gridHead, tabularNums, column === 'Total' ? styles.gridTotal : styles.gridCell]}
-              >
-                {column}
-              </Text>
-            ))}
-          </View>
-          {card.breakdown.rows.map((row) => (
-            <View key={row.initials} style={styles.gridRow} testID={`share-breakdown-${row.initials}`}>
-              <Text style={[styles.gridText, styles.gridInitials]} accessibilityLabel={row.name}>{row.initials}</Text>
-              {row.cells.map((cell, index) => (
-                <Text key={`${row.initials}-${card.breakdown?.columns[index]}`} style={[styles.gridText, tabularNums, styles.gridCell, pointsStyle(cell)]}>
-                  {cell}
-                </Text>
-              ))}
-              <Text style={[styles.gridText, styles.gridTotalText, tabularNums, styles.gridTotal, pointsStyle(row.total)]}>{row.total}</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
+      {card.breakdown ? <ShareBreakdownGrid grid={card.breakdown} /> : null}
       {card.breakdownNote ? (
-        <>
-          <View style={styles.rule} />
-          <Text style={styles.more} testID="share-breakdown-note">{card.breakdownNote}</Text>
-        </>
+        <Text style={styles.gridNote} testID="share-breakdown-note">{card.breakdownNote}</Text>
       ) : null}
       {!card.podiumFirst && card.places.length > 0 ? <View style={styles.rule} /> : null}
       {!card.podiumFirst ? card.places.map((place) => (
@@ -90,6 +62,56 @@ export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: Re
           {`${place.label}  ${place.names}  ${place.points}`}
         </Text>
       )) : null}
+      {card.footer ? (
+        <>
+          <View style={styles.rule} />
+          <Text style={styles.footer} testID="share-footer">{card.footer}</Text>
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * Every game on the image. Five or fewer go across (initials down the side);
+ * more go down the side with initials across, so 8 or 20 games still fit.
+ */
+function ShareBreakdownGrid({ grid }: { grid: ShareBreakdown }) {
+  const down = grid.orientation === 'gamesDown';
+  const cellStyle = grid.dense ? styles.gridCellDense : styles.gridCell;
+  const textStyle = grid.dense ? styles.gridTextDense : styles.gridText;
+  return (
+    <View testID="share-breakdown" accessibilityLabel={`By game, ${grid.gameCount} games`}>
+      <View style={styles.rule} />
+      <Text style={styles.gridTitle}>By game</Text>
+      <View style={styles.gridRow}>
+        <Text style={[styles.gridHead, styles.gridHeadCol]}>{down ? 'Game' : 'Player'}</Text>
+        {grid.columns.map((column) => (
+          <Text key={column} style={[styles.gridHead, tabularNums, column === 'Total' ? styles.gridTotal : cellStyle]} numberOfLines={1}>
+            {column}
+          </Text>
+        ))}
+      </View>
+      {grid.rows.map((row) => (
+        <View key={row.head} style={[styles.gridRow, row.total && styles.gridTotalRow]} testID={`share-breakdown-${row.head}`}>
+          <Text style={[textStyle, styles.gridHeadCol, row.total && styles.gridTotalText]}>{row.head}</Text>
+          {row.cells.map((cell, index) => {
+            const isTotal = row.total || (!down && index === row.cells.length - 1);
+            return (
+              <Text
+                key={`${row.head}-${grid.columns[index]}`}
+                style={[textStyle, tabularNums, !down && index === row.cells.length - 1 ? styles.gridTotal : cellStyle, isTotal && styles.gridTotalText, pointsStyle(cell)]}
+                numberOfLines={1}
+              >
+                {cell}
+              </Text>
+            );
+          })}
+        </View>
+      ))}
+      {legendLines(grid.legend, 56).map((line) => (
+        <Text key={line} style={styles.gridLegend}>{line}</Text>
+      ))}
     </View>
   );
 }
@@ -194,13 +216,45 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  gridInitials: {
+  gridHeadCol: {
     flex: 1,
-    minWidth: 44,
+    minWidth: 40,
   },
   gridCell: {
     width: GRID_CELL_W,
     textAlign: 'right',
+  },
+  gridCellDense: {
+    width: GRID_CELL_DENSE_W,
+    textAlign: 'right',
+  },
+  gridTextDense: {
+    color: brand.cream,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  gridTotalRow: {
+    borderTopWidth: 1,
+    borderTopColor: brand.gold,
+    marginTop: 2,
+    paddingTop: 2,
+  },
+  gridLegend: {
+    color: brand.cream,
+    opacity: 0.75,
+    fontSize: 10,
+    marginTop: 4,
+  },
+  gridNote: {
+    color: brand.gold,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  footer: {
+    color: brand.gold,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   gridTotal: {
     width: GRID_TOTAL_W,
