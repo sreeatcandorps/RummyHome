@@ -122,6 +122,126 @@ const legacyGameFromServer = (
   };
 };
 
+/** PostgREST's "function does not exist" code: the migration is not applied yet. */
+const MISSING_FUNCTION = 'PGRST202';
+
+/**
+ * Writes one round (Add or Edit) to Supabase.
+ *
+ * Preferred path: the atomic `save_round` RPC (migration 014). Fallback, used
+ * until that migration is applied: the original request sequence, made
+ * self-healing so an interrupted save can no longer leave a blank round:
+ *  - a live round that already has scores is a duplicate submit → only advance the game;
+ *  - a live round with no scores (an earlier interrupted save) is reused;
+ *  - on Edit, if the new scores fail to land, the old round is put back.
+ */
+async function writeRound(input: AddRoundInput, replace: boolean): Promise<void> {
+  const payload = input.scores
+    .filter((score) => score.scoreType !== 'expense' && score.playerId)
+    .map((score) => ({ playerId: score.playerId, scoreType: score.scoreType, value: score.value }));
+
+  const { error: rpcError } = await supabase.rpc('save_round', {
+    p_game_id: input.gameId,
+    p_round_number: input.roundNumber,
+    p_scores: payload,
+    p_replace: replace,
+  });
+  if (!rpcError) return;
+  if (rpcError.code !== MISSING_FUNCTION) throw rpcError;
+
+  const { data: live, error: liveError } = await supabase
+    .from('rounds')
+    .select('id, round_number, scores(count)')
+    .eq('game_id', input.gameId)
+    .eq('round_number', input.roundNumber)
+    .is('undone_at', null)
+    .maybeSingle();
+  if (liveError) throw liveError;
+  const liveScoreCount = (live?.scores as { count: number }[] | undefined)?.[0]?.count ?? 0;
+
+  const retire = async (roundId: string, reason: string) => {
+    let result: { error: { code?: string } | null } = { error: null };
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      result = await supabase
+        .from('rounds')
+        .update({
+          undone_at: new Date().toISOString(),
+          undone_by: input.createdBy,
+          undo_reason: reason,
+          round_number: retiredRoundNumber(input.roundNumber, attempt),
+        })
+        .eq('id', roundId);
+      if (!result.error || result.error.code !== '23505') break;
+    }
+    if (result.error) throw result.error;
+  };
+
+  const advance = async () => {
+    const { error } = await supabase
+      .from('games')
+      .update({ current_round: input.roundNumber + 1 })
+      .eq('id', input.gameId)
+      .lte('current_round', input.roundNumber);
+    if (error) throw error;
+  };
+
+  let reusableRoundId: string | null = null;
+  if (live) {
+    if (replace) {
+      await retire(live.id, `edited round ${input.roundNumber}`);
+    } else if (liveScoreCount > 0) {
+      await advance();
+      return;
+    } else {
+      reusableRoundId = live.id;
+    }
+  }
+
+  const insertRound = async (): Promise<string> => {
+    const players = (await gamesService.getGame(input.gameId))?.players ?? [];
+    const { data: round, error: roundError } = await supabase
+      .from('rounds')
+      .insert({
+        game_id: input.gameId,
+        round_number: input.roundNumber,
+        dealer_profile_id: calculateDealerId(players, input.roundNumber),
+        created_by: input.createdBy,
+      })
+      .select('id')
+      .single();
+    if (roundError) throw roundError;
+    return round.id as string;
+  };
+  const targetRoundId = reusableRoundId ?? (await insertRound());
+
+  const { error: scoresError } = await supabase.from('scores').insert(
+    payload.map((score) => ({
+      round_id: targetRoundId,
+      game_id: input.gameId,
+      profile_id: score.playerId,
+      score_type: score.scoreType,
+      value: score.value,
+    })),
+  );
+  if (scoresError) {
+    if (replace && live) {
+      // Best effort: park the empty new row and bring the old scores back.
+      try {
+        await retire(targetRoundId, `edit of round ${input.roundNumber} failed`);
+        await supabase
+          .from('rounds')
+          .update({ undone_at: null, undone_by: null, undo_reason: null, round_number: input.roundNumber })
+          .eq('id', live.id);
+      } catch {
+        // The next Edit round reuses or retires whatever is left.
+      }
+    }
+    throw scoresError;
+  }
+
+  if (!replace) await advance();
+}
+
 export const gamesService = {
   async createGame(input: CreateGameInput): Promise<Game> {
     const seated = input.playerIds.filter((id) => id && id !== LEGACY_COLUMN_ID);
@@ -465,41 +585,7 @@ export const gamesService = {
       return updatedGame;
     }
 
-    const game = await this.getGame(input.gameId);
-    if (!game) throw new Error('Game not found.');
-
-    const dealerId = calculateDealerId(game.players, input.roundNumber);
-    const { data: round, error: roundError } = await supabase
-      .from('rounds')
-      .insert({
-        game_id: input.gameId,
-        round_number: input.roundNumber,
-        dealer_profile_id: dealerId,
-        created_by: input.createdBy,
-      })
-      .select('*')
-      .single();
-
-    if (roundError) throw roundError;
-
-    const { error: scoresError } = await supabase.from('scores').insert(
-      input.scores.map((score) => ({
-        round_id: round.id,
-        game_id: input.gameId,
-        profile_id: score.playerId,
-        score_type: score.scoreType,
-        value: score.value,
-      })),
-    );
-
-    if (scoresError) throw scoresError;
-
-    const { error: gameError } = await supabase
-      .from('games')
-      .update({ current_round: input.roundNumber + 1 })
-      .eq('id', input.gameId);
-
-    if (gameError) throw gameError;
+    await writeRound(input, false);
     return this.getGame(input.gameId);
   },
 
@@ -535,55 +621,7 @@ export const gamesService = {
       return updatedGame;
     }
 
-    const { data: old, error: oldError } = await supabase
-      .from('rounds')
-      .select('id, round_number')
-      .eq('game_id', input.gameId)
-      .eq('round_number', input.roundNumber)
-      .is('undone_at', null)
-      .maybeSingle();
-    if (oldError) throw oldError;
-
-    if (old) {
-      let retired: { error: { code?: string } | null } = { error: null };
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        retired = await supabase
-          .from('rounds')
-          .update({
-            undone_at: new Date().toISOString(),
-            undone_by: input.createdBy,
-            undo_reason: `edited round ${input.roundNumber}`,
-            round_number: retiredRoundNumber(input.roundNumber, attempt),
-          })
-          .eq('id', old.id);
-        if (!retired.error || retired.error.code !== '23505') break;
-      }
-      if (retired.error) throw retired.error;
-    }
-
-    const dealerId = calculateDealerId((await this.getGame(input.gameId))?.players ?? [], input.roundNumber);
-    const { data: round, error: roundError } = await supabase
-      .from('rounds')
-      .insert({
-        game_id: input.gameId,
-        round_number: input.roundNumber,
-        dealer_profile_id: dealerId,
-        created_by: input.createdBy,
-      })
-      .select('*')
-      .single();
-    if (roundError) throw roundError;
-
-    const { error: scoresError } = await supabase.from('scores').insert(
-      input.scores.map((score) => ({
-        round_id: round.id,
-        game_id: input.gameId,
-        profile_id: score.playerId,
-        score_type: score.scoreType,
-        value: score.value,
-      })),
-    );
-    if (scoresError) throw scoresError;
+    await writeRound(input, true);
     return this.getGame(input.gameId);
   },
 

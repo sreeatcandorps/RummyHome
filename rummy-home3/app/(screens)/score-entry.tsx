@@ -31,6 +31,7 @@ import {
 } from '../../utils/roundEntry';
 import { MAX_CONTENT_WIDTH, radius, spacing, tabularNums, useAppTheme } from '../../constants/theme';
 import { useLayout } from '../../hooks/useLayout';
+import { useMenuThenShare } from '../../hooks/useMenuThenShare';
 import { HELP } from '../../constants/help';
 import { entryFromRound } from '../../utils/editRound';
 import { HelpText } from '../../components/ui/HelpText';
@@ -72,7 +73,7 @@ export default function ScoreEntryScreen() {
   const [scorerName, setScorerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
@@ -208,9 +209,8 @@ export default function ScoreEntryScreen() {
     }
   };
 
-  const shareLive = async () => {
+  const shareLive = () => afterMenu(async () => {
     if (!game) return;
-    setMenuOpen(false);
     try {
       const token = game.viewToken ?? await gamesService.ensureViewToken(game.id);
       const result = await shareLiveScorecard(scorecardUrl(token, game.gameNumber));
@@ -218,7 +218,7 @@ export default function ScoreEntryScreen() {
     } catch (error) {
       setNotice({ title: 'Could not share', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
     }
-  };
+  });
 
   const closeScreen = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
@@ -275,6 +275,7 @@ export default function ScoreEntryScreen() {
         </View>
       ) : null}
       <Menu
+        key={menuKey}
         visible={menuOpen}
         onDismiss={() => setMenuOpen(false)}
         anchor={
@@ -290,7 +291,7 @@ export default function ScoreEntryScreen() {
         <Menu.Item leadingIcon="share-variant" title="Share live scorecard" onPress={shareLive} />
         <Menu.Item
           leadingIcon="eraser-variant"
-          title="Clear this round"
+          title={editRound ? 'Undo my changes' : 'Clear this round'}
           disabled={!hasAnything}
           onPress={() => { setMenuOpen(false); setEntry(editRound && game ? entryFromRound(game, editRound) : initialRoundEntryState()); }}
         />

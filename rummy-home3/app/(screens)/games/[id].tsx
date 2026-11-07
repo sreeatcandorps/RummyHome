@@ -356,6 +356,7 @@ export default function GameScreen() {
       nextDealerId={nextDealerId}
       leaderIds={leaderIds}
       compact={isShort}
+      fullCount={game.settings?.maxCount}
       emptyMessage={game.isComplete ? 'This game was closed with no rounds.' : 'No rounds yet. Tap Add round to score the first hand.'}
     />
   );

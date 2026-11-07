@@ -72,6 +72,8 @@ export function draftValue(draft: Draft): number | undefined {
   if (draft.digits === '') return undefined;
   const magnitude = parseInt(draft.digits, 10);
   if (Number.isNaN(magnitude)) return undefined;
+  // A typed 0 is a real score (the player neither won nor lost), never -0.
+  if (magnitude === 0) return 0;
   return draft.negative ? -magnitude : magnitude;
 }
 
@@ -101,7 +103,8 @@ export function balance(state: RoundEntryState): number {
  */
 export function canSaveRound(state: RoundEntryState): boolean {
   const effective = commitPending(state);
-  return balance(effective) === 0 && Object.keys(effective.entries).length > 0;
+  const someoneLost = Object.values(effective.entries).some((entry) => entry.value < 0);
+  return balance(effective) === 0 && someoneLost;
 }
 
 /** The round as the scorecard stores it. */
@@ -242,8 +245,9 @@ export function pressDigit(state: RoundEntryState, digit: string): RoundEntrySta
   if (!/^\d$/.test(digit)) return state;
 
   const base = state.draft.typed ? state.draft.digits : '';
-  if (base === '' && digit === '0') {
-    return { ...state, draft: { ...state.draft, digits: '', typed: true, edited: true } };
+  // "0" is a real entry (an explicit zero). A digit after a lone 0 replaces it: 0 → 5, not 05.
+  if (base === '0') {
+    return { ...state, draft: { ...state.draft, digits: digit, typed: true, edited: true }, lastSavedIds: [] };
   }
   if (base.length >= MAX_DIGITS) return state;
 
