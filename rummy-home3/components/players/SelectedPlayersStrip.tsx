@@ -29,17 +29,16 @@ export function SelectedPlayersStrip({ picks, meId, onRemove, title, emptyText }
       ) : null}
       <View style={styles.chips}>
         {picks.map((pick) => {
-          const isMe = pick.id === meId;
           return (
             <Pressable
               key={pick.id}
               onPress={() => onRemove(pick.id)}
               accessibilityRole="button"
               hitSlop={6}
-              accessibilityLabel={`Remove ${pick.name}${isMe ? ' (you)' : ''}`}
-              style={[styles.chip, { backgroundColor: colors.primaryContainer, borderColor: isMe ? colors.primary : 'transparent' }]}
+              accessibilityLabel={`Remove ${pick.name}`}
+              style={[styles.chip, { backgroundColor: colors.primaryContainer, borderColor: 'transparent' }]}
             >
-              <BoldName name={pick.name} suffix={isMe ? ' (you)' : undefined} variant="labelLarge" numberOfLines={1} color={colors.onPrimaryContainer} style={styles.chipName} />
+              <BoldName name={pick.name} variant="labelLarge" numberOfLines={1} color={colors.onPrimaryContainer} style={styles.chipName} />
               <Text style={[styles.chipX, { color: colors.onPrimaryContainer }]}>×</Text>
             </Pressable>
           );

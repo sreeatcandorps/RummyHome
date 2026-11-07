@@ -145,11 +145,12 @@ export default function NewGame() {
     : null), [me]);
 
   const grid = useMemo(() => {
+    // The organizer is one more candidate, placed by the same sort as everyone else.
+    const everyone = meCandidate && !candidates.some((c) => c.id === meCandidate.id) ? [...candidates, meCandidate] : candidates;
     const pool = query.trim()
-      ? candidates.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query))
-      : candidates;
-    const meMatches = !query.trim() || (meCandidate ? matchesMyPlayer({ name: meCandidate.name, playerCode: meCandidate.playerCode }, query) : false);
-    return newGameGrid(orderCandidates(pool, sort), selectedIds, meMatches ? meCandidate : null, PICKER_PAGE);
+      ? everyone.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query))
+      : everyone;
+    return newGameGrid(orderCandidates(pool, sort), selectedIds, PICKER_PAGE);
   }, [candidates, selectedIds, meCandidate, query, sort]);
 
   const pick = (c: Pick) => {
@@ -228,13 +229,12 @@ export default function NewGame() {
 
         <View style={styles.grid}>
           {grid.map((c) => {
-            const isMe = c.id === me?.id;
             const status = registrationLabel(c.status);
             return (
               <Pressable key={c.id} onPress={() => pick(c)} disabled={atCap} accessibilityRole="checkbox" accessibilityState={{ checked: false }}
-                accessibilityLabel={`Add ${c.name}${isMe ? ' (you)' : ''}`}
-                style={[styles.cell, { borderColor: isMe ? colors.primary : colors.outlineVariant, backgroundColor: colors.surface, opacity: atCap ? 0.5 : 1 }]}>
-                <BoldName name={c.name} suffix={isMe ? ' (you)' : undefined} variant="titleSmall" numberOfLines={2} style={styles.cellName} />
+                accessibilityLabel={`Add ${c.name}`}
+                style={[styles.cell, { borderColor: colors.outlineVariant, backgroundColor: colors.surface, opacity: atCap ? 0.5 : 1 }]}>
+                <BoldName name={c.name} variant="titleSmall" numberOfLines={2} style={styles.cellName} />
                 <View style={styles.cellMeta}>
                   <Tag label={status} tone={REGISTRATION_TONE[status]} small wrap />
                   {playerIdBadge(c) ? <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{playerIdBadge(c)}</Text> : null}

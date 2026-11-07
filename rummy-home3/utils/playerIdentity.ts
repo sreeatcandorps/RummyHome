@@ -196,11 +196,17 @@ export function seatedOrder(meId: string, selectedIds: string[]): string[] {
  * New game list: the creator is offered first but never pre-selected, because
  * they may only be scoring. Then everyone else not yet picked, one page at a time.
  */
-export function newGameGrid<T extends { id: string }>(sorted: T[], selectedIds: string[], me: T | null | undefined, size = PICKER_PAGE): T[] {
+/** Everyone not yet seated, in the given order. The organizer is not pushed to the front. */
+export function newGameGrid<T extends { id: string }>(sorted: T[], selectedIds: string[], size = PICKER_PAGE): T[] {
   const taken = new Set(selectedIds);
-  const others = sorted.filter((player) => !taken.has(player.id) && player.id !== me?.id);
-  const list = me && !taken.has(me.id) ? [me, ...others] : others;
-  return list.slice(0, size);
+  const seen = new Set<string>();
+  return sorted
+    .filter((player) => {
+      if (taken.has(player.id) || seen.has(player.id)) return false;
+      seen.add(player.id);
+      return true;
+    })
+    .slice(0, size);
 }
 
 export type CandidateSort = 'frequent' | 'name';

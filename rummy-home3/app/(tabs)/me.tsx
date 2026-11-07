@@ -18,7 +18,6 @@ import { SectionCard } from '@/components/ui/SectionCard';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
-import { SettingsPriority } from '@/components/ui/SettingsPriority';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
@@ -241,6 +240,11 @@ export default function MeScreen() {
         </View>
       </View>
 
+      <Button mode="outlined" icon="lock-reset" onPress={changePasscode} contentStyle={styles.action} accessibilityLabel="Change passcode">
+        Change passcode
+      </Button>
+      {notice ? <Text variant="bodyMedium">{notice}</Text> : null}
+
       <View style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
         <Icon source={darkMode ? 'weather-night' : 'white-balance-sunny'} size={20} color={colors.onSurfaceVariant} />
         <Text variant="titleMedium" style={styles.flex}>Dark mode</Text>
@@ -311,13 +315,8 @@ export default function MeScreen() {
             <Icon source="chevron-right" size={18} color={colors.onSecondaryContainer} />
           </View>
         </TouchableRipple>
-        <SettingsPriority highlight="User settings" />
       </SectionCard>
 
-      <Button mode="outlined" icon="lock-reset" onPress={changePasscode} contentStyle={styles.action} accessibilityLabel="Change passcode">
-        Change passcode
-      </Button>
-      {notice ? <Text variant="bodyMedium">{notice}</Text> : null}
       <ChangePasscodeDialog
         visible={passcodeOpen}
         email={player?.email ?? ''}

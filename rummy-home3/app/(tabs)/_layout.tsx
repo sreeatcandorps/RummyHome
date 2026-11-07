@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { Tabs, router, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, TouchableRipple } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { HELP } from '@/constants/help';
@@ -54,43 +54,35 @@ function useMyName() {
   return name;
 }
 
-/** Bottom-tab avatar: the exact header SK chip (same size, weight, green); focus adds a ring instead of fading it. */
-const HEADER_AVATAR = 36;
+const TAB_AVATAR = 30;
 
+/**
+ * Bottom-tab avatar: the account chip lives in the tab bar only (no duplicate in the header
+ * of tab pages). Sized to the other tab icons; active is the full-strength chip, inactive is
+ * softened, with no ring.
+ */
 function ProfileTabIcon({ focused }: { focused: boolean }) {
   const theme = useAppTheme();
   const name = useMyName();
   return (
-    <View style={[styles.tabAvatar, { borderColor: focused ? theme.colors.secondary : 'transparent' }]}>
-      <SeatAvatar name={name} size={HEADER_AVATAR} color={theme.colors.primary} />
+    <View style={[styles.tabAvatar, { opacity: focused ? 1 : 0.6 }]}>
+      <SeatAvatar name={name} size={TAB_AVATAR} color={theme.colors.primary} />
     </View>
   );
 }
 
 function HeaderTools() {
   const path = usePathname();
-  const theme = useAppTheme();
-  const name = useMyName();
   const text = path.includes('/players')
     ? HELP.players
     : path.includes('/me')
       ? HELP.me
       : HELP.home;
 
+  // Tab pages already carry the account chip in the bottom bar; the header keeps only Help.
   return (
     <View style={styles.headerRight}>
       <HelpButton text={text} />
-      {path.includes('/players') || path.includes('/me') ? null : (
-        <TouchableRipple
-          onPress={() => router.push('/(tabs)/me')}
-          borderless
-          style={styles.avatarButton}
-          accessibilityRole="button"
-          accessibilityLabel="Open Me"
-        >
-          <SeatAvatar name={name} size={HEADER_AVATAR} color={theme.colors.primary} />
-        </TouchableRipple>
-      )}
     </View>
   );
 }
@@ -174,7 +166,7 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabAvatar: { alignItems: 'center', justifyContent: 'center', marginTop: -2, borderWidth: 2, borderRadius: 999, padding: 2 },
+  tabAvatar: { alignItems: 'center', justifyContent: 'center' },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -200,13 +192,5 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  avatarButton: {
-    marginRight: spacing.sm,
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

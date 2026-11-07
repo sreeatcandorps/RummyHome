@@ -42,13 +42,13 @@ test('build 3: initials cannot end in a digit; digits are kept for H2 and H3', (
   assert.match(validateInitials('H', '  ')!, /first and a last initial/i);
 });
 
-test('build 3: New game offers the creator first but never seats them automatically', () => {
+test('build 3: New game lists the organizer like anyone else and never seats them automatically', () => {
   const me = { id: 'me', name: 'Sree' };
   const others = [{ id: 'a', name: 'Ada' }, { id: 'b', name: 'Bea' }];
-  assert.deepEqual(newGameGrid(others, [], me).map((p) => p.id), ['me', 'a', 'b']);
-  assert.deepEqual(newGameGrid(others, ['me'], me).map((p) => p.id), ['a', 'b']);
-  assert.deepEqual(newGameGrid(others, ['a'], me).map((p) => p.id), ['me', 'b']);
-  assert.deepEqual(newGameGrid(others, [], null).map((p) => p.id), ['a', 'b']);
+  assert.deepEqual(newGameGrid([...others, me], []).map((p) => p.id), ['a', 'b', 'me'], 'organizer is not forced first');
+  assert.deepEqual(newGameGrid([...others, me], ['me']).map((p) => p.id), ['a', 'b']);
+  assert.deepEqual(newGameGrid([...others, me], ['a']).map((p) => p.id), ['b', 'me']);
+  assert.deepEqual(newGameGrid(others, []).map((p) => p.id), ['a', 'b']);
   assert.deepEqual(newGameSeats(['a', 'b']), ['a', 'b'], 'the creator is not forced into the seats');
   assert.deepEqual(newGameSeats(['a', 'me', 'a']), ['a', 'me']);
 });
