@@ -223,6 +223,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Results: Completed / Closed / Active chips are multi-select; a game keeps its own number everywhere (`ResultSheetGame.label` is stored at declare time; older results show their code); every selected game is on the share image (games down the side past five) with a "Result ID · XXXXXX" footer on image and PDF; previews are marked "Preview · not saved" and never write. The web canvas now draws the same card as the native view (grid, crowns, legend, footer). No new dependencies.
 - Verified in a browser (Expo web + local storage fixtures, puppeteer); Android/iOS not run from the build box — the native share-sheet crash fix (menu closes before the share Activity opens, remounts after) and `react-native-view-shot` capture of the new sheets need a phone pass.
 
+### 2026-11-09 — Migrations 013–015 live; app-only passcode recovery (issue #8)
+- Sree applied `013_results_privacy.sql`, `014_save_round_atomic.sql` and `015_link_seat_to_player.sql` to the production project by hand (all six functions verified). Auth is set to 6-digit email OTPs with a 15-minute expiry, minimum password length 6, and custom SMTP through Resend is live; recovery emails arrive with the code. The Supabase MCP connector stayed unauthenticated, so none of this was done from the agent.
+- Recovery is now fully app-only: Forgot passcode has one visible numeric OTP box (number pad, OTP autofill, paste, clear, autofocus) and the recovery template carries only `{{ .Token }}` with no browser link, so the GitHub Pages redirect URLs are no longer needed. The passcode cells put the real input over the cells (the hidden opacity-0 input that needed a second tap on Android is gone). OTPs are exactly six digits on both the reset and change screens. `docs/CHECKLIST-NOV9.md` holds the screenshot-backed status of every P1/P2 item; APK not built yet.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -233,13 +237,13 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 
 | Area | Status |
 | --- | --- |
-| Auth (email/passcode, session refresh) | Done enough for testing |
+| Auth (email/passcode, session refresh, app-only OTP recovery) | Done in the app; OTP email live via Resend since Nov 9. Phone pass pending |
 | Profiles / Player ID + share | Done |
 | Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
 | New game (points, my players) | Done. Creator is not pre-seated; big animated Playing · N; Add players (full screen) / Add player from database. Stored type is still the points game |
 | Game table + score entry | Done, portrait + landscape. Add round: grid, presets, keypad, Balance gate, explicit 0, big losses in red. Complete game, Final scores, and Players are their own pages. Apply `014_save_round_atomic.sql` for the one-transaction save |
 | Home | Done. Results → every live game → Recent (Completed/Closed, Last 10 days default / All). History screen redirects home |
-| Results | Done in the app. Status chips, totals, players-by-game table, places, a share image with every game and the result id, and a full-details PDF. Apply `008_results.sql` (declare) and `013_results_privacy.sql` (who can read) on the live database |
+| Results | Done in the app. Status chips, totals, players-by-game table, places, a share image with every game and the result id, and a full-details PDF. `008_results.sql` (declare) and `013_results_privacy.sql` (who can read) are applied on the live database (Nov 9) |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; dark mode is on Profile and saved on the phone |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
