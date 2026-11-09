@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, HelperText, Text, TextInput } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
+import { OtpField } from '@/components/ui/OtpField';
 import { PasscodeField } from '@/components/ui/PasscodeField';
 import { AuthShell } from '@/components/ui/AuthShell';
 import { HELP } from '@/constants/help';
@@ -9,7 +10,7 @@ import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/them
 import { isSupabaseConfigured } from '@/services/supabase';
 import { passcodeClient } from '@/services/auth';
 import { passcodeRecovery } from '@/utils/authFlow';
-import { digitsOnly, EMAIL_CODE_MAX, RESEND_COOLDOWN_S } from '@/utils/passcode';
+import { RESEND_COOLDOWN_S } from '@/utils/passcode';
 import { completePasscodeReset, requestPasscodeCode } from '@/utils/passcodeFlow';
 import 'react-native-url-polyfill/auto';
 
@@ -18,8 +19,8 @@ type Step = 'email' | 'code';
 export const PASSCODE_UPDATED_NOTICE = 'Passcode updated. Sign in with your new 6-digit passcode.';
 
 /**
- * Forgot passcode, all inside the app: email → 6-digit code from the email + new passcode →
- * back to Sign in with the new code. No browser page.
+ * Forgot passcode, all inside the app: email → 6-digit OTP from the email + new passcode →
+ * back to Sign in with the new passcode. No browser page, no link needed.
  */
 export default function ForgotPasscodeScreen() {
   const theme = useAppTheme();
@@ -64,7 +65,7 @@ export default function ForgotPasscodeScreen() {
       setCode('');
       setStep('code');
       setCooldown(RESEND_COOLDOWN_S);
-      setInfo(`If ${email.trim()} has an account, a 6-digit code is on its way. It works once and expires soon.`);
+      setInfo(`If ${email.trim()} has an account, a 6-digit OTP is on its way. It works once and expires in 15 minutes.`);
     } finally {
       setLoading(false);
     }
@@ -107,8 +108,8 @@ export default function ForgotPasscodeScreen() {
     <AuthShell
       title="Forgot passcode"
       subtitle={step === 'email'
-        ? 'We’ll email you a 6-digit code. Type it here, then choose a new passcode.'
-        : `Enter the code we emailed to ${email.trim()}, then your new passcode.`}
+        ? 'We’ll email you a 6-digit OTP. Type it here, then choose a new passcode. No web page needed.'
+        : `Type the 6-digit OTP we emailed to ${email.trim()}, then choose your new passcode.`}
       help={HELP.reset}
       icon="lock-reset"
       footer={
@@ -170,21 +171,11 @@ export default function ForgotPasscodeScreen() {
         </>
       ) : (
         <>
-          <TextInput
-            label="Code from the email"
-            value={code}
-            onChangeText={(text) => setCode(digitsOnly(text, EMAIL_CODE_MAX))}
-            mode="outlined"
-            keyboardType="number-pad"
-            maxLength={EMAIL_CODE_MAX}
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
-            disabled={loading || verified.current}
-            left={<TextInput.Icon icon="email-check-outline" />}
-            accessibilityLabel="Code from the email"
-            style={styles.codeInput}
-          />
+          <Text variant="titleSmall" style={styles.fieldTitle}>Step 1 · OTP from the email</Text>
+          <OtpField value={code} onChangeText={setCode} disabled={loading || verified.current} autoFocus />
           {info ? <HelperText type="info" visible>{info}</HelperText> : null}
+
+          <Text variant="titleSmall" style={styles.fieldTitle}>Step 2 · Your new passcode</Text>
 
           <PasscodeField value={next} onChangeText={setNext} disabled={loading} label="New 6-digit passcode" />
           <PasscodeField value={confirm} onChangeText={setConfirm} disabled={loading} label="Type it again" />
@@ -212,7 +203,7 @@ export default function ForgotPasscodeScreen() {
               contentStyle={styles.secondaryContent}
               accessibilityLabel="Send a new code"
             >
-              {cooldown > 0 ? `Send a new code (${cooldown}s)` : 'Send a new code'}
+              {cooldown > 0 ? `Send a new OTP (${cooldown}s)` : 'Send a new OTP'}
             </Button>
             <Button mode="text" onPress={changeEmail} disabled={loading} contentStyle={styles.secondaryContent}>
               Different email
@@ -233,5 +224,5 @@ const styles = StyleSheet.create({
   footerActions: { gap: spacing.sm },
   footerButton: { width: '100%' },
   row: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap' },
-  codeInput: { fontSize: 22, letterSpacing: 4 },
+  fieldTitle: { fontWeight: '700', marginTop: spacing.sm },
 });

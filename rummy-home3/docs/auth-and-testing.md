@@ -155,7 +155,7 @@ Nothing is changed until the code is accepted *and* both new entries match; wron
 
 ### Supabase dashboard settings this depends on (not changed by code)
 
-1. **Authentication → Email Templates → Reset Password**: the body must include `{{ .Token }}`. Default templates only have `{{ .ConfirmationURL }}`, so the person never sees a code. Paste `supabase/templates/recovery-passcode.html`. Subject: "Your EZ Score: Rummy passcode code".
+1. **Authentication → Email Templates → Reset Password**: the body must include `{{ .Token }}`. Default templates only have `{{ .ConfirmationURL }}`, so the person never sees a code. Paste `supabase/templates/recovery-passcode.html` (app-only: OTP, no browser link). Subject: "Your EZ Score: Rummy OTP". Set Email OTP length 6 and expiry 900 s to match the app copy ("expires in 15 minutes").
 2. **Authentication → Providers → Email**: minimum password length 6; **Password requirements** must be "No required characters" (letters-required settings reject a numeric passcode; the app shows "The server is set to require letters").
 3. **Email OTP expiration**: default 3600 s is fine; the app copy says "expires soon".
 4. **SMTP sender** (for the branded From name "EZ Score: Rummy") is a P2 item; Supabase's built-in sender is rate limited to a few emails an hour and shows "Supabase Auth".

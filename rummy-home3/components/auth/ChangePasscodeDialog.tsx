@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
-import { Button, Dialog, HelperText, Portal, Text, TextInput } from 'react-native-paper';
+import { Button, Dialog, HelperText, Portal, Text } from 'react-native-paper';
+import { OtpField } from '@/components/ui/OtpField';
 import { PasscodeField } from '@/components/ui/PasscodeField';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { passcodeClient } from '@/services/auth';
 import { passcodeRecovery } from '@/utils/authFlow';
-import { digitsOnly, EMAIL_CODE_MAX } from '@/utils/passcode';
 import { changePasscode } from '@/utils/passcodeFlow';
 
 type Props = {
@@ -65,18 +65,8 @@ export function ChangePasscodeDialog({ visible, email, onDismiss, onChanged }: P
           <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
             {needNonce ? (
               <>
-                <Text variant="bodyMedium">We emailed a code to {email}. Enter it to finish.</Text>
-                <TextInput
-                  label="Code from the email"
-                  value={nonce}
-                  onChangeText={(text) => setNonce(digitsOnly(text, EMAIL_CODE_MAX))}
-                  mode="outlined"
-                  keyboardType="number-pad"
-                  autoComplete="one-time-code"
-                  textContentType="oneTimeCode"
-                  disabled={busy}
-                  accessibilityLabel="Code from the email"
-                />
+                <Text variant="bodyMedium">We emailed a 6-digit OTP to {email}. Type it to finish.</Text>
+                <OtpField value={nonce} onChangeText={setNonce} disabled={busy} autoFocus />
               </>
             ) : (
               <>

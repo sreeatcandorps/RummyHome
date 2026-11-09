@@ -9,7 +9,7 @@ const bullets = (...lines: string[]) => lines.map((line) => `• ${line}`).join(
 export const HELP = {
   signIn: bullets(
     'Your passcode is 6 digits. Numbers only.',
-    'Forgot passcode emails you a 6-digit code to type back here, then you choose a new passcode.',
+    'Forgot passcode emails you a 6-digit code (OTP) to type back here, then you choose a new passcode.',
   ),
   createAccount: bullets(
     'Email is how you sign in. It cannot be changed later.',
@@ -19,8 +19,8 @@ export const HELP = {
     'A player ID is never used to sign in.',
   ),
   reset: bullets(
-    'We email a 6-digit code, never a text. Type it here; no web page.',
-    'The code works once and expires. Ask for a new one if it is refused.',
+    'We email a 6-digit code (OTP), never a text. Type it in the OTP box; no web page.',
+    'The OTP works once and expires in 15 minutes. Tap Send a new OTP if it is refused.',
     'Your old passcode keeps working until the new one is saved.',
   ),
   home: [

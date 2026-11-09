@@ -99,6 +99,10 @@ export async function changePasscode(client: PasscodeAuthClient, input: ChangeIn
   if (currentProblem) return { ok: false, message: currentProblem, field: 'current' };
   const nextProblem = newPasscodeProblem(input.next, input.confirm, input.current);
   if (nextProblem) return { ok: false, message: nextProblem, field: 'passcode' };
+  if (input.nonce !== undefined) {
+    const nonceProblem = emailCodeProblem(input.nonce);
+    if (nonceProblem) return { ok: false, message: nonceProblem, field: 'code', reauthentication: true };
+  }
 
   if (!input.nonce) {
     const check = await client.checkCurrent(input.email.trim().toLowerCase(), input.current);

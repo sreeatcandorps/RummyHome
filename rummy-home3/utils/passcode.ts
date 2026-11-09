@@ -3,9 +3,9 @@
  * Supabase stores it as the account password, but no user-facing text may say "password".
  */
 export const PASSCODE_LENGTH = 6;
-/** Supabase email codes are 6 digits by default and can be configured up to 10. */
-export const EMAIL_CODE_MIN = 6;
-export const EMAIL_CODE_MAX = 10;
+/** The emailed one-time code (OTP). The project is set to 6 digits; the app accepts exactly that. */
+export const EMAIL_CODE_LENGTH = 6;
+export const OTP_PATTERN = /^\d{6}$/;
 /** Seconds before "Send a new code" is offered again. */
 export const RESEND_COOLDOWN_S = 30;
 
@@ -34,11 +34,11 @@ export function newPasscodeProblem(next: string, confirm: string, current?: stri
   return null;
 }
 
-/** The code typed back from the email. */
+/** The OTP typed back from the email: exactly six digits. */
 export function emailCodeProblem(code: string): string | null {
-  if (!code) return 'Enter the code from the email.';
-  if (/\D/.test(code)) return 'The code is numbers only.';
-  if (code.length < EMAIL_CODE_MIN || code.length > EMAIL_CODE_MAX) return `The code is ${EMAIL_CODE_MIN} digits.`;
+  if (!code) return 'Enter the OTP from the email.';
+  if (/\D/.test(code)) return 'The OTP is numbers only.';
+  if (!OTP_PATTERN.test(code)) return `The OTP is ${EMAIL_CODE_LENGTH} digits.`;
   return null;
 }
 

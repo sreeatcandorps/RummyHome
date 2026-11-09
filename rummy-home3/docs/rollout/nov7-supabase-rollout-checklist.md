@@ -74,7 +74,7 @@ The app flow: `resetPasswordForEmail(email)` → user types the emailed 6-digit 
 | # | Setting | Required value | Why | Management API key (PATCH `/v1/projects/gngcrplcldfiubvhcdin/config/auth`) |
 |---|---|---|---|---|
 | A | Authentication → Email Templates → **Reset Password** body | contents of `auth-template/recovery-passcode.html` (keeps `{{ .Token }}` **and** `{{ .ConfirmationURL }}`) | `{{ .Token }}` is the 6-digit OTP the app verifies; the link stays as a fallback for build-4 phones | `mailer_templates_recovery_content` |
-| B | Reset Password **subject** | e.g. `Your EZ Score: Rummy passcode code` | | `mailer_subjects_recovery` |
+| B | Reset Password **subject** | `Your EZ Score: Rummy OTP` | | `mailer_subjects_recovery` |
 | C | OTP length | **6** (Supabase default) | the app's code field is 6 digits | `mailer_otp_length` |
 | D | OTP expiry | ≤ 3600 s (default 3600; 600–900 recommended) | shorter window for a 6-digit code | `mailer_otp_exp` |
 | E | Password policy: minimum length | **6** (default) — do not raise | passcodes are 6 digits | `password_min_length` |

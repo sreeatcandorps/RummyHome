@@ -25,12 +25,65 @@ test('P1-B: a passcode is exactly six digits, nothing else', () => {
   assert.equal(newPasscodeProblem('123456', '123457'), 'The two entries don’t match.');
   assert.equal(newPasscodeProblem('123456', '123456', '123456'), 'Choose a passcode different from your current one.');
   assert.equal(newPasscodeProblem('123456', '123456', '654321'), null);
-  assert.equal(emailCodeProblem(''), 'Enter the code from the email.');
-  assert.equal(emailCodeProblem('12ab56'), 'The code is numbers only.');
-  assert.equal(emailCodeProblem('1234'), 'The code is 6 digits.');
+  assert.equal(emailCodeProblem(''), 'Enter the OTP from the email.');
+  assert.equal(emailCodeProblem('12ab56'), 'The OTP is numbers only.');
+  assert.equal(emailCodeProblem('1234'), 'The OTP is 6 digits.');
   assert.equal(emailCodeProblem('123456'), null);
-  assert.equal(emailCodeProblem('1234567890'), null, 'projects may use longer codes');
+  assert.equal(emailCodeProblem('1234567'), 'The OTP is 6 digits.', 'issue #8 item 5: exactly six digits');
+  assert.equal(emailCodeProblem('1234567890'), 'The OTP is 6 digits.');
   assert.equal(emailProblem('not-an-email'), 'That doesn’t look like an email address.');
+});
+
+test('issue #8: OTP entry is one obvious numeric box with autofill, paste, clear and autofocus', () => {
+  const otp = readFileSync(path.join(process.cwd(), 'components/ui/OtpField.tsx'), 'utf8');
+  assert.match(otp, /label = 'OTP'/, 'item 2: labelled OTP');
+  assert.match(otp, /keyboardType="number-pad"/);
+  assert.match(otp, /textContentType="oneTimeCode"/);
+  assert.match(otp, /autoComplete="sms-otp"/);
+  assert.match(otp, /maxLength=\{EMAIL_CODE_LENGTH\}/);
+  assert.match(otp, /digitsOnly\(text, EMAIL_CODE_LENGTH\)/, 'pasted text is reduced to six digits');
+  assert.match(otp, /icon="close-circle"[\s\S]*onPress=\{\(\) => onChangeText\(''\)\}/, 'item 3: clear button');
+  assert.match(otp, /inputRef\.current\?\.focus\(\)/, 'autofocus once laid out');
+  assert.doesNotMatch(otp, /passcode code|Code from the email/i);
+
+  const forgot = readFileSync(path.join(process.cwd(), 'app/(auth)/forgot-password.tsx'), 'utf8');
+  assert.match(forgot, /<OtpField value=\{code\}[^>]*autoFocus/, 'item 1: the OTP box is the first thing on the code step and takes focus');
+  assert.doesNotMatch(forgot, /passcode code|Code from the email/i, 'item 2');
+  const change = readFileSync(path.join(process.cwd(), 'components/auth/ChangePasscodeDialog.tsx'), 'utf8');
+  assert.match(change, /<OtpField value=\{nonce\}[^>]*autoFocus/);
+  assert.doesNotMatch(change, /passcode code|Code from the email/i);
+});
+
+test('issue #8 item 4: the passcode cells put the real input on top, so the first tap opens the keyboard', () => {
+  const field = readFileSync(path.join(process.cwd(), 'components/ui/PasscodeField.tsx'), 'utf8');
+  assert.doesNotMatch(field, /<Pressable[\s\S]*onPress=\{\(\) => inputRef\.current\?\.focus\(\)\}/, 'no tap-to-programmatic-focus');
+  assert.match(field, /StyleSheet\.absoluteFillObject/, 'input covers the cells');
+  assert.doesNotMatch(field, /opacity:\s*0/, 'no opacity:0 input (Android may not focus it)');
+  assert.match(field, /keyboardType="number-pad"/);
+  assert.match(field, /maxLength=\{6\}/);
+  assert.match(field, /icon="close-circle"/, 'clear button on passcode cells too');
+});
+
+test('issue #8 item 5: Change passcode refuses a non-6-digit OTP locally', async () => {
+  const { client, state } = fakeClient({ requireNonce: true });
+  const short = await changePasscode(client, { email: 'a@b.co', current: '111111', next: '246810', confirm: '246810', nonce: '77' });
+  assert.deepEqual(short, { ok: false, message: 'The OTP is 6 digits.', field: 'code', reauthentication: true });
+  const letters = await changePasscode(client, { email: 'a@b.co', current: '111111', next: '246810', confirm: '246810', nonce: '77a777' });
+  assert.equal(letters.ok ? '' : letters.message, 'The OTP is numbers only.');
+  assert.equal(state.passcode, '111111');
+});
+
+test('issue #8 item 6: reset works with an app-only email (code only, no browser link)', async () => {
+  const template = readFileSync(path.join(process.cwd(), 'supabase/templates/recovery-passcode.html'), 'utf8');
+  assert.match(template, /\{\{ \.Token \}\}/);
+  assert.doesNotMatch(template, /ConfirmationURL|href=/, 'no link in the email');
+  assert.match(template, /OTP/);
+  // The flow itself never consumes a URL: email + OTP + new passcode is all it needs.
+  const { client, state } = fakeClient();
+  await requestPasscodeCode(client, 'sree@example.com');
+  const done = await completePasscodeReset(client, { email: 'sree@example.com', code: '482913', next: '246810', confirm: '246810', verified: false });
+  assert.deepEqual(done, { ok: true });
+  assert.equal(state.passcode, '246810');
 });
 
 test('P1-B: server messages become passcode wording and never say password', () => {
