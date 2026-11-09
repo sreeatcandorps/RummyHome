@@ -5,6 +5,7 @@ import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { MIGRATION_007_HINT, playersService } from '@/services/players';
 import { RETIRED_ROUND_OFFSET, retiredRoundNumber } from '@/utils/editRound';
 import { zerosForJoiner } from '@/utils/gamePlayers';
+import { SEAT_REMOVAL_NOT_READY, seatRemovalProblem } from '@/utils/seatRemoval';
 import { GameType, ProfileDefaults, ScoreType } from '@/types/database';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
@@ -871,6 +872,43 @@ export const gamesService = {
     }
     await this.backfillZeroScores(gameId, profileId);
     if (game.createdBy) await playersService.rememberTogether(game.createdBy, [profileId]).catch(() => {});
+    return this.getGame(gameId);
+  },
+
+  /**
+   * Take a seated player out of a game. Allowed only when they have no scores or
+   * every one of their round scores is exactly 0 (checked per round, never the total).
+   * On Supabase the rule is enforced again by `remove_seat_if_no_scores` (016). When
+   * that function is not on the server yet: a player with no score rows is removed
+   * with a plain delete (admins may manage game_players); one with zero rows cannot
+   * be, because clients may not delete scores, so a "not available yet" message is thrown.
+   */
+  async removeSeatIfNoScores(gameId: string, profileId: string): Promise<Game | null> {
+    const game = await this.getGame(gameId);
+    if (!game) throw new Error('Game not found.');
+    if (!game.players.includes(profileId)) throw new Error('That player is not in this game.');
+    if (game.closedAt) throw new Error('This game is closed. Its players cannot change.');
+    const problem = seatRemovalProblem(game.scores[profileId]);
+    if (problem) throw new Error(problem);
+    if (game.players.filter((id) => id !== LEGACY_COLUMN_ID && id !== profileId).length < 2) {
+      throw new Error('A game needs at least two players. Add someone else before removing this player.');
+    }
+
+    if (!isSupabaseConfigured) {
+      const { [profileId]: _gone, ...scores } = game.scores;
+      const updated: Game = { ...game, players: game.players.filter((id) => id !== profileId), scores };
+      await storage.updateGame(updated);
+      return updated;
+    }
+
+    const rpc = await supabase.rpc('remove_seat_if_no_scores', { p_game_id: gameId, p_profile_id: profileId });
+    if (!rpc.error) return this.getGame(gameId);
+    if (!missingRpc(rpc.error)) throw rpc.error;
+
+    // 016 not applied yet. Without rounds there is nothing but the seat row to delete.
+    if ((game.scores[profileId] ?? []).length > 0) throw new Error(SEAT_REMOVAL_NOT_READY);
+    const { error } = await supabase.from('game_players').delete().eq('game_id', gameId).eq('profile_id', profileId);
+    if (error) throw error;
     return this.getGame(gameId);
   },
 

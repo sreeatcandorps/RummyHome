@@ -33,9 +33,15 @@ export const HELP = {
     '## My players',
     '• My players is a list of players you regularly play with.',
   ].join('\n'),
+  addPlayersToGame: bullets(
+    'The faces under Playing are already in the game. Tap a player below to add them; they get 0 for every round already played.',
+    'Return to game seats everyone you added.',
+    'The × on a face removes a player only while every one of their round scores is 0. Once they have a score, edit the round first.',
+    'Add players: new people by initials. From database: registered players by name or Player ID.',
+  ),
   newGame: bullets(
     'Tap yourself if you are playing. You can run a game without sitting in it.',
-    'Tap a chip under Playing to take someone out. Up to 15 players.',
+    'Tap a face or the × under Playing to send someone back to the list. Up to 15 players.',
     'Recent partners come first, then everyone else by how often you play together.',
     'Add players: new people by initials. They are seated as you save them and show as Unregistered until they sign up.',
     'Add player from database: seats a registered player here and adds them to My players at once.',

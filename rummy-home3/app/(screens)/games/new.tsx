@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
-import { Button, IconButton, Menu, Searchbar, SegmentedButtons, Text } from 'react-native-paper';
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { Animated, Easing, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
+import { Button, Dialog, IconButton, Menu, Portal, Searchbar, SegmentedButtons, Text } from 'react-native-paper';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Player } from '@/types/player';
+import { Game } from '@/types/game';
 import { gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
 import { playerIdentityService } from '@/services/playerIdentity';
@@ -16,8 +17,9 @@ import { takePlayersToCheck } from '@/utils/pendingPlayer';
 import { DEFAULT_POINTS_RULES, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
 import { Candidate, CandidateSort, newGameGrid, newGameSeats, orderCandidates, PICKER_PAGE } from '@/utils/playerIdentity';
 import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
+import { seatRemovalProblem } from '@/utils/seatRemoval';
 import { SelectedPlayersStrip } from '@/components/players/SelectedPlayersStrip';
-import { BoldName } from '@/components/ui/BoldName';
+import { PlayerPickerRow } from '@/components/players/PlayerPickerRow';
 import { MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 import { HELP } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
@@ -25,18 +27,22 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
-import { playerIdBadge, registrationLabel } from '@/utils/myPlayersList';
-import { Tag } from '@/components/ui/Tag';
-import { REGISTRATION_TONE } from '@/utils/myPlayersList';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 type Pick = DraftPick;
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+/** Slide the list shut and the strip open together; a no-op on web, where the chip/row entry animations still run. */
+const animateMove = () => LayoutAnimation.configureNext(LayoutAnimation.create(260, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
 
 /**
  * "Playing · N". The number sits in a big yellow badge with a soft green halo
  * that keeps breathing while anyone is seated, and it pops each time N changes.
  */
-function PlayingCount({ count }: { count: number }) {
+function PlayingCount({ count, hint }: { count: number; hint: string }) {
   const { colors } = useAppTheme();
   const pop = useRef(new Animated.Value(0)).current;
   const halo = useRef(new Animated.Value(0)).current;
@@ -76,26 +82,49 @@ function PlayingCount({ count }: { count: number }) {
           <Text style={[styles.countText, { color: seated ? colors.onSecondaryContainer : colors.onSurfaceVariant }]}>{count}</Text>
         </Animated.View>
       </View>
-      <Text variant="bodyMedium" style={[styles.flex, { color: colors.onSurfaceVariant }]}>
-        {count === 0 ? 'Nobody yet. Tap players below; tap yourself if you are playing.' : count === 1 ? 'player · pick one more to start' : 'players'}
-      </Text>
+      <Text variant="bodyMedium" style={[styles.flex, { color: colors.onSurfaceVariant }]}>{hint}</Text>
     </View>
   );
 }
 
+/**
+ * New game, and — with `?gameId=` — "Add players to game": the same picker in
+ * add mode, where the seats already in the game sit in the strip, newly picked
+ * people are staged until Return to game, and × on a saved seat removes them
+ * only while every one of their round scores is 0.
+ */
 export default function NewGame() {
   const { colors } = useAppTheme();
+  const params = useLocalSearchParams<{ gameId?: string }>();
+  const gameId = typeof params.gameId === 'string' && params.gameId ? params.gameId : null;
+  const addMode = Boolean(gameId);
+
   const [me, setMe] = useState<Player | null>(null);
+  const [game, setGame] = useState<Game | null>(null);
+  const [saved, setSaved] = useState<Pick[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [selected, setSelected] = useState<Pick[]>([]);
+  const [staged, setStaged] = useState<Pick[]>([]);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<CandidateSort>('frequent');
   const [rules, setRules] = useState<PointsRules>(DEFAULT_POINTS_RULES);
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const loadGame = useCallback(async (id: string) => {
+    const [current, seats] = await Promise.all([gamesService.getGame(id), gamesService.listGamePlayers(id)]);
+    if (!current) throw new Error('This game is not available.');
+    setGame(current);
+    setSaved(
+      seats
+        .filter((seat) => seat.seatRole !== 'spectator' && seat.seated !== false && seat.id !== 'EX')
+        .map((seat) => ({ id: seat.id, name: seat.name, playerCode: seat.playerCode })),
+    );
+  }, []);
 
   const load = useCallback(async () => {
     setError(null);
@@ -104,12 +133,13 @@ export default function NewGame() {
       const current = await authService.getCurrentPlayer();
       setMe(current);
       if (!userId || !current) {
-        setError('You must be signed in to create a game.');
+        setError(addMode ? 'You must be signed in to add players.' : 'You must be signed in to create a game.');
         return;
       }
       const [list, defaults] = await Promise.all([
         playerIdentityService.listCandidates(current.id),
         userSettingsService.get(current.id),
+        gameId ? loadGame(gameId) : Promise.resolve(),
       ]);
       setCandidates(list);
       setRules(defaults);
@@ -123,19 +153,21 @@ export default function NewGame() {
         next = [...next, found ? { id: found.id, name: found.name, playerCode: found.playerCode } : row];
       }
       newGameDraft.set(next);
-      setSelected(next);
+      setStaged(next);
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addMode, gameId, loadGame]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  // Leaving New game without starting forgets the draft.
+  // Leaving without starting (or returning) forgets the draft.
   useEffect(() => () => newGameDraft.clear(), []);
 
+  const savedIds = useMemo(() => new Set(saved.map((p) => p.id)), [saved]);
+  const selected = useMemo(() => [...saved, ...staged.filter((p) => !savedIds.has(p.id))], [saved, staged, savedIds]);
   const selectedIds = selected.map((p) => p.id);
   const seatedCount = selected.length;
   const atCap = seatedCount >= MAX_SEATED_PLAYERS;
@@ -144,7 +176,7 @@ export default function NewGame() {
     ? { id: me.id, name: me.name, playerCode: me.playerCode, status: 'registered', totalGames: 0, lastPlayedAt: null }
     : null), [me]);
 
-  const grid = useMemo(() => {
+  const list = useMemo(() => {
     // The organizer is one more candidate, placed by the same sort as everyone else.
     const everyone = meCandidate && !candidates.some((c) => c.id === meCandidate.id) ? [...candidates, meCandidate] : candidates;
     const pool = query.trim()
@@ -155,13 +187,33 @@ export default function NewGame() {
 
   const pick = (c: Pick) => {
     if (atCap) return;
+    animateMove();
     newGameDraft.add({ id: c.id, name: c.name, playerCode: c.playerCode });
-    setSelected(newGameDraft.get());
+    setStaged(newGameDraft.get());
     setQuery('');
   };
-  const unpick = (id: string) => {
-    newGameDraft.remove(id);
-    setSelected(newGameDraft.get());
+
+  const unpick = async (id: string) => {
+    if (!savedIds.has(id)) {
+      animateMove();
+      newGameDraft.remove(id);
+      setStaged(newGameDraft.get());
+      return;
+    }
+    if (!game) return;
+    // A saved seat: only while every round score is 0 (checked per round, never the total).
+    const problem = seatRemovalProblem(game.scores[id]);
+    if (problem) { setBlocked(problem); return; }
+    setRemoving(id);
+    try {
+      await gamesService.removeSeatIfNoScores(game.id, id);
+      animateMove();
+      await loadGame(game.id);
+    } catch (err) {
+      setBlocked(formatSupabaseError(err));
+    } finally {
+      setRemoving(null);
+    }
   };
 
   const startGame = async () => {
@@ -171,14 +223,14 @@ export default function NewGame() {
     if (playerIds.length > MAX_SEATED_PLAYERS) { setError(SEATED_PLAYER_LIMIT); return; }
     setCreating(true);
     try {
-      const game = await gamesService.createGame({
+      const created = await gamesService.createGame({
         playerIds,
         gameType: gameTypeForKind(rules.gameKind),
         createdBy: me.id,
         rules,
       });
       newGameDraft.clear();
-      router.replace(`/(screens)/games/${game.id}`);
+      router.replace(`/(screens)/games/${created.id}`);
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
@@ -186,26 +238,53 @@ export default function NewGame() {
     }
   };
 
+  /** Add mode: seat every staged pick (zeros for rounds already played), then go back to the game. */
+  const returnToGame = async () => {
+    if (!game) return;
+    setCreating(true);
+    try {
+      for (const pickRow of staged) {
+        if (savedIds.has(pickRow.id)) continue;
+        await gamesService.addSeatedPlayer(game.id, pickRow.id);
+      }
+      newGameDraft.clear();
+      if (router.canGoBack()) router.back();
+      else router.replace(`/(screens)/games/${game.id}`);
+    } catch (err) {
+      setError(formatSupabaseError(err));
+      // Whatever was seated before the failure is now saved; refresh so the strip tells the truth.
+      await loadGame(game.id).catch(() => {});
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const hint = addMode
+    ? (staged.length === 0 ? 'Tap a player below to add them. They get 0 for every round already played.' : `${staged.length} to add · tap Return to game to seat them`)
+    : (seatedCount === 0 ? 'Nobody yet. Tap players below; tap yourself if you are playing.' : seatedCount === 1 ? 'player · pick one more to start' : 'players');
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          title: 'New game',
+          title: addMode ? 'Add players to game' : 'New game',
           headerRight: () => (
             <View style={styles.headerActions}>
-              <HelpButton text={HELP.newGame} />
-              <Menu visible={menuOpen} onDismiss={() => setMenuOpen(false)}
-                anchor={<IconButton icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="New game menu" />}>
-                <Menu.Item leadingIcon="cog-outline" title="Game settings" onPress={() => { setMenuOpen(false); setSettingsOpen(true); }} />
-              </Menu>
+              <HelpButton text={addMode ? HELP.addPlayersToGame : HELP.newGame} />
+              {addMode ? null : (
+                <Menu visible={menuOpen} onDismiss={() => setMenuOpen(false)}
+                  anchor={<IconButton icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="New game menu" />}>
+                  <Menu.Item leadingIcon="cog-outline" title="Game settings" onPress={() => { setMenuOpen(false); setSettingsOpen(true); }} />
+                </Menu>
+              )}
             </View>
           ),
         }}
       />
 
       <Screen contentStyle={styles.content} safeBottom={false}>
-        <PlayingCount count={seatedCount} />
-        <SelectedPlayersStrip picks={selected} meId={me?.id} onRemove={unpick} />
+        <PlayingCount count={seatedCount} hint={hint} />
+        <SelectedPlayersStrip picks={selected} meId={me?.id} onRemove={unpick} onReturn={unpick} savedIds={addMode ? savedIds : undefined} busyId={removing} />
         {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
 
         <View style={styles.searchRow}>
@@ -227,23 +306,12 @@ export default function NewGame() {
         {error ? <Text style={{ color: isNotReadyMessage(error) ? colors.onSurfaceVariant : colors.error }}>{error}</Text> : null}
         {loading && candidates.length === 0 ? <LoadingRows /> : null}
 
-        <View style={styles.grid}>
-          {grid.map((c) => {
-            const status = registrationLabel(c.status);
-            return (
-              <Pressable key={c.id} onPress={() => pick(c)} disabled={atCap} accessibilityRole="checkbox" accessibilityState={{ checked: false }}
-                accessibilityLabel={`Add ${c.name}`}
-                style={[styles.cell, { borderColor: colors.outlineVariant, backgroundColor: colors.surface, opacity: atCap ? 0.5 : 1 }]}>
-                <BoldName name={c.name} variant="titleSmall" numberOfLines={2} style={styles.cellName} />
-                <View style={styles.cellMeta}>
-                  <Tag label={status} tone={REGISTRATION_TONE[status]} small wrap />
-                  {playerIdBadge(c) ? <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{playerIdBadge(c)}</Text> : null}
-                </View>
-              </Pressable>
-            );
-          })}
+        <View style={styles.list} accessibilityLabel="Players to add">
+          {list.map((c, index) => (
+            <PlayerPickerRow key={c.id} candidate={c} index={index} disabled={atCap} onPress={() => pick(c)} />
+          ))}
         </View>
-        {!loading && grid.length === 0 ? (
+        {!loading && list.length === 0 ? (
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
             {query ? 'No one in My players matches. Try Add player from database.' : 'No more players in My players. Add players below.'}
           </Text>
@@ -261,12 +329,27 @@ export default function NewGame() {
             From database
           </Button>
         </View>
-        <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} contentStyle={styles.startContent} labelStyle={styles.startLabel} accessibilityLabel="Start game">
-          {seatedCount < 2 ? (seatedCount === 0 ? 'Pick at least two players' : 'Pick at least one more player') : `Start game · ${seatedCount} players`}
-        </Button>
+        {addMode ? (
+          <Button mode="contained" onPress={returnToGame} loading={creating} disabled={creating || Boolean(removing)} icon="arrow-left" contentStyle={styles.startContent} labelStyle={styles.startLabel} accessibilityLabel="Return to game">
+            {staged.length === 0 ? 'Return to game' : `Return to game · add ${staged.length}`}
+          </Button>
+        ) : (
+          <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} contentStyle={styles.startContent} labelStyle={styles.startLabel} accessibilityLabel="Start game">
+            {seatedCount < 2 ? (seatedCount === 0 ? 'Pick at least two players' : 'Pick at least one more player') : `Start game · ${seatedCount} players`}
+          </Button>
+        )}
       </BottomBar>
 
       <GameSettingsDialog visible={settingsOpen} rules={rules} onDismiss={() => setSettingsOpen(false)} onSave={(r) => setRules(r)} />
+
+      <Portal>
+        <Dialog visible={Boolean(blocked)} onDismiss={() => setBlocked(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+          <Dialog.Icon icon="account-cancel-outline" />
+          <Dialog.Title>Can’t remove this player</Dialog.Title>
+          <Dialog.Content><Text variant="bodyMedium">{blocked}</Text></Dialog.Content>
+          <Dialog.Actions><Button mode="contained" onPress={() => setBlocked(null)}>Got it</Button></Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -285,15 +368,13 @@ const styles = StyleSheet.create({
   searchInput: { fontSize: 15, minHeight: 0 },
   sortControl: { width: 104 },
   sortButton: { minWidth: 0 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 6 },
-  cell: { width: '49%', borderWidth: 1.5, borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 10, minHeight: 72, gap: 4, justifyContent: 'center' },
-  cellMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  cellName: { lineHeight: 18 },
+  list: { gap: 6 },
   bottom: { flexDirection: 'column', alignItems: 'stretch', gap: spacing.sm },
   addRow: { flexDirection: 'row', gap: spacing.sm },
   toolContent: { minHeight: 44 },
   toolLabel: { fontSize: 14 },
   startContent: { minHeight: 52 },
   startLabel: { fontSize: 16, fontWeight: '800' },
+  dialog: { borderRadius: radius.xl, maxWidth: 520, width: '94%', alignSelf: 'center' },
   flex: { flex: 1 },
 });

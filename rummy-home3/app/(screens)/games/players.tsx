@@ -4,16 +4,14 @@ import { Button, Dialog, IconButton, Menu, Portal, Text, TextInput } from 'react
 import * as Clipboard from 'expo-clipboard';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { radius, seatColor, spacing, useAppTheme } from '@/constants/theme';
-import { FIND_HANDOFF, HELP } from '@/constants/help';
+import { HELP } from '@/constants/help';
 import { useGameRoster } from '@/hooks/useGameRoster';
 import { useLayout } from '@/hooks/useLayout';
 import { authService } from '@/services/auth';
 import { gamesService } from '@/services/games';
 import { playerIdentityService } from '@/services/playerIdentity';
 import { playersService } from '@/services/players';
-import { isSupabaseConfigured } from '@/services/supabase';
 import { Player } from '@/types/player';
-import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { parsePlayerNo } from '@/utils/playerIdentity';
 import {
@@ -32,7 +30,6 @@ import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 
 type Sheet =
-  | { kind: 'add' }
   | { kind: 'edit'; seat: Player }
   | { kind: 'invite'; seat: Player; message?: string; notice?: string }
   | { kind: 'link'; seat: Player }
@@ -40,8 +37,8 @@ type Sheet =
 
 /**
  * Players in this game as a full page (no stacked popups). Each seat shows the
- * name, Player ID, role and registration, and a ⋮ menu for admins. Nobody is
- * ever removed from here.
+ * name, Player ID, role and registration, and a ⋮ menu for admins. Adding (and
+ * removing a player who has no scores yet) happens on the picker screen.
  */
 export default function GamePlayersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -54,7 +51,6 @@ export default function GamePlayersScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const [directory, setDirectory] = useState<Player[]>([]);
 
   useEffect(() => {
     authService.getCurrentPlayer().then((me) => setViewer(me ?? null)).catch(() => setViewer(null));
@@ -78,16 +74,8 @@ export default function GamePlayersScreen() {
     }
   };
 
-  const openAdd = async () => {
-    setSheet({ kind: 'add' });
-    try {
-      const userId = isSupabaseConfigured ? await authService.getCurrentUserId() : await storage.getCurrentPlayer();
-      const everyone = userId ? await playersService.listMyPlayers(userId) : [];
-      setDirectory(everyone.map((player) => ({ ...player, email: undefined, phone: undefined })));
-    } catch (caught) {
-      setFailure(formatSupabaseError(caught));
-    }
-  };
+  /** The New game picker in add mode: current seats in the strip, Return to game seats the new ones. */
+  const openAdd = () => game && router.push({ pathname: '/(screens)/games/new', params: { gameId: game.id } });
 
   const act = (item: SeatMenuItem, seat: Player) => {
     setMenuFor(null);
@@ -107,9 +95,6 @@ export default function GamePlayersScreen() {
   if (!game) {
     return <EmptyState icon="alert-circle-outline" title="Game not available" message={error ?? 'Try again from the scorecard.'} />;
   }
-
-  const taken = new Set(roster.map((seat) => seat.id));
-  const available = directory.filter((player) => !taken.has(player.id));
 
   const row = (seat: Player, index: number, list: Player[]) => {
     const menu = seatMenu(seat, game, viewer?.id, canScore);
@@ -186,7 +171,7 @@ export default function GamePlayersScreen() {
         ) : null}
         {canScore ? (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            Nobody can be removed from a game. A player added now gets 0 for every round already played.
+            A player added now gets 0 for every round already played. A player can be removed (× on Add a player) only while every round score they have is 0.
           </Text>
         ) : null}
       </ScrollView>
@@ -200,32 +185,6 @@ export default function GamePlayersScreen() {
       </BottomBar>
 
       <Portal>
-        <Dialog visible={sheet?.kind === 'add'} onDismiss={() => setSheet(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
-          <Dialog.Title>Add a player</Dialog.Title>
-          <Dialog.ScrollArea style={styles.scrollArea}>
-            <ScrollView>
-              {available.length === 0 ? (
-                <Text variant="bodyMedium">{FIND_HANDOFF}</Text>
-              ) : available.map((player) => (
-                <Button
-                  key={player.id}
-                  mode="text"
-                  disabled={busy}
-                  style={styles.pick}
-                  contentStyle={styles.pickContent}
-                  onPress={() => run(() => gamesService.addSeatedPlayer(game.id, player.id), () => setSheet(null))}
-                >
-                  {player.name}{playerIdBadge(player) ? ` · ${playerIdBadge(player)}` : ''}
-                </Button>
-              ))}
-            </ScrollView>
-          </Dialog.ScrollArea>
-          <Dialog.Actions>
-            <Button onPress={() => { setSheet(null); router.push('/(screens)/players/new'); }}>Find players</Button>
-            <Button onPress={() => setSheet(null)}>Close</Button>
-          </Dialog.Actions>
-        </Dialog>
-
         {sheet?.kind === 'edit' ? (
           <EditNameDialog
             seat={sheet.seat}
@@ -407,9 +366,6 @@ const styles = StyleSheet.create({
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   reorder: { flexDirection: 'row' },
   dialog: { borderRadius: radius.xl, maxWidth: 520, width: '94%', alignSelf: 'center' },
-  scrollArea: { maxHeight: 360, paddingHorizontal: spacing.md },
-  pick: { alignSelf: 'stretch' },
-  pickContent: { justifyContent: 'flex-start' },
   gap: { gap: spacing.sm },
   preview: { borderRadius: radius.md, padding: spacing.md, gap: spacing.xxs },
   lookupRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
