@@ -63,6 +63,14 @@ Not applied by this change. Until it runs, Players in this game → ⋮ → Link
 
 What it does: `link_seat_to_player(game, seat, target)` lets a game admin who manages an unregistered player hand that seat, with its scores and dealer turns in this game only, to a registered account found by its Player ID. It refuses when the caller is not a game admin, when the seat is not an unregistered/pending player the caller manages, when the target is not a registered unmanaged account, or when the target is already in the game. A placeholder left with no games is marked merged and its open claim links are revoked.
 
+## 016 — remove a seat only while every round score is 0
+
+File: `supabase/migrations/016_remove_seat_if_no_scores.sql`. Run after 015 (needs `is_game_admin`, `rounds.undone_at`, `game_players.seated`). Safe to re-run. Rollback: `supabase/rollback/rollback_016_remove_seat_if_no_scores.sql` (drops the function; removals already made stay).
+
+Not applied by this change. Until it runs, Add players to game → × on a saved seat still works for a player with **no** rounds (a plain seat delete, which admins may do), but a player who has rounds — even all zeros — shows "Removing a player who has rounds isn't available yet"; nothing crashes. The app checks the rule first either way.
+
+What it does: `remove_seat_if_no_scores(game, profile)` lets a game admin take a seated player out of an open game when that player has no score rows, or when every one of their live round scores is exactly 0 (checked per round, never the total). It deletes those zero rows and the `game_players` row, clears the player as dealer of any round, and refuses when: not signed in; not a game admin; the player is not in the game; the game is closed; any live round score is non-zero (same message as the app shows); or fewer than two seated players would remain. Verified on a scratch Postgres 16 loaded with 001–015: anon/stranger/non-admin refused, non-zero blocked, all-zero seat removed with its zero rows, no-row seat removed, two-player guard, closed guard, re-run and rollback.
+
 ## Public scorecard page
 
 This is not a database change. `public/scorecard.html` (and the same file at `web/scorecard.html`) does not contain the project URL or the anon key. It contains the placeholders `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__`.
