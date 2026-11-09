@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import {
   digitsOnly,
+  EMAIL_CODE_LENGTH,
   emailCodeProblem,
   emailProblem,
   isPasscode,
@@ -40,8 +41,10 @@ test('issue #8: OTP entry is one obvious numeric box with autofill, paste, clear
   assert.match(otp, /keyboardType="number-pad"/);
   assert.match(otp, /textContentType="oneTimeCode"/);
   assert.match(otp, /autoComplete="sms-otp"/);
-  assert.match(otp, /maxLength=\{EMAIL_CODE_LENGTH\}/);
-  assert.match(otp, /digitsOnly\(text, EMAIL_CODE_LENGTH\)/, 'pasted text is reduced to six digits');
+  assert.doesNotMatch(otp, /maxLength=/, 'a raw maxLength would cut a pasted "482 913" to five digits');
+  assert.match(otp, /digitsOnly\(text, EMAIL_CODE_LENGTH\)/, 'six-digit cap and paste clean-up happen in onChangeText');
+  assert.equal(digitsOnly('48 29 13x', EMAIL_CODE_LENGTH), '482913');
+  assert.equal(digitsOnly('1234567', EMAIL_CODE_LENGTH), '123456');
   assert.match(otp, /icon="close-circle"[\s\S]*onPress=\{\(\) => onChangeText\(''\)\}/, 'item 3: clear button');
   assert.match(otp, /inputRef\.current\?\.focus\(\)/, 'autofocus once laid out');
   assert.doesNotMatch(otp, /passcode code|Code from the email/i);

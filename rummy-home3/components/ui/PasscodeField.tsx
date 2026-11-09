@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { StyleSheet, TextInput as NativeInput, View } from 'react-native';
+import { Platform, StyleSheet, TextInput as NativeInput, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
@@ -144,5 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     fontSize: 1,
     padding: 0,
+    // The cells draw their own focus ring; hide the browser's rectangle on web.
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
   },
 });

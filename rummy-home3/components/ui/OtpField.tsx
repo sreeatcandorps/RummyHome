@@ -37,7 +37,8 @@ export function OtpField({ value, onChangeText, disabled, autoFocus, label = 'OT
       mode="outlined"
       keyboardType="number-pad"
       inputMode="numeric"
-      maxLength={EMAIL_CODE_LENGTH}
+      // No raw maxLength: it truncates a pasted "482 913" to "48291" before digitsOnly runs.
+      // The six-digit cap is applied in onChangeText instead, so paste keeps all six digits.
       autoComplete="sms-otp"
       textContentType="oneTimeCode"
       importantForAutofill="yes"
