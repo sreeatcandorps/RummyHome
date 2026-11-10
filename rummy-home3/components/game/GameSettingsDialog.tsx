@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Keyboard } from 'react-native';
 import { Button, Dialog, Portal, Text } from 'react-native-paper';
 import { router } from 'expo-router';
 import { parseRuleInput, PointsRules, validateRules } from '@/utils/gameSettings';
@@ -23,6 +24,7 @@ export function GameSettingsDialog({ visible, rules, title = 'Game settings', on
   useEffect(() => { if (visible) { setDraft(draftFromRules(rules)); setError(null); } }, [visible, rules]);
 
   const save = async () => {
+    Keyboard.dismiss();
     const drop = parseRuleInput(draft.drop);
     const middleDrop = parseRuleInput(draft.middleDrop);
     const fullCount = parseRuleInput(draft.fullCount);
