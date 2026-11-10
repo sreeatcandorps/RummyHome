@@ -54,12 +54,13 @@ function useMyName() {
   return name;
 }
 
-const TAB_AVATAR = 30;
+/** Icon (24) plus label (16) plus their gap: the avatar tab has no label, so the chip takes the whole height. */
+export const TAB_AVATAR = 44;
 
 /**
  * Bottom-tab avatar: the account chip lives in the tab bar only (no duplicate in the header
- * of tab pages). Sized to the other tab icons; active is the full-strength chip, inactive is
- * softened, with no ring.
+ * of tab pages). Sized to the full Home tab (icon + label) and centred vertically; active is
+ * the full-strength chip, inactive is softened, with no ring.
  */
 function ProfileTabIcon({ focused }: { focused: boolean }) {
   const theme = useAppTheme();
@@ -156,7 +157,8 @@ export default function TabLayout() {
         name="me"
         options={{
           title: 'Profile',
-          tabBarLabel: () => null,
+          tabBarShowLabel: false,
+          tabBarIconStyle: styles.tabAvatarSlot,
           tabBarAccessibilityLabel: 'Your profile',
           tabBarIcon: ({ focused }) => <ProfileTabIcon focused={focused} />,
         }}
@@ -167,6 +169,7 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabAvatar: { alignItems: 'center', justifyContent: 'center' },
+  tabAvatarSlot: { flex: 1, width: TAB_AVATAR, height: TAB_AVATAR, alignItems: 'center', justifyContent: 'center' },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',

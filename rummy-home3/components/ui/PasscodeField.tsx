@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Platform, StyleSheet, TextInput as NativeInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Platform, StyleSheet, TextInput as NativeInput, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
@@ -11,8 +11,23 @@ type PasscodeFieldProps = {
   autoFocus?: boolean;
 };
 
+/** A blinking bar in the cell about to be typed into, so the field visibly has the cursor. */
+function Caret({ color }: { color: string }) {
+  const blink = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(blink, { toValue: 0, duration: 450, delay: 350, useNativeDriver: true }),
+      Animated.timing(blink, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [blink]);
+  return <Animated.View pointerEvents="none" style={[styles.caret, { backgroundColor: color, opacity: blink }]} />;
+}
+
 /**
  * Six large cells, digits visible by default, with an eye toggle to hide them and a clear button.
+ * The cell waiting for the next digit shows a blinking caret while the field is focused.
  * The real TextInput sits invisibly on top of the cells, so a tap lands on the input itself and
  * the OS opens the keyboard on the first tap. (Focusing a hidden input from a Pressable needed a
  * second tap on Android.)
@@ -72,6 +87,7 @@ export function PasscodeField({ value, onChangeText, disabled, label = '6-digit 
               <Text style={[styles.glyph, { color: filled ? colors.onSurface : colors.outline }]}>
                 {filled ? (revealed ? digits[index] : '●') : ''}
               </Text>
+              {active && !disabled ? <Caret color={colors.primary} /> : null}
             </View>
           );
         })}
@@ -136,6 +152,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '800',
     lineHeight: 34,
+  },
+  caret: {
+    position: 'absolute',
+    width: 2,
+    height: 30,
+    borderRadius: 1,
   },
   // Covers the cells; text and background are transparent so only the cells show.
   overlay: {

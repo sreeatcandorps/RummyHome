@@ -199,6 +199,7 @@ export default function Dashboard() {
               </Button>
             ) : null}
             {liveCard}
+            <View style={styles.sectionGap} />
             {recent}
           </View>
         )
@@ -248,6 +249,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     gap: spacing.xs,
   },
+  sectionGap: { height: spacing.md },
   columns: {
     flexDirection: 'row',
     gap: spacing.lg,

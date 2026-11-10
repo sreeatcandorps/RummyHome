@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Platform, StyleSheet, TextInput as NativeInput, View } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { PasscodeField } from '@/components/ui/PasscodeField';
@@ -21,9 +21,19 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(typeof params.notice === 'string' ? params.notice : '');
 
+  const emailRef = useRef<NativeInput>(null);
+
   useEffect(() => {
     const startup = takeStartupNotice();
     if (startup) setError(startup);
+  }, []);
+
+  // Cursor in Email on launch. Android ignores autoFocus on a screen that mounts mid-transition, so focus once laid out.
+  useEffect(() => {
+    if (email) return;
+    const timer = setTimeout(() => emailRef.current?.focus(), Platform.OS === 'web' ? 0 : 350);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleEmailLogin = async () => {
@@ -119,6 +129,7 @@ export default function LoginScreen() {
       }
     >
       <TextInput
+        ref={emailRef}
         label="Email"
         value={email}
         onChangeText={setEmail}
@@ -126,6 +137,10 @@ export default function LoginScreen() {
         keyboardType="email-address"
         autoCapitalize="none"
         autoComplete="email"
+        autoFocus={!email}
+        returnKeyType="next"
+        cursorColor={theme.colors.primary}
+        selectionColor={theme.colors.primary}
         left={<TextInput.Icon icon="email-outline" />}
       />
 
