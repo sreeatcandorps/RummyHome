@@ -91,6 +91,17 @@ export function sortMyPlayers<T extends ListedPlayer>(players: T[], sort: MyPlay
   });
 }
 
+/**
+ * The owner is never a row in their own roster (the server and the local roster
+ * both skip auth.uid()), yet they expect to find themselves in My players. This
+ * pins the signed-in player to the front of whatever the list shows, so they
+ * appear even when the roster is empty, filtered, or searched by their name.
+ */
+export function withOwnerFirst<T extends { id: string }>(players: T[], owner: T | null | undefined, include = true): T[] {
+  const rest = owner ? players.filter((player) => player.id !== owner.id) : players;
+  return owner && include ? [owner, ...rest] : rest;
+}
+
 /** Players not yet in My players first (search order kept), then the ones already there. */
 export function orderDatabaseResults<T extends { id: string }>(results: T[], myPlayerIds: Iterable<string>): (T & { inMyPlayers: boolean })[] {
   const mine = new Set(myPlayerIds);

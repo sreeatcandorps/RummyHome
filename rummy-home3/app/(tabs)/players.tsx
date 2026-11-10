@@ -8,7 +8,7 @@ import { playersService } from '@/services/players';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
-import { DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, playerIdBadge, registrationLabel, REGISTRATION_TONE, SORT_CHIP, SORT_OPTIONS, sortMyPlayers } from '@/utils/myPlayersList';
+import { DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, playerIdBadge, registrationLabel, REGISTRATION_TONE, SORT_CHIP, SORT_OPTIONS, sortMyPlayers, withOwnerFirst } from '@/utils/myPlayersList';
 import { shareInvite } from '@/utils/invite';
 import { PLAYERS_NOTE } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
@@ -68,10 +68,12 @@ export default function PlayersTab() {
   }, [navigation, players.length]);
 
   const statusOf = (player: Player) => registrationLabel(unregistered[player.id]?.status ?? player.status);
-  const shown = sortMyPlayers(
+  const others = sortMyPlayers(
     filterMyPlayers(players.filter((player) => matchesMyPlayer(player, query)), filter, statusOf),
     sort,
   );
+  // You are not a roster row, so you are pinned first whenever the search and filter would show you.
+  const shown = withOwnerFirst(others, me, Boolean(me) && filter === 'all' && matchesMyPlayer(me as Player, query));
   const openCount = players.filter((player) => statusOf(player) !== 'Registered').length;
   const unregisteredCount = Object.keys(unregistered).length;
 
@@ -191,15 +193,6 @@ export default function PlayersTab() {
         </View>
       ) : null}
       {loading && players.length === 0 ? <LoadingRows /> : null}
-      {!loading && players.length === 0 && !error ? (
-        <EmptyState
-          icon="account-group-outline"
-          title="No one in My players yet."
-          message="Add new players with just initials, or find registered players in the database."
-          actionLabel="Add new players"
-          onAction={() => router.push('/(screens)/players/add')}
-        />
-      ) : null}
       {!loading && players.length > 0 && shown.length === 0 ? (
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
           {filter === 'unregistered' && !query.trim()
@@ -218,6 +211,15 @@ export default function PlayersTab() {
           nestedScrollEnabled
           showsVerticalScrollIndicator
           accessibilityLabel="My players list"
+        />
+      ) : null}
+      {!loading && players.length === 0 && !error ? (
+        <EmptyState
+          icon="account-group-outline"
+          title="Only you in My players so far."
+          message="Add new players with just initials, or find registered players in the database."
+          actionLabel="Add new players"
+          onAction={() => router.push('/(screens)/players/add')}
         />
       ) : null}
       <View style={styles.actions}>

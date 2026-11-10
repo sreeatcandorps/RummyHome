@@ -15,7 +15,7 @@ import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { takePlayersToCheck } from '@/utils/pendingPlayer';
 import { DEFAULT_POINTS_RULES, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
-import { Candidate, CandidateSort, newGameGrid, newGameSeats, orderCandidates, PICKER_PAGE } from '@/utils/playerIdentity';
+import { Candidate, CandidateSort, newGameGrid, newGameSeats, orderCandidates, PICKER_PAGE, pinOrganiser } from '@/utils/playerIdentity';
 import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
 import { seatRemovalProblem } from '@/utils/seatRemoval';
 import { SelectedPlayersStrip } from '@/components/players/SelectedPlayersStrip';
@@ -177,13 +177,17 @@ export default function NewGame() {
     : null), [me]);
 
   const list = useMemo(() => {
-    // The organizer is one more candidate, placed by the same sort as everyone else.
-    const everyone = meCandidate && !candidates.some((c) => c.id === meCandidate.id) ? [...candidates, meCandidate] : candidates;
+    const others = meCandidate ? candidates.filter((c) => c.id !== meCandidate.id) : candidates;
     const pool = query.trim()
-      ? everyone.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query))
-      : everyone;
-    return newGameGrid(orderCandidates(pool, sort), selectedIds, PICKER_PAGE);
-  }, [candidates, selectedIds, meCandidate, query, sort]);
+      ? others.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query))
+      : others;
+    const grid = newGameGrid(orderCandidates(pool, sort), selectedIds, PICKER_PAGE);
+    // The organiser always has a row (first) until seated: they are not in the server's stats, so no sort or page may hide them.
+    const meMatches = !meCandidate || matchesMyPlayer({ name: meCandidate.name, playerCode: meCandidate.playerCode }, query);
+    // Mid-game, an organiser who is in the game as a non-playing admin or viewer cannot be seated from here (parked: P3).
+    const meWatching = Boolean(addMode && game && me && (game.spectators?.includes(me.id) || game.unseatedAdminIds?.includes(me.id)));
+    return pinOrganiser(grid, meWatching ? null : meCandidate, selectedIds, meMatches);
+  }, [candidates, selectedIds, meCandidate, query, sort, addMode, game, me]);
 
   const pick = (c: Pick) => {
     if (atCap) return;
@@ -308,7 +312,7 @@ export default function NewGame() {
 
         <View style={styles.list} accessibilityLabel="Players to add">
           {list.map((c, index) => (
-            <PlayerPickerRow key={c.id} candidate={c} index={index} disabled={atCap} onPress={() => pick(c)} />
+            <PlayerPickerRow key={c.id} candidate={c} index={index} disabled={atCap} isMe={c.id === me?.id} onPress={() => pick(c)} />
           ))}
         </View>
         {!loading && list.length === 0 ? (

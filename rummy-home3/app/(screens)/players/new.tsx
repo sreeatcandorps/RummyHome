@@ -88,8 +88,11 @@ export default function FindPlayersScreen() {
     }
     setBusy((current) => ({ ...current, [player.id]: true }));
     try {
-      await playersService.addMyPlayer(ownerId, player);
-      setMyIds((current) => new Set([...current, player.id]));
+      // The organiser is never a roster row of their own; adding "you" only seats you in the new game.
+      if (player.id !== ownerId) {
+        await playersService.addMyPlayer(ownerId, player);
+        setMyIds((current) => new Set([...current, player.id]));
+      }
       if (fromNewGame) {
         newGameDraft.add({ id: player.id, name: player.name, playerCode: player.playerCode });
         setAddedHere((current) => new Set([...current, player.id]));
@@ -129,7 +132,7 @@ export default function FindPlayersScreen() {
                 <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{badge}</Text>
               ) : null}
             </View>
-            {isMe ? (
+            {isMe && !fromNewGame ? (
               <View style={[styles.inList, { backgroundColor: colors.surfaceVariant }]} accessibilityLabel="This is you">
                 <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>This is you</Text>
               </View>
@@ -148,9 +151,9 @@ export default function FindPlayersScreen() {
                 onPress={() => add(player)}
                 loading={!!busy[player.id]}
                 disabled={!!busy[player.id]}
-                accessibilityLabel={fromNewGame ? `Add ${player.name} to this game` : `Add ${player.name} to My players`}
+                accessibilityLabel={fromNewGame ? (isMe ? 'Add yourself to this game' : `Add ${player.name} to this game`) : `Add ${player.name} to My players`}
               >
-                {fromNewGame ? '+ Add' : '+ My players'}
+                {fromNewGame ? (isMe ? '+ Add me' : '+ Add') : '+ My players'}
               </Button>
             )}
           </View>

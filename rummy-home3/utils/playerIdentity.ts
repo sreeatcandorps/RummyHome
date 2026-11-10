@@ -209,6 +209,19 @@ export function newGameGrid<T extends { id: string }>(sorted: T[], selectedIds: 
     .slice(0, size);
 }
 
+/**
+ * The organiser is one more candidate, but the server never counts them in the
+ * "games together" stats, so by Frequent they sorted dead last and fell off the
+ * ten-row page whenever the roster had more than ten people. They are pinned to
+ * the top of the list instead, until they are seated or the search excludes them.
+ */
+export function pinOrganiser<T extends { id: string }>(grid: T[], organiser: T | null | undefined, selectedIds: readonly string[], matchesQuery = true): T[] {
+  if (!organiser) return grid;
+  const rest = grid.filter((candidate) => candidate.id !== organiser.id);
+  if (selectedIds.includes(organiser.id) || !matchesQuery) return rest;
+  return [organiser, ...rest];
+}
+
 export type CandidateSort = 'frequent' | 'name';
 
 /** Frequent keeps sortCandidates' order (recent partners, then most games); Alphabetical is by name. */

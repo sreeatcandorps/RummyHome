@@ -13,6 +13,8 @@ type Props = {
   /** Position in the list; picks the avatar colour the same way Players in this game does. */
   index: number;
   disabled?: boolean;
+  /** The signed-in organiser: shows a "You" tag so they can tell their account from a namesake. */
+  isMe?: boolean;
   onPress: () => void;
 };
 
@@ -21,7 +23,7 @@ type Props = {
  * initials, registration pill and Player ID — the same shape as a row on
  * Players in this game. Fades in when it (re)appears in the list.
  */
-export function PlayerPickerRow({ candidate, index, disabled, onPress }: Props) {
+export function PlayerPickerRow({ candidate, index, disabled, isMe = false, onPress }: Props) {
   const { colors } = useAppTheme();
   const status = registrationLabel(candidate.status);
   const badge = playerIdBadge(candidate);
@@ -37,7 +39,7 @@ export function PlayerPickerRow({ candidate, index, disabled, onPress }: Props) 
         onPress={onPress}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel={`Add ${candidate.name}`}
+        accessibilityLabel={isMe ? `Add ${candidate.name} (you)` : `Add ${candidate.name}`}
         style={({ pressed }) => [
           styles.row,
           { borderColor: colors.outlineVariant, backgroundColor: pressed ? colors.primaryContainer : colors.surface, opacity: disabled ? 0.5 : 1 },
@@ -47,6 +49,7 @@ export function PlayerPickerRow({ candidate, index, disabled, onPress }: Props) 
         <View style={styles.text}>
           <BoldName name={candidate.name} variant="bodyLarge" numberOfLines={1} />
           <View style={styles.meta}>
+            {isMe ? <Tag small label="You" tone="primary" /> : null}
             {badge ? <Tag small label={badge} /> : null}
             <Tag small label={status} tone={REGISTRATION_TONE[status]} />
           </View>
