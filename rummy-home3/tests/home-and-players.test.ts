@@ -98,7 +98,7 @@ test('help copy matches the new Home, My players, and Find screens', () => {
   assert.match(HELP.home, /\[Completed\] to \[Closed\]/);
   assert.match(HELP.home, /My players/);
   assert.doesNotMatch(HELP.home, /Last 24 hours|Resume|avatar/);
-  for (const button of ['Add new players', 'Find player in database', 'Register players']) {
+  for (const button of ['Add new players', 'Find player in database', 'Register unregistered players']) {
     assert.match(HELP.players, new RegExp(button));
   }
   assert.match(HELP.players, /live link/);

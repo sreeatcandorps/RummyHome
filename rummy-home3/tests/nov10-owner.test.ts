@@ -54,3 +54,16 @@ test('From database lets the organiser add themselves to a new game; picker and 
   const tab = read('app/(tabs)/players.tsx');
   assert.match(tab, /withOwnerFirst\(others, me, Boolean\(me\) && filter === 'all' && matchesMyPlayer\(me as Player, query\)\)/);
 });
+
+test('My players: three actions side by side, the registered-only note lives in help, Add new players starts in row 1', () => {
+  const tab = read('app/(tabs)/players.tsx');
+  assert.equal((tab.match(/<ActionTile/g) ?? []).length, 3);
+  assert.match(tab, /label="Register unregistered players"/);
+  assert.doesNotMatch(tab, /PLAYERS_NOTE/, 'the banner above the list is gone');
+  const help = read('constants/help.ts');
+  assert.match(help, /players: bullets\([\s\S]*PLAYERS_NOTE,/, 'the note is a My players help bullet');
+  const add = read('app/(screens)/players/add.tsx');
+  assert.doesNotMatch(add, /Add a row/);
+  assert.match(add, /firstInputs\.current\[rows\[0\]\?\.key\]\?\.focus\(\)/, 'cursor in the first field by default');
+  assert.match(add, /const fresh = blank\(\);/, 'a new row appears once every row is saved');
+});

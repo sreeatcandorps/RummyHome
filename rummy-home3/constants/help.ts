@@ -6,6 +6,10 @@
 
 const bullets = (...lines: string[]) => lines.map((line) => `• ${line}`).join('\n');
 
+/** Lives in the My players help (it used to be a banner above the list). */
+export const PLAYERS_NOTE =
+  'A player must be registered in the database to see their games in the app. Anyone can watch a game live, without the app or registering, when the admin shares the live link.';
+
 export const HELP = {
   signIn: bullets(
     'Your passcode is 6 digits. Numbers only.',
@@ -85,8 +89,8 @@ export const HELP = {
     'My players is your own list, not everyone in the EZ Score database. New game picks from it. Sorted by Frequent first.',
     'Find player in database: add more people from the EZ Score database.',
     'Add new players: new people by initials. They get a player ID at once and show as Unregistered until they sign up.',
-    'Register players: sends each unregistered player a sign-up link, good once for 14 days. They show Pending registration until they tap Yes on "Is this you?".',
-    'A player must be registered to see their games in the app. Anyone can watch a game live from the shared live link, no app needed.',
+    'Register unregistered players: sends each unregistered player a sign-up link, good once for 14 days. They show Pending registration until they tap Yes on "Is this you?".',
+    PLAYERS_NOTE,
     'Tap a card to register or remove someone. Removing keeps their account and past games.',
   ),
   find: bullets(
@@ -141,8 +145,6 @@ export const EMPTY_SETTLE = 'Finished games stay on Home under Recent.';
 export const FIND_HANDOFF =
   "Can't find them? Use Find player in database, or Add new players if they are not registered yet, then come back.";
 
-export const PLAYERS_NOTE =
-  'A player must be registered in the database to see their games in the app. Anyone can watch a game live, without the app or registering, when the admin shares the live link.';
 
 /** Settings priority, highest first, for the ladder graphic on User settings. */
 export const SETTINGS_PRIORITY = [

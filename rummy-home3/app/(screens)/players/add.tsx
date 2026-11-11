@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput as NativeTextInput, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, TextInput as NativeTextInput, View } from 'react-native';
 import { Button, Icon, IconButton, Text, TextInput } from 'react-native-paper';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
@@ -48,7 +48,15 @@ export default function AddPlayersScreen() {
     return newGameDraft.subscribe(setSeated);
   }, [fromNewGame]);
   const leaving = useRef(false);
+  const firstInputs = useRef<Record<string, NativeTextInput | null>>({});
   const lastInputs = useRef<Record<string, NativeTextInput | null>>({});
+
+  // The cursor starts in row 1's first initial. Android ignores autoFocus on a screen that mounts mid-transition.
+  useEffect(() => {
+    const timer = setTimeout(() => firstInputs.current[rows[0]?.key]?.focus(), Platform.OS === 'web' ? 0 : 350);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -103,8 +111,19 @@ export default function AddPlayersScreen() {
       const player = row.player
         ? await playerIdentityService.updateNewPlayer(ownerId, row.player.id, row.first, row.last)
         : await playerIdentityService.createNewPlayer(ownerId, row.first, row.last);
-      patch(row.key, { player, editing: false, busy: false });
       if (fromNewGame) newGameDraft.add({ id: player.id, name: player.name, playerCode: player.playerCode });
+      // Keep typing: the cursor moves to the next open row, and a new row appears when every row is saved.
+      setRows((all) => {
+        const next = all.map((item) => (item.key === row.key ? { ...item, player, editing: false, busy: false } : item));
+        const open = next.find((item) => !item.player || item.editing);
+        if (open) {
+          setTimeout(() => firstInputs.current[open.key]?.focus(), 50);
+          return next;
+        }
+        const fresh = blank();
+        setTimeout(() => firstInputs.current[fresh.key]?.focus(), 50);
+        return [...next, fresh];
+      });
     } catch (err) {
       patch(row.key, { busy: false, error: formatSupabaseError(err) });
     }
@@ -141,7 +160,7 @@ export default function AddPlayersScreen() {
         contentContainerStyle={[styles.content, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}
       >
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          Type the first initial and the last initial for each person. More letters are fine. The last initial cannot be a number.
+          Type the first initial and the last initial for each person, then Save. More letters are fine. The last initial cannot be a number. A new row appears when these are saved.
         </Text>
 
         {rows.map((row, index) => {
@@ -171,7 +190,9 @@ export default function AddPlayersScreen() {
                   autoCorrect={false}
                   maxLength={12}
                   returnKeyType="next"
+                  blurOnSubmit={false}
                   onSubmitEditing={() => lastInputs.current[row.key]?.focus()}
+                  ref={(ref: NativeTextInput | null) => { firstInputs.current[row.key] = ref; }}
                   accessibilityLabel={`Row ${index + 1} first initial`}
                 />
                 <TextInput
@@ -230,10 +251,6 @@ export default function AddPlayersScreen() {
             </View>
           );
         })}
-
-        <Button mode="text" icon="plus" onPress={() => setRows((all) => [...all, blank()])} style={styles.addRow} accessibilityLabel="Add a row">
-          Add a row
-        </Button>
       </ScrollView>
 
       <BottomBar>
@@ -286,7 +303,6 @@ const styles = StyleSheet.create({
   savedPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, height: 32, borderRadius: radius.full },
   iconButton: { margin: 0 },
   meta: { paddingLeft: 22 },
-  addRow: { alignSelf: 'flex-start' },
   footer: { flex: 1, gap: spacing.sm },
   done: { borderRadius: radius.full },
   doneContent: { height: 60 },

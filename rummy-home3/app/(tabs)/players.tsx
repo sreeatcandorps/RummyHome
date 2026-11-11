@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { Button, Chip, Dialog, Icon, Portal, Searchbar, Text, TouchableRipple } from 'react-native-paper';
+import { ActionTile } from '@/components/ui/ActionTile';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
@@ -10,7 +11,6 @@ import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, playerIdBadge, registrationLabel, REGISTRATION_TONE, SORT_CHIP, SORT_OPTIONS, sortMyPlayers, withOwnerFirst } from '@/utils/myPlayersList';
 import { shareInvite } from '@/utils/invite';
-import { PLAYERS_NOTE } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
@@ -139,12 +139,6 @@ export default function PlayersTab() {
 
   return (
     <Screen>
-      <View style={[styles.note, { backgroundColor: colors.secondaryContainer }]}>
-        <Icon source="information-outline" size={18} color={colors.onSecondaryContainer} />
-        <Text variant="bodySmall" style={[styles.noteText, { color: colors.onSecondaryContainer }]}>
-          {PLAYERS_NOTE}
-        </Text>
-      </View>
       <Searchbar
         placeholder="Search name or player ID"
         value={query}
@@ -222,38 +216,35 @@ export default function PlayersTab() {
           onAction={() => router.push('/(screens)/players/add')}
         />
       ) : null}
-      <View style={styles.actions}>
-        <Button
-          mode="contained"
+      <View style={styles.actions} accessibilityRole="toolbar">
+        <ActionTile
           icon="account-plus-outline"
+          label="Add new players"
+          tone="primary"
           onPress={() => router.push('/(screens)/players/add')}
-          contentStyle={styles.actionContent}
           accessibilityLabel="Add new players"
-        >
-          Add new players
-        </Button>
-        <Button
-          mode="contained-tonal"
+        />
+        <ActionTile
           icon="database-search"
+          label="Find player in database"
+          tone="tonal"
           onPress={() => router.push('/(screens)/players/new')}
-          contentStyle={styles.actionContent}
-        >
-          Find player in database
-        </Button>
-        <Button
-          mode="outlined"
+          accessibilityLabel="Find player in database"
+        />
+        <ActionTile
           icon="account-check-outline"
+          label="Register unregistered players"
+          tone="outlined"
+          badge={unregisteredCount || undefined}
           onPress={() => setRegisterOpen(true)}
-          contentStyle={styles.actionContent}
-        >
-          Register players{unregisteredCount ? ` · ${unregisteredCount}` : ''}
-        </Button>
-        {!loading && players.length === 0 ? (
-          <Button mode="text" icon="share-variant" onPress={() => shareInvite().catch(() => {})}>
-            Invite
-          </Button>
-        ) : null}
+          accessibilityLabel={`Register unregistered players${unregisteredCount ? `, ${unregisteredCount} waiting` : ''}`}
+        />
       </View>
+      {!loading && players.length === 0 ? (
+        <Button mode="text" icon="share-variant" onPress={() => shareInvite().catch(() => {})}>
+          Invite
+        </Button>
+      ) : null}
 
       <RegisterPlayersDialog visible={registerOpen} me={me} onDismiss={() => { setRegisterOpen(false); load(); }} />
       <Portal>
@@ -291,17 +282,6 @@ const styles = StyleSheet.create({
   sortGroup: { flexDirection: 'row', gap: spacing.xs },
   chip: { borderRadius: radius.full },
   chipText: { fontSize: 12, marginVertical: 2 },
-  note: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'flex-start',
-    padding: spacing.md,
-    borderRadius: radius.lg,
-  },
-  noteText: {
-    flex: 1,
-    lineHeight: 18,
-  },
   search: {
     marginBottom: 0,
   },
@@ -348,9 +328,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   actions: {
+    flexDirection: 'row',
     gap: spacing.sm,
-  },
-  actionContent: {
-    minHeight: 48,
+    alignItems: 'stretch',
   },
 });
