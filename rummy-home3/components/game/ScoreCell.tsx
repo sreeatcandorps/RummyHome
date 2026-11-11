@@ -3,6 +3,7 @@ import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { CELL_FILL, CellStatus, cellTone } from '@/utils/roundEntry';
+import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
 
 type ScoreCellProps = {
   name: string;
@@ -80,11 +81,14 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
   const backgroundColor = tone === 'selected' ? colors[CELL_FILL.selected] : animatedBackground;
 
   const ringColor = tone === 'selected' ? colors.secondary : tone === 'confirmed' ? colors.positive : colors.outlineVariant;
+  // A saved loss is red (it used to read dark green like a win); same size as a win, not bold.
+  const saved = isConfirmed ? scoreTextStyle(scoreTone(value ?? 0)) : null;
   const valueColor = isPending
     ? colors.onSecondaryContainer
-    : isConfirmed
-      ? (value ?? 0) > 0 ? colors.positive : colors.onPositiveContainer
+    : saved
+      ? saved.colorKey === 'outline' ? colors.onPositiveContainer : colors[saved.colorKey]
       : colors.onSurface;
+  const valueWeight = saved?.fontWeight ?? '800';
 
   const statusLabel = isPending
     ? `typing ${signed(value ?? 0)}`
@@ -123,7 +127,7 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
           {name}
         </Text>
         <Text
-          style={[styles.value, compact && styles.valueCompact, tabularNums, { color: valueColor }]}
+          style={[styles.value, compact && styles.valueCompact, tabularNums, { color: valueColor, fontWeight: valueWeight }]}
           numberOfLines={1}
         >
           {hasValue ? signed(value) : ''}

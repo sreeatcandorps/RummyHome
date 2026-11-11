@@ -67,3 +67,19 @@ test('My players: three actions side by side, the registered-only note lives in 
   assert.match(add, /firstInputs\.current\[rows\[0\]\?\.key\]\?\.focus\(\)/, 'cursor in the first field by default');
   assert.match(add, /const fresh = blank\(\);/, 'a new row appears once every row is saved');
 });
+
+test('round scores: every loss is red, same size, not bold; wins stay green and bold; the Playing badge fits two digits', async () => {
+  const { scoreTextStyle, scoreTone } = await import('../utils/scoreTone');
+  assert.deepEqual(scoreTextStyle(scoreTone(40, 80)), { colorKey: 'positive', fontWeight: '800' });
+  assert.deepEqual(scoreTextStyle(scoreTone(-10, 80)), { colorKey: 'negative', fontWeight: '600' }, 'a small loss is red too');
+  assert.deepEqual(scoreTextStyle(scoreTone(-80, 80)), { colorKey: 'negative', fontWeight: '600' }, 'a big loss is the same red, not bolder');
+  assert.deepEqual(scoreTextStyle(scoreTone(0, 80)), { colorKey: 'outline', fontWeight: '600' });
+  const cell = read('components/game/ScoreCell.tsx');
+  assert.match(cell, /scoreTextStyle\(scoreTone\(value \?\? 0\)\)/, 'round entry / edit round colour saved losses red');
+  assert.doesNotMatch(cell, /\(value \?\? 0\) > 0 \? colors\.positive : colors\.onPositiveContainer/, 'the dark-green-for-everything rule is gone');
+  const table = read('components/game/ScoreTable.tsx');
+  assert.match(table, /color: colors\[text\.colorKey\], fontWeight: text\.fontWeight/);
+  const picker = read('app/(screens)/games/new.tsx');
+  assert.match(picker, /const PLAYING_BADGE = 68;/);
+  assert.match(picker, /numberOfLines=\{1\} adjustsFontSizeToFit style=\{\[styles\.countText/);
+});

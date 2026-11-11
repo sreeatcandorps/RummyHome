@@ -18,3 +18,17 @@ export function scoreTone(score: number, fullCount?: number | null): ScoreTone {
   const threshold = bigNegativeThreshold(fullCount);
   return threshold !== null && Math.abs(score) >= threshold ? 'bigNegative' : 'negative';
 }
+
+/**
+ * How a round score is typed on the scorecard and in round entry/edit:
+ * wins green and bold, every loss red (small or big) at the same size and not
+ * bold, a saved 0 muted. `colorKey` names the theme colour so the rule is
+ * testable without a theme.
+ */
+export type ScoreTextStyle = { colorKey: 'positive' | 'negative' | 'outline'; fontWeight: '800' | '600' };
+
+export function scoreTextStyle(tone: ScoreTone): ScoreTextStyle {
+  if (tone === 'positive') return { colorKey: 'positive', fontWeight: '800' };
+  if (tone === 'zero') return { colorKey: 'outline', fontWeight: '600' };
+  return { colorKey: 'negative', fontWeight: '600' };
+}

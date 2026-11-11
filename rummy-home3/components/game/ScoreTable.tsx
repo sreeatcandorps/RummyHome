@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Animated, LayoutChangeEvent, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { scoreTone } from '@/utils/scoreTone';
+import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
 
 export type ScoreColumn = {
   id: string;
@@ -230,6 +230,7 @@ export function ScoreTable({
                     const tone = scoreTone(score, fullCount);
                     const positive = tone === 'positive';
                     const bigLoss = tone === 'bigNegative';
+                    const text = scoreTextStyle(tone);
                     return (
                       <View
                         key={column.id}
@@ -249,13 +250,10 @@ export function ScoreTable({
                               styles.scoreText,
                               tabularNums,
                               { fontSize },
+                              // Wins green and bold; every loss red, same size, not bold (a big loss also gets the red pill).
                               positive
-                                ? { color: colors.onPositiveContainer, fontWeight: '800' }
-                                : bigLoss
-                                  ? { color: colors.onErrorContainer, fontWeight: '800' }
-                                  : tone === 'zero'
-                                    ? { color: colors.outline }
-                                    : { color: colors.onSurface },
+                                ? { color: colors.onPositiveContainer, fontWeight: text.fontWeight }
+                                : { color: colors[text.colorKey], fontWeight: text.fontWeight },
                             ]}
                           >
                             {!hasScore ? '–' : positive ? `+${score}` : `${score}`}

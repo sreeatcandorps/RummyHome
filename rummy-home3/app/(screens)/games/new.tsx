@@ -35,6 +35,9 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+/** Diameter of the Playing count badge: room for "15" on one line. */
+const PLAYING_BADGE = 68;
+
 /** Slide the list shut and the strip open together; a no-op on web, where the chip/row entry animations still run. */
 const animateMove = () => LayoutAnimation.configureNext(LayoutAnimation.create(260, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
 
@@ -79,7 +82,7 @@ function PlayingCount({ count, hint }: { count: number; hint: string }) {
       <View style={styles.countWrap}>
         {seated ? <Animated.View pointerEvents="none" style={[styles.countHalo, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} /> : null}
         <Animated.View style={[styles.countBubble, { backgroundColor: seated ? fill : colors.surfaceVariant, borderColor: seated ? colors.primary : colors.outlineVariant, transform: [{ scale }] }]}>
-          <Text style={[styles.countText, { color: seated ? colors.onSecondaryContainer : colors.onSurfaceVariant }]}>{count}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.countText, { color: seated ? colors.onSecondaryContainer : colors.onSurfaceVariant }]}>{count}</Text>
         </Animated.View>
       </View>
       <Text variant="bodyMedium" style={[styles.flex, { color: colors.onSurfaceVariant }]}>{hint}</Text>
@@ -363,10 +366,11 @@ const styles = StyleSheet.create({
   content: { paddingBottom: spacing.md, gap: spacing.sm },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
   playingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 60 },
-  countWrap: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
-  countHalo: { position: 'absolute', width: 56, height: 56, borderRadius: 28 },
-  countBubble: { minWidth: 56, height: 56, paddingHorizontal: 12, borderRadius: 28, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
-  countText: { fontSize: 30, fontWeight: '900', lineHeight: 34 },
+  // Wide enough for two digits on one line ("11" used to wrap) at the same type size.
+  countWrap: { width: PLAYING_BADGE + 4, height: PLAYING_BADGE + 4, alignItems: 'center', justifyContent: 'center' },
+  countHalo: { position: 'absolute', width: PLAYING_BADGE, height: PLAYING_BADGE, borderRadius: PLAYING_BADGE / 2 },
+  countBubble: { width: PLAYING_BADGE, height: PLAYING_BADGE, paddingHorizontal: 6, borderRadius: PLAYING_BADGE / 2, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  countText: { fontSize: 30, fontWeight: '900', lineHeight: 36, textAlign: 'center', minWidth: 44 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   search: { marginVertical: 2 },
   searchInput: { fontSize: 15, minHeight: 0 },
