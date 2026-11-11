@@ -4,7 +4,7 @@ This folder documents how EZ Score (`rummy-home3/`, Expo SDK 54 / React Native 0
 
 Snapshot: branch `cursor/ezscore-apk-ready` at `859ee1c`, [PR #7](https://github.com/sreeatcandorps/RummyHome/pull/7), Nov 11, 2026. Unit suite re-run on this box: **231 pass / 0 fail**, `tsc` clean.
 
-**Status:** steps 1 and 2 of the plan below are implemented in this PR — see [`ci.md`](ci.md) for the workflow, the report Sree reads, and the four server-side bugs the new database tests found (recorded as known failures, not fixed).
+**Status:** steps 1 and 2 of the plan below are implemented and merged into PR 7 — see [`ci.md`](ci.md) for the workflow, the report Sree reads, and the four server-side bugs the new database tests found. All four are fixed by migration `019_security_and_concurrency_fixes.sql` (Nov 11) and the tests that documented them are hard assertions now.
 
 | Document | Answers |
 |---|---|
@@ -23,9 +23,9 @@ Snapshot: branch `cursor/ezscore-apk-ready` at `859ee1c`, [PR #7](https://github
 
 **Top gaps** (ranked by game-night risk, with what changed):
 
-1. ~~No repeatable multi-user **RLS / RPC** test.~~ Now covered server-side by pgTAP (02–09). The first run found a privilege-escalation hole (`profiles.role` is user-writable) and a profile-privacy gap; both are reported as known failures and still need a migration.
+1. ~~No repeatable multi-user **RLS / RPC** test.~~ Now covered server-side by pgTAP (02–09). The first run found a privilege-escalation hole (`profiles.role` was user-writable) and a profile-privacy gap; both are closed by migration 019 and asserted in `04_profiles_privacy.sql`.
 2. **Nothing native has ever run.** Every open item on PR #7 is Android-only: first-tap keyboard, share-sheet return, view-shot image, expo-print PDF, LayoutAnimation, APK not reverting. Unchanged.
-3. ~~No **concurrency / dropped-connection** test for `save_round`.~~ Seven scenarios now run in CI; two known failures (raw `23505` to the losing admin; orphan zero row after a racing seat removal).
+3. ~~No **concurrency / dropped-connection** test for `save_round`.~~ Eight scenarios now run in CI; the two races they found (raw `23505` to the losing admin; orphan zero row after a racing seat removal) are fixed by migration 019 (per-game lock, `PT409` conflicts) and asserted.
 4. **Real auth** (confirmation email, recovery OTP via Resend, dashboard template) has only ever been exercised against a local fake. Unchanged.
 5. Web screenshots are **not regenerable**, so UI drift is invisible until a phone pass. Unchanged.
 6. ~~Migration chain 001→017 and the rollbacks cannot be **replayed**.~~ Replayed on every run.
@@ -33,7 +33,7 @@ Snapshot: branch `cursor/ezscore-apk-ready` at `859ee1c`, [PR #7](https://github
 **Next moves** (each its own small PR; costs are $0 on this public repo):
 
 1. ~~GitHub Actions running `npm test` + `tsc` on every push.~~ Done.
-2. ~~Local Supabase + pgTAP + concurrency script.~~ Done. Follow-up: a migration 018 that locks `profiles.role` and tightens `can_see_profile`, and a `save_round` change that treats a losing race as "already saved".
+2. ~~Local Supabase + pgTAP + concurrency script.~~ Done. ~~Follow-up: a migration that locks `profiles.role` and tightens profile privacy, and a `save_round` change that handles a losing race.~~ Done as migration 019.
 3. Fix the Maestro flows (`appId: com.mindweavetech.rummyhome`, renamed labels) and run them on an Android emulator in Actions against the local Supabase.
 4. Publish the per-workflow report (already produced per run) to GitHub Pages so there is one URL per build.
 

@@ -242,6 +242,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - `018_results_reuse_and_player_ids.sql`: `get_game_result`/`list_game_results_page` add `reusedGameIds` and `playerNo`; read-only, scratch-verified, **not applied** (apply 017 then 018). The app falls back to reading the games when the fields are absent.
 - Home Recent lost its Last 10 days / All filter (every finished game, newest first). The scorecard's Players page is **Players/Admins** with Add admin by Player ID (non-player admin; open or completed games only); Game admins are listed on Complete game and the final-scores picture. A slow roster load now offers Retry instead of "Game not available".
 
+### 2026-11-11 — CI merged into PR 7; migration 019 fixes the four bugs CI found
+- PR 9's testing setup now lives on the PR 7 branch: GitHub Actions `ci.yml` (unit tests + tsc, a throw-away local Supabase with every migration from empty, rollback replay, pgTAP, two-client concurrency, one Markdown report per run), `supabase/config.toml`, the multi-user `seed.sql`, `supabase/tests/`, `ci/` scripts and `docs/testing/`. Nothing in CI touches the hosted project.
+- `019_security_and_concurrency_fixes.sql` (+ rollback), **not applied**, apply after 017 and 018: (a) a trigger stops a user setting their own `profiles.role` to `app_admin`; (b) `SELECT` on profiles is granted per column so email/phone/zip are the owner's only, read through the new `my_profile` view (the app names its columns now; `select *` on profiles is refused); (c) `save_round` serialises writers per game with an advisory lock and answers a losing race with `PT409` + a plain sentence the app shows before refreshing; (d) `remove_seat_if_no_scores` takes the same lock and `save_round` refuses a player who left, so no orphan 0 row. The tests that recorded these as known failures are hard assertions now (265 unit, 192 pgTAP, 30 concurrency, 39 rollback checks).
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -259,6 +263,8 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Game table + score entry | Done, portrait + landscape. Add round: grid, presets, keypad, Balance gate, explicit 0, big losses in red. Complete game, Final scores, and Players are their own pages. Apply `014_save_round_atomic.sql` for the one-transaction save |
 | Home | Done. Results → every live game → Recent (every Completed/Closed game, newest first, no filter). History screen redirects home |
 | Results | Done in the app. Status chips (with deselect warning), every game listed and admin-only ticks, Show results then explicit Save result (closes games, status popup), share after save, totals and table with Player IDs, banded share image, full-details PDF. `008` and `013` are live; `018_results_reuse_and_player_ids.sql` (reused flag, Player IDs) is written, not applied |
+| Security / concurrency (019) | `019_security_and_concurrency_fixes.sql` written, scratch-verified, **not applied**: role lock, owner-only contact columns + `my_profile`, per-game lock in `save_round` / `remove_seat_if_no_scores`, `PT409` conflicts. App handles both pre- and post-019 databases |
+| CI (GitHub Actions) | Done on PR 7: unit + tsc, local Supabase DB suite (migrations, rollbacks, pgTAP, concurrency), report per run. Nightly rows start once `ci.yml` is on `main`. See `docs/testing/ci.md` |
 | Game admins | Done in the app. Players/Admins page: Add admin by Player ID (non-player, open or completed games), Game admins on Complete game and the final-scores picture |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; dark mode is on Profile and saved on the phone |

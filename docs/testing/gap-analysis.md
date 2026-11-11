@@ -61,7 +61,7 @@ Nothing tests two sessions acting at once. Concrete scenarios with no coverage:
 
 | Scenario | What should happen | Risk today |
 |---|---|---|
-| Two admins both press Save round for round 7 within a second | One wins; the other sees the saved round, no duplicate, no 23505 to the user | `save_round` (014) handles the duplicate-submit case for the **same** payload; two different payloads for the same round number are not specified |
+| Two admins both press Save round for round 7 within a second | One wins; the other sees the saved round, no duplicate, no 23505 to the user | Since 019: writers to one game are serialised; the same payload is a no-op, a different one gets `PT409` and the app shows "Round 7 was just saved by someone else…" and refreshes. Covered by `ci/db/concurrency-save-round.mjs` |
 | Admin A edits round 3 while admin B adds round 8 | Both land; retired row numbering (`1000·k + n`) doesn't collide | Untested |
 | Admin adds a mid-game player while another admin is in score entry | New seat gets zeros for played rounds; the open score-entry screen either refreshes or refuses with a clear message | Untested; score-entry reducer has no "roster changed" input |
 | Two people press Declare on the same completed games | One result; the second gets "already in another result" | Only the warning copy is tested |

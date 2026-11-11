@@ -90,9 +90,9 @@ for (const r of unitRows) {
   const st = status('db/migrations.status');
   const ran = st != null;
   const txt = (read('db/migrations.txt') ?? '').trim();
-  suites.push({ key: 'migrations', title: 'Migrations 001–017 + seed on a fresh local Supabase', ran, ok: ran && st === 0, passed: ran && st === 0 ? 1 : 0, failed: ran && st !== 0 ? 1 : 0, known: 0,
+  suites.push({ key: 'migrations', title: 'Every migration (001–019) + seed on a fresh local Supabase', ran, ok: ran && st === 0, passed: ran && st === 0 ? 1 : 0, failed: ran && st !== 0 ? 1 : 0, known: 0,
     note: ran ? (st === 0 ? 'applied from empty' : 'failed') : 'not run' });
-  if (ran && st !== 0) failures.push({ suite: 'Migrations', where: 'supabase db reset', test: 'apply 001–017 + seed.sql', detail: txt.split('\n').slice(-20).join('\n') });
+  if (ran && st !== 0) failures.push({ suite: 'Migrations', where: 'supabase db reset', test: 'apply every migration + seed.sql', detail: txt.split('\n').slice(-20).join('\n') });
 }
 
 // rollbacks
@@ -102,7 +102,7 @@ const rollbacks = parseTap(read('db/rollbacks.tap'));
   const ran = st != null || rollbacks.tests.length > 0;
   const t = tally(rollbacks.tests);
   const planOk = rollbacks.planned == null || rollbacks.planned === rollbacks.tests.length;
-  suites.push({ key: 'rollbacks', title: 'Rollbacks 017→013 replayed, then 013–017 re-applied (twice)', ran, ok: ran && t.failed === 0 && planOk && (st ?? 0) === 0, ...t,
+  suites.push({ key: 'rollbacks', title: 'Rollbacks 019→013 replayed, then 013–019 re-applied (twice)', ran, ok: ran && t.failed === 0 && planOk && (st ?? 0) === 0, ...t,
     note: ran ? (planOk ? '' : `planned ${rollbacks.planned}, ran ${rollbacks.tests.length}`) : 'not run' });
   for (const x of rollbacks.tests.filter((x) => !x.ok)) (x.directive === 'TODO' ? knownFailures : failures).push({ suite: 'Rollbacks', where: 'ci/db/replay-rollbacks.sh', test: x.name, reason: x.reason, detail: x.diag.join('\n') });
 }
@@ -143,7 +143,7 @@ const conc = parseTap(read('db/concurrency.tap'));
 }
 
 // ---------- per product workflow --------------------------------------------------------------
-const scenarioOf = (name) => /^(\d+)\./.exec(name)?.[1] + '.';
+const scenarioOf = (name) => /^(\d+)[a-z]?\./.exec(name)?.[1] + '.';   // '5a.' and '5b.' belong to scenario 5.
 const workflows = map.map((w) => {
   const unit = { passed: 0, failed: 0 };
   for (const f of w.unit ?? []) { const r = unitByFile.get(f); if (r) { unit.passed += r.passed; unit.failed += r.failed; } }

@@ -87,12 +87,28 @@ Not applied by this change. Until it runs, the app still works: a saved result w
 
 What it does: no table or stored row changes. `reused_game_ids(result)` lists the games of a result that an earlier result already contained. `get_game_result` adds `reusedGameIds` and gives each `sheet.players[]` entry a `playerNo` (from `profiles.public_player_no`, null when none); `list_game_results_page` adds `reusedGameIds` to each row. Privacy rules from 013 are unchanged. Verified on a scratch Postgres 16 loaded with 001–017: declaring a result closes its game; a second result that re-uses that game reports it as reused while the new game is not; `get_game_result` returns the reused list, Player IDs, and G labels; the list page reports 1 reused on the new result and 0 on the old; an outsider still sees nothing; rollback removes both keys and the helper; re-apply restores them.
 
-## Apply order for the Nov 10 batch
+## 019 — security and concurrency fixes (found by the CI database tests)
 
-Both are unapplied. Paste into the Supabase SQL editor in this order, each as its own run:
+File: `supabase/migrations/019_security_and_concurrency_fixes.sql`. Run after 017 and 018. Safe to re-run. Rollback: `supabase/rollback/rollback_019_security_and_concurrency_fixes.sql` (puts the 014 `save_round` and 016 `remove_seat_if_no_scores` back, drops the `my_profile` view, restores whole-table read access on profiles, drops the role lock; no data to undo).
+
+Not applied by this change. Until it runs, the two security holes below are open on the live project, so apply it soon. The app from Nov 11 on works either way: it reads your own row from `my_profile` and falls back to `profiles` when the view is missing, and it shows the same friendly message for the old raw database error.
+
+What it does, in plain English:
+
+- **Nobody can make themself an app admin.** A signed-in account could run one update and set its own role to `app_admin`, which opens every game and every result. A trigger now refuses any role change unless the person is already an app admin, or the change comes from the SQL editor / service role (no signed-in user). Sending your own unchanged role back (a whole-profile save) is still fine.
+- **Email, phone and zip code are yours alone.** Any signed-in account could read every registered profile's email, phone and zip straight from the table. Reading those three columns is now refused for other people; name, avatar, Player ID, status and initials stay readable (the 011 rule about *which* players you see is unchanged). You read your own full row through the new `my_profile` view. Signed-out visitors read nothing from profiles.
+- **Two admins saving the same round.** Saves on one game now run one at a time. If someone else saved the same round first with the same scores, the second save is a harmless repeat. If their scores differ, the second admin sees "Round N was just saved by someone else. The scorecard has been refreshed; check it before you save again." instead of a database error, and the scorecard reloads. Two people editing the same round at once: the second edit waits and then wins, as if they had edited one after the other.
+- **Removing a player while a round is being saved.** The removal waits for the save to finish, then removes the player and all of their zero rows, so no score is left behind for a player who is not in the game. In the other order the save waits, then says "The players in this game changed while you were scoring" so the admin can check the round; nothing is written.
+
+Verified on a scratch Postgres 16 loaded with 001–018 and the CI seed: 192 pgTAP checks, 30 two-client race checks, and the rollback replay (apply rollback 019, then 018 → 013, re-apply 013 → 019, apply each a second time) all pass.
+
+## Apply order for the Nov 10–11 batch
+
+All three are unapplied. Paste into the Supabase SQL editor in this order, each as its own run:
 
 1. `supabase/migrations/017_link_seat_takeover.sql`
 2. `supabase/migrations/018_results_reuse_and_player_ids.sql`
+3. `supabase/migrations/019_security_and_concurrency_fixes.sql`
 
 ## Public scorecard page
 
