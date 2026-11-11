@@ -50,12 +50,16 @@ const missingRpc = (error: unknown) => {
   return code === 'PGRST202' || code === '42883' || message.includes('could not find the function');
 };
 
+/** RPCs that only read; every other one may change the roster, so the cached My Players list is dropped. */
+const READ_ONLY_RPCS = new Set(['list_my_player_links', 'list_claim_requests', 'take_creator_notices', 'list_my_unregistered_players', 'list_new_game_candidates', 'peek_claim_link']);
+
 const rpc = async <T,>(name: string, args: Record<string, unknown> = {}): Promise<T> => {
   const { data, error } = await (supabase.rpc as any)(name, args);
   if (error) {
     if (missingRpc(error)) throw new Error(MIGRATION_012_HINT);
     throw error;
   }
+  if (!READ_ONLY_RPCS.has(name)) playersService.forgetMyPlayers();
   return data as T;
 };
 const first = (row: any) => (Array.isArray(row) ? row[0] : row);
@@ -91,7 +95,7 @@ const serverPlayer = (row: any): Player => ({
   role: 'player',
 });
 
-const linkFromRow = (row: any): PendingLink => ({
+export const linkFromRow = (row: any): PendingLink => ({
   id: row.id,
   kind: row.kind === 'id_request' ? 'id_request' : 'link',
   ownerId: row.owner_id,
@@ -455,8 +459,13 @@ export const playerIdentityService = {
     await writeJson(NOTICES_KEY, [...all, notice]);
   },
 
+  /** A take_creator_notices row (RPC or home bundle) as a CreatorNotice. */
+  noticeFromRow(ownerId: string, r: any): CreatorNotice {
+    return { ownerId, playerId: r.player_id, text: r.text };
+  },
+
   async takeNotices(ownerId: string): Promise<CreatorNotice[]> {
-    if (isSupabaseConfigured) return ((await rpc<any[]>('take_creator_notices').catch(() => [])) ?? []).map((r: any) => ({ ownerId, playerId: r.player_id, text: r.text }));
+    if (isSupabaseConfigured) return ((await rpc<any[]>('take_creator_notices').catch(() => [])) ?? []).map((r: any) => this.noticeFromRow(ownerId, r));
     const all = await readJson<CreatorNotice[]>(NOTICES_KEY, []);
     await writeJson(NOTICES_KEY, all.filter((n) => n.ownerId !== ownerId));
     return all.filter((n) => n.ownerId === ownerId);

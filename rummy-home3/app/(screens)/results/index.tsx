@@ -15,7 +15,6 @@ import { gamesService } from '@/services/games';
 import { resultsService } from '@/services/results';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { Game } from '@/types/game';
-import { Player } from '@/types/player';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import {
   GameResultSummary,
@@ -47,15 +46,6 @@ import {
 } from '@/utils/resultsSave';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-
-function seatedNames(players: Player[]): Record<string, string> {
-  const names: Record<string, string> = {};
-  players.forEach((player) => {
-    if (player.id === 'EX' || player.seated === false || player.seatRole === 'spectator') return;
-    if (player.name?.trim()) names[player.id] = player.name.trim();
-  });
-  return names;
-}
 
 function newestFirst(a: Game, b: Game): number {
   return new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -132,17 +122,11 @@ export default function ResultsScreen() {
         return;
       }
       setUserId(id);
-      // Every game the person is in. Ones they do not run are listed but cannot be ticked.
-      const visible = await gamesService.listGamesForCurrentUser(id, {
-        includeScores: true,
-        email: player?.email,
-      });
-      const listedGames = selectableResultGames(visible).sort(newestFirst);
+      // Every game the person is in, with the seated players' names. Ones they do not run are listed but cannot be ticked.
+      const candidates = await gamesService.listResultCandidates(id, player?.email);
+      const listedGames = selectableResultGames(candidates.games).sort(newestFirst);
       setGames(listedGames);
-      const listed = await Promise.all(listedGames.map((game) => gamesService.listGamePlayers(game.id).catch(() => [] as Player[])));
-      const merged: Record<string, string> = {};
-      listed.forEach((players) => Object.assign(merged, seatedNames(players)));
-      setNames(merged);
+      setNames(candidates.names);
       const first = await resultsService.list(0, RESULTS_PAGE_SIZE);
       setSaved(first);
       setHasMore(first.length === RESULTS_PAGE_SIZE);

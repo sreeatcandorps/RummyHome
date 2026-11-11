@@ -9,6 +9,8 @@ import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
 import { isClockSkewError } from '@/utils/supabaseErrors';
 import { storage } from '@/utils/storage';
 import { gameCache } from '@/utils/gameCache';
+import { queryCache } from '@/utils/queryCache';
+import { sessionNeedsRefresh } from '@/utils/sessionFreshness';
 
 export type Profile = {
   id: string;
@@ -33,7 +35,7 @@ export const profileToPlayer = (profile: Profile): Player => ({
   role: profile.role === 'app_admin' ? 'admin' : 'player',
 });
 
-const toProfile = (row: any): Profile => ({
+export const toProfile = (row: any): Profile => ({
   id: row.id,
   email: row.email ?? undefined,
   phone: row.phone ?? undefined,
@@ -59,7 +61,7 @@ const missingRelation = (error: { code?: string; message?: string } | null | und
  * `select *` on profiles is refused. Before 019 the view does not exist, so the
  * table is read directly as before.
  */
-async function readOwnProfile(userId: string): Promise<Profile | null> {
+async function fetchOwnProfile(userId: string): Promise<Profile | null> {
   const own = await supabase.from('my_profile').select('*').eq('id', userId).maybeSingle();
   if (!own.error) return own.data ? toProfile(own.data) : null;
   if (!missingRelation(own.error)) throw own.error;
@@ -67,6 +69,22 @@ async function readOwnProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
   if (error) throw error;
   return data ? toProfile(data) : null;
+}
+
+/**
+ * The own row is asked for by every screen and by the tab bar on every tab change.
+ * One request serves every caller for PROFILE_STALE_MS; any profile write, sign-in
+ * or sign-out drops the copy (forgetProfile), and a Home bundle primes it.
+ */
+export const PROFILE_STALE_MS = 60_000;
+const PROFILE_KEY = (userId: string) => `profile:${userId}`;
+
+async function readOwnProfile(userId: string): Promise<Profile | null> {
+  return queryCache.read(PROFILE_KEY(userId), () => fetchOwnProfile(userId), { staleTime: PROFILE_STALE_MS });
+}
+
+function forgetProfile() {
+  queryCache.invalidate('profile:');
 }
 
 const errorText = (error: { message?: string } | null | undefined) => (error ? error.message || 'Something went wrong.' : null);
@@ -96,6 +114,8 @@ export const passcodeClient: PasscodeAuthClient = {
   async signOut() {
     await supabase.auth.signOut();
     await storage.setCurrentPlayer(null);
+    gameCache.clear();
+    queryCache.clear();
   },
 };
 
@@ -107,6 +127,7 @@ export const authService = {
     });
 
     if (error) throw error;
+    forgetProfile();
     if (data.session?.user) {
       await storage.setCurrentPlayer(data.session.user.id);
     }
@@ -128,6 +149,7 @@ export const authService = {
     });
 
     if (error) throw error;
+    forgetProfile();
     if (data.session?.user) {
       await storage.setCurrentPlayer(data.session.user.id);
     }
@@ -144,6 +166,7 @@ export const authService = {
     const { error } = await supabase.auth.signOut();
     await storage.setCurrentPlayer(null);
     gameCache.clear();
+    queryCache.clear();
     if (error) throw error;
   },
 
@@ -156,6 +179,7 @@ export const authService = {
     }
     await storage.setCurrentPlayer(null);
     gameCache.clear();
+    queryCache.clear();
   },
 
   async getSession() {
@@ -173,10 +197,15 @@ export const authService = {
     return data.session;
   },
 
-  /** Refresh when possible so slightly skewed / stale tokens recover. */
+  /**
+   * Refresh so slightly skewed / stale tokens recover, but only when the access token is
+   * close to expiry (or has no expiry). A token with plenty of life left is used as is:
+   * that saves one auth round-trip on every Home focus.
+   */
   async ensureFreshSession() {
     const session = await this.getSession();
     if (!session) return null;
+    if (!sessionNeedsRefresh(session)) return session;
 
     try {
       return (await this.refreshSession()) ?? session;
@@ -254,10 +283,22 @@ export const authService = {
       .single();
 
     if (error) throw error;
+    forgetProfile();
     const fresh = await readOwnProfile(data.id as string);
     if (!fresh) throw new Error('Your profile could not be read back. Sign out and back in, then try again.');
     return fresh;
   },
+
+  /** A profile row that arrived inside a bundle: serve it to the next callers instead of fetching again. */
+  primeProfile(row: any): Profile | null {
+    if (!row || typeof row.id !== 'string') return null;
+    const profile = toProfile(row);
+    queryCache.set(PROFILE_KEY(profile.id), profile);
+    return profile;
+  },
+
+  /** After any write to the own profile row made elsewhere (phone, defaults, name). */
+  forgetProfile,
 
   /**
    * Phone only. Sends exactly one column, so nothing else about the profile can
@@ -277,6 +318,7 @@ export const authService = {
     if (error) throw error;
     if (!data || data.length === 0) throw new Error('Your profile could not be updated. Sign out and back in, then try again.');
     // `phone` is readable only through my_profile since 019 (RETURNING phone is refused), so read it back.
+    forgetProfile();
     const fresh = await readOwnProfile(userId);
     return fresh?.phone ?? phone;
   },
