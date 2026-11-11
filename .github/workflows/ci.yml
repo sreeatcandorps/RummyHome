@@ -44,9 +44,23 @@ jobs:
       matrix:
         ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "main"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
     steps:
+      # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
+      # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
+      # (rummy-home3/) is taken from matrix.ref instead, so PR 7 and main can be tested before they
+      # carry the tooling themselves.
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        if: matrix.ref != ''
         with:
           ref: ${{ matrix.ref }}
+          path: .target
+      - name: Put the app under test in place
+        if: matrix.ref != ''
+        run: |
+          rm -rf rummy-home3
+          mv .target/rummy-home3 rummy-home3
+          git checkout -- rummy-home3/supabase/config.toml rummy-home3/supabase/seed.sql rummy-home3/supabase/tests
+          git -C .target log --oneline -1
 
       - id: meta
         name: Name this run
@@ -54,7 +68,7 @@ jobs:
           REF="${{ matrix.ref || github.head_ref || github.ref_name }}"
           echo "ref=$REF" >> "$GITHUB_OUTPUT"
           echo "slug=$(echo "$REF" | tr '/' '-')" >> "$GITHUB_OUTPUT"
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git -C .target rev-parse HEAD 2>/dev/null || git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         with:
@@ -109,9 +123,23 @@ jobs:
       # Supabase CLI defaults for the local stack started below; never the hosted project.
       DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
     steps:
+      # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
+      # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
+      # (rummy-home3/) is taken from matrix.ref instead, so PR 7 and main can be tested before they
+      # carry the tooling themselves.
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        if: matrix.ref != ''
         with:
           ref: ${{ matrix.ref }}
+          path: .target
+      - name: Put the app under test in place
+        if: matrix.ref != ''
+        run: |
+          rm -rf rummy-home3
+          mv .target/rummy-home3 rummy-home3
+          git checkout -- rummy-home3/supabase/config.toml rummy-home3/supabase/seed.sql rummy-home3/supabase/tests
+          git -C .target log --oneline -1
 
       - id: meta
         name: Name this run
@@ -195,9 +223,23 @@ jobs:
       matrix:
         ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "main"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
     steps:
+      # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
+      # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
+      # (rummy-home3/) is taken from matrix.ref instead, so PR 7 and main can be tested before they
+      # carry the tooling themselves.
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        if: matrix.ref != ''
         with:
           ref: ${{ matrix.ref }}
+          path: .target
+      - name: Put the app under test in place
+        if: matrix.ref != ''
+        run: |
+          rm -rf rummy-home3
+          mv .target/rummy-home3 rummy-home3
+          git checkout -- rummy-home3/supabase/config.toml rummy-home3/supabase/seed.sql rummy-home3/supabase/tests
+          git -C .target log --oneline -1
 
       - id: meta
         name: Name this run
@@ -205,7 +247,7 @@ jobs:
           REF="${{ matrix.ref || github.head_ref || github.ref_name }}"
           echo "ref=$REF" >> "$GITHUB_OUTPUT"
           echo "slug=$(echo "$REF" | tr '/' '-')" >> "$GITHUB_OUTPUT"
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git -C .target rev-parse HEAD 2>/dev/null || git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-node@v4
         with:

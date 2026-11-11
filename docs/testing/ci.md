@@ -21,8 +21,10 @@ Runs: https://github.com/sreeatcandorps/RummyHome/actions/workflows/ci.yml
 ## When it runs
 
 - Every push to any branch and every pull request. (A push to a PR branch produces two runs, one per trigger; both show the same result.)
-- Nightly at 09:00 UTC, which is 1 AM Pacific standard time (2 AM in summer), against `cursor/ezscore-apk-ready` (PR 7) and `main`, as two rows of a matrix.
+- Nightly at 09:00 UTC, which is 1 AM Pacific standard time (2 AM in summer), against `cursor/ezscore-apk-ready` (PR 7) and `main`, as two rows of a matrix. GitHub only runs schedules from the **default branch's** workflow file, so the nightly starts once this PR's `ci.yml` is on `main`.
 - On demand: Actions → CI → "Run workflow", optionally with a branch or commit in the `ref` box.
+
+For the nightly rows and manual runs, the test tooling (`ci/`, `supabase/config.toml`, `seed.sql`, `supabase/tests`) is taken from the commit the workflow runs from, and `rummy-home3/` (app, migrations, unit tests) from the target ref. That is how PR 7's head can be tested before the PR 7 branch carries the tooling. Until `main` catches up with PR 7 it only has migrations 001–004, so its nightly row will be red on the database suite; that is a true statement about `main`, not a tooling problem.
 
 ## Jobs
 
