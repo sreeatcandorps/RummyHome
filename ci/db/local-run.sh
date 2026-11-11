@@ -20,7 +20,7 @@ OUT="${OUT:-ci/out}"
 mkdir -p "$OUT/db"
 rm -rf "$OUT/db"/*
 
-echo "== recreate $DB and apply migrations 001..017 + seed"
+echo "== recreate $DB and apply every migration + seed"
 {
   $PSQL -v ON_ERROR_STOP=1 -q -c "drop database if exists $DB;" -c "create database $DB;" &&
   $PSQL -v ON_ERROR_STOP=1 -q -d "$DB" -f ci/db/local-stub.sql &&

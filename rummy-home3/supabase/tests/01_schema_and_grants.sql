@@ -1,7 +1,7 @@
--- Migrations 001–017 applied from empty: the objects each one promises exist,
+-- Migrations 001–019 applied from empty: the objects each one promises exist,
 -- RLS is on, and anon cannot call anything that writes or reads private data.
 begin;
-select plan(31);
+select plan(44);
 
 -- tables
 select has_table('public', 'profiles', 'profiles (001)');
@@ -42,6 +42,25 @@ select matches(
 select ok((select relrowsecurity from pg_class where oid = 'public.profiles'::regclass), 'RLS on profiles');
 select ok((select relrowsecurity from pg_class where oid = 'public.games'::regclass), 'RLS on games');
 select ok((select relrowsecurity from pg_class where oid = 'public.game_results'::regclass), 'RLS on game_results');
+
+-- 019: role lock trigger, per-game lock in both writers, my_profile view, contact columns private
+select has_function('public', 'lock_profile_role', 'lock_profile_role (019)');
+select has_trigger('public', 'profiles', 'profiles_lock_role', 'profiles_lock_role trigger (019)');
+select has_view('public', 'my_profile', 'my_profile view (019)');
+select matches(
+  (select prosrc from pg_proc where proname = 'save_round' and pronamespace = 'public'::regnamespace),
+  'pg_advisory_xact_lock', 'save_round carries the 019 body (per-game advisory lock)');
+select matches(
+  (select prosrc from pg_proc where proname = 'remove_seat_if_no_scores' and pronamespace = 'public'::regnamespace),
+  'pg_advisory_xact_lock', 'remove_seat_if_no_scores carries the 019 body (same per-game lock)');
+select ok(not has_table_privilege('anon', 'public.profiles', 'select'), 'anon has no select on profiles');
+select ok(not has_column_privilege('authenticated', 'public.profiles', 'email', 'select'), 'authenticated cannot select profiles.email');
+select ok(not has_column_privilege('authenticated', 'public.profiles', 'phone', 'select'), 'authenticated cannot select profiles.phone');
+select ok(not has_column_privilege('authenticated', 'public.profiles', 'zip_code', 'select'), 'authenticated cannot select profiles.zip_code');
+select ok(has_column_privilege('authenticated', 'public.profiles', 'display_name', 'select'), 'authenticated can select profiles.display_name');
+select ok(has_column_privilege('authenticated', 'public.profiles', 'public_player_no', 'select'), 'authenticated can select profiles.public_player_no');
+select ok(has_table_privilege('authenticated', 'public.my_profile', 'select'), 'authenticated can read my_profile');
+select ok(not has_table_privilege('anon', 'public.my_profile', 'select'), 'anon cannot read my_profile');
 
 -- anon cannot execute the sensitive RPCs; authenticated can
 select ok(not has_function_privilege('anon', 'public.save_round(uuid,integer,jsonb,boolean)', 'execute'), 'anon cannot save_round');

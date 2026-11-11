@@ -1,7 +1,8 @@
--- 011: who can read which profile rows, and what Find player gives away.
+-- 011/019: who can read which profile rows and columns, what Find player gives away,
+-- and that nobody can promote themselves to app admin.
 -- Placeholders: rk (sree's, seated in A), ab (harish's, seated in B), cd (sree's, seated in C).
 begin;
-select plan(14);
+select plan(27);
 
 -- outsider: no placeholders at all
 select tests.login('00000000-0000-4000-8000-000000000005');
@@ -31,25 +32,51 @@ select is((select count(*) from public.search_players('harish@'))::int, 0, 'sear
 select is((select count(*) from public.search_players('harish@test.local'))::int, 1, 'search: full email matches one');
 select is((select count(*) from public.search_players('Har'))::int, 1, 'search: name prefix matches');
 
--- KNOWN GAP (documented, not fixed here): any signed-in account can read the email of every
--- registered profile straight from the table, because can_see_profile() returns true whenever
--- managed_by is null. docs/migrations-to-apply.md §011 says signed-in users "see their own row,
--- players they created, and players they have played with" — the policy is wider than that.
-select todo('privacy gap: registered profiles (email/phone/zip) readable by any signed-in account', 1);
-select is(
-  (select count(*) from public.profiles where id <> auth.uid() and email is not null)::int,
-  0, 'a stranger reads no other registered account''s email from profiles');
+-- 019 (B): email, phone and zip_code are the owner's alone. SELECT on profiles is granted per
+-- column to authenticated, so reading a contact column (or `select *`) is refused outright;
+-- the row policy from 011 still decides which rows the safe columns come from.
+select throws_ok(
+  $$ select email from public.profiles where id <> auth.uid() $$,
+  '42501', null, 'a stranger cannot read other accounts'' email from profiles');
+select throws_ok(
+  $$ select phone from public.profiles where id <> auth.uid() $$,
+  '42501', null, 'a stranger cannot read other accounts'' phone from profiles');
+select throws_ok(
+  $$ select zip_code from public.profiles where id <> auth.uid() $$,
+  '42501', null, 'a stranger cannot read other accounts'' zip code from profiles');
+select throws_ok(
+  $$ select * from public.profiles $$,
+  '42501', null, 'select * on profiles is refused for signed-in users (name the columns)');
+select lives_ok(
+  $$ select id, display_name, first_name, last_name, avatar_url, player_code, public_player_no, player_status, managed_by, role from public.profiles $$,
+  'name, avatar, Player ID and status columns are still readable');
+select ok((select count(*) from public.profiles where id <> auth.uid()) > 0, 'other registered players are still listed by name');
 
--- KNOWN BUG (found by this suite, not fixed here): the "users update own profile" policy lets a
--- signed-in account change its own `role`, and nothing locks that column. After
---   update profiles set role = 'app_admin' where id = auth.uid()
--- is_app_admin() is true, so every game, every seat and every result in the project opens up.
--- The fix belongs in a migration (a trigger that refuses role changes unless the caller is
--- already an app admin, like profiles_lock_email does for email). Kept last: it changes the session.
-select todo('privilege escalation: a user can set their own profiles.role to app_admin', 2);
-update public.profiles set role = 'app_admin' where id = auth.uid();
-select is((select role::text from public.profiles where id = auth.uid()), 'player', 'a user cannot change their own role');
+-- the owner reads their own full row through my_profile
+select is((select count(*) from public.my_profile)::int, 1, 'my_profile returns exactly the caller''s row');
+select is((select email from public.my_profile), 'outsider@test.local', 'my_profile carries the caller''s email');
+select is((select id from public.my_profile), auth.uid(), 'my_profile is the caller''s own row');
+
+-- signed out: nothing at all
+select tests.anon();
+select throws_ok($$ select display_name from public.profiles $$, '42501', null, 'anon cannot read profiles');
+select throws_ok($$ select * from public.my_profile $$, '42501', null, 'anon cannot read my_profile');
+
+-- 019 (A): the "users update own profile" policy covers the row, but the role column is
+-- locked by profiles_lock_role: only an app admin (or the service role / SQL) may change it.
+-- Kept last: it changes the session.
+select tests.login('00000000-0000-4000-8000-000000000005');
+select throws_ok(
+  $$ update public.profiles set role = 'app_admin' where id = auth.uid() $$,
+  '42501', 'Only an app admin can change a player''s role.', 'a user cannot grant themselves app_admin');
+select is((select role::text from public.profiles where id = auth.uid()), 'player', 'the role is still player');
 select ok(not public.is_app_admin(), 'a user who tried is still not an app admin');
+select lives_ok(
+  $$ update public.profiles set display_name = 'Otto O.' where id = auth.uid() $$,
+  'editing other own-profile columns still works');
+select lives_ok(
+  $$ update public.profiles set role = 'player' where id = auth.uid() $$,
+  'sending the unchanged role (whole-profile saves) is not refused');
 
 select * from finish();
 rollback;

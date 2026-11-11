@@ -6,8 +6,9 @@
  *   begin → set role authenticated + request.jwt.claims → call the RPC → commit.
  * Holding one transaction open while the other starts makes the race deterministic.
  *
- * Prints TAP. Expectations that describe a known limitation are marked "# TODO" so they are
- * reported but do not fail the job (same convention as the pgTAP todo() blocks).
+ * Prints TAP. Every expectation must pass since migration 019 (per-game lock in save_round and
+ * remove_seat_if_no_scores, PT409 conflicts). The "# TODO" directive is still supported for any
+ * future known limitation (same convention as the pgTAP todo() blocks).
  *
  * Env: DB_URL (default postgresql://postgres:postgres@127.0.0.1:54322/postgres — the Supabase CLI default)
  */
@@ -107,9 +108,12 @@ async function main() {
     ok(r3.length === 1, '1. exactly one live round 3 after the race');
     ok(r3[0]?.scores === 2 && r3[0]?.total === 0, '1. round 3 has one balanced set of scores (no merge of the two payloads)', { detail: JSON.stringify(r3) });
     ok(!second.ok, '1. the second save does not silently succeed with a different payload', { detail: second.error?.code });
-    ok(second.ok || second.error?.code !== '23505',
-      '1. the loser gets a graceful outcome (treated as a duplicate submit), not a raw unique violation',
-      { todo: 'save_round raises 23505 duplicate key to the second admin; the app shows it as an error instead of refreshing to the saved round', detail: second.error?.message });
+    ok(!second.ok && second.error?.code === 'PT409',
+      '1. the loser gets a PT409 conflict (HTTP 409 through PostgREST), not a raw 23505 unique violation',
+      { detail: `${second.error?.code}: ${second.error?.message}` });
+    ok(/just saved by someone else/i.test(second.error?.message ?? ''),
+      '1. the conflict message is the plain-English one the app shows before refreshing',
+      { detail: second.error?.message });
   }
 
   // ---------------------------------------------------------------------------------------
@@ -130,16 +134,19 @@ async function main() {
 
   // ---------------------------------------------------------------------------------------
   // 3. Admin A edits round 3 while admin B adds round 5
+  //    (019: writers to one game run one at a time, so B waits for A's commit, then lands)
   // ---------------------------------------------------------------------------------------
   {
     await beginAs(a, SREE);
     const edit = await attempt(() => saveRound(a, GAME_A, 3, [[HARISH, -40], [PRIYA, 40]], true));
     await beginAs(b, COADMIN);
-    const add = await attempt(() => saveRound(b, GAME_A, 5, [[HARISH, 15], [PRIYA, -15]]));
+    const addP = attempt(() => saveRound(b, GAME_A, 5, [[HARISH, 15], [PRIYA, -15]]));
+    await pause(300);                       // B waits on the per-game lock until A commits
     await a.query(edit.ok ? 'commit' : 'rollback');
+    const add = await addP;
     await b.query(add.ok ? 'commit' : 'rollback');
     const rounds = await liveRounds(admin, GAME_A);
-    ok(edit.ok && add.ok, '3. an edit and an add on different rounds both succeed', { detail: `${edit.error?.message ?? ''} ${add.error?.message ?? ''}`.trim() });
+    ok(edit.ok && add.ok, '3. an edit and an add on different rounds both succeed (the add waits for the edit to commit)', { detail: `${edit.error?.message ?? ''} ${add.error?.message ?? ''}`.trim() });
     const r3 = rounds.find((r) => r.round_number === 3);
     ok(r3 && r3.scores === 2 && rounds.filter((r) => r.round_number === 5).length === 1, '3. rounds 3 and 5 each exist once with their own scores');
     const { rows } = await admin.query(`select count(*)::int as c from public.rounds where game_id = $1 and round_number > 1000 and undone_at is not null`, [GAME_A]);
@@ -161,30 +168,67 @@ async function main() {
     const r4 = (await liveRounds(admin, GAME_A)).filter((r) => r.round_number === 4);
     ok(e1.ok, '4. the first edit succeeds');
     ok(r4.length === 1 && r4[0].scores === 2 && r4[0].total === 0, '4. exactly one live round 4 with one balanced payload after two simultaneous edits', { detail: JSON.stringify(r4) });
-    ok(e2.ok || e2.error?.code !== '23505',
-      '4. the second editor gets a graceful outcome',
-      { todo: 'second simultaneous edit of the same round raises 23505 after the first commits', detail: e2.error?.message });
+    ok(e2.ok, '4. the second editor gets a graceful outcome (waits for the first, then its edit lands: last writer wins, no 23505)',
+      { detail: `${e2.error?.code ?? ''} ${e2.error?.message ?? ''}`.trim() });
+    const { rows: h4 } = await admin.query(
+      `select s.value from public.scores s join public.rounds r on r.id = s.round_id
+        where r.game_id = $1 and r.round_number = 4 and r.undone_at is null and s.profile_id = $2`, [GAME_A, HARISH]);
+    ok(h4.length === 1 && h4[0].value === 9,
+      "4. the surviving round 4 carries the second editor's payload (last writer wins, as with two sequential edits)", { detail: JSON.stringify(h4) });
   }
 
   // ---------------------------------------------------------------------------------------
-  // 5. Remove a zero-score seat while another admin is saving a round that includes them
+  // 5a. Remove a zero-score seat while another admin's save that includes them is in flight.
+  //     019: both take the same per-game lock, so the removal waits for the save, then still
+  //     removes the seat (its new score is a 0) and deletes every score row of that seat.
   // ---------------------------------------------------------------------------------------
   {
     await beginAs(a, SREE);
     const save = await attempt(() => saveRound(a, GAME_A, 6, [[HARISH, -12], [PRIYA, 12], [ZERO, 0]]));
     await beginAs(b, COADMIN);
-    const remove = await attempt(() => b.query('select * from public.remove_seat_if_no_scores($1, $2)', [GAME_A, ZERO]));
-    await b.query(remove.ok ? 'commit' : 'rollback');
+    const removeP = attempt(() => b.query('select * from public.remove_seat_if_no_scores($1, $2)', [GAME_A, ZERO]));
+    await pause(300);                       // B is now waiting on the per-game lock held by A
+    const { rows: waiting } = await admin.query(
+      `select count(*)::int as c from pg_stat_activity where wait_event_type = 'Lock' and wait_event = 'advisory'`);
     await a.query(save.ok ? 'commit' : 'rollback');
+    const remove = await removeP;
+    await b.query(remove.ok ? 'commit' : 'rollback');
     const { rows: seat } = await admin.query('select count(*)::int as c from public.game_players where game_id = $1 and profile_id = $2', [GAME_A, ZERO]);
     const { rows: orphan } = await admin.query(
       `select count(*)::int as c from public.scores s join public.rounds r on r.id = s.round_id
-        where s.game_id = $1 and s.profile_id = $2 and r.undone_at is null`, [GAME_A, ZERO]);
-    ok(save.ok && remove.ok, '5. the save and the removal both complete (neither blocks the other)', { detail: `${save.error?.message ?? ''} ${remove.error?.message ?? ''}`.trim() });
-    ok(seat[0].c === 0, '5. the seat is gone');
-    ok(orphan[0].c === 0,
-      '5. no score row is left behind for the removed player',
-      { todo: 'a save in flight during remove_seat_if_no_scores commits a 0 score for a player who no longer has a seat', detail: `orphan score rows for removed player: ${orphan[0].c}` });
+        where s.game_id = $1 and s.profile_id = $2`, [GAME_A, ZERO]);
+    const r6 = (await liveRounds(admin, GAME_A)).filter((r) => r.round_number === 6);
+    ok(save.ok, '5a. the save in flight completes', { detail: save.error?.message });
+    ok(waiting[0].c >= 1, '5a. the removal waited on the per-game lock while the save was in flight', { detail: `sessions waiting on an advisory lock: ${waiting[0].c}` });
+    ok(remove.ok, '5a. the removal completes after the save commits', { detail: `${remove.error?.code ?? ''} ${remove.error?.message ?? ''}`.trim() });
+    ok(seat[0].c === 0, '5a. the seat is gone');
+    ok(orphan[0].c === 0, '5a. no score row is left behind for the removed player (live or retired)', { detail: `orphan score rows for removed player: ${orphan[0].c}` });
+    ok(r6.length === 1 && r6[0].scores === 2 && r6[0].total === 0, "5a. round 6 keeps the other two players' scores", { detail: JSON.stringify(r6) });
+  }
+
+  // ---------------------------------------------------------------------------------------
+  // 5b. The other order: the removal is in flight when the save starts. The save waits, then
+  //     sees the seat is gone and refuses (PT409) instead of writing a score for a non-seat.
+  // ---------------------------------------------------------------------------------------
+  {
+    const NEWCOMER = '00000000-0000-4000-8000-000000000005';   // outsider, seated for this scenario only
+    await admin.query(
+      `insert into public.game_players (game_id, profile_id, player_order, role, seated) values ($1, $2, 9, 'player', true)`, [GAME_A, NEWCOMER]);
+    await beginAs(b, COADMIN);
+    const remove = await attempt(() => b.query('select * from public.remove_seat_if_no_scores($1, $2)', [GAME_A, NEWCOMER]));
+    await beginAs(a, SREE);
+    const saveP = attempt(() => saveRound(a, GAME_A, 7, [[HARISH, -8], [PRIYA, 8], [NEWCOMER, 0]]));
+    await pause(300);                       // A is now waiting on the per-game lock held by B
+    await b.query(remove.ok ? 'commit' : 'rollback');
+    const save = await saveP;
+    await a.query(save.ok ? 'commit' : 'rollback');
+    const { rows: seat } = await admin.query('select count(*)::int as c from public.game_players where game_id = $1 and profile_id = $2', [GAME_A, NEWCOMER]);
+    const { rows: orphan } = await admin.query('select count(*)::int as c from public.scores where game_id = $1 and profile_id = $2', [GAME_A, NEWCOMER]);
+    const r7 = (await liveRounds(admin, GAME_A)).filter((r) => r.round_number === 7);
+    ok(remove.ok, '5b. the removal in flight completes', { detail: remove.error?.message });
+    ok(!save.ok && save.error?.code === 'PT409', '5b. the save that named the removed player is refused with PT409 (players changed)', { detail: `${save.error?.code ?? 'ok'} ${save.error?.message ?? ''}`.trim() });
+    ok(seat[0].c === 0 && orphan[0].c === 0, '5b. the seat is gone and no score row exists for the removed player');
+    ok(r7.length === 0, '5b. no round 7 was written (the whole save rolled back)', { detail: JSON.stringify(r7) });
   }
 
   // ---------------------------------------------------------------------------------------

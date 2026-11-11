@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has 001–017 applied, check the function state after each, then re-apply the forward
+# has every migration (001–019) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,22 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 019 (present from PR 7's Nov 11 security/concurrency batch on; skipped on refs that do not have it yet)
+HAS_019=f
+if [ -f "$RB/rollback_019_security_and_concurrency_fixes.sql" ]; then
+  HAS_019=t
+  if apply "$RB/rollback_019_security_and_concurrency_fixes.sql"; then tap ok "rollback_019 applies"; else tap fail "rollback_019 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists lock_profile_role)" = f ] && tap ok "after rollback_019 lock_profile_role is gone" || tap fail "after rollback_019 lock_profile_role should be gone"
+  [ "$(q "select exists(select 1 from pg_views where schemaname='public' and viewname='my_profile')")" = f ] \
+    && tap ok "after rollback_019 my_profile view is gone" || tap fail "after rollback_019 my_profile view should be gone"
+  [ "$(fn_has save_round pg_advisory_xact_lock)" = f ] && [ "$(fn_has remove_seat_if_no_scores pg_advisory_xact_lock)" = f ] \
+    && tap ok "after rollback_019 save_round and remove_seat_if_no_scores are the 014/016 bodies (no per-game lock)" \
+    || tap fail "after rollback_019 save_round / remove_seat_if_no_scores should be the 014/016 bodies"
+  [ "$(q "select has_column_privilege('authenticated','public.profiles','email','select')")" = t ] \
+    && tap ok "after rollback_019 authenticated can read profiles.email again (pre-019 state)" \
+    || tap fail "after rollback_019 authenticated should have whole-table select on profiles"
+fi
 
 # 018 (present from PR 7's Nov 10 batch on; skipped on refs that do not have it yet)
 HAS_018=f
@@ -63,6 +79,7 @@ if apply "$RB/rollback_013_results_privacy.sql"; then tap ok "rollback_013 appli
 # forward again, in order
 FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_remove_seat_if_no_scores 017_link_seat_takeover"
 [ "$HAS_018" = t ] && FORWARD="$FORWARD 018_results_reuse_and_player_ids"
+[ "$HAS_019" = t ] && FORWARD="$FORWARD 019_security_and_concurrency_fixes"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -72,6 +89,13 @@ done
 [ "$(fn_has link_seat_to_player 'already playing in this game')" = t ] && tap ok "017 restored (takeover body)" || tap fail "017 restored (takeover body)"
 if [ "$HAS_018" = t ]; then
   [ "$(fn_exists reused_game_ids)" = t ] && [ "$(fn_has get_game_result reused_game_ids)" = t ] && tap ok "018 restored (reused_game_ids and the 018 reader)" || tap fail "018 restored"
+fi
+if [ "$HAS_019" = t ]; then
+  [ "$(fn_exists lock_profile_role)" = t ] && [ "$(fn_has save_round pg_advisory_xact_lock)" = t ] && [ "$(fn_has remove_seat_if_no_scores pg_advisory_xact_lock)" = t ] \
+    && [ "$(q "select exists(select 1 from pg_views where schemaname='public' and viewname='my_profile')")" = t ] \
+    && [ "$(q "select has_column_privilege('authenticated','public.profiles','email','select')")" = f ] \
+    && tap ok "019 restored (role lock, per-game lock in save_round and remove_seat_if_no_scores, my_profile, contact columns private)" \
+    || tap fail "019 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op
