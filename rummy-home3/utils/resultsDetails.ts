@@ -10,7 +10,8 @@ import {
   scoreCell,
   splitTotals,
 } from '@/utils/results';
-import { uniquePlayerCount } from '@/utils/resultsLayout';
+import { buildShareBreakdown, legendLines, ShareBand, uniquePlayerCount } from '@/utils/resultsLayout';
+import { totalsSubline } from '@/utils/resultsSave';
 
 export type ResultsDetailGame = {
   id: string;
@@ -47,9 +48,16 @@ export type ResultsDetails = {
   playerCount: number;
   games: { name: string; when: string }[];
   columns: string[];
-  rows: { name: string; cells: string[] }[];
-  positive: { name: string; points: string }[];
-  negative: { name: string; points: string }[];
+  rows: { name: string; sub?: string; cells: string[] }[];
+  /**
+   * By game, players as rows and up to five games per band of columns; more games wrap
+   * into further bands (G6–G10 …) so the table always fits a phone-width page.
+   */
+  bands: ShareBand[];
+  /** "HG Harish Gadupudi · SK Sree Koneru …" under the bands. */
+  legend: string[];
+  positive: { name: string; sub?: string; points: string }[];
+  negative: { name: string; sub?: string; points: string }[];
   places: { label: string; names: string; points: string }[];
   roundTables: ResultsRoundTable[];
   /** "Result ID · ABC123" — the same stable id as on the image. */
@@ -103,15 +111,18 @@ export function buildRoundTable(
 export function buildResultsDetails(input: {
   createdAtLabel: string;
   standings: ResultStanding[];
-  players: { id: string; name: string }[];
+  players: { id: string; name: string; playerNo?: number | null }[];
   games: ResultsDetailGame[];
   footer?: string;
 }): ResultsDetails {
   const players = playersByFirstName(input.players);
   const labels = initialsById(firstAppearanceOrder(input.players, input.games));
+  const byId = new Map(input.players.map((player) => [player.id, player]));
+  const sub = (id: string) => totalsSubline(labels.get(id), byId.get(id)) || undefined;
   const points = new Map(input.standings.map((row) => [row.id, row.points]));
   const rows = players.map((player) => ({
     name: player.name,
+    sub: sub(player.id),
     cells: [
       ...input.games.map((game) => scoreCell(game.scores, player.id)),
       formatPoints(points.get(player.id) ?? 0),
@@ -119,6 +130,11 @@ export function buildResultsDetails(input: {
   }));
   const totals = splitTotals(input.standings);
   const seatedCount = uniquePlayerCount(input.games);
+  const breakdown = buildShareBreakdown({
+    players: input.players,
+    games: input.games,
+    totals: Object.fromEntries(input.standings.map((row) => [row.id, row.points])),
+  });
   return {
     title: 'Results',
     createdAtLabel: input.createdAtLabel,
@@ -127,8 +143,10 @@ export function buildResultsDetails(input: {
     games: input.games.map((game) => ({ name: sheetGameLabel(game), when: game.when })),
     columns: [...input.games.map((game) => gameColumnLabel(game, game.when)), 'Total'],
     rows,
-    positive: totals.positive.map((row) => ({ name: row.name, points: formatPoints(row.points) })),
-    negative: totals.negative.map((row) => ({ name: row.name, points: formatPoints(row.points) })),
+    bands: breakdown?.bands ?? [],
+    legend: breakdown ? legendLines(breakdown.legend, 60) : [],
+    positive: totals.positive.map((row) => ({ name: row.name, sub: sub(row.id), points: formatPoints(row.points) })),
+    negative: totals.negative.map((row) => ({ name: row.name, sub: sub(row.id), points: formatPoints(row.points) })),
     places: podiumPlaces(input.standings).map((group) => ({
       label: placeLabel(group[0].place),
       names: group.map((row) => row.name).join(', '),
@@ -148,11 +166,23 @@ function pointsCell(value: string, tag: 'td' | 'th' = 'td'): string {
   return `<${tag} class="num ${pointsClass(value)}">${escapeHtml(value)}</${tag}>`;
 }
 
-function totalsTable(heading: string, rows: { name: string; points: string }[]): string {
+function nameCell(name: string, sub?: string): string {
+  return `<td>${escapeHtml(name)}${sub ? `<br /><span class="sub">${escapeHtml(sub)}</span>` : ''}</td>`;
+}
+
+function totalsTable(heading: string, rows: { name: string; sub?: string; points: string }[]): string {
   const body = rows.length === 0
     ? '<tr><td class="mute" colspan="2">None</td></tr>'
-    : rows.map((row) => `<tr><td>${escapeHtml(row.name)}</td>${pointsCell(row.points)}</tr>`).join('');
+    : rows.map((row) => `<tr>${nameCell(row.name, row.sub)}${pointsCell(row.points)}</tr>`).join('');
   return `<div class="totals-col"><h3>${heading}</h3><table class="compact"><tbody>${body}</tbody></table></div>`;
+}
+
+/** One band: a header row of up to five games (plus Total on the last) and a score row per player. */
+function bandHtml(band: ShareBand, index: number): string {
+  const head = `<tr><th>Player</th>${band.columns.map((column) => `<th class="num">${escapeHtml(column)}</th>`).join('')}</tr>`;
+  const body = band.rows.map((row) => `<tr><td><b>${escapeHtml(row.head)}</b></td>${row.cells.map((cell, cellIndex) =>
+    pointsCell(cell, band.hasTotal && cellIndex === row.cells.length - 1 ? 'th' : 'td')).join('')}</tr>`).join('');
+  return `<table class="compact band" data-band="${index + 1}"><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }
 
 function roundTableHtml(table: ResultsRoundTable): string {
@@ -173,6 +203,8 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
   const places = details.places.map((place) =>
     `<tr><td class="place">${escapeHtml(place.label)}</td><td>${escapeHtml(place.names)}</td>${pointsCell(place.points)}</tr>`).join('');
   const rounds = details.roundTables.map(roundTableHtml).join('');
+  const bands = details.bands.map(bandHtml).join('');
+  const legend = details.legend.map((line) => `<p class="legend">${escapeHtml(line)}</p>`).join('');
   const gameWord = details.gameCount === 1 ? 'game' : 'games';
   const playerWord = details.playerCount === 1 ? 'player' : 'players';
   return `<!DOCTYPE html>
@@ -196,6 +228,9 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
   table.compact th { background: #17402F; color: #FBF1E1; font-weight: 700; }
   table.compact .num { text-align: right; font-variant-numeric: tabular-nums; min-width: 2.6em; }
   table.compact tfoot td, table.compact tr.total td { font-weight: 800; background: #F3EBDD; }
+  table.compact tbody th.num { background: #F3EBDD; color: #17402F; font-weight: 800; }
+  table.band { margin-top: 6px; }
+  .sub { font-size: 10px; color: #7A6E5B; }
   .pos { color: #17402F; }
   .neg { color: #B3261E; }
   .mute { color: #7A6E5B; }
@@ -221,6 +256,9 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
   <div class="totals-row">${totalsTable('Positive', details.positive)}${totalsTable('Negative', details.negative)}</div>
   <h2>Top 3</h2>
   <table class="compact"><tbody>${places}</tbody></table>
+  <h2>By game</h2>
+  ${bands}
+  ${legend}
   <h2>Games</h2>
   ${rounds}
   ${details.footer ? `<p class="footer">${escapeHtml(details.footer)}</p>` : ''}
@@ -256,16 +294,21 @@ export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
     ...details.games.map((game) => `${game.name}  ${game.when}`),
     '',
     'Positive totals',
-    ...details.positive.map((row) => padRight(row.name, nameWidth) + padLeft(row.points, 7)),
+    ...details.positive.flatMap((row) => [padRight(row.name, nameWidth) + padLeft(row.points, 7), ...(row.sub ? [`  ${row.sub}`] : [])]),
     '',
     'Negative totals',
-    ...details.negative.map((row) => padRight(row.name, nameWidth) + padLeft(row.points, 7)),
+    ...details.negative.flatMap((row) => [padRight(row.name, nameWidth) + padLeft(row.points, 7), ...(row.sub ? [`  ${row.sub}`] : [])]),
     '',
     'Top 3',
     ...details.places.map((place) => `${padRight(place.label, 5)}${padRight(place.names, nameWidth)}${padLeft(place.points, 7)}`),
     '',
-    'Games',
+    'By game',
   ];
+  details.bands.forEach((band, index) => {
+    if (index > 0) lines.push('');
+    lines.push(...textTable(['Player', ...band.columns], band.rows.map((row) => [row.head, ...row.cells]), 8));
+  });
+  lines.push(...details.legend, '', 'Games');
   details.roundTables.forEach((table) => {
     lines.push('', `${table.label}  ${table.when}  ${table.code}`);
     lines.push(...textTable(

@@ -1,23 +1,30 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Icon, Text } from 'react-native-paper';
 import { GameScoreGrid } from '@/components/results/GameScoreGrid';
 import { spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime } from '@/utils/gameDisplay';
+import { initialsById } from '@/utils/playerInitials';
 import { formatPoints, placeLabel, podiumPlaces, resultsCountLine, ResultSheet, ResultStanding, splitTotals, gameClock } from '@/utils/results';
+import { totalsSubline } from '@/utils/resultsSave';
 
 export function ResultsPage({
   createdAt,
   standings,
   sheet,
+  reusedNote,
 }: {
   createdAt: string;
   standings: ResultStanding[];
   sheet: ResultSheet;
+  /** Set when the result counts a game from an earlier result; shows a small flag beside the title. */
+  reusedNote?: string | null;
 }) {
   const { colors } = useAppTheme();
   const { positive, negative } = splitTotals(standings);
   const places = podiumPlaces(standings);
+  const initials = initialsById(sheet.players.length ? sheet.players : standings);
+  const byId = new Map(sheet.players.map((player) => [player.id, player]));
   const games = sheet.games.map((game) => ({
     id: game.id,
     name: game.name,
@@ -29,8 +36,16 @@ export function ResultsPage({
   return (
     <View style={styles.page}>
       <View>
-        <Text variant="headlineMedium" style={[styles.title, { color: colors.onSurface }]} accessibilityRole="header">Results</Text>
+        <View style={styles.titleRow}>
+          <Text variant="headlineMedium" style={[styles.title, { color: colors.onSurface }]} accessibilityRole="header">Results</Text>
+          {reusedNote ? (
+            <View style={styles.flag} accessibilityLabel={reusedNote} testID="result-reused-flag">
+              <Icon source="alert-outline" size={22} color={colors.secondary} />
+            </View>
+          ) : null}
+        </View>
         <Text variant="titleMedium">{formatGameDateTime(createdAt)}</Text>
+        {reusedNote ? <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{reusedNote}</Text> : null}
       </View>
 
       <View testID="results-totals" accessibilityLabel="Totals" style={styles.totals}>
@@ -42,8 +57,11 @@ export function ResultsPage({
           <View testID="results-positive" accessibilityLabel="Positive totals" style={styles.column}>
             {positive.map((row) => (
               <View key={row.id} style={styles.totalRow}>
-                <Text variant="bodyLarge" style={styles.totalName} numberOfLines={1}>{row.name}</Text>
-                <Text variant="bodyLarge" style={[tabularNums, styles.totalPoints, { color: colors.primary }]}>
+                <View style={styles.totalName}>
+                  <Text variant="bodyLarge" style={styles.totalNameText} numberOfLines={1}>{row.name}</Text>
+                  <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{totalsSubline(initials.get(row.id), byId.get(row.id))}</Text>
+                </View>
+                <Text variant="bodyLarge" numberOfLines={1} style={[tabularNums, styles.totalPoints, { color: colors.primary }]}>
                   {formatPoints(row.points)}
                 </Text>
               </View>
@@ -52,8 +70,11 @@ export function ResultsPage({
           <View testID="results-negative" accessibilityLabel="Negative totals" style={styles.column}>
             {negative.map((row) => (
               <View key={row.id} style={styles.totalRow}>
-                <Text variant="bodyLarge" style={styles.totalName} numberOfLines={1}>{row.name}</Text>
-                <Text variant="bodyLarge" style={[tabularNums, styles.totalPoints, { color: colors.error }]}>
+                <View style={styles.totalName}>
+                  <Text variant="bodyLarge" style={styles.totalNameText} numberOfLines={1}>{row.name}</Text>
+                  <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{totalsSubline(initials.get(row.id), byId.get(row.id))}</Text>
+                </View>
+                <Text variant="bodyLarge" numberOfLines={1} style={[tabularNums, styles.totalPoints, { color: colors.error }]}>
                   {formatPoints(row.points)}
                 </Text>
               </View>
@@ -97,6 +118,8 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: '800',
   },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  flag: { paddingTop: 4 },
   section: {
     fontWeight: '800',
   },
@@ -119,6 +142,8 @@ const styles = StyleSheet.create({
   },
   totalName: {
     flex: 1,
+  },
+  totalNameText: {
     fontWeight: '600',
   },
   totalPoints: {

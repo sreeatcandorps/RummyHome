@@ -1,20 +1,27 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Button, Text } from 'react-native-paper';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
+import { Button, Dialog, Portal, Text } from 'react-native-paper';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { ResultsPage } from '@/components/results/ResultsPage';
 import { ResultsShare } from '@/components/results/ResultsShare';
+import { ResultWarnings } from '@/components/results/ResultWarnings';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { Screen } from '@/components/ui/Screen';
 import { RESULTS_PLAYER_LIMIT } from '@/constants/limits';
-import { useAppTheme } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { authService } from '@/services/auth';
 import { gamesService } from '@/services/games';
+import { resultsService } from '@/services/results';
+import { isSupabaseConfigured } from '@/services/supabase';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
+import { gameCache } from '@/utils/gameCache';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { gameLabelFor, gameResultName, presentResults, resultFooter, ResultSheet, ResultStanding, ResultWarning, resultWarnings, withinResultsPlayerLimit, gameClock } from '@/utils/results';
-import { ResultWarnings } from '@/components/results/ResultWarnings';
+import { gameLabelFor, gameResultName, presentResults, resultFooter, ResultSheet, ResultStanding, withinResultsPlayerLimit, gameClock } from '@/utils/results';
+import { resultWarningLines, saveBlockedReason, saveStatusChanges, StatusChange } from '@/utils/resultsSave';
+import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
 function param(value: string | string[] | undefined): string {
@@ -22,42 +29,53 @@ function param(value: string | string[] | undefined): string {
   return value ?? '';
 }
 
-function seatedNames(players: Player[]): Record<string, string> {
-  const names: Record<string, string> = {};
+type Seats = { names: Record<string, string>; numbers: Record<string, number> };
+
+function seated(players: Player[], into: Seats) {
   players.forEach((player) => {
     if (player.id === 'EX' || player.seated === false || player.seatRole === 'spectator') return;
-    if (player.name?.trim()) names[player.id] = player.name.trim();
+    if (player.name?.trim()) into.names[player.id] = player.name.trim();
+    if (player.playerNo != null) into.numbers[player.id] = player.playerNo;
   });
-  return names;
 }
 
+/**
+ * Results for the picked games. Nothing is saved by looking. Save result closes
+ * the games (the P1 fix: a result that is not saved never closed anything) and
+ * says which game changed status; Share opens once the result is saved.
+ */
 export default function ShownResults() {
   const { colors } = useAppTheme();
-  const params = useLocalSearchParams<{ ids?: string; at?: string; preview?: string }>();
-  const previewReason = param(params.preview);
+  const params = useLocalSearchParams<{ ids?: string; at?: string }>();
   const idKey = param(params.ids);
   const createdAt = param(params.at) || new Date().toISOString();
-  const [gameCount, setGameCount] = useState(0);
+  const [games, setGames] = useState<Game[]>([]);
+  const [seats, setSeats] = useState<Seats>({ names: {}, numbers: {} });
+  const [userId, setUserId] = useState<string | null>(null);
   const [standings, setStandings] = useState<ResultStanding[]>([]);
   const [sheet, setSheet] = useState<ResultSheet>({ players: [], games: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
-  const [warnings, setWarnings] = useState<ResultWarning[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savedChanges, setSavedChanges] = useState<{ id: string; changes: StatusChange[] } | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
     setBlocked(false);
     try {
-      const idList = idKey.split(',').map((id) => id.trim()).filter(Boolean);
-      const loaded = (await Promise.all(idList.map((id) => gamesService.getGame(id)))).filter((game): game is Game => Boolean(game));
+      const id = isSupabaseConfigured ? await authService.getCurrentUserId() : await storage.getCurrentPlayer();
+      setUserId(id);
+      const idList = idKey.split(',').map((item) => item.trim()).filter(Boolean);
+      const loaded = (await Promise.all(idList.map((gameId) => gamesService.getGame(gameId)))).filter((game): game is Game => Boolean(game));
       if (loaded.length === 0) {
         setError('These games are not here.');
         return;
       }
       const listed = await Promise.all(loaded.map((game) => gamesService.listGamePlayers(game.id).catch(() => [] as Player[])));
-      const names: Record<string, string> = {};
-      listed.forEach((players) => Object.assign(names, seatedNames(players)));
+      const found: Seats = { names: {}, numbers: {} };
+      listed.forEach((players) => seated(players, found));
       const shaped = loaded.map((game) => ({
         id: game.id,
         name: gameResultName(game),
@@ -65,17 +83,20 @@ export default function ShownResults() {
         date: game.date,
         players: game.players,
         scores: game.scores,
-        names,
+        names: found.names,
       }));
       if (!withinResultsPlayerLimit(shaped)) {
         setBlocked(true);
         return;
       }
       const presented = presentResults(shaped);
-      setWarnings(resultWarnings(loaded));
-      setGameCount(loaded.length);
+      setGames(loaded);
+      setSeats(found);
       setStandings(presented.standings);
-      setSheet(presented.sheet);
+      setSheet({
+        ...presented.sheet,
+        players: presented.sheet.players.map((player) => ({ ...player, playerNo: found.numbers[player.id] ?? null })),
+      });
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
@@ -87,6 +108,31 @@ export default function ShownResults() {
     load();
   }, [load]));
 
+  const warnings = useMemo(() => resultWarningLines(games), [games]);
+  const blockedReason = useMemo(() => (loading ? 'Loading…' : saveBlockedReason(games, userId)), [games, userId, loading]);
+
+  const save = async () => {
+    if (blockedReason || saving || !userId) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const result = await resultsService.declare({ games, names: seats.names, userId });
+      // The scorecard and Home read from the cache first; show these games Closed right away.
+      games.forEach((game) => gameCache.putGame({ ...game, closedAt: game.closedAt ?? result.declaredAt }));
+      setSavedChanges({ id: result.id, changes: saveStatusChanges(games) });
+    } catch (err) {
+      setSaveError(formatSupabaseError(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openSaved = () => {
+    const id = savedChanges?.id;
+    setSavedChanges(null);
+    if (id) router.replace(`/(screens)/results/${id}`);
+  };
+
   const card = useMemo(() => {
     if (standings.length === 0) return null;
     return buildResultsShareCard({
@@ -94,11 +140,12 @@ export default function ShownResults() {
       date: formatGameDateTime(createdAt),
       rows: standings.map((row) => ({ id: row.id, name: row.name, points: row.points, place: row.place })),
       places: sharePlaces(standings),
-      gameCount,
+      gameCount: games.length,
       games: sheet.games,
+      players: sheet.players,
       footer: resultFooter({ preview: true }),
     });
-  }, [standings, createdAt, gameCount, sheet]);
+  }, [standings, createdAt, games.length, sheet]);
 
   const details = useMemo(() => {
     if (standings.length === 0) return null;
@@ -118,16 +165,38 @@ export default function ShownResults() {
     });
   }, [standings, sheet, createdAt]);
 
+  const ready = !loading && !error && !blocked;
+
   return (
     <Screen>
-      <ResultsShare card={card} details={details} createdAt={createdAt} />
+      <ResultsShare
+        card={card}
+        details={details}
+        createdAt={createdAt}
+        onSave={save}
+        saveDisabled={Boolean(blockedReason)}
+        saving={saving}
+        shareEnabled={false}
+      />
       <ResultWarnings warnings={warnings} />
-      {previewReason ? (
-        <Text variant="bodyMedium" testID="results-preview-note" style={{ color: colors.onSurfaceVariant }}>
-          {previewReason === 'admin'
-            ? 'Running totals only. Only an admin of every selected game can save these results.'
-            : 'Running totals only. Some games are still going, so nothing is saved and no game is closed.'}
-        </Text>
+      {ready ? (
+        <View style={[styles.saveBox, { backgroundColor: colors.surfaceVariant }]} testID="results-save-box">
+          <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+            {blockedReason ?? 'Not saved yet. Saving moves these games to Closed and lets you share the result.'}
+          </Text>
+          <Button
+            mode="contained"
+            icon="content-save-outline"
+            onPress={save}
+            loading={saving}
+            disabled={Boolean(blockedReason) || saving}
+            accessibilityLabel="Save result"
+            testID="results-save-button"
+          >
+            Save result
+          </Button>
+          {saveError ? <Text style={{ color: colors.error }}>{saveError}</Text> : null}
+        </View>
       ) : null}
       {error ? (
         <>
@@ -137,9 +206,30 @@ export default function ShownResults() {
       ) : null}
       {blocked ? <Text variant="bodyLarge">{RESULTS_PLAYER_LIMIT}</Text> : null}
       {loading ? <LoadingRows /> : null}
-      {!loading && !error && !blocked ? (
-        <ResultsPage createdAt={createdAt} standings={standings} sheet={sheet} />
-      ) : null}
+      {ready ? <ResultsPage createdAt={createdAt} standings={standings} sheet={sheet} /> : null}
+
+      <Portal>
+        <Dialog visible={Boolean(savedChanges)} onDismiss={openSaved} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+          <Dialog.Icon icon="check-circle-outline" />
+          <Dialog.Title>Result saved</Dialog.Title>
+          <Dialog.Content>
+            <View style={styles.changes}>
+              {savedChanges?.changes.map((change) => (
+                <Text key={change.gameId} variant="bodyMedium" testID={`status-change-${change.label}`}>{change.line}</Text>
+              ))}
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button mode="contained" onPress={openSaved} accessibilityLabel="OK, open the saved result">OK</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  saveBox: { gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg },
+  changes: { gap: spacing.xs },
+  dialog: { borderRadius: radius.xl, maxWidth: 520, width: '94%', alignSelf: 'center' },
+});

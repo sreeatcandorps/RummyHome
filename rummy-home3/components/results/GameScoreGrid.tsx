@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { PixelRatio, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { brand, spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { sheetGameLabel, playersByFirstName, resultsColumnWidths, resultsTableScrollsHorizontally, scoreCell } from '@/utils/results';
+import { playerIdBadge } from '@/utils/gamePlayers';
+import { longestScoreChars, sheetGameLabel, playersByFirstName, resultsColumnWidths, scoreCell } from '@/utils/results';
 
-export type GridPlayer = { id: string; name: string };
+export type GridPlayer = { id: string; name: string; playerNo?: number | null };
 
 export type GridGame = {
   id: string;
@@ -28,11 +29,17 @@ export function GameScoreGrid({
   const { colors } = useAppTheme();
   const [frameWidth, setFrameWidth] = useState(0);
   const rows = playersByFirstName(players);
-  const widths = resultsColumnWidths(frameWidth, games.length);
+  const ids = players.map((player) => player.id);
+  // Columns widen for long scores and big system fonts so a number never wraps.
+  const widths = resultsColumnWidths(frameWidth, games.length, {
+    gameChars: games.map((game) => longestScoreChars(game.scores, ids)),
+    totalChars: longestScoreChars(totals, ids),
+    fontScale: PixelRatio.getFontScale(),
+  });
   const nameWidth = widths[0];
   const scoreWidths = widths.slice(1);
   const contentWidth = widths.reduce((sum, value) => sum + value, 0);
-  const scrolls = frameWidth > 0 && resultsTableScrollsHorizontally(frameWidth, games.length);
+  const scrolls = frameWidth > 0 && contentWidth > frameWidth;
   const stripe = (index: number) => (index % 2 === 0 ? colors.surface : colors.surfaceVariant);
 
   const scoreLook = (text: string) => {
@@ -75,6 +82,9 @@ export function GameScoreGrid({
             style={[styles.nameCell, styles.stuckLeft, { width: nameWidth, borderRightColor: colors.outlineVariant, backgroundColor: stripe(index) }]}
           >
             <Text variant="labelLarge" style={styles.nameText}>{player.name}</Text>
+            {playerIdBadge(player) ? (
+              <Text variant="labelSmall" numberOfLines={1} style={[styles.nameId, { color: colors.onSurfaceVariant }]}>{playerIdBadge(player)}</Text>
+            ) : null}
           </View>
           {games.map((game, gameIndex) => {
             const text = scoreCell(game.scores, player.id);
@@ -85,7 +95,7 @@ export function GameScoreGrid({
                 accessibilityLabel={`${player.name}, ${game.name}, ${text === '—' ? 'did not play' : text}`}
                 style={[styles.scoreCell, { width: scoreWidths[gameIndex] }]}
               >
-                <Text variant="bodyMedium" style={[tabularNums, styles.scoreText, scoreLook(text)]}>{text}</Text>
+                <Text variant="bodyMedium" numberOfLines={1} style={[tabularNums, styles.scoreText, scoreLook(text)]}>{text}</Text>
               </View>
             );
           })}
@@ -99,7 +109,7 @@ export function GameScoreGrid({
               { width: scoreWidths[games.length], backgroundColor: stripe(index), borderLeftColor: colors.outlineVariant },
             ]}
           >
-            <Text variant="bodyMedium" style={[tabularNums, styles.scoreText, scoreLook(totalFor(player))]}>{totalFor(player)}</Text>
+            <Text variant="bodyMedium" numberOfLines={1} style={[tabularNums, styles.scoreText, scoreLook(totalFor(player))]}>{totalFor(player)}</Text>
           </View>
         </View>
       ))}
@@ -183,6 +193,10 @@ const styles = StyleSheet.create({
   nameText: {
     fontSize: 13,
     lineHeight: 16,
+  },
+  nameId: {
+    fontSize: 11,
+    lineHeight: 13,
   },
   scoreCell: {
     alignItems: 'flex-end',

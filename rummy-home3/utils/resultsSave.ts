@@ -1,4 +1,5 @@
 import { userAdminsGame } from '@/utils/gameAccess';
+import { playerIdBadge } from '@/utils/gamePlayers';
 import { baseInitials } from '@/utils/playerInitials';
 import { formatPoints, placeLabel, ResultsFilter, ResultsStatus, resultsStatusOf, reusedInResult, toggleResultsStatus } from '@/utils/results';
 
@@ -107,6 +108,13 @@ export function saveStatusChanges(games: PickableGame[]): StatusChange[] {
   });
 }
 
+/** For an opened saved result: one line per game that an earlier result had already closed. */
+export function reusedWarningLines(games: { id: string; label?: string | null; name: string }[], reused: string[]): ResultLine[] {
+  return games
+    .filter((game) => reused.includes(game.id))
+    .map((game) => ({ kind: 'closed', gameId: game.id, text: `${game.label?.trim() || game.name} was already part of an earlier result. Its points count again here.` }));
+}
+
 /** Games in a result that were closed by an earlier result (counted twice). */
 export function reusedGameIds(games: { id: string; closedAt?: string | null }[], declaredAt: string): string[] {
   return games.filter((game) => reusedInResult(declaredAt, game)).map((game) => game.id);
@@ -133,4 +141,10 @@ export function winnerInitials(top: { name: string; place: number }[]): string {
 /** "Sharing requires saving first": the share buttons stay off until the result has an id. */
 export function canShareResult(resultId: string | null | undefined): boolean {
   return Boolean(resultId);
+}
+
+/** Second line under a total: initials, then the Player ID when known ("SK · #39"). */
+export function totalsSubline(initials: string | undefined, player: { playerNo?: number | null; playerCode?: string } | undefined): string {
+  const id = player ? playerIdBadge(player) : null;
+  return [initials, id].filter(Boolean).join(' · ');
 }

@@ -409,16 +409,48 @@ export const RESULTS_TOTAL_COL = 54;
  */
 export const RESULTS_NAME_MIN = 96;
 
+/** Roughly one bold tabular digit at the table's 13px, plus the cell padding. */
+const SCORE_CHAR_PX = 8;
+const SCORE_CELL_PAD = 10;
+
+/**
+ * A score column is never narrower than the clock in its header ("11:39 PM" fits
+ * RESULTS_GAME_COL) and grows for four- and five-digit scores and for large system
+ * fonts, so a number like +732 is never broken onto two lines.
+ */
+export function scoreColumnWidth(chars: number, minWidth = RESULTS_GAME_COL, fontScale = 1): number {
+  const needed = Math.ceil((Math.max(0, chars) * SCORE_CHAR_PX + SCORE_CELL_PAD) * Math.max(1, fontScale));
+  return Math.max(minWidth, needed);
+}
+
+/** The longest text in a column, as drawn ("-1234" is five). */
+export function longestScoreChars(scores: Record<string, number>, ids?: string[]): number {
+  const keys = ids ?? Object.keys(scores);
+  return keys.reduce((max, id) => Math.max(max, scoreCell(scores, id).length), 0);
+}
+
+export type ResultsColumnOptions = {
+  /** Longest drawn score per game column, in characters. */
+  gameChars?: number[];
+  /** Longest drawn total, in characters. */
+  totalChars?: number;
+  /** The phone's font scale (1 = default). */
+  fontScale?: number;
+};
+
 /**
  * Pixel widths: name, then one width per game, then Total.
  * Name = frame − games − Total, floored at RESULTS_NAME_MIN.
  */
-export function resultsColumnWidths(frameWidth: number, gameCount: number): number[] {
+export function resultsColumnWidths(frameWidth: number, gameCount: number, options: ResultsColumnOptions = {}): number[] {
   const width = Math.max(0, Math.floor(frameWidth));
   const games = Math.max(0, gameCount);
-  const scores = games * RESULTS_GAME_COL + RESULTS_TOTAL_COL;
+  const scale = options.fontScale ?? 1;
+  const gameWidths = Array.from({ length: games }, (_, index) => scoreColumnWidth(options.gameChars?.[index] ?? 0, RESULTS_GAME_COL, scale));
+  const totalWidth = scoreColumnWidth(options.totalChars ?? 0, RESULTS_TOTAL_COL, scale);
+  const scores = gameWidths.reduce((sum, value) => sum + value, 0) + totalWidth;
   const nameWidth = Math.max(RESULTS_NAME_MIN, width - scores);
-  return [nameWidth, ...Array(games).fill(RESULTS_GAME_COL), RESULTS_TOTAL_COL];
+  return [nameWidth, ...gameWidths, totalWidth];
 }
 
 /** How many game columns are on screen. Total has its own slot and is not counted here. */
@@ -481,7 +513,7 @@ export function gameClock(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   const hour = date.getHours() % 12 || 12;
-  return `${hour}:${String(date.getMinutes()).padStart(2, '0')} ${date.getHours() < 12 ? 'am' : 'pm'}`;
+  return `${hour}:${String(date.getMinutes()).padStart(2, '0')} ${date.getHours() < 12 ? 'AM' : 'PM'}`;
 }
 
 /**
@@ -498,7 +530,7 @@ export function gameLabelFor(game: { gameNumber?: number | null }): string | und
   return game.gameNumber != null ? `G${game.gameNumber}` : undefined;
 }
 
-/** "G7 10:05 pm" for the PDF. */
+/** "G7 10:05 PM" for the PDF. */
 export function gameColumnLabel(game: { label?: string | null; name: string }, when: string): string {
   const label = sheetGameLabel(game);
   return when ? `${label} ${when}` : label;

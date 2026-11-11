@@ -276,12 +276,12 @@ test('only an admin of every selected game can declare', () => {
   assert.equal(canDeclareResults([host], null), false);
 });
 
-test('game headers use h:mm with am/pm', async () => {
+test('game headers use h:mm with AM/PM (nov 10: upper case, always shown)', async () => {
   const { gameClock, sheetGameLabel, gameLabelFor } = await import('@/utils/results');
   const d = new Date(2026, 9, 28, 22, 5);
-  assert.equal(gameClock(d.toISOString()), '10:05 pm');
-  assert.equal(gameClock(new Date(2026, 9, 28, 0, 7).toISOString()), '12:07 am');
-  assert.equal(gameClock(new Date(2026, 9, 28, 11, 51).toISOString()), '11:51 am');
+  assert.equal(gameClock(d.toISOString()), '10:05 PM');
+  assert.equal(gameClock(new Date(2026, 9, 28, 0, 7).toISOString()), '12:07 AM');
+  assert.equal(gameClock(new Date(2026, 9, 28, 11, 51).toISOString()), '11:51 AM');
   // A game keeps its own number whatever position it has in a result.
   assert.equal(sheetGameLabel({ label: 'G7', name: 'ABC123' }), 'G7');
   assert.equal(sheetGameLabel({ name: 'ABC123' }), 'ABC123', 'older results without a stored number show the code, never a positional G1');

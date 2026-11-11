@@ -45,8 +45,11 @@ export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: Re
               ) : null}
             </View>
           ) : null}
-          <Text style={styles.name} numberOfLines={1}>{line.name}</Text>
-          <Text style={[styles.points, tabularNums, pointsStyle(line.points)]}>{line.points}</Text>
+          <View style={styles.nameBlock}>
+            <Text style={styles.name} numberOfLines={1}>{line.name}</Text>
+            {line.sub ? <Text style={styles.sub} numberOfLines={1}>{line.sub}</Text> : null}
+          </View>
+          <Text style={[styles.points, tabularNums, pointsStyle(line.points)]} numberOfLines={1}>{line.points}</Text>
         </View>
       ))}
       {card.moreCount > 0 ? (
@@ -73,40 +76,44 @@ export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: Re
 }
 
 /**
- * Every game on the image. Five or fewer go across (initials down the side);
- * more go down the side with initials across, so 8 or 20 games still fit.
+ * Every game on the image: players down the side, up to five games across. More
+ * games wrap into another header row (G6–G10 …) with its own score rows, so the
+ * grid never grows wider than the card.
  */
 function ShareBreakdownGrid({ grid }: { grid: ShareBreakdown }) {
-  const down = grid.orientation === 'gamesDown';
   const cellStyle = grid.dense ? styles.gridCellDense : styles.gridCell;
   const textStyle = grid.dense ? styles.gridTextDense : styles.gridText;
   return (
     <View testID="share-breakdown" accessibilityLabel={`By game, ${grid.gameCount} games`}>
       <View style={styles.rule} />
       <Text style={styles.gridTitle}>By game</Text>
-      <View style={styles.gridRow}>
-        <Text style={[styles.gridHead, styles.gridHeadCol]}>{down ? 'Game' : 'Player'}</Text>
-        {grid.columns.map((column) => (
-          <Text key={column} style={[styles.gridHead, tabularNums, column === 'Total' ? styles.gridTotal : cellStyle]} numberOfLines={1}>
-            {column}
-          </Text>
-        ))}
-      </View>
-      {grid.rows.map((row) => (
-        <View key={row.head} style={[styles.gridRow, row.total && styles.gridTotalRow]} testID={`share-breakdown-${row.head}`}>
-          <Text style={[textStyle, styles.gridHeadCol, row.total && styles.gridTotalText]}>{row.head}</Text>
-          {row.cells.map((cell, index) => {
-            const isTotal = row.total || (!down && index === row.cells.length - 1);
-            return (
-              <Text
-                key={`${row.head}-${grid.columns[index]}`}
-                style={[textStyle, tabularNums, !down && index === row.cells.length - 1 ? styles.gridTotal : cellStyle, isTotal && styles.gridTotalText, pointsStyle(cell)]}
-                numberOfLines={1}
-              >
-                {cell}
+      {grid.bands.map((band, bandIndex) => (
+        <View key={band.columns.join('|')} style={bandIndex > 0 ? styles.gridBand : undefined} testID={`share-band-${bandIndex + 1}`}>
+          <View style={styles.gridRow}>
+            <Text style={[styles.gridHead, styles.gridHeadCol]}>Player</Text>
+            {band.columns.map((column) => (
+              <Text key={column} style={[styles.gridHead, tabularNums, column === 'Total' ? styles.gridTotal : cellStyle]} numberOfLines={1}>
+                {column}
               </Text>
-            );
-          })}
+            ))}
+          </View>
+          {band.rows.map((row) => (
+            <View key={row.head} style={styles.gridRow} testID={`share-breakdown-${row.head}`}>
+              <Text style={[textStyle, styles.gridHeadCol]}>{row.head}</Text>
+              {row.cells.map((cell, index) => {
+                const isTotal = band.hasTotal && index === row.cells.length - 1;
+                return (
+                  <Text
+                    key={`${row.head}-${band.columns[index]}`}
+                    style={[textStyle, tabularNums, isTotal ? styles.gridTotal : cellStyle, isTotal && styles.gridTotalText, pointsStyle(cell)]}
+                    numberOfLines={1}
+                  >
+                    {cell}
+                  </Text>
+                );
+              })}
+            </View>
+          ))}
         </View>
       ))}
       {legendLines(grid.legend, 56).map((line) => (
@@ -160,10 +167,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 12,
   },
-  name: {
+  nameBlock: {
     flex: 1,
+  },
+  name: {
     color: brand.cream,
     fontWeight: '600',
+  },
+  sub: {
+    color: brand.cream,
+    opacity: 0.75,
+    fontSize: 11,
   },
   points: {
     width: POINTS_W,
@@ -233,11 +247,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  gridTotalRow: {
+  gridBand: {
     borderTopWidth: 1,
     borderTopColor: brand.gold,
-    marginTop: 2,
-    paddingTop: 2,
+    marginTop: 4,
+    paddingTop: 4,
   },
   gridLegend: {
     color: brand.cream,

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildResultsDetails, buildRoundTable, resultsDetailsHtml } from '../utils/resultsDetails';
 import {
+  bandRanges,
   buildShareBreakdown,
   legendLines,
   SHARE_BREAKDOWN_MAX_GAMES,
@@ -35,23 +36,25 @@ test('unique players are counted once across the selected games', () => {
   assert.equal(uniquePlayerCount([]), 0);
 });
 
-test('the share image breaks totals down with games across for up to five games', () => {
+test('the share image breaks totals down: players as rows, games as columns, one band for up to five games', () => {
   const grid = buildShareBreakdown({ players, games: twoGames, totals });
   assert.ok(grid);
-  assert.equal(grid.orientation, 'gamesAcross');
-  assert.deepEqual(grid.columns, ['G1', 'G2', 'Total']);
-  assert.deepEqual(grid.rows.map((row) => row.head), ['HG', 'P1', 'P2', 'P4', 'SK']);
+  assert.equal(grid.bands.length, 1);
+  const band = grid.bands[0];
+  assert.deepEqual(band.columns, ['G1', 'G2', 'Total']);
+  assert.equal(band.hasTotal, true);
+  assert.deepEqual(band.rows.map((row) => row.head), ['HG', 'P1', 'P2', 'P4', 'SK']);
   assert.deepEqual(grid.legend.map((entry) => entry.name), ['Harish Gadupudi', 'Player 1', 'Player 2', 'Player 4', 'Sree Koneru']);
-  const harish = grid.rows[0];
+  const harish = band.rows[0];
   assert.deepEqual(harish.cells, ['+80', '-60', '+20'], 'the last cell is the total');
-  assert.deepEqual(grid.rows[2].cells.slice(0, 2), ['—', '-120'], 'a player who sat out a game shows a dash');
+  assert.deepEqual(band.rows[2].cells.slice(0, 2), ['—', '-120'], 'a player who sat out a game shows a dash');
 
   const five = Array.from({ length: SHARE_BREAKDOWN_MAX_GAMES }, (_, index) => gameOf(index + 1, { h: 1 }));
-  assert.ok(buildShareBreakdown({ players, games: five, totals }));
+  assert.equal(buildShareBreakdown({ players, games: five, totals })?.bands.length, 1, 'five games still fit one band');
   assert.equal(shareBreakdownOmitted(SHARE_BREAKDOWN_MAX_GAMES), false);
 
   const six = [...five, gameOf(6, { h: 1 })];
-  assert.equal(buildShareBreakdown({ players, games: six, totals })?.orientation, 'gamesDown');
+  assert.equal(buildShareBreakdown({ players, games: six, totals })?.bands.length, 2, 'the sixth game starts a new band');
   assert.equal(shareBreakdownOmitted(6), true);
   assert.equal(SHARE_BREAKDOWN_OMITTED, 'Round by round in the PDF');
 });
@@ -73,32 +76,41 @@ test('the results card marks the top three rows and carries the breakdown or the
   ]);
   assert.deepEqual(card.places, []);
   assert.ok(card.breakdown);
-  assert.deepEqual(card.breakdown.columns, ['G1', 'G2', 'Total']);
+  assert.deepEqual(card.breakdown.bands[0].columns, ['G1', 'G2', 'Total']);
   assert.equal(card.breakdownNote, undefined);
 
   const manyGames = Array.from({ length: 6 }, (_, index) => ({ scores: { h: index }, name: `C${index}`, label: `G${index + 1}` }));
   const long = buildResultsShareCard({ title: 'Results', date: 'x', rows, gameCount: 6, games: manyGames, footer: 'Result ID · ABC123' });
   assert.ok(long.breakdown, 'past five games the grid stays: every game is on the image');
-  assert.equal(long.breakdown.orientation, 'gamesDown');
+  assert.equal(long.breakdown.bands.length, 2);
+  assert.deepEqual(long.breakdown.bands.map((band) => band.columns), [['G1', 'G2', 'G3', 'G4', 'G5'], ['G6', 'Total']]);
   assert.equal(long.breakdownNote, 'Round by round in the PDF');
   assert.equal(long.footer, 'Result ID · ABC123');
 });
 
-test('nov 6: eight and twenty games all fit — games down the side, players across, Total last', () => {
+test('nov 10: eight and twenty games wrap into bands of five — extra header rows with matching score rows, Total on the last', () => {
   const twenty = Array.from({ length: 20 }, (_, index) => gameOf(index + 1, { h: index % 2 ? 40 : -40, s: index % 2 ? -40 : 40, p1: 0 }));
   const grid = buildShareBreakdown({ players, games: twenty, totals: { h: 0, s: 0, p1: 0, p2: 0, p4: 0 } });
   assert.ok(grid);
-  assert.equal(grid.orientation, 'gamesDown');
   assert.equal(grid.gameCount, 20);
-  assert.deepEqual(grid.columns, ['HG', 'P1', 'P2', 'P4', 'SK']);
-  assert.equal(grid.rows.length, 21, '20 game rows and a Total row');
-  assert.deepEqual(grid.rows.slice(0, 20).map((row) => row.head), twenty.map((game) => game.label), 'labels are the games\' own numbers');
-  assert.deepEqual(grid.rows[0].cells, ['-40', '0', '—', '—', '+40']);
-  assert.deepEqual(grid.rows[20], { head: 'Total', cells: ['0', '0', '0', '0', '0'], total: true });
-  assert.equal(grid.dense, true, 'twenty games use the small type');
+  assert.equal(grid.bands.length, 4, '20 games → 4 bands of 5');
+  assert.deepEqual(bandRanges(20), [{ start: 0, end: 5 }, { start: 5, end: 10 }, { start: 10, end: 15 }, { start: 15, end: 20 }]);
+  assert.deepEqual(grid.bands[0].columns, ['G1', 'G2', 'G3', 'G4', 'G5']);
+  assert.deepEqual(grid.bands[1].columns, ['G6', 'G7', 'G8', 'G9', 'G10']);
+  assert.deepEqual(grid.bands[3].columns, ['G16', 'G17', 'G18', 'G19', 'G20', 'Total']);
+  assert.deepEqual(grid.bands.map((band) => band.hasTotal), [false, false, false, true]);
+  // Every band has the same player rows in the same order.
+  grid.bands.forEach((band) => assert.deepEqual(band.rows.map((row) => row.head), ['HG', 'P1', 'P2', 'P4', 'SK']));
+  assert.deepEqual(grid.bands[0].rows[0].cells, ['-40', '+40', '-40', '+40', '-40'], 'Harish, G1–G5');
+  assert.deepEqual(grid.bands[3].rows[0].cells, ['+40', '-40', '+40', '-40', '+40', '0'], 'Harish, G16–G20 then Total');
+  assert.ok(grid.bands.every((band) => band.columns.length <= SHARE_BREAKDOWN_MAX_GAMES + 1), 'no band is wider than five games plus Total');
+  assert.equal(grid.dense, false, 'five players is not dense; the bands keep the type readable');
+
   const eight = buildShareBreakdown({ players, games: twenty.slice(0, 8), totals: { h: 0, s: 0, p1: 0, p2: 0, p4: 0 } });
-  assert.equal(eight?.rows.length, 9);
-  assert.equal(eight?.dense, false);
+  assert.equal(eight?.bands.length, 2);
+  assert.deepEqual(eight?.bands[1].columns, ['G6', 'G7', 'G8', 'Total']);
+  assert.deepEqual(bandRanges(5), [{ start: 0, end: 5 }]);
+  assert.deepEqual(bandRanges(0), []);
 });
 
 test('each game in the PDF lists every round for every seated player and the game totals', () => {
@@ -158,4 +170,37 @@ test('nov 6: the legend wraps so every name stays on the image', () => {
   assert.ok(lines.length >= 2);
   assert.ok(lines.every((line) => line.length <= 60));
   assert.equal(lines.join(' · '), legend.map((entry) => `${entry.initials} ${entry.name}`).join(' · '));
+});
+
+test('nov 10: share image and PDF carry the Player ID on a second line and wrap the by-game table at five games', () => {
+  const seats = [
+    { id: 'h', name: 'Harish Gadupudi', playerNo: 12 },
+    { id: 's', name: 'Sree Koneru', playerNo: 39 },
+    { id: 'p1', name: 'Player 1', playerNo: null },
+  ];
+  const standings = [
+    { id: 's', name: 'Sree Koneru', points: 60, place: 1, games: 7 },
+    { id: 'h', name: 'Harish Gadupudi', points: 20, place: 2, games: 7 },
+    { id: 'p1', name: 'Player 1', points: -80, place: 3, games: 7 },
+  ];
+  const seven = Array.from({ length: 7 }, (_, index) => gameOf(index + 1, { h: 10, s: 10, p1: -20 }));
+  const card = buildResultsShareCard({ title: 'Results', date: 'x', rows: standings, gameCount: 7, games: seven, players: seats });
+  assert.deepEqual(card.lines.map((line) => line.sub), ['SK · #39', 'HG · #12', 'P1'], 'initials, then the Player ID when known');
+  assert.equal(card.breakdown?.bands.length, 2);
+  assert.deepEqual(card.breakdown?.bands[1].columns, ['G6', 'G7', 'Total']);
+
+  const details = buildResultsDetails({ createdAtLabel: 'x', standings, players: seats, games: seven });
+  assert.deepEqual(details.rows.map((row) => row.sub), ['HG · #12', 'P1', 'SK · #39']);
+  assert.deepEqual(details.positive.map((row) => row.sub), ['SK · #39', 'HG · #12']);
+  assert.equal(details.bands.length, 2);
+  assert.deepEqual(details.bands[0].columns, ['G1', 'G2', 'G3', 'G4', 'G5']);
+  assert.deepEqual(details.bands[1].rows.map((row) => row.head), ['HG', 'P1', 'SK']);
+  assert.ok(details.legend.some((line) => line.includes('SK Sree Koneru')));
+
+  const html = resultsDetailsHtml(details);
+  assert.ok(html.includes('<span class="sub">SK · #39</span>'), 'the PDF totals show the Player ID under the name');
+  assert.ok(html.includes('<h2>By game</h2>'));
+  assert.ok(html.includes('data-band="1"') && html.includes('data-band="2"'), 'two header bands');
+  assert.ok(!html.includes('data-band="3"'));
+  assert.ok(html.indexOf('<h2>By game</h2>') < html.indexOf('<h2>Games</h2>'), 'the by-game bands come before the round tables');
 });
