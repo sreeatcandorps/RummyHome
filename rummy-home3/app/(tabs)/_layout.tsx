@@ -157,7 +157,9 @@ export default function TabLayout() {
         name="me"
         options={{
           title: 'Profile',
-          tabBarShowLabel: false,
+          // tabBarShowLabel is read from the focused tab only, so a per-screen false leaks the
+          // label whenever another tab is active; an empty label renderer is per-route.
+          tabBarLabel: () => null,
           tabBarIconStyle: styles.tabAvatarSlot,
           tabBarAccessibilityLabel: 'Your profile',
           tabBarIcon: ({ focused }) => <ProfileTabIcon focused={focused} />,

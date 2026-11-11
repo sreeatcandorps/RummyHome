@@ -45,7 +45,7 @@ export function ActionTile({ icon, label, onPress, tone = 'tonal', badge, disabl
           </View>
         ) : null}
       </View>
-      <Text variant="labelMedium" numberOfLines={2} style={[styles.label, { color: palette.fg }]}>
+      <Text variant="labelMedium" numberOfLines={3} adjustsFontSizeToFit minimumFontScale={0.85} style={[styles.label, { color: palette.fg }]}>
         {label}
       </Text>
     </Pressable>
