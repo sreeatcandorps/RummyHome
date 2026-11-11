@@ -36,7 +36,7 @@ env:
 
 jobs:
   unit:
-    name: Unit tests + tsc (${{ matrix.ref || github.ref_name }})
+    name: Unit tests + tsc (${{ matrix.ref || github.head_ref || github.ref_name }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -112,7 +112,7 @@ jobs:
           [ "$(cat ci/out/unit/tests.status)" = 0 ] && [ "$(cat ci/out/unit/tsc.status)" = 0 ]
 
   db:
-    name: Database tests on local Supabase (${{ matrix.ref || github.ref_name }})
+    name: Database tests on local Supabase (${{ matrix.ref || github.head_ref || github.ref_name }})
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -213,7 +213,7 @@ jobs:
           for s in migrations rollbacks pgtap concurrency; do [ "$(cat ci/out/db/$s.status 2>/dev/null)" = 0 ] || exit 1; done
 
   report:
-    name: Test report (${{ matrix.ref || github.ref_name }})
+    name: Test report (${{ matrix.ref || github.head_ref || github.ref_name }})
     needs: [unit, db]
     if: always()
     runs-on: ubuntu-latest
