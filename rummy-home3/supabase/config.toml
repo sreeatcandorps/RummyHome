@@ -1,0 +1,64 @@
+# Supabase CLI configuration for the LOCAL test database only.
+#
+# Used by `.github/workflows/ci.yml` (`supabase start` / `supabase db reset` / `supabase test db`)
+# and by `ci/db/local-run.sh`. It never points at the production project; nothing here is
+# linked (`supabase link` is not run in CI) and no access token is needed.
+#
+# Docs: https://supabase.com/docs/guides/local-development/cli/config
+
+project_id = "ezscore-test"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Keep in line with the production project's Postgres major version
+# (Dashboard → Settings → Infrastructure). 17 is the current default for new projects;
+# CI has verified the migrations on PostgreSQL 17.11.
+major_version = 17
+
+[db.pooler]
+enabled = false
+
+[db.seed]
+enabled = true
+# Multi-user fixture used by supabase/tests/*.sql and ci/db/concurrency-save-round.mjs
+sql_paths = ["./seed.sql"]
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = false
+
+[storage]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://127.0.0.1:3000", "ezscore://auth/callback"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+enable_anonymous_sign_ins = false
+minimum_password_length = 6
+password_requirements = ""
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = false
+# Tests insert confirmed users directly into auth.users; no mail flow is exercised locally.
+enable_confirmations = false
+
+[edge_runtime]
+enabled = false
+
+[analytics]
+enabled = false
