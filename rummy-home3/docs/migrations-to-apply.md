@@ -117,14 +117,34 @@ What it does, in plain English:
 
 Verified on a scratch Postgres 16 loaded with 001–019 and the CI seed: 253 pgTAP checks (61 new, all about who gets what from the bundles), 31 two-client race checks, and the rollback replay (apply rollback 020, check the bundles are gone and 019 is intact, re-apply 013 → 020, apply each a second time) all pass. Timings before/after are in `docs/performance/RESULTS.md`.
 
+## 021 — one account per email (fix for "I could sign up twice with the same email")
+
+File: `supabase/migrations/021_email_uniqueness.sql`. Run after 020. Safe to re-run. Rollback: `supabase/rollback/rollback_021_email_uniqueness.sql` (drops the trigger, the index and the report function; 001's `profiles_email_key` and 011's `profiles_email_normalized_key` stay; no data to undo).
+
+Not applied by this change. Never deletes, merges or changes an existing row, and never touches the `auth` schema.
+
+What happened: Supabase Auth never created a second account. With "Confirm email" on, a repeat sign-up for an existing address gets a *fake success* answer (a user object with no identities and no session) so that the sign-up form cannot be used to find out who has an account. The app read that as "account created" and showed "Check your email"; the first account and its passcode were untouched. The app now recognises that answer and says "An account with this email already exists. Sign in or reset your password." This migration adds the database side:
+
+- **Emails are stored one way.** A trigger trims and lowercases `profiles.email` on insert and update (a blank email is stored as no email). `Sree@Example.com` and `sree@example.com ` are the same email.
+- **One profile per email, any case.** A unique index on `lower(btrim(email))` over every profile that has an email (011's index skipped unregistered players; this one does not). It is only created when the table has no duplicates by case.
+- **Duplicates are reported, not fixed.** If duplicates exist the migration prints each one as a NOTICE (profile id, stored email, name, status, whether it is an account or an unregistered player, whether the account's email is confirmed) and skips the index. The same list is available any time with `select * from public.duplicate_profile_emails();` (service role / SQL editor only). Decide what to do with each pair, then re-run 021 to get the index.
+
+Supabase dashboard: **no setting change.** Keep Authentication → Providers → Email → "Confirm email" ON (the Player ID linking flow needs a verified email). If it is ever turned off, Supabase answers a repeat sign-up with "User already registered" instead, and the app shows the same message.
+
+Verified on a scratch Postgres 16 loaded with 001–020 and the CI seed: 273 pgTAP checks (20 new), 31 two-client race checks, and the rollback replay (apply rollback 021, check 011 and 019 are intact, re-apply 013 → 021, apply each a second time) all pass.
+
 ## Apply order for the Nov 10–11 batch
 
-All four are unapplied. Paste into the Supabase SQL editor in this order, each as its own run:
+017–020 were applied on Nov 11 (~11:25 AM PT). 021 is unapplied. Paste into the Supabase SQL editor as its own run and read the NOTICE lines it prints:
 
-1. `supabase/migrations/017_link_seat_takeover.sql`
-2. `supabase/migrations/018_results_reuse_and_player_ids.sql`
-3. `supabase/migrations/019_security_and_concurrency_fixes.sql`
-4. `supabase/migrations/020_performance_rpcs_and_indexes.sql`
+1. `supabase/migrations/021_email_uniqueness.sql`
+
+Read-only checks that go with it (nothing is changed):
+
+```sql
+select * from public.duplicate_profile_emails();
+select lower(email), count(*) from auth.users group by 1 having count(*) > 1;
+```
 
 ## Public scorecard page
 
