@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { queryCache } from '../utils/queryCache';
 import { isGameBundle, isHomeBundle, legacyScoreRows, totalsAsScoreRows } from '../utils/bundles';
 import { REFRESH_MARGIN_S, sessionNeedsRefresh } from '../utils/sessionFreshness';
 import { debounceTrailing } from '../utils/debounce';
 
-const src = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const src = (path: string): string => readFileSync(join(root, path), 'utf8');
 const sql = src('supabase/migrations/020_performance_rpcs_and_indexes.sql');
 
 // ---------- queryCache (M4) ----------
