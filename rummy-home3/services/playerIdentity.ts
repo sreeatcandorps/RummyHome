@@ -175,21 +175,24 @@ export const playerIdentityService = {
     const game = games.find((g) => g.id === gameId);
     if (!game) throw new Error('Game not found.');
     if (!game.players.includes(seat.id)) throw new Error('That player is not in this game.');
-    if (game.players.includes(target.id)) throw new Error('They are already in this game.');
+    if (game.players.includes(target.id)) throw new Error('They are already playing in this game.');
     if (seat.managedBy !== ownerId) throw new Error('Only the organiser who added this player can change them.');
     if (!isUnregistered(seat.status)) throw new Error('Only an unregistered player can be linked to a Player ID.');
     const swap = (id: string) => (id === seat.id ? target.id : id);
     const scores = Object.fromEntries(Object.entries(game.scores).map(([id, column]) => [swap(id), column]));
+    // A non-playing admin or viewer who takes the seat is now seated: one membership, admin role kept.
+    const wasUnseatedAdmin = game.unseatedAdminIds?.includes(target.id) ?? false;
     await storage.updateGame({
       ...game,
       players: game.players.map(swap),
-      adminIds: game.adminIds?.map(swap),
-      unseatedAdminIds: game.unseatedAdminIds?.map(swap),
+      adminIds: [...new Set([...(game.adminIds ?? []).map(swap), ...(wasUnseatedAdmin ? [target.id] : [])])],
+      unseatedAdminIds: game.unseatedAdminIds?.filter((id) => id !== target.id && id !== seat.id),
+      spectators: game.spectators?.filter((id) => id !== target.id && id !== seat.id),
       scores,
     });
     const elsewhere = games.some((g) => g.id !== gameId && g.players.includes(seat.id));
     if (!elsewhere) await setLocalStatus(seat.id, 'merged');
-    await playersService.addMyPlayer(ownerId, target).catch(() => {});
+    if (target.id !== ownerId) await playersService.addMyPlayer(ownerId, target).catch(() => {});
   },
 
   /** Soft delete. Past scores stay; the player leaves My players; any claim link stops working. */

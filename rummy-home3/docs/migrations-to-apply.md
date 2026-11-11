@@ -71,6 +71,14 @@ Not applied by this change. Until it runs, Add players to game → × on a saved
 
 What it does: `remove_seat_if_no_scores(game, profile)` lets a game admin take a seated player out of an open game when that player has no score rows, or when every one of their live round scores is exactly 0 (checked per round, never the total). It deletes those zero rows and the `game_players` row, clears the player as dealer of any round, and refuses when: not signed in; not a game admin; the player is not in the game; the game is closed; any live round score is non-zero (same message as the app shows); or fewer than two seated players would remain. Verified on a scratch Postgres 16 loaded with 001–015: anon/stranger/non-admin refused, non-zero blocked, all-zero seat removed with its zero rows, no-row seat removed, two-player guard, closed guard, re-run and rollback.
 
+## 017 — Link to a Player ID: a non-playing admin or viewer may take the seat
+
+File: `supabase/migrations/017_link_seat_takeover.sql`. Run after 015 (replaces its function). Safe to re-run. Rollback: `supabase/rollback/rollback_017_link_seat_takeover.sql` (puts the 015 version back; links already made stay).
+
+Not applied by this change. Until it runs, the app lets you pick a co-admin who is not playing, or a viewer, as the Player ID for an unregistered seat, but the server (015) still answers "They are already in this game." and nothing changes; everyone else links as before.
+
+What it does: same checks as 015 (signed in, game admin, the seat is an unregistered/pending player you manage, the target is a registered unmanaged account), with two changes found in the Nov 10 test. A target who is already in the game as a **non-playing admin** or a **viewer** now takes the seat: their old membership row is removed, the seat row becomes theirs, an admin stays `game_admin` and is now seated. A target who is already **seated** is still refused ("They are already playing in this game."). And when you link a seat to your own Player ID, no self row is written to My players. Verified on a scratch Postgres 16 loaded with 001–016: seated target refused, non-playing admin takes seat (keeps admin, one row, scores and dealer moved, placeholder merged and dropped from My players), viewer takes seat as a player, outsider linked and added to My players, no self row, stranger refused, anon has no execute, rollback and re-run.
+
 ## Public scorecard page
 
 This is not a database change. `public/scorecard.html` (and the same file at `web/scorecard.html`) does not contain the project URL or the anon key. It contains the placeholders `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__`.
