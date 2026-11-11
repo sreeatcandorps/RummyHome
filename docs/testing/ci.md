@@ -9,8 +9,8 @@ Steps A, B and C of [`automation-plan.md`](automation-plan.md) are implemented. 
 | Workflow | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) |
 | Supabase CLI config (local only) | [`rummy-home3/supabase/config.toml`](../../rummy-home3/supabase/config.toml) |
 | Multi-user seed | [`rummy-home3/supabase/seed.sql`](../../rummy-home3/supabase/seed.sql) |
-| pgTAP tests | [`rummy-home3/supabase/tests/`](../../rummy-home3/supabase/tests/) (9 files, 192 tests) |
-| Rollback replay (013–019) | [`ci/db/replay-rollbacks.sh`](../../ci/db/replay-rollbacks.sh) |
+| pgTAP tests | [`rummy-home3/supabase/tests/`](../../rummy-home3/supabase/tests/) (10 files, 253 tests) |
+| Rollback replay (013–020) | [`ci/db/replay-rollbacks.sh`](../../ci/db/replay-rollbacks.sh) |
 | pgTAP runner | [`ci/db/run-pgtap.sh`](../../ci/db/run-pgtap.sh) |
 | Two-client concurrency | [`ci/db/concurrency-save-round.mjs`](../../ci/db/concurrency-save-round.mjs) |
 | Report builder | [`ci/report/build-report.mjs`](../../ci/report/build-report.mjs), [`ci/report/workflow-map.json`](../../ci/report/workflow-map.json), [`ci/report/node-test-json-reporter.mjs`](../../ci/report/node-test-json-reporter.mjs) |
@@ -28,10 +28,10 @@ For the nightly rows and manual runs, the test tooling (`ci/`, `supabase/config.
 
 ## Jobs
 
-1. **Unit tests + tsc** (~1 min). `npm ci` in `rummy-home3`, the `node:test` suite (231 tests at `859ee1c`, 265 at the current PR 7 tip) with a custom reporter that records which file each test came from, then `tsc --noEmit`.
+1. **Unit tests + tsc** (~1 min). `npm ci` in `rummy-home3`, the `node:test` suite (231 tests at `859ee1c`, 290 at the current PR 7 tip) with a custom reporter that records which file each test came from, then `tsc --noEmit`.
 2. **Database tests on local Supabase** (~4–6 min, mostly Docker image pulls).
-   - `supabase start` (Postgres 17 image, Studio/mail/edge runtime disabled) and `supabase db reset`: every migration in `supabase/migrations` (001→019 on the current PR 7 tip) from an empty database, then `seed.sql`.
-   - `replay-rollbacks.sh`: apply `rollback_019` and `rollback_018` (when the ref has them) → `017` → `016` → `015` → `014` → `013`, check with `pg_proc` / `pg_views` / `has_column_privilege` that each leaves the state it promises, re-apply 013→019 in order, then apply each forward migration a second time to prove they are re-runnable. 39 checks (31 without 019, 25 without 018).
+   - `supabase start` (Postgres 17 image, Studio/mail/edge runtime disabled) and `supabase db reset`: every migration in `supabase/migrations` (001→020 on the current PR 7 tip) from an empty database, then `seed.sql`.
+   - `replay-rollbacks.sh`: apply `rollback_020`, `rollback_019` and `rollback_018` (when the ref has them) → `017` → `016` → `015` → `014` → `013`, check with `pg_proc` / `pg_views` / `has_column_privilege` that each leaves the state it promises (020's rollback must leave 019 intact), re-apply 013→020 in order, then apply each forward migration a second time to prove they are re-runnable. 47 checks (39 without 020, 31 without 019, 25 without 018).
    - `run-pgtap.sh`: each `supabase/tests/*.sql` through `psql`, raw TAP kept per file.
    - `concurrency-save-round.mjs`: two real Postgres connections acting as two signed-in admins (`set role authenticated` + `request.jwt.claims`, exactly what PostgREST does), racing each other.
 3. **Test report**: downloads both result sets, builds one Markdown page, writes it to the job summary and uploads `test-report-<branch>`. Exit code is red if any non-TODO check failed or a suite did not run.
@@ -63,6 +63,7 @@ The seed creates eight accounts and three placeholders with fixed UUIDs (see the
 | `07_seat_takeover_017.sql` | 25 | Co-admin takes a placeholder's seat (one row, admin kept, scores moved, placeholder merged and dropped from My players); spectator takes a seat; outsider linked; self-link; app admin links for someone else |
 | `08_public_scorecard.sql` | 8 | Anon reads nothing from tables; the right token opens the card with only live rounds; wrong tokens, the share code and empty strings return `null` |
 | `09_candidates_and_roster.sql` | 10 | `list_new_game_candidates` / `list_my_players`: organiser excluded server-side, spectators never candidates, `#` labels, merged placeholders dropped |
+| `10_bundles_020.sql` | 61 | 020 bundles return only what the caller may see: outsider gets `null`/`[]`; seated player, spectator seat, non-seated creator and app admin get exactly the table-policy view (a `spectator_access`-only viewer gets the game row with empty seats and scores); no `email`/`phone`/`zip_code` key anywhere; `get_home_bundle` games equal `list_visible_game_ids ∩ games` policy, newest first, `p_limit` honoured; `list_result_candidates` totals equal the client sums; `get_game_result` `rounds` match the `getGame` arrays; email-match seats still list; anon refused `42501` |
 
 Concurrency scenarios (`ci/db/concurrency-save-round.mjs`, 31 checks, no known failures): two admins save the same new round at once (loser gets `PT409` with the plain-English message); the same payload submitted twice; an edit and an add on different rounds (the add waits for the edit's commit); two edits of the same round (second waits, last writer wins, no `23505`); a seat removal while a save including that seat is in flight (removal waits, seat and all its zero rows go); a save that names a seat whose removal is in flight (save waits, then is refused `PT409`, nothing written); a connection dropped before commit then retried; two declarations of the same completed game.
 

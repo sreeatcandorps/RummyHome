@@ -1,5 +1,9 @@
 # EZ Score performance review
 
+> **Nov 11, 2026:** Q1–Q7 and M1–M6 below were built (migration 020 + client). The
+> before/after numbers are in [RESULTS.md](RESULTS.md); the `results/before/` and
+> `results/after/` folders hold the raw outputs. The text below is the research as written.
+
 Research only. No app code and no live database were touched. Every number below was
 measured either on a **local Postgres 16** loaded with the repo's own migrations and a
 seeded dataset (2 000 users, 30 000 games, 2.25 M score rows), or by **replaying the real

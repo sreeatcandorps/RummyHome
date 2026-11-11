@@ -5,11 +5,16 @@
 // Run from rummy-home3/:
 //   node --import ./docs/performance/bench/harness/stubs.mjs --import tsx \
 //        docs/performance/bench/harness/count-requests.mjs
+//
+// HARNESS_DB=pre020 makes the mock answer the 020 RPCs (get_game_bundle, get_home_bundle,
+// list_result_candidates) with PGRST202, so the counts show the app's fallback path on a
+// database where 020 is not applied yet.
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://perf.invalid.supabase.co';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'anon';
+const PRE_020 = process.env.HARNESS_DB === 'pre020';
 
 const ROOT = process.cwd();
 const mod = (p) => import(pathToFileURL(path.join(ROOT, p)).href);
@@ -24,9 +29,12 @@ const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const jwt = `${b64({ alg: 'HS256' })}.${b64({ sub: UID, email: 'me@example.com', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })}.sig`;
 
 const profile = (id, i = 0) => ({ id, email: `p${i}@example.com`, display_name: `Player ${i}`, first_name: 'P', last_name: `${i}`, player_code: 'ABC123', public_player_no: 100 + i, player_status: 'registered', managed_by: null, role: 'player', default_settings: null });
+const publicProfile = (id, i) => { const { email, ...rest } = profile(id, i); return rest; };
 const gameRow = (id, i) => ({ id, created_at: new Date(Date.now() - i * 864e5).toISOString(), status: i < 2 ? 'active' : 'completed', game_type: 'stake', settings: {}, current_round: ROUNDS + 1, share_code: 'X', view_token: 'tok', created_by: UID, prize: null, prize_shares: null, game_number: i + 1, closed_at: null, completed_at: null, spectator_access: false });
-const gpRows = (gameId) => SEATS.map((pid, i) => ({ id: `${gameId}-${i}`, game_id: gameId, profile_id: pid, player_order: i, display_number: i + 1, role: i === 0 ? 'game_admin' : 'player', seated: true, is_active: true, profiles: profile(pid, i) }));
+const gpRows = (gameId) => SEATS.map((pid, i) => ({ id: `${gameId}-${i}`, game_id: gameId, profile_id: pid, player_order: i, display_number: i + 1, role: i === 0 ? 'game_admin' : 'player', seated: true, is_active: true, profiles: publicProfile(pid, i) }));
 const scoreRows = (gameId) => Array.from({ length: ROUNDS }, (_, r) => SEATS.map((pid, i) => ({ id: `${gameId}-${r}-${i}`, round_id: `${gameId}-r${r}`, game_id: gameId, profile_id: pid, score_type: 'count', value: -10, created_at: new Date().toISOString(), rounds: { round_number: r + 1, undone_at: null } }))).flat();
+const bundleScores = (gameId) => scoreRows(gameId).map((s) => ({ profile_id: s.profile_id, score_type: s.score_type, value: s.value, round_number: s.rounds.round_number }));
+const seatRows = (gameId) => gpRows(gameId).map(({ profile_id, player_order, role, seated, is_active, profiles }) => ({ profile_id, player_order, role, seated, is_active, profiles }));
 
 globalThis.fetch = async (input, init) => {
   const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
@@ -35,10 +43,35 @@ globalThis.fetch = async (input, init) => {
   const headers = init?.headers ?? {};
   const single = String(headers.Accept ?? headers.accept ?? '').includes('pgrst.object');
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  const missing = (name) => json({ code: 'PGRST202', message: `Could not find the function public.${name} in the schema cache`, details: null, hint: null }, 404);
+  const body = init?.body ? JSON.parse(init.body) : {};
   const p = url.pathname;
-  if (p.includes('/auth/v1/token')) return json({ access_token: jwt, refresh_token: 'r2', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: UID, email: 'me@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '' } });
+  const user = { id: UID, email: 'me@example.com', aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '' };
+  if (p.includes('/auth/v1/token')) return json({ access_token: jwt, refresh_token: 'r2', token_type: 'bearer', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, user });
+  // setSession() verifies the token with /auth/v1/user; the old harness got its session from the refresh ensureFreshSession() always did.
+  if (p.includes('/auth/v1/user')) return json(user);
+  if (p.includes('/rpc/get_game_bundle')) {
+    if (PRE_020) return missing('get_game_bundle');
+    const id = body.p_game_id;
+    return json({ game: gameRow(id, GAMES.indexOf(id)), game_players: seatRows(id), scores: bundleScores(id) });
+  }
+  if (p.includes('/rpc/get_home_bundle')) {
+    if (PRE_020) return missing('get_home_bundle');
+    return json({
+      profile: profile(UID),
+      games: GAMES.map((id, i) => ({ ...gameRow(id, i), game_players: seatRows(id).map(({ profiles, ...rest }) => rest) })),
+      notices: [],
+      claim_requests: [],
+      my_players: SEATS.slice(1).map((id, i) => ({ id, display_name: `Player ${i + 1}`, player_code: 'ABC123', games_together: 3 })),
+    });
+  }
+  if (p.includes('/rpc/list_result_candidates')) {
+    if (PRE_020) return missing('list_result_candidates');
+    return json(GAMES.map((id, i) => ({ game: gameRow(id, i), game_players: seatRows(id), totals: Object.fromEntries(SEATS.map((pid) => [pid, -200])) })));
+  }
   if (p.includes('/rpc/list_visible_game_ids')) return json(GAMES);
   if (p.includes('/rpc/save_round')) return json('round-id');
+  if (p.includes('/rpc/list_my_players')) return json(SEATS.slice(1).map((id, i) => ({ id, display_name: `Player ${i + 1}`, player_code: 'ABC123', games_together: 3 })));
   if (p.includes('/rpc/')) return json([]);
   if (p.endsWith('/profiles') || p.endsWith('/my_profile')) return json(single ? profile(UID) : [profile(UID)]);
   if (p.endsWith('/games')) {
@@ -64,6 +97,7 @@ globalThis.fetch = async (input, init) => {
 const { supabase } = await mod('services/supabase.ts');
 const { authService } = await mod('services/auth.ts');
 const { gamesService } = await mod('services/games.ts');
+const { homeService } = await mod('services/home.ts');
 const { playerIdentityService } = await mod('services/playerIdentity.ts');
 const { playersService } = await mod('services/players.ts');
 const { resultsService } = await mod('services/results.ts');
@@ -72,6 +106,8 @@ const { selectableResultGames } = await mod('utils/results.ts');
 
 await supabase.auth.setSession({ access_token: jwt, refresh_token: 'r1' });
 log = [];
+
+console.log(`# database: ${PRE_020 ? 'pre-020 (bundle RPCs answer PGRST202, app falls back)' : '020 applied'}`);
 
 const report = (name, serialSteps) => {
   const counts = new Map();
@@ -87,19 +123,17 @@ const loadScorecard = async () => {
   await gamesService.accessFor(GAMES[0], userId, { game: g, seats });
 };
 
-// Home: app/(tabs)/index.tsx loadData + JoinRequestsDialog + ClaimRequestsCard + app/(tabs)/_layout.tsx effects
-await authService.ensureFreshSession();
-const me = await authService.getCurrentPlayer();
-const games = await gamesService.listGamesForCurrentUser(me.id, { limit: 50, includeScores: false, email: me.email });
+// Home: app/(tabs)/index.tsx loadData (homeService.load) + JoinRequestsDialog + ClaimRequestsCard
+// (self-loads only when the bundle did not bring the list) + app/(tabs)/_layout.tsx effects.
+const home = await homeService.load();
 await Promise.all([
-  ...splitHomeGames(games).live.slice(0, 2).map((g) => gamesService.prefetchGame(g.id)),
-  playerIdentityService.takeNotices(me.id).catch(() => []),
-  playerIdentityService.listClaimRequests(me.id).catch(() => []),
+  ...splitHomeGames(home.games).live.slice(0, 2).map((g) => gamesService.prefetchGame(g.id)),
+  home.claimRequests ? Promise.resolve() : playerIdentityService.listClaimRequests(home.player.id).catch(() => []),
   playerIdentityService.peekPendingClaim().catch(() => null),
   authService.getCurrentPlayer(),
-  authService.getCurrentPlayer().then((p) => playersService.listMyPlayers(p.id)),
+  authService.getCurrentPlayer().then((p) => playersService.readMyPlayers(p.id).then(() => playersService.listMyPlayers(p.id))),
 ]);
-report('HOME focus (cold, 2 live games)', 4);
+report('HOME focus (cold, 2 live games)', PRE_020 ? 3 : 1);
 
 await loadScorecard();
 report('SCORECARD open (games/[id].tsx loadGameData)', 1);
@@ -109,7 +143,7 @@ report('SCORECARD open (games/[id].tsx loadGameData)', 1);
   const [g, seats] = await Promise.all([gamesService.getGame(GAMES[0]), gamesService.listGamePlayers(GAMES[0]), authService.getCurrentPlayer().catch(() => null)]);
   await gamesService.accessFor(GAMES[0], userId, { game: g, seats });
 }
-report('ROUND ENTRY open (score-entry.tsx loadGameData)', 1);
+report('ROUND ENTRY open (score-entry.tsx loadGameData; grid already seeded from cache)', 1);
 
 {
   const userId = await authService.getCurrentUserId();
@@ -127,9 +161,10 @@ await gamesService.addRound({
 report('SAVE ROUND (gamesService.addRound: save_round RPC + refetch)', 2);
 
 {
-  const events = 1 + SEATS.length + 1; // rounds insert + one scores insert per seat + games update
-  for (let i = 0; i < events + 1; i += 1) await loadScorecard();
-  report(`REALTIME ECHO on the scorer's own scorecard after one save (${events} postgres_changes events + 1 focus reload)`, 0);
+  // The channel follows games, game_players and rounds (not scores): one save is a rounds insert and a
+  // games update, coalesced by the 400 ms debounce into one reload, plus the focus reload.
+  for (let i = 0; i < 2; i += 1) await loadScorecard();
+  report('REALTIME ECHO on the scorer\'s own scorecard after one save (2 events -> 1 debounced reload + 1 focus reload)', 0);
 }
 
 {
@@ -137,9 +172,11 @@ report('SAVE ROUND (gamesService.addRound: save_round RPC + refetch)', 2);
   // re-run on every pathname change, + ClaimRequestsCard on the tab.
   const screen = (async () => {
     const me2 = await authService.getCurrentPlayer();
+    const fresh = playersService.listMyPlayers(me2.id);
+    const open = playerIdentityService.listUnregistered(me2.id).catch(() => []);
     await playersService.readMyPlayers(me2.id);
-    await playersService.listMyPlayers(me2.id);
-    await playerIdentityService.listUnregistered(me2.id).catch(() => []);
+    await fresh;
+    await open;
     await playerIdentityService.listClaimRequests(me2.id).catch(() => []);
   })();
   const layout = Promise.all([
@@ -148,14 +185,13 @@ report('SAVE ROUND (gamesService.addRound: save_round RPC + refetch)', 2);
   ]);
   await Promise.all([screen, layout]);
 }
-report('MY PLAYERS tab open (players.tsx load + tabs layout effects)', 4);
+report('MY PLAYERS tab open (players.tsx load + tabs layout effects)', 1);
 
 {
   const id = await authService.getCurrentUserId();
   const player = await authService.getCurrentPlayer();
-  const visible = await gamesService.listGamesForCurrentUser(id, { includeScores: true, email: player?.email });
-  const listed = selectableResultGames(visible);
-  await Promise.all(listed.map((g) => gamesService.listGamePlayers(g.id).catch(() => [])));
+  const candidates = await gamesService.listResultCandidates(id, player?.email);
+  selectableResultGames(candidates.games);
   await resultsService.list(0, 5);
 }
-report(`RESULTS page open (${GAMES.length} visible games)`, 5);
+report(`RESULTS page open (${GAMES.length} visible games)`, PRE_020 ? 4 : 2);

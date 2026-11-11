@@ -102,13 +102,29 @@ What it does, in plain English:
 
 Verified on a scratch Postgres 16 loaded with 001–018 and the CI seed: 192 pgTAP checks, 31 two-client race checks, and the rollback replay (apply rollback 019, then 018 → 013, re-apply 013 → 019, apply each a second time) all pass.
 
+## 020 — performance: faster visibility queries, bundle RPCs, indexes
+
+File: `supabase/migrations/020_performance_rpcs_and_indexes.sql`. Run after 017, 018 and 019. Safe to re-run. Rollback: `supabase/rollback/rollback_020_performance_rpcs_and_indexes.sql` (drops the bundle functions and the four indexes, puts the 006/012/018 versions of the three visibility functions, the 002 policies and the 018 `get_game_result` back; leaves 019 untouched; no data to undo).
+
+Not applied by this change. Until it runs, the app works exactly as before: it tries each new function once, gets "function not found", and uses the old requests for the rest of the session. Nothing a user sees depends on it.
+
+What it does, in plain English:
+
+- **The three "which games can I see" functions no longer scan every game.** `list_visible_game_ids`, `list_new_game_candidates` and `list_game_results_page` were reading the whole games table on every Home open and every Results open (about half a second each at 30 000 games). They are rewritten as index lookups with the same answers (the email-match path for players seated by email is kept). Four small indexes are added.
+- **Row-level security costs less.** The policies on `games`, `game_players`, `rounds` and `scores` ask "am I an admin / a member" once per query instead of once per row. Same rules, same answers.
+- **One request per screen.** `get_game_bundle(game)` returns the game, its seats and its live scores in one call (the scorecard used four). `get_home_bundle(limit)` returns your profile, your visible games, your creator notices (and marks them read), your open claim requests and your My Players list in one call (Home used up to 17). `list_result_candidates(limit)` returns the games you can pick for a result with their seats and server-side totals (the picker used to download every score of every game). `get_game_result` now also carries each game's rounds, so a result sheet is one call.
+- **Privacy is unchanged.** Every bundle checks visibility with the same helpers the table policies use, returns only names, Player IDs and status for other people (never email, phone or zip), and is refused for signed-out visitors. The 019 role lock and profile column grants are not touched.
+
+Verified on a scratch Postgres 16 loaded with 001–019 and the CI seed: 253 pgTAP checks (61 new, all about who gets what from the bundles), 31 two-client race checks, and the rollback replay (apply rollback 020, check the bundles are gone and 019 is intact, re-apply 013 → 020, apply each a second time) all pass. Timings before/after are in `docs/performance/RESULTS.md`.
+
 ## Apply order for the Nov 10–11 batch
 
-All three are unapplied. Paste into the Supabase SQL editor in this order, each as its own run:
+All four are unapplied. Paste into the Supabase SQL editor in this order, each as its own run:
 
 1. `supabase/migrations/017_link_seat_takeover.sql`
 2. `supabase/migrations/018_results_reuse_and_player_ids.sql`
 3. `supabase/migrations/019_security_and_concurrency_fixes.sql`
+4. `supabase/migrations/020_performance_rpcs_and_indexes.sql`
 
 ## Public scorecard page
 

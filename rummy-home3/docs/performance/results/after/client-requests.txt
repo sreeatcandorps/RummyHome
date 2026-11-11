@@ -1,0 +1,29 @@
+# database: 020 applied
+
+## HOME focus (cold, 2 live games): 3 HTTP requests, 1 serial round-trips before first paint
+     2  POST /rpc/get_game_bundle
+     1  POST /rpc/get_home_bundle
+
+## SCORECARD open (games/[id].tsx loadGameData): 1 HTTP requests, 1 serial round-trips before first paint
+     1  POST /rpc/get_game_bundle
+
+## ROUND ENTRY open (score-entry.tsx loadGameData; grid already seeded from cache): 1 HTTP requests, 1 serial round-trips before first paint
+     1  POST /rpc/get_game_bundle
+
+## PLAYERS page open (useGameRoster.reload + getCurrentPlayer): 1 HTTP requests, 1 serial round-trips before first paint
+     1  POST /rpc/get_game_bundle
+
+## SAVE ROUND (gamesService.addRound: save_round RPC + refetch): 2 HTTP requests, 2 serial round-trips before first paint
+     1  POST /rpc/save_round
+     1  POST /rpc/get_game_bundle
+
+## REALTIME ECHO on the scorer's own scorecard after one save (2 events -> 1 debounced reload + 1 focus reload): 2 HTTP requests, 0 serial round-trips before first paint
+     2  POST /rpc/get_game_bundle
+
+## MY PLAYERS tab open (players.tsx load + tabs layout effects): 2 HTTP requests, 1 serial round-trips before first paint
+     1  POST /rpc/list_my_unregistered_players
+     1  POST /rpc/list_claim_requests
+
+## RESULTS page open (12 visible games): 2 HTTP requests, 2 serial round-trips before first paint
+     1  POST /rpc/list_result_candidates
+     1  POST /rpc/list_game_results_page
