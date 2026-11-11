@@ -49,3 +49,11 @@ export function completionCheck(scores: Record<string, number[]>, playerIds: str
     problem: null,
   };
 }
+
+/** Final scores read highest first; ties keep seat order. Pure so the page can be tested. */
+export function sortFinalScores<T extends { total: number }>(rows: T[]): T[] {
+  return rows
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => b.row.total - a.row.total || a.index - b.index)
+    .map(({ row }) => row);
+}

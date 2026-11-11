@@ -15,7 +15,7 @@ import { Tag } from '@/components/ui/Tag';
 import { formatGameDateTime, gameNumberLabel } from '@/utils/gameDisplay';
 import { formatPoints } from '@/utils/results';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-import { completionCheck } from '@/utils/completeGame';
+import { completionCheck, sortFinalScores } from '@/utils/completeGame';
 
 /**
  * Complete game as its own page: final totals, a balance check, one filled
@@ -32,12 +32,13 @@ export default function CompleteGameScreen() {
   const [completing, setCompleting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
+  // Highest total first (seat colours stay with the person); ties keep seat order.
   const totals = useMemo(
-    () => players.map((player, index) => ({
+    () => sortFinalScores(players.map((player, index) => ({
       player,
       color: seatColor(index),
       total: (game?.scores[player.id] ?? []).reduce((sum, value) => sum + (Number(value) || 0), 0),
-    })),
+    }))),
     [game, players],
   );
   const check = useMemo(() => (game ? completionCheck(game.scores, players.map((p) => p.id)) : null), [game, players]);
