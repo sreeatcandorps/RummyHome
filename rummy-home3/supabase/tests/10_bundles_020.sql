@@ -161,15 +161,21 @@ select is(public.get_game_bundle(:A)->'scores', '[]'::jsonb, 'spectator_access: 
 select is(public.get_home_bundle(50)->'games', '[]'::jsonb, 'spectator_access does not put the game on Home (list_visible_game_ids unchanged)');
 
 -- ---------------------------------------------------------------------------
--- email-match seat (006 branch kept): a seat whose profile email equals the JWT email
+-- email-match seat (006 branch kept): a seat whose profile email equals the JWT email.
+-- Since 021 a second profile cannot carry an account's email (trigger + ci index), so
+-- such rows can only be legacy data; 021 skips its index when it finds them. Mirror that.
 -- ---------------------------------------------------------------------------
 select tests.logout();
+drop index if exists public.profiles_email_ci_key;
+alter table public.profiles disable trigger profiles_normalize_email;
 insert into public.profiles (id, display_name, first_name, last_name, player_status, managed_by, player_code, email)
 values ('00000000-0000-4000-8000-0000000000a9', 'O Outsider', 'O', 'Outsider', 'pending', '00000000-0000-4000-8000-000000000001', 'OO0009', 'OUTSIDER@test.local');
 insert into public.game_players (game_id, profile_id, player_order, role, seated)
 values (:C, '00000000-0000-4000-8000-0000000000a9', 3, 'player', true);
 select tests.login('00000000-0000-4000-8000-000000000005');
 select ok(:C in (select * from public.list_visible_game_ids()), 'a seat matched by email (case-insensitive) still lists the game');
+select tests.logout();
+alter table public.profiles enable trigger profiles_normalize_email;
 
 -- ---------------------------------------------------------------------------
 -- anon: no bundles at all
