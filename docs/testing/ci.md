@@ -10,7 +10,7 @@ Steps A, B and C of [`automation-plan.md`](automation-plan.md) are implemented. 
 | Supabase CLI config (local only) | [`rummy-home3/supabase/config.toml`](../../rummy-home3/supabase/config.toml) |
 | Multi-user seed | [`rummy-home3/supabase/seed.sql`](../../rummy-home3/supabase/seed.sql) |
 | pgTAP tests | [`rummy-home3/supabase/tests/`](../../rummy-home3/supabase/tests/) (9 files, 163 tests) |
-| Rollback replay | [`ci/db/replay-rollbacks.sh`](../../ci/db/replay-rollbacks.sh) |
+| Rollback replay (013–018) | [`ci/db/replay-rollbacks.sh`](../../ci/db/replay-rollbacks.sh) |
 | pgTAP runner | [`ci/db/run-pgtap.sh`](../../ci/db/run-pgtap.sh) |
 | Two-client concurrency | [`ci/db/concurrency-save-round.mjs`](../../ci/db/concurrency-save-round.mjs) |
 | Report builder | [`ci/report/build-report.mjs`](../../ci/report/build-report.mjs), [`ci/report/workflow-map.json`](../../ci/report/workflow-map.json), [`ci/report/node-test-json-reporter.mjs`](../../ci/report/node-test-json-reporter.mjs) |
@@ -22,16 +22,16 @@ Runs: https://github.com/sreeatcandorps/RummyHome/actions/workflows/ci.yml
 
 - Every push to any branch and every pull request. (A push to a PR branch produces two runs, one per trigger; both show the same result.)
 - Nightly at 09:00 UTC, which is 1 AM Pacific standard time (2 AM in summer), against `cursor/ezscore-apk-ready` (PR 7) and `main`, as two rows of a matrix. GitHub only runs schedules from the **default branch's** workflow file, so the nightly starts once this PR's `ci.yml` is on `main`.
-- On demand: Actions → CI → "Run workflow", optionally with a branch or commit in the `ref` box.
+- On demand: Actions → CI → "Run workflow", optionally with a branch, tag or full 40-character commit SHA in the `ref` box (short SHAs are not accepted by the checkout action).
 
 For the nightly rows and manual runs, the test tooling (`ci/`, `supabase/config.toml`, `seed.sql`, `supabase/tests`) is taken from the commit the workflow runs from, and `rummy-home3/` (app, migrations, unit tests) from the target ref. That is how PR 7's head can be tested before the PR 7 branch carries the tooling. Until `main` catches up with PR 7 it only has migrations 001–004, so its nightly row will be red on the database suite; that is a true statement about `main`, not a tooling problem.
 
 ## Jobs
 
-1. **Unit tests + tsc** (~1 min). `npm ci` in `rummy-home3`, the 231 `node:test` tests with a custom reporter that records which file each test came from, then `tsc --noEmit`.
+1. **Unit tests + tsc** (~1 min). `npm ci` in `rummy-home3`, the `node:test` suite (231 tests at `859ee1c`, 250 at the current PR 7 tip) with a custom reporter that records which file each test came from, then `tsc --noEmit`.
 2. **Database tests on local Supabase** (~4–6 min, mostly Docker image pulls).
-   - `supabase start` (Postgres 17 image, Studio/mail/edge runtime disabled) and `supabase db reset`: migrations 001→017 from an empty database, then `seed.sql`.
-   - `replay-rollbacks.sh`: apply `rollback_017` → `016` → `015` → `014` → `013`, check with `pg_proc` that each leaves the function state it promises, re-apply 013→017 in order, then apply each forward migration a second time to prove they are re-runnable. 25 checks.
+   - `supabase start` (Postgres 17 image, Studio/mail/edge runtime disabled) and `supabase db reset`: every migration in `supabase/migrations` (001→018 on the current PR 7 tip) from an empty database, then `seed.sql`.
+   - `replay-rollbacks.sh`: apply `rollback_018` (when the ref has it) → `017` → `016` → `015` → `014` → `013`, check with `pg_proc` that each leaves the function state it promises, re-apply 013→018 in order, then apply each forward migration a second time to prove they are re-runnable. 31 checks (25 on refs without 018).
    - `run-pgtap.sh`: each `supabase/tests/*.sql` through `psql`, raw TAP kept per file.
    - `concurrency-save-round.mjs`: two real Postgres connections acting as two signed-in admins (`set role authenticated` + `request.jwt.claims`, exactly what PostgREST does), racing each other.
 3. **Test report**: downloads both result sets, builds one Markdown page, writes it to the job summary and uploads `test-report-<branch>`. Exit code is red if any non-TODO check failed or a suite did not run.

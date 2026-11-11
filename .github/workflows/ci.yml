@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: Branch, tag or commit to test (blank = the branch this is run from)
+        description: Branch, tag or full 40-character commit SHA to test (blank = the branch this is run from)
         required: false
         default: ''
 
@@ -80,7 +80,7 @@ jobs:
         working-directory: rummy-home3
         run: npm ci --no-audit --no-fund
 
-      - name: node:test (231 tests)
+      - name: node:test
         working-directory: rummy-home3
         run: |
           mkdir -p ../ci/out/unit
@@ -164,7 +164,7 @@ jobs:
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector 2>&1 | grep -viE 'key|secret|token' || true
           psql "$DB_URL" -tAc "select version()"
 
-      - name: Migrations 001–017 + seed from empty (supabase db reset)
+      - name: Migrations 001–018 + seed from empty (supabase db reset)
         working-directory: rummy-home3
         run: |
           mkdir -p ../ci/out/db
@@ -174,7 +174,7 @@ jobs:
           psql "$DB_URL" -tAc "select count(*) || ' migrations recorded' from supabase_migrations.schema_migrations" | tee -a ../ci/out/db/migrations.txt
           psql "$DB_URL" -tAc "select count(*) || ' seeded profiles' from public.profiles" | tee -a ../ci/out/db/migrations.txt
 
-      - name: Rollbacks 017→013 then re-apply 013–017
+      - name: Rollbacks 018→013 then re-apply 013–018
         run: |
           set +e
           DB_PSQL="psql $DB_URL" ci/db/replay-rollbacks.sh | tee ci/out/db/rollbacks.tap
