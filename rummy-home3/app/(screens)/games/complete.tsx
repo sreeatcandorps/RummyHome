@@ -16,6 +16,7 @@ import { formatGameDateTime, gameNumberLabel } from '@/utils/gameDisplay';
 import { formatPoints } from '@/utils/results';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { completionCheck, sortFinalScores } from '@/utils/completeGame';
+import { gameAdminLines } from '@/utils/gameAdmins';
 
 /**
  * Complete game as its own page: final totals, a balance check, one filled
@@ -27,7 +28,7 @@ export default function CompleteGameScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const { insets } = useLayout();
-  const { game, setGame, players, canScore, loading, error } = useGameRoster(typeof id === 'string' ? id : undefined);
+  const { game, setGame, players, roster, canScore, loading, error, reload } = useGameRoster(typeof id === 'string' ? id : undefined);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -42,6 +43,7 @@ export default function CompleteGameScreen() {
     [game, players],
   );
   const check = useMemo(() => (game ? completionCheck(game.scores, players.map((p) => p.id)) : null), [game, players]);
+  const admins = useMemo(() => (game ? gameAdminLines(roster, game) : []), [game, roster]);
 
   const complete = async () => {
     if (!game || completing || game.isComplete) return;
@@ -64,7 +66,15 @@ export default function CompleteGameScreen() {
     return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.primary} /></View>;
   }
   if (!game || !check) {
-    return <EmptyState icon="alert-circle-outline" title="Game not available" message={error ?? 'Try again from the scorecard.'} />;
+    return (
+      <EmptyState
+        icon="alert-circle-outline"
+        title={error ? "Couldn't load this game" : 'Game not available'}
+        message={error ?? 'Try again from the scorecard.'}
+        actionLabel="Retry"
+        onAction={reload}
+      />
+    );
   }
 
   const number = gameNumberLabel(game);
@@ -103,6 +113,21 @@ export default function CompleteGameScreen() {
             <Text variant="bodySmall" style={{ color: check.ok ? colors.onSurfaceVariant : colors.error, flex: 1 }}>{check.line}</Text>
           </View>
         </View>
+
+        {admins.length > 0 ? (
+          <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]} testID="game-admins">
+            <Text variant="titleSmall" style={styles.adminsTitle}>Game admins</Text>
+            {admins.map((line) => (
+              <View key={line.id} style={styles.adminRow}>
+                <Icon source={line.role === 'Creator' ? 'crown-outline' : 'shield-account-outline'} size={18} color={colors.onSurfaceVariant} />
+                <Text variant="bodyMedium" style={styles.name} numberOfLines={1}>{line.name}</Text>
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+                  {[line.badge, line.playing ? null : 'not playing'].filter(Boolean).join(' · ')}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {!done && blocked ? (
           <Text variant="bodyMedium" style={{ color: colors.error }}>{blocked}</Text>
@@ -173,6 +198,8 @@ const styles = StyleSheet.create({
   content: { paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heading: { fontWeight: '800' },
+  adminsTitle: { fontWeight: '700', paddingTop: spacing.sm, paddingBottom: spacing.xs },
+  adminRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingTop: spacing.xs },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
   name: { flex: 1 },

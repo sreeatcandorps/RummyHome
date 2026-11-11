@@ -9,6 +9,7 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FinalScoresView, IMAGE_WIDTH } from '@/components/share/FinalScoresView';
 import { buildFinalScoresSheet } from '@/utils/finalScoresSheet';
+import { gameAdminLines, gameAdminTextLines } from '@/utils/gameAdmins';
 import { IMAGE_READY, shareFinalScoresImage } from '@/utils/shareImage';
 
 /**
@@ -20,15 +21,15 @@ export default function FinalScoresScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const { width, insets } = useLayout();
-  const { game, players, loading, error } = useGameRoster(typeof id === 'string' ? id : undefined);
+  const { game, players, roster, loading, error } = useGameRoster(typeof id === 'string' ? id : undefined);
   const shot = useRef<View>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [previewHeight, setPreviewHeight] = useState(0);
 
   const sheet = useMemo(
-    () => (game ? buildFinalScoresSheet({ game, players, scores: game.scores }) : null),
-    [game, players],
+    () => (game ? buildFinalScoresSheet({ game, players, scores: game.scores, admins: gameAdminTextLines(gameAdminLines(roster, game)) }) : null),
+    [game, players, roster],
   );
 
   const previewWidth = Math.min(width - spacing.lg * 2, IMAGE_WIDTH);

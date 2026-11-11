@@ -47,6 +47,8 @@ export type FinalScoresSheet = {
   totalSum: number;
   /** "Game ID G3 · A1B2C3" */
   footer: string;
+  /** "Game admins: Sree Koneru · #39, …" — who ran the game; empty when unknown. */
+  adminLines: string[];
 };
 
 export function chunk<T>(items: T[], size: number): T[][] {
@@ -71,6 +73,8 @@ export function buildFinalScoresSheet(input: {
   game: { id: string; shareCode?: string; gameNumber?: number | null; date: string; completedAt?: string | null; isComplete: boolean };
   players: { id: string; name: string }[];
   scores: Record<string, number[]>;
+  /** "Name · #39" per admin, creator first. */
+  admins?: string[];
   now?: Date;
 }): FinalScoresSheet {
   const now = input.now ?? new Date();
@@ -107,5 +111,6 @@ export function buildFinalScoresSheet(input: {
     players,
     totalSum: players.reduce((sum, player) => sum + player.total, 0),
     footer: finalScoresFooter(input.game),
+    adminLines: input.admins && input.admins.length > 0 ? [`Game admins: ${input.admins.join(', ')}`] : [],
   };
 }

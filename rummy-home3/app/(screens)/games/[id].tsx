@@ -10,6 +10,7 @@ import { authService } from '@/services/auth';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
 import { storage } from '@/utils/storage';
+import { PLAYERS_ADMINS_TITLE } from '@/utils/gameAdmins';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { gameTypeLabel } from '@/utils/gameDisplay';
 import { buildPlayerInitials } from '@/utils/playerInitials';
@@ -341,7 +342,7 @@ export default function GameScreen() {
                 anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu"> </Button>}
               >
                 <Menu.Item leadingIcon="cog-outline" onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title="Game settings" />
-                <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title="Players" />
+                <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title={PLAYERS_ADMINS_TITLE} />
                 {canScore && !game.isComplete ? (
                   <Menu.Item leadingIcon="pencil-outline" title="Edit round" disabled={maxRounds === 0} onPress={() => { setMenuOpen(false); setEditRoundOpen(true); }} />
                 ) : null}

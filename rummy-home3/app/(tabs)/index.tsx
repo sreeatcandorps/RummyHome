@@ -10,7 +10,7 @@ import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { settleEnabled } from '@/constants/features';
-import { filterRecentGames, RECENT_CHIPS, RecentChip, splitHomeGames, DEFAULT_RECENT_CHIP } from '@/utils/homeGames';
+import { splitHomeGames } from '@/utils/homeGames';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -30,7 +30,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [chip, setChip] = useState<RecentChip>(DEFAULT_RECENT_CHIP);
   const [notices, setNotices] = useState<string[]>([]);
   const addNotice = useCallback((text: string) => setNotices((cur) => (cur.includes(text) ? cur : [...cur, text])), []);
 
@@ -70,7 +69,6 @@ export default function Dashboard() {
   }, [loadData]));
 
   const { live, recent: finished } = splitHomeGames(recentGames);
-  const filtered = filterRecentGames(finished, chip);
   const firstName = currentPlayer?.name?.split(' ')[0] || 'there';
 
   const resultsButton = (
@@ -108,26 +106,11 @@ export default function Dashboard() {
   );
 
   const recent = (
-    <SectionCard title="Recent" icon="history" supportingText="Completed and Closed games.">
-      <View style={styles.chips}>
-        {RECENT_CHIPS.map(({ value, label }) => (
-          <Button
-            key={value}
-            mode={chip === value ? 'contained' : 'outlined'}
-            compact
-            onPress={() => setChip(value)}
-            accessibilityLabel={value === 'all' ? 'All finished games' : 'Finished in the last 10 days'}
-          >
-            {label}
-          </Button>
-        ))}
-      </View>
-      {filtered.length === 0 ? (
-        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          {finished.length === 0 ? 'No finished games yet.' : 'Nothing in the last 10 days.'}
-        </Text>
+    <SectionCard title={finished.length ? `Recent · ${finished.length}` : 'Recent'} icon="history" supportingText="Completed and Closed games, newest first.">
+      {finished.length === 0 ? (
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>No finished games yet.</Text>
       ) : (
-        filtered.map((game) => (
+        finished.map((game) => (
           <View key={game.id} style={styles.gameGap}>
             <GameListItem game={game} viewerId={currentPlayer?.id} onPress={() => router.push(`/(screens)/games/${game.id}`)} />
           </View>
@@ -240,11 +223,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   settle: {
-    marginBottom: spacing.md,
-  },
-  chips: {
-    flexDirection: 'row',
-    gap: spacing.sm,
     marginBottom: spacing.md,
   },
   gameGap: {

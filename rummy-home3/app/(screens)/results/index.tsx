@@ -1,29 +1,26 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View } from 'react-native';
-import { Button, Chip, Icon, Text, TouchableRipple } from 'react-native-paper';
+import { Button, Chip, Dialog, Icon, Portal, Text, TouchableRipple } from 'react-native-paper';
 import { router, useFocusEffect } from 'expo-router';
+import { GameListItem } from '@/components/ui/GameListItem';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { Screen } from '@/components/ui/Screen';
+import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { Tag } from '@/components/ui/Tag';
 import { RESULTS_PLAYER_LIMIT } from '@/constants/limits';
-import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { authService } from '@/services/auth';
 import { gamesService } from '@/services/games';
 import { resultsService } from '@/services/results';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
-import { formatGameDateTime, GAME_STATUS_ICON, GAME_STATUS_TONE, gameNumberLabel, gameStatusLabel, gameTypeLabel, gameTypeTint } from '@/utils/gameDisplay';
-import { ResultWarnings } from '@/components/results/ResultWarnings';
+import { formatGameDateTime } from '@/utils/gameDisplay';
 import {
-  canDeclareResults,
-  formatPoints,
   GameResultSummary,
-  placeLabel,
   RESULTS_PAGE_SIZE,
   resultsCountLine,
-  resultsShowMode,
   selectableResultGames,
   DEFAULT_RESULTS_FILTER,
   defaultResultSelection,
@@ -34,11 +31,20 @@ import {
   RESULTS_STATUSES,
   resultsEmptyText,
   resultsPickerHeading,
-  resultWarnings,
-  toggleResultsStatus,
   visibleSelection,
   withinResultsPlayerLimit,
 } from '@/utils/results';
+import {
+  applyFilterSwitch,
+  canPickForResults,
+  FilterSwitch,
+  NON_ADMIN_PICK_MESSAGE,
+  pastResultRows,
+  planFilterSwitch,
+  resultReusedNote,
+  selectedCountLine,
+  winnerInitials,
+} from '@/utils/resultsSave';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
@@ -55,55 +61,11 @@ function newestFirst(a: Game, b: Game): number {
   return new Date(b.date).getTime() - new Date(a.date).getTime();
 }
 
-function GameRow({ game, on, onPress }: { game: Game; on: boolean; onPress: () => void }) {
-  const theme = useAppTheme();
-  const tint = gameTypeTint(game.gameType, theme.gameTypes);
-  const status = gameStatusLabel(game);
-  const open = status === 'Active';
-  const closed = status === 'Closed';
-  const gNumber = gameNumberLabel(game);
-  const when = formatGameDateTime(game.date);
-  return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: on ? theme.colors.primaryContainer : theme.colors.surface,
-          borderColor: on ? theme.colors.primary : theme.colors.outlineVariant,
-          borderLeftColor: open ? theme.colors.positive : theme.colors.outline,
-        },
-      ]}
-    >
-      <TouchableRipple
-        onPress={onPress}
-        borderless
-        style={styles.ripple}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: on }}
-        accessibilityLabel={`${gNumber ?? 'Game'}, ${when}, ${closed ? 'closed, already in a result' : open ? 'open' : 'completed'}, ${gameTypeLabel(game.gameType)}`}
-      >
-        <View style={styles.rowInner}>
-          <Icon source={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={on ? theme.colors.primary : theme.colors.onSurfaceVariant} />
-          {gNumber ? (
-            <View style={[styles.badge, { backgroundColor: tint.container }]}>
-              <Text style={[styles.badgeText, { color: tint.on }]}>{gNumber}</Text>
-            </View>
-          ) : null}
-          <View style={styles.rowBody}>
-            <Text variant="titleSmall" style={styles.left} numberOfLines={1}>{when}</Text>
-            <View style={styles.meta}>
-              <Tag label={status} tone={GAME_STATUS_TONE[status]} icon={GAME_STATUS_ICON[status]} />
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>{gameTypeLabel(game.gameType)}</Text>
-            </View>
-          </View>
-        </View>
-      </TouchableRipple>
-    </View>
-  );
-}
-
+/** One saved result: the winner's initials under a crown, then 1st/2nd/3rd on their own rows. */
 function PastResult({ item }: { item: GameResultSummary }) {
   const { colors } = useAppTheme();
+  const rows = pastResultRows(item.top);
+  const reused = resultReusedNote(item.reusedCount);
   return (
     <View style={[styles.past, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderLeftColor: colors.secondary }]}>
       <TouchableRipple
@@ -111,24 +73,30 @@ function PastResult({ item }: { item: GameResultSummary }) {
         borderless
         style={styles.ripple}
         accessibilityRole="button"
-        accessibilityLabel={`Open results from ${formatGameDateTime(item.declaredAt)}`}
+        accessibilityLabel={`Open results from ${formatGameDateTime(item.declaredAt)}${reused ? `, ${reused.toLowerCase()}` : ''}`}
       >
         <View style={styles.pastInner}>
-          <View style={[styles.pastBadge, { backgroundColor: colors.secondaryContainer }]}>
-            <Icon source="podium" size={22} color={colors.onSecondaryContainer} />
+          <View style={styles.winner} accessibilityLabel={`Winner ${rows[0]?.name ?? ''}`}>
+            <Icon source="crown" size={18} color={colors.secondary} />
+            <SeatAvatar name={rows[0]?.name ?? '?'} label={winnerInitials(item.top)} color={colors.primary} size={44} />
           </View>
           <View style={styles.pastBody}>
             <Text variant="titleSmall" style={styles.left} numberOfLines={1}>{formatGameDateTime(item.declaredAt)}</Text>
             <View style={styles.meta}>
               <Tag label="Results" tone="results" icon="podium" />
+              {reused ? <Icon source="alert-outline" size={18} color={colors.secondary} /> : null}
               <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{resultsCountLine(item.gameCount, item.playerCount)}</Text>
             </View>
-            {item.top.length === 0 ? (
+            {rows.length === 0 ? (
               <Text variant="bodySmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{item.winnerLine}</Text>
             ) : (
-              <Text variant="bodySmall" numberOfLines={2} style={{ color: colors.onSurfaceVariant }}>
-                {item.top.map((row) => `${placeLabel(row.place)} ${row.name} ${formatPoints(row.points)}`).join('  ·  ')}
-              </Text>
+              rows.map((row) => (
+                <View key={`${row.label}-${row.name}`} style={styles.placeRow}>
+                  <Text variant="bodyLarge" style={[styles.placeLabel, { color: colors.onSurfaceVariant }]}>{row.label}</Text>
+                  <Text variant="bodyLarge" style={styles.placeName} numberOfLines={1}>{row.name}</Text>
+                  <Text variant="bodyLarge" style={[tabularNums, styles.placePoints, { color: row.points.startsWith('-') ? colors.negative : colors.positive }]}>{row.points}</Text>
+                </View>
+              ))
             )}
           </View>
           <Icon source="chevron-right" size={24} color={colors.onSurfaceVariant} />
@@ -150,7 +118,8 @@ export default function ResultsScreen() {
   const touched = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [pendingSwitch, setPendingSwitch] = useState<FilterSwitch<Game> | null>(null);
+  const [notAdmin, setNotAdmin] = useState<Game | null>(null);
   const loadingMore = useRef(false);
 
   const load = useCallback(async () => {
@@ -163,6 +132,7 @@ export default function ResultsScreen() {
         return;
       }
       setUserId(id);
+      // Every game the person is in. Ones they do not run are listed but cannot be ticked.
       const visible = await gamesService.listGamesForCurrentUser(id, {
         includeScores: true,
         email: player?.email,
@@ -177,8 +147,8 @@ export default function ResultsScreen() {
       setSaved(first);
       setHasMore(first.length === RESULTS_PAGE_SIZE);
       setChecked((current) => (touched.current
-        ? current.filter((gameId) => listedGames.some((game) => game.id === gameId))
-        : defaultResultSelection(listedGames, filter)));
+        ? current.filter((gameId) => listedGames.some((game) => game.id === gameId && canPickForResults(game, id)))
+        : defaultResultSelection(listedGames, filter, id)));
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
@@ -192,11 +162,21 @@ export default function ResultsScreen() {
 
   const shownGames = useMemo(() => filterResultGames(games, filter), [games, filter]);
 
+  const applySwitch = (plan: FilterSwitch<Game>) => {
+    touched.current = true;
+    setFilter(plan.next);
+    setChecked((current) => applyFilterSwitch(current, plan.hidden));
+    setPendingSwitch(null);
+  };
+
+  /** A chip that would hide a ticked game asks first; Cancel keeps both the filter and the ticks. */
   const flipStatus = (status: ResultsStatus) => {
-    const next = toggleResultsStatus(filter, status);
-    touched.current = false;
-    setFilter(next);
-    setChecked(defaultResultSelection(games, next));
+    const plan = planFilterSwitch(games, checked, filter, status);
+    if (plan.question) {
+      setPendingSwitch(plan);
+      return;
+    }
+    applySwitch(plan);
   };
 
   const loadMore = useCallback(async () => {
@@ -221,47 +201,28 @@ export default function ResultsScreen() {
   // Only ticked games that are on screen count; a game hidden by a chip never rides along.
   const selected = useMemo(() => visibleSelection(checked, shownGames), [checked, shownGames]);
 
-  const warnings = useMemo(() => resultWarnings(selected), [selected]);
   const tooMany = selected.length > 0 && !withinResultsPlayerLimit(selected.map((game) => ({
     players: game.players,
     scores: game.scores,
     names,
   })));
 
-  const toggle = (id: string) => {
+  const toggle = (game: Game) => {
+    if (!canPickForResults(game, userId)) {
+      setNotAdmin(game);
+      return;
+    }
     touched.current = true;
-    setChecked((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+    setChecked((current) => (current.includes(game.id) ? current.filter((item) => item !== game.id) : [...current, game.id]));
   };
 
-  const preview = (reason: 'open' | 'admin') => {
+  /** Show results only shows. Saving (which closes the games) is a separate step on the results page. */
+  const show = () => {
+    if (selected.length === 0 || tooMany) return;
     router.push({
       pathname: '/(screens)/results/view',
-      params: { ids: selected.map((game) => game.id).join(','), at: new Date().toISOString(), preview: reason },
+      params: { ids: selected.map((game) => game.id).join(','), at: new Date().toISOString() },
     });
-  };
-
-  const show = async () => {
-    if (selected.length === 0 || tooMany || busy) return;
-    if (resultsShowMode(selected) === 'preview') {
-      preview('open');
-      return;
-    }
-    if (!userId || !canDeclareResults(selected, userId)) {
-      preview('admin');
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await resultsService.declare({ games: selected, names, userId });
-      touched.current = false;
-      setChecked([]);
-      router.push(`/(screens)/results/${result.id}`);
-    } catch (err) {
-      setError(formatSupabaseError(err));
-    } finally {
-      setBusy(false);
-    }
   };
 
   return (
@@ -289,6 +250,9 @@ export default function ResultsScreen() {
           );
         })}
       </View>
+      <Text variant="titleSmall" testID="results-selected-count" accessibilityLiveRegion="polite" style={{ color: colors.onSurfaceVariant }}>
+        {selectedCountLine(selected.length)}
+      </Text>
       {error ? (
         <View>
           <Text style={{ color: colors.error }}>{error}</Text>
@@ -301,17 +265,22 @@ export default function ResultsScreen() {
       ) : null}
       <View style={styles.list}>
         {shownGames.map((game) => (
-          <GameRow key={game.id} game={game} on={checked.includes(game.id)} onPress={() => toggle(game.id)} />
+          <GameListItem
+            key={game.id}
+            game={game}
+            viewerId={userId}
+            checked={checked.includes(game.id)}
+            locked={!canPickForResults(game, userId)}
+            onPress={() => toggle(game)}
+          />
         ))}
       </View>
       {tooMany ? <Text style={{ color: colors.error }}>{RESULTS_PLAYER_LIMIT}</Text> : null}
-      <ResultWarnings warnings={warnings} />
       <Button
         mode="contained"
         icon="view-list"
         onPress={show}
-        disabled={selected.length === 0 || tooMany || busy}
-        loading={busy}
+        disabled={selected.length === 0 || tooMany}
         accessibilityLabel="Show results"
       >
         Show results
@@ -328,6 +297,24 @@ export default function ResultsScreen() {
           <Button mode="text" onPress={loadMore} accessibilityLabel="Show more past results">Show more</Button>
         ) : null}
       </SectionCard>
+
+      <Portal>
+        <Dialog visible={Boolean(pendingSwitch)} onDismiss={() => setPendingSwitch(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+          <Dialog.Icon icon="checkbox-marked-outline" />
+          <Dialog.Title>Deselect games?</Dialog.Title>
+          <Dialog.Content><Text variant="bodyMedium">{pendingSwitch?.question}</Text></Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setPendingSwitch(null)} accessibilityLabel="Keep the selection">Cancel</Button>
+            <Button mode="contained" onPress={() => pendingSwitch && applySwitch(pendingSwitch)} accessibilityLabel="Deselect and switch">OK</Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog visible={Boolean(notAdmin)} onDismiss={() => setNotAdmin(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+          <Dialog.Icon icon="lock-outline" />
+          <Dialog.Title>Not an admin</Dialog.Title>
+          <Dialog.Content><Text variant="bodyMedium">{NON_ADMIN_PICK_MESSAGE}</Text></Dialog.Content>
+          <Dialog.Actions><Button mode="contained" onPress={() => setNotAdmin(null)}>OK</Button></Dialog.Actions>
+        </Dialog>
+      </Portal>
     </Screen>
   );
 }
@@ -335,31 +322,7 @@ export default function ResultsScreen() {
 const styles = StyleSheet.create({
   left: { textAlign: 'left' },
   list: { gap: spacing.sm },
-  flex: { flex: 1 },
-  card: {
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth * 2,
-    borderLeftWidth: 5,
-    overflow: 'hidden',
-  },
   ripple: { borderRadius: radius.lg },
-  rowInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  badge: {
-    minWidth: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  badgeText: { fontWeight: '800', fontSize: 15 },
-  rowBody: { flex: 1, gap: 4, alignItems: 'flex-start' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
   filterChip: { borderRadius: radius.full },
@@ -376,6 +339,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
   },
-  pastBadge: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  pastBody: { flex: 1, gap: 4, alignItems: 'flex-start' },
+  winner: { alignItems: 'center', gap: 2 },
+  pastBody: { flex: 1, gap: 4, alignItems: 'stretch' },
+  placeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  placeLabel: { width: 36, fontWeight: '700' },
+  placeName: { flex: 1, fontWeight: '600' },
+  placePoints: { fontWeight: '800' },
+  dialog: { borderRadius: radius.xl, maxWidth: 520, width: '94%', alignSelf: 'center' },
 });

@@ -20,14 +20,16 @@ function pointsColor(text: string): string {
   return text.startsWith('-') ? CARD_NEG : CARD_POS;
 }
 
-/** Row height and type size of the by-game grid, so 20 games still fit in a readable image. */
+/** Row height and type size of the by-game grid. Bands hold at most six columns (five games + Total). */
 function gridMetrics(grid: ShareBreakdown) {
-  const colCount = grid.columns.length;
-  const headW = grid.orientation === 'gamesDown' ? 70 : 90;
+  const colCount = Math.max(1, ...grid.bands.map((band) => band.columns.length));
+  const headW = 90;
   const avail = CARD_W - CARD_PAD * 2 - headW;
-  const colW = Math.max(30, Math.min(96, Math.floor(avail / Math.max(1, colCount))));
+  const colW = Math.max(30, Math.min(96, Math.floor(avail / colCount)));
   const font = grid.dense || colW < 44 ? 15 : 18;
-  return { headW, colW, font, rowH: font + 10, legend: legendLines(grid.legend) };
+  const rowH = font + 10;
+  const rows = grid.bands.reduce((sum, band) => sum + band.rows.length + 1, 0);
+  return { headW, colW, font, rowH, rows, bandGap: 14, legend: legendLines(grid.legend) };
 }
 
 /**
@@ -40,8 +42,10 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   const metrics = grid ? gridMetrics(grid) : null;
   const headerH = 200 + (card.summary ? 30 : 0);
   const podiumH = card.podiumFirst ? card.places.length * 44 + (card.lines.length > 0 ? 36 : 0) : 0;
-  const linesH = card.lines.length * 40 + (card.moreCount > 0 ? 36 : 0);
-  const gridH = grid && metrics ? 52 + (grid.rows.length + 1) * metrics.rowH + metrics.legend.length * 20 + 24 : 0;
+  const hasSub = card.lines.some((line) => line.sub);
+  const lineH = hasSub ? 52 : 40;
+  const linesH = card.lines.length * lineH + (card.moreCount > 0 ? 36 : 0);
+  const gridH = grid && metrics ? 52 + metrics.rows * metrics.rowH + (grid.bands.length - 1) * metrics.bandGap + metrics.legend.length * 20 + 24 : 0;
   const noteH = card.breakdownNote ? 30 : 0;
   const placesH = !card.podiumFirst ? card.places.length * 36 : 0;
   const footerH = card.footer ? 56 : 24;
@@ -78,7 +82,7 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   rule(y);
   y += 40;
 
-  const drawLine = (line: { name: string; points: string; place?: number }) => {
+  const drawLine = (line: { name: string; points: string; place?: number; sub?: string }) => {
     const hasBadges = card.lines.some((item) => item.place != null);
     let x = CARD_PAD;
     if (hasBadges) {
@@ -87,7 +91,8 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
     }
     paint(clip(line.name, 26), x, y, CARD_CREAM, '600 24px sans-serif');
     paint(line.points, CARD_W - CARD_PAD, y, pointsColor(line.points), '800 24px sans-serif', 'right');
-    y += 40;
+    if (line.sub) paint(clip(line.sub, 30), x, y + 18, 'rgba(251,241,225,0.75)', '600 14px sans-serif');
+    y += lineH;
   };
   if (card.podiumFirst) {
     card.places.forEach((place) => {
@@ -109,26 +114,27 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
     rule(y - 20);
     paint('By game', CARD_PAD, y + 6, CARD_GOLD, '700 18px sans-serif');
     y += 30;
-    const { headW, colW, font, rowH } = metrics;
-    const down = grid.orientation === 'gamesDown';
+    const { headW, colW, font, rowH, bandGap } = metrics;
     const cellX = (index: number) => CARD_PAD + headW + colW * (index + 1);
-    paint(down ? 'Game' : 'Player', CARD_PAD, y, 'rgba(251,241,225,0.8)', `700 ${font - 2}px sans-serif`);
-    grid.columns.forEach((column, index) => {
-      paint(column, cellX(index), y, 'rgba(251,241,225,0.8)', `700 ${font - 2}px sans-serif`, 'right');
-    });
-    y += rowH;
-    grid.rows.forEach((row) => {
-      if (row.total) {
+    grid.bands.forEach((band, bandIndex) => {
+      if (bandIndex > 0) {
         ctx.fillStyle = 'rgba(227,179,65,0.7)';
-        ctx.fillRect(CARD_PAD, y - rowH + 8, CARD_W - CARD_PAD * 2, 1);
+        ctx.fillRect(CARD_PAD, y - rowH + 10, CARD_W - CARD_PAD * 2, 1);
+        y += bandGap;
       }
-      const weight = row.total ? '800' : '600';
-      paint(row.head, CARD_PAD, y, CARD_CREAM, `${weight} ${font}px sans-serif`);
-      row.cells.forEach((cell, index) => {
-        const isTotal = row.total || (!down && index === row.cells.length - 1);
-        paint(cell, cellX(index), y, pointsColor(cell), `${isTotal ? '800' : weight} ${font}px sans-serif`, 'right');
+      paint('Player', CARD_PAD, y, 'rgba(251,241,225,0.8)', `700 ${font - 2}px sans-serif`);
+      band.columns.forEach((column, index) => {
+        paint(column, cellX(index), y, 'rgba(251,241,225,0.8)', `700 ${font - 2}px sans-serif`, 'right');
       });
       y += rowH;
+      band.rows.forEach((row) => {
+        paint(row.head, CARD_PAD, y, CARD_CREAM, `600 ${font}px sans-serif`);
+        row.cells.forEach((cell, index) => {
+          const isTotal = band.hasTotal && index === row.cells.length - 1;
+          paint(cell, cellX(index), y, pointsColor(cell), `${isTotal ? '800' : '600'} ${font}px sans-serif`, 'right');
+        });
+        y += rowH;
+      });
     });
     metrics.legend.forEach((line) => {
       paint(line, CARD_PAD, y, 'rgba(251,241,225,0.75)', '600 13px sans-serif');
@@ -361,7 +367,7 @@ export function drawFinalScores(sheet: FinalScoresSheet): HTMLCanvasElement {
   const headerH = 150;
   const summaryH = 16 + 16 + 24 + sheet.summary.length * 34 + 28 + 16;
   const playerH = (player: FinalScoresSheet['players'][number]) => 16 + 16 + 34 + player.rows.length * (cell + 8) + 16;
-  const height = headerH + summaryH + sheet.players.reduce((sum, player) => sum + playerH(player), 0) + 70;
+  const height = headerH + summaryH + sheet.players.reduce((sum, player) => sum + playerH(player), 0) + 70 + sheet.adminLines.length * 20;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -444,6 +450,10 @@ export function drawFinalScores(sheet: FinalScoresSheet): HTMLCanvasElement {
     y += playerH(player);
   });
 
+  sheet.adminLines.forEach((line) => {
+    paint(line.slice(0, 90), pad, y + 24, '#6B6455', '600 13px sans-serif');
+    y += 20;
+  });
   paint(sheet.footer, pad, y + 24, '#6B6455', '600 13px sans-serif');
   paint(sheet.generatedLine, pad, y + 44, '#6B6455', '600 13px sans-serif');
   return canvas;

@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { HELP } from '../constants/help';
-import { DEFAULT_RECENT_CHIP, filterRecentGames, isWithinLastDays, RECENT_CHIPS, splitHomeGames } from '../utils/homeGames';
+import { isWithinLastDays, splitHomeGames } from '../utils/homeGames';
 import {
   myPlayersGridHeight,
   MY_PLAYERS_CARD_HEIGHT,
@@ -29,16 +31,15 @@ test('Home lists every live game and keeps Completed and Closed games for Recent
   assert.deepEqual(recent.map((g) => g.id), ['c', 'd'], 'completed and closed, never live');
 });
 
-test('Recent filters are Last 10 days (default) and All; there is no Live filter', () => {
-  assert.deepEqual(RECENT_CHIPS.map((chip) => chip.label), ['Last 10 days', 'All']);
-  assert.equal(DEFAULT_RECENT_CHIP, 'last10d');
+test('nov 10: Recent has no filter — every finished game is listed, newest finish first', () => {
+  const home = readFileSync(path.join(process.cwd(), 'app/(tabs)/index.tsx'), 'utf8');
+  assert.doesNotMatch(home, /Last 10 days|RECENT_CHIPS|filterRecentGames/);
   const games = [
-    { id: 'recent', isComplete: true, date: daysAgo(9) },
-    { id: 'edge', isComplete: true, date: daysAgo(10) },
-    { id: 'old', isComplete: true, date: daysAgo(11) },
+    { id: 'old', isComplete: true, date: daysAgo(30) },
+    { id: 'live', isComplete: false, date: daysAgo(0) },
+    { id: 'recent', isComplete: true, date: daysAgo(2) },
   ];
-  assert.deepEqual(filterRecentGames(games, 'all', now).map((g) => g.id), ['recent', 'edge', 'old']);
-  assert.deepEqual(filterRecentGames(games, 'last10d', now).map((g) => g.id), ['recent', 'edge']);
+  assert.deepEqual(splitHomeGames(games).recent.map((g) => g.id), ['recent', 'old'], 'a 30-day-old game is still listed');
   assert.equal(isWithinLastDays('not a date', 10, now), false);
 });
 

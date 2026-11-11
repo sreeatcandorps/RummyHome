@@ -1,5 +1,7 @@
+import { initialsById } from '@/utils/playerInitials';
 import { formatPoints, placeLabel, podiumPlaces, resultsCountLine, ResultStanding } from '@/utils/results';
 import { buildShareBreakdown, ShareBreakdown, shareBreakdownOmitted, SHARE_BREAKDOWN_OMITTED, SheetLikeGame } from '@/utils/resultsLayout';
+import { totalsSubline } from '@/utils/resultsSave';
 
 /** Long lists keep the leaders and say how many names were left off the image. */
 export const SHARE_CARD_LINE_CAP = 12;
@@ -9,6 +11,8 @@ export type ShareCardLine = {
   points: string;
   /** 1, 2, or 3 puts a crown and the place beside the row. */
   place?: number;
+  /** Second line under the name: initials and Player ID ("SK · #39"). */
+  sub?: string;
 };
 
 export type ShareCardPlace = {
@@ -81,11 +85,20 @@ export function buildResultsShareCard(input: {
   places?: { label: string; names: string; points: number }[];
   gameCount?: number;
   games?: SheetLikeGame[];
+  /** Seats with Player IDs, for the second line under each name. */
+  players?: { id: string; name: string; playerNo?: number | null }[];
   footer?: string;
 }): ShareCard {
   const sorted = [...input.rows].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
   const gameCount = input.gameCount ?? input.games?.length;
   const seated = input.rows.filter((row): row is typeof row & { id: string } => typeof row.id === 'string');
+  const initials = initialsById(seated.map((row) => ({ id: row.id, name: row.name })));
+  const byId = new Map((input.players ?? []).map((player) => [player.id, player]));
+  const subFor = (row: { id?: string }) => {
+    if (!row.id) return undefined;
+    const sub = totalsSubline(initials.get(row.id), byId.get(row.id));
+    return sub || undefined;
+  };
   const breakdown = input.games && seated.length === input.rows.length
     ? buildShareBreakdown({
       players: seated.map((row) => ({ id: row.id, name: row.name })),
@@ -101,6 +114,7 @@ export function buildResultsShareCard(input: {
       name: row.name,
       points: formatPoints(row.points),
       place: row.place != null && row.place <= 3 ? row.place : undefined,
+      sub: subFor(row),
     })),
     moreCount: 0,
     // The crowns beside the rows replace the 1st/2nd/3rd paragraph.

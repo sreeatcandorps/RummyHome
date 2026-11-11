@@ -1,7 +1,7 @@
 import { firstAppearanceOrder, initialsById } from '@/utils/playerInitials';
 import { formatPoints, playersByFirstName, scoreCell, sheetGameLabel } from '@/utils/results';
 
-/** Up to this many games sit across the share grid; more than that and the games go down the side instead. */
+/** At most this many game columns in one band of the share grid; more games wrap into further bands. */
 export const SHARE_BREAKDOWN_MAX_GAMES = 5;
 /** Note under the grid when every game is on the image but rounds are only in the PDF. */
 export const SHARE_BREAKDOWN_OMITTED = 'Round by round in the PDF';
@@ -15,26 +15,40 @@ export function uniquePlayerCount(games: SheetLikeGame[]): number {
   return ids.size;
 }
 
-export type ShareBreakdown = {
-  /**
-   * gamesAcross: initials down the side, G labels across, Total last (up to 5 games).
-   * gamesDown: G labels down the side, initials across, a Total row last — every game fits,
-   * however many, with small numbers.
-   */
-  orientation: 'gamesAcross' | 'gamesDown';
-  /** Column headers after the corner cell. gamesAcross: G labels then "Total"; gamesDown: initials. */
+/**
+ * One header row of up to five game labels (the last band also carries "Total"),
+ * followed by one score row per player.
+ */
+export type ShareBand = {
+  /** G labels for this band, then "Total" on the last band. */
   columns: string[];
-  /** Full names for the initials, in column (gamesDown) or row (gamesAcross) order. */
+  /** One row per player, in the same order in every band. */
+  rows: { head: string; cells: string[] }[];
+  /** True when the last column is the Total column. */
+  hasTotal: boolean;
+};
+
+export type ShareBreakdown = {
+  /** Players down the side, games across, wrapped into bands of up to five games (G1–G5, then G6–G10 …). */
+  bands: ShareBand[];
+  /** Full names for the initials, in row order. */
   legend: { initials: string; name: string }[];
-  rows: { head: string; cells: string[]; total?: boolean }[];
   gameCount: number;
   /** Compact type when there is a lot to fit. */
   dense: boolean;
 };
 
+/** Split n items into runs of `size`: [0..5), [5..10) … */
+export function bandRanges(count: number, size = SHARE_BREAKDOWN_MAX_GAMES): { start: number; end: number }[] {
+  const ranges: { start: number; end: number }[] = [];
+  for (let start = 0; start < count; start += size) ranges.push({ start, end: Math.min(count, start + size) });
+  return ranges;
+}
+
 /**
  * The grid under the totals on the share image. Every selected game is on it:
- * games go across for five or fewer, down the side for more.
+ * players are rows, games are columns, and past five games the header wraps
+ * into another band of headers with matching score rows, so it always fits.
  */
 export function buildShareBreakdown(input: {
   players: { id: string; name: string }[];
@@ -47,32 +61,24 @@ export function buildShareBreakdown(input: {
   const legend = players.map((player) => ({ initials: initials.get(player.id) ?? '?', name: player.name }));
   const labels = input.games.map((game, index) => sheetGameLabel({ label: game.label, name: game.name ?? `G${index + 1}` }));
   const total = (player: { id: string }) => formatPoints(input.totals[player.id] ?? 0);
-  if (input.games.length <= SHARE_BREAKDOWN_MAX_GAMES) {
+  const ranges = bandRanges(input.games.length);
+  const bands: ShareBand[] = ranges.map(({ start, end }, bandIndex) => {
+    const last = bandIndex === ranges.length - 1;
+    const games = input.games.slice(start, end);
     return {
-      orientation: 'gamesAcross',
-      columns: [...labels, 'Total'],
-      legend,
+      columns: [...labels.slice(start, end), ...(last ? ['Total'] : [])],
       rows: players.map((player, index) => ({
         head: legend[index].initials,
-        cells: [...input.games.map((game) => scoreCell(game.scores, player.id)), total(player)],
+        cells: [...games.map((game) => scoreCell(game.scores, player.id)), ...(last ? [total(player)] : [])],
       })),
-      gameCount: input.games.length,
-      dense: players.length > 8,
+      hasTotal: last,
     };
-  }
+  });
   return {
-    orientation: 'gamesDown',
-    columns: legend.map((entry) => entry.initials),
+    bands,
     legend,
-    rows: [
-      ...input.games.map((game, index) => ({
-        head: labels[index],
-        cells: players.map((player) => scoreCell(game.scores, player.id)),
-      })),
-      { head: 'Total', cells: players.map(total), total: true },
-    ],
     gameCount: input.games.length,
-    dense: players.length > 6 || input.games.length > 12,
+    dense: players.length > 8,
   };
 }
 

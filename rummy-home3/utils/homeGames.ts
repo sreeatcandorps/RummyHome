@@ -1,21 +1,10 @@
 /**
- * Home lists games in two groups: every live game, then Recent (finished ones).
- * Pure so the grouping and the date filter can be unit tested.
+ * Home lists games in two groups: every live game, then Recent (every finished
+ * one, newest finish first). There is no Recent filter (Nov 10): the chips drew
+ * the eye away from the games. Pure so the grouping can be unit tested.
  */
 
 export type HomeGame = { id?: string; isComplete?: boolean; closedAt?: string | null; completedAt?: string | null; date: string };
-
-export type RecentChip = 'all' | 'last10d';
-
-/** Last 10 days is the default and sits first; All is the secondary choice. */
-export const RECENT_CHIPS: { value: RecentChip; label: string }[] = [
-  { value: 'last10d', label: 'Last 10 days' },
-  { value: 'all', label: 'All' },
-];
-
-export const DEFAULT_RECENT_CHIP: RecentChip = 'last10d';
-
-export const RECENT_WINDOW_DAYS = 10;
 
 /**
  * When a finished game finished. Completed games carry completed_at and keep
@@ -52,9 +41,4 @@ export function isWithinLastDays(value: string, days: number, now = new Date()):
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return false;
   return date.getTime() >= now.getTime() - days * 24 * 60 * 60 * 1000;
-}
-
-export function filterRecentGames<T extends HomeGame>(games: T[], chip: RecentChip, now = new Date()): T[] {
-  if (chip === 'all') return games;
-  return games.filter((game) => isWithinLastDays(finishedAt(game), RECENT_WINDOW_DAYS, now));
 }

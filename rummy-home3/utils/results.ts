@@ -32,7 +32,8 @@ export type ResultSheetGame = {
 };
 
 export type ResultSheet = {
-  players: { id: string; name: string }[];
+  /** playerNo is the public Player ID (#39); filled by 018 on the server, or from the games' seats. */
+  players: { id: string; name: string; playerNo?: number | null }[];
   games: ResultSheetGame[];
 };
 
@@ -44,6 +45,8 @@ export type GameResult = {
   standings: ResultStanding[];
   /** Per-game scores so a declared result can draw the sheet without the games. */
   sheet?: ResultSheet;
+  /** Games here that an earlier result had already closed (their points count twice). Needs 018 on the server. */
+  reusedGameIds?: string[];
 };
 
 export type GameResultSummary = {
@@ -55,14 +58,16 @@ export type GameResultSummary = {
   playerCount: number;
   /** 1st, 2nd, and 3rd place rows (ties share a place). */
   top: { name: string; points: number; place: number }[];
+  /** How many of its games were already in an earlier result. Absent on servers before 018. */
+  reusedCount?: number;
 };
 
 /** Past results load this many at a time. */
 export const RESULTS_PAGE_SIZE = 5;
 
 /**
- * Show results either saves (every selected game is finished, so those games become Closed)
- * or only previews running totals (any selected game is still open; nothing is saved or closed).
+ * Whether a selection could be saved (every game finished) or only shown. Since Nov 10
+ * Show results never saves; the results page's Save result does, and uses saveBlockedReason.
  */
 export function resultsShowMode(games: { isComplete?: boolean }[]): 'save' | 'preview' {
   if (games.length === 0) return 'preview';
@@ -111,9 +116,15 @@ export function filterResultGames<T extends FilterableGame>(games: T[], filter: 
  * Completed games start ticked so Show results is one tap. Closed and Active games
  * never start ticked: each one carries a warning and has to be a deliberate choice.
  */
-export function defaultResultSelection<T extends FilterableGame & { id: string }>(games: T[], filter: ResultsFilter): string[] {
+export function defaultResultSelection<T extends FilterableGame & { id: string; createdBy?: string | null; adminIds?: string[] | null }>(
+  games: T[],
+  filter: ResultsFilter,
+  userId?: string | null,
+): string[] {
   return filterResultGames(games, filter)
     .filter((game) => resultsStatusOf(game) === 'completed')
+    // Games the person does not run are listed but never ticked (they cannot be saved).
+    .filter((game) => userId === undefined || userAdminsGame(game, userId))
     .map((game) => game.id);
 }
 
@@ -318,6 +329,7 @@ export function summaryFrom(result: GameResult): GameResultSummary {
     winnerLine: winnerLine(result.standings),
     playerCount: result.standings.length,
     top: topThree(result.standings),
+    ...(result.reusedGameIds ? { reusedCount: result.reusedGameIds.length } : {}),
   };
 }
 
@@ -397,16 +409,48 @@ export const RESULTS_TOTAL_COL = 54;
  */
 export const RESULTS_NAME_MIN = 96;
 
+/** Roughly one bold tabular digit at the table's 13px, plus the cell padding. */
+const SCORE_CHAR_PX = 8;
+const SCORE_CELL_PAD = 10;
+
+/**
+ * A score column is never narrower than the clock in its header ("11:39 PM" fits
+ * RESULTS_GAME_COL) and grows for four- and five-digit scores and for large system
+ * fonts, so a number like +732 is never broken onto two lines.
+ */
+export function scoreColumnWidth(chars: number, minWidth = RESULTS_GAME_COL, fontScale = 1): number {
+  const needed = Math.ceil((Math.max(0, chars) * SCORE_CHAR_PX + SCORE_CELL_PAD) * Math.max(1, fontScale));
+  return Math.max(minWidth, needed);
+}
+
+/** The longest text in a column, as drawn ("-1234" is five). */
+export function longestScoreChars(scores: Record<string, number>, ids?: string[]): number {
+  const keys = ids ?? Object.keys(scores);
+  return keys.reduce((max, id) => Math.max(max, scoreCell(scores, id).length), 0);
+}
+
+export type ResultsColumnOptions = {
+  /** Longest drawn score per game column, in characters. */
+  gameChars?: number[];
+  /** Longest drawn total, in characters. */
+  totalChars?: number;
+  /** The phone's font scale (1 = default). */
+  fontScale?: number;
+};
+
 /**
  * Pixel widths: name, then one width per game, then Total.
  * Name = frame − games − Total, floored at RESULTS_NAME_MIN.
  */
-export function resultsColumnWidths(frameWidth: number, gameCount: number): number[] {
+export function resultsColumnWidths(frameWidth: number, gameCount: number, options: ResultsColumnOptions = {}): number[] {
   const width = Math.max(0, Math.floor(frameWidth));
   const games = Math.max(0, gameCount);
-  const scores = games * RESULTS_GAME_COL + RESULTS_TOTAL_COL;
+  const scale = options.fontScale ?? 1;
+  const gameWidths = Array.from({ length: games }, (_, index) => scoreColumnWidth(options.gameChars?.[index] ?? 0, RESULTS_GAME_COL, scale));
+  const totalWidth = scoreColumnWidth(options.totalChars ?? 0, RESULTS_TOTAL_COL, scale);
+  const scores = gameWidths.reduce((sum, value) => sum + value, 0) + totalWidth;
   const nameWidth = Math.max(RESULTS_NAME_MIN, width - scores);
-  return [nameWidth, ...Array(games).fill(RESULTS_GAME_COL), RESULTS_TOTAL_COL];
+  return [nameWidth, ...gameWidths, totalWidth];
 }
 
 /** How many game columns are on screen. Total has its own slot and is not counted here. */
@@ -469,7 +513,7 @@ export function gameClock(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   const hour = date.getHours() % 12 || 12;
-  return `${hour}:${String(date.getMinutes()).padStart(2, '0')} ${date.getHours() < 12 ? 'am' : 'pm'}`;
+  return `${hour}:${String(date.getMinutes()).padStart(2, '0')} ${date.getHours() < 12 ? 'AM' : 'PM'}`;
 }
 
 /**
@@ -486,7 +530,7 @@ export function gameLabelFor(game: { gameNumber?: number | null }): string | und
   return game.gameNumber != null ? `G${game.gameNumber}` : undefined;
 }
 
-/** "G7 10:05 pm" for the PDF. */
+/** "G7 10:05 PM" for the PDF. */
 export function gameColumnLabel(game: { label?: string | null; name: string }, when: string): string {
   const label = sheetGameLabel(game);
   return when ? `${label} ${when}` : label;

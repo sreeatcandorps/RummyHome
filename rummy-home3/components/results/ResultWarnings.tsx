@@ -1,18 +1,21 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
-import { ResultWarning } from '@/utils/results';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
-/** Yellow flags for a result: an Active game was included, or a game was already in another result. */
-export function ResultWarnings({ warnings }: { warnings: ResultWarning[] }) {
+export type WarningLine = { kind: 'active' | 'reused' | 'closed'; text: string; gameId?: string };
+
+const ICON: Record<WarningLine['kind'], string> = { active: 'progress-clock', reused: 'repeat-variant', closed: 'repeat-variant' };
+
+/** Yellow flags for a result, one line per game: still Active, or already part of an earlier result. */
+export function ResultWarnings({ warnings }: { warnings: WarningLine[] }) {
   const { colors } = useAppTheme();
   if (warnings.length === 0) return null;
   return (
-    <View style={styles.list}>
-      {warnings.map((warning) => (
-        <View key={warning.kind} style={[styles.warn, { backgroundColor: colors.secondaryContainer }]} accessibilityRole="alert">
-          <Icon source={warning.kind === 'active' ? 'progress-clock' : 'repeat-variant'} size={20} color={colors.onSecondaryContainer} />
+    <View style={styles.list} testID="result-warnings">
+      {warnings.map((warning, index) => (
+        <View key={warning.gameId ? `${warning.kind}-${warning.gameId}` : `${warning.kind}-${index}`} style={[styles.warn, { backgroundColor: colors.secondaryContainer }]} accessibilityRole="alert">
+          <Icon source={ICON[warning.kind]} size={20} color={colors.onSecondaryContainer} />
           <Text variant="bodyMedium" style={[styles.text, { color: colors.onSecondaryContainer }]}>{warning.text}</Text>
         </View>
       ))}

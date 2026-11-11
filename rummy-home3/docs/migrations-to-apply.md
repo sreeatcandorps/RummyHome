@@ -79,6 +79,21 @@ Not applied by this change. Until it runs, the app lets you pick a co-admin who 
 
 What it does: same checks as 015 (signed in, game admin, the seat is an unregistered/pending player you manage, the target is a registered unmanaged account), with two changes found in the Nov 10 test. A target who is already in the game as a **non-playing admin** or a **viewer** now takes the seat: their old membership row is removed, the seat row becomes theirs, an admin stays `game_admin` and is now seated. A target who is already **seated** is still refused ("They are already playing in this game."). And when you link a seat to your own Player ID, no self row is written to My players. Verified on a scratch Postgres 16 loaded with 001–016: seated target refused, non-playing admin takes seat (keeps admin, one row, scores and dealer moved, placeholder merged and dropped from My players), viewer takes seat as a player, outsider linked and added to My players, no self row, stranger refused, anon has no execute, rollback and re-run.
 
+## 018 — results say which games were reused and carry Player IDs
+
+File: `supabase/migrations/018_results_reuse_and_player_ids.sql`. Run after 017. Safe to re-run. Rollback: `supabase/rollback/rollback_018_results_reuse_and_player_ids.sql` (puts the 013 versions of `get_game_result` and `list_game_results_page` back and drops the helper; no data to undo).
+
+Not applied by this change. Until it runs, the app still works: a saved result works out the reused games itself by comparing each game's Closed time with the result's save time, and Player IDs under the totals and in the by-game table come from the games' seats. Past results cards show the reuse flag only once 018 is in (the list has no games to compare).
+
+What it does: no table or stored row changes. `reused_game_ids(result)` lists the games of a result that an earlier result already contained. `get_game_result` adds `reusedGameIds` and gives each `sheet.players[]` entry a `playerNo` (from `profiles.public_player_no`, null when none); `list_game_results_page` adds `reusedGameIds` to each row. Privacy rules from 013 are unchanged. Verified on a scratch Postgres 16 loaded with 001–017: declaring a result closes its game; a second result that re-uses that game reports it as reused while the new game is not; `get_game_result` returns the reused list, Player IDs, and G labels; the list page reports 1 reused on the new result and 0 on the old; an outsider still sees nothing; rollback removes both keys and the helper; re-apply restores them.
+
+## Apply order for the Nov 10 batch
+
+Both are unapplied. Paste into the Supabase SQL editor in this order, each as its own run:
+
+1. `supabase/migrations/017_link_seat_takeover.sql`
+2. `supabase/migrations/018_results_reuse_and_player_ids.sql`
+
 ## Public scorecard page
 
 This is not a database change. `public/scorecard.html` (and the same file at `web/scorecard.html`) does not contain the project URL or the anon key. It contains the placeholders `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__`.

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { filterRecentGames, finishedAt, sortRecentGames, splitHomeGames } from '../utils/homeGames';
+import { finishedAt, sortRecentGames, splitHomeGames } from '../utils/homeGames';
 import { canReopenGame } from '../utils/gameStatus';
 
 test('Recent is ordered by completion time, not by the day the game was created', () => {
@@ -27,16 +27,6 @@ test('ties are deterministic: same finish time falls back to date, then id', () 
     { id: 'c', date: '2026-11-02T00:00:00Z', completedAt: '2026-11-06T00:00:00Z' },
   ]);
   assert.deepEqual(sorted.map((g) => g.id), ['c', 'a', 'b']);
-});
-
-test('the Last 10 days chip looks at when the game finished', () => {
-  const now = new Date('2026-11-07T00:00:00Z');
-  const games = [
-    { id: 'finished-recently', date: '2026-10-01T00:00:00Z', completedAt: '2026-11-05T00:00:00Z' },
-    { id: 'finished-long-ago', date: '2026-10-01T00:00:00Z', completedAt: '2026-10-05T00:00:00Z' },
-  ];
-  assert.deepEqual(filterRecentGames(games, 'last10d', now).map((g) => g.id), ['finished-recently']);
-  assert.equal(filterRecentGames(games, 'all', now).length, 2);
 });
 
 test('only a Completed game that is not Closed can be reopened', () => {

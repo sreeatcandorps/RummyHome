@@ -13,6 +13,7 @@ import { playerIdentityService } from '@/services/playerIdentity';
 import { playersService } from '@/services/players';
 import { Player } from '@/types/player';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { addAdminBlockedReason, addAdminPreview, addAdminProblem, PLAYERS_ADMINS_TITLE } from '@/utils/gameAdmins';
 import { parsePlayerNo } from '@/utils/playerIdentity';
 import {
   linkLanding,
@@ -34,6 +35,7 @@ type Sheet =
   | { kind: 'edit'; seat: Player }
   | { kind: 'invite'; seat: Player; message?: string; notice?: string }
   | { kind: 'link'; seat: Player }
+  | { kind: 'add_admin' }
   | null;
 
 /**
@@ -102,8 +104,18 @@ export default function GamePlayersScreen() {
     return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.primary} /></View>;
   }
   if (!game) {
-    return <EmptyState icon="alert-circle-outline" title="Game not available" message={error ?? 'Try again from the scorecard.'} />;
+    // A slow network used to land here as "Game not available"; it is a load failure, so offer Retry.
+    return (
+      <EmptyState
+        icon="alert-circle-outline"
+        title={error ? "Couldn't load the players" : 'Game not available'}
+        message={error ?? 'Try again from the scorecard.'}
+        actionLabel="Retry"
+        onAction={reload}
+      />
+    );
   }
+  const addAdminBlocked = addAdminBlockedReason(game, canScore);
 
   const row = (seat: Player, index: number, list: Player[]) => {
     const menu = seatMenu(seat, game, viewer?.id, canScore);
@@ -156,7 +168,7 @@ export default function GamePlayersScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ title: 'Players in this game', headerRight: () => <HelpButton text={HELP.playersSheet} /> }} />
+      <Stack.Screen options={{ title: PLAYERS_ADMINS_TITLE, headerRight: () => <HelpButton text={HELP.playersSheet} /> }} />
       <ScrollView contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}>
         <Text variant="titleSmall" style={styles.section}>Playing · {playing.length}</Text>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
@@ -182,6 +194,23 @@ export default function GamePlayersScreen() {
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
             A player added now gets 0 for every round already played. A player can be removed (× on Add new players) only while every round score they have is 0.
           </Text>
+        ) : null}
+        {canScore ? (
+          <View style={styles.adminAdd}>
+            <Button
+              mode="outlined"
+              icon="shield-plus-outline"
+              onPress={() => setSheet({ kind: 'add_admin' })}
+              disabled={busy || Boolean(addAdminBlocked)}
+              accessibilityLabel="Add admin by Player ID"
+              testID="add-admin"
+            >
+              Add admin
+            </Button>
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, flex: 1 }}>
+              {addAdminBlocked ?? 'Type a Player ID to let someone score and manage this game without playing in it.'}
+            </Text>
+          </View>
         ) : null}
       </ScrollView>
       <BottomBar>
@@ -254,6 +283,15 @@ export default function GamePlayersScreen() {
             busy={busy}
             onDismiss={() => setSheet(null)}
             onConfirm={(target) => viewer && run(() => playerIdentityService.linkSeatToPlayer(game.id, sheet.seat, target, viewer.id), () => setSheet(null))}
+          />
+        ) : null}
+
+        {sheet?.kind === 'add_admin' ? (
+          <AddAdminDialog
+            game={game}
+            busy={busy}
+            onDismiss={() => setSheet(null)}
+            onConfirm={(target) => run(() => gamesService.addNonPlayerAdmin(game.id, target.id), () => setSheet(null))}
           />
         ) : null}
 
@@ -369,6 +407,77 @@ function LinkPlayerDialog({ seat, game, busy, onDismiss, onConfirm }: {
   );
 }
 
+/** Add admin: a registered Player ID becomes a game admin without a seat (not counted as a player). */
+function AddAdminDialog({ game, busy, onDismiss, onConfirm }: {
+  game: { createdBy?: string; players: string[]; spectators?: string[]; adminIds?: string[]; unseatedAdminIds?: string[]; closedAt?: string | null };
+  busy: boolean;
+  onDismiss: () => void;
+  onConfirm: (target: Player) => void;
+}) {
+  const { colors } = useAppTheme();
+  const [query, setQuery] = useState('');
+  const [looking, setLooking] = useState(false);
+  const [target, setTarget] = useState<Player | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const lookUp = async () => {
+    const no = parsePlayerNo(query);
+    if (no === null) {
+      setProblem('Type the Player ID number, like #42.');
+      setTarget(null);
+      return;
+    }
+    setLooking(true);
+    try {
+      const found = (await playersService.searchPlayers(`#${no}`)).find((player) => player.playerNo === no || player.playerCode === `#${no}`) ?? null;
+      const why = addAdminProblem(found, game);
+      setTarget(why ? null : found);
+      setProblem(why);
+    } catch (caught) {
+      setProblem(formatSupabaseError(caught));
+      setTarget(null);
+    } finally {
+      setLooking(false);
+    }
+  };
+
+  return (
+    <Dialog visible onDismiss={onDismiss} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+      <Dialog.Title>Add admin</Dialog.Title>
+      <Dialog.Content style={styles.gap}>
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+          Type the Player ID of a registered player. They can score and manage this game but are not a player in it.
+        </Text>
+        <View style={styles.lookupRow}>
+          <TextInput
+            label="Player ID"
+            value={query}
+            onChangeText={(text) => { setQuery(text); setTarget(null); setProblem(null); }}
+            mode="outlined"
+            keyboardType="number-pad"
+            accessibilityLabel="Player ID to make admin"
+            style={styles.flex}
+            onSubmitEditing={lookUp}
+          />
+          <Button mode="contained-tonal" onPress={lookUp} loading={looking} disabled={looking || !query.trim()} accessibilityLabel="Look up Player ID">Look up</Button>
+        </View>
+        {problem ? <Text variant="bodyMedium" style={{ color: colors.error }}>{problem}</Text> : null}
+        {target ? (
+          <View style={[styles.preview, { backgroundColor: colors.positiveContainer }]}>
+            <Text variant="titleMedium" style={{ color: colors.onPositiveContainer }}>{target.name}</Text>
+            <Text variant="bodySmall" style={{ color: colors.onPositiveContainer }}>{playerIdBadge(target)} · Registered</Text>
+            <Text variant="bodySmall" style={{ color: colors.onPositiveContainer, marginTop: spacing.xs }}>{addAdminPreview(target)}</Text>
+          </View>
+        ) : null}
+      </Dialog.Content>
+      <Dialog.Actions>
+        <Button onPress={onDismiss} disabled={busy}>Cancel</Button>
+        <Button mode="contained" onPress={() => target && onConfirm(target)} loading={busy} disabled={busy || !target} accessibilityLabel="Confirm add admin">Add admin</Button>
+      </Dialog.Actions>
+    </Dialog>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -384,5 +493,6 @@ const styles = StyleSheet.create({
   gap: { gap: spacing.sm },
   preview: { borderRadius: radius.md, padding: spacing.md, gap: spacing.xxs },
   lookupRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  adminAdd: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   flex: { flex: 1 },
 });

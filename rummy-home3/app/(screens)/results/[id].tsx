@@ -11,10 +11,12 @@ import { resultsService } from '@/services/results';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { GameResult, RESULT_EXPENSE_ID, resultFooter, ResultSheet, ResultWarning, resultWarnings, reusedInResult, gameClock } from '@/utils/results';
+import { GameResult, RESULT_EXPENSE_ID, resultFooter, ResultSheet, gameClock } from '@/utils/results';
 import { RESULT_NOT_AVAILABLE } from '@/utils/resultsAccess';
+import { resultReusedNote, reusedGameIds, reusedWarningLines } from '@/utils/resultsSave';
 import { ResultWarnings } from '@/components/results/ResultWarnings';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { Player } from '@/types/player';
 
 function sheetFor(result: GameResult): ResultSheet {
   if (result.sheet && result.sheet.players.length > 0) return result.sheet;
@@ -54,18 +56,33 @@ export default function DeclaredResult() {
   const [result, setResult] = useState<GameResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [warnings, setWarnings] = useState<ResultWarning[]>([]);
+  const [reused, setReused] = useState<string[]>([]);
 
-  // Was any game here already in an earlier result? Its closedAt predates this declaration.
+  /**
+   * Which games here were already in an earlier result? 018 sends reusedGameIds with the
+   * result; before 018 (or when absent) the games' closedAt is compared with the declaration.
+   */
   const flagReuse = useCallback(async (loaded: GameResult) => {
+    if (loaded.reusedGameIds) {
+      setReused(loaded.reusedGameIds);
+      return;
+    }
     const games = await Promise.all(loaded.gameIds.map((gameId) => gamesService.getGame(gameId).catch(() => null)));
     const present = games.filter((game): game is NonNullable<typeof game> => Boolean(game));
-    setWarnings(resultWarnings(present.map((game) => ({
-      isComplete: true,
-      closedAt: game.closedAt,
-      gameNumber: game.gameNumber,
-      reused: reusedInResult(loaded.declaredAt, game),
-    }))));
+    setReused(reusedGameIds(present, loaded.declaredAt));
+  }, []);
+
+  /** Player IDs come with the result on 018; older servers get them from the games' seats. */
+  const fillPlayerNos = useCallback(async (loaded: GameResult): Promise<GameResult> => {
+    const sheet = sheetFor(loaded);
+    if (sheet.players.every((player) => player.playerNo != null)) return loaded;
+    const seatLists = await Promise.all(loaded.gameIds.map((gameId) => gamesService.listGamePlayers(gameId).catch(() => [] as Player[])));
+    const numbers: Record<string, number> = {};
+    seatLists.flat().forEach((seat) => {
+      if (seat.playerNo != null) numbers[seat.id] = seat.playerNo;
+    });
+    if (Object.keys(numbers).length === 0) return loaded;
+    return { ...loaded, sheet: { ...sheet, players: sheet.players.map((player) => ({ ...player, playerNo: player.playerNo ?? numbers[player.id] ?? null })) } };
   }, []);
 
   const load = useCallback(async () => {
@@ -75,7 +92,7 @@ export default function DeclaredResult() {
       const loaded = await resultsService.get(id);
       setResult(loaded);
       if (loaded) {
-        withRounds(loaded).then(setResult).catch(() => {});
+        withRounds(loaded).then(fillPlayerNos).then(setResult).catch(() => {});
         flagReuse(loaded).catch(() => {});
       }
     } catch (err) {
@@ -83,7 +100,10 @@ export default function DeclaredResult() {
     } finally {
       setLoading(false);
     }
-  }, [id, flagReuse]);
+  }, [id, flagReuse, fillPlayerNos]);
+
+  const warnings = useMemo(() => (result ? reusedWarningLines(sheetFor(result).games, reused) : []), [result, reused]);
+  const reusedNote = resultReusedNote(reused.length);
 
   useEffect(() => {
     load();
@@ -98,6 +118,7 @@ export default function DeclaredResult() {
       places: sharePlaces(result.standings),
       gameCount: result.gameIds.length || sheetFor(result).games.length,
       games: sheetFor(result).games,
+      players: sheetFor(result).players,
       footer: resultFooter({ resultId: result.id }),
     });
   }, [result]);
@@ -136,7 +157,7 @@ export default function DeclaredResult() {
         <Text variant="bodyLarge">{RESULT_NOT_AVAILABLE}</Text>
       ) : null}
       {result ? (
-        <ResultsPage createdAt={result.declaredAt} standings={result.standings} sheet={sheetFor(result)} />
+        <ResultsPage createdAt={result.declaredAt} standings={result.standings} sheet={sheetFor(result)} reusedNote={reusedNote} />
       ) : null}
     </Screen>
   );
