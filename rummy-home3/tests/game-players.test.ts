@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { linkTargetProblem, playerIdBadge, registrationLabel, seatMenu, seatRoleLabel, zerosForJoiner } from '../utils/gamePlayers';
+import { linkLanding, linkTargetProblem, playerIdBadge, registrationLabel, seatMenu, seatRoleLabel, zerosForJoiner } from '../utils/gamePlayers';
 
 const game = { createdBy: 'me', players: ['me', 'a', 'u'], adminIds: ['me', 'a'], unseatedAdminIds: [], spectators: ['w'] };
 
@@ -13,7 +13,7 @@ test('role and registration tags', () => {
   assert.equal(seatRoleLabel({ id: 'w', name: 'W', seatRole: 'spectator' }, game), 'View only');
   assert.equal(registrationLabel({ status: 'registered' }), 'Registered');
   assert.equal(registrationLabel({}), 'Registered');
-  assert.equal(registrationLabel({ status: 'pending' }), 'Pending');
+  assert.equal(registrationLabel({ status: 'pending' }), 'Pending registration');
   assert.equal(registrationLabel({ status: 'unregistered' }), 'Unregistered');
   assert.equal(playerIdBadge({ playerNo: 42 }), '#42');
   assert.equal(playerIdBadge({ playerCode: 'AB12' }), 'AB12');
@@ -35,13 +35,21 @@ test('per-player menu: creator keeps admin, identity actions only for my unregis
   assert.deepEqual(viewer, []);
 });
 
-test('link target checks: unknown, same, unregistered, duplicate, ok', () => {
+test('link target checks: unknown, same, unregistered, already seated, ok', () => {
   assert.match(linkTargetProblem(null, game, 'u') ?? '', /No registered player/);
   assert.match(linkTargetProblem({ id: 'u' }, game, 'u') ?? '', /same player/);
   assert.match(linkTargetProblem({ id: 'x', status: 'unregistered', managedBy: 'me' }, game, 'u') ?? '', /not a registered account/);
-  assert.match(linkTargetProblem({ id: 'a', status: 'registered' }, game, 'u') ?? '', /already in this game/);
-  assert.match(linkTargetProblem({ id: 'w', status: 'registered' }, game, 'u') ?? '', /already in this game/);
+  assert.match(linkTargetProblem({ id: 'a', status: 'registered' }, game, 'u') ?? '', /already playing/);
   assert.equal(linkTargetProblem({ id: 'new', status: 'registered' }, game, 'u'), null);
+});
+
+test('a viewer or non-playing admin of the game can take the seat (Nov 10 finding)', () => {
+  const withAdmin = { ...game, unseatedAdminIds: ['boss'], adminIds: ['me', 'a', 'boss'] };
+  assert.equal(linkTargetProblem({ id: 'w', status: 'registered' }, withAdmin, 'u'), null);
+  assert.equal(linkTargetProblem({ id: 'boss', status: 'registered' }, withAdmin, 'u'), null);
+  assert.equal(linkLanding({ id: 'w' }, withAdmin), 'viewer_takes_seat');
+  assert.equal(linkLanding({ id: 'boss' }, withAdmin), 'admin_takes_seat');
+  assert.equal(linkLanding({ id: 'new' }, withAdmin), 'new_seat');
 });
 
 test('a player joining mid-game gets an explicit 0 for every round already played', () => {
@@ -52,7 +60,7 @@ test('a player joining mid-game gets an explicit 0 for every round already playe
 test('the Players page has no remove, no "Add view only" and no "Add non-player admin"', () => {
   const page = readFileSync(path.join(process.cwd(), 'app/(screens)/games/players.tsx'), 'utf8');
   assert.doesNotMatch(page, /Add view only|Add non-player admin|Remove player|removePlayer/);
-  assert.match(page, /Add a player/);
+  assert.match(page, /Add new players/);
   assert.match(page, /Link to a Player ID|link_id/);
 });
 
@@ -64,4 +72,22 @@ test('migration 015 checks admin, ownership, registration and duplicates before 
   assert.match(sql, /They are already in this game/);
   assert.match(sql, /update public\.scores set profile_id = p_target_profile where game_id = p_game_id/);
   assert.match(sql, /grant execute on function public\.link_seat_to_player[^;]*to authenticated/);
+});
+
+test('migration 017 lets a non-playing admin or viewer take the seat and still refuses a seated target', () => {
+  const sql = readFileSync(path.join(process.cwd(), 'supabase/migrations/017_link_seat_takeover.sql'), 'utf8');
+  assert.match(sql, /create or replace function public\.link_seat_to_player\(p_game_id uuid, p_seat_profile uuid, p_target_profile uuid\)/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /is_game_admin\(p_game_id\)/);
+  assert.match(sql, /They are already playing in this game/);
+  assert.doesNotMatch(sql, /'They are already in this game\.'/);
+  assert.match(sql, /delete from public\.game_players gp where gp\.id = existing\.id/);
+  assert.match(sql, /role = case when existing\.role = 'game_admin' then 'game_admin' else role end/);
+  assert.match(sql, /if p_target_profile <> auth\.uid\(\) then\s+insert into public\.my_players/);
+  assert.match(sql, /grant execute on function public\.link_seat_to_player[^;]*to authenticated/);
+  const rollback = readFileSync(path.join(process.cwd(), 'supabase/rollback/rollback_017_link_seat_takeover.sql'), 'utf8');
+  assert.match(rollback, /create or replace function public\.link_seat_to_player/);
+  assert.match(rollback, /They are already in this game/);
+  const doc = readFileSync(path.join(process.cwd(), 'docs/migrations-to-apply.md'), 'utf8');
+  assert.match(doc, /## 017/);
 });

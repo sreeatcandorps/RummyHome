@@ -98,7 +98,7 @@ export function RegisterPlayersDialog({ visible, me, gameId, gameNumbers = [], o
                 <View key={player.id} style={[styles.card, { borderColor: colors.outlineVariant }]}>
                   <View style={styles.head}>
                     <Text variant="titleSmall" style={{ flex: 1 }}>{player.name} <Text variant="labelMedium">{player.playerCode}</Text></Text>
-                    <Tag label={pending ? 'Pending' : 'Unregistered'} icon={pending ? 'clock-outline' : 'account-question-outline'} />
+                    <Tag label={pending ? 'Pending registration' : 'Unregistered'} icon={pending ? 'clock-outline' : 'account-question-outline'} />
                   </View>
                   {link ? (
                     <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>

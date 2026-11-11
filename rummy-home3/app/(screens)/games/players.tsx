@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Dialog, IconButton, Menu, Portal, Text, TextInput } from 'react-native-paper';
 import * as Clipboard from 'expo-clipboard';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -15,6 +15,7 @@ import { Player } from '@/types/player';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { parsePlayerNo } from '@/utils/playerIdentity';
 import {
+  linkLanding,
   linkTargetProblem,
   playerIdBadge,
   registrationLabel,
@@ -51,10 +52,18 @@ export default function GamePlayersScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  // Seats whose invite link was just made: shown as Pending registration at once, before the refetch lands.
+  const [invited, setInvited] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     authService.getCurrentPlayer().then((me) => setViewer(me ?? null)).catch(() => setViewer(null));
   }, []);
+
+  // The share sheet sends the app to the background; refresh the roster when it comes back.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => { if (state === 'active') reload(); });
+    return () => sub.remove();
+  }, [reload]);
 
   const playing = useMemo(() => roster.filter((seat) => seat.seatRole !== 'spectator' && seat.seated !== false && seat.id !== 'EX'), [roster]);
   const unseated = useMemo(() => roster.filter((seat) => seat.seated === false && seat.seatRole === 'game_admin'), [roster]);
@@ -99,7 +108,7 @@ export default function GamePlayersScreen() {
   const row = (seat: Player, index: number, list: Player[]) => {
     const menu = seatMenu(seat, game, viewer?.id, canScore);
     const role = seatRoleLabel(seat, game);
-    const registration = registrationLabel(seat);
+    const registration = registrationLabel(invited.has(seat.id) && seat.status === 'unregistered' ? { status: 'pending' } : seat);
     const badge = playerIdBadge(seat);
     return (
       <View key={seat.id} style={[styles.row, { borderBottomColor: colors.hairline }]}>
@@ -109,7 +118,7 @@ export default function GamePlayersScreen() {
           <View style={styles.tags}>
             {badge ? <Tag small label={badge} /> : null}
             <Tag small label={role} tone={role === 'Creator' || role === 'Admin' ? 'positive' : 'neutral'} icon={role === 'Creator' ? 'crown-outline' : role === 'Admin' ? 'shield-account-outline' : role === 'View only' ? 'eye-outline' : 'account-outline'} />
-            <Tag small label={registration} tone={registration === 'Registered' ? 'info' : registration === 'Pending' ? 'results' : 'neutral'} icon={registration === 'Registered' ? 'check-circle-outline' : registration === 'Pending' ? 'clock-outline' : 'account-question-outline'} />
+            <Tag small label={registration} tone={registration === 'Registered' ? 'info' : registration === 'Pending registration' ? 'results' : 'neutral'} icon={registration === 'Registered' ? 'check-circle-outline' : registration === 'Pending registration' ? 'clock-outline' : 'account-question-outline'} />
           </View>
         </View>
         {canScore && canReorder && seat.seatRole !== 'spectator' && seat.seated !== false ? (
@@ -171,15 +180,15 @@ export default function GamePlayersScreen() {
         ) : null}
         {canScore ? (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            A player added now gets 0 for every round already played. A player can be removed (× on Add a player) only while every round score they have is 0.
+            A player added now gets 0 for every round already played. A player can be removed (× on Add new players) only while every round score they have is 0.
           </Text>
         ) : null}
       </ScrollView>
       <BottomBar>
         <Button mode="outlined" onPress={back}>Back to scorecard</Button>
         {canScore ? (
-          <Button mode="contained" icon="account-plus-outline" onPress={openAdd} disabled={busy} style={styles.flex} accessibilityLabel="Add a player">
-            Add a player
+          <Button mode="contained" icon="account-plus-outline" onPress={openAdd} disabled={busy} style={styles.flex} accessibilityLabel="Add new players">
+            Add new players
           </Button>
         ) : null}
       </BottomBar>
@@ -221,6 +230,8 @@ export default function GamePlayersScreen() {
                   setBusy(true);
                   try {
                     const result = await playerIdentityService.shareClaimLink(viewer, sheet.seat, game.gameNumber != null ? [game.gameNumber] : []);
+                    // The link exists now, so the seat is Pending registration whether or not the sheet was used.
+                    setInvited((current) => new Set([...current, sheet.seat.id]));
                     setSheet({ kind: 'invite', seat: sheet.seat, notice: result.notice, message: result.shared ? undefined : result.message });
                     await reload();
                   } catch (caught) {
@@ -341,7 +352,11 @@ function LinkPlayerDialog({ seat, game, busy, onDismiss, onConfirm }: {
             <Text variant="titleMedium" style={{ color: colors.onPositiveContainer }}>{target.name}</Text>
             <Text variant="bodySmall" style={{ color: colors.onPositiveContainer }}>{playerIdBadge(target)} · Registered</Text>
             <Text variant="bodySmall" style={{ color: colors.onPositiveContainer, marginTop: spacing.xs }}>
-              {`${seat.name}'s seat and scores in this game become ${target.name}'s.`}
+              {linkLanding(target, game) === 'admin_takes_seat'
+                ? `${target.name} is an admin here but not playing. They take ${seat.name}'s seat and scores and stay admin.`
+                : linkLanding(target, game) === 'viewer_takes_seat'
+                  ? `${target.name} is watching this game. They take ${seat.name}'s seat and scores.`
+                  : `${seat.name}'s seat and scores in this game become ${target.name}'s.`}
             </Text>
           </View>
         ) : searched && !problem ? <Text variant="bodyMedium">No registered player has that Player ID.</Text> : null}
