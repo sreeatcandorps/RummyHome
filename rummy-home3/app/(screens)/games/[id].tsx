@@ -249,7 +249,7 @@ export default function GameScreen() {
     <Tag label="Completed" icon="flag-checkered" />
   ) : (
     <Tag
-      label={nextDealerId ? `Round ${game.currentRound} · ${initialsFor(nextDealerId)} deals` : `Round ${game.currentRound}`}
+      label={nextDealerId ? `Round ${maxRounds + 1} · ${initialsFor(nextDealerId)} deals` : `Round ${maxRounds + 1}`}
       tone="primary"
       icon="cards-outline"
     />

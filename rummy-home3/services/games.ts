@@ -792,6 +792,16 @@ export const gamesService = {
       .eq('id', round.id);
 
     if (error) throw error;
+
+    // The undone number is the next one to play again. Left alone, current_round pointed one
+    // past it, the next save skipped a number, and the scorecard showed an empty row for the gap.
+    const { error: counterError } = await supabase
+      .from('games')
+      .update({ current_round: round.round_number })
+      .eq('id', gameId)
+      .gt('current_round', round.round_number);
+    if (counterError) throw counterError;
+
     return this.getGame(gameId);
   },
 
