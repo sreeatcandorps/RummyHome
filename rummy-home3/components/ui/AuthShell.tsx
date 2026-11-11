@@ -28,7 +28,7 @@ export function AuthShell({ title, subtitle, icon, children, footer, help }: Aut
       {icon ? (
         <Icon source={icon} size={34} color={colors.felt} />
       ) : (
-        <Image source={require('../../assets/icon.png')} style={styles.logo} accessibilityIgnoresInvertColors />
+        <Image source={require('../../assets/icon-small.png')} style={styles.logo} accessibilityIgnoresInvertColors />
       )}
     </View>
   );
