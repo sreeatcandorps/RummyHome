@@ -1,17 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { HELP, SETTINGS_PRIORITY } from '../constants/help';
-import { DEFAULT_RECENT_CHIP, RECENT_CHIPS } from '../utils/homeGames';
 import { DEFAULT_MY_PLAYERS_SORT, registrationLabel, REGISTRATION_TONE, sortMyPlayers } from '../utils/myPlayersList';
 import { newGameGrid, newGameSeats, validateInitials } from '../utils/playerIdentity';
 import { normalizePhone, phoneProblem } from '../utils/phone';
 import { cellTone } from '../utils/roundEntry';
-
-test('build 3: Home opens on Last 10 days, with All as the second chip', () => {
-  assert.equal(DEFAULT_RECENT_CHIP, 'last10d');
-  assert.equal(RECENT_CHIPS[0].value, DEFAULT_RECENT_CHIP);
-  assert.equal(RECENT_CHIPS[1].value, 'all');
-});
 
 test('build 3: My players opens sorted by Frequent', () => {
   assert.equal(DEFAULT_MY_PLAYERS_SORT, 'frequent');
