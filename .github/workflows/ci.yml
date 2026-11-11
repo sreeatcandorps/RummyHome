@@ -147,21 +147,18 @@ jobs:
           psql "$DB_URL" -tAc "select count(*) || ' seeded profiles' from public.profiles" | tee -a ../ci/out/db/migrations.txt
 
       - name: Rollbacks 017→013 then re-apply 013–017
-        if: always()
         run: |
           set +e
           DB_PSQL="psql $DB_URL" ci/db/replay-rollbacks.sh | tee ci/out/db/rollbacks.tap
           echo "${PIPESTATUS[0]}" > ci/out/db/rollbacks.status
 
       - name: pgTAP (RLS, privacy, save_round, seat removal 016, seat takeover 017, public scorecard)
-        if: always()
         run: |
           set +e
           DB_PSQL="psql $DB_URL" OUT=ci/out/db/pgtap ci/db/run-pgtap.sh
           echo $? > ci/out/db/pgtap.status
 
       - name: Two-client concurrency (save_round and friends)
-        if: always()
         working-directory: ci
         run: |
           npm ci --no-audit --no-fund
