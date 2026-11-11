@@ -11,6 +11,7 @@ import { storage } from '@/utils/storage';
 import { gameCache } from '@/utils/gameCache';
 import { queryCache } from '@/utils/queryCache';
 import { sessionNeedsRefresh } from '@/utils/sessionFreshness';
+import { EmailInUseError, isEmailInUseError, isRepeatedSignUp } from '@/utils/signUpOutcome';
 
 export type Profile = {
   id: string;
@@ -148,7 +149,10 @@ export const authService = {
       },
     });
 
-    if (error) throw error;
+    if (error) throw isEmailInUseError(error) ? new EmailInUseError() : error;
+    // With Confirm email on, GoTrue answers a repeated sign-up with 200 and a placeholder user
+    // (no identities, no session) instead of an error. That is not a new account.
+    if (isRepeatedSignUp(data)) throw new EmailInUseError();
     forgetProfile();
     if (data.session?.user) {
       await storage.setCurrentPlayer(data.session.user.id);
