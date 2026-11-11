@@ -26,6 +26,14 @@ const missingRpc = (error: unknown) => {
   return code === 'PGRST202' || message.includes('could not find the function') || message.includes('schema cache');
 };
 
+/**
+ * Columns a signed-in account may read about other players. Since migration 019
+ * SELECT on profiles is granted per column, so `select('*')` is refused; email,
+ * phone and zip are the owner's alone (read through `my_profile` in authService).
+ */
+export const PUBLIC_PROFILE_COLUMNS =
+  'id, display_name, first_name, last_name, avatar_url, player_code, public_player_no, player_status, managed_by, role, is_demo, demo_owner_id';
+
 const toPlayer = (row: any): Player => ({
   id: row.id,
   playerCode: displayPlayerId(row),
@@ -77,7 +85,7 @@ export const playersService = {
   async listPlayers(options: ListOptions = {}): Promise<Player[]> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(PUBLIC_PROFILE_COLUMNS)
       .order('display_name', { ascending: true });
 
     if (error) throw error;
@@ -90,7 +98,7 @@ export const playersService = {
   async getPlayer(id: string): Promise<Player | null> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select(PUBLIC_PROFILE_COLUMNS)
       .eq('id', id)
       .maybeSingle();
 
@@ -135,19 +143,20 @@ export const playersService = {
     }
     if (!missingRpc(rpc.error)) throw rpc.error;
 
+    // Pre-011 server. Email is not a readable column for other accounts (019), so an
+    // email search without the RPC matches nobody rather than erroring.
+    if (mode === 'email') return [];
     const columns = 'id, display_name, player_code, first_name, last_name';
-    const request = mode === 'email'
-      ? supabase.from('profiles').select(columns).ilike('email', trimmed).limit(5)
-      : supabase
-        .from('profiles')
-        .select(columns)
-        .or([
-          `display_name.ilike.%${trimmed.replace(/[,]/g, '')}%`,
-          `first_name.ilike.%${trimmed.replace(/[,]/g, '')}%`,
-          `last_name.ilike.%${trimmed.replace(/[,]/g, '')}%`,
-          `player_code.ilike.%${trimmed.replace(/[,]/g, '')}%`,
-        ].join(','))
-        .limit(20);
+    const request = supabase
+      .from('profiles')
+      .select(columns)
+      .or([
+        `display_name.ilike.%${trimmed.replace(/[,]/g, '')}%`,
+        `first_name.ilike.%${trimmed.replace(/[,]/g, '')}%`,
+        `last_name.ilike.%${trimmed.replace(/[,]/g, '')}%`,
+        `player_code.ilike.%${trimmed.replace(/[,]/g, '')}%`,
+      ].join(','))
+      .limit(20);
     const { data, error } = await request;
     if (error) throw error;
     return (data ?? []).map((row) => ({

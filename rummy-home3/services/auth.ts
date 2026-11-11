@@ -46,6 +46,29 @@ const toProfile = (row: any): Profile => ({
   role: row.role ?? 'player',
 });
 
+/** PostgREST: the relation is not in the schema cache (migration 019's view not applied yet). */
+const missingRelation = (error: { code?: string; message?: string } | null | undefined) => {
+  const code = error?.code ?? '';
+  const message = (error?.message ?? '').toLowerCase();
+  return code === 'PGRST205' || code === '42P01' || (message.includes('my_profile') && message.includes('schema cache'));
+};
+
+/**
+ * The signed-in account's own row, every column. Since migration 019 the contact
+ * columns (email, phone, zip) are readable only through the `my_profile` view;
+ * `select *` on profiles is refused. Before 019 the view does not exist, so the
+ * table is read directly as before.
+ */
+async function readOwnProfile(userId: string): Promise<Profile | null> {
+  const own = await supabase.from('my_profile').select('*').eq('id', userId).maybeSingle();
+  if (!own.error) return own.data ? toProfile(own.data) : null;
+  if (!missingRelation(own.error)) throw own.error;
+
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  return data ? toProfile(data) : null;
+}
+
 const errorText = (error: { message?: string } | null | undefined) => (error ? error.message || 'Something went wrong.' : null);
 
 /** The passcode flows (utils/passcodeFlow.ts) talk to Supabase through this adapter. */
@@ -185,15 +208,7 @@ export const authService = {
     const fetchProfile = async () => {
       const userId = await this.getCurrentUserId();
       if (!userId) return null;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data ? toProfile(data) : null;
+      return readOwnProfile(userId);
     };
 
     try {
@@ -235,11 +250,13 @@ export const authService = {
         default_settings: profile.defaultSettings,
       })
       .eq('id', userId)
-      .select('*')
+      .select('id')
       .single();
 
     if (error) throw error;
-    return toProfile(data);
+    const fresh = await readOwnProfile(data.id as string);
+    if (!fresh) throw new Error('Your profile could not be read back. Sign out and back in, then try again.');
+    return fresh;
   },
 
   /**
@@ -255,10 +272,12 @@ export const authService = {
       .from('profiles')
       .update({ phone })
       .eq('id', userId)
-      .select('phone');
+      .select('id');
 
     if (error) throw error;
     if (!data || data.length === 0) throw new Error('Your profile could not be updated. Sign out and back in, then try again.');
-    return data[0].phone ?? null;
+    // `phone` is readable only through my_profile since 019 (RETURNING phone is refused), so read it back.
+    const fresh = await readOwnProfile(userId);
+    return fresh?.phone ?? phone;
   },
 };

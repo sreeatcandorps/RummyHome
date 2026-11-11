@@ -45,6 +45,7 @@ import { formatGameDateTime, gameNumberLabel } from '../../utils/gameDisplay';
 import { scorecardUrl } from '../../utils/shareLink';
 import { shareLiveScorecard } from '../../utils/shareImage';
 import { formatSupabaseError } from '../../utils/supabaseErrors';
+import { isRoundConflict, roundConflictMessage } from '../../utils/roundConflict';
 
 type Participant = {
   id: string;
@@ -204,6 +205,15 @@ export default function ScoreEntryScreen() {
       }
       router.back();
     } catch (error) {
+      if (isRoundConflict(error)) {
+        // Someone else saved this round (or changed the players) first. Show what the server
+        // said, pull the fresh scorecard, and drop the typed scores so they cannot land on
+        // the next round by accident. Edit mode reloads the round as it is now.
+        if (!editRound) setEntry(initialRoundEntryState);
+        await loadGameData();
+        setNotice({ title: 'Round already saved', body: roundConflictMessage(error), icon: 'refresh' });
+        return;
+      }
       console.error('Score submission error:', error);
       setNotice({ title: 'Could not save round', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
     } finally {

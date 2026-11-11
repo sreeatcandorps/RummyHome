@@ -4,6 +4,7 @@ import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { MIGRATION_007_HINT, playersService } from '@/services/players';
 import { RETIRED_ROUND_OFFSET, retiredRoundNumber } from '@/utils/editRound';
+import { isRoundConflict, toRoundConflictError } from '@/utils/roundConflict';
 import { zerosForJoiner } from '@/utils/gamePlayers';
 import { SEAT_REMOVAL_NOT_READY, seatRemovalProblem } from '@/utils/seatRemoval';
 import { GameType, ProfileDefaults, ScoreType } from '@/types/database';
@@ -133,12 +134,17 @@ const MISSING_FUNCTION = 'PGRST202';
 /**
  * Writes one round (Add or Edit) to Supabase.
  *
- * Preferred path: the atomic `save_round` RPC (migration 014). Fallback, used
- * until that migration is applied: the original request sequence, made
- * self-healing so an interrupted save can no longer leave a blank round:
+ * Preferred path: the atomic `save_round` RPC (migration 014; serialised per game
+ * since 019). Fallback, used until that migration is applied: the original
+ * request sequence, made self-healing so an interrupted save can no longer
+ * leave a blank round:
  *  - a live round that already has scores is a duplicate submit → only advance the game;
  *  - a live round with no scores (an earlier interrupted save) is reused;
  *  - on Edit, if the new scores fail to land, the old round is put back.
+ *
+ * A race with another admin (019's PT409, or a raw unique violation from an
+ * older server) is thrown as RoundConflictError so the screen can show the
+ * message and refresh instead of surfacing a database error.
  */
 async function writeRound(input: AddRoundInput, replace: boolean): Promise<void> {
   const payload = input.scores
@@ -152,6 +158,7 @@ async function writeRound(input: AddRoundInput, replace: boolean): Promise<void>
     p_replace: replace,
   });
   if (!rpcError) return;
+  if (isRoundConflict(rpcError)) throw toRoundConflictError(rpcError);
   if (rpcError.code !== MISSING_FUNCTION) throw rpcError;
 
   const { data: live, error: liveError } = await supabase
@@ -214,7 +221,7 @@ async function writeRound(input: AddRoundInput, replace: boolean): Promise<void>
       })
       .select('id')
       .single();
-    if (roundError) throw roundError;
+    if (roundError) throw isRoundConflict(roundError) ? toRoundConflictError(roundError) : roundError;
     return round.id as string;
   };
   const targetRoundId = reusableRoundId ?? (await insertRound());
@@ -533,14 +540,14 @@ export const gamesService = {
 
     const withSeat = await supabase
       .from('game_players')
-      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, public_player_no, email, player_status, managed_by, first_name, last_name)')
+      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, public_player_no, player_status, managed_by, first_name, last_name)')
       .eq('game_id', gameId)
       .order('player_order', { ascending: true });
 
     const loaded = withSeat.error && missingColumn(withSeat.error)
       ? await supabase
         .from('game_players')
-        .select('profile_id, role, player_order, profiles(display_name, player_code, email)')
+        .select('profile_id, role, player_order, profiles(display_name, player_code)')
         .eq('game_id', gameId)
         .order('player_order', { ascending: true })
       : withSeat;
@@ -550,7 +557,7 @@ export const gamesService = {
       id: membership.profile_id,
       name: membership.profiles?.display_name ?? 'Rummy Player',
       playerCode: displayPlayerId(membership.profiles),
-      email: membership.profiles?.email ?? undefined,
+      email: undefined,
       status: membership.profiles?.player_status ?? undefined,
       managedBy: membership.profiles?.managed_by ?? undefined,
       playerNo: membership.profiles?.public_player_no ?? undefined,
