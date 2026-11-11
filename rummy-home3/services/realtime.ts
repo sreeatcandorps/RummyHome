@@ -13,6 +13,9 @@ export type GameRealtimeHandlers = {
  */
 export const REALTIME_DEBOUNCE_MS = 400;
 
+/** The debounced reload per channel, so unsubscribe() can drop a reload still waiting. */
+const pending = new WeakMap<RealtimeChannel, { cancel: () => void }>();
+
 export const realtimeService = {
   /**
    * Every write that changes a scorecard touches `games`, `game_players` or `rounds`
@@ -21,15 +24,19 @@ export const realtimeService = {
    */
   subscribeToGame(gameId: string, handlers: GameRealtimeHandlers): RealtimeChannel {
     const onChange = debounceTrailing(handlers.onChange, REALTIME_DEBOUNCE_MS);
-    return supabase
+    const channel = supabase
       .channel(`game:${gameId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, onChange)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, onChange)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rounds', filter: `game_id=eq.${gameId}` }, onChange)
       .subscribe();
+    pending.set(channel, onChange);
+    return channel;
   },
 
   unsubscribe(channel: RealtimeChannel) {
+    pending.get(channel)?.cancel();
+    pending.delete(channel);
     supabase.removeChannel(channel);
   },
 };
