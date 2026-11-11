@@ -40,9 +40,12 @@ export default function GameScreen() {
   const theme = useAppTheme();
   const { colors } = theme;
   const { isShort, insets, gutterLeft, gutterRight } = useLayout();
-  const [game, setGame] = useState<Game | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Seed from the last-known copy so returning from Add round shows the new row at once; the fresh load follows.
+  const cachedGame = gamesService.peekGame(typeof id === 'string' ? id : null);
+  const cachedSeats = gamesService.peekSeats(typeof id === 'string' ? id : null);
+  const [game, setGame] = useState<Game | null>(cachedGame);
+  const [players, setPlayers] = useState<Player[]>(() => (cachedSeats ?? []).filter((p) => p.seatRole !== 'spectator' && p.seated !== false && p.id !== 'EX'));
+  const [loading, setLoading] = useState(!(cachedGame && cachedSeats));
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const [reopening, setReopening] = useState(false);
@@ -56,10 +59,7 @@ export default function GameScreen() {
   const [linkNote, setLinkNote] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadGameData();
-  }, [id]);
-
+  // Mount is covered by useFocusEffect below (it fires on focus, which includes the first mount): one load, not two.
   useEffect(() => {
     if (!isSupabaseConfigured || typeof id !== 'string') return;
     const channel = realtimeService.subscribeToGame(id, { onChange: loadGameData });
@@ -82,11 +82,11 @@ export default function GameScreen() {
       const userId = isSupabaseConfigured
         ? await authService.getCurrentUserId()
         : await storage.getCurrentPlayer();
-      const [currentGame, gamePlayers, access] = await withTimeout(Promise.all([
+      const [currentGame, gamePlayers] = await withTimeout(Promise.all([
         gamesService.getGame(id),
         gamesService.listGamePlayers(id),
-        gamesService.accessFor(id, userId),
       ]), REQUEST_TIMEOUT_MS, 'Couldn’t open this game.');
+      const access = await gamesService.accessFor(id, userId, { game: currentGame, seats: gamePlayers });
 
       if (currentGame) {
         const seated = gamePlayers.filter((player) => player.seatRole !== 'spectator' && player.seated !== false);

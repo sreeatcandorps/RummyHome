@@ -8,6 +8,7 @@ import { Player } from '@/types/player';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
 import { isClockSkewError } from '@/utils/supabaseErrors';
 import { storage } from '@/utils/storage';
+import { gameCache } from '@/utils/gameCache';
 
 export type Profile = {
   id: string;
@@ -119,6 +120,7 @@ export const authService = {
   async signOut() {
     const { error } = await supabase.auth.signOut();
     await storage.setCurrentPlayer(null);
+    gameCache.clear();
     if (error) throw error;
   },
 
@@ -130,6 +132,7 @@ export const authService = {
       // Ignore — storage clear below is what unblocks the UI.
     }
     await storage.setCurrentPlayer(null);
+    gameCache.clear();
   },
 
   async getSession() {

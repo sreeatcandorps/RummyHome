@@ -100,8 +100,14 @@ export default function ScoreEntryScreen() {
       const userId = isSupabaseConfigured
         ? await authService.getCurrentUserId()
         : await storage.getCurrentPlayer();
-      const access = await gamesService.accessFor(String(gameId), userId);
-      const currentGame = access.game ?? await gamesService.getGame(String(gameId));
+      // One trip for the game and its seats; access is worked out from them (it used to refetch both).
+      const [fetchedGame, gamePlayers, scorer] = await Promise.all([
+        gamesService.getGame(String(gameId)),
+        gamesService.listGamePlayers(String(gameId)),
+        authService.getCurrentPlayer().catch(() => null),
+      ]);
+      const access = await gamesService.accessFor(String(gameId), userId, { game: fetchedGame, seats: gamePlayers });
+      const currentGame = access.game;
 
       if (!currentGame) {
         setNotice({ title: 'Game not found', body: 'This game may have been removed.', icon: 'alert-circle-outline' });
@@ -120,10 +126,6 @@ export default function ScoreEntryScreen() {
       setGame(currentGame);
       if (editRound) setEntry(entryFromRound(currentGame, editRound));
 
-      const [gamePlayers, scorer] = await Promise.all([
-        gamesService.listGamePlayers(currentGame.id),
-        authService.getCurrentPlayer().catch(() => null),
-      ]);
       setParticipants(
         gamePlayers
           .filter((player) => player.seatRole !== 'spectator' && player.seated !== false)

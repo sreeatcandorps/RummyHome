@@ -10,6 +10,7 @@ import { GameType, ProfileDefaults, ScoreType } from '@/types/database';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { canEnterScores, gameVisibleToUser, SeatRole } from '@/utils/gameAccess';
+import { gameCache } from '@/utils/gameCache';
 import { canReopenGame, REOPEN_BLOCKED_MESSAGE } from '@/utils/gameStatus';
 import { createViewToken } from '@/utils/shareLink';
 import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validateRoundScores } from '@/utils/scoring';
@@ -435,7 +436,7 @@ export const gamesService = {
     if (!isSupabaseConfigured) {
       const games = await storage.getGames();
       const game = games.find((item) => item.id === gameId) ?? null;
-      return game ? withoutLegacyColumn(game) : null;
+      return gameCache.putGame(game ? withoutLegacyColumn(game) : null);
     }
 
     const [{ data: game, error: gameError }, { data: gamePlayers, error: playersError }, { data: scores, error: scoresError }] =
@@ -450,7 +451,25 @@ export const gamesService = {
     if (scoresError) throw scoresError;
     if (!game) return null;
 
-    return legacyGameFromServer(game, scores ?? [], gamePlayers ?? []);
+    return gameCache.putGame(legacyGameFromServer(game, scores ?? [], gamePlayers ?? []));
+  },
+
+  /** Last-known copy from this session, or null. Screens show it at once, then refresh. */
+  peekGame(gameId: string | null | undefined): Game | null {
+    return gameCache.peekGame(gameId);
+  },
+
+  peekSeats(gameId: string | null | undefined): Player[] | null {
+    return gameCache.peekSeats(gameId);
+  },
+
+  /** Warm the cache for a game the user is likely to open next (e.g. a live game on Home). */
+  async prefetchGame(gameId: string): Promise<void> {
+    try {
+      await Promise.all([this.getGame(gameId), this.listGamePlayers(gameId)]);
+    } catch {
+      // Best effort only; the screen will load normally.
+    }
   },
 
   /** Game settings: change Drop, Middle drop, and Full count any time, even mid-game. */
@@ -498,7 +517,7 @@ export const gamesService = {
             ? 'game_admin'
             : 'player';
       const ids = [...game.players, ...(game.spectators ?? []), ...(game.unseatedAdminIds ?? [])];
-      return ids
+      return gameCache.putSeats(gameId, ids
         .map((playerId) => {
           const known = byId.get(playerId);
           const base = known ?? { id: playerId, name: 'Rummy Player', role: 'player' as const };
@@ -509,7 +528,7 @@ export const gamesService = {
             seatRole: seatFor(playerId),
             seated: !game.unseatedAdminIds?.includes(playerId) && !game.spectators?.includes(playerId),
           };
-        });
+        }));
     }
 
     const withSeat = await supabase
@@ -527,7 +546,7 @@ export const gamesService = {
       : withSeat;
     if (loaded.error) throw loaded.error;
 
-    return (loaded.data ?? []).map((membership: any) => ({
+    return gameCache.putSeats(gameId, (loaded.data ?? []).map((membership: any) => ({
       id: membership.profile_id,
       name: membership.profiles?.display_name ?? 'Rummy Player',
       playerCode: displayPlayerId(membership.profiles),
@@ -540,16 +559,20 @@ export const gamesService = {
       role: membership.role === 'game_admin' ? 'admin' as const : 'player' as const,
       seatRole: (membership.role ?? 'player') as SeatRole,
       seated: membership.seated !== false && membership.role !== 'spectator',
-    }));
+    })));
   },
 
-  async accessFor(gameId: string, userId: string | null) {
-    const game = await this.getGame(gameId);
+  /**
+   * Who may score. Pass `preloaded` when the screen already fetched the game and
+   * its seats: that saves the second copy of the same four requests per open.
+   */
+  async accessFor(gameId: string, userId: string | null, preloaded?: { game: Game | null; seats?: Player[] }) {
+    const game = preloaded ? preloaded.game : await this.getGame(gameId);
     if (!game || !userId) {
       return { game, canScore: false, isCreator: false, seatRole: null as SeatRole | null, rolesKnown: true };
     }
 
-    const seats = isSupabaseConfigured ? await this.listGamePlayers(gameId) : [];
+    const seats = preloaded?.seats ?? (isSupabaseConfigured ? await this.listGamePlayers(gameId) : []);
     const mine = seats.find((seat) => seat.id === userId);
     const seatRole = mine?.seatRole
       ?? (game.adminIds?.includes(userId) ? 'game_admin' as const

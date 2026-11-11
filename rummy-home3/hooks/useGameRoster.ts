@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
@@ -11,22 +11,24 @@ import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 
 /** The game, its seated players (score columns) and whether the viewer may run it. */
 export function useGameRoster(id: string | undefined) {
-  const [game, setGame] = useState<Game | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [roster, setRoster] = useState<Player[]>([]);
+  const cachedGame = gamesService.peekGame(id);
+  const cachedSeats = gamesService.peekSeats(id);
+  const [game, setGame] = useState<Game | null>(cachedGame);
+  const [players, setPlayers] = useState<Player[]>(() => (cachedSeats ?? []).filter((player) => player.seatRole !== 'spectator' && player.seated !== false && player.id !== 'EX'));
+  const [roster, setRoster] = useState<Player[]>(cachedSeats ?? []);
   const [canScore, setCanScore] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedGame);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!id) return;
     try {
       const userId = isSupabaseConfigured ? await authService.getCurrentUserId() : await storage.getCurrentPlayer();
-      const [currentGame, gamePlayers, access] = await withTimeout(Promise.all([
+      const [currentGame, gamePlayers] = await withTimeout(Promise.all([
         gamesService.getGame(id),
         gamesService.listGamePlayers(id),
-        gamesService.accessFor(id, userId),
       ]), REQUEST_TIMEOUT_MS, 'Couldn’t open this game.');
+      const access = await gamesService.accessFor(id, userId, { game: currentGame, seats: gamePlayers });
       if (currentGame) {
         setGame(currentGame);
         setRoster(gamePlayers);
@@ -43,10 +45,7 @@ export function useGameRoster(id: string | undefined) {
     }
   }, [id]);
 
-  useEffect(() => {
-    reload();
-  }, [reload]);
-
+  // useFocusEffect also runs on mount, so one load per open.
   useFocusEffect(
     useCallback(() => {
       reload();

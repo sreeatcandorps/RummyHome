@@ -52,6 +52,8 @@ export default function Dashboard() {
         email: player.email,
       });
       setRecentGames(games);
+      // Warm the first live games so tapping one opens the scorecard at once.
+      splitHomeGames(games).live.slice(0, 2).forEach((game) => { gamesService.prefetchGame(game.id); });
       playerIdentityService.takeNotices(player.id)
         .then((list) => { if (list.length) setNotices((cur) => [...cur, ...list.map((n) => n.text)]); })
         .catch(() => {});
