@@ -5,6 +5,7 @@ import { BoldName } from '@/components/ui/BoldName';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { DraftPick } from '@/utils/newGameDraft';
 import { radius, seatColor, spacing, useAppTheme } from '@/constants/theme';
+import { ChipLook, chipLook } from '@/utils/chipLook';
 
 type Props = {
   picks: DraftPick[];
@@ -16,7 +17,11 @@ type Props = {
   /** Compact header shown above the chips, e.g. on Add New Players. Omit on New game, which has its own Playing count. */
   title?: string;
   emptyText?: string;
-  /** Ids that are already saved in a game (mid-game add); drawn with a firmer border. */
+  /**
+   * Mid-game add: ids already saved in the game. Those chips go quiet (grey) and only
+   * the newly picked people are highlighted, in yellow. Omit on New game, where every
+   * chip is new and green.
+   */
   savedIds?: ReadonlySet<string>;
   /** A chip being removed on the server; it dims and ignores taps. */
   busyId?: string | null;
@@ -45,7 +50,7 @@ export function SelectedPlayersStrip({ picks, onRemove, onReturn, title, emptyTe
             key={pick.id}
             pick={pick}
             color={seatColor(index)}
-            saved={savedIds?.has(pick.id) ?? false}
+            look={chipLook(pick.id, savedIds)}
             busy={busyId === pick.id}
             onRemove={() => onRemove(pick.id)}
             onReturn={() => (onReturn ?? onRemove)(pick.id)}
@@ -56,10 +61,15 @@ export function SelectedPlayersStrip({ picks, onRemove, onReturn, title, emptyTe
   );
 }
 
-function Chip({ pick, color, saved, busy, onRemove, onReturn }: {
-  pick: DraftPick; color: string; saved: boolean; busy: boolean; onRemove: () => void; onReturn: () => void;
+function Chip({ pick, color, look, busy, onRemove, onReturn }: {
+  pick: DraftPick; color: string; look: ChipLook; busy: boolean; onRemove: () => void; onReturn: () => void;
 }) {
   const { colors } = useAppTheme();
+  const palette = look === 'added'
+    ? { bg: colors.secondaryContainer, fg: colors.onSecondaryContainer, border: colors.secondary }
+    : look === 'saved'
+      ? { bg: colors.surfaceVariant, fg: colors.onSurfaceVariant, border: 'transparent' }
+      : { bg: colors.primaryContainer, fg: colors.onPrimaryContainer, border: 'transparent' };
   const enter = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(enter, { toValue: 1, duration: 220, easing: Easing.out(Easing.back(1.4)), useNativeDriver: false }).start();
@@ -70,7 +80,7 @@ function Chip({ pick, color, saved, busy, onRemove, onReturn }: {
     <Animated.View
       style={[
         styles.chip,
-        { backgroundColor: colors.primaryContainer, borderColor: saved ? colors.primary : 'transparent', opacity: busy ? 0.5 : enter, transform: [{ scale }] },
+        { backgroundColor: palette.bg, borderColor: palette.border, opacity: busy ? 0.5 : enter, transform: [{ scale }] },
       ]}
     >
       <Pressable
@@ -83,7 +93,7 @@ function Chip({ pick, color, saved, busy, onRemove, onReturn }: {
       >
         <SeatAvatar name={pick.name} color={color} size={28} />
       </Pressable>
-      <BoldName name={pick.name} variant="labelLarge" numberOfLines={1} color={colors.onPrimaryContainer} style={styles.chipName} />
+      <BoldName name={pick.name} variant="labelLarge" numberOfLines={1} color={palette.fg} style={styles.chipName} />
       <Pressable
         onPress={onRemove}
         disabled={busy}
@@ -92,7 +102,7 @@ function Chip({ pick, color, saved, busy, onRemove, onReturn }: {
         accessibilityLabel={`Remove ${pick.name}`}
         style={styles.x}
       >
-        <Text style={[styles.chipX, { color: colors.onPrimaryContainer }]}>×</Text>
+        <Text style={[styles.chipX, { color: palette.fg }]}>×</Text>
       </Pressable>
     </Animated.View>
   );

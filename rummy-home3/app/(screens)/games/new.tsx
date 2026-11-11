@@ -15,7 +15,7 @@ import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { takePlayersToCheck } from '@/utils/pendingPlayer';
 import { DEFAULT_POINTS_RULES, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
-import { Candidate, CandidateSort, newGameGrid, newGameSeats, orderCandidates, PICKER_PAGE, pinOrganiser } from '@/utils/playerIdentity';
+import { Candidate, CandidateSort, newGameGrid, newGameSeats, orderCandidates, PICKER_PREFETCH, pinOrganiser } from '@/utils/playerIdentity';
 import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
 import { seatRemovalProblem } from '@/utils/seatRemoval';
 import { SelectedPlayersStrip } from '@/components/players/SelectedPlayersStrip';
@@ -45,7 +45,7 @@ const animateMove = () => LayoutAnimation.configureNext(LayoutAnimation.create(2
  * "Playing · N". The number sits in a big yellow badge with a soft green halo
  * that keeps breathing while anyone is seated, and it pops each time N changes.
  */
-function PlayingCount({ count, hint }: { count: number; hint: string }) {
+function PlayingCount({ count, hint, label = 'Playing' }: { count: number; hint: string; label?: string }) {
   const { colors } = useAppTheme();
   const pop = useRef(new Animated.Value(0)).current;
   const halo = useRef(new Animated.Value(0)).current;
@@ -77,8 +77,8 @@ function PlayingCount({ count, hint }: { count: number; hint: string }) {
   const seated = count > 0;
 
   return (
-    <View style={styles.playingRow} accessibilityLiveRegion="polite" accessibilityLabel={`Playing, ${count} ${count === 1 ? 'player' : 'players'}`}>
-      <Text variant="titleLarge" style={{ color: colors.onSurface, fontWeight: '800' }}>Playing</Text>
+    <View style={styles.playingRow} accessibilityLiveRegion="polite" accessibilityLabel={`${label}, ${count} ${count === 1 ? 'player' : 'players'}`}>
+      <Text variant="titleLarge" style={{ color: colors.onSurface, fontWeight: '800' }}>{label}</Text>
       <View style={styles.countWrap}>
         {seated ? <Animated.View pointerEvents="none" style={[styles.countHalo, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} /> : null}
         <Animated.View style={[styles.countBubble, { backgroundColor: seated ? fill : colors.surfaceVariant, borderColor: seated ? colors.primary : colors.outlineVariant, transform: [{ scale }] }]}>
@@ -184,7 +184,8 @@ export default function NewGame() {
     const pool = query.trim()
       ? others.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query))
       : others;
-    const grid = newGameGrid(orderCandidates(pool, sort), selectedIds, PICKER_PAGE);
+    // The whole remaining list (not a ten-row page): the organiser scrolls and searches instead of picking to reveal more.
+    const grid = newGameGrid(orderCandidates(pool, sort), selectedIds, PICKER_PREFETCH);
     // The organiser always has a row (first) until seated: they are not in the server's stats, so no sort or page may hide them.
     const meMatches = !meCandidate || matchesMyPlayer({ name: meCandidate.name, playerCode: meCandidate.playerCode }, query);
     // Mid-game, an organiser who is in the game as a non-playing admin or viewer cannot be seated from here (parked: P3).
@@ -266,8 +267,9 @@ export default function NewGame() {
     }
   };
 
+  const newCount = staged.filter((p) => !savedIds.has(p.id)).length;
   const hint = addMode
-    ? (staged.length === 0 ? 'Tap a player below to add them. They get 0 for every round already played.' : `${staged.length} to add · tap Return to game to seat them`)
+    ? (newCount === 0 ? `${saved.length} in the game. Tap a player below to add them; they get 0 for every round already played.` : `new · ${saved.length} already in the game · tap Return to game to seat them`)
     : (seatedCount === 0 ? 'Nobody yet. Tap players below; tap yourself if you are playing.' : seatedCount === 1 ? 'player · pick one more to start' : 'players');
 
   return (
@@ -290,7 +292,7 @@ export default function NewGame() {
       />
 
       <Screen contentStyle={styles.content} safeBottom={false}>
-        <PlayingCount count={seatedCount} hint={hint} />
+        <PlayingCount count={addMode ? newCount : seatedCount} hint={hint} label={addMode ? 'Added' : 'Playing'} />
         <SelectedPlayersStrip picks={selected} meId={me?.id} onRemove={unpick} onReturn={unpick} savedIds={addMode ? savedIds : undefined} busyId={removing} />
         {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
 
@@ -338,7 +340,7 @@ export default function NewGame() {
         </View>
         {addMode ? (
           <Button mode="contained" onPress={returnToGame} loading={creating} disabled={creating || Boolean(removing)} icon="arrow-left" contentStyle={styles.startContent} labelStyle={styles.startLabel} accessibilityLabel="Return to game">
-            {staged.length === 0 ? 'Return to game' : `Return to game · add ${staged.length}`}
+            {newCount === 0 ? 'Return to game' : `Return to game · add ${newCount}`}
           </Button>
         ) : (
           <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} contentStyle={styles.startContent} labelStyle={styles.startLabel} accessibilityLabel="Start game">
