@@ -8,7 +8,7 @@ Verified on this build box on Nov 11: `node --import tsx --test tests/*.test.ts`
 
 | Layer | Runner | Needs | Runs today | Result recorded in |
 |---|---|---|---|---|
-| Unit and logic (`tests/*.test.ts`) | Node `node:test` via `tsx` (not Jest; `package.json` has no Jest) | nothing (no network) | by every agent before a push | PR description text, `docs/CHECKLIST-NOV9.md`; no CI |
+| Unit and logic (`tests/*.test.ts`) | Node `node:test` via `tsx` (not Jest; `package.json` has no Jest) | nothing (no network) | by every agent before a push | PR description text, `docs/CHECKLIST-NOV9.md`; **CI from this PR on** ([`ci.md`](ci.md)) |
 | Type check | `tsc --noEmit` | nothing | by every agent | PR description text |
 | Source-shape checks | same `node:test` files; regex over `.tsx` and `.sql` source | nothing | with `npm test` | same |
 | Migration SQL checks on local Postgres | ad hoc `psql` against a scratch Postgres 16 loaded with 001–0NN | Docker or a local Postgres on the agent VM | per migration, by hand, by the agent that wrote it | prose in the PR description and `docs/migrations-to-apply.md`; **scripts not committed** |
@@ -16,9 +16,9 @@ Verified on this build box on Nov 11: `node --import tsx --test tests/*.test.ts`
 | Web preview screenshots | Expo web (`npx expo start --web`) driven by Puppeteer, 390×844 | Chrome on the agent VM; fixture mode (no Supabase env) or a local GoTrue fake | per feedback batch, by the agent | `/opt/cursor/artifacts/...` (attached to the PR), indexed in `docs/CHECKLIST-NOV9.md` |
 | Maestro flows (`e2e/*.yaml`) | Maestro CLI on an Android device/emulator | an APK and a device | **never run** (written Nov 4, stale) | — |
 | Manual phone pass | Sree and testers on real Android phones | preview APK from EAS | per build (builds 2, 3, 4, 5 so far) | GitHub [issue #8](https://github.com/sreeatcandorps/RummyHome/issues/8), WhatsApp/notes, then PR description |
-| CI / PR checks | none configured (`.github/workflows` does not exist; Actions workflow count = 0) | — | — | The only check on PR #7 is **Supabase Preview**, status *skipped* ([checks tab](https://github.com/sreeatcandorps/RummyHome/pull/7/checks)) |
+| CI / PR checks | **Before this PR:** none (`.github/workflows` did not exist). **This PR adds** [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml): unit + tsc, local Supabase with pgTAP and a concurrency script, per-workflow report ([`ci.md`](ci.md)) | the DB job needs Docker (GitHub runner) | every push/PR, nightly on PR 7 and `main` | Job summary and `test-report-*` artifact per run; before this the only check on PR #7 was **Supabase Preview**, status *skipped* ([checks tab](https://github.com/sreeatcandorps/RummyHome/pull/7/checks)) |
 
-The result record is therefore: the PR description on [#7](https://github.com/sreeatcandorps/RummyHome/pull/7) (test counts per batch), [`rummy-home3/docs/CHECKLIST-NOV9.md`](https://github.com/sreeatcandorps/RummyHome/blob/cursor/ezscore-apk-ready/rummy-home3/docs/CHECKLIST-NOV9.md) (screenshot index), and [`docs/migrations-to-apply.md`](https://github.com/sreeatcandorps/RummyHome/blob/cursor/ezscore-apk-ready/rummy-home3/docs/migrations-to-apply.md) (what was scratch-verified per migration). There are no CI runs to link to.
+The result record is therefore: the PR description on [#7](https://github.com/sreeatcandorps/RummyHome/pull/7) (test counts per batch), [`rummy-home3/docs/CHECKLIST-NOV9.md`](https://github.com/sreeatcandorps/RummyHome/blob/cursor/ezscore-apk-ready/rummy-home3/docs/CHECKLIST-NOV9.md) (screenshot index), and [`docs/migrations-to-apply.md`](https://github.com/sreeatcandorps/RummyHome/blob/cursor/ezscore-apk-ready/rummy-home3/docs/migrations-to-apply.md) (what was scratch-verified per migration). CI runs now live at https://github.com/sreeatcandorps/RummyHome/actions/workflows/ci.yml.
 
 ## 2. Commands
 

@@ -26,9 +26,11 @@ Facts that shape the choices:
 
 Order of value for this product: **B + C** (security and scoring correctness, cheap), then **A** (so B and C actually run), then **D** (native), **F** (so Sree can see it), **E**, **G**, **H**.
 
+> **Status (Nov 11):** A, B and C are implemented in this PR, plus the job-summary half of F. See [`ci.md`](ci.md) for the files, the report and the bugs found. Differences from the plan below: pgTAP role switching is hand-rolled in `seed.sql` (`tests.login(uuid)`), not the dbdev helper extension; the concurrency script uses two raw Postgres connections (`pg`) instead of two `supabase-js` clients, so it does not need the API container or anon key and can also run without Docker; the `friday-rls.mjs` port (step B.5) is not done.
+
 ## A. CI for what already exists
 
-- `.github/workflows/ci.yml`: checkout, `node 22`, `npm ci` in `rummy-home3`, `npm test`, `npm run typecheck`, `npx expo-doctor`. Upload the TAP output as an artifact.
+- `.github/workflows/ci.yml`: checkout, `node 22`, `npm ci` in `rummy-home3`, `npm test`, `npm run typecheck`, `npx expo-doctor`. Upload the TAP output as an artifact. *(Implemented without `expo-doctor`, which needs network access to the Expo API and is a version-nag rather than a test.)*
 - Adds PR status checks to [#7](https://github.com/sreeatcandorps/RummyHome/pull/7) and every future PR; ~2 minutes per run.
 - Does not catch anything new; it makes the 231 tests a gate instead of a claim in a PR description.
 
@@ -131,8 +133,8 @@ None of these replace the phone checklist for OEM keyboards and the real Resend 
 
 ## What to do first (one PR each, all reversible)
 
-1. `ci.yml` with unit + tsc (A).
-2. `config.toml` + `seed.sql` + `supabase db reset` + the first three pgTAP files (results, games visibility, link seat) and the concurrency script (B, C). This is the one that would have caught the P1.
+1. ~~`ci.yml` with unit + tsc (A).~~ Done in this PR.
+2. ~~`config.toml` + `seed.sql` + `supabase db reset` + pgTAP files and the concurrency script (B, C).~~ Done in this PR (nine pgTAP files, 163 tests; seven concurrency scenarios), with the job-summary report from F. The file-to-workflow map lives at `ci/report/workflow-map.json`.
 3. Fix the Maestro flows and run them on the emulator with the on-runner build (D). Keep the first run to sign-in, new game, three rounds, complete.
-4. Pages report (F).
+4. Pages report (F): the job-summary half exists; publishing `report.md` per run to Pages is what is left.
 5. Playwright baselines (E), then Branching (G).
