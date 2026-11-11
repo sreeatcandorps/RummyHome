@@ -38,6 +38,94 @@ const fontSizeFor = (columnWidth: number) => {
   return 13;
 };
 
+type ScoreRowProps = {
+  columns: ScoreColumn[];
+  /** The stored value per column for this round; undefined where the player had no score. */
+  cells: (number | undefined)[];
+  isLatest: boolean;
+  stripe: boolean;
+  columnWidth: number;
+  rowHeight: number;
+  fontSize: number;
+  fullCount?: number | null;
+  colors: ReturnType<typeof useAppTheme>['colors'];
+};
+
+const sameColumns = (a: ScoreColumn[], b: ScoreColumn[]) =>
+  a.length === b.length && a.every((column, i) => column.id === b[i].id && column.label === b[i].label && column.color === b[i].color && column.isExpense === b[i].isExpense);
+const sameCells = (a: (number | undefined)[], b: (number | undefined)[]) => a.length === b.length && a.every((value, i) => value === b[i]);
+
+/**
+ * One round of scores. Memoised by value (the screen rebuilds its columns and
+ * scores objects on every render), so a reload, a menu or a realtime echo
+ * redraws only the rows whose numbers changed, usually just the newest one.
+ */
+const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe, columnWidth, rowHeight, fontSize, fullCount, colors }: ScoreRowProps) {
+  return (
+    <View
+      style={[
+        styles.row,
+        {
+          height: rowHeight,
+          borderBottomColor: colors.hairline,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          backgroundColor: isLatest ? colors.tableLatest : stripe ? colors.tableStripe : colors.surface,
+        },
+      ]}
+    >
+      {columns.map((column, index) => {
+        const stored = cells[index];
+        // A saved 0 is a real score; a missing cell (player not in that round) shows a dash.
+        const hasScore = typeof stored === 'number';
+        const score = hasScore ? stored : 0;
+        const tone = scoreTone(score, fullCount);
+        const positive = tone === 'positive';
+        const bigLoss = tone === 'bigNegative';
+        const text = scoreTextStyle(tone);
+        return (
+          <View
+            key={column.id}
+            style={[styles.cell, { width: columnWidth, height: rowHeight, borderRightColor: colors.hairline }]}
+          >
+            <View
+              style={[
+                styles.scorePill,
+                positive && { backgroundColor: colors.positiveContainer },
+                bigLoss && { backgroundColor: colors.errorContainer },
+              ]}
+            >
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={[
+                  styles.scoreText,
+                  tabularNums,
+                  { fontSize },
+                  // Wins green and bold; every loss red, same size, not bold (a big loss also gets the red pill).
+                  positive
+                    ? { color: colors.onPositiveContainer, fontWeight: text.fontWeight }
+                    : { color: colors[text.colorKey], fontWeight: text.fontWeight },
+                ]}
+              >
+                {!hasScore ? '–' : positive ? `+${score}` : `${score}`}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}, (prev, next) =>
+  prev.isLatest === next.isLatest
+  && prev.stripe === next.stripe
+  && prev.columnWidth === next.columnWidth
+  && prev.rowHeight === next.rowHeight
+  && prev.fontSize === next.fontSize
+  && prev.fullCount === next.fullCount
+  && prev.colors === next.colors
+  && sameColumns(prev.columns, next.columns)
+  && sameCells(prev.cells, next.cells));
+
 export function ScoreTable({
   columns,
   scores,
@@ -206,65 +294,20 @@ export function ScoreTable({
           bounces={false}
         >
           <View style={{ width: contentWidth }}>
-            {Array.from({ length: roundCount }, (_, roundIndex) => {
-              const isLatest = roundIndex === roundCount - 1;
-              const stripe = roundIndex % 2 === 1;
-              return (
-                <View
-                  key={roundIndex}
-                  style={[
-                    styles.row,
-                    {
-                      height: rowHeight,
-                      borderBottomColor: colors.hairline,
-                      borderBottomWidth: StyleSheet.hairlineWidth,
-                      backgroundColor: isLatest ? colors.tableLatest : stripe ? colors.tableStripe : colors.surface,
-                    },
-                  ]}
-                >
-                  {columns.map((column) => {
-                    const stored = scores[column.id]?.[roundIndex];
-                    // A saved 0 is a real score; a missing cell (player not in that round) shows a dash.
-                    const hasScore = typeof stored === 'number';
-                    const score = hasScore ? stored : 0;
-                    const tone = scoreTone(score, fullCount);
-                    const positive = tone === 'positive';
-                    const bigLoss = tone === 'bigNegative';
-                    const text = scoreTextStyle(tone);
-                    return (
-                      <View
-                        key={column.id}
-                        style={[styles.cell, { width: columnWidth, height: rowHeight, borderRightColor: colors.hairline }]}
-                      >
-                        <View
-                          style={[
-                            styles.scorePill,
-                            positive && { backgroundColor: colors.positiveContainer },
-                            bigLoss && { backgroundColor: colors.errorContainer },
-                          ]}
-                        >
-                          <Text
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                            style={[
-                              styles.scoreText,
-                              tabularNums,
-                              { fontSize },
-                              // Wins green and bold; every loss red, same size, not bold (a big loss also gets the red pill).
-                              positive
-                                ? { color: colors.onPositiveContainer, fontWeight: text.fontWeight }
-                                : { color: colors[text.colorKey], fontWeight: text.fontWeight },
-                            ]}
-                          >
-                            {!hasScore ? '–' : positive ? `+${score}` : `${score}`}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              );
-            })}
+            {Array.from({ length: roundCount }, (_, roundIndex) => (
+              <ScoreRow
+                key={roundIndex}
+                columns={columns}
+                cells={columns.map((column) => scores[column.id]?.[roundIndex])}
+                isLatest={roundIndex === roundCount - 1}
+                stripe={roundIndex % 2 === 1}
+                columnWidth={columnWidth}
+                rowHeight={rowHeight}
+                fontSize={fontSize}
+                fullCount={fullCount}
+                colors={colors}
+              />
+            ))}
           </View>
         </Animated.ScrollView>
       </View>

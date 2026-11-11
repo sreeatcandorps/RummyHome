@@ -3,10 +3,12 @@ import { ActivityIndicator, Animated, Easing, ScrollView, StyleSheet, View } fro
 import { Button, Dialog, Icon, IconButton, Menu, Portal, Text, TouchableRipple } from 'react-native-paper';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Game } from '../../types/game';
+import { Player } from '../../types/player';
 import { gamesService } from '../../services/games';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
 import { storage } from '../../utils/storage';
+import { gameCache } from '../../utils/gameCache';
 import {
   actionFill,
   applyPreset,
@@ -62,6 +64,10 @@ const GRID_GAP = spacing.sm;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+const participantsFrom = (seats: Player[]): Participant[] => seats
+  .filter((player) => player.seatRole !== 'spectator' && player.seated !== false)
+  .map((player) => ({ id: player.id, name: player.name }));
+
 export default function ScoreEntryScreen() {
   const { colors } = useAppTheme();
   const { isShort, insets, gutterLeft, gutterRight } = useLayout();
@@ -69,16 +75,22 @@ export default function ScoreEntryScreen() {
   // Edit mode: `round=N` opens a finished round with its scores already in the cells.
   const editRound = round && /^\d+$/.test(String(round)) ? Number(round) : null;
 
-  const [game, setGame] = useState<Game | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  // Seed from the copy the scorecard just showed, so the grid draws at once while the fresh copy loads.
+  const seededGame = useRef(gameCache.peekGame(gameId ? String(gameId) : null)).current;
+  const seededSeats = useRef(gameCache.peekSeats(gameId ? String(gameId) : null)).current;
+  const seeded = Boolean(seededGame && seededSeats);
+  const [game, setGame] = useState<Game | null>(seeded ? seededGame : null);
+  const [participants, setParticipants] = useState<Participant[]>(seeded ? participantsFrom(seededSeats ?? []) : []);
   const [scorerName, setScorerName] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!seeded);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
-  const [entry, setEntry] = useState<RoundEntryState>(initialRoundEntryState);
+  const [entry, setEntry] = useState<RoundEntryState>(seeded && seededGame && editRound ? entryFromRound(seededGame, editRound) : initialRoundEntryState);
+  // The fresh copy must not wipe cells the person has already filled from the seeded round.
+  const entrySeeded = useRef(seeded && Boolean(editRound));
   const [flashKeys, setFlashKeys] = useState<Record<string, number>>({});
   const [gridWidth, setGridWidth] = useState(0);
 
@@ -125,13 +137,10 @@ export default function ScoreEntryScreen() {
       }
 
       setGame(currentGame);
-      if (editRound) setEntry(entryFromRound(currentGame, editRound));
+      if (editRound && !entrySeeded.current) setEntry(entryFromRound(currentGame, editRound));
+      entrySeeded.current = false;
 
-      setParticipants(
-        gamePlayers
-          .filter((player) => player.seatRole !== 'spectator' && player.seated !== false)
-          .map((player) => ({ id: player.id, name: player.name })),
-      );
+      setParticipants(participantsFrom(gamePlayers));
       setScorerName(scorer?.name ?? null);
     } catch (error) {
       setNotice({ title: 'Could not load game', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
