@@ -186,10 +186,10 @@ async function main() {
     await beginAs(a, SREE);
     const save = await attempt(() => saveRound(a, GAME_A, 6, [[HARISH, -12], [PRIYA, 12], [ZERO, 0]]));
     await beginAs(b, COADMIN);
-    const removeP = attempt(() => b.query('select * from public.remove_seat_if_no_scores($1, $2)', [GAME_A, ZERO]));
+    let removeSettled = false;
+    const removeP = attempt(() => b.query('select * from public.remove_seat_if_no_scores($1, $2)', [GAME_A, ZERO])).then((r) => { removeSettled = true; return r; });
     await pause(300);                       // B is now waiting on the per-game lock held by A
-    const { rows: waiting } = await admin.query(
-      `select count(*)::int as c from pg_stat_activity where wait_event_type = 'Lock' and wait_event = 'advisory'`);
+    const waitedForSave = !removeSettled;
     await a.query(save.ok ? 'commit' : 'rollback');
     const remove = await removeP;
     await b.query(remove.ok ? 'commit' : 'rollback');
@@ -199,7 +199,7 @@ async function main() {
         where s.game_id = $1 and s.profile_id = $2`, [GAME_A, ZERO]);
     const r6 = (await liveRounds(admin, GAME_A)).filter((r) => r.round_number === 6);
     ok(save.ok, '5a. the save in flight completes', { detail: save.error?.message });
-    ok(waiting[0].c >= 1, '5a. the removal waited on the per-game lock while the save was in flight', { detail: `sessions waiting on an advisory lock: ${waiting[0].c}` });
+    ok(waitedForSave, '5a. the removal waited on the per-game lock while the save was in flight (still pending 300 ms later)');
     ok(remove.ok, '5a. the removal completes after the save commits', { detail: `${remove.error?.code ?? ''} ${remove.error?.message ?? ''}`.trim() });
     ok(seat[0].c === 0, '5a. the seat is gone');
     ok(orphan[0].c === 0, '5a. no score row is left behind for the removed player (live or retired)', { detail: `orphan score rows for removed player: ${orphan[0].c}` });
@@ -217,8 +217,10 @@ async function main() {
     await beginAs(b, COADMIN);
     const remove = await attempt(() => b.query('select * from public.remove_seat_if_no_scores($1, $2)', [GAME_A, NEWCOMER]));
     await beginAs(a, SREE);
-    const saveP = attempt(() => saveRound(a, GAME_A, 7, [[HARISH, -8], [PRIYA, 8], [NEWCOMER, 0]]));
+    let saveSettled = false;
+    const saveP = attempt(() => saveRound(a, GAME_A, 7, [[HARISH, -8], [PRIYA, 8], [NEWCOMER, 0]])).then((r) => { saveSettled = true; return r; });
     await pause(300);                       // A is now waiting on the per-game lock held by B
+    const waitedForRemoval = !saveSettled;
     await b.query(remove.ok ? 'commit' : 'rollback');
     const save = await saveP;
     await a.query(save.ok ? 'commit' : 'rollback');
@@ -226,6 +228,7 @@ async function main() {
     const { rows: orphan } = await admin.query('select count(*)::int as c from public.scores where game_id = $1 and profile_id = $2', [GAME_A, NEWCOMER]);
     const r7 = (await liveRounds(admin, GAME_A)).filter((r) => r.round_number === 7);
     ok(remove.ok, '5b. the removal in flight completes', { detail: remove.error?.message });
+    ok(waitedForRemoval, '5b. the save waited on the per-game lock while the removal was in flight (still pending 300 ms later)');
     ok(!save.ok && save.error?.code === 'PT409', '5b. the save that named the removed player is refused with PT409 (players changed)', { detail: `${save.error?.code ?? 'ok'} ${save.error?.message ?? ''}`.trim() });
     ok(seat[0].c === 0 && orphan[0].c === 0, '5b. the seat is gone and no score row exists for the removed player');
     ok(r7.length === 0, '5b. no round 7 was written (the whole save rolled back)', { detail: JSON.stringify(r7) });

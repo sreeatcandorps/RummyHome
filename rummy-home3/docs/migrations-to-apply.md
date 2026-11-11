@@ -100,7 +100,7 @@ What it does, in plain English:
 - **Two admins saving the same round.** Saves on one game now run one at a time. If someone else saved the same round first with the same scores, the second save is a harmless repeat. If their scores differ, the second admin sees "Round N was just saved by someone else. The scorecard has been refreshed; check it before you save again." instead of a database error, and the scorecard reloads. Two people editing the same round at once: the second edit waits and then wins, as if they had edited one after the other.
 - **Removing a player while a round is being saved.** The removal waits for the save to finish, then removes the player and all of their zero rows, so no score is left behind for a player who is not in the game. In the other order the save waits, then says "The players in this game changed while you were scoring" so the admin can check the round; nothing is written.
 
-Verified on a scratch Postgres 16 loaded with 001–018 and the CI seed: 192 pgTAP checks, 30 two-client race checks, and the rollback replay (apply rollback 019, then 018 → 013, re-apply 013 → 019, apply each a second time) all pass.
+Verified on a scratch Postgres 16 loaded with 001–018 and the CI seed: 192 pgTAP checks, 31 two-client race checks, and the rollback replay (apply rollback 019, then 018 → 013, re-apply 013 → 019, apply each a second time) all pass.
 
 ## Apply order for the Nov 10–11 batch
 
