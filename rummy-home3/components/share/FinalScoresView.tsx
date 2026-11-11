@@ -72,6 +72,7 @@ export function FinalScoresView({ sheet, viewRef }: { sheet: FinalScoresSheet; v
       ))}
 
       <View style={styles.footer}>
+        {sheet.adminLines.map((line) => <Text key={line} style={styles.footerText}>{line}</Text>)}
         <Text style={styles.footerText}>{sheet.footer}</Text>
         <Text style={styles.footerText}>{sheet.generatedLine}</Text>
       </View>

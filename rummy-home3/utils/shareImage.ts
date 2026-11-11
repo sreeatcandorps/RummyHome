@@ -367,7 +367,7 @@ export function drawFinalScores(sheet: FinalScoresSheet): HTMLCanvasElement {
   const headerH = 150;
   const summaryH = 16 + 16 + 24 + sheet.summary.length * 34 + 28 + 16;
   const playerH = (player: FinalScoresSheet['players'][number]) => 16 + 16 + 34 + player.rows.length * (cell + 8) + 16;
-  const height = headerH + summaryH + sheet.players.reduce((sum, player) => sum + playerH(player), 0) + 70;
+  const height = headerH + summaryH + sheet.players.reduce((sum, player) => sum + playerH(player), 0) + 70 + sheet.adminLines.length * 20;
 
   const canvas = document.createElement('canvas');
   canvas.width = width;
@@ -450,6 +450,10 @@ export function drawFinalScores(sheet: FinalScoresSheet): HTMLCanvasElement {
     y += playerH(player);
   });
 
+  sheet.adminLines.forEach((line) => {
+    paint(line.slice(0, 90), pad, y + 24, '#6B6455', '600 13px sans-serif');
+    y += 20;
+  });
   paint(sheet.footer, pad, y + 24, '#6B6455', '600 13px sans-serif');
   paint(sheet.generatedLine, pad, y + 44, '#6B6455', '600 13px sans-serif');
   return canvas;
