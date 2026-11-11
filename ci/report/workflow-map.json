@@ -1,0 +1,63 @@
+{
+  "_comment": "Maps test sources to the nine product workflows in docs/testing/phone-checklist.md. A test file may serve several workflows. Files not listed fall under 'Other checks'.",
+  "workflows": [
+    {
+      "id": "signin",
+      "title": "1. Sign in and reset",
+      "unit": ["tests/passcode.test.ts", "tests/auth-errors.test.ts", "tests/runtime-fixes.test.ts"],
+      "db": ["01_schema_and_grants.sql", "04_profiles_privacy.sql"]
+    },
+    {
+      "id": "new-game",
+      "title": "2. New game",
+      "unit": ["tests/build3.test.ts", "tests/build4.test.ts", "tests/redesign.test.ts", "tests/home-and-players.test.ts", "tests/home-recent.test.ts", "tests/nov10-owner.test.ts", "tests/demo-data.test.ts"],
+      "db": ["09_candidates_and_roster.sql"]
+    },
+    {
+      "id": "scoring",
+      "title": "3. Scoring",
+      "unit": ["tests/round-entry.test.ts", "tests/scoring.test.ts", "tests/scoring-nov6.test.ts", "tests/rummy-distribution.test.ts", "tests/nov10-menu.test.ts", "tests/nov10-speed.test.ts"],
+      "db": ["05_save_round_014.sql"],
+      "concurrency": ["1.", "2.", "3.", "4.", "6."]
+    },
+    {
+      "id": "midgame",
+      "title": "4. Mid-game add and remove",
+      "unit": ["tests/seat-removal.test.ts", "tests/nov10-midgame.test.ts", "tests/game-players.test.ts"],
+      "db": ["06_seat_removal_016.sql"],
+      "concurrency": ["5."]
+    },
+    {
+      "id": "invites",
+      "title": "5. Invites and registration",
+      "unit": ["tests/player-identity.test.ts", "tests/player-initials.test.ts", "tests/degrade.test.ts"],
+      "db": ["04_profiles_privacy.sql", "09_candidates_and_roster.sql"]
+    },
+    {
+      "id": "link",
+      "title": "6. Linking a Player ID",
+      "unit": ["tests/game-players.test.ts", "tests/player-identity.test.ts"],
+      "db": ["07_seat_takeover_017.sql"]
+    },
+    {
+      "id": "results",
+      "title": "7. Results",
+      "unit": ["tests/results.test.ts", "tests/results-picker.test.ts", "tests/results-privacy.test.ts", "tests/final-scores.test.ts"],
+      "db": ["03_results_privacy.sql"],
+      "concurrency": ["7."]
+    },
+    {
+      "id": "share",
+      "title": "8. Share and PDF",
+      "unit": ["tests/results-layout.test.ts", "tests/scorecard-sheet.test.ts", "tests/app-version.test.ts"],
+      "db": ["08_public_scorecard.sql"]
+    },
+    {
+      "id": "two-users",
+      "title": "9. Two users at once (RLS and privacy)",
+      "unit": ["tests/friday.test.ts", "tests/results-privacy.test.ts"],
+      "db": ["02_games_visibility.sql", "03_results_privacy.sql", "04_profiles_privacy.sql"],
+      "concurrency": ["1.", "4.", "5.", "7."]
+    }
+  ]
+}
