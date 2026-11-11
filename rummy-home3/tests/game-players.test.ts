@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { linkLanding, linkTargetProblem, playerIdBadge, registrationLabel, seatMenu, seatRoleLabel, zerosForJoiner } from '../utils/gamePlayers';
+import { linkLanding, linkTargetProblem, playerIdBadge, registrationLabel, SEAT_MENU_LABEL, seatMenu, seatRoleLabel, zerosForJoiner } from '../utils/gamePlayers';
 
 const game = { createdBy: 'me', players: ['me', 'a', 'u'], adminIds: ['me', 'a'], unseatedAdminIds: [], spectators: ['w'] };
 
@@ -23,13 +23,13 @@ test('role and registration tags', () => {
 test('per-player menu: creator keeps admin, identity actions only for my unregistered players, nothing for viewers', () => {
   assert.deepEqual(seatMenu({ id: 'u', name: 'U' }, game, 'me', false), []);
   const creator = seatMenu({ id: 'me', name: 'Me', seatRole: 'game_admin' }, game, 'me', true);
-  assert.deepEqual(creator.map((m) => [m.item, m.enabled]), [['remove_admin', false]]);
+  assert.deepEqual(creator.map((m) => [m.item, m.enabled]), [['remove_admin', false], ['remove_player', true]]);
   const registered = seatMenu({ id: 'a', name: 'A', seatRole: 'game_admin', status: 'registered' }, game, 'me', true);
-  assert.deepEqual(registered.map((m) => m.item), ['remove_admin']);
+  assert.deepEqual(registered.map((m) => m.item), ['remove_admin', 'remove_player']);
   const mine = seatMenu({ id: 'u', name: 'U', seatRole: 'player', status: 'unregistered', managedBy: 'me' }, game, 'me', true);
-  assert.deepEqual(mine.map((m) => [m.item, m.enabled]), [['make_admin', true], ['edit_name', true], ['invite', true], ['link_id', true]]);
+  assert.deepEqual(mine.map((m) => [m.item, m.enabled]), [['make_admin', true], ['edit_name', true], ['invite', true], ['link_id', true], ['remove_player', true]]);
   const theirs = seatMenu({ id: 'u', name: 'U', seatRole: 'player', status: 'pending', managedBy: 'someone-else' }, game, 'me', true);
-  assert.deepEqual(theirs.map((m) => [m.item, m.enabled]), [['make_admin', true], ['edit_name', false], ['invite', false], ['link_id', false]]);
+  assert.deepEqual(theirs.map((m) => [m.item, m.enabled]), [['make_admin', true], ['edit_name', false], ['invite', false], ['link_id', false], ['remove_player', true]]);
   assert.match(theirs[1].reason ?? '', /organiser who added/);
   const viewer = seatMenu({ id: 'w', name: 'W', seatRole: 'spectator' }, game, 'me', true);
   assert.deepEqual(viewer, []);
@@ -57,11 +57,18 @@ test('a player joining mid-game gets an explicit 0 for every round already playe
   assert.deepEqual(zerosForJoiner({}, ['a']), []);
 });
 
-test('the Players page has no remove, no "Add view only" and no "Add non-player admin"', () => {
+test('the Players page has Remove player (rule-checked, confirmed) but no "Add view only" or "Add non-player admin"', () => {
   const page = readFileSync(path.join(process.cwd(), 'app/(screens)/games/players.tsx'), 'utf8');
-  assert.doesNotMatch(page, /Add view only|Add non-player admin|Remove player|removePlayer/);
-  assert.match(page, /Add new players/);
+  assert.doesNotMatch(page, /Add view only|Add non-player admin/);
+  assert.match(page, />\s*Add new player\s*</, 'the bottom button reads Add new player');
+  assert.doesNotMatch(page, /Add new players/);
   assert.match(page, /Link to a Player ID|link_id/);
+  assert.match(page, /item === 'remove_player'/);
+  assert.match(page, /seatRemovalProblem\(game\.scores\[seat\.id\]\)/, 'the delete rule runs before anything is asked');
+  assert.match(page, /kind: 'remove_blocked', message: problem/, 'a blocked removal shows the exact message');
+  assert.match(page, /Remove \{sheet\.seat\.name\}\?/, 'a confirmation comes first');
+  assert.match(page, /gamesService\.removeSeatIfNoScores\(game\.id, sheet\.seat\.id\)/, 'the confirm runs the same removal as the picker');
+  assert.equal(SEAT_MENU_LABEL.remove_player, 'Remove player');
 });
 
 test('migration 015 checks admin, ownership, registration and duplicates before moving a seat', () => {

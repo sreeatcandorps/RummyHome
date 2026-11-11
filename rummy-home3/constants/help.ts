@@ -63,9 +63,9 @@ export const HELP = {
   playersSheet: bullets(
     'Each row shows the name, Player ID, role (Creator, Admin, Player, View only) and whether they are Registered, Pending or Unregistered.',
     'Admins can change scores. The creator is always an admin. Admins can be set after the game is over too.',
-    'The ⋮ on a row: make or remove admin; for an unregistered player you added, edit the name, invite them to register, or link the seat to an existing Player ID.',
-    'Add a player picks from My players. Someone added mid-game gets 0 for every round already played.',
-    'Nobody can be removed from a game.',
+    'The ⋮ on a row: make or remove admin; for an unregistered player you added, edit the name, invite them to register, or link the seat to an existing Player ID; Remove player.',
+    'Add new player picks from My players. Someone added mid-game gets 0 for every round already played.',
+    'Remove player asks first and works only while the player has no scores or every round score they have is 0. Otherwise edit the rounds and clear their scores first.',
   ),
   share: bullets(
     'Anyone with the live link can watch rounds and totals without the app or an account.',

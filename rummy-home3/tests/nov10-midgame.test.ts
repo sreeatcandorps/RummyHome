@@ -37,9 +37,9 @@ test('an invited (pending) seat reads "Pending registration" everywhere', () => 
   assert.match(read('components/players/RegisterPlayersDialog.tsx'), /Pending registration/);
 });
 
-test('mid-game add: "Add new players" button, "Added N" counter, whole list, yellow for new picks only', () => {
+test('mid-game add: "Add new player" button, "Added N" counter, whole list, yellow for new picks only', () => {
   const players = read('app/(screens)/games/players.tsx');
-  assert.match(players, />\s*Add new players\s*</);
+  assert.match(players, />\s*Add new player\s*</);
   assert.doesNotMatch(players, />\s*Add a player\s*</);
 
   const picker = read('app/(screens)/games/new.tsx');

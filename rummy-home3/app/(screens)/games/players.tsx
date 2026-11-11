@@ -15,6 +15,7 @@ import { Player } from '@/types/player';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { addAdminBlockedReason, addAdminPreview, addAdminProblem, PLAYERS_ADMINS_TITLE } from '@/utils/gameAdmins';
 import { parsePlayerNo } from '@/utils/playerIdentity';
+import { seatRemovalProblem } from '@/utils/seatRemoval';
 import {
   linkLanding,
   linkTargetProblem,
@@ -36,12 +37,15 @@ type Sheet =
   | { kind: 'invite'; seat: Player; message?: string; notice?: string }
   | { kind: 'link'; seat: Player }
   | { kind: 'add_admin' }
+  | { kind: 'remove'; seat: Player }
+  | { kind: 'remove_blocked'; message: string }
   | null;
 
 /**
  * Players in this game as a full page (no stacked popups). Each seat shows the
- * name, Player ID, role and registration, and a ⋮ menu for admins. Adding (and
- * removing a player who has no scores yet) happens on the picker screen.
+ * name, Player ID, role and registration, and a ⋮ menu for admins. Adding happens
+ * on the picker screen; removing is in the ⋮ menu (confirmed first, and only while
+ * every round score the player has is 0).
  */
 export default function GamePlayersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -96,6 +100,11 @@ export default function GamePlayersScreen() {
     else if (item === 'edit_name') setSheet({ kind: 'edit', seat });
     else if (item === 'invite') setSheet({ kind: 'invite', seat });
     else if (item === 'link_id') setSheet({ kind: 'link', seat });
+    else if (item === 'remove_player') {
+      // Same rule as the picker's ×: no scores, or every round score exactly 0 (per round, never the total).
+      const problem = seatRemovalProblem(game.scores[seat.id]);
+      setSheet(problem ? { kind: 'remove_blocked', message: problem } : { kind: 'remove', seat });
+    }
   };
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
@@ -155,7 +164,8 @@ export default function GamePlayersScreen() {
                     : entry.item === 'remove_admin' ? 'shield-off-outline'
                       : entry.item === 'edit_name' ? 'pencil-outline'
                         : entry.item === 'invite' ? 'send-outline'
-                          : 'link-variant'
+                          : entry.item === 'remove_player' ? 'account-remove-outline'
+                            : 'link-variant'
                 }
                 onPress={() => act(entry.item, seat)}
               />
@@ -192,7 +202,7 @@ export default function GamePlayersScreen() {
         ) : null}
         {canScore ? (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            A player added now gets 0 for every round already played. A player can be removed (× on Add new players) only while every round score they have is 0.
+            A player added now gets 0 for every round already played. Remove player (in a row's ⋮ menu) works only while every round score they have is 0.
           </Text>
         ) : null}
         {canScore ? (
@@ -216,8 +226,8 @@ export default function GamePlayersScreen() {
       <BottomBar>
         <Button mode="outlined" onPress={back}>Back to scorecard</Button>
         {canScore ? (
-          <Button mode="contained" icon="account-plus-outline" onPress={openAdd} disabled={busy} style={styles.flex} accessibilityLabel="Add new players">
-            Add new players
+          <Button mode="contained" icon="account-plus-outline" onPress={openAdd} disabled={busy} style={styles.flex} accessibilityLabel="Add new player">
+            Add new player
           </Button>
         ) : null}
       </BottomBar>
@@ -293,6 +303,39 @@ export default function GamePlayersScreen() {
             onDismiss={() => setSheet(null)}
             onConfirm={(target) => run(() => gamesService.addNonPlayerAdmin(game.id, target.id), () => setSheet(null))}
           />
+        ) : null}
+
+        {sheet?.kind === 'remove' ? (
+          <Dialog visible onDismiss={() => setSheet(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+            <Dialog.Icon icon="account-remove-outline" />
+            <Dialog.Title>Remove {sheet.seat.name}?</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">
+                {sheet.seat.name} leaves this game and their column disappears from the scorecard. You can add them again later from Add new player.
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setSheet(null)} disabled={busy}>Cancel</Button>
+              <Button
+                mode="contained"
+                loading={busy}
+                disabled={busy}
+                accessibilityLabel={`Confirm remove ${sheet.seat.name}`}
+                onPress={() => run(() => gamesService.removeSeatIfNoScores(game.id, sheet.seat.id), () => setSheet(null))}
+              >
+                Remove player
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        ) : null}
+
+        {sheet?.kind === 'remove_blocked' ? (
+          <Dialog visible onDismiss={() => setSheet(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+            <Dialog.Icon icon="alert-circle-outline" />
+            <Dialog.Title>Remove player</Dialog.Title>
+            <Dialog.Content><Text variant="bodyMedium">{sheet.message}</Text></Dialog.Content>
+            <Dialog.Actions><Button mode="contained" onPress={() => setSheet(null)}>Got it</Button></Dialog.Actions>
+          </Dialog>
         ) : null}
 
         <Dialog visible={Boolean(failure)} onDismiss={() => setFailure(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
