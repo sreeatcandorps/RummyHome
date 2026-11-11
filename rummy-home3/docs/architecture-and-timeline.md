@@ -236,6 +236,12 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - A module-level stale-while-revalidate cache (`utils/gameCache.ts`) seeds the scorecard, roster and score entry from the last fetch and Home prefetches the first two live games; no new dependency. Optimistic round saves, realtime deltas and a single `get_game_bundle` RPC are the next steps, not done.
 - `017_link_seat_takeover.sql` lets a non-playing admin or a viewer take an unregistered seat by Player ID (015 refused them); written and scratch-verified, **not applied**. Rollback restores the 015 body.
 
+### 2026-11-10 — Batch 2: Results save flow (P1), banded share table, game admins (018)
+- P1 root cause: Show results only *saved* when the person was admin of every selected game; Sree picked games from his test accounts, so the app silently showed a preview and `declare_game_result` (which closes games) never ran. Results now has an explicit **Save result** step: the picker lists every game the person is in (non-admin games visible but locked), Show results only shows, Save moves the games to Closed and lists the status changes, and Share is off until saved. A result that reuses a Closed game carries a warning icon everywhere it is listed.
+- Share image and PDF: Player ID under each name; the by-game table is players × games in bands of five columns (G1–G5, then G6–G10 …) so twenty games still fit a phone-width picture. The on-screen table widens columns for long scores and large system fonts so a number never wraps.
+- `018_results_reuse_and_player_ids.sql`: `get_game_result`/`list_game_results_page` add `reusedGameIds` and `playerNo`; read-only, scratch-verified, **not applied** (apply 017 then 018). The app falls back to reading the games when the fields are absent.
+- Home Recent lost its Last 10 days / All filter (every finished game, newest first). The scorecard's Players page is **Players/Admins** with Add admin by Player ID (non-player admin; open or completed games only); Game admins are listed on Complete game and the final-scores picture. A slow roster load now offers Retry instead of "Game not available".
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -251,8 +257,9 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
 | New game (points, my players) | Done. Creator is not pre-seated; big animated Playing · N; Add players (full screen) / Add player from database. Stored type is still the points game |
 | Game table + score entry | Done, portrait + landscape. Add round: grid, presets, keypad, Balance gate, explicit 0, big losses in red. Complete game, Final scores, and Players are their own pages. Apply `014_save_round_atomic.sql` for the one-transaction save |
-| Home | Done. Results → every live game → Recent (Completed/Closed, Last 10 days default / All). History screen redirects home |
-| Results | Done in the app. Status chips, totals, players-by-game table, places, a share image with every game and the result id, and a full-details PDF. `008_results.sql` (declare) and `013_results_privacy.sql` (who can read) are applied on the live database (Nov 9) |
+| Home | Done. Results → every live game → Recent (every Completed/Closed game, newest first, no filter). History screen redirects home |
+| Results | Done in the app. Status chips (with deselect warning), every game listed and admin-only ticks, Show results then explicit Save result (closes games, status popup), share after save, totals and table with Player IDs, banded share image, full-details PDF. `008` and `013` are live; `018_results_reuse_and_player_ids.sql` (reused flag, Player IDs) is written, not applied |
+| Game admins | Done in the app. Players/Admins page: Add admin by Player ID (non-player, open or completed games), Game admins on Complete game and the final-scores picture |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; dark mode is on Profile and saved on the phone |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |

@@ -66,8 +66,8 @@ export type GameResultSummary = {
 export const RESULTS_PAGE_SIZE = 5;
 
 /**
- * Show results either saves (every selected game is finished, so those games become Closed)
- * or only previews running totals (any selected game is still open; nothing is saved or closed).
+ * Whether a selection could be saved (every game finished) or only shown. Since Nov 10
+ * Show results never saves; the results page's Save result does, and uses saveBlockedReason.
  */
 export function resultsShowMode(games: { isComplete?: boolean }[]): 'save' | 'preview' {
   if (games.length === 0) return 'preview';
