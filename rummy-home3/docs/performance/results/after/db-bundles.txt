@@ -1,0 +1,72 @@
+Pager usage is off.
+Timing is off.
+SELECT 1
+SELECT 1
+GRANT
+                                                set_config                                                 
+-----------------------------------------------------------------------------------------------------------
+ {"sub" : "52ede447-570e-42da-9837-c1e9ee5a5a68", "email" : "user1@example.com", "role" : "authenticated"}
+(1 row)
+
+SET
+################ SCORECARD: get_game_bundle(gid) (replaces games + game_players + scores + game_players/profiles)
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=2.514..2.515 rows=1 loops=1)
+   Buffers: shared hit=922
+ Planning Time: 0.007 ms
+ Execution Time: 2.519 ms
+(4 rows)
+
+ bundle_bytes 
+--------------
+         4604
+(1 row)
+
+################ HOME: get_home_bundle(50) (replaces my_profile + list_visible_game_ids + games + take_creator_notices + list_claim_requests + list_my_players) — rolled back because it consumes notices
+BEGIN
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=16.060..16.061 rows=1 loops=1)
+   Buffers: shared hit=3073
+ Planning Time: 0.010 ms
+ Execution Time: 16.066 ms
+(4 rows)
+
+ROLLBACK
+BEGIN
+ home_bytes | games 
+------------+-------
+      72374 |    50
+(1 row)
+
+ROLLBACK
+################ RESULTS picker: list_result_candidates(50) (replaces list_visible_game_ids + games + scores in(all) + N x game_players)
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=221.310..221.311 rows=1 loops=1)
+   Buffers: shared hit=18996 read=174
+ Planning Time: 0.006 ms
+ Execution Time: 221.317 ms
+(4 rows)
+
+ candidates_bytes | games 
+------------------+-------
+           126448 |    50
+(1 row)
+
+################ RESULTS detail: get_game_result with embedded rounds (replaces getGame per game)
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=128.171..128.171 rows=1 loops=1)
+   Buffers: shared hit=2979
+ Planning Time: 0.005 ms
+ Execution Time: 128.176 ms
+(4 rows)
+
+ result_bytes 
+--------------
+         2189
+(1 row)
+
+RESET
