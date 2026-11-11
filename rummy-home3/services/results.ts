@@ -87,9 +87,14 @@ function sheetFrom(value: unknown, standings: ResultStanding[]): ResultSheet {
   const players = Array.isArray(row.players)
     ? row.players.flatMap((item) => {
       if (!item || typeof item !== 'object') return [];
-      const player = item as { id?: unknown; name?: unknown };
+      const player = item as { id?: unknown; name?: unknown; playerNo?: unknown };
       if (typeof player.id !== 'string') return [];
-      return [{ id: player.id, name: typeof player.name === 'string' && player.name.trim() ? player.name : 'Player' }];
+      const playerNo = Number(player.playerNo);
+      return [{
+        id: player.id,
+        name: typeof player.name === 'string' && player.name.trim() ? player.name : 'Player',
+        ...(Number.isFinite(playerNo) && playerNo > 0 ? { playerNo } : {}),
+      }];
     })
     : fallback.players;
   const games = Array.isArray(row.games)
@@ -120,6 +125,7 @@ function resultFrom(value: unknown): GameResult | null {
     gameIds?: unknown;
     standings?: unknown;
     sheet?: unknown;
+    reusedGameIds?: unknown;
   };
   if (typeof row.id !== 'string') return null;
   let standingsRaw = row.standings;
@@ -140,6 +146,9 @@ function resultFrom(value: unknown): GameResult | null {
     gameIds,
     standings,
     sheet: sheetFrom(sheetRaw, standings),
+    ...(Array.isArray(row.reusedGameIds)
+      ? { reusedGameIds: row.reusedGameIds.filter((id): id is string => typeof id === 'string') }
+      : {}),
   };
 }
 
@@ -214,7 +223,7 @@ export const resultsService = {
     if (error) throw error;
     const rows = (Array.isArray(data) ? data : []) as {
       id?: string; declaredAt?: string; gameCount?: number; playerCount?: number;
-      firstNames?: string[]; top?: { name?: string; points?: number; place?: number }[];
+      firstNames?: string[]; top?: { name?: string; points?: number; place?: number }[]; reusedGameIds?: unknown[];
     }[];
     return rows
       .filter((row) => typeof row.id === 'string')
@@ -223,6 +232,8 @@ export const resultsService = {
         declaredAt: row.declaredAt ?? '',
         gameCount: Number(row.gameCount) || 0,
         playerCount: Number(row.playerCount) || 0,
+        // Servers before 018 send no reusedGameIds; the card then shows no flag.
+        ...(Array.isArray(row.reusedGameIds) ? { reusedCount: row.reusedGameIds.length } : {}),
         top: (Array.isArray(row.top) ? row.top : []).map((item) => ({
           name: typeof item.name === 'string' ? item.name : 'Player',
           points: Number(item.points) || 0,
@@ -276,6 +287,8 @@ export const resultsService = {
         gameIds: input.games.map((game) => game.id),
         standings: presented.standings,
         sheet: presented.sheet,
+        // Already Closed when saved: an earlier result had these; their points count twice.
+        reusedGameIds: input.games.filter((game) => Boolean(game.closedAt)).map((game) => game.id),
       };
       const existing = await readLocal();
       await writeLocal([result, ...existing]);

@@ -32,7 +32,8 @@ export type ResultSheetGame = {
 };
 
 export type ResultSheet = {
-  players: { id: string; name: string }[];
+  /** playerNo is the public Player ID (#39); filled by 018 on the server, or from the games' seats. */
+  players: { id: string; name: string; playerNo?: number | null }[];
   games: ResultSheetGame[];
 };
 
@@ -44,6 +45,8 @@ export type GameResult = {
   standings: ResultStanding[];
   /** Per-game scores so a declared result can draw the sheet without the games. */
   sheet?: ResultSheet;
+  /** Games here that an earlier result had already closed (their points count twice). Needs 018 on the server. */
+  reusedGameIds?: string[];
 };
 
 export type GameResultSummary = {
@@ -55,6 +58,8 @@ export type GameResultSummary = {
   playerCount: number;
   /** 1st, 2nd, and 3rd place rows (ties share a place). */
   top: { name: string; points: number; place: number }[];
+  /** How many of its games were already in an earlier result. Absent on servers before 018. */
+  reusedCount?: number;
 };
 
 /** Past results load this many at a time. */
@@ -111,9 +116,15 @@ export function filterResultGames<T extends FilterableGame>(games: T[], filter: 
  * Completed games start ticked so Show results is one tap. Closed and Active games
  * never start ticked: each one carries a warning and has to be a deliberate choice.
  */
-export function defaultResultSelection<T extends FilterableGame & { id: string }>(games: T[], filter: ResultsFilter): string[] {
+export function defaultResultSelection<T extends FilterableGame & { id: string; createdBy?: string | null; adminIds?: string[] | null }>(
+  games: T[],
+  filter: ResultsFilter,
+  userId?: string | null,
+): string[] {
   return filterResultGames(games, filter)
     .filter((game) => resultsStatusOf(game) === 'completed')
+    // Games the person does not run are listed but never ticked (they cannot be saved).
+    .filter((game) => userId === undefined || userAdminsGame(game, userId))
     .map((game) => game.id);
 }
 
@@ -318,6 +329,7 @@ export function summaryFrom(result: GameResult): GameResultSummary {
     winnerLine: winnerLine(result.standings),
     playerCount: result.standings.length,
     top: topThree(result.standings),
+    ...(result.reusedGameIds ? { reusedCount: result.reusedGameIds.length } : {}),
   };
 }
 
