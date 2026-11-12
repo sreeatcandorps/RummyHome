@@ -4,6 +4,17 @@ A visual-only system for EZ Score: Rummy. It keeps every current layout and flow
 
 The two alternative palettes are in [04-palette-alternatives.md](04-palette-alternatives.md). Everything in this document except the hue values applies to all three.
 
+## 0. Round 2 (Sree's feedback, 11 Nov 4:40 PM PT)
+
+Changes applied in this revision; the rest of the document is updated to match.
+
+1. **Design standard: the button green is only for buttons.** `primary` (`#15803D`, dark `#5FD68E`) and `primaryEdge` may appear only on something you can tap: filled buttons, the Save score key, the active tab, outlined-button labels, the selection ring on a cell or row. Nothing static uses it: not the dealer column, not the logo, not avatars, not positive scores, not the "You" chip, not round/status strips. Consequences: seat colour 1 changed from the button green to teal `#0F766E` (dark text `#2DD4BF`); the dealer column head is `primaryContainer` with a dark underline; the logo disc is marigold; positive scores are `onSurface` (near-black) with a `+` sign and, for a round winner, a light green `winContainer` tint behind the number; the Results totals column is `onSurface` at 20 px (26 px in the Totals block); the `win` text token is kept only as an alias for migration.
+2. **Buttons must look like buttons.** Every tappable control has a fill or a 2 px border, a pill or 12–16 px radius, and a minimum height of 48. Text-only buttons survive only inside dialogs. The three scorecard actions are: Undo (outlined), **Add round (filled green, widest)**, **Complete (outlined with the flag icon)**; Complete was tonal in round 1 and read as a chip.
+3. **Tabs look like buttons.** The tab bar is three pill buttons: active = filled `primary` with the 4 px edge, inactive = `surfaceSunken` with an `outlineVariant` border, the profile tab is the seat avatar in a 56 px pill. Feasible with expo-router's `tabBar` prop (one custom component, ~S effort, see plan).
+4. **Role tags.** A viewer who is only a player sees no role chips except **Creator** on the creator's row (and "You" on their own). Creators and admins see Creator and Admin chips. The "Player" and "View only" chips are gone everywhere. Applies to Home rows, Results rows and Players/Admins.
+5. **Scorecard shows the game number** (`G14` badge in the strip above the table) and uses the empty space under the rows for **Creator and Admin names**, right-aligned at the bottom of the table card. When rows outgrow the screen the footer follows the last row, still bottom-right.
+6. Kept from round 1 as Sree asked: the bigger sizes, the green, dark mode, Results order (1st/2nd/3rd, then totals), the players + totals layout, `#ID` next to initials/avatars on most screens and "Player ID" wording on the player screen, Points/Pool labels.
+
 ## 1. Principles (from Sree's interview, 11 Nov 2026)
 
 1. **Keep the screens.** Same information, same order, same navigation. Only colour, type, shape and spacing change.
@@ -28,10 +39,10 @@ The two alternative palettes are in [04-palette-alternatives.md](04-palette-alte
 | `outline` | `#8A918C` | Outlined buttons, input borders. |
 | `outlineVariant` | `#DCDDD5` | Card borders (decorative). |
 | `hairline` | `#E8E8E1` | Table grid lines. |
-| `primary` | `#15803D` | Brand green ("Table"). Filled primary button, tab active, links, dealer column. |
+| `primary` | `#15803D` | Button green. **Tappable things only:** filled primary button, Save score key, active tab, outlined-button labels, selection ring. |
 | `primaryEdge` | `#0E5A2A` | 4 px bottom edge of the filled button (the Duolingo "press" look). |
 | `onPrimary` | `#FFFFFF` | |
-| `primaryContainer` / `onPrimaryContainer` | `#D6F5DF` / `#0B3B1F` | Tonal button, section icons, Active / Completed chips, selected rows, win pills. |
+| `primaryContainer` / `onPrimaryContainer` | `#D6F5DF` / `#0B3B1F` | Tonal button, section icon discs, Live / Registered chips, selected rows, dealer column head. |
 | `secondary` | `#8A5A00` | Marigold as text/icon (crown, warning icon). |
 | `secondaryContainer` / `onSecondaryContainer` | `#FFE38A` / `#3F2D00` | **Accent only:** Results entry point, leader, Pending, Pool, warnings. Not for buttons that are not Results. |
 | `secondaryEdge` | `#E0B33A` | Bottom edge of the Results button. |
@@ -39,13 +50,13 @@ The two alternative palettes are in [04-palette-alternatives.md](04-palette-alte
 | `tertiaryContainer` / `onTertiaryContainer` | `#DCE8FF` / `#0F2B63` | Info chips (Admin, Registered), Points game tint, Rummy key. |
 | `error` / `onError` | `#B4231B` / `#FFFFFF` | Destructive button, error text. |
 | `errorContainer` / `onErrorContainer` | `#FFE1DD` / `#5C0F0A` | Loss pills, unbalanced round, danger chips. |
-| `win` | `#0C6331` | Positive score text on surface (AAA). |
-| `winContainer` / `onWinContainer` | `#D6F5DF` / `#0B3B1F` | Positive score pill. |
+| `win` | `#0C6331` | Alias only (migration). Positive scores are `onSurface`; see §5.5. |
+| `winContainer` | `#D6F5DF` | Tint behind a round winner's score; text stays `onSurface`. |
 | `loss` | `#A8201A` | Negative score text on surface (AAA). |
 | `lossContainer` / `onLossContainer` | `#FFE1DD` / `#5C0F0A` | Big-loss pill. |
 | `leader` | `#9A6700` | Crown icon. |
 | `leaderContainer` / `onLeaderContainer` | `#FFF0BF` / `#3F2D00` | Leader row / chip. |
-| `felt` / `onFelt` | `#15803D` / `#FFFFFF` | Auth band, G-badge. Same as primary now: one green. |
+| `felt` / `onFelt` | `#0B3B1F` / `#FFFFFF` | Auth band only (static, so not the button green). |
 | `focus` | `#2B5FBF` | 3 px focus ring (keyboard / web). |
 | `gameTypes.stake` | container `#DCE8FF`, on `#0F2B63` | Points: blue tint (G-badge, chip). |
 | `gameTypes.pool` | container `#FFE38A`, on `#3F2D00` | Pool: marigold tint. |
@@ -76,7 +87,7 @@ The two alternative palettes are in [04-palette-alternatives.md](04-palette-alte
 | `win` / `winContainer` / `onWinContainer` | `#73DF9D` / `#1A4A2E` / `#CFF4DB` |
 | `loss` / `lossContainer` / `onLossContainer` | `#FFA19A` / `#7A1F1A` / `#FFDAD6` |
 | `leader` / `leaderContainer` / `onLeaderContainer` | `#FFD45E` / `#4D3900` / `#FFE8AE` |
-| `felt` / `onFelt` | `#123B25` / `#EAEDE9` |
+| `felt` / `onFelt` | `#0B3B1F` / `#EAEDE9` |
 | `focus` | `#9DBCFF` |
 | `gameTypes.stake` | container `#22406E`, on `#DCE8FF` |
 | `gameTypes.pool` | container `#5C4300`, on `#FFE8AE` |
@@ -100,16 +111,16 @@ Dark surfaces use a two-step lift instead of borders alone: `background` → `su
 | Info / Pool chip label | `#0F2B63` on `#DCE8FF` | 11.02:1 | AAA |
 | Danger chip label | `#5C0F0A` on `#FFE1DD` | 11.17:1 | AAA |
 | Error / loss text on surface | `#B4231B` on `#FFFFFF` | 6.57:1 | AA |
-| Win score on surface | `#0C6331` on `#FFFFFF` | 7.38:1 | AAA |
+| Positive score on surface | `#17201B` on `#FFFFFF` | 16.68:1 | AAA |
 | Loss score on surface | `#A8201A` on `#FFFFFF` | 7.28:1 | AAA |
-| Win score in win pill | `#0B3B1F` on `#D6F5DF` | 10.84:1 | AAA |
+| Positive score on win tint | `#17201B` on `#D6F5DF` | 14.29:1 | AAA |
 | Loss score in loss pill | `#5C0F0A` on `#FFE1DD` | 11.17:1 | AAA |
 | Leader chip label | `#3F2D00` on `#FFF0BF` | 11.64:1 | AAA |
 | Outline (border) vs surface | `#8A918C` on `#FFFFFF` | 3.23:1 | AA (non-text) |
 | OutlineVariant (card border) vs surface | `#DCDDD5` on `#FFFFFF` | 1.37:1 | decorative |
 | Points chip label | `#0F2B63` on `#DCE8FF` | 11.02:1 | AAA |
 | Pool chip label | `#3F2D00` on `#FFE38A` | 10.47:1 | AAA |
-| Brand band text | `#FFFFFF` on `#15803D` | 5.02:1 | AA |
+| Auth band text | `#FFFFFF` on `#0B3B1F` | 12.65:1 | AAA |
 
 ### 2.4 Contrast (dark)
 
@@ -125,26 +136,26 @@ Dark surfaces use a two-step lift instead of borders alone: `background` → `su
 | Info / Pool chip label | `#DCE8FF` on `#22406E` | 8.40:1 | AAA |
 | Danger chip label | `#FFDAD6` on `#7A1F1A` | 7.97:1 | AAA |
 | Error / loss text on surface | `#FF978E` on `#181E1B` | 8.12:1 | AAA |
-| Win score on surface | `#73DF9D` on `#181E1B` | 10.30:1 | AAA |
+| Positive score on surface | `#EAEDE9` on `#181E1B` | 14.34:1 | AAA |
 | Loss score on surface | `#FFA19A` on `#181E1B` | 8.72:1 | AAA |
-| Win score in win pill | `#CFF4DB` on `#1A4A2E` | 8.54:1 | AAA |
+| Positive score on win tint | `#EAEDE9` on `#1A4A2E` | 8.62:1 | AAA |
 | Loss score in loss pill | `#FFDAD6` on `#7A1F1A` | 7.97:1 | AAA |
 | Leader chip label | `#FFE8AE` on `#4D3900` | 9.16:1 | AAA |
 | Outline (border) vs surface | `#8A938D` on `#181E1B` | 5.35:1 | AA |
 | OutlineVariant (card border) vs surface | `#343C38` on `#181E1B` | 1.49:1 | decorative |
 | Points chip label | `#DCE8FF` on `#22406E` | 8.40:1 | AAA |
 | Pool chip label | `#FFE8AE` on `#5C4300` | 7.71:1 | AAA |
-| Brand band text | `#EAEDE9` on `#123B25` | 10.60:1 | AAA |
+| Auth band text | `#EAEDE9` on `#0B3B1F` | 10.72:1 | AAA |
 
 ### 2.5 Seat colours
 
 Two rules fix the audit findings: (a) a seat colour is a **fill with white initials** or a **bar**; in dark mode any seat colour used as *text* switches to its dark variant; (b) the colour follows the **seat order within a game** on every screen of that game (scorecard, Add round, Players/Admins, Complete), and the **roster order** on list screens. Same list, same index, same colour.
 
-Avatar fills (both modes) and light-mode text:
+Avatar fills (both modes) and light-mode text. Seat 1 is teal, not the button green, so an avatar never looks tappable.
 
 | Seat | Hex | White initials on it | As text on light surface |
 |---|---|---|---|
-| 1 | `#15803D` | 5.02:1 AA | 5.02:1 AA |
+| 1 | `#0F766E` | 5.47:1 AA | 5.47:1 AA |
 | 2 | `#C2410C` | 5.18:1 AA | 5.18:1 AA |
 | 3 | `#1D4ED8` | 6.70:1 AA | 6.70:1 AA |
 | 4 | `#A21CAF` | 6.32:1 AA | 6.32:1 AA |
@@ -159,7 +170,7 @@ Dark-mode text variants (scorecard column labels, legends):
 
 | Seat | Hex | As text on dark surface | Dark initials `#04301A` on it |
 |---|---|---|---|
-| 1 | `#4ADE80` | 9.72:1 AAA | 8.35:1 AAA |
+| 1 | `#2DD4BF` | 9.10:1 AAA | 7.82:1 AAA |
 | 2 | `#FB923C` | 7.48:1 AAA | 6.43:1 AA |
 | 3 | `#7DB4FF` | 7.94:1 AAA | 6.82:1 AA |
 | 4 | `#F0ABFC` | 9.62:1 AAA | 8.27:1 AAA |
@@ -174,7 +185,7 @@ Dark-mode text variants (scorecard column labels, legends):
 
 | Colour | Means | Does not mean |
 |---|---|---|
-| Green `primary` | The one thing to do next; Active; a win | Selected, secondary |
+| Green `primary` | You can tap this (the main action, the active tab) | Anything static: status, win, identity |
 | Marigold `secondaryContainer` | Results, leader, Pending, Pool, a caution note | A generic secondary button |
 | Blue `tertiaryContainer` | Information: Admin, Registered, Points, Rummy | Selection |
 | Red `error` | Loss, destructive, invalid | Emphasis |
@@ -225,6 +236,8 @@ Elevation: flat cards with a 1.5 px `outlineVariant` border on both modes; a sof
 
 All buttons: 18 px / 800 label, 52 px tall (48 min), pill, icon 22 px leading when present, 16 px horizontal padding, minimum width 96. Three-up bottom bars (scorecard) drop to 16 px labels so all three fit on a 360 dp screen without wrapping.
 
+Rule: every button has a fill or a 2 px border and a pill shape, so it is never mistaken for a chip or a label. Text-only buttons exist only inside dialogs.
+
 | Variant | Rest | Pressed | Disabled | Focus | Where |
 |---|---|---|---|---|---|
 | **Primary** | `primary` fill, `onPrimary` text, 4 px `primaryEdge` bottom edge | translate 2 px down, edge 2 px, fill `primaryHover` | `surfaceSunken` fill, `onSurfaceVariant` 60% text, no edge | 3 px `focus` ring outside | New game, Sign in, Save round, Show results, Save result, Complete game (bottom bar), Start game, Add new players (Players/Admins), dialog confirm |
@@ -234,7 +247,7 @@ All buttons: 18 px / 800 label, 52 px tall (48 min), pill, icon 22 px leading wh
 | **Text** | `primary` text, 48 px hit area | fill `primaryContainer` 40% | 38% | ring | Forgot passcode, Retry, Show more, OK |
 | **Results (accent)** | `secondaryContainer` fill, `onSecondaryContainer` text, 4 px `secondaryEdge` edge, podium icon | same press as primary | | ring | Home → Results only. The only marigold button in the app. |
 
-\*Scorecard bottom bar: **Add round becomes Primary** (filled green, widest), Complete becomes Secondary tonal, Undo stays Outlined. This matches "the everyday tap is the primary".
+\*Scorecard bottom bar: **Add round is Primary** (filled green, widest); **Undo and Complete are Outlined** with icons, 15 px labels so all three fit on 360 dp. Complete was tonal in round 1 and looked like a chip; outlined with the flag icon reads as a button and keeps it visibly less important than Add round.
 
 Stacked (icon over label) buttons keep the same fills as above at 56 px with 14 px / 700 labels; they exist only in bottom bars and the My players action row. `ActionTile` and `StackedAction` collapse into one `TileButton` with `variant` = primary | secondary | outlined.
 
@@ -252,9 +265,9 @@ All chips: 32 px tall (36 in lists where they are the only tappable thing), pill
 | **Unregistered** | `surfaceSunken` grey | `account-question-outline` | |
 | **Points** | `tertiaryContainer` blue | `numeric` | G-number badge uses the same tint. |
 | **Pool** | `secondaryContainer` marigold | `trophy-outline` | |
-| **Creator / Admin / Player / View only** | Creator `leaderContainer` + crown; Admin `tertiaryContainer` + shield; Player / View only grey | | Same map on Home, Results, Players/Admins. |
-| **You** | `primary` fill, `onPrimary` text | | The only solid chip, so "you" pops in any list. |
-| **Round N · AR deals** (scorecard) | `surface` with 2 px `primary` border, `primary` text | `cards-outline` | Styled as a status strip, not a chip, so it does not read as a game status. |
+| **Creator / Admin** | Creator `leaderContainer` + crown; Admin `tertiaryContainer` + shield | | **Player and View only chips are removed.** A viewer who is only a player sees Creator (and You) only; creators and admins also see Admin. Same rule on Home, Results, Players/Admins. |
+| **You** | `tertiaryContainer` blue | `account` | Static, so not the button green. |
+| **Round N · AR deals** (scorecard) | `tertiaryContainer` blue | `cards-outline` | Information, not a button, so no green. Sits after the `G14` badge and the Points/Pool chip. |
 | **Count badge** | `error` fill, `onError` 13 px / 800, 20 px min | | Unregistered count on tile. |
 | **Player ID** | `surfaceSunken`, `onSurface` 14 px / 700, monospace-tabular "#7" | `pound` | One shape everywhere; Profile shows it at 22 px in the identity card. |
 
@@ -268,13 +281,15 @@ All chips: 32 px tall (36 in lists where they are the only tappable thing), pill
 
 ### 5.4 Avatars
 
-`SeatAvatar` sizes 28 / 36 / 44 / 56; pill; seat fill with white initials 40 % of size, 700; 2 px `surface` ring when sitting on a coloured surface. "Me" is always `primary`. Spectator: `surfaceSunken` fill, `onSurfaceVariant` initials, `eye-outline` 50 %. Leader: 18 px `leader` crown disc at top-right (both modes). Winner (Results): 64 px with a 3 px `leader` ring.
+`SeatAvatar` sizes 28 / 36 / 44 / 56 / 64; pill; seat fill with white initials 40 % of size, 700; 2 px `surface` ring when sitting on a coloured surface. "Me" uses seat colour 1 (teal), never the button green. Spectator: `surfaceSunken` fill, `onSurfaceVariant` initials, `eye-outline` 50 %. Leader: 18 px `leader` crown disc at top-right (both modes). Winner (Results): 64 px with a 3 px `leader` ring.
 
 ### 5.5 Scores and numbers
 
-- Always tabular Nunito 800 (win) or 700 (loss/zero), always signed (`+40`, `-10`, `0`).
-- Win: `win` text on surface, or `onWinContainer` on `winContainer` pill. Loss: `loss` text; big loss (≥ half Full count) adds the `lossContainer` pill. Zero: `onSurfaceVariant`.
+- Always tabular Nunito 800 (positive) or 700 (loss/zero), always signed (`+40`, `-10`, `0`).
+- Positive: `onSurface` text (no green: the button green is reserved for buttons and Sree asked for totals without green). A round winner's cell adds the light `winContainer` tint behind the number. Loss: `loss` red text; big loss (≥ half Full count) adds the `lossContainer` tint. Zero: `onSurfaceVariant`.
+- Results: Totals block numbers 26 px / 800 `onSurface`; grid Total column 20 px / 800 `onSurface` on `surfaceSunken`; winner card total 40 px / 800 `onSurface`.
 - Scorecard cells 18 px (15 px above 8 columns), totals 20 px / 800, round number 16 px, dealer initials 13 px (`caption`, the only sub-14 text in the app).
+- Scorecard card: strip above = `G-number` badge + Points/Pool chip + round/dealer chip. Dealer column head = `primaryContainer` with a 4 px `onPrimaryContainer` underline and "DEALS". Footer inside the card, right-aligned at the bottom: "Creator **Name** · Admin(s) **Names**" in 14 px / 600 `onSurfaceVariant` with names in `onSurface`; the card stretches to the bottom bar when there are few rows, and the footer follows the last row when there are many.
 - Standings and Results totals 24 px / 800; winner total 40 px / 800.
 - Balance pill: 32 px value, `winContainer` when 0, `lossContainer` otherwise, label "Balance" 14 px / 700.
 
@@ -284,8 +299,8 @@ Outlined, 56 px, `r-md`, 2 px `outline` border → 2 px `primary` on focus, 16 p
 
 ### 5.7 Navigation chrome
 
-- Header: `background`, title `title` 22/800 left-aligned on every screen (tabs and stack), back arrow 24 px, right-side `IconButton`s 24 px icons in 48 px targets. Drop the version string from the Home header (keep it in Profile).
-- Tab bar: `surface`, 1 px `outlineVariant` top, 64 px + inset, Material Community Icons (`home` / `home-outline`, `account-group` / `-outline`) to match the rest; active `primary` icon + 14 px / 700 label; profile tab keeps the avatar.
+- Header: `background`, title `title` 22/800 left-aligned on every screen (tabs and stack), back arrow 24 px, right-side `IconButton`s 24 px icons in 48 px targets. Drop the version string from the Home header (keep it in Profile). Logo disc is marigold (`secondaryContainer`), not green.
+- Tab bar: `surface`, 1 px `outlineVariant` top, 80 px + inset, three **pill buttons** 52 px tall with 10 px gaps: active = `primary` fill, `onPrimary` icon + 15 px / 800 label, 4 px `primaryEdge`; inactive = `surfaceSunken` fill, 2 px `outlineVariant` border, `onSurface` label; profile tab = 56 px pill with the seat avatar. Icons `home` / `home-outline`, `account-group` / `-outline`.
 - Bottom bar: `surface`, 1 px `outlineVariant` top, 12 px padding, buttons 52 px, gap 12.
 
 ### 5.8 Dialogs, sheets, feedback

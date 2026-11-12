@@ -1,6 +1,6 @@
 # 01 · Visual audit of EZ Score: Rummy (as of 11 Nov 2026)
 
-Scope: every screen under `rummy-home3/app` and the shared components under `rummy-home3/components`, read from the code and captured running on Expo web (local prototype mode, seeded data) at 390 × 844 @2x in light and dark mode. Captures are in [`mockups/before/`](mockups/before/).
+Scope: every screen under `rummy-home3/app` and the shared components under `rummy-home3/components`, read from the code and captured running on Expo web (local prototype mode, seeded data) at 390 × 844 @2x in light and dark mode. Captures are in [`mockups/current/`](mockups/current/) (re-captured in round 2 at `414b570`; file names are numbered by flow, see the README).
 
 This audit is descriptive. The recommendations live in [02-design-system.md](02-design-system.md) and the work breakdown in [03-implementation-plan.md](03-implementation-plan.md).
 

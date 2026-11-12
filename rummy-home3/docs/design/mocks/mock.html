@@ -19,8 +19,8 @@
   --win:#0C6331; --win-c:#D6F5DF; --on-win-c:#0B3B1F; --loss:#A8201A; --loss-c:#FFE1DD; --on-loss-c:#5C0F0A;
   --leader:#9A6700; --leader-c:#FFF0BF; --on-leader-c:#3F2D00;
   --table-head:#F1F1EA; --table-latest:#EAF7EE; --cell:#F3F3ED;
-  --seat1:#15803D; --seat2:#C2410C; --seat3:#1D4ED8; --seat4:#A21CAF; --seat5:#6D28D9;
-  --seat1t:#15803D; --seat2t:#C2410C; --seat3t:#1D4ED8; --seat4t:#A21CAF; --seat5t:#6D28D9;
+  --seat1:#0F766E; --seat2:#C2410C; --seat3:#1D4ED8; --seat4:#A21CAF; --seat5:#6D28D9;
+  --seat1t:#0F766E; --seat2t:#C2410C; --seat3t:#1D4ED8; --seat4t:#A21CAF; --seat5t:#6D28D9;
   --shadow:0 2px 8px rgba(0,0,0,.06);
 }
 [data-palette="A"][data-mode="dark"] {
@@ -33,7 +33,7 @@
   --win:#73DF9D; --win-c:#1A4A2E; --on-win-c:#CFF4DB; --loss:#FFA19A; --loss-c:#7A1F1A; --on-loss-c:#FFDAD6;
   --leader:#FFD45E; --leader-c:#4D3900; --on-leader-c:#FFE8AE;
   --table-head:#1F2622; --table-latest:#1B3326; --cell:#1C2320;
-  --seat1t:#4ADE80; --seat2t:#FB923C; --seat3t:#7DB4FF; --seat4t:#F0ABFC; --seat5t:#C4B5FD;
+  --seat1t:#2DD4BF; --seat2t:#FB923C; --seat3t:#7DB4FF; --seat4t:#F0ABFC; --seat5t:#C4B5FD;
   --shadow:none;
 }
 /* B · Indigo & Marigold */
@@ -108,7 +108,7 @@ body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, s
 .header .actions { display:flex; gap:0; }
 .iconbtn { width:48px; height:48px; display:flex; align-items:center; justify-content:center; color:var(--on2); border-radius:999px; }
 .iconbtn .mdi { color:var(--on); }
-.logo { width:36px; height:36px; border-radius:10px; background:var(--primary); color:var(--on-primary); display:flex; align-items:center; justify-content:center; }
+.logo { width:36px; height:36px; border-radius:10px; background:var(--secondary-c); color:var(--on-secondary-c); display:flex; align-items:center; justify-content:center; }
 .logo .mdi { font-size:22px; }
 
 /* type */
@@ -140,10 +140,10 @@ body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, s
 .chip-leader { background:var(--leader-c); color:var(--on-leader-c); }
 .chip-info { background:var(--tertiary-c); color:var(--on-tertiary-c); }
 .chip-pool, .chip-pending { background:var(--secondary-c); color:var(--on-secondary-c); }
-.chip-you { background:var(--primary); color:var(--on-primary); }
+.chip-you { background:var(--tertiary-c); color:var(--on-tertiary-c); }
 .chip-id { background:var(--sunken); color:var(--on); }
 .chip-id .mdi { color:var(--on2); }
-.chip-outline { background:var(--surface); color:var(--primary); border:2px solid var(--primary); height:34px; }
+.chip-outline { background:var(--tertiary-c); color:var(--on-tertiary-c); }
 .chip-filter-on { background:var(--primary); color:var(--on-primary); }
 .chip-filter { background:transparent; color:var(--on); border:2px solid var(--outline); height:36px; }
 .filters { flex-wrap:nowrap; }
@@ -170,25 +170,29 @@ body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, s
 .av-40 { width:40px; height:40px; font-size:16px; }
 .av-36 { width:36px; height:36px; font-size:14px; }
 .av-64 { width:64px; height:64px; font-size:26px; font-weight:800; }
+.av-56 { width:56px; height:56px; font-size:18px; font-weight:800; }
 .crown { position:absolute; right:-4px; top:-6px; width:20px; height:20px; border-radius:999px; background:var(--leader-c); color:var(--leader); display:flex; align-items:center; justify-content:center; border:2px solid var(--surface); }
 .crown .mdi { font-size:12px; }
 
 /* tab bar */
 .tabbar { margin-top:auto; background:var(--surface); border-top:1px solid var(--outline2); height:72px; display:flex; align-items:center; justify-content:space-around; padding:0 8px; }
-.tab { display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--on2); font-size:14px; font-weight:700; line-height:18px; min-width:96px; }
-.tab.on { color:var(--primary); }
-.tab .mdi { font-size:26px; }
+.tabbar { gap:10px; padding:0 16px; height:80px; }
+.tab { display:flex; flex-direction:row; align-items:center; justify-content:center; gap:8px; color:var(--on); font-size:15px; font-weight:800; line-height:18px; height:52px; padding:0 16px; border-radius:999px; border:2px solid var(--outline2); background:var(--sunken); flex:1; white-space:nowrap; }
+.tab.on { background:var(--primary); color:var(--on-primary); border-color:var(--primary); box-shadow:0 4px 0 var(--primary-edge); margin-top:-4px; }
+.tab .mdi { font-size:24px; }
+.tab.av-tab { flex:none; width:56px; padding:0; }
 .bottombar { margin-top:auto; background:var(--surface); border-top:1px solid var(--outline2); padding:12px 16px 16px; display:flex; gap:12px; }
 .bottombar .btn { flex:1; min-width:0; padding:0 12px; white-space:nowrap; }
-.bottombar.three .btn { font-size:16px; gap:6px; }
+.bottombar.three .btn { font-size:15px; gap:6px; padding:0 10px; }
+.bottombar.three { gap:8px; }
 .bottombar .btn-wide { flex:1.6; }
 
 /* scores */
 .score { font-variant-numeric:tabular-nums; font-weight:800; }
-.win { color:var(--win); }
+.win { color:var(--on); }
 .loss { color:var(--loss); font-weight:700; }
 .zero { color:var(--on2); font-weight:700; }
-.pill-win { background:var(--win-c); color:var(--on-win-c); border-radius:8px; padding:0 8px; }
+.pill-win { background:var(--win-c); color:var(--on); border-radius:8px; padding:0 8px; }
 .pill-loss { background:var(--loss-c); color:var(--on-loss-c); border-radius:8px; padding:0 8px; }
 
 /* scorecard table */
@@ -201,8 +205,8 @@ body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, s
 .table thead th .ini { font-size:16px; font-weight:800; display:block; }
 .table thead th .tot { font-size:20px; font-weight:800; display:block; font-variant-numeric:tabular-nums; }
 .table thead th .bar { display:block; width:28px; height:4px; border-radius:2px; margin:6px auto 0; }
-.table thead th.dealer { background:var(--primary); color:var(--on-primary); }
-.table thead th.dealer .ini, .table thead th.dealer .tot { color:var(--on-primary); }
+.table thead th.dealer { background:var(--primary-c); color:var(--on-primary-c); box-shadow:inset 0 -4px 0 var(--on-primary-c); }
+.table thead th.dealer .tot { color:var(--on); }
 .table thead th.dealer .deals { font-size:11px; font-weight:800; letter-spacing:.5px; display:block; margin-top:4px; }
 .table tbody td { height:56px; font-size:18px; }
 .table tbody td.rnd { background:var(--table-head); }
@@ -212,6 +216,24 @@ body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, s
 .table tbody tr.latest td.rnd { background:var(--table-latest); }
 .table .cellpill { display:inline-flex; align-items:center; justify-content:center; min-width:52px; height:36px; border-radius:10px; }
 
+/* scorecard footer: creator + admins, bottom-right of the card */
+.tablewrap { display:flex; flex-direction:column; flex:1; }
+.tablewrap .table { display:flex; flex-direction:column; flex:1; }
+.table-foot { margin-top:auto; display:flex; justify-content:flex-end; align-items:flex-end; gap:6px 16px; flex-wrap:wrap; padding:10px 14px 12px; font-size:14px; line-height:18px; font-weight:600; color:var(--on2); text-align:right; }
+.table-foot b { color:var(--on); font-weight:700; }
+[data-screen="scorecard-big"] .phone, [data-screen="initials-conflicts"] .phone { height:auto; min-height:844px; }
+[data-screen="scorecard-big"] .content { overflow:visible; }
+.table.many { overflow-x:auto; }
+.table.many table { min-width:600px; }
+.table.many td { height:44px; font-size:15px; }
+.table.many thead th { height:72px; }
+.table.many thead th .tot { font-size:16px; }
+.table.many thead th .ini { font-size:14px; }
+.table.many .cellpill { min-width:40px; height:30px; border-radius:8px; }
+.table.many tbody td.rnd .n { font-size:14px; }
+.table.many tbody td.rnd .d { font-size:11px; }
+.table.many thead th.rnd { width:40px; }
+
 /* add round */
 .ar-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .ar-cell { height:88px; border-radius:16px; background:var(--cell); border:2px solid transparent; padding:12px 14px; position:relative; display:flex; flex-direction:column; justify-content:space-between; }
@@ -220,7 +242,7 @@ body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, s
 .ar-cell .x { position:absolute; right:10px; bottom:8px; color:var(--on2); font-size:20px; }
 .ar-cell.selected { background:var(--surface); border-color:var(--primary); box-shadow:0 0 0 2px var(--primary) inset; }
 .ar-cell.confirmed { background:var(--surface); border-color:var(--outline2); }
-.ar-cell.confirmed::after { content:'\F012C'; font-family:'Material Design Icons'; position:absolute; right:12px; top:8px; color:var(--win); font-size:20px; }
+.ar-cell.confirmed::after { content:'\F012C'; font-family:'Material Design Icons'; position:absolute; right:12px; top:8px; color:var(--on2); font-size:20px; }
 .ar-cell.confirmed .x { display:none; }
 .keypad { background:var(--surface); border-top:1px solid var(--outline2); padding:12px 16px; display:flex; flex-direction:column; gap:10px; }
 .keyrow { display:grid; grid-template-columns:repeat(6, 1fr); gap:8px; }
@@ -237,7 +259,7 @@ body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, s
 .balance { background:var(--loss-c); color:var(--on-loss-c); border-radius:16px; padding:6px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:120px; }
 .balance .l { font-size:14px; font-weight:700; line-height:18px; }
 .balance .v { font-size:32px; font-weight:800; line-height:36px; font-variant-numeric:tabular-nums; }
-.balance.ok { background:var(--win-c); color:var(--on-win-c); }
+.balance.ok { background:var(--win-c); color:var(--on); }
 
 /* results */
 .notice { display:flex; gap:12px; align-items:flex-start; padding:12px 16px; border-radius:16px; background:var(--secondary-c); color:var(--on-secondary-c); font-weight:600; }
@@ -246,7 +268,7 @@ body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, s
 .tot-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .tot-row .nm { font-size:16px; font-weight:700; line-height:20px; white-space:nowrap; }
 .tot-row .sub { font-size:13px; font-weight:600; color:var(--on2); }
-.tot-row .sc { font-size:24px; line-height:28px; }
+.tot-row .sc { font-size:26px; line-height:30px; }
 .grid { background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; overflow:hidden; }
 .grid table { border-collapse:collapse; width:100%; }
 .grid th { background:var(--primary-c); color:var(--on-primary-c); font-size:14px; font-weight:800; height:48px; padding:0 12px; text-align:left; border-bottom:1px solid var(--hair); }
@@ -257,6 +279,8 @@ body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, s
 .grid td .id { display:block; font-size:13px; color:var(--on2); font-weight:600; line-height:16px; }
 .grid td.num { font-size:18px; }
 .grid td.total, .grid th.total { background:var(--sunken); }
+.grid td.total { font-size:20px; }
+.grid td.total .win, .grid td.total .loss { color:var(--on); font-weight:800; }
 .winner { background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; padding:16px; display:flex; align-items:center; gap:16px; position:relative; overflow:hidden; }
 .winner .av-64 { box-shadow:0 0 0 3px var(--leader); }
 .winner .big { font-size:40px; line-height:44px; font-weight:800; font-variant-numeric:tabular-nums; }
@@ -279,6 +303,36 @@ body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, s
 .tile-outline { background:var(--surface); color:var(--primary); border:2px solid var(--outline); }
 .badge { position:absolute; top:8px; right:8px; min-width:22px; height:22px; border-radius:999px; background:var(--error); color:#fff; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 6px; }
 [data-mode="dark"] .badge { color:#4A0B07; }
+
+/* players/admins list */
+.prow { display:flex; align-items:center; gap:12px; min-height:64px; padding:10px 0; }
+.prow + .prow { border-top:1px solid var(--hair); }
+.prow .meta { flex:1; display:flex; flex-direction:column; gap:6px; min-width:0; }
+.prow .nm { font-size:17px; font-weight:700; line-height:22px; }
+.menu { position:absolute; right:24px; background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; padding:6px 0; box-shadow:0 8px 24px rgba(0,0,0,.18); z-index:10; min-width:220px; }
+.menu div { display:flex; align-items:center; gap:14px; padding:12px 18px; font-size:16px; font-weight:600; }
+.menu div .mdi { font-size:22px; color:var(--on2); }
+.menu div.danger { color:var(--error); }
+.menu div.danger .mdi { color:var(--error); }
+/* initials */
+.conf { background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+.conf .who { display:flex; align-items:center; gap:12px; }
+.conf .who .nm { font-size:16px; font-weight:700; flex:1; }
+.conf .fix { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.ini-in { height:48px; min-width:84px; border-radius:12px; border:2px solid var(--outline); background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; letter-spacing:1px; padding:0 12px; }
+.ini-in.ok { border-color:var(--primary); }
+.ini-in.bad { border-color:var(--error); color:var(--error); }
+.sugg { display:inline-flex; align-items:center; height:36px; padding:0 14px; border-radius:999px; border:2px solid var(--outline2); background:var(--sunken); font-size:15px; font-weight:800; letter-spacing:.5px; }
+.sugg.on { background:var(--primary-c); border-color:var(--primary); color:var(--on-primary-c); }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field .lbl { font-size:14px; font-weight:700; color:var(--on2); }
+.input { height:56px; border-radius:12px; border:2px solid var(--outline); background:var(--surface); display:flex; align-items:center; padding:0 16px; font-size:17px; font-weight:600; justify-content:space-between; }
+.input.ro { background:var(--sunken); border-color:var(--outline2); color:var(--on2); }
+.kv { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px solid var(--hair); font-size:15px; }
+.kv:first-of-type { border-top:0; }
+.sheet { position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-radius:24px 24px 0 0; padding:12px 16px 24px; box-shadow:0 -8px 30px rgba(0,0,0,.25); z-index:20; display:flex; flex-direction:column; gap:12px; }
+.scrim { position:absolute; inset:0; background:rgba(23,32,27,.45); z-index:15; }
+.grab { width:40px; height:4px; border-radius:2px; background:var(--outline2); margin:0 auto 4px; }
 
 /* confetti */
 .confetti { position:absolute; left:0; right:0; top:0; height:46%; pointer-events:none; overflow:hidden; z-index:5; }
@@ -317,9 +371,22 @@ const ib = (icon) => `<div class="iconbtn"><span class="mdi mdi-${icon}"></span>
 const tabbar = (active) => `
   <div class="tabbar">
     <div class="tab ${active==='home'?'on':''}"><span class="mdi mdi-${active==='home'?'home':'home-outline'}"></span>Home</div>
-    <div class="tab ${active==='players'?'on':''}"><span class="mdi mdi-${active==='players'?'account-group':'account-group-outline'}"></span>My players · 5</div>
-    <div class="tab">${av(1,'SK',40)}</div>
+    <div class="tab ${active==='players'?'on':''}"><span class="mdi mdi-${active==='players'?'account-group':'account-group-outline'}"></span>My players · 9</div>
+    <div class="tab av-tab">${av(1,'SK',40)}</div>
   </div>`;
+
+const scoreBar = () => `
+    <div class="bottombar three">
+      <div class="btn btn-outline"><span class="mdi mdi-undo-variant"></span>Undo</div>
+      <div class="btn btn-primary btn-wide"><span class="mdi mdi-plus"></span>Add round</div>
+      <div class="btn btn-outline"><span class="mdi mdi-flag-checkered"></span>Complete</div>
+    </div>`;
+
+const prow = (i, ini, name, id, chips, menu=true) => `
+    <div class="prow">${av(i, ini, 40)}
+      <div class="meta"><span class="nm" style="display:flex;align-items:center;gap:8px">${name}${chip('chip-id','pound',id).replace('class="chip chip-id"','class="chip chip-id" style="height:28px;padding:0 10px 0 8px"')}</span><div class="chips">${chips}</div></div>
+      ${menu?'<div class="iconbtn"><span class="mdi mdi-dots-vertical"></span></div>':''}
+    </div>`;
 
 const screens = {
   home: () => `
@@ -330,7 +397,13 @@ const screens = {
       <div class="btn btn-accent btn-tall"><span class="mdi mdi-podium"></span>Results</div>
       <div class="card">
         <div class="card-head"><div class="disc"><span class="mdi mdi-cards-playing-outline"></span></div>
-          <div><p class="subtitle">Live · 1</p><div class="label muted" style="font-weight:600">Tap a game to carry on scoring.</div></div></div>
+          <div><p class="subtitle">Live · 2</p><div class="label muted" style="font-weight:600">Tap a game to carry on scoring.</div></div></div>
+        <div class="row">
+          <div class="gbadge pool">G15</div>
+          <div class="meta"><p class="subtitle">Wed, Nov 11 · 9:05 PM</p>
+            <div class="chips">${chip('chip-live','circle-medium','Live')}${chip('chip-pool','trophy-outline','Pool')}<span class="label muted"><span class="mdi mdi-account-group-outline" style="font-size:16px"></span> 9 · Anita's game</span></div></div>
+          <span class="mdi mdi-chevron-right chev"></span>
+        </div>
         <div class="row">
           <div class="gbadge">G14</div>
           <div class="meta"><p class="subtitle">Wed, Nov 11 · 8:12 AM</p>
@@ -370,8 +443,8 @@ const screens = {
     return `
     ${header('Scorecard', ib('help-circle-outline')+ib('dots-vertical'))}
     <div class="content" style="gap:12px">
-      <div class="chips">${chip('chip-info','numeric','Points')}${chip('chip-outline','cards-outline','Round 7 · AR deals')}</div>
-      <div class="table"><table>
+      <div class="chips"><span class="gbadge" style="width:auto;height:32px;padding:0 10px;border-radius:10px;font-size:15px">G14</span>${chip('chip-info','numeric','Points')}${chip('chip-outline','cards-outline','Round 7 · AR deals')}</div>
+      <div class="tablewrap"><div class="table"><table>
         <thead><tr><th class="rnd">RND</th>
           ${heads.map(([ini,tot,i,crown],idx)=>`<th class="${idx===1?'dealer':''}">
             <span class="ini" style="color:${idx===1?'':seatText(i)}">${ini}</span>
@@ -383,13 +456,45 @@ const screens = {
           <td class="rnd"><span class="n">${n}</span><span class="d">${d}</span></td>
           ${vals.map(v=>`<td>${v>0?`<span class="cellpill pill-win score">+${v}</span>`:v<=-80?`<span class="cellpill pill-loss score" style="font-weight:700">${v}</span>`:sc(v)}</td>`).join('')}
         </tr>`).join('')}</tbody>
-      </table></div>
+      </table>
+      <div class="table-foot"><span>Creator <b>Sree Koneru</b></span><span>Admin <b>Anita Rao</b></span></div>
+      </div></div>
     </div>
-    <div class="bottombar three">
-      <div class="btn btn-outline"><span class="mdi mdi-undo-variant"></span>Undo</div>
-      <div class="btn btn-primary btn-wide"><span class="mdi mdi-plus"></span>Add round</div>
-      <div class="btn btn-tonal"><span class="mdi mdi-flag-checkered"></span>Complete</div>
-    </div>`;
+    ${scoreBar()}`;
+  },
+
+  'scorecard-big': () => {
+    const names = ['SK','AR','RK','MN','VM','LI','SK1','PS','AR1'];
+    const seatIdx = [1,2,3,4,5,1,2,3,4];
+    let seed = 5; const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const rows = []; const totals = new Array(9).fill(0);
+    for (let r = 1; r <= 16; r++) {
+      const w = Math.floor(rnd() * 9); let pot = 0; const vals = [];
+      for (let i = 0; i < 9; i++) { if (i === w) { vals.push(null); continue; } const k = rnd(); const v = k < .35 ? -10 : k < .55 ? -30 : k < .65 ? -80 : -(Math.floor(rnd()*6)+1)*5; vals.push(v); pot += -v; }
+      vals[w] = pot; vals.forEach((v,i)=>totals[i]+=v); rows.push([r, names[(r-1)%9], vals]);
+    }
+    const lead = totals.indexOf(Math.max(...totals));
+    return `
+    ${header('Scorecard', ib('help-circle-outline')+ib('dots-vertical'))}
+    <div class="content" style="gap:12px">
+      <div class="chips"><span class="gbadge pool" style="width:auto;height:32px;padding:0 10px;border-radius:10px;font-size:15px">G15</span>${chip('chip-pool','trophy-outline','Pool')}${chip('chip-outline','cards-outline','Round 17 · PS deals')}</div>
+      <div class="tablewrap"><div class="table many"><table>
+        <thead><tr><th class="rnd">RND</th>
+          ${names.map((ini,i)=>`<th class="${i===7?'dealer':''}">
+            <span class="ini" style="color:${i===7?'':seatText(seatIdx[i])}">${ini}</span>
+            <span class="tot ${totals[i]>0?'win':totals[i]<0?'loss':'zero'}">${totals[i]>0?'+'+totals[i]:totals[i]}</span>
+            ${i===7?'<span class="deals">DEALS</span>':i===lead?'<span class="mdi mdi-crown" style="color:var(--leader);font-size:14px;display:block;margin-top:2px"></span>':''}
+          </th>`).join('')}
+        </tr></thead>
+        <tbody>${rows.map(([n,d,vals],ri)=>`<tr class="${ri===rows.length-1?'latest':''}">
+          <td class="rnd"><span class="n">${n}</span><span class="d">${d}</span></td>
+          ${vals.map(v=>`<td>${v>0?`<span class="cellpill pill-win score">+${v}</span>`:v<=-80?`<span class="cellpill pill-loss score" style="font-weight:700">${v}</span>`:sc(v)}</td>`).join('')}
+        </tr>`).join('')}</tbody>
+      </table>
+      <div class="table-foot"><span>Creator <b>Anita Rao</b></span><span>Admins <b>Sree Koneru, Ravi Kumar</b></span></div>
+      </div></div>
+    </div>
+    ${scoreBar()}`;
   },
 
   'add-round': () => `
@@ -470,7 +575,7 @@ const screens = {
   confetti: () => screens.results(true),
 
   players: () => `
-    ${header('My players · 5', ib('help-circle-outline'))}
+    ${header('My players · 9', ib('help-circle-outline'))}
     <div class="content">
       <div class="search"><span class="mdi mdi-magnify"></span>Search name or player ID</div>
       <div class="chips filters">${chip('chip-filter-on','check','Frequent')}<span class="chip chip-filter">A–Z</span><span style="flex:1"></span>${chip('chip-filter','filter-variant','Unregistered · 2')}</div>
@@ -489,6 +594,81 @@ const screens = {
       </div>
     </div>
     ${tabbar('players')}`,
+
+  // Players/Admins as the creator sees it: Creator + Admin tags, no "Player" tags, ⋮ on every row.
+  'game-players': (asPlayer=false) => `
+    ${header('Players/Admins', ib('help-circle-outline'))}
+    <div class="content" style="position:relative">
+      <div class="chips"><span class="gbadge" style="width:auto;height:32px;padding:0 10px;border-radius:10px;font-size:15px">G14</span><span class="section-label" style="margin:0">Playing · 5</span></div>
+      <div class="card" style="gap:0">
+        ${prow(1,'SK','Sree Koneru','7', chip('chip-leader','crown-outline','Creator')+chip('chip-live','check-circle-outline','Registered'), !asPlayer)}
+        ${prow(2,'AR','Anita Rao','12', (asPlayer?'':chip('chip-info','shield-outline','Admin'))+chip('chip-live','check-circle-outline','Registered'), !asPlayer)}
+        ${prow(3,'RK','Ravi Kumar','19', chip('chip-live','check-circle-outline','Registered')+(asPlayer?chip('chip-you','account','You'):''), !asPlayer)}
+        ${prow(4,'MN','Meera Nair','23', chip('chip-neutral','account-question-outline','Unregistered'), !asPlayer)}
+        ${prow(5,'VM','Vijay Menon','31', chip('chip-pending','clock-outline','Pending'), !asPlayer)}
+      </div>
+      ${asPlayer?`<p class="body muted" style="margin:0">Only the game's creator and admins can change players.</p>`:`
+      <p class="body muted" style="margin:0;font-size:15px;line-height:22px">A player added now gets 0 for every round already played. Remove player (in a row's ⋮ menu) works only while every round score they have is 0.</p>
+      <div style="display:flex;gap:12px;align-items:center"><div class="btn btn-outline" style="height:48px;font-size:16px;flex:none"><span class="mdi mdi-shield-plus-outline"></span>Add admin</div><span class="label muted" style="font-weight:600;flex:1;font-size:13px;line-height:18px">Let someone score and manage this game without playing in it.</span></div>
+      <div class="menu" style="top:262px">
+        <div><span class="mdi mdi-shield-plus-outline"></span>Make admin</div>
+        <div><span class="mdi mdi-pencil-outline"></span>Edit name</div>
+        <div><span class="mdi mdi-link-variant"></span>Link to Player ID</div>
+        <div class="danger"><span class="mdi mdi-account-remove-outline"></span>Remove player</div>
+      </div>`}
+    </div>
+    <div class="bottombar">
+      <div class="btn btn-outline" style="flex:${asPlayer?1:'none'};padding:0 18px"><span class="mdi mdi-arrow-left"></span>${asPlayer?'Back to scorecard':'Scorecard'}</div>
+      ${asPlayer?'':'<div class="btn btn-primary" style="flex:1"><span class="mdi mdi-account-plus-outline"></span>Add new player</div>'}
+    </div>`,
+  'game-players-player-view': () => screens['game-players'](true),
+
+  // Initials: conflict resolution before a game starts (see initials-options.md)
+  'initials-conflicts': () => `
+    ${header('Fix initials', ib('help-circle-outline'))}
+    <div class="content" style="gap:14px">
+      <div class="notice" style="background:var(--tertiary-c);color:var(--on-tertiary-c);font-size:15px;line-height:21px"><span class="mdi mdi-information-outline"></span><span>Two pairs of players in <b>G15</b> share initials. Pick a different form for one of each pair; it is saved to your My players.</span></div>
+      <p class="section-label" style="margin:0">SK · 2 players</p>
+      <div class="conf">
+        <div class="who">${av(1,'SK',36)}<span class="nm">Sree Koneru <span class="muted" style="font-weight:600">· #7 · you</span></span><div class="ini-in ok">SK</div></div>
+        <div class="who">${av(2,'SK',36)}<span class="nm">Suresh Kumar <span class="muted" style="font-weight:600">· #52</span></span><div class="ini-in bad">SK</div></div>
+        <div class="fix"><span class="label muted" style="width:100%">Suresh becomes</span><span class="sugg on">SK1</span><span class="sugg">SUK</span><span class="sugg">SKU</span><span class="sugg">Edit…</span></div>
+      </div>
+      <p class="section-label" style="margin:0">AR · 2 players</p>
+      <div class="conf">
+        <div class="who">${av(2,'AR',36)}<span class="nm">Anita Rao <span class="muted" style="font-weight:600">· #12</span></span><div class="ini-in ok">AR</div></div>
+        <div class="who">${av(4,'AR',36)}<span class="nm">Arjun Reddy <span class="muted" style="font-weight:600">· #61</span></span><div class="ini-in bad">AR</div></div>
+        <div class="fix"><span class="label muted" style="width:100%">Arjun becomes</span><span class="sugg on">AR1</span><span class="sugg">ARJ</span><span class="sugg">ARE</span><span class="sugg">Edit…</span></div>
+      </div>
+      <p class="body muted" style="margin:0;font-size:14px;line-height:20px">The player who joined your My players first keeps the short form. Initials stay the same in every game you create.</p>
+    </div>
+    <div class="bottombar">
+      <div class="btn btn-outline" style="flex:none;padding:0 18px">Not now</div>
+      <div class="btn btn-primary" style="flex:1"><span class="mdi mdi-check"></span>Apply and start</div>
+    </div>`,
+
+  // Initials: player detail in My players with the Refresh from database action
+  'player-refresh': () => `
+    ${header('My players · 9', ib('help-circle-outline'))}
+    <div class="content">
+      <div class="search"><span class="mdi mdi-magnify"></span>Search name or player ID</div>
+      <div class="pgrid" style="opacity:.5">
+        <div class="pcard"><div class="nm">${av(1,'SK',36)}Sree Koneru</div><div class="chips">${chip('chip-id','pound','7')}${chip('chip-you','account','You')}</div></div>
+        <div class="pcard"><div class="nm">${av(2,'AR',36)}Anita Rao</div><div class="chips">${chip('chip-id','pound','12')}</div></div>
+        <div class="pcard"><div class="nm">${av(3,'RK',36)}Ravi Kumar</div><div class="chips">${chip('chip-id','pound','19')}</div></div>
+        <div class="pcard"><div class="nm">${av(2,'SK1',36)}Suresh Kumar</div><div class="chips">${chip('chip-id','pound','52')}</div></div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div style="display:flex;align-items:center;gap:14px">${av(2,'SK1',56)}<div style="flex:1"><p class="title" style="font-size:20px">Suresh Kumar</p><div class="chips" style="margin-top:4px">${chip('chip-id','pound','52')}${chip('chip-live','check-circle-outline','Registered')}</div></div></div>
+      <div class="field"><span class="lbl">Initials on your scorecards</span><div class="input"><span style="font-weight:800;font-size:20px;letter-spacing:1px">SK1</span><span class="label muted">SK is Sree Koneru</span></div></div>
+      <div class="field"><span class="lbl">Name in your My players</span><div class="input ro"><span>Suresh Kumar</span><span class="mdi mdi-lock-outline" style="font-size:20px"></span></div></div>
+      <div class="notice" style="padding:10px 14px;gap:10px"><span class="mdi mdi-database-refresh-outline"></span><span style="font-size:15px;line-height:21px">Suresh changed his name to <b>Suresh K. Nair</b> in the app. Your list keeps the old name until you refresh.</span></div>
+      <div style="display:flex;gap:12px"><div class="btn btn-tonal" style="flex:1;height:48px;font-size:15px;white-space:nowrap;padding:0 12px"><span class="mdi mdi-database-refresh-outline"></span>Refresh from database</div><div class="btn btn-outline" style="height:48px;font-size:15px;color:var(--error);border-color:var(--error);padding:0 14px"><span class="mdi mdi-account-remove-outline"></span>Remove</div></div>
+      <div class="btn btn-primary" style="height:52px"><span class="mdi mdi-check"></span>Save</div>
+    </div>`,
 };
 
 function confettiHtml() {

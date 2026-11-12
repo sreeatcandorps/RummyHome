@@ -14,7 +14,7 @@ const HERE = __dirname;
 const OUT = path.join(HERE, '..', 'mockups');
 const MOCK = 'file://' + path.join(HERE, 'mock.html');
 const CHROME = process.env.CHROME || '/usr/local/bin/google-chrome';
-const SCREENS = ['home', 'scorecard', 'add-round', 'results', 'players'];
+const SCREENS = ['home', 'scorecard', 'scorecard-big', 'add-round', 'results', 'players', 'game-players', 'game-players-player-view'];
 const MODES = ['light', 'dark'];
 
 async function shot(page, url, file, fullPage = false) {
@@ -34,12 +34,17 @@ async function main() {
 
   if (what === 'after' || what === 'all') {
     for (const s of SCREENS) for (const m of MODES) {
-      await shot(page, `${MOCK}?screen=${s}&mode=${m}&palette=A`, path.join(OUT, 'after', `${s}-${m}.png`), s === 'results');
+      await shot(page, `${MOCK}?screen=${s}&mode=${m}&palette=A`, path.join(OUT, 'after', `${s}-${m}.png`), s === 'results' || s === 'scorecard-big');
     }
   }
   if (what === 'confetti' || what === 'all') {
     for (const m of MODES) {
       await shot(page, `${MOCK}?screen=confetti&mode=${m}&palette=A`, path.join(OUT, 'confetti', `results-winner-${m}.png`));
+    }
+  }
+  if (what === 'initials' || what === 'all') {
+    for (const s of ['initials-conflicts', 'player-refresh']) for (const m of MODES) {
+      await shot(page, `${MOCK}?screen=${s}&mode=${m}&palette=A`, path.join(OUT, 'initials', `${s}-${m}.png`), s === 'initials-conflicts');
     }
   }
   if (what === 'alternatives' || what === 'all') {
@@ -51,7 +56,9 @@ async function main() {
     const cmp = await ctx.newPage();
     await cmp.setViewportSize({ width: 860, height: 920 });
     for (const s of SCREENS) for (const m of MODES) {
-      const before = path.join(OUT, 'before', `${s === 'results' ? 'results-view' : s}-${m}.png`);
+      const CUR = { home: '02-home', scorecard: '04-scorecard-5p-6-rounds', 'scorecard-big': '04-scorecard-9p-16-rounds', 'add-round': '05-add-round-in-progress', results: '07-results-view-full', players: '10-my-players', 'game-players': '06-game-players-admins', 'game-players-player-view': null };
+      if (!CUR[s]) continue;
+      const before = path.join(OUT, 'current', `${CUR[s]}-${m}.png`);
       const after = path.join(OUT, 'after', `${s}-${m}.png`);
       if (!fs.existsSync(before) || !fs.existsSync(after)) continue;
       const b64 = (f) => 'data:image/png;base64,' + fs.readFileSync(f).toString('base64');
@@ -63,8 +70,8 @@ async function main() {
         .col h2{margin:0;font-size:20px;font-weight:800}
         .col img{width:390px;height:844px;object-fit:cover;object-position:top;border-radius:28px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
         </style></head><body><div class="wrap">
-        <div class="col"><h2>Before · ${s} (${m})</h2><img src="${b64(before)}"></div>
-        <div class="col"><h2>After · Clubhouse</h2><img src="${b64(after)}"></div></div></body></html>`;
+        <div class="col"><h2>Current · ${s} (${m})</h2><img src="${b64(before)}" style="height:auto"></div>
+        <div class="col"><h2>After · Clubhouse</h2><img src="${b64(after)}" style="height:auto"></div></div></body></html>`;
       await cmp.setContent(html, { waitUntil: 'networkidle' });
       await cmp.waitForTimeout(200);
       const file = path.join(OUT, 'compare', `${s}-${m}.png`);

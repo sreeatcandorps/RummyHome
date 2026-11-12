@@ -45,6 +45,16 @@ Risk: `Tag` is used in 20+ places with the `small` prop; removing it is mechanic
 | Auth | `felt` band = `primary`, auth card `r-xl` with shadow, inputs 56 px | `components/ui/AuthShell.tsx`, `app/(auth)/*`, `components/ui/PasscodeField.tsx`, `components/ui/OtpField.tsx` |
 | Profile / Settings / dialogs | Tokens and `AppButton` only; remove dark-mode toggle (Phase 0) | `app/(tabs)/me.tsx`, `app/(screens)/profile.tsx`, `app/(screens)/settings.tsx`, `components/game/GameSettingsDialog.tsx`, `components/auth/ChangePasscodeDialog.tsx`, `components/players/JoinRequestsDialog.tsx` |
 
+## Phase 2b · Round-2 items (Sree, 11 Nov PM)
+
+| Change | Files | Size | Notes |
+|---|---|---|---|
+| Role chips: hide the viewer's own role; show Creator always; Admin chips only when the viewer is creator or admin; remove Player / View only chips | `utils/gameAccess.ts` (`ACCESS_TONE` → `visibleRoleChips(game, viewerId)`), `components/ui/GameListItem.tsx`, `app/(screens)/games/players.tsx`, `app/(screens)/results/index.tsx` | S | Pure display logic; the access rules that gate actions do not change. One unit test on the helper. |
+| Button green only on tappables: dealer column → `primaryContainer`; positive scores → `onSurface` (+ `winContainer` tint for the round winner); seat colour 1 → teal; logo disc → marigold; "You" chip → blue; round strip → blue chip | `constants/theme.ts` (`SEAT_COLORS[0]`, `scoreTone` map), `components/game/ScoreTable.tsx`, `components/game/ScoreCell.tsx`, `utils/scoreTone.ts`, `components/results/GameScoreGrid.tsx`, `components/results/ResultsPage.tsx`, `app/(tabs)/_layout.tsx` (logo), `components/ui/Tag.tsx` | S–M | `scoreTone` tests change expected tones. Share images follow in Phase 3. |
+| Complete as an outlined button; Undo outlined; Add round filled | `app/(screens)/games/[id].tsx` (bottom bar) | S | |
+| Tabs as pill buttons | new `components/ui/TabBarButtons.tsx` passed to `<Tabs tabBar={…}>` in `app/(tabs)/_layout.tsx` | S–M | expo-router's `Tabs` is React Navigation's bottom tabs; a custom `tabBar` receives `state`, `descriptors`, `navigation` and can render three `Pressable`s. Safe-area inset and the Android back behaviour are unchanged. The only cost is losing the default ripple/haptics, which `Pressable` + `android_ripple` restores. Not hard. |
+| Scorecard: `G-number` badge in the strip; Creator/Admin footer bottom-right inside the table card, card stretches to the bottom bar | `components/game/ScoreTable.tsx`, `app/(screens)/games/[id].tsx` | S | The names are already loaded for the Players/Admins screen (`game.createdBy`, `game.adminIds` + roster). Footer is a `View` after the rows with `marginTop: 'auto'` inside a `flex: 1` card, so it pins to the bottom on short games and trails the last row on long ones. |
+
 ## Phase 3 · Share images and PDFs (M)
 
 The share renderers hard-code the old palette and will look like a different product once the app changes.
