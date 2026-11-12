@@ -1,38 +1,25 @@
 /**
- * Two-character labels for one context (a scorecard, a result, the Add players
- * sheet). They are display only, recomputed every time, and never saved.
+ * Labels for one context (a result sheet, a share image, an older game whose seats
+ * carry no stored label). Display only; nothing here is saved.
  *
- * Rule: first initial + last initial. When two or more players in the same
- * context share a label, the first keeps it and the others become the first
- * initial plus a number (HY, H2, H3 ...). "First" is the order given: seat
- * order in a game, first appearance across the games in a result.
+ * Rule (Nov 11): first initial + last initial. When two or more players in the same
+ * context share a label, the first keeps it and the others get a three-letter form
+ * of their own name (Suresh Kumar → SUK) — never a number unless every letter form
+ * is taken. "First" is the order given: seat order in a game, first appearance
+ * across the games in a result. Stored labels (My players / game seats) take
+ * precedence when the caller passes them; see utils/initials.ts.
  */
 
-/** HY for Harish Yadav, RA for a single word Ravi, P1 for "Player 1". Always 2 characters when the name allows. */
+import { assignInitials, defaultInitials } from '@/utils/initials';
+
+/** HY for Harish Yadav, RA for a single word Ravi. Always 2 characters. */
 export function baseInitials(name: string): string {
-  const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase().padEnd(2, '?');
-  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+  return defaultInitials(name);
 }
 
 export function buildPlayerInitials(names: string[]): string[] {
-  const base = names.map(baseInitials);
-  const taken = new Set(base);
-  const seen = new Set<string>();
-  return base.map((label) => {
-    if (!seen.has(label)) {
-      seen.add(label);
-      return label;
-    }
-    const first = label[0] ?? '?';
-    let n = 2;
-    while (taken.has(`${first}${n}`)) n += 1;
-    const next = `${first}${n}`;
-    taken.add(next);
-    seen.add(next);
-    return next;
-  });
+  const labels = assignInitials(names.map((name, index) => ({ id: String(index), name, addedAt: String(index).padStart(4, '0') })));
+  return names.map((_, index) => labels.get(String(index)) ?? '?');
 }
 
 /** Same labels keyed by player id, so sorted views can look them up after reordering. */
