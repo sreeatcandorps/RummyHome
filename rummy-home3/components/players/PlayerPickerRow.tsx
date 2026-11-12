@@ -49,7 +49,7 @@ export function PlayerPickerRow({ candidate, index, disabled, isMe = false, onPr
         <View style={styles.text}>
           <BoldName name={candidate.name} variant="bodyLarge" numberOfLines={1} />
           <View style={styles.meta}>
-            {isMe ? <Tag small label="You" tone="primary" /> : null}
+            {isMe ? <Tag small label="You" tone="info" /> : null}
             {badge ? <Tag small label={badge} /> : null}
             <Tag small label={status} tone={REGISTRATION_TONE[status]} />
           </View>

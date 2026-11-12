@@ -1,9 +1,12 @@
 export type GameStatus = 'Active' | 'Completed' | 'Closed';
 
-/** One palette for Active / Completed / Closed everywhere: Home cards, Results rows, and help chips. */
-export const GAME_STATUS_TONE: Record<GameStatus, 'positive' | 'primary' | 'neutral'> = {
-  Active: 'positive',
-  Completed: 'primary',
+/**
+ * One palette for Active / Completed / Closed everywhere: Home cards, Results rows, and help chips.
+ * Active is the soft green tint, Completed the info blue, Closed grey (docs/design/02-design-system.md §5.2).
+ */
+export const GAME_STATUS_TONE: Record<GameStatus, 'primary' | 'info' | 'neutral'> = {
+  Active: 'primary',
+  Completed: 'info',
   Closed: 'neutral',
 };
 

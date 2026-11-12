@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, SectionList, StyleSheet, View } from 'react-native';
-import { Button, Chip, Dialog, Icon, Portal, Searchbar, Snackbar, Text, TouchableRipple } from 'react-native-paper';
+import { Chip, Dialog, Icon, Portal, Searchbar, Snackbar, Text, TouchableRipple } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
 import { LinkPlayerDialog } from '@/components/players/LinkPlayerDialog';
@@ -70,8 +71,8 @@ const PlayerCard = React.memo(function PlayerCard({ player, status, isMe, index,
                   <Text variant="labelSmall" style={[styles.idText, { color: colors.onSurfaceVariant }]}>{badge}</Text>
                 </View>
               ) : null}
-              {isMe ? <Tag label="You" tone="primary" small /> : null}
-              {nameChanged ? <Tag label="Name changed" tone="results" small icon="alert-outline" /> : <Tag label={status} tone={REGISTRATION_TONE[status]} small />}
+              {isMe ? <Tag label="You" tone="info" /> : null}
+              {nameChanged ? <Tag label="Name changed" tone="results" icon="alert-outline" /> : <Tag label={status} tone={REGISTRATION_TONE[status]} wrap />}
             </View>
           </View>
         </View>
@@ -606,13 +607,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    flexWrap: 'wrap',
   },
   idBadge: {
-    borderRadius: radius.sm,
+    borderRadius: radius.full,
     borderWidth: 1,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
+    paddingHorizontal: 8,
+    minHeight: 28,
+    justifyContent: 'center',
   },
   idText: {
     fontWeight: '700',

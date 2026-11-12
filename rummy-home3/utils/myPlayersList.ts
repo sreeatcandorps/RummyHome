@@ -56,12 +56,19 @@ export function registrationLabel(status?: string | null, linkPending = false): 
   return 'Registered';
 }
 
-/** Tag tone per status: green, amber, and blue. The Player ID badge is an outlined pill, so none of these look like it. */
-export const REGISTRATION_TONE: Record<RegistrationLabel, 'positive' | 'leader' | 'info'> = {
-  Registered: 'positive',
-  'Pending registration': 'leader',
-  'Link pending': 'leader',
-  Unregistered: 'info',
+/** Tag tone per status: Registered info blue, Pending marigold, Unregistered grey. Never button green. */
+export const REGISTRATION_TONE: Record<RegistrationLabel, 'info' | 'results' | 'neutral'> = {
+  Registered: 'info',
+  'Pending registration': 'results',
+  'Link pending': 'results',
+  Unregistered: 'neutral',
+};
+
+export const REGISTRATION_ICON: Record<RegistrationLabel, string> = {
+  Registered: 'check-circle-outline',
+  'Pending registration': 'clock-outline',
+  'Link pending': 'link-variant',
+  Unregistered: 'account-question-outline',
 };
 
 /**
@@ -114,7 +121,7 @@ export function orderDatabaseResults<T extends { id: string }>(results: T[], myP
 
 /** Fixed-height list on My players: one row per player; this many rows are visible before it scrolls. */
 export const MY_PLAYERS_VISIBLE_ROWS = 7;
-export const MY_PLAYERS_CARD_HEIGHT = 60;
+export const MY_PLAYERS_CARD_HEIGHT = 68;
 /** The list card's top padding (styles.grid); the height must include it or the last row is cut. */
 export const MY_PLAYERS_GRID_PADDING = 8;
 

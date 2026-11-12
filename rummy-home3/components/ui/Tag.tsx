@@ -12,12 +12,12 @@ type TagProps = {
   style?: ViewStyle;
   /** Let a long label ("Pending registration") break onto a second line in narrow cards. */
   wrap?: boolean;
-  /** Slightly smaller type and padding for two-column cards. */
+  /** Kept for callers; tags are one size now (docs/design/02-design-system.md §5.2). */
   small?: boolean;
 };
 
-/** Small rounded label for game type, status and metadata. */
-export function Tag({ label, tone = 'neutral', icon, style, wrap = false, small = false }: TagProps) {
+/** Rounded 32 px label for game type, status and metadata: tinted fill, never button green. */
+export function Tag({ label, tone = 'neutral', icon, style, wrap = false }: TagProps) {
   const theme = useAppTheme();
   const { colors, gameTypes } = theme;
 
@@ -35,9 +35,9 @@ export function Tag({ label, tone = 'neutral', icon, style, wrap = false, small 
   const { bg, fg } = palette[tone];
 
   return (
-    <View style={[styles.tag, small && styles.smallTag, { backgroundColor: bg }, style]}>
-      {icon ? <Icon source={icon} size={small ? 12 : 13} color={fg} /> : null}
-      <Text variant={small ? 'labelSmall' : 'labelMedium'} numberOfLines={wrap ? 2 : 1} style={[styles.label, wrap && styles.wrapLabel, { color: fg }]}>
+    <View style={[styles.tag, { backgroundColor: bg }, style]}>
+      {icon ? <Icon source={icon} size={16} color={fg} /> : null}
+      <Text variant="labelMedium" numberOfLines={wrap ? 2 : 1} style={[styles.label, wrap && styles.wrapLabel, { color: fg }]}>
         {label}
       </Text>
     </View>
@@ -49,8 +49,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    minHeight: 32,
     borderRadius: radius.full,
     flexShrink: 1,
   },
@@ -58,6 +58,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flexShrink: 1,
   },
-  wrapLabel: { lineHeight: 14 },
-  smallTag: { paddingHorizontal: 7, paddingVertical: 2 },
+  wrapLabel: { lineHeight: 16 },
 });

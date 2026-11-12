@@ -5,7 +5,7 @@ import { Game } from '@/types/game';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, gameTypeTint, GAME_STATUS_ICON, GAME_STATUS_TONE } from '@/utils/gameDisplay';
 import { Tag } from '@/components/ui/Tag';
-import { ACCESS_ICON, ACCESS_TONE, gameAccessLabel } from '@/utils/gameAccess';
+import { ACCESS_ICON, ACCESS_TONE, gameAccessLabel, viewerManagesGame, visibleRoleTag } from '@/utils/gameAccess';
 
 type GameListItemProps = {
   game: Game;
@@ -29,6 +29,7 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
   const statusTone = GAME_STATUS_TONE[status];
   const statusIcon = GAME_STATUS_ICON[status];
   const access = viewerId ? gameAccessLabel(game, viewerId) : null;
+  const roleTag = visibleRoleTag(access, viewerManagesGame(game, viewerId));
   const pickable = checked !== undefined;
   const on = pickable && checked && !locked;
 
@@ -76,7 +77,7 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
                 icon={statusIcon}
                 style={styles.statusTag}
               />
-              {access ? <Tag label={access} tone={ACCESS_TONE[access]} icon={ACCESS_ICON[access]} small /> : null}
+              {roleTag ? <Tag label={roleTag} tone={ACCESS_TONE[roleTag]} icon={ACCESS_ICON[roleTag]} /> : null}
               <Text
                 variant="bodySmall"
                 style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}

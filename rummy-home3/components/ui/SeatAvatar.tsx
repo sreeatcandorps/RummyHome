@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
-import { radius, useAppTheme } from '@/constants/theme';
+import { radius, seatColor, useAppTheme } from '@/constants/theme';
 
 export const nameInitials = (name: string) =>
   (name || '?')
@@ -26,7 +26,8 @@ type SeatAvatarProps = {
 
 export function SeatAvatar({ name, label, color, size = 40, icon, muted, style }: SeatAvatarProps) {
   const theme = useAppTheme();
-  const background = muted ? theme.colors.surfaceVariant : color ?? theme.colors.primary;
+  // Seat 1 teal by default: the button green is for buttons only.
+  const background = muted ? theme.colors.surfaceVariant : color ?? seatColor(0, { onDark: theme.dark });
   const foreground = muted ? theme.colors.onSurfaceVariant : '#FFFFFF';
   const text = label ?? nameInitials(name);
   const fontSize = Math.round(size * (text.length > 2 ? 0.32 : 0.4));

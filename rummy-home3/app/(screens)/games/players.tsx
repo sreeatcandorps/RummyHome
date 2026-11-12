@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, AppState, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
+import { Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { radius, seatColor, spacing, useAppTheme } from '@/constants/theme';
 import { HELP } from '@/constants/help';
@@ -16,6 +17,8 @@ import { addAdminBlockedReason, addAdminPreview, addAdminProblem, PLAYERS_ADMINS
 import { parsePlayerNo, PendingLink } from '@/utils/playerIdentity';
 import { seatRemovalProblem } from '@/utils/seatRemoval';
 import { playerIdBadge, registrationLabel, seatMenu, SeatMenuItem, seatRoleLabel } from '@/utils/gamePlayers';
+import { ACCESS_ICON, ACCESS_TONE, visibleRoleTag } from '@/utils/gameAccess';
+import { REGISTRATION_ICON, REGISTRATION_TONE } from '@/utils/myPlayersList';
 import { LinkRequestOutcome } from '@/utils/linkPlayer';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -141,7 +144,7 @@ export default function GamePlayersScreen() {
 
   const row = (seat: Player, index: number, list: Player[]) => {
     const menu = seatMenu(seat, game, viewer?.id, canScore);
-    const role = seatRoleLabel(seat, game);
+    const roleTag = visibleRoleTag(seatRoleLabel(seat, game), canScore);
     const linkRequest = linkRequests.find((l) => l.playerId === seat.id) ?? null;
     const registration = registrationLabel(invited.has(seat.id) && seat.status === 'unregistered' ? { status: 'pending' } : seat, Boolean(linkRequest));
     const badge = playerIdBadge(seat);
@@ -152,8 +155,9 @@ export default function GamePlayersScreen() {
           <Text variant="bodyLarge" style={styles.name} numberOfLines={1}>{seat.name}</Text>
           <View style={styles.tags}>
             {badge ? <Tag small label={badge} /> : null}
-            <Tag small label={role} tone={role === 'Creator' || role === 'Admin' ? 'positive' : 'neutral'} icon={role === 'Creator' ? 'crown-outline' : role === 'Admin' ? 'shield-account-outline' : role === 'View only' ? 'eye-outline' : 'account-outline'} />
-            <Tag small label={registration} tone={registration === 'Registered' ? 'info' : registration === 'Pending registration' || registration === 'Link pending' ? 'results' : 'neutral'} icon={registration === 'Registered' ? 'check-circle-outline' : registration === 'Pending registration' ? 'clock-outline' : registration === 'Link pending' ? 'link-variant' : 'account-question-outline'} />
+            {seat.id === viewer?.id ? <Tag label="You" tone="info" /> : null}
+            {roleTag ? <Tag label={roleTag} tone={ACCESS_TONE[roleTag]} icon={ACCESS_ICON[roleTag]} /> : null}
+            <Tag label={registration} tone={REGISTRATION_TONE[registration]} icon={REGISTRATION_ICON[registration]} />
           </View>
         </View>
         {canScore && canReorder && seat.seatRole !== 'spectator' && seat.seated !== false ? (
