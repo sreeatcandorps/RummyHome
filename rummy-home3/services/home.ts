@@ -1,4 +1,5 @@
 import { authService, profileToPlayer } from '@/services/auth';
+import { archiveService } from '@/services/archive';
 import { gamesService, legacyGameFromServer, missingRpc } from '@/services/games';
 import { playerIdentityService, linkFromRow } from '@/services/playerIdentity';
 import { playersService } from '@/services/players';
@@ -72,11 +73,12 @@ export const homeService = {
 
     const player = await authService.getCurrentPlayer();
     if (!player) return null;
-    const games = await gamesService.listGamesForCurrentUser(player.id, {
+    const hidden = await archiveService.hiddenGameIds(player.id);
+    const games = (await gamesService.listGamesForCurrentUser(player.id, {
       limit: HOME_GAME_LIMIT,
       includeScores: false,
       email: player.email,
-    });
+    })).filter((game) => !hidden.has(game.id));
     const notices = await playerIdentityService.takeNotices(player.id).catch(() => [] as CreatorNotice[]);
     return { player, games, notices, claimRequests: null };
   },

@@ -36,6 +36,11 @@ export type Game = {
   completedAt?: string | null;
   /** Local (no Supabase) games only: column label per seat, fixed at seat time. Server games carry it on the seat row. */
   labels?: Record<string, string>;
+  /** Soft delete (023). A deleted game is gone for everyone until restored; only the id, number and this stamp are readable. */
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  /** Whether the viewer may restore a deleted game (the deleter, or a creator/admin). */
+  canRestore?: boolean;
 };
 
 export interface Round {

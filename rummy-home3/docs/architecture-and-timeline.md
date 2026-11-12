@@ -254,6 +254,9 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - `021_email_uniqueness.sql` (+ rollback), **not applied**: emails normalised on write, one profile per email in any case, duplicates reported never deleted. App side: a repeat sign-up is refused with "An account with this email already exists".
 - `022_player_initials.sql` (+ rollback), **not applied**, apply after 021: the scorecard letters belong to the owner's My players (`my_players.initials`, unique per owner, two letters then three letters from the name, never a digit unless letters run out; owner may type 2–3 letters) and are fixed per seat when a game is created (`game_players.label`, returned by the bundles). Lists always show the live profile name; a rename never changes initials — the app shows a "Name changed" note instead. New screens: Fix initials before Start game / Return to game, Edit initials in My players and in Players · Admins. The per-scorecard recompute (S2 in one game, SK in another) is gone. Tests: 319 unit, 328 pgTAP, 31 concurrency, 62 rollback checks.
 
+### 2026-11-12 — Hide and soft delete (023), item 1 of the Nov 11 10:59 PM batch
+- `023_hide_and_soft_delete.sql` (+ rollback), **not applied**, apply after 022: per-user Hide (Home only), soft Delete game (creator/admin; removed from saved results, which are totalled again; restore never re-adds), soft Delete result (declarer/admins; its games uncounted again). Enforced in the row policy and every reader RPC, including the public scorecard. App: scorecard ⋮ Hide / Delete with the "in result R3" warning, result ⋮ Delete result, Settings > Hidden & deleted (Unhide / Restore), "This game/result was deleted" states, local-store parity. Tests: 399 pgTAP, 31 concurrency, 70 rollback checks.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.

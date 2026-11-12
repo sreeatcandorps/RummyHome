@@ -24,6 +24,25 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
+# 023 (hide / soft delete; same PR, rolled back before 022)
+HAS_023=f
+if [ -f "$RB/rollback_023_hide_and_soft_delete.sql" ]; then
+  HAS_023=t
+  if apply "$RB/rollback_023_hide_and_soft_delete.sql"; then tap ok "rollback_023 applies"; else tap fail "rollback_023 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists delete_game)" = f ] && [ "$(fn_exists restore_result)" = f ] && [ "$(fn_exists list_hidden_and_deleted)" = f ] \
+    && tap ok "after rollback_023 the delete/restore RPCs are gone" \
+    || tap fail "after rollback_023 delete_game / restore_result / list_hidden_and_deleted should be gone"
+  [ "$(q "select exists(select 1 from information_schema.tables where table_schema='public' and table_name='hidden_games')")" = f ] \
+    && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='games' and column_name='deleted_at')")" = f ] \
+    && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='game_result_games' and column_name='removed_at')")" = f ] \
+    && tap ok "after rollback_023 hidden_games and the soft-delete columns are gone" \
+    || tap fail "after rollback_023 hidden_games / deleted_at / removed_at should be gone"
+  [ "$(fn_has get_home_bundle hidden_count)" = f ] && [ "$(fn_has get_game_result removedGameIds)" = f ] && [ "$(fn_exists visible_games)" = t ] \
+    && tap ok "after rollback_023 the bundles and results readers are the 020 bodies" \
+    || tap fail "after rollback_023 get_home_bundle / get_game_result should be the 020 bodies"
+  [ "$(fn_exists set_my_player_initials)" = t ] && tap ok "rollback_023 leaves 022 in place" || tap fail "rollback_023 must not touch 022"
+fi
+
 # 022 (present from PR 7's Nov 11 initials batch on; skipped on refs that do not have it yet)
 HAS_022=f
 if [ -f "$RB/rollback_022_player_initials.sql" ]; then
@@ -134,6 +153,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_020" = t ] && FORWARD="$FORWARD 020_performance_rpcs_and_indexes"
 [ "$HAS_021" = t ] && FORWARD="$FORWARD 021_email_uniqueness"
 [ "$HAS_022" = t ] && FORWARD="$FORWARD 022_player_initials"
+[ "$HAS_023" = t ] && FORWARD="$FORWARD 023_hide_and_soft_delete"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -168,6 +188,11 @@ if [ "$HAS_022" = t ]; then
     && [ "$(q "select count(*) from public.my_players where initials is null")" = 0 ] \
     && [ "$(q "select count(*) from public.game_players where label is null")" = 0 ] \
     && tap ok "022 restored (generator, RPCs, seat labels, per-owner unique index, every row backfilled)" || tap fail "022 restored"
+fi
+if [ "$HAS_023" = t ]; then
+  [ "$(fn_exists delete_game)" = t ] && [ "$(fn_exists list_hidden_and_deleted)" = t ] && [ "$(fn_has get_home_bundle hidden_count)" = t ] \
+    && [ "$(q "select exists(select 1 from information_schema.tables where table_schema='public' and table_name='hidden_games')")" = t ] \
+    && tap ok "023 restored (hide list, delete/restore RPCs, soft-delete aware bundles)" || tap fail "023 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

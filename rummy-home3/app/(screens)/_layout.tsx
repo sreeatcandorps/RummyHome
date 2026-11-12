@@ -30,6 +30,7 @@ export default function ScreensLayout() {
       />
       <Stack.Screen name="profile" options={{ title: 'Me' }} />
       <Stack.Screen name="settings" options={{ title: 'User settings', headerRight: () => <HelpButton text={HELP.userSettings} /> }} />
+      <Stack.Screen name="hidden-deleted" options={{ title: 'Hidden & deleted', headerRight: () => <HelpButton text={HELP.hiddenDeleted} /> }} />
       <Stack.Screen
         name="games/new"
         options={{ title: 'New game', headerRight: () => <HelpButton text={HELP.newGame} /> }}

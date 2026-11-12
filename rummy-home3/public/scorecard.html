@@ -123,6 +123,11 @@
         body: JSON.stringify({ p_token: token }),
       });
       const card = await response.json();
+      if (card && card.deleted === true) {
+        document.getElementById('meta').textContent = 'This game was deleted.';
+        document.getElementById('board').innerHTML = '';
+        return;
+      }
       if (!card || card.gameId == null) {
         document.getElementById('meta').textContent = 'This scorecard link is not valid.';
         return;

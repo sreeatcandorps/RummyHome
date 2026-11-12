@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Text } from 'react-native-paper';
-import { useLocalSearchParams } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
+import { Button, Dialog, Menu, Portal, Snackbar, Text } from 'react-native-paper';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { archiveService } from '@/services/archive';
+import { authService } from '@/services/auth';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { HelpButton } from '@/components/ui/HelpButton';
+import { HELP } from '@/constants/help';
+import { radius, spacing } from '@/constants/theme';
+import { DELETE_RESULT_BODY, DELETE_RESULT_TITLE, deletedBody, RESULT_DELETED_TITLE } from '@/utils/archive';
 import { ResultsPage } from '@/components/results/ResultsPage';
 import { ResultsShare } from '@/components/results/ResultsShare';
 import { LoadingRows } from '@/components/ui/LoadingRows';
@@ -57,6 +65,43 @@ export default function DeclaredResult() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reused, setReused] = useState<string[]>([]);
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  const actorId = async () => authService.getCurrentPlayer().then((me) => me?.id ?? null).catch(() => null);
+
+  const confirmDelete = async () => {
+    if (!result) return;
+    setBusy(true);
+    try {
+      await archiveService.deleteResult(result.id, await actorId());
+      setDeleteOpen(false);
+      router.back();
+    } catch (err) {
+      setDeleteOpen(false);
+      setError(formatSupabaseError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const restore = async () => {
+    if (!result) return;
+    setBusy(true);
+    try {
+      await archiveService.restoreResult(result.id, await actorId());
+      setNote('Result restored. Its games are Closed again.');
+      setLoading(true);
+      await load();
+    } catch (err) {
+      setError(formatSupabaseError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   /**
    * Which games here were already in an earlier result? 018 sends reusedGameIds with the
@@ -152,8 +197,42 @@ export default function DeclaredResult() {
     });
   }, [result]);
 
+  if (result?.deletedAt) {
+    return (
+      <Screen>
+        <EmptyState
+          icon="delete-outline"
+          title={RESULT_DELETED_TITLE}
+          message={deletedBody('result', Boolean(result.canRestore))}
+          actionLabel={result.canRestore ? 'Restore' : undefined}
+          onAction={result.canRestore && !busy ? restore : undefined}
+        />
+        {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
+        <Snackbar visible={Boolean(note)} onDismiss={() => setNote(null)} duration={3000}>{note ?? ''}</Snackbar>
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <View style={styles.headerActions}>
+              <HelpButton text={HELP.results} />
+              {result?.canManage ? (
+                <Menu
+                  visible={menuOpen}
+                  onDismiss={() => setMenuOpen(false)}
+                  anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Result menu"> </Button>}
+                >
+                  <Menu.Item leadingIcon="delete-outline" title="Delete result" titleStyle={{ color: colors.error }} onPress={() => { setMenuOpen(false); setDeleteOpen(true); }} />
+                </Menu>
+              ) : null}
+            </View>
+          ),
+        }}
+      />
       <ResultsShare card={card} details={details} createdAt={result?.declaredAt} />
       <ResultWarnings warnings={warnings} />
       {error ? (
@@ -167,8 +246,26 @@ export default function DeclaredResult() {
         <Text variant="bodyLarge">{RESULT_NOT_AVAILABLE}</Text>
       ) : null}
       {result ? (
-        <ResultsPage createdAt={result.declaredAt} standings={result.standings} sheet={sheetFor(result)} reusedNote={reusedNote} />
+        <ResultsPage createdAt={result.declaredAt} standings={result.standings} sheet={sheetFor(result)} reusedNote={reusedNote} removedCount={result.removedGameIds?.length ?? 0} />
       ) : null}
+      <Portal>
+        <Dialog visible={deleteOpen} onDismiss={() => busy || setDeleteOpen(false)} style={styles.dialog}>
+          <Dialog.Title>{DELETE_RESULT_TITLE}</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{DELETE_RESULT_BODY}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteOpen(false)} disabled={busy}>Cancel</Button>
+            <Button mode="contained" buttonColor={colors.error} textColor={colors.onError} onPress={confirmDelete} loading={busy} disabled={busy}>Delete</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+      <Snackbar visible={Boolean(note)} onDismiss={() => setNote(null)} duration={3000}>{note ?? ''}</Snackbar>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  headerActions: { flexDirection: 'row', alignItems: 'center' },
+  dialog: { borderRadius: radius.xl, maxWidth: 480, width: '90%', alignSelf: 'center' },
+});

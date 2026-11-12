@@ -7,19 +7,24 @@ import { formatGameDateTime } from '@/utils/gameDisplay';
 import { initialsById } from '@/utils/playerInitials';
 import { formatPoints, placeLabel, podiumPlaces, resultsCountLine, ResultSheet, ResultStanding, splitTotals, gameClock } from '@/utils/results';
 import { totalsSubline } from '@/utils/resultsSave';
+import { removedGamesNote } from '@/utils/archive';
 
 export function ResultsPage({
   createdAt,
   standings,
   sheet,
   reusedNote,
+  removedCount = 0,
 }: {
   createdAt: string;
   standings: ResultStanding[];
   sheet: ResultSheet;
   /** Set when the result counts a game from an earlier result; shows a small flag beside the title. */
   reusedNote?: string | null;
+  /** Games deleted since this result was saved (023); the totals no longer count them. */
+  removedCount?: number;
 }) {
+  const removedNote = removedGamesNote(removedCount);
   const { colors } = useAppTheme();
   const { positive, negative } = splitTotals(standings);
   const places = podiumPlaces(standings);
@@ -46,6 +51,7 @@ export function ResultsPage({
         </View>
         <Text variant="titleMedium">{formatGameDateTime(createdAt)}</Text>
         {reusedNote ? <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{reusedNote}</Text> : null}
+        {removedNote ? <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="result-removed-note">{removedNote}</Text> : null}
       </View>
 
       <View testID="results-totals" accessibilityLabel="Totals" style={styles.totals}>

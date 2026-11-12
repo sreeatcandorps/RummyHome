@@ -137,8 +137,24 @@ function resultFrom(value: unknown): GameResult | null {
     standings?: unknown;
     sheet?: unknown;
     reusedGameIds?: unknown;
+    removedGameIds?: unknown;
+    canManage?: unknown;
+    deleted?: unknown;
+    deletedAt?: unknown;
+    canRestore?: unknown;
   };
   if (typeof row.id !== 'string') return null;
+  if (row.deleted === true || (typeof row.deletedAt === 'string' && row.deletedAt)) {
+    return {
+      id: row.id,
+      declaredAt: typeof row.declaredAt === 'string' ? row.declaredAt : '',
+      declaredBy: typeof row.declaredBy === 'string' ? row.declaredBy : '',
+      gameIds: [],
+      standings: [],
+      deletedAt: typeof row.deletedAt === 'string' ? row.deletedAt : new Date().toISOString(),
+      canRestore: row.canRestore === true,
+    };
+  }
   let standingsRaw = row.standings;
   let sheetRaw = row.sheet;
   if (standingsRaw && !Array.isArray(standingsRaw) && typeof standingsRaw === 'object') {
@@ -160,6 +176,10 @@ function resultFrom(value: unknown): GameResult | null {
     ...(Array.isArray(row.reusedGameIds)
       ? { reusedGameIds: row.reusedGameIds.filter((id): id is string => typeof id === 'string') }
       : {}),
+    ...(Array.isArray(row.removedGameIds)
+      ? { removedGameIds: row.removedGameIds.filter((id): id is string => typeof id === 'string') }
+      : {}),
+    ...(typeof row.canManage === 'boolean' ? { canManage: row.canManage } : {}),
   };
 }
 
@@ -206,9 +226,9 @@ export const resultsService = {
   async list(offset = 0, limit = RESULTS_PAGE_SIZE): Promise<GameResultSummary[]> {
     if (!isSupabaseConfigured) {
       const who = await viewer();
-      const all = await readLocal();
+      const all = (await readLocal()).filter((result) => !result.deletedAt);
       const { storage } = await import('@/utils/storage');
-      const games = await storage.getGames();
+      const games = (await storage.getGames()).filter((game) => !game.deletedAt);
       const byId = new Map(games.map((game) => [game.id, game]));
       const results: GameResult[] = [];
       for (const result of all) {
@@ -264,7 +284,13 @@ export const resultsService = {
     let result: GameResult | null;
     if (!isSupabaseConfigured) {
       const results = await readLocal();
-      result = results.find((item) => item.id === resultId) ?? null;
+      const found = results.find((item) => item.id === resultId) ?? null;
+      if (found?.deletedAt) {
+        const deletedBy = (found as GameResult & { deletedBy?: string | null }).deletedBy;
+        const mine = Boolean(who.id) && (deletedBy === who.id || found.declaredBy === who.id || who.isAppAdmin);
+        return mine ? { ...found, gameIds: [], standings: [], sheet: undefined, canRestore: true } : null;
+      }
+      result = found ? { ...found, canManage: Boolean(who.id) && (found.declaredBy === who.id || who.isAppAdmin) } : null;
     } else {
       const { data, error } = await supabase.rpc('get_game_result', { p_id: resultId });
       if (error) {
@@ -274,6 +300,7 @@ export const resultsService = {
       result = data ? resultFrom(data) : null;
     }
     if (!result) return null;
+    if (result.deletedAt) return result;
     return (await visibleTo(result, who)) ? result : null;
   },
 

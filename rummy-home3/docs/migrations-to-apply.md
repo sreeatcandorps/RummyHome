@@ -157,12 +157,38 @@ select owner_id, initials, count(*) from public.my_players group by 1, 2 having 
 select count(*) filter (where label is null) as missing, count(*) as seats from public.game_players;
 ```
 
+## 023 — hide and soft delete (approved Nov 11, 10:59 PM PT, item 1)
+
+File: `supabase/migrations/023_hide_and_soft_delete.sql`. Run after 022. Safe to re-run. Rollback: `supabase/rollback/rollback_023_hide_and_soft_delete.sql` (drops `hidden_games`, the delete/restore RPCs and the `deleted_at` / `deleted_by` / `removed_at` columns — every hidden or deleted mark is lost and everything shows again; a game removed from a result is back in it — and restores the previous bodies of each reader 023 rewrote: 020, 018, 013, 009, 006).
+
+Not applied by this change. Adds columns and a table; never deletes a row. "Delete" here is a timestamp.
+
+What it does:
+
+- **Hide** (`hide_game` / `unhide_game`, `hidden_games(owner_id, game_id)`): per person, Home only. `get_home_bundle` leaves hidden games out and returns `hidden_count`; `visible_games(p_limit, p_include_hidden)` keeps them for everything else (Results picker, stats, open by link).
+- **Delete game** (`delete_game`, creator or game admin): sets `games.deleted_at/deleted_by`. Gone for everyone: the `members read games` policy, `list_visible_game_ids`, `can_read_game`, Home, `list_new_game_candidates` (Frequent sort and play counts), the Results picker, `public_scorecard` (answers `{deleted: true}`; the share page says "This game was deleted."), `get_game_bundle` (answers `{deleted: true, game: {id, game_number, deleted_at, can_restore}}`). `my_players.games_together` goes down by one for the creator's rows and back up on restore. If saved results hold the game, each `game_result_games` row gets `removed_at`; the result is totalled again without it (`result_places_json`), its `reusedGameIds` are recomputed, and the game's `closed_at` follows the live results that still hold it (`sync_closed_at`). `results_holding_game(game_id)` gives the app the "This game is in result R3…" warning before the call.
+- **Restore game** (`restore_game`, the deleter or a creator/admin): clears the stamp. Results it was removed from are **not** changed; the answer lists them so the app can say so.
+- **Delete result** (`delete_result`, the declarer, an app admin, or an admin of every game in it): sets `game_results.deleted_at/deleted_by`; its games are no longer Closed (unless another live result holds them) and can go into a new result. `restore_result` reverses it. `get_game_result` answers `{deleted: true, canRestore}` for a deleted result; `list_game_results_page`, `can_see_game_result` and `reused_game_ids` skip deleted results; `declare_game_result` refuses a deleted game.
+- **`list_hidden_and_deleted()`** feeds Settings > Hidden & deleted: games I hid, deleted games I may restore, deleted results I may restore.
+- `get_game_result` now also returns `removedGameIds` and `canManage` (whether the viewer may delete it).
+
+Verified on a scratch Postgres 16 loaded with 001–022 and the CI seed: 399 pgTAP checks (71 new in `supabase/tests/13_hide_delete_023.sql`: hide is per user and Home only, delete permissions, removal from two results with recomputed standings, closed_at sync, games_together ±1, exclusion from visible ids / Home / picker / stats / public scorecard, restore rules, a restored game stays out of its old results and can be declared again, delete/restore result, a deleted game cannot be declared), 31 two-client race checks, and the rollback replay (rollback 023 → 013, re-apply 013 → 023, apply each a second time; 70 checks) all pass.
+
+Read-only checks after applying (nothing is changed):
+
+```sql
+select count(*) from public.games where deleted_at is not null;            -- 0 right after applying
+select count(*) from public.game_results where deleted_at is not null;     -- 0 right after applying
+select count(*) from public.hidden_games;                                  -- 0 right after applying
+```
+
 ## Apply order for the Nov 10–11 batch
 
-017–020 were applied on Nov 11 (~11:25 AM PT). 021 and 022 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
+017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022 and 023 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
 
 1. `supabase/migrations/021_email_uniqueness.sql`
 2. `supabase/migrations/022_player_initials.sql`
+3. `supabase/migrations/023_hide_and_soft_delete.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

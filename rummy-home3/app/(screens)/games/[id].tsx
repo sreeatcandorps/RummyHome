@@ -6,7 +6,9 @@ import { useState, useEffect } from 'react';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { gamesService } from '@/services/games';
+import { archiveService, HoldingResult } from '@/services/archive';
 import { authService } from '@/services/auth';
+import { DELETE_GAME_BODY, DELETE_GAME_TITLE, deleteGameWarning, deletedBody, GAME_DELETED_TITLE, HIDE_GAME_NOTE, restoreGameNote } from '@/utils/archive';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
 import { storage } from '@/utils/storage';
@@ -52,6 +54,11 @@ export default function GameScreen() {
   const [reopening, setReopening] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [canScore, setCanScore] = useState(true);
+  const [canManage, setCanManage] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [holding, setHolding] = useState<HoldingResult[] | null>(null);
+  const [archiving, setArchiving] = useState(false);
   const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
   const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
   const [editRoundOpen, setEditRoundOpen] = useState(false);
@@ -88,11 +95,13 @@ export default function GameScreen() {
         gamesService.listGamePlayers(id),
       ]), REQUEST_TIMEOUT_MS, 'Couldn’t open this game.');
       const access = await gamesService.accessFor(id, userId, { game: currentGame, seats: gamePlayers });
+      setUserId(userId);
 
       if (currentGame) {
         const seated = gamePlayers.filter((player) => player.seatRole !== 'spectator' && player.seated !== false);
         setGame(currentGame);
         setCanScore(access.canScore);
+        setCanManage(access.isCreator || access.seatRole === 'game_admin');
         setLoadError(null);
         setPlayers(seated.filter((player) => player.id !== 'EX'));
       }
@@ -186,6 +195,61 @@ export default function GameScreen() {
     router.push({ pathname: '/(screens)/games/players', params: { id: game.id } });
   };
 
+  const hideGame = async () => {
+    if (!game) return;
+    setMenuOpen(false);
+    try {
+      await archiveService.hideGame(game.id, userId);
+      setLinkNote(HIDE_GAME_NOTE);
+      setTimeout(() => router.back(), 900);
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    }
+  };
+
+  // The warning names every saved result the game sits in; the list loads while the dialog opens.
+  const openDelete = async () => {
+    if (!game) return;
+    setMenuOpen(false);
+    setHolding(null);
+    setDeleteOpen(true);
+    try {
+      setHolding(await archiveService.resultsHoldingGame(game.id));
+    } catch {
+      setHolding([]);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!game) return;
+    setArchiving(true);
+    try {
+      await archiveService.deleteGame(game.id, userId);
+      setDeleteOpen(false);
+      router.back();
+    } catch (error) {
+      setDeleteOpen(false);
+      setActionError(formatSupabaseError(error));
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const restoreGame = async () => {
+    if (!game) return;
+    setArchiving(true);
+    try {
+      const { removedFromResults } = await archiveService.restoreGame(game.id, userId);
+      setLinkNote(restoreGameNote(removedFromResults.length));
+      setLoading(true);
+      await loadGameData();
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    } finally {
+      setArchiving(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
@@ -193,6 +257,29 @@ export default function GameScreen() {
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
           Loading game…
         </Text>
+      </View>
+    );
+  }
+
+  if (game?.deletedAt) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ headerShown: true, title: game.gameNumber ? `G${game.gameNumber}` : 'Scorecard' }} />
+        <EmptyState
+          icon="delete-outline"
+          title={GAME_DELETED_TITLE}
+          message={deletedBody('game', Boolean(game.canRestore))}
+          actionLabel={game.canRestore ? 'Restore' : undefined}
+          onAction={game.canRestore ? restoreGame : undefined}
+        />
+        <Portal>
+          <Dialog visible={!!actionError} onDismiss={() => setActionError(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+            <Dialog.Title style={styles.dialogTitle}>Something went wrong</Dialog.Title>
+            <Dialog.Content><Text variant="bodyMedium" style={styles.dialogBody}>{actionError}</Text></Dialog.Content>
+            <Dialog.Actions style={styles.dialogActions}><Button mode="contained" onPress={() => setActionError(null)}>Got it</Button></Dialog.Actions>
+          </Dialog>
+          <Snackbar visible={Boolean(linkNote)} onDismiss={() => setLinkNote(null)} duration={4000}>{linkNote ?? ''}</Snackbar>
+        </Portal>
       </View>
     );
   }
@@ -361,6 +448,10 @@ export default function GameScreen() {
                 {canShareResults(game.isComplete) ? (
                   <Menu.Item leadingIcon="image" onPress={shareFinalScores} title="Share final scores" />
                 ) : null}
+                <Menu.Item leadingIcon="eye-off-outline" onPress={hideGame} title="Hide game" />
+                {canManage ? (
+                  <Menu.Item leadingIcon="delete-outline" onPress={openDelete} title="Delete game" titleStyle={{ color: colors.error }} />
+                ) : null}
               </Menu>
             </View>
           ),
@@ -441,6 +532,27 @@ export default function GameScreen() {
           <Dialog.Actions>
             <Button onPress={() => setShowUndoConfirm(false)}>Cancel</Button>
             <Button mode="contained" onPress={confirmUndoLastRound}>Remove</Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog
+          visible={deleteOpen}
+          onDismiss={() => archiving || setDeleteOpen(false)}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
+        >
+          <Dialog.Title>{DELETE_GAME_TITLE}</Dialog.Title>
+          <Dialog.Content style={styles.dialogContent}>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{DELETE_GAME_BODY}</Text>
+            {holding === null ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : deleteGameWarning(holding) ? (
+              <View style={[styles.warning, { backgroundColor: colors.errorContainer }]}>
+                <Text variant="bodyMedium" style={{ color: colors.onErrorContainer, fontWeight: '700' }}>{deleteGameWarning(holding)}</Text>
+              </View>
+            ) : null}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteOpen(false)} disabled={archiving}>Cancel</Button>
+            <Button mode="contained" buttonColor={colors.error} textColor={colors.onError} onPress={confirmDelete} loading={archiving} disabled={archiving || holding === null}>Delete</Button>
           </Dialog.Actions>
         </Dialog>
         <Dialog
@@ -557,6 +669,7 @@ const styles = StyleSheet.create({
     flex: 1.7,
   },
   roundPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  warning: { padding: spacing.md, borderRadius: radius.md },
   roundChip: { minWidth: 96 },
   dialog: {
     borderRadius: radius.xl,

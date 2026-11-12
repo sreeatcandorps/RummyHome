@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { Button, Icon, Text } from 'react-native-paper';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { authService } from '@/services/auth';
 import { userSettingsService } from '@/services/userSettings';
 import { DEFAULT_POINTS_RULES, parseRuleInput, validateRules } from '@/utils/gameSettings';
@@ -56,6 +56,11 @@ export default function UserSettings() {
         <SettingsPriority highlight="User settings" showTitle={false} />
       </SectionCard>
       <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Points is the only game type for now. Pool is coming later.</Text>
+      <SectionCard title="Hidden & deleted" icon="eye-off-outline" mode="outlined" supportingText="Games you hid from Home, and games or results you deleted. Unhide or restore them here.">
+        <Button mode="outlined" icon="chevron-right" contentStyle={styles.openRow} onPress={() => router.push('/(screens)/hidden-deleted')} accessibilityLabel="Open Hidden and deleted">
+          Open Hidden & deleted
+        </Button>
+      </SectionCard>
       {notice ? (
         <View
           style={[styles.notice, { backgroundColor: notice.tone === 'saved' ? colors.positiveContainer : colors.errorContainer }]}
@@ -76,4 +81,5 @@ const styles = StyleSheet.create({
   content: { gap: spacing.md },
   notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md },
   noticeText: { flex: 1, fontWeight: '700' },
+  openRow: { flexDirection: 'row-reverse' },
 });

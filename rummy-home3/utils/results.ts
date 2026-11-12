@@ -50,6 +50,13 @@ export type GameResult = {
   sheet?: ResultSheet;
   /** Games here that an earlier result had already closed (their points count twice). Needs 018 on the server. */
   reusedGameIds?: string[];
+  /** Games deleted after this result was saved and so removed from it (023). Standings no longer count them. */
+  removedGameIds?: string[];
+  /** Whether the viewer may delete this result (023): the person who saved it, or an admin of its games. */
+  canManage?: boolean;
+  /** Soft delete (023). A deleted result shows only this; its games are uncounted again. */
+  deletedAt?: string | null;
+  canRestore?: boolean;
 };
 
 export type GameResultSummary = {
@@ -537,4 +544,32 @@ export function gameLabelFor(game: { gameNumber?: number | null }): string | und
 export function gameColumnLabel(game: { label?: string | null; name: string }, when: string): string {
   const label = sheetGameLabel(game);
   return when ? `${label} ${when}` : label;
+}
+
+/**
+ * A saved result after some of its games were deleted (023): those games leave the sheet
+ * and the standings are totalled again from the games that remain. Players who were only
+ * in the removed games drop out. The server does the same in result_places_json; this is
+ * the local-store copy and the rule the unit tests pin down.
+ */
+export function withoutGames(result: GameResult, gameIds: string[]): GameResult {
+  const removed = new Set(gameIds);
+  if (!result.gameIds.some((id) => removed.has(id))) return result;
+  const sheetPlayers = result.sheet?.players ?? result.standings.map((row) => ({ id: row.id, name: row.name }));
+  const names = Object.fromEntries(sheetPlayers.map((player) => [player.id, player.name]));
+  const keptGames = (result.sheet?.games ?? []).filter((game) => !removed.has(game.id));
+  const standings = totalAcrossGames(keptGames.map((game) => ({
+    players: Object.keys(game.scores).filter((id) => id !== RESULT_EXPENSE_ID),
+    scores: Object.fromEntries(Object.entries(game.scores).map(([id, points]) => [id, [points]])),
+    names,
+  })));
+  const stillIn = new Set(standings.map((row) => row.id));
+  return {
+    ...result,
+    gameIds: result.gameIds.filter((id) => !removed.has(id)),
+    standings,
+    sheet: { players: sheetPlayers.filter((player) => stillIn.has(player.id)), games: keptGames },
+    reusedGameIds: result.reusedGameIds?.filter((id) => !removed.has(id)),
+    removedGameIds: [...new Set([...(result.removedGameIds ?? []), ...result.gameIds.filter((id) => removed.has(id))])],
+  };
 }

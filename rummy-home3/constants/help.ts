@@ -133,6 +133,13 @@ export const HELP = {
     'User settings: what every new game starts with for you.',
     'Game defaults: Rummy’s standard -10, -30, -80, used when you have set nothing else.',
   ),
+  hiddenDeleted: bullets(
+    'Hide game (scorecard ⋮) takes a game off your Home only. It still counts in results and stats. Unhide it here.',
+    'Delete game (creator or admin) removes it for every player. A game in a saved result leaves that result; the result is totalled again.',
+    'Restore brings a deleted game back. It is not added back to results it was removed from; save a new result if it should count.',
+    'Delete result (result ⋮, for whoever saved it or an admin of its games) removes the result for everyone. Its games are no longer Closed.',
+    'Only the person who deleted something, or an admin of it, can restore it.',
+  ),
   results: bullets(
     'The Completed, Closed, and Active chips choose which games are listed; any mix can be on. Completed games you run start ticked. If a chip would hide a ticked game, the app asks first.',
     'Every game you are in is listed, but only games where you are the creator or an admin can be ticked. Ask the creator for admin privileges for the rest.',

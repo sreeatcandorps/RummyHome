@@ -134,8 +134,27 @@ export const legacyGameFromServer = (
     gameNumber: game.game_number ?? null,
     closedAt: game.closed_at ?? null,
     completedAt: game.completed_at ?? null,
+    deletedAt: game.deleted_at ?? null,
   };
 };
+
+/** The 023 answer for a deleted game: id, number and the stamp only, so the screen can say so and offer Restore. */
+export const deletedGameFromServer = (row: Record<string, any>): Game => ({
+  id: row.id,
+  date: row.deleted_at ?? '',
+  isComplete: true,
+  players: [],
+  scores: {},
+  currentRound: 0,
+  gameType: 'stake',
+  settings: legacySettingsForGameType('stake', false),
+  gameNumber: row.game_number ?? null,
+  deletedAt: row.deleted_at ?? null,
+  canRestore: row.can_restore === true,
+});
+
+/** Live games only: a deleted game (023) is out of every list and count. */
+export const liveGames = <T extends { deletedAt?: string | null }>(games: T[]): T[] => games.filter((game) => !game.deletedAt);
 
 /** A seat row (game_players + its profiles embed, or a bundle seat) as the app's Player. */
 export const seatFromMembership = (membership: any): Player => ({
@@ -190,6 +209,10 @@ async function loadGameBundle(gameId: string): Promise<{ game: Game; seats: Play
       throw error;
     }
     if (!data) return null;
+    if ((data as { deleted?: boolean }).deleted === true && (data as { game?: Record<string, any> }).game?.id) {
+      const game = gameCache.putGame(deletedGameFromServer((data as { game: Record<string, any> }).game)) as Game;
+      return { game, seats: gameCache.putSeats(gameId, []) };
+    }
     if (!isGameBundle(data)) return undefined;
     const game = gameCache.putGame(gameFromBundle(data)) as Game;
     const seats = gameCache.putSeats(gameId, seatsFromBundle(data.game_players));
@@ -447,7 +470,7 @@ export const gamesService = {
     const includeScores = options.includeScores ?? false;
 
     if (!isSupabaseConfigured) {
-      const games = await storage.getGames();
+      const games = liveGames(await storage.getGames());
       return games
         .map(withoutLegacyColumn)
         .filter((game) => gameVisibleToUser(game, { id: currentUserId, email: options.email }))
@@ -517,6 +540,11 @@ export const gamesService = {
     if (!isSupabaseConfigured) {
       const games = await storage.getGames();
       const game = games.find((item) => item.id === gameId) ?? null;
+      if (game?.deletedAt) {
+        const me = await storage.getCurrentPlayer();
+        const canRestore = Boolean(me) && (game.deletedBy === me || game.createdBy === me || (game.adminIds ?? []).includes(me as string));
+        return gameCache.putGame({ ...withoutLegacyColumn(game), players: [], scores: {}, canRestore });
+      }
       return gameCache.putGame(game ? withoutLegacyColumn(game) : null);
     }
 
