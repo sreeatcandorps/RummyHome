@@ -204,3 +204,20 @@ export function findInitialsConflicts(rows: InitialsRow[], keeperId?: string | n
 export function seatLabels<T extends { id: string; name: string; label?: string | null }>(seats: T[]): Map<string, string> {
   return assignInitials(seats.map((seat, index) => ({ id: seat.id, name: seat.name, initials: seat.label, addedAt: String(index).padStart(4, '0') })));
 }
+
+/**
+ * Final labels for a game's seats once the organiser has answered every conflict:
+ * keepers keep the shared label, each other player gets their choice (or the first
+ * suggestion), and everyone else keeps their stored or default form. Always unique.
+ */
+export function resolveInitials(rows: InitialsRow[], conflicts: InitialsConflict[], choices: Record<string, string>): Map<string, string> {
+  const decided = new Map<string, string>();
+  for (const conflict of conflicts) {
+    decided.set(conflict.keeper.id, conflict.label);
+    for (const { row, suggestions } of conflict.others) {
+      const choice = normalizeInitials(choices[row.id] ?? suggestions[0] ?? '');
+      if (choice) decided.set(row.id, choice);
+    }
+  }
+  return assignInitials(rows.map((row) => (decided.has(row.id) ? { ...row, initials: decided.get(row.id), addedAt: `!${row.addedAt ?? ''}` } : row)));
+}

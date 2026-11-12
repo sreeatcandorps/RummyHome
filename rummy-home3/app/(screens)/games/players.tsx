@@ -31,9 +31,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
+import { InitialsDialog } from '@/components/players/InitialsDialog';
+import { seatLabels } from '@/utils/initials';
 
 type Sheet =
   | { kind: 'edit'; seat: Player }
+  | { kind: 'initials'; seat: Player }
   | { kind: 'invite'; seat: Player; message?: string; notice?: string }
   | { kind: 'link'; seat: Player }
   | { kind: 'add_admin' }
@@ -72,6 +75,8 @@ export default function GamePlayersScreen() {
   }, [reload]);
 
   const playing = useMemo(() => roster.filter((seat) => seat.seatRole !== 'spectator' && seat.seated !== false && seat.id !== 'EX'), [roster]);
+  // The scorecard's column letters: stored seat labels (022), or derived in seat order on an older server.
+  const labels = useMemo(() => seatLabels(playing), [playing]);
   const unseated = useMemo(() => roster.filter((seat) => seat.seated === false && seat.seatRole === 'game_admin'), [roster]);
   const watching = useMemo(() => roster.filter((seat) => seat.seatRole === 'spectator'), [roster]);
   const canReorder = Boolean(game) && Object.values(game?.scores ?? {}).every((column) => (column?.length ?? 0) === 0);
@@ -97,6 +102,7 @@ export default function GamePlayersScreen() {
     if (!game) return;
     if (item === 'make_admin') run(() => gamesService.setSeatRole(game.id, seat.id, 'game_admin'));
     else if (item === 'remove_admin') run(() => gamesService.setSeatRole(game.id, seat.id, 'player'));
+    else if (item === 'edit_initials') setSheet({ kind: 'initials', seat });
     else if (item === 'edit_name') setSheet({ kind: 'edit', seat });
     else if (item === 'invite') setSheet({ kind: 'invite', seat });
     else if (item === 'link_id') setSheet({ kind: 'link', seat });
@@ -133,7 +139,7 @@ export default function GamePlayersScreen() {
     const badge = playerIdBadge(seat);
     return (
       <View key={seat.id} style={[styles.row, { borderBottomColor: colors.hairline }]}>
-        <SeatAvatar name={seat.name} color={seatColor(index)} size={36} muted={seat.seatRole === 'spectator'} />
+        <SeatAvatar name={seat.name} label={labels.get(seat.id)} color={seatColor(index)} size={36} muted={seat.seatRole === 'spectator'} />
         <View style={styles.text}>
           <Text variant="bodyLarge" style={styles.name} numberOfLines={1}>{seat.name}</Text>
           <View style={styles.tags}>
@@ -162,6 +168,7 @@ export default function GamePlayersScreen() {
                 leadingIcon={
                   entry.item === 'make_admin' ? 'shield-plus-outline'
                     : entry.item === 'remove_admin' ? 'shield-off-outline'
+                      : entry.item === 'edit_initials' ? 'format-letter-case'
                       : entry.item === 'edit_name' ? 'pencil-outline'
                         : entry.item === 'invite' ? 'send-outline'
                           : entry.item === 'remove_player' ? 'account-remove-outline'
@@ -239,6 +246,18 @@ export default function GamePlayersScreen() {
             busy={busy}
             onDismiss={() => setSheet(null)}
             onSave={(first, last) => viewer && run(() => playerIdentityService.updateNewPlayer(viewer.id, sheet.seat.id, first, last), () => setSheet(null))}
+          />
+        ) : null}
+
+        {sheet?.kind === 'initials' ? (
+          <InitialsDialog
+            name={sheet.seat.name}
+            current={labels.get(sheet.seat.id)}
+            taken={new Map(playing.filter((seat) => seat.id !== sheet.seat.id).map((seat) => [labels.get(seat.id) ?? '', seat.name]))}
+            scope="game"
+            busy={busy}
+            onDismiss={() => setSheet(null)}
+            onSave={(value) => viewer && run(() => gamesService.setSeatLabel(game.id, sheet.seat.id, value, viewer.id), () => setSheet(null))}
           />
         ) : null}
 

@@ -7,6 +7,7 @@ import { Game } from '@/types/game';
 import { gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
 import { playerIdentityService } from '@/services/playerIdentity';
+import { playersService } from '@/services/players';
 import { userSettingsService } from '@/services/userSettings';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
@@ -20,6 +21,9 @@ import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
 import { seatRemovalProblem } from '@/utils/seatRemoval';
 import { SelectedPlayersStrip } from '@/components/players/SelectedPlayersStrip';
 import { PlayerPickerRow } from '@/components/players/PlayerPickerRow';
+import { FixInitialsScreen } from '@/components/players/FixInitialsScreen';
+import { ConflictChoices } from '@/components/players/InitialsConflictList';
+import { findInitialsConflicts, InitialsConflict, InitialsRow, resolveInitials, seatLabels } from '@/utils/initials';
 import { MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 import { HELP } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
@@ -105,6 +109,13 @@ export default function NewGame() {
   const [me, setMe] = useState<Player | null>(null);
   const [game, setGame] = useState<Game | null>(null);
   const [saved, setSaved] = useState<Pick[]>([]);
+  /** Add mode: the column letters the game already shows, by seat id. */
+  const [savedLabels, setSavedLabels] = useState<Record<string, string>>({});
+  /** The organiser's My players, for each player's stored initials and when they were added. */
+  const [myPlayers, setMyPlayers] = useState<Player[]>([]);
+  const [fix, setFix] = useState<{ conflicts: InitialsConflict[]; rows: InitialsRow[]; mode: 'start' | 'return' } | null>(null);
+  const [choices, setChoices] = useState<ConflictChoices>({});
+  const [fixError, setFixError] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [staged, setStaged] = useState<Pick[]>([]);
   const [query, setQuery] = useState('');
@@ -122,11 +133,9 @@ export default function NewGame() {
     const [current, seats] = await Promise.all([gamesService.getGame(id), gamesService.listGamePlayers(id)]);
     if (!current) throw new Error('This game is not available.');
     setGame(current);
-    setSaved(
-      seats
-        .filter((seat) => seat.seatRole !== 'spectator' && seat.seated !== false && seat.id !== 'EX')
-        .map((seat) => ({ id: seat.id, name: seat.name, playerCode: seat.playerCode })),
-    );
+    const playing = seats.filter((seat) => seat.seatRole !== 'spectator' && seat.seated !== false && seat.id !== 'EX');
+    setSaved(playing.map((seat) => ({ id: seat.id, name: seat.name, playerCode: seat.playerCode })));
+    setSavedLabels(Object.fromEntries(seatLabels(playing)));
   }, []);
 
   const load = useCallback(async () => {
@@ -139,13 +148,15 @@ export default function NewGame() {
         setError(addMode ? 'You must be signed in to add players.' : 'You must be signed in to create a game.');
         return;
       }
-      const [list, defaults] = await Promise.all([
+      const [list, defaults, , mine] = await Promise.all([
         playerIdentityService.listCandidates(current.id),
         userSettingsService.get(current.id),
         gameId ? loadGame(gameId) : Promise.resolve(),
+        playersService.listMyPlayers(current.id).catch(() => [] as Player[]),
       ]);
       setCandidates(list);
       setRules(defaults);
+      setMyPlayers(mine);
       // Seats edited on the screens above us (Add New Players, Add player from database) come back through the draft.
       const pending = takePlayersToCheck();
       let next = newGameDraft.get();
@@ -224,11 +235,30 @@ export default function NewGame() {
     }
   };
 
-  const startGame = async () => {
+  /**
+   * The seats as initials rows: a seat already in the game keeps its column letters, a
+   * new one brings the organiser's stored initials for that player (and when they were
+   * added, so the earlier player keeps the short form). The organiser is never in their
+   * own My players, so their letters come from their name.
+   */
+  const initialsRows = (): InitialsRow[] => {
+    const mine = new Map(myPlayers.map((player) => [player.id, player]));
+    return selected.map((pickRow, index) => {
+      const known = mine.get(pickRow.id);
+      const seatLabel = savedLabels[pickRow.id];
+      return {
+        id: pickRow.id,
+        name: pickRow.name,
+        initials: seatLabel ?? known?.initials ?? null,
+        // Saved seats sort first so the game's existing columns never change.
+        addedAt: seatLabel ? `0:${String(index).padStart(4, '0')}` : known?.addedAt ? `1:${known.addedAt}` : `2:${String(index).padStart(4, '0')}`,
+      };
+    });
+  };
+
+  const createWithLabels = async (labels: Map<string, string>) => {
     if (!me) return;
     const playerIds = newGameSeats(selectedIds);
-    if (playerIds.length < 2) return;
-    if (playerIds.length > MAX_SEATED_PLAYERS) { setError(SEATED_PLAYER_LIMIT); return; }
     setCreating(true);
     try {
       const created = await gamesService.createGame({
@@ -236,36 +266,120 @@ export default function NewGame() {
         gameType: gameTypeForKind(rules.gameKind),
         createdBy: me.id,
         rules,
+        labels: Object.fromEntries(labels),
       });
       newGameDraft.clear();
+      setFix(null);
       router.replace(`/(screens)/games/${created.id}`);
     } catch (err) {
       setError(formatSupabaseError(err));
+      setFix(null);
     } finally {
       setCreating(false);
     }
   };
 
+  const startGame = async () => {
+    if (!me) return;
+    const playerIds = newGameSeats(selectedIds);
+    if (playerIds.length < 2) return;
+    if (playerIds.length > MAX_SEATED_PLAYERS) { setError(SEATED_PLAYER_LIMIT); return; }
+    const rows = initialsRows();
+    const conflicts = findInitialsConflicts(rows, me.id);
+    if (conflicts.length) {
+      setChoices({});
+      setFixError(null);
+      setFix({ conflicts, rows, mode: 'start' });
+      return;
+    }
+    await createWithLabels(resolveInitials(rows, [], {}));
+  };
+
   /** Add mode: seat every staged pick (zeros for rounds already played), then go back to the game. */
-  const returnToGame = async () => {
+  const seatWithLabels = async (labels: Map<string, string>) => {
     if (!game) return;
     setCreating(true);
     try {
       for (const pickRow of staged) {
         if (savedIds.has(pickRow.id)) continue;
-        await gamesService.addSeatedPlayer(game.id, pickRow.id);
+        await gamesService.addSeatedPlayer(game.id, pickRow.id, labels.get(pickRow.id));
       }
       newGameDraft.clear();
+      setFix(null);
       // Straight back to the scorecard: the Players/Admins page this was opened from is dismissed too.
       router.dismissTo(`/(screens)/games/${game.id}`);
     } catch (err) {
       setError(formatSupabaseError(err));
+      setFix(null);
       // Whatever was seated before the failure is now saved; refresh so the strip tells the truth.
       await loadGame(game.id).catch(() => {});
     } finally {
       setCreating(false);
     }
   };
+
+  const returnToGame = async () => {
+    if (!game) return;
+    const rows = initialsRows();
+    // Existing columns keep their letters; only the players being added can change.
+    const conflicts = findInitialsConflicts(rows);
+    if (conflicts.length && staged.some((p) => !savedIds.has(p.id))) {
+      setChoices({});
+      setFixError(null);
+      setFix({ conflicts, rows, mode: 'return' });
+      return;
+    }
+    await seatWithLabels(resolveInitials(rows, [], {}));
+  };
+
+  /** Fix initials: "Not now" uses the picked letters for this game only; "Apply" also saves them to My players. */
+  const finishFix = async (save: boolean) => {
+    if (!fix || !me) return;
+    const labels = resolveInitials(fix.rows, fix.conflicts, choices);
+    if (save) {
+      setCreating(true);
+      setFixError(null);
+      try {
+        for (const conflict of fix.conflicts) {
+          for (const { row } of conflict.others) {
+            const label = labels.get(row.id);
+            if (label && row.id !== me.id && myPlayers.some((player) => player.id === row.id)) {
+              await playersService.setInitials(me.id, row.id, label);
+            }
+          }
+        }
+      } catch (err) {
+        setFixError(err instanceof Error ? err.message : formatSupabaseError(err));
+        setCreating(false);
+        return;
+      }
+      setCreating(false);
+    }
+    if (fix.mode === 'start') await createWithLabels(labels);
+    else await seatWithLabels(labels);
+  };
+
+  if (fix) {
+    const labels = resolveInitials(fix.rows, fix.conflicts, choices);
+    const taken = new Map([...labels].map(([id, label]) => [label, fix.rows.find((row) => row.id === id)?.name ?? '']));
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Fix initials', headerRight: () => <HelpButton text={HELP.initials} /> }} />
+        <FixInitialsScreen
+          conflicts={fix.conflicts}
+          choices={choices}
+          onChoose={(playerId, initials) => setChoices((current) => ({ ...current, [playerId]: initials }))}
+          taken={taken}
+          youId={me?.id}
+          busy={creating}
+          error={fixError}
+          applyLabel={fix.mode === 'start' ? 'Apply and start' : 'Apply and return'}
+          onNotNow={() => finishFix(false)}
+          onApply={() => finishFix(true)}
+        />
+      </>
+    );
+  }
 
   const newCount = staged.filter((p) => !savedIds.has(p.id)).length;
   const hint = addMode

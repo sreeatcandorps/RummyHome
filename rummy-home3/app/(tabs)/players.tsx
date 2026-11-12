@@ -19,12 +19,14 @@ import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { Tag } from '@/components/ui/Tag';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
 import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
+import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { playerIdentityService } from '@/services/playerIdentity';
+import { assignInitials, initialsFitName, NAME_CHANGED_NOTE } from '@/utils/initials';
 
-type PlayerCardProps = { player: Player; status: ReturnType<typeof registrationLabel>; isMe: boolean; onPress: (player: Player) => void };
+type PlayerCardProps = { player: Player; status: ReturnType<typeof registrationLabel>; isMe: boolean; initials?: string; nameChanged: boolean; onPress: (player: Player) => void };
 
 /** One roster tile. Memoised: typing in the search box redraws only tiles whose inputs changed. */
-const PlayerCard = React.memo(function PlayerCard({ player, status, isMe, onPress }: PlayerCardProps) {
+const PlayerCard = React.memo(function PlayerCard({ player, status, isMe, initials, nameChanged, onPress }: PlayerCardProps) {
   const { colors } = useAppTheme();
   const badge = playerIdBadge(player);
   return (
@@ -32,18 +34,23 @@ const PlayerCard = React.memo(function PlayerCard({ player, status, isMe, onPres
       onPress={() => onPress(player)}
       style={[styles.card, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}
       accessibilityRole="button"
-      accessibilityLabel={`${player.name}, ${badge ?? 'no player ID yet'}, ${status.toLowerCase()}`}
+      accessibilityLabel={`${player.name}, ${initials ? `initials ${initials}, ` : ''}${badge ?? 'no player ID yet'}, ${status.toLowerCase()}${nameChanged ? ', name changed' : ''}`}
     >
       <View style={styles.cardInner}>
         <BoldName name={player.name} numberOfLines={2} style={styles.cardName} />
         <View style={styles.cardMeta}>
+          {initials ? (
+            <View style={[styles.idBadge, { borderColor: nameChanged ? colors.error : colors.primary, backgroundColor: nameChanged ? colors.errorContainer : colors.primaryContainer }]}>
+              <Text variant="labelSmall" style={[styles.idText, { color: nameChanged ? colors.onErrorContainer : colors.onPrimaryContainer }]}>{initials}</Text>
+            </View>
+          ) : null}
           {badge ? (
             <View style={[styles.idBadge, { borderColor: colors.outline }]}>
               <Text variant="labelSmall" style={[styles.idText, { color: colors.onSurfaceVariant }]}>{badge}</Text>
             </View>
           ) : null}
           {isMe ? <Tag label="You" tone="primary" /> : null}
-          <Tag label={status} tone={REGISTRATION_TONE[status]} small />
+          {nameChanged ? <Tag label="Name changed" tone="results" small icon="alert-outline" /> : <Tag label={status} tone={REGISTRATION_TONE[status]} small />}
         </View>
       </View>
     </TouchableRipple>
@@ -64,6 +71,9 @@ export default function PlayersTab() {
   const [removing, setRemoving] = useState(false);
   const [unregistered, setUnregistered] = useState<Record<string, Player>>({});
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [editingInitials, setEditingInitials] = useState(false);
+  const [savingInitials, setSavingInitials] = useState(false);
+  const [initialsError, setInitialsError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -98,6 +108,12 @@ export default function PlayersTab() {
   }, [navigation, players.length]);
 
   const statusOf = useCallback((player: Player) => registrationLabel(unregistered[player.id]?.status ?? player.status), [unregistered]);
+  // Stored initials (022) win; on an older server every row is derived here, oldest first, the same way.
+  const initialsOf = useMemo(() => assignInitials(players.map((player) => ({ id: player.id, name: player.name, initials: player.initials, addedAt: player.addedAt }))), [players]);
+  const nameChanged = useCallback((player: Player) => Boolean(player.initials) && !initialsFitName(player.initials, player.name), []);
+  const takenFor = useCallback((except: Player | null) => new Map(
+    players.filter((player) => player.id !== except?.id).map((player) => [initialsOf.get(player.id) ?? '', player.name] as const).filter(([label]) => label),
+  ), [players, initialsOf]);
   // Search, filter and sort run only when their inputs change, not on every render (each keystroke redraws the grid).
   const shown = useMemo(() => {
     const others = sortMyPlayers(
@@ -142,9 +158,32 @@ export default function PlayersTab() {
     ]);
   };
 
+  const saveInitials = async (value: string) => {
+    if (!selected || !me) return;
+    setSavingInitials(true);
+    setInitialsError(null);
+    try {
+      const stored = await playersService.setInitials(me.id, selected.id, value);
+      setPlayers((current) => current.map((player) => (player.id === selected.id ? { ...player, initials: stored } : player)));
+      setSelected((current) => (current ? { ...current, initials: stored } : current));
+      setEditingInitials(false);
+    } catch (err) {
+      setInitialsError(err instanceof Error ? err.message : formatSupabaseError(err));
+    } finally {
+      setSavingInitials(false);
+    }
+  };
+
   const renderCard = useCallback(({ item: player }: { item: Player }) => (
-    <PlayerCard player={player} status={statusOf(player)} isMe={me?.id === player.id} onPress={openRow} />
-  ), [statusOf, me?.id, openRow]);
+    <PlayerCard
+      player={player}
+      status={statusOf(player)}
+      isMe={me?.id === player.id}
+      initials={me?.id === player.id ? undefined : initialsOf.get(player.id)}
+      nameChanged={nameChanged(player)}
+      onPress={openRow}
+    />
+  ), [statusOf, me?.id, openRow, initialsOf, nameChanged]);
 
   return (
     <Screen>
@@ -257,13 +296,32 @@ export default function PlayersTab() {
 
       <RegisterPlayersDialog visible={registerOpen} me={me} onDismiss={() => { setRegisterOpen(false); load(); }} />
       <Portal>
-        <Dialog visible={!!selected} onDismiss={() => setSelected(null)}>
+        <Dialog visible={!!selected && !editingInitials} onDismiss={() => setSelected(null)}>
           <Dialog.Title>{selected?.name ?? ''}</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyLarge">{selected ? (playerIdBadge(selected) ?? 'No player ID yet') : ''}</Text>
+          <Dialog.Content style={styles.detail}>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-              {selected?.gamesTogether ?? 0} games with you
+              {[selected ? (playerIdBadge(selected) ?? 'No player ID yet') : '', selected ? statusOf(selected) : '', `${selected?.gamesTogether ?? 0} games with you`].filter(Boolean).join(' · ')}
             </Text>
+            <View style={[styles.initialsBox, { borderColor: colors.outlineVariant, backgroundColor: colors.surfaceVariant }]}>
+              <View style={styles.flex}>
+                <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>Initials on your scorecards</Text>
+                <Text variant="headlineSmall" style={styles.initialsText} accessibilityLabel={`Initials ${selected ? initialsOf.get(selected.id) ?? '' : ''}`}>
+                  {selected ? initialsOf.get(selected.id) ?? '' : ''}
+                </Text>
+              </View>
+              <Button mode="outlined" compact icon="pencil-outline" onPress={() => { setInitialsError(null); setEditingInitials(true); }} accessibilityLabel="Edit initials">
+                Edit
+              </Button>
+            </View>
+            {selected && nameChanged(selected) ? (
+              <View style={[styles.note, { backgroundColor: colors.tertiaryContainer }]} accessibilityRole="alert">
+                <Icon source="alert-outline" size={18} color={colors.onSurface} />
+                <Text variant="bodySmall" style={styles.flex}>
+                  {NAME_CHANGED_NOTE} {initialsOf.get(selected.id)} was set when this player had a different name; the name updated by itself, the initials did not. Edit them if you like.
+                </Text>
+              </View>
+            ) : null}
+            {initialsError ? <Text variant="bodySmall" style={{ color: colors.error }}>{initialsError}</Text> : null}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setSelected(null)}>Close</Button>
@@ -275,6 +333,17 @@ export default function PlayersTab() {
             </Button>
           </Dialog.Actions>
         </Dialog>
+        {selected && editingInitials ? (
+          <InitialsDialog
+            name={selected.name}
+            current={initialsOf.get(selected.id)}
+            taken={takenFor(selected)}
+            scope="my-players"
+            busy={savingInitials}
+            onDismiss={() => setEditingInitials(false)}
+            onSave={saveInitials}
+          />
+        ) : null}
       </Portal>
     </Screen>
   );
@@ -341,4 +410,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     alignItems: 'stretch',
   },
+  detail: { gap: spacing.sm },
+  flex: { flex: 1 },
+  initialsBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.lg, padding: spacing.sm },
+  initialsText: { fontWeight: '800', letterSpacing: 2 },
+  note: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, borderRadius: radius.md, padding: spacing.sm },
 });

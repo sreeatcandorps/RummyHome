@@ -25,11 +25,11 @@ test('build 3: every player gets one of three status labels, never a bare Pendin
   for (const label of Object.keys(REGISTRATION_TONE)) assert.notEqual(label, 'Pending');
 });
 
-test('build 3: initials cannot end in a digit; digits are kept for H2 and H3', () => {
+test('build 3: initials cannot end in a digit (scorecard initials are letters)', () => {
   assert.equal(validateInitials('H', 'Y'), null);
   assert.equal(validateInitials('Sa', 'Ku'), null);
   assert.match(validateInitials('H', '2')!, /last initial must be a letter/i);
-  assert.match(validateInitials('H', '2')!, /H2/);
+  assert.match(validateInitials('H', '2')!, /letters only/i);
   assert.match(validateInitials('3', 'Y')!, /first initial must be a letter/i);
   assert.match(validateInitials('', 'Y')!, /first and a last initial/i);
   assert.match(validateInitials('H', '  ')!, /first and a last initial/i);

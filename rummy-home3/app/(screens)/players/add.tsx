@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, TextInput as NativeTextInput, View } from 'react-native';
-import { Button, Icon, IconButton, Text, TextInput } from 'react-native-paper';
+import { Button, Icon, IconButton, Portal, Text, TextInput } from 'react-native-paper';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
@@ -10,7 +10,9 @@ import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { validateInitials } from '@/utils/playerIdentity';
-import { buildPlayerInitials } from '@/utils/playerInitials';
+import { playersService } from '@/services/players';
+import { assignInitials, defaultInitials } from '@/utils/initials';
+import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { playerIdBadge } from '@/utils/myPlayersList';
 import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
 import { SelectedPlayersStrip } from '@/components/players/SelectedPlayersStrip';
@@ -40,6 +42,10 @@ export default function AddPlayersScreen() {
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [rows, setRows] = useState<Row[]>(() => Array.from({ length: DEFAULT_NEW_PLAYER_ROWS }, blank));
   const [seated, setSeated] = useState<DraftPick[]>(() => (fromNewGame ? newGameDraft.get() : []));
+  /** The owner's My players after each save: stored initials (022) for the saved rows, and who has which letters. */
+  const [mine, setMine] = useState<Player[]>([]);
+  const [editInitials, setEditInitials] = useState<Player | null>(null);
+  const [savingInitials, setSavingInitials] = useState(false);
 
   // The New game behind us owns the seats; we show and edit the same list.
   useEffect(() => {
@@ -58,12 +64,18 @@ export default function AddPlayersScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const refreshMine = useCallback(async (id: string) => {
+    const list = await playersService.listMyPlayers(id, { fresh: true }).catch(() => null);
+    if (list) setMine(list);
+  }, []);
+
   useEffect(() => {
     (async () => {
       const id = isSupabaseConfigured ? await authService.getCurrentUserId() : await storage.getCurrentPlayer();
       setOwnerId(id);
+      if (id) await refreshMine(id);
     })().catch(() => {});
-  }, []);
+  }, [refreshMine]);
 
   // Back gestures, the hardware back button, and header taps all come through here.
   useEffect(() => {
@@ -112,6 +124,7 @@ export default function AddPlayersScreen() {
         ? await playerIdentityService.updateNewPlayer(ownerId, row.player.id, row.first, row.last)
         : await playerIdentityService.createNewPlayer(ownerId, row.first, row.last);
       if (fromNewGame) newGameDraft.add({ id: player.id, name: player.name, playerCode: player.playerCode });
+      refreshMine(ownerId).catch(() => {});
       // Keep typing: the cursor moves to the next open row, and a new row appears when every row is saved.
       setRows((all) => {
         const next = all.map((item) => (item.key === row.key ? { ...item, player, editing: false, busy: false } : item));
@@ -149,9 +162,37 @@ export default function AddPlayersScreen() {
   };
 
   const savedRows = rows.filter((row) => row.player && !row.editing);
-  const labels = buildPlayerInitials(savedRows.map((row) => row.player!.name));
-  const labelFor = (key: string) => labels[savedRows.findIndex((row) => row.key === key)] ?? '';
+  // Stored initials from My players (the database picked a unique default); derived the same way until the list arrives.
+  const initialsOf = assignInitials(mine.map((player) => ({ id: player.id, name: player.name, initials: player.initials, addedAt: player.addedAt })));
+  const labelFor = (key: string) => {
+    const row = savedRows.find((item) => item.key === key);
+    return row?.player ? initialsOf.get(row.player.id) ?? defaultInitials(row.player.name) : '';
+  };
+  /** Three letters instead of two: someone already in My players has the short form. */
+  const clashNote = (player: Player) => {
+    const label = initialsOf.get(player.id);
+    const short = defaultInitials(player.name);
+    if (!label || label === short) return null;
+    const holder = mine.find((other) => other.id !== player.id && initialsOf.get(other.id) === short);
+    return holder ? `${short} is ${holder.name}, so ${player.name.split(' ')[0]} is ${label}.` : `${player.name.split(' ')[0]} is ${label}.`;
+  };
+  const takenFor = (except: Player) => new Map(mine.filter((player) => player.id !== except.id).map((player) => [initialsOf.get(player.id) ?? '', player.name] as const).filter(([label]) => label));
   const savedCount = savedRows.length;
+
+  const saveInitials = async (value: string) => {
+    if (!editInitials || !ownerId) return;
+    setSavingInitials(true);
+    try {
+      await playersService.setInitials(ownerId, editInitials.id, value);
+      await refreshMine(ownerId);
+      setEditInitials(null);
+    } catch (err) {
+      setRows((all) => all.map((row) => (row.player?.id === editInitials.id ? { ...row, error: err instanceof Error ? err.message : formatSupabaseError(err) } : row)));
+      setEditInitials(null);
+    } finally {
+      setSavingInitials(false);
+    }
+  };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -243,6 +284,13 @@ export default function AddPlayersScreen() {
                   {[saved ? labelFor(row.key) : null, badge ?? 'Player ID pending', 'Unregistered'].filter(Boolean).join(' · ')}
                 </Text>
               ) : null}
+              {row.player && saved && clashNote(row.player) ? (
+                <View style={styles.clash}>
+                  <Icon source="information-outline" size={14} color={colors.onSurfaceVariant} />
+                  <Text variant="labelSmall" style={[styles.flex, { color: colors.onSurfaceVariant }]}>{clashNote(row.player)}</Text>
+                  <Button compact mode="text" onPress={() => setEditInitials(row.player!)} accessibilityLabel={`Edit initials for ${row.player.name}`}>Edit</Button>
+                </View>
+              ) : null}
               {row.error ? (
                 <Text variant="labelSmall" style={[styles.meta, { color: isNotReadyMessage(row.error) ? colors.onSurfaceVariant : colors.error }]}>
                   {row.error}
@@ -252,6 +300,20 @@ export default function AddPlayersScreen() {
           );
         })}
       </ScrollView>
+
+      <Portal>
+        {editInitials ? (
+          <InitialsDialog
+            name={editInitials.name}
+            current={initialsOf.get(editInitials.id)}
+            taken={takenFor(editInitials)}
+            scope="my-players"
+            busy={savingInitials}
+            onDismiss={() => setEditInitials(null)}
+            onSave={saveInitials}
+          />
+        ) : null}
+      </Portal>
 
       <BottomBar>
         <View style={styles.footer}>
@@ -303,6 +365,8 @@ const styles = StyleSheet.create({
   savedPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, height: 32, borderRadius: radius.full },
   iconButton: { margin: 0 },
   meta: { paddingLeft: 22 },
+  clash: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 22 },
+  flex: { flex: 1 },
   footer: { flex: 1, gap: spacing.sm },
   done: { borderRadius: radius.full },
   doneContent: { height: 60 },

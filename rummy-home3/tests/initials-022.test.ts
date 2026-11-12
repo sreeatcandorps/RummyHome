@@ -9,6 +9,7 @@ import {
   initialsFitName,
   initialsProblem,
   nameWords,
+  resolveInitials,
   seatLabels,
   suggestInitials,
 } from '../utils/initials';
@@ -128,4 +129,24 @@ test('seatLabels: stored seat labels win, the rest fill in seat order', () => {
     { id: 's5', name: 'Suresh Kumar' },
   ]);
   assert.deepEqual([...labels.values()], ['HAT', 'HT', 'PT', 'SK', 'SUK']);
+});
+
+test('resolveInitials: keepers keep the label, choices win, the rest stay unique', () => {
+  const rows = [
+    { id: 'me', name: 'Sree Koneru' },
+    { id: 'suresh', name: 'Suresh Kumar', initials: 'SK', addedAt: '2026-01-01' },
+    { id: 'priya', name: 'Priya Test', initials: 'PT', addedAt: '2026-01-02' },
+    { id: 'pavan', name: 'Pavan Teja', addedAt: '2026-01-03' },
+  ];
+  const conflicts = findInitialsConflicts(rows, 'me');
+  assert.equal(conflicts.length, 2);
+  const auto = resolveInitials(rows, conflicts, {});
+  assert.equal(auto.get('me'), 'SK');
+  assert.equal(auto.get('suresh'), 'SUK');
+  assert.equal(auto.get('priya'), 'PT');
+  assert.equal(auto.get('pavan'), 'PAT');
+  const chosen = resolveInitials(rows, conflicts, { suresh: 'sku', pavan: 'PVT' });
+  assert.equal(chosen.get('suresh'), 'SKU');
+  assert.equal(chosen.get('pavan'), 'PVT');
+  assert.equal(new Set(chosen.values()).size, 4);
 });

@@ -113,15 +113,16 @@ export function newPlayerDisplayName(first: string, last: string): string {
 }
 
 /**
- * Add new players by initials. A digit cannot be the last initial: digits are
- * how the app marks duplicate initials (H2, H3), so "H 2" would collide with them.
+ * Add new players by initials. Neither initial can start with a digit: scorecard
+ * initials are letters (SK, then SUK on a clash), and a digit is used there only
+ * when every letter form is taken, so a name that starts with one would collide.
  */
 export function validateInitials(first: string, last: string): string | null {
   const given = first.trim();
   const family = last.trim();
   if (!given || !family) return 'Type a first and a last initial.';
   if (/^\d/.test(given)) return 'The first initial must be a letter.';
-  if (/^\d/.test(family)) return 'The last initial must be a letter. Numbers are kept for duplicate initials like H2.';
+  if (/^\d/.test(family)) return 'The last initial must be a letter. Scorecard initials are letters only.';
   return null;
 }
 

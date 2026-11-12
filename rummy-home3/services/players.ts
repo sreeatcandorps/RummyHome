@@ -331,14 +331,17 @@ export const playersService = {
 
   async addMyPlayer(ownerId: string, player: Pick<Player, 'id' | 'name' | 'playerCode'>): Promise<void> {
     const rows = await readRoster();
+    const existing = rows.find((row) => row.ownerId === ownerId && row.playerId === player.id);
     const without = rows.filter((row) => !(row.ownerId === ownerId && row.playerId === player.id));
+    // Re-adding (a rename, a claim) keeps the row's age and initials: a rename never changes initials.
     const next: RosterRow = {
       ownerId,
       playerId: player.id,
-      gamesTogether: rows.find((row) => row.ownerId === ownerId && row.playerId === player.id)?.gamesTogether ?? 0,
-      createdAt: new Date().toISOString(),
+      gamesTogether: existing?.gamesTogether ?? 0,
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
       name: player.name,
       playerCode: player.playerCode,
+      initials: existing?.initials,
     };
     await writeRoster([next, ...without]);
     this.forgetMyPlayers();

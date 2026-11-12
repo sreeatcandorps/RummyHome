@@ -88,7 +88,7 @@ test('mid-game add reuses the picker in add mode with Return to game; the old po
   assert.match(screen, /useLocalSearchParams<\{ gameId\?: string \}>/);
   assert.match(screen, /'Add players to game' : 'New game'/);
   assert.match(screen, /accessibilityLabel="Return to game"/);
-  assert.match(screen, /gamesService\.addSeatedPlayer\(game\.id, pickRow\.id\)/, 'reuses the mid-game add path (zeros for rounds played)');
+  assert.match(screen, /gamesService\.addSeatedPlayer\(game\.id, pickRow\.id, labels\.get\(pickRow\.id\)\)/, 'reuses the mid-game add path (zeros for rounds played), with the seat label (022)');
   assert.match(screen, /gamesService\.removeSeatIfNoScores\(game\.id, id\)/);
   assert.match(screen, /router\.dismissTo\(`\/\(screens\)\/games\/\$\{game\.id\}`\)/, 'Return to game lands on the scorecard, not on Players/Admins');
   assert.match(screen, /seatRemovalProblem\(game\.scores\[id\]\)/, 'blocked before any request');
