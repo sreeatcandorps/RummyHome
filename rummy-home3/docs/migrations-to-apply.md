@@ -207,26 +207,34 @@ select count(*) filter (where email_game_started), count(*) filter (where email_
 select count(*), count(sent_at) from public.email_outbox;  -- 0, 0 right after applying
 ```
 
-## 025 — Link to Player ID: ID + email, every game, conflict check (approved Nov 11, 10:59 PM PT, item 5)
+## 025 — Link to Player ID as a request the owner accepts (approved Nov 11, 10:59 PM PT, item 5; amended Nov 12)
 
-File: `supabase/migrations/025_link_player_to_account.sql`. Run after 024. Safe to re-run. Rollback: `supabase/rollback/rollback_025_link_player_to_account.sql` (drops the four functions; links already made stay linked and can still be undone one by one with 011 `unlink_player`; nothing from 012/015/017 was replaced).
+File: `supabase/migrations/025_link_player_to_account.sql`. Run after 024. Safe to re-run. Rollback: `supabase/rollback/rollback_025_link_player_to_account.sql` (cancels open requests, drops the new functions, puts back the 012 `expire_player_requests`, 011 `take_creator_notices` and 023 `get_home_bundle`, drops the two new columns; links already accepted stay linked and can still be undone one by one with 011 `unlink_player`).
 
-Not applied by this change. Adds four functions; no table or column changes.
+Not applied by this change. Two new columns (`player_links.target_id`, `creator_notices.kind`), one new `player_links` kind (`link_request`) and one new outbox kind (`link_request`); three functions replaced in place (`expire_player_requests`, `take_creator_notices`, `get_home_bundle`).
 
-What it does:
+What it does (Nov 12 amendments: **no immediate merge; the admin types the Player ID only, never someone else's email; the conflict sentence names each blocking game**):
 
-- **`link_player_check(p_player_id, p_player_no, p_email)`** — the preview behind the Check button. The caller must own the unregistered player. The Player ID and the email must name the same registered account (compared lower-cased and trimmed); otherwise a plain sentence — "No registered player has that Player ID." / "That email does not match Player ID #42." — and the account's email is never returned. Answers `{target: {id, name, playerNo}, gameCount, conflicts: [{gameId, gameNumber}]}`, where a conflict is any game the unregistered player sits in where that account already **plays** (seated, not a viewer, not a non-playing admin). Every game counts, not just the open one.
-- **`link_player_to_account(p_player_id, p_player_no, p_email)`** — the Link button. Same checks; refuses with "Priya already plays in G4, G7. Remove one of the two from those games first, then link." when there is any conflict, so nothing half-moves. Otherwise, under the same per-game lock as `save_round` (019), every seat, score and dealer mark moves to the account in every game (deleted games included, so history stays whole); a viewer or non-playing admin of a game takes the seat and keeps the admin role (as 017 did). The player becomes `merged`, pending claim links are revoked, the owner's My players row for the placeholder becomes the account's (games together added), and a `player_links` row (`kind = 'link'`, `status = 'claimed'`, `moved_game_ids`) records the move so `unlink_player` (011) can undo it.
-- `link_target_for` and `link_conflicts` are internal helpers (no grants).
+- **`link_player_check(p_player_id, p_player_no)`** — the preview behind Check. The caller must own the unregistered player. Answers `{target: {id, name, playerNo}, gameCount, gameNumbers, conflicts: [{gameId, gameNumber, creatorName}], conflictMessage, pending}`. A conflict is any game where the unregistered player sits and the account already **plays** (seated; a viewer or non-playing admin is not a conflict). The sentence, built by `link_conflict_message`, lists every such game with its G-number, full game ID and creator: *"Can't link yet. G12 (game ID 3f2a…, creator Sree Koneru) has both R K and #11. In that game, clear one of their scores to zero and remove them from the game first."* There is no Remove button; the admin clears the game first.
+- **`request_player_link(p_player_id, p_player_no)`** — Send request. Refuses with the sentence above when anything conflicts. Otherwise **nothing moves**: it writes a pending `player_links` row (`kind = 'link_request'`, `target_id` = the account, `expires_at` = now + `link_request_days()` = 7), sets the player to `pending` (so the row reads **Link pending**), and, when the account has an email, queues one `email_outbox` row (`kind = 'link_request'`, sent by the 024 `send-email` flush) with a **Yes** and a **No** link to `https://ezscore.mindweavetech.com/link.html?t=<token>&a=yes|no`. Sending again for the same player replaces the earlier request (and drops its unsent email).
+- **`cancel_player_link_request(p_link_id)`** — the owner takes the request back; the player is unregistered again.
+- **`list_my_link_requests(p_game_id)`** — the admin's open requests (or, with a game, the requests for players seated in it) so every admin's roster shows Link pending.
+- **`list_link_requests_for_me()`** — the account's open requests, with the conflict re-checked now, for the Yes / No card on Home. Also in `get_home_bundle` as `link_requests`.
+- **`answer_player_link_request(p_link_id, p_accept)`** (signed in) and **`answer_link_request_by_token(p_token, p_accept)`** / **`peek_link_request(p_token)`** (the email buttons; work signed out, the target is fixed on the row, single use). Yes runs `perform_player_link`: the conflict check again (refuses with the same sentence), then under the same per-game lock as `save_round` (019) every seat, score and dealer mark moves to the account in every game (deleted games included); a viewer or non-playing admin takes the seat and keeps the admin role; the player becomes `merged`, other pending claims are revoked, the owner's My players row folds into the account, and the row becomes `status = 'claimed'` with `moved_game_ids` so `unlink_player` (011) can undo it. The admin gets a one-time `creator_notices` row with `kind = 'linked'` — *"Harish (HG) is now linked to #40."* — shown once as a pop-up on Home. No leaves the player unregistered and tells the admin.
+- **`expire_link_requests()`** (inside `expire_player_requests`) — after 7 days the request is `expired`, the player unregistered again, the admin told.
+- `link_target_for`, `link_seat_for`, `link_conflicts`, `link_conflict_message`, `perform_player_link`, `decline_player_link` are internal (no grants).
 
 The app's one-game "Link to a Player ID" (015/017 `link_seat_to_player`) is no longer called; the function stays in place.
 
-Verified on a scratch Postgres 16 loaded with 001–024 and the CI seed: 484 pgTAP checks (36 new in `supabase/tests/15_link_player_025.sql`: grants, ownership, every way the pair can fail, case/space-insensitive email, conflict found in A for Priya, viewer and non-playing admin are not conflicts, the full move for RK → Cora incl. role kept, score moved, merged status, My players folded, the claimed link row, and 011 unlink restoring the seat), 31 two-client race checks, and the rollback replay (rollback 025 → 013, re-apply 013 → 025, apply each a second time; 83 checks) all pass.
+Verified on a scratch Postgres 16 loaded with 001–024 and the CI seed: 588 pgTAP checks (95 in `supabase/tests/15_link_player_025.sql`: objects and grants, who may ask, lookups, the exact conflict sentence, a request that moves nothing and queues the Yes / No email, lists for the owner / a co-admin / the target / an outsider, only the owner cancels and only the target answers, re-send replaces, cancel, the conflict re-checked at Yes, Yes by token signed out with the full move and the 'linked' notice, single-use token, 011 unlink restoring the seat, No in app, 7-day expiry), 31 two-client race checks, and the rollback replay (rollback 026 → 013, re-apply 013 → 026, apply each a second time; 91 checks) all pass.
+
+Outside the database (also not done by this change): the GitHub Pages site needs `dist/link.html` (`node scripts/inject-scorecard-config.mjs` now also fills `public/link.html`), and `supabase functions deploy send-email` again so the `link_request` email renders (rows wait in the outbox until then).
 
 Read-only checks after applying (nothing is changed):
 
 ```sql
-select count(*) from public.player_links where kind = 'link' and status = 'claimed' and token_hash is null;  -- 0 right after applying; grows by one per Link to Player ID
+select status, count(*) from public.player_links where kind = 'link_request' group by 1;        -- empty right after applying
+select count(*) from public.email_outbox where kind = 'link_request' and sent_at is null;        -- unsent Yes / No emails
 ```
 
 ## 026 — Delete account (Google Play), approved Nov 11, 10:59 PM PT, item 6
@@ -285,4 +293,4 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key \
 node scripts/inject-scorecard-config.mjs
 ```
 
-That writes `dist/scorecard.html`. Put that file at `https://ezscore.mindweavetech.com/scorecard.html`. Do not commit `dist/scorecard.html`, and do not put the key in the link. The anon key is the public client key already used by the app. It is not the service role key.
+That writes `dist/scorecard.html` (and `dist/r/index.html`, `dist/unsubscribe.html`, `dist/link.html`). Put those files at the same paths under `https://ezscore.mindweavetech.com/`. Do not commit `dist/scorecard.html`, and do not put the key in the link. The anon key is the public client key already used by the app. It is not the service role key.
