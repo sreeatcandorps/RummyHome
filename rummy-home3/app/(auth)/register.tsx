@@ -136,7 +136,7 @@ export default function RegisterScreen() {
       }
 
       if (isSupabaseConfigured) {
-        sendWelcomeEmail(email.trim(), displayName).catch(() => {});
+        sendWelcomeEmail(cleanEmail, displayName).catch(() => {});
       }
 
       if (isSupabaseConfigured && !authData.session) {

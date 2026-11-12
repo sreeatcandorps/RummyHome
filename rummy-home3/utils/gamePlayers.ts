@@ -47,7 +47,7 @@ export function isSeatAdmin(seat: SeatLike, game: GameLike): boolean {
   return seat.seatRole === 'game_admin' || Boolean(game.adminIds?.includes(seat.id)) || Boolean(game.unseatedAdminIds?.includes(seat.id));
 }
 
-export type SeatMenuItem = 'make_admin' | 'remove_admin' | 'edit_name' | 'invite' | 'link_id';
+export type SeatMenuItem = 'make_admin' | 'remove_admin' | 'edit_name' | 'invite' | 'link_id' | 'remove_player';
 
 export type SeatMenu = { item: SeatMenuItem; enabled: boolean; reason?: string }[];
 
@@ -55,6 +55,9 @@ export type SeatMenu = { item: SeatMenuItem; enabled: boolean; reason?: string }
  * The per-player ⋮ menu for a game admin. The creator always stays admin.
  * Edit name and Link to a Player ID work only on an unregistered player the
  * viewer manages: another organiser's player is theirs to change.
+ * Remove player is offered for every seated player; whether it is allowed (no
+ * scores, or every round score exactly 0) is decided at the tap with the exact
+ * message from utils/seatRemoval, after a confirmation.
  */
 export function seatMenu(seat: SeatLike, game: GameLike, viewerId: string | null | undefined, canManage: boolean): SeatMenu {
   if (!canManage) return [];
@@ -73,6 +76,9 @@ export function seatMenu(seat: SeatLike, game: GameLike, viewerId: string | null
     items.push({ item: 'invite', enabled: mine, reason });
     items.push({ item: 'link_id', enabled: mine, reason });
   }
+  if (seat.seatRole !== 'spectator' && seat.seated !== false) {
+    items.push({ item: 'remove_player', enabled: true });
+  }
   return items;
 }
 
@@ -82,6 +88,7 @@ export const SEAT_MENU_LABEL: Record<SeatMenuItem, string> = {
   edit_name: 'Edit name',
   invite: 'Invite to register',
   link_id: 'Link to a Player ID',
+  remove_player: 'Remove player',
 };
 
 /**

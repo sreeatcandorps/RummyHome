@@ -6,10 +6,14 @@ import { Player } from '@/types/player';
 import { isEphemeralTestEmail } from '@/utils/playerFilters';
 import { playerSearchMode } from '@/utils/playerSearch';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
+import { queryCache } from '@/utils/queryCache';
 
 export const MIGRATION_007_HINT = NOT_READY_MESSAGE;
 
 const ROSTER_KEY = 'myPlayersRoster';
+const MY_PLAYERS_KEY = (ownerId: string) => `myPlayers:${ownerId}`;
+/** How long a list_my_players answer serves the tab bar count and the My Players screen before it is asked again. */
+export const MY_PLAYERS_STALE_MS = 30_000;
 
 type RosterRow = {
   ownerId: string;
@@ -79,6 +83,48 @@ function rowToPlayer(row: RosterRow): Player {
     role: 'player',
     gamesTogether: row.gamesTogether,
   };
+}
+
+/** A list_my_players row (RPC or home bundle) as a Player. */
+export const myPlayerFromRow = (row: { id: string; display_name: string; player_code: string | null; games_together: number }): Player => ({
+  id: row.id,
+  name: row.display_name || 'Rummy Player',
+  playerCode: row.player_code ?? undefined,
+  role: 'player' as const,
+  gamesTogether: row.games_together ?? 0,
+});
+
+/** Does the server list differ from the cached roster rows for this owner? */
+export function rosterChanged(mine: RosterRow[], players: Player[]): boolean {
+  if (mine.length !== players.length) return true;
+  const byId = new Map(mine.map((row) => [row.playerId, row]));
+  return players.some((player) => {
+    const row = byId.get(player.id);
+    return !row || row.name !== player.name || row.playerCode !== player.playerCode || row.gamesTogether !== (player.gamesTogether ?? 0);
+  });
+}
+
+/**
+ * Keep the offline roster copy in step with a fresh server list. The write (a JSON
+ * blob of every owner's players) is skipped when nothing changed, which is the usual
+ * case on every tab change.
+ */
+async function rememberMyPlayers(ownerId: string, players: Player[]): Promise<void> {
+  const rows = await readRoster();
+  const mine = rows.filter((row) => row.ownerId === ownerId);
+  if (!rosterChanged(mine, players)) return;
+  const others = rows.filter((row) => row.ownerId !== ownerId);
+  await writeRoster([
+    ...others,
+    ...players.map((player: Player) => ({
+      ownerId,
+      playerId: player.id,
+      gamesTogether: player.gamesTogether ?? 0,
+      createdAt: new Date().toISOString(),
+      name: player.name,
+      playerCode: player.playerCode,
+    })),
+  ]);
 }
 
 export const playersService = {
@@ -175,38 +221,42 @@ export const playersService = {
       .map(rowToPlayer);
   },
 
-  async listMyPlayers(ownerId: string): Promise<Player[]> {
+  /**
+   * The server list. Callers that run at the same moment share one request, and a
+   * list younger than MY_PLAYERS_STALE_MS is served again without a request; every
+   * roster change (add/remove/rename, a claim) calls forgetMyPlayers().
+   */
+  async listMyPlayers(ownerId: string, options: { fresh?: boolean } = {}): Promise<Player[]> {
     if (!isSupabaseConfigured) return this.readMyPlayers(ownerId);
+    if (options.fresh) queryCache.invalidate(MY_PLAYERS_KEY(ownerId));
 
-    const rpc = await withTimeout(
-      supabase.rpc('list_my_players'),
-      REQUEST_TIMEOUT_MS,
-      'Couldn’t load your players.',
-    );
-    if (rpc.error) {
-      if (missingRpc(rpc.error)) throw new Error(MIGRATION_007_HINT);
-      throw rpc.error;
-    }
-    const players = (rpc.data ?? []).map((row: { id: string; display_name: string; player_code: string | null; games_together: number }) => ({
-      id: row.id,
-      name: row.display_name || 'Rummy Player',
-      playerCode: row.player_code ?? undefined,
-      role: 'player' as const,
-      gamesTogether: row.games_together ?? 0,
-    }));
-    const others = (await readRoster()).filter((row) => row.ownerId !== ownerId);
-    await writeRoster([
-      ...others,
-      ...players.map((player: Player) => ({
-        ownerId,
-        playerId: player.id,
-        gamesTogether: player.gamesTogether ?? 0,
-        createdAt: new Date().toISOString(),
-        name: player.name,
-        playerCode: player.playerCode,
-      })),
-    ]);
+    return queryCache.read(MY_PLAYERS_KEY(ownerId), async () => {
+      const rpc = await withTimeout(
+        supabase.rpc('list_my_players'),
+        REQUEST_TIMEOUT_MS,
+        'Couldn’t load your players.',
+      );
+      if (rpc.error) {
+        if (missingRpc(rpc.error)) throw new Error(MIGRATION_007_HINT);
+        throw rpc.error;
+      }
+      const players = (rpc.data ?? []).map(myPlayerFromRow);
+      await rememberMyPlayers(ownerId, players);
+      return players;
+    }, { staleTime: MY_PLAYERS_STALE_MS });
+  },
+
+  /** A list_my_players result that arrived inside the home bundle. */
+  async primeMyPlayers(ownerId: string, rows: any[]): Promise<Player[]> {
+    const players = (rows ?? []).map(myPlayerFromRow);
+    queryCache.set(MY_PLAYERS_KEY(ownerId), players);
+    await rememberMyPlayers(ownerId, players);
     return players;
+  },
+
+  /** After any change to who is on the roster. */
+  forgetMyPlayers() {
+    queryCache.invalidate('myPlayers:');
   },
 
   async addMyPlayer(ownerId: string, player: Pick<Player, 'id' | 'name' | 'playerCode'>): Promise<void> {
@@ -221,6 +271,7 @@ export const playersService = {
       playerCode: player.playerCode,
     };
     await writeRoster([next, ...without]);
+    this.forgetMyPlayers();
 
     if (!isSupabaseConfigured) return;
     const { error } = await supabase.rpc('add_my_player', { p_player_id: player.id });
@@ -234,6 +285,7 @@ export const playersService = {
   async removeMyPlayer(ownerId: string, playerId: string): Promise<void> {
     const rows = await readRoster();
     await writeRoster(rows.filter((row) => !(row.ownerId === ownerId && row.playerId === playerId)));
+    this.forgetMyPlayers();
     if (!isSupabaseConfigured) return;
     const { error } = await supabase.rpc('remove_my_player', { p_player_id: playerId });
     if (error) {
@@ -268,6 +320,7 @@ export const playersService = {
       }
     });
     await writeRoster(next);
+    this.forgetMyPlayers();
     if (!isSupabaseConfigured) return;
     const { error } = await supabase.rpc('touch_my_players', { p_ids: playerIds });
     if (error && !missingRpc(error)) throw error;

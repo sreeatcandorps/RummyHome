@@ -66,13 +66,17 @@ test('writeRound throws RoundConflictError on PT409 (and on the legacy unique vi
   assert.match(service, /throw isRoundConflict\(roundError\) \? toRoundConflictError\(roundError\) : roundError/, 'the pre-014 fallback maps the same race');
 });
 
-test('Add round shows the conflict, refreshes the scorecard and clears the typed scores', () => {
+test('Add round shows the conflict, clears the typed scores and returns to the scorecard (Edit reloads the round)', () => {
   const screen = read('app/(screens)/score-entry.tsx');
   assert.match(screen, /import \{ isRoundConflict, roundConflictMessage \} from '\.\.\/\.\.\/utils\/roundConflict'/);
   assert.match(screen, /if \(isRoundConflict\(error\)\) \{/);
   assert.match(screen, /if \(!editRound\) setEntry\(initialRoundEntryState\);/, 'typed scores are dropped so they cannot land on the next round');
-  assert.match(screen, /await loadGameData\(\);/, 'the scorecard is refreshed');
-  assert.match(screen, /title: 'Round already saved', body: roundConflictMessage\(error\)/);
+  assert.match(screen, /else await loadGameData\(\);/, 'Edit mode reloads the round as it is now');
+  assert.match(screen, /title: 'Round already saved',\s+body: roundConflictMessage\(error\)/);
+  assert.match(screen, /onClose: editRound \? undefined : closeScreen/, 'Add mode goes back to the scorecard instead of staying on the next round');
+  assert.match(screen, /const dismissNotice = \(\) => \{\s+const onClose = notice\?\.onClose;\s+setNotice\(null\);\s+onClose\?\.\(\);/);
+  assert.match(screen, /onDismiss=\{dismissNotice\}/);
+  assert.match(screen, /onPress=\{dismissNotice\} contentStyle=\{styles\.dialogButtonContent\}/);
 });
 
 // ---------------------------------------------------------------------------

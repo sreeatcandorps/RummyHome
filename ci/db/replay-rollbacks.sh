@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–019) applied, check the function state after each, then re-apply the forward
+# has every migration (001–021) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,39 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 021 (present from PR 7's Nov 11 email-uniqueness batch on; skipped on refs that do not have it yet)
+HAS_021=f
+if [ -f "$RB/rollback_021_email_uniqueness.sql" ]; then
+  HAS_021=t
+  if apply "$RB/rollback_021_email_uniqueness.sql"; then tap ok "rollback_021 applies"; else tap fail "rollback_021 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists normalize_profile_email)" = f ] && [ "$(fn_exists duplicate_profile_emails)" = f ] \
+    && tap ok "after rollback_021 the normalising trigger function and the duplicate report are gone" \
+    || tap fail "after rollback_021 normalize_profile_email / duplicate_profile_emails should be gone"
+  [ "$(q "select exists(select 1 from pg_indexes where schemaname='public' and indexname='profiles_email_ci_key')")" = f ] \
+    && tap ok "after rollback_021 profiles_email_ci_key is gone" || tap fail "after rollback_021 profiles_email_ci_key should be gone"
+  [ "$(q "select exists(select 1 from pg_indexes where schemaname='public' and indexname='profiles_email_normalized_key')")" = t ] \
+    && [ "$(fn_exists lock_profile_role)" = t ] \
+    && tap ok "rollback_021 leaves 011's accounts-only email index and 019 in place" \
+    || tap fail "rollback_021 must not touch 011's index or 019"
+fi
+
+# 020 (present from PR 7's Nov 11 performance batch on; skipped on refs that do not have it yet)
+HAS_020=f
+if [ -f "$RB/rollback_020_performance_rpcs_and_indexes.sql" ]; then
+  HAS_020=t
+  if apply "$RB/rollback_020_performance_rpcs_and_indexes.sql"; then tap ok "rollback_020 applies"; else tap fail "rollback_020 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists get_game_bundle)" = f ] && [ "$(fn_exists get_home_bundle)" = f ] && [ "$(fn_exists list_result_candidates)" = f ] \
+    && tap ok "after rollback_020 the bundle RPCs are gone" || tap fail "after rollback_020 the bundle RPCs should be gone"
+  [ "$(fn_has list_visible_game_ids 'union')" = f ] && [ "$(fn_has get_game_result game_rounds_json)" = f ] \
+    && tap ok "after rollback_020 list_visible_game_ids and get_game_result are the 006/018 bodies" \
+    || tap fail "after rollback_020 list_visible_game_ids / get_game_result should be the 006/018 bodies"
+  [ "$(q "select exists(select 1 from pg_indexes where schemaname='public' and indexname='game_results_declared_by_idx')")" = f ] \
+    && tap ok "after rollback_020 the 020 indexes are gone" || tap fail "after rollback_020 the 020 indexes should be gone"
+  [ "$(fn_exists lock_profile_role)" = t ] && [ "$(q "select has_column_privilege('authenticated','public.profiles','email','select')")" = f ] \
+    && tap ok "rollback_020 leaves 019 in place (role lock, contact columns private)" \
+    || tap fail "rollback_020 must not touch 019"
+fi
 
 # 019 (present from PR 7's Nov 11 security/concurrency batch on; skipped on refs that do not have it yet)
 HAS_019=f
@@ -80,6 +113,8 @@ if apply "$RB/rollback_013_results_privacy.sql"; then tap ok "rollback_013 appli
 FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_remove_seat_if_no_scores 017_link_seat_takeover"
 [ "$HAS_018" = t ] && FORWARD="$FORWARD 018_results_reuse_and_player_ids"
 [ "$HAS_019" = t ] && FORWARD="$FORWARD 019_security_and_concurrency_fixes"
+[ "$HAS_020" = t ] && FORWARD="$FORWARD 020_performance_rpcs_and_indexes"
+[ "$HAS_021" = t ] && FORWARD="$FORWARD 021_email_uniqueness"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -96,6 +131,17 @@ if [ "$HAS_019" = t ]; then
     && [ "$(q "select has_column_privilege('authenticated','public.profiles','email','select')")" = f ] \
     && tap ok "019 restored (role lock, per-game lock in save_round and remove_seat_if_no_scores, my_profile, contact columns private)" \
     || tap fail "019 restored"
+fi
+if [ "$HAS_020" = t ]; then
+  [ "$(fn_exists get_game_bundle)" = t ] && [ "$(fn_exists get_home_bundle)" = t ] && [ "$(fn_exists list_result_candidates)" = t ] \
+    && [ "$(fn_has list_visible_game_ids 'union')" = t ] && [ "$(fn_has get_game_result game_rounds_json)" = t ] \
+    && [ "$(q "select exists(select 1 from pg_indexes where schemaname='public' and indexname='game_results_declared_by_idx')")" = t ] \
+    && tap ok "020 restored (bundle RPCs, union bodies, indexes)" || tap fail "020 restored"
+fi
+if [ "$HAS_021" = t ]; then
+  [ "$(fn_exists normalize_profile_email)" = t ] && [ "$(fn_exists duplicate_profile_emails)" = t ] \
+    && [ "$(q "select exists(select 1 from pg_indexes where schemaname='public' and indexname='profiles_email_ci_key')")" = t ] \
+    && tap ok "021 restored (normalising trigger, duplicate report, case-insensitive unique email)" || tap fail "021 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

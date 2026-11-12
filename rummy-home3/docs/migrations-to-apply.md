@@ -102,13 +102,49 @@ What it does, in plain English:
 
 Verified on a scratch Postgres 16 loaded with 001–018 and the CI seed: 192 pgTAP checks, 31 two-client race checks, and the rollback replay (apply rollback 019, then 018 → 013, re-apply 013 → 019, apply each a second time) all pass.
 
+## 020 — performance: faster visibility queries, bundle RPCs, indexes
+
+File: `supabase/migrations/020_performance_rpcs_and_indexes.sql`. Run after 017, 018 and 019. Safe to re-run. Rollback: `supabase/rollback/rollback_020_performance_rpcs_and_indexes.sql` (drops the bundle functions and the four indexes, puts the 006/012/018 versions of the three visibility functions, the 002 policies and the 018 `get_game_result` back; leaves 019 untouched; no data to undo).
+
+Not applied by this change. Until it runs, the app works exactly as before: it tries each new function once, gets "function not found", and uses the old requests for the rest of the session. Nothing a user sees depends on it.
+
+What it does, in plain English:
+
+- **The three "which games can I see" functions no longer scan every game.** `list_visible_game_ids`, `list_new_game_candidates` and `list_game_results_page` were reading the whole games table on every Home open and every Results open (about half a second each at 30 000 games). They are rewritten as index lookups with the same answers (the email-match path for players seated by email is kept). Four small indexes are added.
+- **Row-level security costs less.** The policies on `games`, `game_players`, `rounds` and `scores` ask "am I an admin / a member" once per query instead of once per row. Same rules, same answers.
+- **One request per screen.** `get_game_bundle(game)` returns the game, its seats and its live scores in one call (the scorecard used four). `get_home_bundle(limit)` returns your profile, your visible games, your creator notices (and marks them read), your open claim requests and your My Players list in one call (Home used up to 17). `list_result_candidates(limit)` returns the games you can pick for a result with their seats and server-side totals (the picker used to download every score of every game). `get_game_result` now also carries each game's rounds, so a result sheet is one call.
+- **Privacy is unchanged.** Every bundle checks visibility with the same helpers the table policies use, returns only names, Player IDs and status for other people (never email, phone or zip), and is refused for signed-out visitors. The 019 role lock and profile column grants are not touched.
+
+Verified on a scratch Postgres 16 loaded with 001–019 and the CI seed: 253 pgTAP checks (61 new, all about who gets what from the bundles), 31 two-client race checks, and the rollback replay (apply rollback 020, check the bundles are gone and 019 is intact, re-apply 013 → 020, apply each a second time) all pass. Timings before/after are in `docs/performance/RESULTS.md`.
+
+## 021 — one account per email (fix for "I could sign up twice with the same email")
+
+File: `supabase/migrations/021_email_uniqueness.sql`. Run after 020. Safe to re-run. Rollback: `supabase/rollback/rollback_021_email_uniqueness.sql` (drops the trigger, the index and the report function; 001's `profiles_email_key` and 011's `profiles_email_normalized_key` stay; no data to undo).
+
+Not applied by this change. Never deletes, merges or changes an existing row, and never touches the `auth` schema.
+
+What happened: Supabase Auth never created a second account. With "Confirm email" on, a repeat sign-up for an existing address gets a *fake success* answer (a user object with no identities and no session) so that the sign-up form cannot be used to find out who has an account. The app read that as "account created" and showed "Check your email"; the first account and its passcode were untouched. The app now recognises that answer and says "An account with this email already exists. Sign in or reset your password." This migration adds the database side:
+
+- **Emails are stored one way.** A trigger trims and lowercases `profiles.email` on insert and update (a blank email is stored as no email). `Sree@Example.com` and `sree@example.com ` are the same email.
+- **One profile per email, any case.** A unique index on `lower(btrim(email))` over every profile that has an email (011's index skipped unregistered players; this one does not). It is only created when the table has no duplicates by case.
+- **Duplicates are reported, not fixed.** If duplicates exist the migration prints each one as a NOTICE (profile id, stored email, name, status, whether it is an account or an unregistered player, whether the account's email is confirmed) and skips the index. The same list is available any time with `select * from public.duplicate_profile_emails();` (service role / SQL editor only). Decide what to do with each pair, then re-run 021 to get the index.
+
+Supabase dashboard: **no setting change.** Keep Authentication → Providers → Email → "Confirm email" ON (the Player ID linking flow needs a verified email). If it is ever turned off, Supabase answers a repeat sign-up with "User already registered" instead, and the app shows the same message.
+
+Verified on a scratch Postgres 16 loaded with 001–020 and the CI seed: 273 pgTAP checks (20 new), 31 two-client race checks, and the rollback replay (apply rollback 021, check 011 and 019 are intact, re-apply 013 → 021, apply each a second time) all pass.
+
 ## Apply order for the Nov 10–11 batch
 
-All three are unapplied. Paste into the Supabase SQL editor in this order, each as its own run:
+017–020 were applied on Nov 11 (~11:25 AM PT). 021 is unapplied. Paste into the Supabase SQL editor as its own run and read the NOTICE lines it prints:
 
-1. `supabase/migrations/017_link_seat_takeover.sql`
-2. `supabase/migrations/018_results_reuse_and_player_ids.sql`
-3. `supabase/migrations/019_security_and_concurrency_fixes.sql`
+1. `supabase/migrations/021_email_uniqueness.sql`
+
+Read-only checks that go with it (nothing is changed):
+
+```sql
+select * from public.duplicate_profile_emails();
+select lower(email), count(*) from auth.users group by 1 having count(*) > 1;
+```
 
 ## Public scorecard page
 

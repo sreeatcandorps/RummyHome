@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { Tabs, router, usePathname } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text } from 'react-native-paper';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
@@ -26,7 +26,7 @@ function BrandTitle() {
   const theme = useAppTheme();
   return (
     <View style={styles.brand}>
-      <Image source={require('../../assets/icon.png')} style={styles.brandLogo} />
+      <Image source={require('../../assets/icon-small.png')} style={styles.brandLogo} />
       <View style={styles.brandCopy}>
         <Text variant="titleLarge" numberOfLines={1} style={[styles.brandText, { color: theme.colors.onSurface }]}>
           EZ Score: Rummy

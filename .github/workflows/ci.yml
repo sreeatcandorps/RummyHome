@@ -164,7 +164,7 @@ jobs:
           supabase start -x studio,imgproxy,edge-runtime,logflare,vector 2>&1 | grep -viE 'key|secret|token' || true
           psql "$DB_URL" -tAc "select version()"
 
-      - name: Migrations 001–019 + seed from empty (supabase db reset)
+      - name: Migrations 001–021 + seed from empty (supabase db reset)
         working-directory: rummy-home3
         run: |
           mkdir -p ../ci/out/db
@@ -174,13 +174,13 @@ jobs:
           psql "$DB_URL" -tAc "select count(*) || ' migrations recorded' from supabase_migrations.schema_migrations" | tee -a ../ci/out/db/migrations.txt
           psql "$DB_URL" -tAc "select count(*) || ' seeded profiles' from public.profiles" | tee -a ../ci/out/db/migrations.txt
 
-      - name: Rollbacks 019→013 then re-apply 013–019
+      - name: Rollbacks 021→013 then re-apply 013–021
         run: |
           set +e
           DB_PSQL="psql $DB_URL" ci/db/replay-rollbacks.sh | tee ci/out/db/rollbacks.tap
           echo "${PIPESTATUS[0]}" > ci/out/db/rollbacks.status
 
-      - name: pgTAP (RLS, profile privacy + role lock 019, save_round, seat removal 016, seat takeover 017, public scorecard)
+      - name: pgTAP (RLS, profile privacy + role lock 019, bundles 020, email uniqueness 021, save_round, seat removal 016, seat takeover 017, public scorecard)
         run: |
           set +e
           DB_PSQL="psql $DB_URL" OUT=ci/out/db/pgtap ci/db/run-pgtap.sh

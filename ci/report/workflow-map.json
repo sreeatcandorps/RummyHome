@@ -43,7 +43,7 @@
       "id": "results",
       "title": "7. Results",
       "unit": ["tests/results.test.ts", "tests/results-picker.test.ts", "tests/results-privacy.test.ts", "tests/final-scores.test.ts"],
-      "db": ["03_results_privacy.sql"],
+      "db": ["03_results_privacy.sql", "10_bundles_020.sql"],
       "concurrency": ["7."]
     },
     {
@@ -55,8 +55,8 @@
     {
       "id": "two-users",
       "title": "9. Two users at once (RLS and privacy)",
-      "unit": ["tests/friday.test.ts", "tests/results-privacy.test.ts", "tests/security-concurrency-019.test.ts"],
-      "db": ["02_games_visibility.sql", "03_results_privacy.sql", "04_profiles_privacy.sql"],
+      "unit": ["tests/friday.test.ts", "tests/results-privacy.test.ts", "tests/security-concurrency-019.test.ts", "tests/performance-020.test.ts"],
+      "db": ["02_games_visibility.sql", "03_results_privacy.sql", "04_profiles_privacy.sql", "10_bundles_020.sql"],
       "concurrency": ["1.", "4.", "5.", "7."]
     }
   ]

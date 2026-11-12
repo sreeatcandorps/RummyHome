@@ -68,11 +68,22 @@ function numberRecord(value: unknown): Record<string, number> {
   return scores;
 }
 
+/**
+ * Per-round values per player. A null (a round the player has no score in, as the
+ * 020 server embed sends it) stays an empty slot, exactly as the array built from
+ * getGame() has, so the sheet shows "—" there rather than 0.
+ */
 function roundsRecord(value: unknown): Record<string, number[]> | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
   const rounds: Record<string, number[]> = {};
   Object.entries(value as Record<string, unknown>).forEach(([key, raw]) => {
-    if (Array.isArray(raw)) rounds[key] = raw.map((item) => Number(item) || 0);
+    if (!Array.isArray(raw)) return;
+    const values: number[] = [];
+    raw.forEach((item, index) => {
+      if (item != null) values[index] = Number(item) || 0;
+    });
+    values.length = raw.length;
+    rounds[key] = values;
   });
   return rounds;
 }

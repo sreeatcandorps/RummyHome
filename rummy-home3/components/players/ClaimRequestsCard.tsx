@@ -6,17 +6,27 @@ import { claimRequestPrompt, PendingLink } from '@/utils/playerIdentity';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { spacing, useAppTheme } from '@/constants/theme';
 
+type ClaimRequestsCardProps = {
+  ownerId: string;
+  onChanged?: () => void;
+  /** The list when the screen already has it (home bundle); the card fetches its own when omitted. */
+  preloaded?: PendingLink[] | null;
+};
+
 /** Creator side: someone typed a player ID at sign-up. Only Approve links. */
-export function ClaimRequestsCard({ ownerId, onChanged }: { ownerId: string; onChanged?: () => void }) {
+export function ClaimRequestsCard({ ownerId, onChanged, preloaded = null }: ClaimRequestsCardProps) {
   const { colors } = useAppTheme();
-  const [requests, setRequests] = useState<PendingLink[]>([]);
+  const [requests, setRequests] = useState<PendingLink[]>(preloaded ?? []);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try { setRequests(await playerIdentityService.listClaimRequests(ownerId)); } catch { setRequests([]); }
   }, [ownerId]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (preloaded) setRequests(preloaded);
+    else load();
+  }, [load, preloaded]);
 
   const answer = async (link: PendingLink, approve: boolean) => {
     setBusy(link.id);

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { Button, Chip, Dialog, Icon, Portal, Searchbar, Text, TouchableRipple } from 'react-native-paper';
 import { ActionTile } from '@/components/ui/ActionTile';
@@ -20,6 +20,35 @@ import { Tag } from '@/components/ui/Tag';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
 import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
 import { playerIdentityService } from '@/services/playerIdentity';
+
+type PlayerCardProps = { player: Player; status: ReturnType<typeof registrationLabel>; isMe: boolean; onPress: (player: Player) => void };
+
+/** One roster tile. Memoised: typing in the search box redraws only tiles whose inputs changed. */
+const PlayerCard = React.memo(function PlayerCard({ player, status, isMe, onPress }: PlayerCardProps) {
+  const { colors } = useAppTheme();
+  const badge = playerIdBadge(player);
+  return (
+    <TouchableRipple
+      onPress={() => onPress(player)}
+      style={[styles.card, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}
+      accessibilityRole="button"
+      accessibilityLabel={`${player.name}, ${badge ?? 'no player ID yet'}, ${status.toLowerCase()}`}
+    >
+      <View style={styles.cardInner}>
+        <BoldName name={player.name} numberOfLines={2} style={styles.cardName} />
+        <View style={styles.cardMeta}>
+          {badge ? (
+            <View style={[styles.idBadge, { borderColor: colors.outline }]}>
+              <Text variant="labelSmall" style={[styles.idText, { color: colors.onSurfaceVariant }]}>{badge}</Text>
+            </View>
+          ) : null}
+          {isMe ? <Tag label="You" tone="primary" /> : null}
+          <Tag label={status} tone={REGISTRATION_TONE[status]} small />
+        </View>
+      </View>
+    </TouchableRipple>
+  );
+});
 
 export default function PlayersTab() {
   const { colors } = useAppTheme();
@@ -45,12 +74,13 @@ export default function PlayersTab() {
         setError('Not signed in.');
         return;
       }
+      // The offline copy shows at once; the server list and the open (unregistered) set load side by side.
+      const fresh = playersService.listMyPlayers(player.id);
+      const open = playerIdentityService.listUnregistered(player.id).catch(() => [] as Player[]);
       const cached = await playersService.readMyPlayers(player.id);
-      if (cached.length) setPlayers(cached);
-      const fresh = await playersService.listMyPlayers(player.id);
-      setPlayers(fresh);
-      const open = await playerIdentityService.listUnregistered(player.id).catch(() => []);
-      setUnregistered(Object.fromEntries(open.map((p) => [p.id, p])));
+      if (cached.length) setPlayers((current) => (current.length ? current : cached));
+      setPlayers(await fresh);
+      setUnregistered(Object.fromEntries((await open).map((p) => [p.id, p])));
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
@@ -67,23 +97,26 @@ export default function PlayersTab() {
     navigation.setOptions({ title: `My players · ${players.length}` });
   }, [navigation, players.length]);
 
-  const statusOf = (player: Player) => registrationLabel(unregistered[player.id]?.status ?? player.status);
-  const others = sortMyPlayers(
-    filterMyPlayers(players.filter((player) => matchesMyPlayer(player, query)), filter, statusOf),
-    sort,
-  );
-  // You are not a roster row, so you are pinned first whenever the search and filter would show you.
-  const shown = withOwnerFirst(others, me, Boolean(me) && filter === 'all' && matchesMyPlayer(me as Player, query));
-  const openCount = players.filter((player) => statusOf(player) !== 'Registered').length;
+  const statusOf = useCallback((player: Player) => registrationLabel(unregistered[player.id]?.status ?? player.status), [unregistered]);
+  // Search, filter and sort run only when their inputs change, not on every render (each keystroke redraws the grid).
+  const shown = useMemo(() => {
+    const others = sortMyPlayers(
+      filterMyPlayers(players.filter((player) => matchesMyPlayer(player, query)), filter, statusOf),
+      sort,
+    );
+    // You are not a roster row, so you are pinned first whenever the search and filter would show you.
+    return withOwnerFirst(others, me, Boolean(me) && filter === 'all' && matchesMyPlayer(me as Player, query));
+  }, [players, query, filter, sort, statusOf, me]);
+  const openCount = useMemo(() => players.filter((player) => statusOf(player) !== 'Registered').length, [players, statusOf]);
   const unregisteredCount = Object.keys(unregistered).length;
 
-  const openRow = (player: Player) => {
+  const openRow = useCallback((player: Player) => {
     if (me && player.id === me.id) {
       router.push('/(tabs)/me');
       return;
     }
     setSelected(player);
-  };
+  }, [me]);
 
   const remove = async () => {
     if (!selected || !me) return;
@@ -109,33 +142,9 @@ export default function PlayersTab() {
     ]);
   };
 
-  const renderCard = ({ item: player }: { item: Player }) => {
-    const badge = playerIdBadge(player);
-    const open = unregistered[player.id];
-    const isMe = me?.id === player.id;
-    const status = statusOf(player);
-    return (
-      <TouchableRipple
-        onPress={() => openRow(player)}
-        style={[styles.card, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}
-        accessibilityRole="button"
-        accessibilityLabel={`${player.name}, ${badge ?? 'no player ID yet'}, ${status.toLowerCase()}`}
-      >
-        <View style={styles.cardInner}>
-          <BoldName name={player.name} numberOfLines={2} style={styles.cardName} />
-          <View style={styles.cardMeta}>
-            {badge ? (
-              <View style={[styles.idBadge, { borderColor: colors.outline }]}>
-                <Text variant="labelSmall" style={[styles.idText, { color: colors.onSurfaceVariant }]}>{badge}</Text>
-              </View>
-            ) : null}
-            {isMe ? <Tag label="You" tone="primary" /> : null}
-            <Tag label={status} tone={REGISTRATION_TONE[status]} small />
-          </View>
-        </View>
-      </TouchableRipple>
-    );
-  };
+  const renderCard = useCallback(({ item: player }: { item: Player }) => (
+    <PlayerCard player={player} status={statusOf(player)} isMe={me?.id === player.id} onPress={openRow} />
+  ), [statusOf, me?.id, openRow]);
 
   return (
     <Screen>

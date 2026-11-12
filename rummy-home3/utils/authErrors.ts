@@ -1,3 +1,5 @@
+import { EMAIL_IN_USE_MESSAGE, isEmailInUseError } from '@/utils/signUpOutcome';
+
 type AuthErrorLike = {
   message?: string;
   name?: string;
@@ -5,6 +7,8 @@ type AuthErrorLike = {
 };
 
 export function formatAuthError(error: unknown): string {
+  if (isEmailInUseError(error)) return EMAIL_IN_USE_MESSAGE;
+
   const authError = error as AuthErrorLike;
   const message = authError?.message ?? (error instanceof Error ? error.message : String(error));
   const lower = message.toLowerCase();
@@ -24,10 +28,6 @@ export function formatAuthError(error: unknown): string {
 
   if (lower.includes('email not confirmed')) {
     return 'This email is not confirmed yet. Check your inbox for the confirmation link, then try signing in again.';
-  }
-
-  if (lower.includes('user already registered')) {
-    return 'This email already has an account. Try signing in instead.';
   }
 
   if (lower.includes('password should be at least')) {

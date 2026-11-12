@@ -256,8 +256,8 @@ export default function NewGame() {
         await gamesService.addSeatedPlayer(game.id, pickRow.id);
       }
       newGameDraft.clear();
-      if (router.canGoBack()) router.back();
-      else router.replace(`/(screens)/games/${game.id}`);
+      // Straight back to the scorecard: the Players/Admins page this was opened from is dismissed too.
+      router.dismissTo(`/(screens)/games/${game.id}`);
     } catch (err) {
       setError(formatSupabaseError(err));
       // Whatever was seated before the failure is now saved; refresh so the strip tells the truth.

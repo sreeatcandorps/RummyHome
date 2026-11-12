@@ -3,10 +3,12 @@ import { ActivityIndicator, Animated, Easing, ScrollView, StyleSheet, View } fro
 import { Button, Dialog, Icon, IconButton, Menu, Portal, Text, TouchableRipple } from 'react-native-paper';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Game } from '../../types/game';
+import { Player } from '../../types/player';
 import { gamesService } from '../../services/games';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
 import { storage } from '../../utils/storage';
+import { gameCache } from '../../utils/gameCache';
 import {
   actionFill,
   applyPreset,
@@ -33,7 +35,7 @@ import { MAX_CONTENT_WIDTH, radius, spacing, tabularNums, useAppTheme } from '..
 import { useLayout } from '../../hooks/useLayout';
 import { useMenuThenShare } from '../../hooks/useMenuThenShare';
 import { HELP } from '../../constants/help';
-import { entryFromRound } from '../../utils/editRound';
+import { entryFromRound, nextRoundNumber } from '../../utils/editRound';
 import { HelpText } from '../../components/ui/HelpText';
 import { BottomBar } from '../../components/ui/BottomBar';
 import { SeatAvatar } from '../../components/ui/SeatAvatar';
@@ -52,7 +54,7 @@ type Participant = {
   name: string;
 };
 
-type Notice = { title: string; body: string; icon: string };
+type Notice = { title: string; body: string; icon: string; onClose?: () => void };
 
 const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
@@ -62,6 +64,10 @@ const GRID_GAP = spacing.sm;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+const participantsFrom = (seats: Player[]): Participant[] => seats
+  .filter((player) => player.seatRole !== 'spectator' && player.seated !== false)
+  .map((player) => ({ id: player.id, name: player.name }));
+
 export default function ScoreEntryScreen() {
   const { colors } = useAppTheme();
   const { isShort, insets, gutterLeft, gutterRight } = useLayout();
@@ -69,16 +75,22 @@ export default function ScoreEntryScreen() {
   // Edit mode: `round=N` opens a finished round with its scores already in the cells.
   const editRound = round && /^\d+$/.test(String(round)) ? Number(round) : null;
 
-  const [game, setGame] = useState<Game | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  // Seed from the copy the scorecard just showed, so the grid draws at once while the fresh copy loads.
+  const seededGame = useRef(gameCache.peekGame(gameId ? String(gameId) : null)).current;
+  const seededSeats = useRef(gameCache.peekSeats(gameId ? String(gameId) : null)).current;
+  const seeded = Boolean(seededGame && seededSeats);
+  const [game, setGame] = useState<Game | null>(seeded ? seededGame : null);
+  const [participants, setParticipants] = useState<Participant[]>(seeded ? participantsFrom(seededSeats ?? []) : []);
   const [scorerName, setScorerName] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!seeded);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
-  const [entry, setEntry] = useState<RoundEntryState>(initialRoundEntryState);
+  const [entry, setEntry] = useState<RoundEntryState>(seeded && seededGame && editRound ? entryFromRound(seededGame, editRound) : initialRoundEntryState);
+  // The fresh copy must not wipe cells the person has already filled from the seeded round.
+  const entrySeeded = useRef(seeded && Boolean(editRound));
   const [flashKeys, setFlashKeys] = useState<Record<string, number>>({});
   const [gridWidth, setGridWidth] = useState(0);
 
@@ -125,13 +137,10 @@ export default function ScoreEntryScreen() {
       }
 
       setGame(currentGame);
-      if (editRound) setEntry(entryFromRound(currentGame, editRound));
+      if (editRound && !entrySeeded.current) setEntry(entryFromRound(currentGame, editRound));
+      entrySeeded.current = false;
 
-      setParticipants(
-        gamePlayers
-          .filter((player) => player.seatRole !== 'spectator' && player.seated !== false)
-          .map((player) => ({ id: player.id, name: player.name })),
-      );
+      setParticipants(participantsFrom(gamePlayers));
       setScorerName(scorer?.name ?? null);
     } catch (error) {
       setNotice({ title: 'Could not load game', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
@@ -198,7 +207,7 @@ export default function ScoreEntryScreen() {
       } else {
         await gamesService.addRound({
           gameId: game.id,
-          roundNumber: game.currentRound || 1,
+          roundNumber: nextRoundNumber(game),
           scores: toRoundScores(finalState),
           createdBy,
         });
@@ -207,11 +216,17 @@ export default function ScoreEntryScreen() {
     } catch (error) {
       if (isRoundConflict(error)) {
         // Someone else saved this round (or changed the players) first. Show what the server
-        // said, pull the fresh scorecard, and drop the typed scores so they cannot land on
-        // the next round by accident. Edit mode reloads the round as it is now.
+        // said and drop the typed scores so they cannot land on the next round by accident.
+        // Add mode then returns to the scorecard (it reloads on focus) instead of staying here
+        // numbered for the next round. Edit mode reloads the round as it is now.
         if (!editRound) setEntry(initialRoundEntryState);
-        await loadGameData();
-        setNotice({ title: 'Round already saved', body: roundConflictMessage(error), icon: 'refresh' });
+        else await loadGameData();
+        setNotice({
+          title: 'Round already saved',
+          body: roundConflictMessage(error),
+          icon: 'refresh',
+          onClose: editRound ? undefined : closeScreen,
+        });
         return;
       }
       console.error('Score submission error:', error);
@@ -233,6 +248,12 @@ export default function ScoreEntryScreen() {
   });
 
   const closeScreen = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
+
+  const dismissNotice = () => {
+    const onClose = notice?.onClose;
+    setNotice(null);
+    onClose?.();
+  };
 
   if (loading) {
     return (
@@ -274,7 +295,7 @@ export default function ScoreEntryScreen() {
             </View>
           ) : null}
           <Text variant="titleLarge" numberOfLines={1} style={[styles.title, { color: colors.onSurface }]}>
-            {editRound ? `Edit round ${editRound}` : `Round ${game.currentRound || 1}`}
+            {editRound ? `Edit round ${editRound}` : `Round ${nextRoundNumber(game)}`}
           </Text>
         </View>
         <Text variant="labelMedium" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
@@ -480,7 +501,7 @@ export default function ScoreEntryScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false, title: `Round ${game.currentRound || 1}` }} />
+      <Stack.Screen options={{ headerShown: false, title: `Round ${nextRoundNumber(game)}` }} />
 
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {header}
@@ -518,7 +539,7 @@ export default function ScoreEntryScreen() {
       </View>
 
       <Portal>
-        <Dialog visible={!!notice} onDismiss={() => setNotice(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+        <Dialog visible={!!notice} onDismiss={dismissNotice} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Icon icon={notice?.icon ?? 'information-outline'} />
           <Dialog.Title style={styles.dialogTitle}>{notice?.title}</Dialog.Title>
           <Dialog.Content>
@@ -531,7 +552,7 @@ export default function ScoreEntryScreen() {
             )}
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
-            <Button mode="contained" onPress={() => setNotice(null)} contentStyle={styles.dialogButtonContent}>
+            <Button mode="contained" onPress={dismissNotice} contentStyle={styles.dialogButtonContent}>
               Got it
             </Button>
           </Dialog.Actions>

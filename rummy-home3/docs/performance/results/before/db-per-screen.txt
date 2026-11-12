@@ -1,0 +1,294 @@
+Pager usage is off.
+Timing is off.
+SELECT 1
+SELECT 1
+GRANT
+                                                set_config                                                 
+-----------------------------------------------------------------------------------------------------------
+ {"sub" : "52ede447-570e-42da-9837-c1e9ee5a5a68", "email" : "user1@example.com", "role" : "authenticated"}
+(1 row)
+
+SET
+################ HOME: list_visible_game_ids()
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_visible_game_ids  (cost=0.25..10.25 rows=1000 width=16) (actual time=549.701..549.706 rows=74 loops=1)
+   Buffers: shared hit=3059 read=2340
+ Planning Time: 0.010 ms
+ Execution Time: 549.757 ms
+(4 rows)
+
+################ HOME: games + game_players embed (PostgREST shape), in(<visible ids>) order created_at desc limit 50
+                                                                                                          QUERY PLAN                                                                                                           
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=67121.20..67121.32 rows=50 width=311) (actual time=509.324..509.335 rows=50 loops=1)
+   Buffers: shared hit=8854 read=70
+   ->  Sort  (cost=67121.20..67122.59 rows=556 width=311) (actual time=509.322..509.330 rows=50 loops=1)
+         Sort Key: g.created_at DESC
+         Sort Method: quicksort  Memory: 99kB
+         Buffers: shared hit=8854 read=70
+         ->  Nested Loop Left Join  (cost=126.04..67102.73 rows=556 width=311) (actual time=500.078..509.266 rows=74 loops=1)
+               Buffers: shared hit=8854 read=70
+               ->  Nested Loop  (cost=8.05..1493.10 rows=556 width=279) (actual time=499.645..501.482 rows=74 loops=1)
+                     Buffers: shared hit=5899
+                     ->  HashAggregate  (cost=7.77..9.77 rows=200 width=16) (actual time=498.987..499.006 rows=74 loops=1)
+                           Group Key: list_visible_game_ids()
+                           Batches: 1  Memory Usage: 40kB
+                           Buffers: shared hit=5163
+                           ->  ProjectSet  (cost=0.00..5.27 rows=1000 width=16) (actual time=461.032..498.937 rows=74 loops=1)
+                                 Buffers: shared hit=5163
+                                 ->  Result  (cost=0.00..0.01 rows=1 width=0) (actual time=0.000..0.001 rows=1 loops=1)
+                     ->  Index Scan using games_pkey on games g  (cost=0.29..7.64 rows=1 width=279) (actual time=0.033..0.033 rows=1 loops=74)
+                           Index Cond: (id = (list_visible_game_ids()))
+                           Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+                           Buffers: shared hit=736
+               ->  Aggregate  (cost=117.98..117.99 rows=1 width=32) (actual time=0.104..0.105 rows=1 loops=74)
+                     Buffers: shared hit=2955 read=70
+                     ->  Index Scan using game_players_game_idx on game_players x  (cost=0.42..117.96 rows=5 width=25) (actual time=0.028..0.092 rows=5 loops=74)
+                           Index Cond: (game_id = g.id)
+                           Filter: (is_app_admin() OR is_game_member(game_id) OR (hashed SubPlan 2) OR is_app_admin() OR is_game_admin(game_id) OR (hashed SubPlan 4))
+                           Buffers: shared hit=2951 read=68
+                           SubPlan 2
+                             ->  Bitmap Heap Scan on games  (cost=4.42..69.32 rows=8 width=16) (never executed)
+                                   Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                   Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+                                   ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (never executed)
+                                         Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                           SubPlan 4
+                             ->  Bitmap Heap Scan on games games_1  (cost=4.42..69.32 rows=8 width=16) (never executed)
+                                   Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                   Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+                                   ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (never executed)
+                                         Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+ Planning:
+   Buffers: shared hit=70 read=3
+ Planning Time: 1.098 ms
+ Execution Time: 509.885 ms
+(43 rows)
+
+################ HOME/EVERY SCREEN: my_profile select * where id = me (getCurrentProfile; 019 column grants route own-row reads through the view)
+                                                                                 QUERY PLAN                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=0.28..8.30 rows=1 width=527) (actual time=0.014..0.015 rows=1 loops=1)
+   One-Time Filter: ((((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid = '52ede447-570e-42da-9837-c1e9ee5a5a68'::uuid)
+   Buffers: shared hit=3
+   ->  Index Scan using profiles_pkey on profiles p  (cost=0.28..8.30 rows=1 width=527) (actual time=0.006..0.006 rows=1 loops=1)
+         Index Cond: (id = '52ede447-570e-42da-9837-c1e9ee5a5a68'::uuid)
+         Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=54
+ Planning Time: 0.177 ms
+ Execution Time: 0.027 ms
+(10 rows)
+
+################ SCORECARD getGame 1/3: games select * where id
+                                                                                          QUERY PLAN                                                                                           
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using games_pkey on games  (cost=0.29..8.82 rows=1 width=279) (actual time=0.092..0.092 rows=1 loops=1)
+   Index Cond: (id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+   Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+   Buffers: shared hit=7
+ Planning:
+   Buffers: shared hit=1
+ Planning Time: 0.068 ms
+ Execution Time: 0.102 ms
+(8 rows)
+
+################ SCORECARD getGame 2/3: game_players select * where game_id order player_order
+                                                                                              QUERY PLAN                                                                                               
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using game_players_game_id_player_order_key on game_players  (cost=0.42..117.96 rows=5 width=102) (actual time=0.196..0.235 rows=4 loops=1)
+   Index Cond: (game_id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+   Filter: (is_app_admin() OR is_game_member(game_id) OR (hashed SubPlan 2) OR is_app_admin() OR is_game_admin(game_id) OR (hashed SubPlan 4))
+   Buffers: shared hit=32 read=3
+   SubPlan 2
+     ->  Bitmap Heap Scan on games  (cost=4.42..69.32 rows=8 width=16) (never executed)
+           Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+           Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+           ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (never executed)
+                 Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+   SubPlan 4
+     ->  Bitmap Heap Scan on games games_1  (cost=4.42..69.32 rows=8 width=16) (never executed)
+           Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+           Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+           ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (never executed)
+                 Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+ Planning:
+   Buffers: shared hit=20
+ Planning Time: 0.238 ms
+ Execution Time: 0.258 ms
+(20 rows)
+
+################ SCORECARD getGame 3/3: scores select *, rounds(round_number, undone_at) where game_id
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=5.51..808.58 rows=48 width=112) (actual time=0.661..1.746 rows=24 loops=1)
+   Buffers: shared hit=427 read=13
+   ->  Bitmap Heap Scan on scores s  (cost=5.09..379.34 rows=48 width=80) (actual time=0.372..0.856 rows=24 loops=1)
+         Recheck Cond: (game_id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+         Filter: (is_app_admin() OR is_game_member(game_id))
+         Heap Blocks: exact=1
+         Buffers: shared hit=172 read=2
+         ->  Bitmap Index Scan on scores_game_idx  (cost=0.00..5.07 rows=86 width=0) (actual time=0.019..0.019 rows=24 loops=1)
+               Index Cond: (game_id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+               Buffers: shared hit=2 read=1
+   ->  Index Scan using rounds_pkey on rounds rr  (cost=0.42..8.94 rows=1 width=48) (actual time=0.036..0.036 rows=1 loops=24)
+         Index Cond: (id = s.round_id)
+         Filter: (is_app_admin() OR is_game_member(game_id))
+         Buffers: shared hit=255 read=11
+ Planning:
+   Buffers: shared hit=131 read=10
+ Planning Time: 0.527 ms
+ Execution Time: 1.785 ms
+(18 rows)
+
+################ SCORECARD listGamePlayers: game_players + profiles embed where game_id
+                                                                                                 QUERY PLAN                                                                                                  
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=0.70..160.73 rows=5 width=57) (actual time=0.405..0.537 rows=4 loops=1)
+   Buffers: shared hit=50
+   ->  Index Scan using game_players_game_id_player_order_key on game_players gp  (cost=0.42..117.96 rows=5 width=25) (actual time=0.297..0.372 rows=4 loops=1)
+         Index Cond: (game_id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+         Filter: (is_app_admin() OR is_game_member(game_id) OR (hashed SubPlan 2) OR is_app_admin() OR is_game_admin(game_id) OR (hashed SubPlan 4))
+         Buffers: shared hit=35
+         SubPlan 2
+           ->  Bitmap Heap Scan on games  (cost=4.42..69.32 rows=8 width=16) (never executed)
+                 Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                 Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+                 ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (never executed)
+                       Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+         SubPlan 4
+           ->  Bitmap Heap Scan on games games_1  (cost=4.42..69.32 rows=8 width=16) (never executed)
+                 Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                 Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+                 ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (never executed)
+                       Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+   ->  Index Scan using profiles_pkey on profiles pr  (cost=0.28..8.55 rows=1 width=48) (actual time=0.037..0.037 rows=1 loops=4)
+         Index Cond: (id = gp.profile_id)
+         Filter: can_see_profile(pr.*)
+         Buffers: shared hit=15
+ Planning:
+   Buffers: shared hit=19 read=1
+ Planning Time: 0.566 ms
+ Execution Time: 0.633 ms
+(26 rows)
+
+################ NEW GAME: list_new_game_candidates(100)
+                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_new_game_candidates  (cost=0.25..10.25 rows=1000 width=124) (actual time=337.840..337.843 rows=56 loops=1)
+   Buffers: shared hit=182884 read=11
+ Planning Time: 0.014 ms
+ Execution Time: 337.856 ms
+(4 rows)
+
+################ MY PLAYERS: list_my_players()
+                                                     QUERY PLAN                                                     
+--------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_my_players  (cost=0.25..10.25 rows=1000 width=84) (actual time=0.749..0.753 rows=56 loops=1)
+   Buffers: shared hit=234
+ Planning Time: 0.040 ms
+ Execution Time: 0.764 ms
+(4 rows)
+
+################ MY PLAYERS: list_my_unregistered_players(null)
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_my_unregistered_players  (cost=0.25..10.25 rows=1000 width=224) (actual time=1.165..1.165 rows=2 loops=1)
+   Buffers: shared hit=178 read=13
+ Planning Time: 0.010 ms
+ Execution Time: 1.171 ms
+(4 rows)
+
+################ MY PLAYERS: list_claim_requests() (ClaimRequestsCard on the tab)
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_claim_requests  (cost=0.25..10.25 rows=1000 width=248) (actual time=0.320..0.320 rows=0 loops=1)
+   Buffers: shared hit=13
+ Planning Time: 0.009 ms
+ Execution Time: 0.325 ms
+(4 rows)
+
+################ FIND: search_players('Player 12')
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Function Scan on search_players  (cost=0.25..10.25 rows=1000 width=80) (actual time=4.988..4.989 rows=20 loops=1)
+   Buffers: shared hit=532 read=10
+ Planning Time: 0.006 ms
+ Execution Time: 4.995 ms
+(4 rows)
+
+################ RESULTS list: list_game_results_page(5, 0)
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=180.355..180.356 rows=1 loops=1)
+   Buffers: shared hit=45113 read=3
+ Planning Time: 0.011 ms
+ Execution Time: 180.365 ms
+(4 rows)
+
+################ RESULTS detail: get_game_result(first visible)
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=7.726..7.726 rows=1 loops=1)
+   Buffers: shared hit=2872 read=1
+ Planning Time: 0.004 ms
+ Execution Time: 7.732 ms
+(4 rows)
+
+################ HOME: list_claim_requests(), take_creator_notices() (called on every Home focus)
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_claim_requests  (cost=0.25..10.25 rows=1000 width=248) (actual time=0.078..0.078 rows=0 loops=1)
+ Planning Time: 0.017 ms
+ Execution Time: 0.084 ms
+(3 rows)
+
+BEGIN
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Function Scan on take_creator_notices  (cost=0.25..10.25 rows=1000 width=48) (actual time=0.314..0.314 rows=0 loops=1)
+   Buffers: shared hit=41 read=5
+ Planning Time: 0.006 ms
+ Execution Time: 0.317 ms
+(4 rows)
+
+ROLLBACK
+################ PUBLIC LIVE SCORECARD: public_scorecard(token)
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=0.935..0.935 rows=1 loops=1)
+   Buffers: shared hit=192
+ Planning Time: 0.004 ms
+ Execution Time: 0.938 ms
+(4 rows)
+
+################ WRITE: save_round RPC (new round) — run inside a rolled-back transaction
+BEGIN
+                                                                                                                                                                   QUERY PLAN                                                                                                                                                                    
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=117.99..118.25 rows=1 width=16) (actual time=4.567..4.569 rows=1 loops=1)
+   Buffers: shared hit=483 read=29 dirtied=11
+   InitPlan 5 (returns $4)
+     ->  Aggregate  (cost=117.98..117.99 rows=1 width=32) (actual time=0.215..0.216 rows=1 loops=1)
+           Buffers: shared hit=35
+           ->  Index Scan using game_players_game_idx on game_players  (cost=0.42..117.97 rows=2 width=16) (actual time=0.160..0.201 rows=4 loops=1)
+                 Index Cond: (game_id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+                 Filter: (seated AND (is_app_admin() OR is_game_member(game_id) OR (SubPlan 1) OR is_app_admin() OR is_game_admin(game_id) OR (SubPlan 3)) AND (role <> 'spectator'::game_member_role))
+                 Buffers: shared hit=35
+                 SubPlan 1
+                   ->  Index Scan using games_pkey on games  (cost=0.29..8.85 rows=1 width=0) (never executed)
+                         Index Cond: (id = game_players.game_id)
+                         Filter: ((created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) AND (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access))
+                 SubPlan 3
+                   ->  Index Scan using games_pkey on games games_1  (cost=0.29..8.85 rows=1 width=0) (never executed)
+                         Index Cond: (id = game_players.game_id)
+                         Filter: ((created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) AND (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access))
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.240 ms
+ Execution Time: 4.596 ms
+(21 rows)
+
+ROLLBACK
+RESET

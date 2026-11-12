@@ -19,6 +19,8 @@ import { storage } from '@/utils/storage';
 import { createUuid, isUuid } from '@/utils/uuid';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
+import { BundleSeatRow, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
+import { queryCache } from '@/utils/queryCache';
 
 type CreateGameInput = {
   playerIds: string[];
@@ -41,7 +43,7 @@ type CompleteGameInput = {
   prizeShares?: Record<string, number> | null;
 };
 
-const missingRpc = (error: unknown) => {
+export const missingRpc = (error: unknown) => {
   const code = (error as { code?: string })?.code;
   const message = ((error as { message?: string })?.message ?? '').toLowerCase();
   return code === 'PGRST202' || message.includes('could not find the function') || message.includes('schema cache');
@@ -78,7 +80,7 @@ const SHARE_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const makeShareCode = () =>
   Array.from({ length: 6 }, () => SHARE_CODE_ALPHABET[Math.floor(Math.random() * SHARE_CODE_ALPHABET.length)]).join('');
 
-const legacyGameFromServer = (
+export const legacyGameFromServer = (
   game: any,
   scores: any[] = [],
   gamePlayers: any[] = [],
@@ -128,8 +130,64 @@ const legacyGameFromServer = (
   };
 };
 
+/** A seat row (game_players + its profiles embed, or a bundle seat) as the app's Player. */
+export const seatFromMembership = (membership: any): Player => ({
+  id: membership.profile_id,
+  name: membership.profiles?.display_name ?? 'Rummy Player',
+  playerCode: displayPlayerId(membership.profiles),
+  email: undefined,
+  status: membership.profiles?.player_status ?? undefined,
+  managedBy: membership.profiles?.managed_by ?? undefined,
+  playerNo: membership.profiles?.public_player_no ?? undefined,
+  firstName: membership.profiles?.first_name ?? undefined,
+  lastName: membership.profiles?.last_name ?? undefined,
+  role: membership.role === 'game_admin' ? 'admin' as const : 'player' as const,
+  seatRole: (membership.role ?? 'player') as SeatRole,
+  seated: membership.seated !== false && membership.role !== 'spectator',
+});
+
+/** A game bundle (020) as the Game the mapper builds from the three legacy selects. */
+export const gameFromBundle = (bundle: GameBundle): Game =>
+  legacyGameFromServer(bundle.game, legacyScoreRows(bundle.scores), bundle.game_players ?? []);
+
+/** Seats of a bundle, in player_order, as listGamePlayers returns them. */
+export const seatsFromBundle = (rows: BundleSeatRow[] | null | undefined): Player[] =>
+  [...(rows ?? [])].sort((a, b) => (a.player_order ?? 0) - (b.player_order ?? 0)).map(seatFromMembership);
+
 /** PostgREST's "function does not exist" code: the migration is not applied yet. */
 const MISSING_FUNCTION = 'PGRST202';
+
+/**
+ * get_game_bundle (020) is tried first; a database without it answers PGRST202 once
+ * and the app then uses the pre-020 requests for the rest of the session.
+ */
+let gameBundleAvailable = true;
+const GAME_KEY = (gameId: string) => `game:${gameId}`;
+
+/**
+ * One request for game + seats + live scores, shared by every caller asking for the
+ * same game at the same moment (getGame and listGamePlayers are called together on
+ * every screen). Resolves to null when the game is not there or not visible, and to
+ * `undefined` when the RPC is missing so callers fall back to the legacy selects.
+ */
+async function loadGameBundle(gameId: string): Promise<{ game: Game; seats: Player[] } | null | undefined> {
+  if (!gameBundleAvailable) return undefined;
+  return queryCache.read(GAME_KEY(gameId), async () => {
+    const { data, error } = await supabase.rpc('get_game_bundle', { p_game_id: gameId });
+    if (error) {
+      if (missingRpc(error)) {
+        gameBundleAvailable = false;
+        return undefined;
+      }
+      throw error;
+    }
+    if (!data) return null;
+    if (!isGameBundle(data)) return undefined;
+    const game = gameCache.putGame(gameFromBundle(data)) as Game;
+    const seats = gameCache.putSeats(gameId, seatsFromBundle(data.game_players));
+    return { game, seats };
+  });
+}
 
 /**
  * Writes one round (Add or Edit) to Supabase.
@@ -446,6 +504,9 @@ export const gamesService = {
       return gameCache.putGame(game ? withoutLegacyColumn(game) : null);
     }
 
+    const bundled = await loadGameBundle(gameId);
+    if (bundled !== undefined) return bundled?.game ?? null;
+
     const [{ data: game, error: gameError }, { data: gamePlayers, error: playersError }, { data: scores, error: scoresError }] =
       await Promise.all([
         supabase.from('games').select('*').eq('id', gameId).maybeSingle(),
@@ -473,7 +534,9 @@ export const gamesService = {
   /** Warm the cache for a game the user is likely to open next (e.g. a live game on Home). */
   async prefetchGame(gameId: string): Promise<void> {
     try {
-      await Promise.all([this.getGame(gameId), this.listGamePlayers(gameId)]);
+      // One bundle request fills both caches; the legacy path needs the two calls.
+      const bundled = await loadGameBundle(gameId);
+      if (bundled === undefined) await Promise.all([this.getGame(gameId), this.listGamePlayers(gameId)]);
     } catch {
       // Best effort only; the screen will load normally.
     }
@@ -538,6 +601,9 @@ export const gamesService = {
         }));
     }
 
+    const bundled = await loadGameBundle(gameId);
+    if (bundled !== undefined) return bundled?.seats ?? [];
+
     const withSeat = await supabase
       .from('game_players')
       .select('profile_id, role, seated, player_order, profiles(display_name, player_code, public_player_no, player_status, managed_by, first_name, last_name)')
@@ -553,20 +619,46 @@ export const gamesService = {
       : withSeat;
     if (loaded.error) throw loaded.error;
 
-    return gameCache.putSeats(gameId, (loaded.data ?? []).map((membership: any) => ({
-      id: membership.profile_id,
-      name: membership.profiles?.display_name ?? 'Rummy Player',
-      playerCode: displayPlayerId(membership.profiles),
-      email: undefined,
-      status: membership.profiles?.player_status ?? undefined,
-      managedBy: membership.profiles?.managed_by ?? undefined,
-      playerNo: membership.profiles?.public_player_no ?? undefined,
-      firstName: membership.profiles?.first_name ?? undefined,
-      lastName: membership.profiles?.last_name ?? undefined,
-      role: membership.role === 'game_admin' ? 'admin' as const : 'player' as const,
-      seatRole: (membership.role ?? 'player') as SeatRole,
-      seated: membership.seated !== false && membership.role !== 'spectator',
-    })));
+    return gameCache.putSeats(gameId, (loaded.data ?? []).map(seatFromMembership));
+  },
+
+  /**
+   * Results picker: every visible game with its seated players' names, in one request
+   * (list_result_candidates, 020). Before 020: the visible games with their scores, then
+   * one seat list per game, exactly what the screen used to do itself.
+   */
+  async listResultCandidates(currentUserId: string, email?: string | null): Promise<{ games: Game[]; names: Record<string, string> }> {
+    const seatedNames = (players: Player[], names: Record<string, string>) => {
+      players.forEach((player) => {
+        if (player.id === LEGACY_COLUMN_ID || player.seated === false || player.seatRole === 'spectator') return;
+        if (player.name?.trim()) names[player.id] = player.name.trim();
+      });
+    };
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await withTimeout(
+        supabase.rpc('list_result_candidates', { p_limit: 50 }),
+        REQUEST_TIMEOUT_MS,
+        'Couldn’t load your games.',
+      );
+      if (!error && Array.isArray(data)) {
+        const names: Record<string, string> = {};
+        const games = (data as ResultCandidate[]).map((entry) => {
+          const seats = seatsFromBundle(entry.game_players);
+          gameCache.putSeats(entry.game.id, seats);
+          seatedNames(seats, names);
+          return legacyGameFromServer(entry.game, totalsAsScoreRows(entry.totals), entry.game_players ?? []);
+        });
+        return { games, names };
+      }
+      if (error && !missingRpc(error)) throw error;
+    }
+
+    const visible = await this.listGamesForCurrentUser(currentUserId, { includeScores: true, email });
+    const listed = await Promise.all(visible.map((game) => this.listGamePlayers(game.id).catch(() => [] as Player[])));
+    const names: Record<string, string> = {};
+    listed.forEach((players) => seatedNames(players, names));
+    return { games: visible, names };
   },
 
   /**
@@ -700,6 +792,16 @@ export const gamesService = {
       .eq('id', round.id);
 
     if (error) throw error;
+
+    // The undone number is the next one to play again. Left alone, current_round pointed one
+    // past it, the next save skipped a number, and the scorecard showed an empty row for the gap.
+    const { error: counterError } = await supabase
+      .from('games')
+      .update({ current_round: round.round_number })
+      .eq('id', gameId)
+      .gt('current_round', round.round_number);
+    if (counterError) throw counterError;
+
     return this.getGame(gameId);
   },
 
