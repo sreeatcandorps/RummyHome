@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–031) applied, check the function state after each, then re-apply the forward
+# has every migration (001–032) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,16 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 032 (results volume fixes; rolled back before 031)
+HAS_032=f
+if [ -f "$RB/rollback_032_results_volume_fixes.sql" ]; then
+  HAS_032=t
+  if apply "$RB/rollback_032_results_volume_fixes.sql"; then tap ok "rollback_032 applies"; else tap fail "rollback_032 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_has game_rounds_json 'distinct on')" = f ] && [ "$(q "select coalesce(proconfig @> array['jit=off'], false) from pg_proc where proname='public_result' and pronamespace='public'::regnamespace")" = f ] \
+    && tap ok "after rollback_032 game_rounds_json is the 020 body and public_result has no jit setting" \
+    || tap fail "after rollback_032 game_rounds_json / public_result should be the 020/028 state"
+fi
 
 # 031 (round-robin rotation; rolled back before 030)
 HAS_031=f
@@ -276,6 +286,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_029" = t ] && FORWARD="$FORWARD 029_guardrails"
 [ "$HAS_030" = t ] && FORWARD="$FORWARD 030_my_players_at_scale"
 [ "$HAS_031" = t ] && FORWARD="$FORWARD 031_round_robin"
+[ "$HAS_032" = t ] && FORWARD="$FORWARD 032_results_volume_fixes"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -351,6 +362,10 @@ fi
 if [ "$HAS_031" = t ]; then
   [ "$(fn_has save_round v_prev_dealer)" = t ] && [ "$(fn_has get_game_bundle v_dealers)" = t ] && [ "$(fn_has public_scorecard maxCount)" = t ] \
     && tap ok "031 restored (rotation rule in save_round, dealers in the bundle and the public scorecard)" || tap fail "031 restored"
+fi
+if [ "$HAS_032" = t ]; then
+  [ "$(fn_has game_rounds_json 'distinct on')" = t ] && [ "$(q "select coalesce(proconfig @> array['jit=off'], false) from pg_proc where proname='public_result' and pronamespace='public'::regnamespace")" = t ] \
+    && tap ok "032 restored (one-pass game_rounds_json, jit off on public_result)" || tap fail "032 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

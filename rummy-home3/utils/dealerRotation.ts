@@ -61,8 +61,8 @@ export function rotationStarts(game: RotationGame, roundCount: number): number[]
 }
 
 /** `dealerIds` after saving round `roundIndex` with `dealerId` (local games keep the list themselves). */
-export function withDealer(dealerIds: (string | null | undefined)[] | null | undefined, roundIndex: number, dealerId: string | undefined) {
-  const next = [...(dealerIds ?? [])];
+export function withDealer(dealerIds: (string | null | undefined)[] | null | undefined, roundIndex: number, dealerId: string | undefined): (string | null)[] {
+  const next: (string | null)[] = (dealerIds ?? []).map((id) => id ?? null);
   while (next.length < roundIndex) next.push(null);
   next[roundIndex] = dealerId ?? null;
   return next;

@@ -342,6 +342,19 @@ What it does:
 
 Verified on a scratch Postgres 16 loaded with 001–031 and the CI seed: 799 pgTAP checks (20 new in `supabase/tests/21_round_robin_031.sql`: rotation after a mid-game join, edited round keeps its dealer, fallback when the dealer left, bundle and public payload), the rollback replay (119 checks) and the 38 race checks all pass.
 
+## 032 — Results at volume (two speed fixes found by the volume tests)
+
+File: `supabase/migrations/032_results_volume_fixes.sql`. Run after 031. Safe to re-run. Rollback: `supabase/rollback/rollback_032_results_volume_fixes.sql` (resets JIT on `public_result` and restores the 020 `game_rounds_json` body).
+
+Backward compatible with the APK on phones: no signature, return type or output change. `game_rounds_json` returns byte-identical JSON (pgTAP 22 compares the two bodies on every seed game and viewer); `public_result` only gains `set jit = off`.
+
+What it does:
+
+- `public_result`: `set jit = off`. The web /r/ results page's RPC took 540–600 ms for a 30-game result because PostgreSQL JIT-compiled the big jsonb plan on every call (the 020 bundle RPCs already carry this setting). Now 10–16 ms.
+- `game_rounds_json` (used by `get_game_result`, so the Results sheet in the app and its PDF/share image): one `distinct on` pass over the live scores, materialised, then one `jsonb_agg` per player over the round span, instead of a per-cell lookup whose CTE re-ran once per player. 30 games × 20 players: 250–280 ms → 42–50 ms. Also `set jit = off`.
+
+Verified on a scratch Postgres 16 loaded with 001–032 and the CI seed: 812 pgTAP checks (13 new in `supabase/tests/22_results_volume_032.sql`), the rollback replay (124 checks) and the 38 race checks all pass. Full volume results: `docs/volume-testing.md`.
+
 ## Apply order for the Nov 10–11 batch
 
 017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023, 024, 025 and 026 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
@@ -360,6 +373,7 @@ Final launch batch (Nov 12), after the six above, each as its own run:
 9. `supabase/migrations/029_guardrails.sql`
 10. `supabase/migrations/030_my_players_at_scale.sql`
 11. `supabase/migrations/031_round_robin.sql`
+12. `supabase/migrations/032_results_volume_fixes.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

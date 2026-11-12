@@ -269,6 +269,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Public pages on the share site, static and key-free: `/privacy` (policy: email, name, Player ID, optional phone/postal code, games and scores; Supabase ca-central-1; Resend; no ads, no analytics; TLS) and `/delete-account` (in-app steps, email path, and the same deleted/kept lists as the app, from `utils/accountDeletion.ts`). Contact `support@mindweavetech.com`.
 - Version label never says "dev" any more: `v1.1.0 (build 7)`, or `v1.1.0` when the build number cannot be read, or nothing.
 
+### 2026-11-12 — Final launch batch (027–032) and volume testing
+- `027` Remove from My players (soft remove, Undo), `028` game numbers S/P in place of the UUID (race-safe server assignment, backfill), `029` server-enforced guardrails (`docs/guardrails.md`), `030` My players at scale (paged list, server search), `031` round-robin rotation from the stored dealers, `032` two results-speed fixes. All **not applied**, each with a rollback and pgTAP file; apply order in `docs/migrations-to-apply.md`.
+- New CI tooling: `ci/volume/` — `volume.sql` seeds deterministic users, rosters (100 / 1,000 / 10,000) and games (2–20 players × 50–500 rounds, 100 / 1,000 / 5,000 per user) on the local DB; `run-volume.mjs` runs every case as the real user through the RPCs with timings and writes `ci/out/volume/results.{md,json}`; `screenshots.mjs` renders the web `/r/` pages from those payloads in headless Chrome. Findings and fixes in `docs/volume-testing.md` (JIT on `public_result`, `game_rounds_json` rewrite, stale statistics after bulk loads). Tests: 812 pgTAP, 38 concurrency, 124 rollback checks.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
