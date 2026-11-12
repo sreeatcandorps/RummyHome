@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, IconButton, Text } from 'react-native-paper';
+import { IconButton, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { ShareCardView } from '@/components/share/ShareCardView';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { ShareCard } from '@/utils/shareCard';

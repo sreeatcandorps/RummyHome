@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Keyboard } from 'react-native';
-import { Button, Dialog, Portal, Text } from 'react-native-paper';
+import { Dialog, Portal, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router } from 'expo-router';
 import { parseRuleInput, PointsRules, validateRules } from '@/utils/gameSettings';
 import { draftFromRules, RulesDraft, RulesForm } from '@/components/game/RulesForm';

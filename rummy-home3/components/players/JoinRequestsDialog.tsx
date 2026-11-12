@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
-import { Button, Dialog, Portal, Text } from 'react-native-paper';
+import { Dialog, Portal, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { Player } from '@/types/player';
 import { playerIdentityService } from '@/services/playerIdentity';
 import { claimPrompt, PendingLink } from '@/utils/playerIdentity';

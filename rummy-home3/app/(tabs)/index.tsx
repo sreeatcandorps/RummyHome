@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
-import { Button, Portal, ProgressBar, Text } from 'react-native-paper';
+import { Portal, ProgressBar, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect } from 'expo-router';
 import { Player } from '@/types/player';
 import { Game } from '@/types/game';

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { Button, Dialog, Text, TextInput } from 'react-native-paper';
+import { Dialog, Text, TextInput } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { Player } from '@/types/player';
 

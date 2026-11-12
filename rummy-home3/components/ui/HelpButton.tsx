@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Dialog, IconButton, Portal } from 'react-native-paper';
+import { Dialog, IconButton, Portal } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { useAppTheme } from '@/constants/theme';
 import { HelpText } from '@/components/ui/HelpText';
 
