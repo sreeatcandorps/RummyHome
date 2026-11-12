@@ -13,6 +13,8 @@ export type BundleSeatRow = {
   role: string;
   seated: boolean;
   is_active?: boolean;
+  /** 022: the seat's column label. Absent from a pre-022 server. */
+  label?: string | null;
   profiles?: Record<string, unknown> | null;
 };
 
@@ -33,7 +35,10 @@ export type HomeBundle = {
   games: (Record<string, any> & { game_players: BundleSeatRow[] })[];
   notices: { player_id: string; text: string }[];
   claim_requests: Record<string, any>[];
-  my_players: { id: string; display_name: string; player_code: string | null; games_together: number }[];
+  my_players: {
+    id: string; display_name: string; player_code: string | null; games_together: number;
+    initials?: string | null; added_at?: string | null;
+  }[];
 };
 
 /** A bundle's live score rows in the `scores … rounds(round_number, undone_at)` shape. */

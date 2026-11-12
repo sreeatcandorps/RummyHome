@@ -30,4 +30,14 @@ export interface Player {
   playerNo?: number;
   /** Set when the account's email has been confirmed. */
   emailVerified?: boolean;
+  /**
+   * In the signed-in owner's My players: the stored scorecard label for this player
+   * (unique in that list, migration 022). Absent on a pre-022 server; the app then
+   * derives one with utils/initials.
+   */
+  initials?: string;
+  /** In My players: when the owner added this player (ISO). Older rows keep the short initials on a clash. */
+  addedAt?: string;
+  /** On a game seat: the column label fixed when the seat was created (022). */
+  label?: string;
 } 

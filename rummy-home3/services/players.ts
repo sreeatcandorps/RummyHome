@@ -7,6 +7,7 @@ import { isEphemeralTestEmail } from '@/utils/playerFilters';
 import { playerSearchMode } from '@/utils/playerSearch';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { queryCache } from '@/utils/queryCache';
+import { assignInitials, initialsProblem, normalizeInitials } from '@/utils/initials';
 
 export const MIGRATION_007_HINT = NOT_READY_MESSAGE;
 
@@ -20,9 +21,15 @@ type RosterRow = {
   playerId: string;
   gamesTogether: number;
   createdAt: string;
+  /** Last name seen for the player; the live profile name replaces it on every read. */
   name: string;
   playerCode?: string;
+  /** Stored scorecard label, unique within this owner's rows (022). Never changed by a rename. */
+  initials?: string;
 };
+
+/** Same wording as set_my_player_initials / set_seat_label in migration 022. */
+export const INITIALS_FORMAT_MESSAGE = 'Initials are 2 or 3 letters, A to Z.';
 
 const missingRpc = (error: unknown) => {
   const code = (error as { code?: string })?.code;
@@ -82,16 +89,37 @@ function rowToPlayer(row: RosterRow): Player {
     playerCode: row.playerCode,
     role: 'player',
     gamesTogether: row.gamesTogether,
+    initials: row.initials,
+    addedAt: row.createdAt,
   };
 }
 
-/** A list_my_players row (RPC or home bundle) as a Player. */
-export const myPlayerFromRow = (row: { id: string; display_name: string; player_code: string | null; games_together: number }): Player => ({
+/**
+ * Local mode stands in for the 022 trigger: every roster row of this owner gets stored
+ * initials, oldest row first, so the list is unique and stable across reads.
+ */
+function withLocalInitials(rows: RosterRow[], ownerId: string): { rows: RosterRow[]; changed: boolean } {
+  const mine = rows.filter((row) => row.ownerId === ownerId);
+  if (mine.every((row) => row.initials)) return { rows, changed: false };
+  const labels = assignInitials(mine.map((row) => ({ id: row.playerId, name: row.name, initials: row.initials, addedAt: row.createdAt })));
+  return {
+    changed: true,
+    rows: rows.map((row) => (row.ownerId === ownerId && !row.initials ? { ...row, initials: labels.get(row.playerId) } : row)),
+  };
+}
+
+/** A list_my_players row (RPC or home bundle) as a Player. The name is always the live profile name; pre-022 rows have no initials. */
+export const myPlayerFromRow = (row: {
+  id: string; display_name: string; player_code: string | null; games_together: number;
+  initials?: string | null; added_at?: string | null;
+}): Player => ({
   id: row.id,
   name: row.display_name || 'Rummy Player',
   playerCode: row.player_code ?? undefined,
   role: 'player' as const,
   gamesTogether: row.games_together ?? 0,
+  initials: row.initials ?? undefined,
+  addedAt: row.added_at ?? undefined,
 });
 
 /** Does the server list differ from the cached roster rows for this owner? */
@@ -100,7 +128,8 @@ export function rosterChanged(mine: RosterRow[], players: Player[]): boolean {
   const byId = new Map(mine.map((row) => [row.playerId, row]));
   return players.some((player) => {
     const row = byId.get(player.id);
-    return !row || row.name !== player.name || row.playerCode !== player.playerCode || row.gamesTogether !== (player.gamesTogether ?? 0);
+    return !row || row.name !== player.name || row.playerCode !== player.playerCode || row.gamesTogether !== (player.gamesTogether ?? 0)
+      || (row.initials ?? undefined) !== player.initials;
   });
 }
 
@@ -120,12 +149,20 @@ async function rememberMyPlayers(ownerId: string, players: Player[]): Promise<vo
       ownerId,
       playerId: player.id,
       gamesTogether: player.gamesTogether ?? 0,
-      createdAt: new Date().toISOString(),
+      createdAt: player.addedAt ?? new Date().toISOString(),
       name: player.name,
       playerCode: player.playerCode,
+      initials: player.initials,
     })),
   ]);
 }
+
+/** The friendly message for a server refusal of set_my_player_initials / set_seat_label. */
+const initialsError = (error: unknown): Error => {
+  const message = (error as { message?: string })?.message ?? '';
+  if (missingRpc(error)) return new Error(NOT_READY_MESSAGE);
+  return new Error(message || 'Couldn’t save the initials.');
+};
 
 export const playersService = {
   async listPlayers(options: ListOptions = {}): Promise<Player[]> {
@@ -214,11 +251,44 @@ export const playersService = {
   },
 
   async readMyPlayers(ownerId: string): Promise<Player[]> {
-    const rows = await readRoster();
-    return rows
+    // Like the server list, show the player's current name, not the one seen at add time.
+    const { storage } = await import('@/utils/storage');
+    const liveNames = new Map((await storage.getPlayers()).map((player) => [player.id, player.name]));
+    const current = (await readRoster()).map((row) => {
+      const live = row.ownerId === ownerId ? liveNames.get(row.playerId) : undefined;
+      return live && live !== row.name ? { ...row, name: live } : row;
+    });
+    const filled = withLocalInitials(current, ownerId);
+    await writeRoster(filled.rows);
+    return filled.rows
       .filter((row) => row.ownerId === ownerId)
       .sort((a, b) => b.gamesTogether - a.gamesTogether || a.name.localeCompare(b.name))
       .map(rowToPlayer);
+  },
+
+  /**
+   * The owner types the scorecard initials for one of their players. Letters only,
+   * 2–3, unique within their My players. Returns the stored (upper-case) value.
+   */
+  async setInitials(ownerId: string, playerId: string, initials: string): Promise<string> {
+    const value = normalizeInitials(initials);
+    if (!/^[A-Z]{2,3}$/.test(value)) throw new Error(INITIALS_FORMAT_MESSAGE);
+
+    if (!isSupabaseConfigured) {
+      const rows = await readRoster();
+      const mine = rows.filter((row) => row.ownerId === ownerId && row.playerId !== playerId);
+      const problem = initialsProblem(value, new Map(mine.filter((row) => row.initials).map((row) => [row.initials!, row.name])));
+      if (problem) throw new Error(problem.endsWith('.') ? `${problem.slice(0, -1)} in your My players.` : problem);
+      if (!rows.some((row) => row.ownerId === ownerId && row.playerId === playerId)) throw new Error('This player is not in your My players.');
+      await writeRoster(rows.map((row) => (row.ownerId === ownerId && row.playerId === playerId ? { ...row, initials: value } : row)));
+      this.forgetMyPlayers();
+      return value;
+    }
+
+    const { data, error } = await supabase.rpc('set_my_player_initials', { p_player_id: playerId, p_initials: value });
+    if (error) throw initialsError(error);
+    this.forgetMyPlayers();
+    return (data as string) || value;
   },
 
   /**

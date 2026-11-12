@@ -21,6 +21,7 @@ import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 import { BundleSeatRow, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
 import { queryCache } from '@/utils/queryCache';
+import { normalizeInitials } from '@/utils/initials';
 
 type CreateGameInput = {
   playerIds: string[];
@@ -29,6 +30,12 @@ type CreateGameInput = {
   settings?: ProfileDefaults;
   /** Drop, Middle drop, and Full count for this game. */
   rules?: PointsRules;
+  /**
+   * Column label per seated player, decided before Start game (the creator's My players
+   * initials, clashes resolved). Stored on the seat so every phone and every later
+   * game shows the same letters. Seats without one get the database default (022).
+   */
+  labels?: Record<string, string>;
 };
 
 type AddRoundInput = {
@@ -144,6 +151,7 @@ export const seatFromMembership = (membership: any): Player => ({
   role: membership.role === 'game_admin' ? 'admin' as const : 'player' as const,
   seatRole: (membership.role ?? 'player') as SeatRole,
   seated: membership.seated !== false && membership.role !== 'spectator',
+  label: membership.label ?? undefined,
 });
 
 /** A game bundle (020) as the Game the mapper builds from the three legacy selects. */
@@ -356,6 +364,7 @@ export const gamesService = {
         spectators: [],
         gameNumber: nextNumber,
         closedAt: null,
+        labels: input.labels,
       };
       await storage.addGame(legacyGame);
       await playersService.rememberTogether(input.createdBy, seated).catch(() => {});
@@ -380,6 +389,10 @@ export const gamesService = {
 
     if (gameError) throw gameError;
 
+    // Before the seats, so a player new to the creator's My players has a row (and
+    // initials) there when the seat trigger looks one up.
+    await playersService.rememberTogether(input.createdBy, seated).catch(() => {});
+
     const memberships = seated.map((profileId, index) => ({
       game_id: gameId,
       profile_id: profileId,
@@ -388,8 +401,13 @@ export const gamesService = {
       role: profileId === input.createdBy ? 'game_admin' as const : 'player' as const,
       color_code: null,
     }));
+    const labelled = memberships.map((row) => ({ ...row, label: input.labels?.[row.profile_id] ?? null }));
 
-    const { error: playersError } = await supabase.from('game_players').insert(memberships);
+    const withLabels = await supabase.from('game_players').insert(labelled);
+    // A pre-022 database has no label column; the app then derives labels from names.
+    const playersError = withLabels.error && missingColumn(withLabels.error)
+      ? (await supabase.from('game_players').insert(memberships)).error
+      : withLabels.error;
     if (playersError) throw playersError;
 
     if (!seated.includes(input.createdBy)) {
@@ -404,8 +422,6 @@ export const gamesService = {
         // The creator still runs the game through created_by when this row cannot be stored.
       }
     }
-
-    await playersService.rememberTogether(input.createdBy, seated).catch(() => {});
 
     const created = await this.getGame(gameId);
     if (!created) {
@@ -597,6 +613,7 @@ export const gamesService = {
             phone: undefined,
             seatRole: seatFor(playerId),
             seated: !game.unseatedAdminIds?.includes(playerId) && !game.spectators?.includes(playerId),
+            label: game.labels?.[playerId],
           };
         }));
     }
@@ -604,11 +621,19 @@ export const gamesService = {
     const bundled = await loadGameBundle(gameId);
     if (bundled !== undefined) return bundled?.seats ?? [];
 
-    const withSeat = await supabase
+    const seatProfile = 'profiles(display_name, player_code, public_player_no, player_status, managed_by, first_name, last_name)';
+    const withLabel = await supabase
       .from('game_players')
-      .select('profile_id, role, seated, player_order, profiles(display_name, player_code, public_player_no, player_status, managed_by, first_name, last_name)')
+      .select(`profile_id, role, seated, player_order, label, ${seatProfile}`)
       .eq('game_id', gameId)
       .order('player_order', { ascending: true });
+    const withSeat = withLabel.error && missingColumn(withLabel.error)
+      ? await supabase
+        .from('game_players')
+        .select(`profile_id, role, seated, player_order, ${seatProfile}`)
+        .eq('game_id', gameId)
+        .order('player_order', { ascending: true })
+      : withLabel;
 
     const loaded = withSeat.error && missingColumn(withSeat.error)
       ? await supabase
@@ -957,7 +982,7 @@ export const gamesService = {
     return this.getGame(gameId);
   },
 
-  async addSeatedPlayer(gameId: string, profileId: string) {
+  async addSeatedPlayer(gameId: string, profileId: string, label?: string) {
     const game = await this.getGame(gameId);
     if (!game) throw new Error('Game not found.');
     if (game.players.includes(profileId) || game.spectators?.includes(profileId) || game.unseatedAdminIds?.includes(profileId)) {
@@ -969,9 +994,10 @@ export const gamesService = {
     }
 
     if (!isSupabaseConfigured) {
-      const updated = { ...game, players: [...game.players, profileId] };
+      const updated: Game = { ...game, players: [...game.players, profileId] };
       // Joining mid-game: every round already played is an explicit 0 for them.
       updated.scores = { ...updated.scores, [profileId]: zerosForJoiner(game.scores, seated) };
+      if (label) updated.labels = { ...(game.labels ?? {}), [profileId]: label };
       await storage.updateGame(updated);
       await playersService.rememberTogether(game.createdBy ?? profileId, [profileId]).catch(() => {});
       return updated;
@@ -980,31 +1006,51 @@ export const gamesService = {
     const { data: orders, error: orderError } = await supabase.from('game_players').select('player_order').eq('game_id', gameId);
     if (orderError) throw orderError;
     const next = Math.max(-1, ...(orders ?? []).map((row) => row.player_order)) + 1;
-    const { error } = await supabase.from('game_players').insert({
-      game_id: gameId,
-      profile_id: profileId,
-      player_order: next,
-      display_number: next + 1,
-      role: 'player',
-      seated: true,
-    });
-    if (error) {
-      if (missingColumn(error)) {
-        const retry = await supabase.from('game_players').insert({
-          game_id: gameId,
-          profile_id: profileId,
-          player_order: next,
-          display_number: next + 1,
-          role: 'player',
-        });
-        if (retry.error) throw retry.error;
-      } else {
-        throw error;
-      }
+    const seat = { game_id: gameId, profile_id: profileId, player_order: next, display_number: next + 1, role: 'player' as const };
+    // Newest shape first; each missing column (label 022, seated 006) drops one step back.
+    const attempts = [{ ...seat, seated: true, label: label ?? null }, { ...seat, seated: true }, seat];
+    let error: unknown = null;
+    for (const attempt of attempts) {
+      error = (await supabase.from('game_players').insert(attempt)).error;
+      if (!error || !missingColumn(error)) break;
     }
+    if (error) throw error;
     await this.backfillZeroScores(gameId, profileId);
     if (game.createdBy) await playersService.rememberTogether(game.createdBy, [profileId]).catch(() => {});
     return this.getGame(gameId);
+  },
+
+  /**
+   * A game admin changes one column's initials in this game. Letters only, 2–3, unique
+   * in the game. When the caller created the game their My players entry follows, so
+   * the next game they create agrees (set_seat_label, 022).
+   */
+  async setSeatLabel(gameId: string, profileId: string, label: string, actorId: string): Promise<string> {
+    const value = normalizeInitials(label);
+    if (!/^[A-Z]{2,3}$/.test(value)) throw new Error('Initials are 2 or 3 letters, A to Z.');
+
+    if (!isSupabaseConfigured) {
+      const [game, seats] = await Promise.all([this.getGame(gameId), this.listGamePlayers(gameId)]);
+      if (!game) throw new Error('Game not found.');
+      const clash = seats.find((seat) => seat.id !== profileId && (game.labels?.[seat.id] ?? seat.label) === value);
+      if (clash) throw new Error(`${value} is already ${clash.name} in this game.`);
+      await storage.updateGame({ ...game, labels: { ...(game.labels ?? {}), [profileId]: value } });
+      gameCache.forget(gameId);
+      if (game.createdBy === actorId) {
+        await playersService.setInitials(actorId, profileId, value).catch(() => {});
+      }
+      return value;
+    }
+
+    const { data, error } = await supabase.rpc('set_seat_label', { p_game_id: gameId, p_profile_id: profileId, p_label: value });
+    if (error) {
+      if (missingColumn(error) || (error as { code?: string }).code === MISSING_FUNCTION) throw new Error(NOT_READY_MESSAGE);
+      throw new Error(error.message || 'Couldn’t save the initials.');
+    }
+    gameCache.forget(gameId);
+    queryCache.invalidate(GAME_KEY(gameId));
+    playersService.forgetMyPlayers();
+    return (data as string) || value;
   },
 
   /**

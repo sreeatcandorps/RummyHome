@@ -34,6 +34,8 @@ export type Game = {
   closedAt?: string | null;
   /** When Complete game was pressed. Kept when the game is later Closed. */
   completedAt?: string | null;
+  /** Local (no Supabase) games only: column label per seat, fixed at seat time. Server games carry it on the seat row. */
+  labels?: Record<string, string>;
 };
 
 export interface Round {
