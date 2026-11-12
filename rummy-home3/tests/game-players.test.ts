@@ -23,14 +23,14 @@ test('role and registration tags', () => {
 test('per-player menu: creator keeps admin, identity actions only for my unregistered players, nothing for viewers', () => {
   assert.deepEqual(seatMenu({ id: 'u', name: 'U' }, game, 'me', false), []);
   const creator = seatMenu({ id: 'me', name: 'Me', seatRole: 'game_admin' }, game, 'me', true);
-  assert.deepEqual(creator.map((m) => [m.item, m.enabled]), [['remove_admin', false], ['remove_player', true]]);
+  assert.deepEqual(creator.map((m) => [m.item, m.enabled]), [['remove_admin', false], ['edit_initials', true], ['remove_player', true]]);
   const registered = seatMenu({ id: 'a', name: 'A', seatRole: 'game_admin', status: 'registered' }, game, 'me', true);
-  assert.deepEqual(registered.map((m) => m.item), ['remove_admin', 'remove_player']);
+  assert.deepEqual(registered.map((m) => m.item), ['remove_admin', 'edit_initials', 'remove_player']);
   const mine = seatMenu({ id: 'u', name: 'U', seatRole: 'player', status: 'unregistered', managedBy: 'me' }, game, 'me', true);
-  assert.deepEqual(mine.map((m) => [m.item, m.enabled]), [['make_admin', true], ['edit_name', true], ['invite', true], ['link_id', true], ['remove_player', true]]);
+  assert.deepEqual(mine.map((m) => [m.item, m.enabled]), [['make_admin', true], ['edit_initials', true], ['edit_name', true], ['invite', true], ['link_id', true], ['remove_player', true]]);
   const theirs = seatMenu({ id: 'u', name: 'U', seatRole: 'player', status: 'pending', managedBy: 'someone-else' }, game, 'me', true);
-  assert.deepEqual(theirs.map((m) => [m.item, m.enabled]), [['make_admin', true], ['edit_name', false], ['invite', false], ['link_id', false], ['remove_player', true]]);
-  assert.match(theirs[1].reason ?? '', /organiser who added/);
+  assert.deepEqual(theirs.map((m) => [m.item, m.enabled]), [['make_admin', true], ['edit_initials', true], ['edit_name', false], ['invite', false], ['link_id', false], ['remove_player', true]]);
+  assert.match(theirs[2].reason ?? '', /organiser who added/);
   const viewer = seatMenu({ id: 'w', name: 'W', seatRole: 'spectator' }, game, 'me', true);
   assert.deepEqual(viewer, []);
 });

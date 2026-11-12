@@ -43,7 +43,7 @@ test('the share image breaks totals down: players as rows, games as columns, one
   const band = grid.bands[0];
   assert.deepEqual(band.columns, ['G1', 'G2', 'Total']);
   assert.equal(band.hasTotal, true);
-  assert.deepEqual(band.rows.map((row) => row.head), ['HG', 'P1', 'P2', 'P4', 'SK']);
+  assert.deepEqual(band.rows.map((row) => row.head), ['HG', 'PL', 'PLA', 'PLY', 'SK']);
   assert.deepEqual(grid.legend.map((entry) => entry.name), ['Harish Gadupudi', 'Player 1', 'Player 2', 'Player 4', 'Sree Koneru']);
   const harish = band.rows[0];
   assert.deepEqual(harish.cells, ['+80', '-60', '+20'], 'the last cell is the total');
@@ -100,7 +100,7 @@ test('nov 10: eight and twenty games wrap into bands of five — extra header ro
   assert.deepEqual(grid.bands[3].columns, ['G16', 'G17', 'G18', 'G19', 'G20', 'Total']);
   assert.deepEqual(grid.bands.map((band) => band.hasTotal), [false, false, false, true]);
   // Every band has the same player rows in the same order.
-  grid.bands.forEach((band) => assert.deepEqual(band.rows.map((row) => row.head), ['HG', 'P1', 'P2', 'P4', 'SK']));
+  grid.bands.forEach((band) => assert.deepEqual(band.rows.map((row) => row.head), ['HG', 'PL', 'PLA', 'PLY', 'SK']));
   assert.deepEqual(grid.bands[0].rows[0].cells, ['-40', '+40', '-40', '+40', '-40'], 'Harish, G1–G5');
   assert.deepEqual(grid.bands[3].rows[0].cells, ['+40', '-40', '+40', '-40', '+40', '0'], 'Harish, G16–G20 then Total');
   assert.ok(grid.bands.every((band) => band.columns.length <= SHARE_BREAKDOWN_MAX_GAMES + 1), 'no band is wider than five games plus Total');
@@ -118,7 +118,7 @@ test('each game in the PDF lists every round for every seated player and the gam
   const table = buildRoundTable(game, 0, players);
   assert.equal(table.label, 'G1');
   assert.equal(table.when, '11:51 am');
-  assert.deepEqual(table.initials, ['HG', 'P1', 'SK']);
+  assert.deepEqual(table.initials, ['HG', 'PL', 'SK']);
   assert.deepEqual(table.names, ['Harish Gadupudi', 'Player 1', 'Sree Koneru']);
   assert.deepEqual(table.rows, [
     { round: 1, cells: ['+40', '-20', '-20'] },
@@ -185,16 +185,16 @@ test('nov 10: share image and PDF carry the Player ID on a second line and wrap 
   ];
   const seven = Array.from({ length: 7 }, (_, index) => gameOf(index + 1, { h: 10, s: 10, p1: -20 }));
   const card = buildResultsShareCard({ title: 'Results', date: 'x', rows: standings, gameCount: 7, games: seven, players: seats });
-  assert.deepEqual(card.lines.map((line) => line.sub), ['SK · #39', 'HG · #12', 'P1'], 'initials, then the Player ID when known');
+  assert.deepEqual(card.lines.map((line) => line.sub), ['SK · #39', 'HG · #12', 'PL'], 'initials, then the Player ID when known');
   assert.equal(card.breakdown?.bands.length, 2);
   assert.deepEqual(card.breakdown?.bands[1].columns, ['G6', 'G7', 'Total']);
 
   const details = buildResultsDetails({ createdAtLabel: 'x', standings, players: seats, games: seven });
-  assert.deepEqual(details.rows.map((row) => row.sub), ['HG · #12', 'P1', 'SK · #39']);
+  assert.deepEqual(details.rows.map((row) => row.sub), ['HG · #12', 'PL', 'SK · #39']);
   assert.deepEqual(details.positive.map((row) => row.sub), ['SK · #39', 'HG · #12']);
   assert.equal(details.bands.length, 2);
   assert.deepEqual(details.bands[0].columns, ['G1', 'G2', 'G3', 'G4', 'G5']);
-  assert.deepEqual(details.bands[1].rows.map((row) => row.head), ['HG', 'P1', 'SK']);
+  assert.deepEqual(details.bands[1].rows.map((row) => row.head), ['HG', 'PL', 'SK']);
   assert.ok(details.legend.some((line) => line.includes('SK Sree Koneru')));
 
   const html = resultsDetailsHtml(details);
