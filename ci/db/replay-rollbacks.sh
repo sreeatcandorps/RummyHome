@@ -38,14 +38,21 @@ if [ -f "$RB/rollback_026_delete_account.sql" ]; then
     || tap fail "after rollback_026 enforce_profile_auth_user / delete_profile_with_auth_user / lock_public_player_no should be the earlier bodies"
 fi
 
-# 025 (link player to account; same PR, rolled back before 024)
+# 025 (link requests; same PR, rolled back before 024)
 HAS_025=f
 if [ -f "$RB/rollback_025_link_player_to_account.sql" ]; then
   HAS_025=t
   if apply "$RB/rollback_025_link_player_to_account.sql"; then tap ok "rollback_025 applies"; else tap fail "rollback_025 applies: $(head -c 300 "$OUTERR")"; fi
-  [ "$(fn_exists link_player_to_account)" = f ] && [ "$(fn_exists link_player_check)" = f ] && [ "$(fn_exists link_conflicts)" = f ] \
-    && tap ok "after rollback_025 the link functions are gone" \
-    || tap fail "after rollback_025 link_player_to_account / link_player_check / link_conflicts should be gone"
+  [ "$(fn_exists request_player_link)" = f ] && [ "$(fn_exists link_player_check)" = f ] && [ "$(fn_exists perform_player_link)" = f ] && [ "$(fn_exists answer_link_request_by_token)" = f ] \
+    && tap ok "after rollback_025 the link-request functions are gone" \
+    || tap fail "after rollback_025 request_player_link / link_player_check / perform_player_link / answer_link_request_by_token should be gone"
+  [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='player_links' and column_name='target_id')")" = f ] \
+    && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='creator_notices' and column_name='kind')")" = f ] \
+    && tap ok "after rollback_025 player_links.target_id and creator_notices.kind are gone" \
+    || tap fail "after rollback_025 player_links.target_id / creator_notices.kind should be gone"
+  [ "$(fn_has get_home_bundle link_requests)" = f ] && [ "$(fn_has expire_player_requests expire_link_requests)" = f ] && [ "$(fn_has take_creator_notices n.kind)" = f ] \
+    && tap ok "after rollback_025 get_home_bundle, expire_player_requests and take_creator_notices are the 023/012/011 bodies" \
+    || tap fail "after rollback_025 get_home_bundle / expire_player_requests / take_creator_notices should be the earlier bodies"
   [ "$(fn_exists link_seat_to_player)" = t ] && [ "$(fn_exists unlink_player)" = t ] \
     && tap ok "after rollback_025 the 015/017 seat link and 011 unlink are untouched" \
     || tap fail "after rollback_025 link_seat_to_player / unlink_player should remain"
@@ -247,8 +254,8 @@ if [ "$HAS_024" = t ]; then
     && tap ok "024 restored (outbox RPCs, public results reader, declare queues emails, every profile has a token)" || tap fail "024 restored"
 fi
 if [ "$HAS_025" = t ]; then
-  [ "$(fn_exists link_player_to_account)" = t ] && [ "$(fn_exists link_player_check)" = t ] \
-    && tap ok "025 restored (link_player_check / link_player_to_account)" || tap fail "025 restored"
+  [ "$(fn_exists request_player_link)" = t ] && [ "$(fn_exists link_player_check)" = t ] && [ "$(fn_has get_home_bundle link_requests)" = t ] \
+    && tap ok "025 restored (link_player_check / request_player_link / home bundle link_requests)" || tap fail "025 restored"
 fi
 if [ "$HAS_026" = t ]; then
   [ "$(fn_exists delete_my_account)" = t ] && [ "$(fn_exists tombstone_profile)" = t ] && [ "$(fn_has delete_profile_with_auth_user tombstone_profile)" = t ] \
