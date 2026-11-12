@@ -2,7 +2,8 @@ import { gameTitle } from '@/utils/gameLabel';
 import { dealerForRound, nextDealer, rotationStarts } from '@/utils/dealerRotation';
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Button, Text, Dialog, Menu, Portal, Snackbar } from 'react-native-paper';
+import { Text, Dialog, Menu, Portal, Snackbar } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Game } from '@/types/game';
@@ -336,9 +337,14 @@ export default function GameScreen() {
   const roundTotals = Array.from({ length: maxRounds }, (_, roundIndex) => getRoundTotal(roundIndex));
   const grandTotal = players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0);
 
+  const numberBadge = game.gameNumber ? (
+    <View style={[styles.numberBadge, { backgroundColor: theme.gameTypes[game.gameType === 'pool' ? 'pool' : 'stake'].container }]} accessibilityLabel={`Game ${game.gameNumber}`}>
+      <Text style={[styles.numberText, { color: theme.gameTypes[game.gameType === 'pool' ? 'pool' : 'stake'].on }]}>{`G${game.gameNumber}`}</Text>
+    </View>
+  ) : null;
   const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : settleEnabled ? 'cash-multiple' : 'numeric'} />;
   const statusTag = game.isComplete ? (
-    <Tag label="Completed" icon="flag-checkered" />
+    <Tag label="Completed" tone="info" icon="flag-checkered" />
   ) : (
     // Who deals is shown once, as the DEALS badge on that player's column header.
     <Tag label={`Round ${maxRounds + 1}`} tone="primary" icon="cards-outline" />
@@ -364,6 +370,7 @@ export default function GameScreen() {
       compact={isShort}
       fullCount={game.settings?.maxCount}
       emptyMessage={game.isComplete ? 'This game was closed with no rounds.' : 'No rounds yet. Tap Add round to score the first hand.'}
+      footer={idFooter}
     />
   );
 
@@ -373,26 +380,27 @@ export default function GameScreen() {
       params: { gameId: game.id },
     });
 
+  const barHeight = isShort ? 44 : 52;
+
+  // Undo and Complete are outlined; Add round is the everyday tap, so it is the one filled green
+  // button in the bar and the widest. Complete keeps its flag so it still reads as "end the game".
   const undoButton = (
     <StackedAction
       icon="undo-variant"
       label="Undo"
       onPress={handleUndoLastRound}
       disabled={maxRounds === 0}
-      height={isShort ? 44 : 56}
+      height={barHeight}
       accessibilityLabel="Undo round"
     />
   );
 
-  // Same stacked icon-over-label shape for all three. Add round is the everyday tap, so it is the widest;
-  // Complete is the only filled (dark green) one because it ends the game.
   const completeButton = (
     <StackedAction
       icon="flag-checkered"
       label="Complete"
       onPress={openComplete}
-      height={isShort ? 44 : 56}
-      filled
+      height={barHeight}
       style={styles.completeAction}
       accessibilityLabel="Complete game"
     />
@@ -403,8 +411,8 @@ export default function GameScreen() {
       icon="plus"
       label="Add round"
       onPress={openScoreEntry}
-      height={isShort ? 44 : 56}
-      tonal
+      height={barHeight}
+      filled
       emphasis
       style={styles.addRound}
       accessibilityLabel="Add round"
@@ -457,6 +465,7 @@ export default function GameScreen() {
 
       <View style={[styles.infoStrip, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
         <View style={styles.metaRow}>
+          {numberBadge}
           {typeTag}
           {statusTag}
           {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
@@ -473,7 +482,7 @@ export default function GameScreen() {
             { paddingLeft: gutterLeft, paddingRight: gutterRight },
           ]}
         >
-          <View style={styles.flex}>{table}{idFooter}</View>
+          <View style={styles.flex}>{table}</View>
         </View>
       ) : (
         <View
@@ -484,7 +493,6 @@ export default function GameScreen() {
           ]}
         >
           {table}
-          {idFooter}
         </View>
       )}
       {!game.isComplete && canScore ? (
@@ -654,10 +662,23 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   completeAction: {
-    flex: 1.1,
+    flex: 1.25,
   },
   addRound: {
-    flex: 1.7,
+    flex: 1.45,
+  },
+  numberBadge: {
+    minWidth: 48,
+    height: 32,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  numberText: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   roundPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   warning: { padding: spacing.md, borderRadius: radius.md },

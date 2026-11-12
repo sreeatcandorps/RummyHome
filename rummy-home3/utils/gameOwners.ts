@@ -29,3 +29,19 @@ export function gameOwnersLine(
 ): string {
   return gameOwnersLines(game, members, creatorName).join(' · ');
 }
+
+export type OwnerPart = { label: string; value: string };
+
+/** The same line as structured pieces so the names can be set in bold: Creator → Sree, Admins → Harish, Cora. */
+export function gameOwnerParts(
+  game: { createdBy?: string | null },
+  members: { id: string; name: string; seatRole?: string | null }[],
+  creatorName?: string | null,
+): OwnerPart[] {
+  const creator = creatorName ?? members.find((m) => m.id === game.createdBy)?.name ?? null;
+  const admins = members.filter((m) => m.seatRole === 'game_admin' && m.id !== game.createdBy).map((m) => m.name);
+  const parts: OwnerPart[] = [];
+  if (creator) parts.push({ label: 'Creator', value: creator });
+  if (admins.length) parts.push({ label: admins.length === 1 ? 'Admin' : 'Admins', value: admins.join(', ') });
+  return parts;
+}

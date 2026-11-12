@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
-import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
 import { createScrollSync } from '@/utils/scrollSync';
 
@@ -29,17 +29,22 @@ type ScoreTableProps = {
   /** Full count of the game; losses of half this or more are shown in red. */
   fullCount?: number | null;
   emptyMessage: string;
+  /** Drawn inside the card under the rows: pinned to the bottom on short games, after the last row on long ones. */
+  footer?: React.ReactNode;
 };
 
 /** Below this a column can no longer show "-1234" legibly, so the table scrolls sideways instead. */
 const MIN_COLUMN_WIDTH = 38;
 
 const fontSizeFor = (columnWidth: number) => {
-  if (columnWidth >= 64) return 16;
-  if (columnWidth >= 52) return 15;
-  if (columnWidth >= 44) return 14;
+  if (columnWidth >= 64) return 18;
+  if (columnWidth >= 52) return 16;
+  if (columnWidth >= 44) return 15;
   return 13;
 };
+
+/** Totals and the header read a size up from the cells; every number carries its sign. */
+export const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
 type ScoreRowProps = {
   columns: ScoreColumn[];
@@ -96,7 +101,7 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
               style={[
                 styles.scorePill,
                 // The standard: only a win gets a highlight; a big penalty is red text alone, never a red background.
-                text.highlight && { backgroundColor: colors.positiveContainer },
+                text.highlight && { backgroundColor: colors.winContainer },
               ]}
             >
               <Text
@@ -107,7 +112,7 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
                   tabularNums,
                   { fontSize },
                   positive
-                    ? { color: colors.onPositiveContainer, fontWeight: text.fontWeight }
+                    ? { color: colors.onWinContainer, fontWeight: text.fontWeight }
                     : { color: colors[text.colorKey], fontWeight: text.fontWeight },
                 ]}
               >
@@ -145,6 +150,7 @@ export function ScoreTable({
   compact = false,
   fullCount,
   emptyMessage,
+  footer,
 }: ScoreTableProps) {
   const rotationStartSet = useMemo(() => new Set(rotationStarts ?? []), [rotationStarts]);
   const theme = useAppTheme();
@@ -163,8 +169,11 @@ export function ScoreTable({
   const scrollsSideways = fitWidth < MIN_COLUMN_WIDTH;
 
   const fontSize = fontSizeFor(columnWidth);
-  const rowHeight = compact ? 34 : columns.length > 8 ? 40 : 44;
-  const headerHeight = compact ? 58 : 64;
+  const rowHeight = compact ? 34 : columns.length > 8 ? 42 : 48;
+  const headerHeight = compact ? 58 : 68;
+  const onDark = theme.dark;
+  // Totals read a step larger than the cells, except on narrow columns where 4-digit totals must still fit.
+  const totalFontSize = columnWidth >= 56 ? fontSize + 2 : fontSize - 1;
 
   // Header and rows are two horizontal scroll views; a swipe on either drives the other.
   const sync = useMemo(
@@ -192,16 +201,19 @@ export function ScoreTable({
 
   const isLeader = (id: string) => leaderIds.includes(id);
 
-  const headerCells = columns.map((column) => {
+  // The dealer's column is tinted, not filled: the button green belongs to buttons only.
+  const headerCells = columns.map((column, index) => {
     const dealsNext = column.id === nextDealerId;
     const leader = isLeader(column.id);
+    const seatText = column.isExpense ? colors.onSurfaceVariant : onDark ? seatColor(index, { onDark: true }) : column.color;
+    const total = totals[column.id] ?? 0;
     return (
       <View
         key={column.id}
         style={[
           styles.cell,
           { width: columnWidth, height: headerHeight, borderRightColor: colors.hairline },
-          dealsNext && { backgroundColor: colors.primary },
+          dealsNext && { backgroundColor: colors.primaryContainer, borderBottomWidth: 4, borderBottomColor: colors.onPrimaryContainer },
         ]}
       >
         <Text
@@ -210,7 +222,7 @@ export function ScoreTable({
             styles.headerText,
             {
               fontSize: fontSize - 1,
-              color: dealsNext ? colors.onPrimary : column.isExpense ? colors.onSurfaceVariant : column.color,
+              color: seatText,
             },
           ]}
         >
@@ -223,30 +235,25 @@ export function ScoreTable({
             styles.headerTotal,
             tabularNums,
             {
-              fontSize,
-              color: dealsNext
-                ? colors.onPrimary
-                : (totals[column.id] ?? 0) > 0
-                  ? colors.positive
-                  : (totals[column.id] ?? 0) < 0
-                    ? colors.negative
-                    : colors.onSurface,
+              fontSize: totalFontSize,
+              // Totals are near-black, never green; a losing total is the loss red.
+              color: dealsNext ? colors.onPrimaryContainer : total < 0 ? colors.loss : colors.onSurface,
             },
           ]}
         >
-          {totals[column.id] ?? 0}
+          {signed(total)}
         </Text>
         {dealsNext ? (
           <View style={styles.headerLabelRow}>
-            {leader ? <Icon source="crown" size={10} color={colors.onPrimary} /> : null}
-            <Text style={[styles.dealsText, { color: colors.onPrimary }]} numberOfLines={1}>
+            {leader ? <Icon source="crown" size={10} color={colors.leader} /> : null}
+            <Text style={[styles.dealsText, { color: colors.onPrimaryContainer }]} numberOfLines={1}>
               DEALS
             </Text>
           </View>
         ) : leader ? (
           <Icon source="crown" size={compact ? 12 : 14} color={colors.leader} />
         ) : (
-          <View style={[styles.seatBar, { backgroundColor: column.isExpense ? colors.outlineVariant : column.color }]} />
+          <View style={[styles.seatBar, { backgroundColor: column.isExpense ? colors.outlineVariant : seatText }]} />
         )}
       </View>
     );
@@ -370,10 +377,12 @@ export function ScoreTable({
           <ScrollView
             ref={verticalRef}
             style={styles.flex}
+            contentContainerStyle={styles.grow}
             onContentSizeChange={handleContentSizeChange}
             showsVerticalScrollIndicator={roundCount > 0}
           >
             {body}
+            {footer ? <View style={styles.footer}>{footer}</View> : null}
           </ScrollView>
 
         </>
@@ -391,6 +400,12 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  grow: {
+    flexGrow: 1,
+  },
+  footer: {
+    marginTop: 'auto',
   },
   row: {
     flexDirection: 'row',
@@ -431,7 +446,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   dealsText: {
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.6,
     marginTop: 1,
@@ -443,7 +458,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   cornerText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.6,
   },
@@ -451,7 +466,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   roundMeta: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '600',
     marginTop: -1,
   },

@@ -37,7 +37,7 @@ export function GameIdFooter({ game, members }: { game: Game; members: Player[] 
       {lines.map((line, index) => (
         <Text
           key={line}
-          variant="labelSmall"
+          variant="labelMedium"
           style={[index === 0 ? styles.label : null, { color: colors.onSurfaceVariant }]}
           numberOfLines={1}
           testID={index === 0 ? 'game-label' : undefined}
@@ -50,6 +50,6 @@ export function GameIdFooter({ game, members }: { game: Game; members: Player[] 
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: 'flex-end', gap: 2, paddingTop: spacing.xs },
-  label: { fontWeight: '700', fontVariant: ['tabular-nums'] },
+  wrap: { alignItems: 'flex-end', gap: 2, paddingTop: spacing.sm, paddingBottom: spacing.sm, paddingHorizontal: spacing.md },
+  label: { fontWeight: '800', fontVariant: ['tabular-nums'] },
 });
