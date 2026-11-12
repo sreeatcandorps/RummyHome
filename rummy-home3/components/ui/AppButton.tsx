@@ -57,7 +57,7 @@ export const Button = React.forwardRef<React.ComponentRef<typeof PaperButton>, A
         style,
       ]}
       contentStyle={[mode !== 'text' && !compact ? styles.content : styles.compactContent, contentStyle]}
-      labelStyle={[styles.label, rest.icon ? styles.labelWithIcon : null, compact && styles.compactLabel, labelStyle]}
+      labelStyle={[styles.label, mode !== 'text' && !compact ? (rest.icon ? styles.labelWithIcon : styles.labelNoIcon) : null, labelStyle]}
       {...rest}
     />
   );
@@ -67,8 +67,9 @@ const styles = StyleSheet.create({
   pill: { borderRadius: 999 },
   content: { minHeight: BUTTON_MIN_HEIGHT },
   compactContent: { minHeight: 40 },
-  // Paper pads labels 24 px a side; two pills must share a phone-width bottom bar.
-  label: { fontSize: 16, lineHeight: 20, fontWeight: '800', marginHorizontal: 16 },
-  labelWithIcon: { marginLeft: 10, marginRight: 16 },
-  compactLabel: { fontSize: 15, marginHorizontal: 12 },
+  label: { fontSize: 16, lineHeight: 20, fontWeight: '800' },
+  // Paper pads labels 24 px a side; two pills must share a phone-width bottom bar. The icon
+  // sits with a -16 right margin, so the label keeps 26 on that side for an 10 px gap.
+  labelNoIcon: { marginHorizontal: 16 },
+  labelWithIcon: { marginLeft: 26, marginRight: 16 },
 });

@@ -267,9 +267,11 @@ export default function MeScreen() {
       </Button>
       {notice ? <Text variant="bodyMedium">{notice}</Text> : null}
 
-      <View style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
-        <Icon source={darkMode ? 'weather-night' : 'white-balance-sunny'} size={20} color={colors.onSurfaceVariant} />
-        <Text variant="titleMedium" style={styles.flex}>Appearance</Text>
+      <View style={[styles.row, styles.appearance, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
+        <View style={styles.valueRow}>
+          <Icon source={darkMode ? 'weather-night' : 'white-balance-sunny'} size={20} color={colors.onSurfaceVariant} />
+          <Text variant="titleMedium">Appearance</Text>
+        </View>
         <View style={styles.segments} accessibilityRole="radiogroup">
           {APPEARANCE_OPTIONS.map((option) => {
             const on = appearance === option.value;
@@ -285,7 +287,8 @@ export default function MeScreen() {
                   { backgroundColor: on ? colors.primary : colors.surfaceSunken, borderColor: on ? colors.primary : colors.outlineVariant },
                 ]}
               >
-                <Text variant="labelMedium" style={{ color: on ? colors.onPrimary : colors.onSurface }}>{option.label}</Text>
+                <Icon source={option.icon} size={18} color={on ? colors.onPrimary : colors.onSurfaceVariant} />
+                <Text variant="labelLarge" style={{ color: on ? colors.onPrimary : colors.onSurface }}>{option.label}</Text>
               </Pressable>
             );
           })}
@@ -328,8 +331,8 @@ export default function MeScreen() {
               </Text>
               {phoneState.kind === 'saved' ? (
                 <View style={styles.inline}>
-                  <Icon source="check-circle" size={16} color={colors.positive} />
-                  <Text variant="labelMedium" style={{ color: colors.positive }}>{savedPhone ? 'Phone saved.' : 'Phone cleared.'}</Text>
+                  <Icon source="check-circle" size={16} color={colors.win} />
+                  <Text variant="labelMedium" style={{ color: colors.win }}>{savedPhone ? 'Phone saved.' : 'Phone cleared.'}</Text>
                 </View>
               ) : null}
             </View>
@@ -458,10 +461,14 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   flex: { flex: 1 },
-  segments: { flexDirection: 'row', gap: spacing.xs },
+  appearance: { flexDirection: 'column', alignItems: 'stretch', gap: spacing.sm, paddingVertical: spacing.sm },
+  segments: { flexDirection: 'row', gap: spacing.sm },
   segment: {
-    minHeight: 36,
-    paddingHorizontal: spacing.md,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: spacing.sm,
     borderRadius: radius.full,
     borderWidth: 2,
     alignItems: 'center',

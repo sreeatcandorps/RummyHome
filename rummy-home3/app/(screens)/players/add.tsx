@@ -213,7 +213,7 @@ export default function AddPlayersScreen() {
               key={row.key}
               style={[
                 styles.card,
-                { backgroundColor: colors.surface, borderColor: saved ? colors.positive : colors.outlineVariant },
+                { backgroundColor: colors.surface, borderColor: saved ? colors.win : colors.outlineVariant },
               ]}
             >
               <View style={styles.line}>

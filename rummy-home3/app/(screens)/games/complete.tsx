@@ -110,7 +110,7 @@ export default function CompleteGameScreen() {
             </View>
           ))}
           <View style={styles.checkRow}>
-            <Icon source={check.ok ? 'check-circle-outline' : 'alert-circle-outline'} size={18} color={check.ok ? colors.positive : colors.error} />
+            <Icon source={check.ok ? 'check-circle-outline' : 'alert-circle-outline'} size={18} color={check.ok ? colors.win : colors.error} />
             <Text variant="bodySmall" style={{ color: check.ok ? colors.onSurfaceVariant : colors.error, flex: 1 }}>{check.line}</Text>
           </View>
         </View>
