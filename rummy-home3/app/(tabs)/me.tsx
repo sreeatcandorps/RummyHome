@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Linking, StyleSheet, View } from 'react-native';
-import { Button, Checkbox, Icon, Switch, Text, TextInput, TouchableRipple } from 'react-native-paper';
+import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Checkbox, Icon, Text, TextInput, TouchableRipple } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
@@ -22,6 +23,7 @@ import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { usePreferences } from '@/contexts/PreferencesContext';
+import { APPEARANCE_OPTIONS } from '@/utils/appearance';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 type PhoneState = { kind: 'idle' } | { kind: 'saved' } | { kind: 'error'; message: string };
@@ -29,7 +31,7 @@ type PhoneState = { kind: 'idle' } | { kind: 'saved' } | { kind: 'error'; messag
 export default function MeScreen() {
   const { colors } = useAppTheme();
   const navigation = useNavigation();
-  const { darkMode, setDarkMode } = usePreferences();
+  const { appearance, darkMode, setAppearance } = usePreferences();
   const [player, setPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -232,10 +234,10 @@ export default function MeScreen() {
             {player.email ? <Text variant="bodySmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{player.email}</Text> : null}
           </View>
         </View>
-        <View style={[styles.idBadge, { borderColor: colors.primary, backgroundColor: colors.surface }]} accessibilityLabel={badge ? `Your ${badge}` : 'Player ID pending'}>
-          <Icon source="card-account-details-outline" size={20} color={colors.primary} />
-          <Text variant="titleMedium" style={[styles.idText, { color: colors.onSurface }]}>{badge ?? 'Player ID pending'}</Text>
-          <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>Share it so friends can find you</Text>
+        <View style={[styles.idBadge, { backgroundColor: colors.tertiaryContainer }]} accessibilityLabel={badge ? `Your ${badge}` : 'Player ID pending'}>
+          <Icon source="card-account-details-outline" size={20} color={colors.onTertiaryContainer} />
+          <Text variant="titleMedium" style={[styles.idText, { color: colors.onTertiaryContainer }]}>{badge ?? 'Player ID pending'}</Text>
+          <Text variant="labelSmall" style={{ color: colors.onTertiaryContainer }}>Share it so friends can find you</Text>
         </View>
         <View style={styles.identityActions}>
           {editing ? (
@@ -267,8 +269,27 @@ export default function MeScreen() {
 
       <View style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
         <Icon source={darkMode ? 'weather-night' : 'white-balance-sunny'} size={20} color={colors.onSurfaceVariant} />
-        <Text variant="titleMedium" style={styles.flex}>Dark mode</Text>
-        <Switch value={darkMode} onValueChange={setDarkMode} accessibilityLabel="Dark mode" />
+        <Text variant="titleMedium" style={styles.flex}>Appearance</Text>
+        <View style={styles.segments} accessibilityRole="radiogroup">
+          {APPEARANCE_OPTIONS.map((option) => {
+            const on = appearance === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                onPress={() => setAppearance(option.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={option.value === 'system' ? 'Follow the phone setting' : `${option.label} mode`}
+                style={[
+                  styles.segment,
+                  { backgroundColor: on ? colors.primary : colors.surfaceSunken, borderColor: on ? colors.primary : colors.outlineVariant },
+                ]}
+              >
+                <Text variant="labelMedium" style={{ color: on ? colors.onPrimary : colors.onSurface }}>{option.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       <SectionCard title="Phone" icon="phone-outline" supportingText="Optional. Never texted, never shown to other players.">
@@ -437,13 +458,21 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   flex: { flex: 1 },
+  segments: { flexDirection: 'row', gap: spacing.xs },
+  segment: {
+    minHeight: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   gap: { gap: spacing.sm },
   valueRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   idBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    borderWidth: 2,
     borderRadius: radius.md,
     paddingVertical: 10,
     paddingHorizontal: spacing.md,
