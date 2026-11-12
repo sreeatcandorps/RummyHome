@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–021) applied, check the function state after each, then re-apply the forward
+# has every migration (001–022) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,24 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 022 (present from PR 7's Nov 11 initials batch on; skipped on refs that do not have it yet)
+HAS_022=f
+if [ -f "$RB/rollback_022_player_initials.sql" ]; then
+  HAS_022=t
+  if apply "$RB/rollback_022_player_initials.sql"; then tap ok "rollback_022 applies"; else tap fail "rollback_022 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists initials_candidates)" = f ] && [ "$(fn_exists set_my_player_initials)" = f ] && [ "$(fn_exists set_seat_label)" = f ] \
+    && tap ok "after rollback_022 the generator and the initials RPCs are gone" \
+    || tap fail "after rollback_022 initials_candidates / set_my_player_initials / set_seat_label should be gone"
+  [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='my_players' and column_name='initials')")" = f ] \
+    && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='game_players' and column_name='label')")" = f ] \
+    && tap ok "after rollback_022 my_players.initials and game_players.label are gone" \
+    || tap fail "after rollback_022 the 022 columns should be gone"
+  [ "$(fn_has seat_rows_json label)" = f ] && [ "$(fn_has update_unregistered_player name_snapshot)" = f ] \
+    && tap ok "after rollback_022 seat_rows_json and update_unregistered_player are the 020/012 bodies" \
+    || tap fail "after rollback_022 seat_rows_json / update_unregistered_player should be the 020/012 bodies"
+  [ "$(fn_exists normalize_profile_email)" = t ] && tap ok "rollback_022 leaves 021 in place" || tap fail "rollback_022 must not touch 021"
+fi
 
 # 021 (present from PR 7's Nov 11 email-uniqueness batch on; skipped on refs that do not have it yet)
 HAS_021=f
@@ -115,6 +133,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_019" = t ] && FORWARD="$FORWARD 019_security_and_concurrency_fixes"
 [ "$HAS_020" = t ] && FORWARD="$FORWARD 020_performance_rpcs_and_indexes"
 [ "$HAS_021" = t ] && FORWARD="$FORWARD 021_email_uniqueness"
+[ "$HAS_022" = t ] && FORWARD="$FORWARD 022_player_initials"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -142,6 +161,13 @@ if [ "$HAS_021" = t ]; then
   [ "$(fn_exists normalize_profile_email)" = t ] && [ "$(fn_exists duplicate_profile_emails)" = t ] \
     && [ "$(q "select exists(select 1 from pg_indexes where schemaname='public' and indexname='profiles_email_ci_key')")" = t ] \
     && tap ok "021 restored (normalising trigger, duplicate report, case-insensitive unique email)" || tap fail "021 restored"
+fi
+if [ "$HAS_022" = t ]; then
+  [ "$(fn_exists initials_candidates)" = t ] && [ "$(fn_exists set_my_player_initials)" = t ] && [ "$(fn_has seat_rows_json label)" = t ] \
+    && [ "$(q "select exists(select 1 from pg_indexes where schemaname='public' and indexname='my_players_owner_initials_key')")" = t ] \
+    && [ "$(q "select count(*) from public.my_players where initials is null or name_snapshot is null")" = 0 ] \
+    && [ "$(q "select count(*) from public.game_players where label is null")" = 0 ] \
+    && tap ok "022 restored (generator, RPCs, seat labels, per-owner unique index, every row backfilled)" || tap fail "022 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

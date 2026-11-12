@@ -90,7 +90,7 @@ for (const r of unitRows) {
   const st = status('db/migrations.status');
   const ran = st != null;
   const txt = (read('db/migrations.txt') ?? '').trim();
-  suites.push({ key: 'migrations', title: 'Every migration (001–021) + seed on a fresh local Supabase', ran, ok: ran && st === 0, passed: ran && st === 0 ? 1 : 0, failed: ran && st !== 0 ? 1 : 0, known: 0,
+  suites.push({ key: 'migrations', title: 'Every migration (001–022) + seed on a fresh local Supabase', ran, ok: ran && st === 0, passed: ran && st === 0 ? 1 : 0, failed: ran && st !== 0 ? 1 : 0, known: 0,
     note: ran ? (st === 0 ? 'applied from empty' : 'failed') : 'not run' });
   if (ran && st !== 0) failures.push({ suite: 'Migrations', where: 'supabase db reset', test: 'apply every migration + seed.sql', detail: txt.split('\n').slice(-20).join('\n') });
 }
@@ -102,7 +102,7 @@ const rollbacks = parseTap(read('db/rollbacks.tap'));
   const ran = st != null || rollbacks.tests.length > 0;
   const t = tally(rollbacks.tests);
   const planOk = rollbacks.planned == null || rollbacks.planned === rollbacks.tests.length;
-  suites.push({ key: 'rollbacks', title: 'Rollbacks 021→013 replayed, then 013–021 re-applied (twice)', ran, ok: ran && t.failed === 0 && planOk && (st ?? 0) === 0, ...t,
+  suites.push({ key: 'rollbacks', title: 'Rollbacks 022→013 replayed, then 013–022 re-applied (twice)', ran, ok: ran && t.failed === 0 && planOk && (st ?? 0) === 0, ...t,
     note: ran ? (planOk ? '' : `planned ${rollbacks.planned}, ran ${rollbacks.tests.length}`) : 'not run' });
   for (const x of rollbacks.tests.filter((x) => !x.ok)) (x.directive === 'TODO' ? knownFailures : failures).push({ suite: 'Rollbacks', where: 'ci/db/replay-rollbacks.sh', test: x.name, reason: x.reason, detail: x.diag.join('\n') });
 }
@@ -126,7 +126,7 @@ const pgtapFiles = new Map(); // file -> tally + tests
   const st = status('db/pgtap.status');
   const ran = all.length > 0;
   const sum = (k) => all.reduce((a, f) => a + f[k], 0);
-  suites.push({ key: 'pgtap', title: 'pgTAP: RLS, privacy, 014/016/017 rules, public scorecard, 020 bundles, 021 email uniqueness', ran, ok: ran && sum('failed') === 0 && (st ?? 0) === 0,
+  suites.push({ key: 'pgtap', title: 'pgTAP: RLS, privacy, 014/016/017 rules, public scorecard, 020 bundles, 021 email uniqueness, 022 initials', ran, ok: ran && sum('failed') === 0 && (st ?? 0) === 0,
     passed: sum('passed'), failed: sum('failed'), known: sum('known'), total: sum('total'), note: ran ? `${all.length} files` : 'not run' });
 }
 
