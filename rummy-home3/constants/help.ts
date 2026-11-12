@@ -58,7 +58,8 @@ export const HELP = {
     'Undo asks before removing the last round.',
     'Complete opens a page with the final totals and asks once more before locking the scores. The game can then be picked for Results.',
     'A Completed game can be reopened from the ⋮ menu until it is added to Results.',
-    'The ⋮ menu changes this game’s Drop, Middle drop, and Full count, picks who can score, sends sign-up links, and shares the live link.',
+    'The ⋮ menu changes this game’s Drop, Middle drop, and Full count, picks who can score, sends sign-up links, shares the live link, and hides or deletes the game.',
+    'Under the table: the game number with its creator and admins, and the full game ID. Tap the ID to copy it when you report a problem.',
   ),
   playersSheet: bullets(
     'Each row shows the name, Player ID, role (Creator, Admin, Player, View only) and whether they are Registered, Pending or Unregistered.',

@@ -54,3 +54,4 @@ export type { GameStatus } from '@/utils/gameStatus';
 export function isGameClosed(game: Pick<Game, 'closedAt'>): boolean {
   return Boolean(game.closedAt);
 }
+

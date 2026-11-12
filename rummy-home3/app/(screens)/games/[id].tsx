@@ -33,6 +33,7 @@ import { StackedAction } from '@/components/ui/StackedAction';
 import { editableRounds } from '@/utils/editRound';
 import { Tag } from '@/components/ui/Tag';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
+import { GameIdFooter } from '@/components/game/GameIdFooter';
 import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
 import { rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame } from '@/utils/gameStatus';
@@ -48,6 +49,7 @@ export default function GameScreen() {
   const cachedSeats = gamesService.peekSeats(typeof id === 'string' ? id : null);
   const [game, setGame] = useState<Game | null>(cachedGame);
   const [players, setPlayers] = useState<Player[]>(() => (cachedSeats ?? []).filter((p) => p.seatRole !== 'spectator' && p.seated !== false && p.id !== 'EX'));
+  const [members, setMembers] = useState<Player[]>(cachedSeats ?? []);
   const [loading, setLoading] = useState(!(cachedGame && cachedSeats));
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
@@ -104,6 +106,7 @@ export default function GameScreen() {
         setCanManage(access.isCreator || access.seatRole === 'game_admin');
         setLoadError(null);
         setPlayers(seated.filter((player) => player.id !== 'EX'));
+        setMembers(gamePlayers);
       }
     } catch (error) {
       console.error('Error loading game:', error);
@@ -343,6 +346,8 @@ export default function GameScreen() {
     />
   );
 
+  const idFooter = <GameIdFooter game={game} members={members} onCopied={setLinkNote} />;
+
   const table = (
     <ScoreTable
       columns={columns}
@@ -476,7 +481,7 @@ export default function GameScreen() {
             { paddingLeft: gutterLeft, paddingRight: gutterRight },
           ]}
         >
-          <View style={styles.flex}>{table}</View>
+          <View style={styles.flex}>{table}{idFooter}</View>
         </View>
       ) : (
         <View
@@ -487,6 +492,7 @@ export default function GameScreen() {
           ]}
         >
           {table}
+          {idFooter}
         </View>
       )}
       {!game.isComplete && canScore ? (

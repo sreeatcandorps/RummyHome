@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
+const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
 import { deleteGameWarning, deletedBody, removedGamesNote, restoreGameNote } from '../utils/archive';
 import { GameResult, withoutGames } from '../utils/results';
 
@@ -60,30 +63,47 @@ test('restore and deleted copy', () => {
 });
 
 test('scorecard menu offers Hide game to everyone and Delete game to managers only', () => {
-  const src = readFileSync(new URL('../app/(screens)/games/[id].tsx', import.meta.url), 'utf8');
-  assert.match(src, /title="Hide game"/);
-  assert.match(src, /\{canManage \? \([\s\S]*?title="Delete game"/);
-  assert.match(src, /setCanManage\(access\.isCreator \|\| access\.seatRole === 'game_admin'\)/);
-  assert.match(src, /deleteGameWarning\(holding\)/, 'the warning about saved results is shown before Delete');
+  const screenSrc = src('app/(screens)/games/[id].tsx');
+  assert.match(screenSrc, /title="Hide game"/);
+  assert.match(screenSrc, /\{canManage \? \([\s\S]*?title="Delete game"/);
+  assert.match(screenSrc, /setCanManage\(access\.isCreator \|\| access\.seatRole === 'game_admin'\)/);
+  assert.match(screenSrc, /deleteGameWarning\(holding\)/, 'the warning about saved results is shown before Delete');
 });
 
 test('the result page offers Delete result only to canManage viewers and shows the deleted state', () => {
-  const src = readFileSync(new URL('../app/(screens)/results/[id].tsx', import.meta.url), 'utf8');
-  assert.match(src, /result\?\.canManage \? \([\s\S]*?title="Delete result"/);
-  assert.match(src, /RESULT_DELETED_TITLE/);
+  const screenSrc = src('app/(screens)/results/[id].tsx');
+  assert.match(screenSrc, /result\?\.canManage \? \([\s\S]*?title="Delete result"/);
+  assert.match(screenSrc, /RESULT_DELETED_TITLE/);
 });
 
 test('the public share page says when a game was deleted', () => {
-  const html = readFileSync(new URL('../public/scorecard.html', import.meta.url), 'utf8');
+  const html = src('public/scorecard.html');
   assert.match(html, /card\.deleted === true[\s\S]*?This game was deleted\./);
 });
 
 test('migration 023 excludes deleted rows from every reader it rewrites and 023 is listed to apply', () => {
-  const sql = readFileSync(new URL('../supabase/migrations/023_hide_and_soft_delete.sql', import.meta.url), 'utf8');
+  const sql = src('supabase/migrations/023_hide_and_soft_delete.sql');
   for (const fn of ['list_visible_game_ids', 'can_read_game', 'visible_games', 'get_home_bundle', 'get_game_bundle', 'public_scorecard', 'list_new_game_candidates', 'can_see_game_result', 'reused_game_ids', 'get_game_result', 'list_game_results_page', 'declare_game_result']) {
     assert.match(sql, new RegExp(`create or replace function public\\.${fn}\\(`), `${fn} is rewritten`);
   }
   assert.match(sql, /deleted_at is null/);
-  const docs = readFileSync(new URL('../docs/migrations-to-apply.md', import.meta.url), 'utf8');
+  const docs = src('docs/migrations-to-apply.md');
   assert.match(docs, /023_hide_and_soft_delete\.sql/);
+});
+
+test('the scorecard footer names the game, its creator and admins, and offers the full ID to copy', async () => {
+  const { gameOwnersLine } = await import('../utils/gameOwners');
+  const members = [
+    { id: 'h', name: 'Harish', seatRole: 'game_admin' },
+    { id: 'p', name: 'Priya', seatRole: 'player' },
+    { id: 'c', name: 'Cora', seatRole: 'game_admin' },
+  ];
+  assert.equal(gameOwnersLine({ gameNumber: 12, createdBy: 's' }, members, 'Sree'), 'G12 · Creator Sree · Admins Harish, Cora');
+  assert.equal(gameOwnersLine({ gameNumber: 3, createdBy: 'h' }, members), 'G3 · Creator Harish · Admin Cora');
+  assert.equal(gameOwnersLine({ gameNumber: null, createdBy: 'x' }, [{ id: 'p', name: 'Priya', seatRole: 'player' }]), '');
+  const screen = src('app/(screens)/games/[id].tsx');
+  assert.match(screen, /<GameIdFooter game=\{game\} members=\{members\} onCopied=\{setLinkNote\} \/>/);
+  const footer = src('components/game/GameIdFooter.tsx');
+  assert.match(footer, /Clipboard\.setStringAsync\(game\.id\)/);
+  assert.match(footer, /\{`ID \$\{game\.id\}`\}/, 'the full id is shown, not a short code');
 });
