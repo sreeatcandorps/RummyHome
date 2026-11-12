@@ -337,11 +337,8 @@ export default function GameScreen() {
   const statusTag = game.isComplete ? (
     <Tag label="Completed" icon="flag-checkered" />
   ) : (
-    <Tag
-      label={nextDealerId ? `Round ${maxRounds + 1} · ${initialsFor(nextDealerId)} deals` : `Round ${maxRounds + 1}`}
-      tone="primary"
-      icon="cards-outline"
-    />
+    // Who deals is shown once, as the DEALS badge on that player's column header.
+    <Tag label={`Round ${maxRounds + 1}`} tone="primary" icon="cards-outline" />
   );
 
   const idFooter = <GameIdFooter game={game} members={members} />;

@@ -29,7 +29,7 @@ test('Add round numbers and labels the round from the scores', () => {
   assert.doesNotMatch(screen, /game\.currentRound/, 'the stale counter is no longer read on this screen');
 
   const scorecard = read('app/(screens)/games/[id].tsx');
-  assert.match(scorecard, /`Round \$\{maxRounds \+ 1\} · \$\{initialsFor\(nextDealerId\)\} deals` : `Round \$\{maxRounds \+ 1\}`/);
+  assert.match(scorecard, /<Tag label=\{`Round \$\{maxRounds \+ 1\}`\} tone="primary" icon="cards-outline" \/>/);
   assert.doesNotMatch(scorecard, /game\.currentRound/);
 });
 
