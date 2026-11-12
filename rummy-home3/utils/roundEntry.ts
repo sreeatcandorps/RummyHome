@@ -277,21 +277,22 @@ export function cellTone(status: CellStatus): CellTone {
 
 /**
  * The Add round palette, as theme colour names so the screen and the tests
- * agree. Yellow = what you are doing now, green = done, blue = Rummy, beige = nothing.
+ * agree (docs/design/02-design-system.md, Add round). A cell you are working on or have saved sits
+ * on white, with a green ring while it is selected; empty cells rest on the sunken beige.
  */
-export type EntryFill = 'cellNeutral' | 'secondaryContainer' | 'positiveContainer' | 'tertiaryContainer' | 'surface';
+export type EntryFill = 'cellNeutral' | 'primaryContainer' | 'secondaryContainer' | 'positiveContainer' | 'tertiaryContainer' | 'surface';
 
 export const CELL_FILL: Record<CellTone, EntryFill> = {
   neutral: 'cellNeutral',
-  selected: 'secondaryContainer',
-  confirmed: 'positiveContainer',
+  selected: 'surface',
+  confirmed: 'surface',
 };
 
 export type ActionKind = 'sign' | 'preset' | 'rummy';
 
-/** Fill of a key on the action row. The active sign is yellow; Rummy is always blue; presets rest on surface and flash green when tapped. */
+/** Fill of a key on the action row. The active sign is the soft green; Rummy is always blue; presets rest on surface and flash green when tapped. */
 export function actionFill(kind: ActionKind, active = false): EntryFill {
-  if (kind === 'sign') return active ? 'secondaryContainer' : 'surface';
+  if (kind === 'sign') return active ? 'primaryContainer' : 'surface';
   if (kind === 'rummy') return 'tertiaryContainer';
   return 'surface';
 }
