@@ -1,22 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Icon, Text } from 'react-native-paper';
-import * as Clipboard from 'expo-clipboard';
+import { StyleSheet, View } from 'react-native';
+import { Text } from 'react-native-paper';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { playersService } from '@/services/players';
 import { storage } from '@/utils/storage';
-import { gameOwnersLine } from '@/utils/gameOwners';
+import { gameOwnersLines } from '@/utils/gameOwners';
 import { spacing, useAppTheme } from '@/constants/theme';
 
-export const GAME_ID_COPIED = 'Game ID copied.';
-
 /**
- * Bottom-right of the scorecard table: the G-number with the creator and admin names, and the
- * full game ID in small text. Tapping the ID copies it (support asks for it when something is off).
+ * Bottom-right of the scorecard table: "Game S3", then the creator, then the admins, each on
+ * its own line (028 / final batch items 2 and 7). The long game id is internal and never shown.
  */
-export function GameIdFooter({ game, members, onCopied }: { game: Game; members: Player[]; onCopied: (note: string) => void }) {
+export function GameIdFooter({ game, members }: { game: Game; members: Player[] }) {
   const { colors } = useAppTheme();
   const [creatorName, setCreatorName] = useState<string | null>(null);
 
@@ -34,26 +31,25 @@ export function GameIdFooter({ game, members, onCopied }: { game: Game; members:
     return () => { live = false; };
   }, [game.createdBy, members]);
 
-  const copy = async () => {
-    await Clipboard.setStringAsync(game.id);
-    onCopied(GAME_ID_COPIED);
-  };
-
+  const lines = gameOwnersLines(game, members, creatorName);
   return (
-    <View style={styles.wrap} testID="game-id-footer">
-      <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>
-        {gameOwnersLine(game, members, creatorName)}
-      </Text>
-      <Pressable onPress={copy} accessibilityRole="button" accessibilityLabel={`Game ID ${game.id}. Tap to copy`} style={styles.idRow} hitSlop={8}>
-        <Text variant="labelSmall" style={[styles.id, { color: colors.onSurfaceVariant }]} numberOfLines={1}>{`ID ${game.id}`}</Text>
-        <Icon source="content-copy" size={12} color={colors.onSurfaceVariant} />
-      </Pressable>
+    <View style={styles.wrap} testID="game-id-footer" accessibilityLabel={lines.join('. ')}>
+      {lines.map((line, index) => (
+        <Text
+          key={line}
+          variant="labelSmall"
+          style={[index === 0 ? styles.label : null, { color: colors.onSurfaceVariant }]}
+          numberOfLines={1}
+          testID={index === 0 ? 'game-label' : undefined}
+        >
+          {line}
+        </Text>
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'flex-end', gap: 2, paddingTop: spacing.xs },
-  idRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  id: { fontVariant: ['tabular-nums'], letterSpacing: 0.2 },
+  label: { fontWeight: '700', fontVariant: ['tabular-nums'] },
 });

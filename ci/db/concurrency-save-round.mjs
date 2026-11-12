@@ -274,6 +274,38 @@ async function main() {
     ok(rows[0].c === 2, '7. the game is now in two results; the app warns about this before Declare', { detail: `results containing game A: ${rows[0].c}` });
   }
 
+  // ---------------------------------------------------------------------------------------
+  // 8. Two creators in the same circle create a Points game at the same moment (028): the
+  //    labels must differ. Each knows the other (My players), so each one's live games take
+  //    numbers from the other's pool; the advisory lock in assign_game_number serialises the
+  //    two inserts and the volatile next_game_number sees the row the first one committed.
+  // ---------------------------------------------------------------------------------------
+  if ((await admin.query(`select exists(select 1 from pg_proc where proname = 'next_game_number') as e`)).rows[0].e) {
+    await admin.query(`insert into public.my_players (owner_id, player_id) values ($1, $2), ($2, $1) on conflict (owner_id, player_id) do update set removed_at = null`, [SREE, HARISH]);
+    const settings = JSON.stringify({ gameType: 'stake', expenseEnabled: false, expenseAmount: 0, stakeDrop: -10, stakeMiddleDrop: -30, maxCount: -80 });
+    const insert = (c, id, creator, code) => c.query(
+      `insert into public.games (id, created_by, status, game_type, settings, share_code) values ($1, $2, 'active', 'stake', $3::jsonb, $4) returning game_label`,
+      [id, creator, settings, code],
+    );
+    const G1 = '10000000-0000-4000-8000-0000000000f1';
+    const G2 = '10000000-0000-4000-8000-0000000000f2';
+    await beginAs(a, SREE);
+    const i1 = await attempt(() => insert(a, G1, SREE, 'RACE01'));
+    await beginAs(b, HARISH);
+    let secondDone = false;
+    const i2P = attempt(() => insert(b, G2, HARISH, 'RACE02')).then((r) => { secondDone = true; return r; });
+    await pause(300);
+    const waited = !secondDone;
+    await a.query(i1.ok ? 'commit' : 'rollback');
+    const i2 = await i2P;
+    await b.query(i2.ok ? 'commit' : 'rollback');
+    const { rows } = await admin.query('select id, game_label from public.games where id = any($1::uuid[]) order by id', [[G1, G2]]);
+    ok(i1.ok && i2.ok, '8. both creators insert their game', { detail: `${i1.error?.message ?? ''} ${i2.error?.message ?? ''}`.trim() });
+    ok(waited, '8. the second insert waited on the label lock while the first transaction was open (still pending 300 ms later)');
+    ok(rows.length === 2 && rows[0].game_label !== rows[1].game_label && rows.every((r) => /^S\d+$/.test(r.game_label)),
+      '8. the two games got different S-labels', { detail: JSON.stringify(rows) });
+  }
+
   await Promise.all([a.end(), b.end(), admin.end()]);
   console.log(`1..${n}`);
   if (findings.length) {

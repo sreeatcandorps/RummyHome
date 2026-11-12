@@ -1,7 +1,7 @@
 -- 025: Link to Player ID is a request. The organiser types only the Player ID; the server records
 -- a pending link_request, queues a Yes/No email to the account owner and shows it in-app; nothing
 -- moves until the owner says Yes (conflicts re-checked then). The conflict sentence names every
--- blocking game with its G-number, full game ID and creator. Requests can be cancelled and expire
+-- blocking game with its label, creator and start date (028 wording). Requests can be cancelled and expire
 -- after 7 days. On Yes the organiser gets a one-time "R K (RK) is now linked to #n." notice.
 begin;
 select plan(95);
@@ -65,9 +65,10 @@ grant select on t_clash to authenticated, anon;
 select is((select r->'conflicts'->0->>'gameId' from t_clash), '10000000-0000-4000-8000-00000000000a', 'priya already plays in A with rk: A is a conflict');
 select is((select r->'conflicts'->0->>'creatorName' from t_clash), 'Sree Test', 'the conflict carries the creator name');
 select is((select r->>'conflictMessage' from t_clash),
-  format('Can''t link yet. G1 (game ID 10000000-0000-4000-8000-00000000000a, creator Sree Test) has both R K and #%s. In that game, clear one of their scores to zero and remove them from the game first.', (select priya from t_no)),
-  'the sentence names the G-number, the full game ID, the creator, both players, and what to do');
-select throws_like(format($$ select public.request_player_link(%L, (select priya from t_no)) $$, :RK), 'Can''t link yet. G1 (game ID 10000000-0000-4000-8000-00000000000a, creator Sree Test) has both R K and #%', 'sending a request onto a conflict is refused with the same sentence');
+  format('Can''t link yet. Game S1 (creator Sree Test, started %s) has both R K and #%s. In that game, clear one of their scores to zero and remove them from the game first.',
+         to_char((select created_at from public.games where id = '10000000-0000-4000-8000-00000000000a'), 'Mon FMDD'), (select priya from t_no)),
+  'the sentence names the game label, the creator, the start date, both players, and what to do (028 wording)');
+select throws_like(format($$ select public.request_player_link(%L, (select priya from t_no)) $$, :RK), 'Can''t link yet. Game S1 (creator Sree Test, started %) has both R K and #%', 'sending a request onto a conflict is refused with the same sentence');
 select is((select count(*)::int from public.player_links where player_id = :RK and kind = 'link_request'), 0, 'no request row was written');
 select is((select profile_id from public.game_players where game_id = :A and profile_id = :RK), :RK::uuid, 'nothing moved');
 select is((select public.link_player_check(:RK, (select viewer from t_no))->>'conflictMessage'), null, 'a viewer of A is not a conflict (they would take the seat)');
@@ -132,8 +133,8 @@ select tests.logout();
 -- Make a conflict appear after the request was sent: coadmin takes a seat in A.
 update public.game_players set seated = true, role = 'player' where game_id = :A and profile_id = :COADMIN;
 select tests.login(:COADMIN);
-select alike((select conflict_message from public.list_link_requests_for_me()), 'Can''t link yet. G1 (game ID 10000000-0000-4000-8000-00000000000a, creator Sree Test) has both R K and #%', 'the card can say why Yes would fail');
-select throws_like(format($$ select public.answer_player_link_request(%L, true) $$, (select r->>'linkId' from t_req3)), 'Can''t link yet. G1 (game ID%', 'Yes re-runs the conflict check and refuses');
+select alike((select conflict_message from public.list_link_requests_for_me()), 'Can''t link yet. Game S1 (creator Sree Test, started %) has both R K and #%', 'the card can say why Yes would fail');
+select throws_like(format($$ select public.answer_player_link_request(%L, true) $$, (select r->>'linkId' from t_req3)), 'Can''t link yet. Game S1 (creator%', 'Yes re-runs the conflict check and refuses');
 select is((select status from public.player_links where id = (select (r->>'linkId')::uuid from t_req3)), 'pending', 'the request stays open');
 select tests.logout();
 update public.game_players set seated = false, role = 'game_admin' where game_id = :A and profile_id = :COADMIN;

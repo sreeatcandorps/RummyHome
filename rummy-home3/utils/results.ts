@@ -1,3 +1,4 @@
+import { gameLabelOf, LabelledGame } from '@/utils/gameLabel';
 import { MAX_RESULTS_PLAYERS } from '@/constants/limits';
 import { userAdminsGame } from '@/utils/gameAccess';
 
@@ -178,8 +179,8 @@ export function resultsEmptyText(games: FilterableGame[], filter: ResultsFilter)
 
 export type ResultWarning = { kind: 'active' | 'reused'; text: string };
 
-const gameNames = (games: { gameNumber?: number | null }[]) => {
-  const names = games.map((game) => (game.gameNumber != null ? `G${game.gameNumber}` : 'a game'));
+const gameNames = (games: LabelledGame[]) => {
+  const names = games.map((game) => gameLabelOf(game) ?? 'a game');
   return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 };
 
@@ -188,7 +189,7 @@ const gameNames = (games: { gameNumber?: number | null }[]) => {
  * an Active game was included (totals can still change), or a game was already
  * part of another result (its points are counted twice).
  */
-export function resultWarnings(games: { isComplete?: boolean; closedAt?: string | null; gameNumber?: number | null; reused?: boolean }[]): ResultWarning[] {
+export function resultWarnings(games: (LabelledGame & { isComplete?: boolean; closedAt?: string | null; reused?: boolean })[]): ResultWarning[] {
   const warnings: ResultWarning[] = [];
   const active = games.filter((game) => !game.isComplete);
   if (active.length > 0) {
@@ -220,10 +221,10 @@ export function reusedInResult(declaredAt: string, game: { closedAt?: string | n
 }
 
 /** Warning shown above Show results when any picked game is already Closed. */
-export function closedSelectionWarning(selected: { closedAt?: string | null; gameNumber?: number | null }[]): string | null {
+export function closedSelectionWarning(selected: (LabelledGame & { closedAt?: string | null })[]): string | null {
   const closed = selected.filter((game) => Boolean(game.closedAt));
   if (closed.length === 0) return null;
-  const names = closed.map((game) => (game.gameNumber != null ? `G${game.gameNumber}` : 'A closed game'));
+  const names = closed.map((game) => gameLabelOf(game) ?? 'A closed game');
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
   return `${list} ${closed.length === 1 ? 'is' : 'are'} already counted in an earlier result. Showing results again counts ${closed.length === 1 ? 'it' : 'them'} twice.`;
 }
@@ -535,9 +536,9 @@ export function sheetGameLabel(game: { label?: string | null; name: string }): s
   return game.label?.trim() || game.name;
 }
 
-/** "G7" label for a live game being added up. */
-export function gameLabelFor(game: { gameNumber?: number | null }): string | undefined {
-  return game.gameNumber != null ? `G${game.gameNumber}` : undefined;
+/** "S7" label for a live game being added up. */
+export function gameLabelFor(game: LabelledGame): string | undefined {
+  return gameLabelOf(game) ?? undefined;
 }
 
 /** "G7 10:05 PM" for the PDF. */

@@ -1,3 +1,4 @@
+import { gameLabelOf } from '@/utils/gameLabel';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Share } from 'react-native';
 import * as Crypto from 'expo-crypto';
@@ -52,7 +53,7 @@ const missingRpc = (error: unknown) => {
 };
 
 /** RPCs that only read; every other one may change the roster, so the cached My Players list is dropped. */
-const READ_ONLY_RPCS = new Set(['list_my_player_links', 'list_claim_requests', 'take_creator_notices', 'list_my_unregistered_players', 'list_new_game_candidates', 'peek_claim_link', 'list_my_link_requests', 'list_link_requests_for_me']);
+const READ_ONLY_RPCS = new Set(['list_my_player_links', 'list_claim_requests', 'take_creator_notices', 'list_my_unregistered_players', 'list_new_game_candidates', 'peek_claim_link', 'list_my_link_requests', 'list_link_requests_for_me', 'list_my_link_requests_v2', 'list_link_requests_for_me_v2']);
 const LINK_NOT_READY = 'Linking to a Player ID needs the latest database update (025) before it works here.';
 
 const rpc = async <T,>(name: string, args: Record<string, unknown> = {}): Promise<T> => {
@@ -112,6 +113,7 @@ export const linkFromRow = (row: any): PendingLink => ({
   requesterName: row.requester_name ?? undefined,
   claimedBy: row.claimed_by,
   gameNumbers: row.game_numbers ?? [],
+  gameLabels: row.game_labels ?? undefined,
   movedGameIds: row.moved_game_ids ?? [],
 });
 
@@ -125,6 +127,7 @@ export const linkRequestForMeFromRow = (row: any): LinkRequestForMe => ({
   playerInitials: row.player_initials ?? null,
   targetNo: row.target_no ?? null,
   gameNumbers: row.game_numbers ?? [],
+  gameLabels: row.game_labels ?? [],
   gameCount: row.game_count ?? (row.game_numbers ?? []).length,
   expiresAt: row.expires_at,
   conflictMessage: row.conflict_message ?? null,
@@ -189,7 +192,7 @@ export const playerIdentityService = {
         if (missingRpc(error)) throw new Error(LINK_NOT_READY);
         throw error;
       }
-      return data as LinkPreview;
+      return { ...(data as LinkPreview), gameLabels: (data as LinkPreview).gameLabels ?? [] };
     }
     if (player.managedBy !== ownerId) throw new Error('Only your own unregistered players can be linked.');
     const [players, games, links] = await Promise.all([storage.getPlayers(), storage.getGames(), readJson<PendingLink[]>(LINKS_KEY, [])]);
@@ -221,11 +224,11 @@ export const playerIdentityService = {
       id: `lr-${Date.now()}`, kind: 'link_request', ownerId: owner.id, ownerName: owner.name, playerId: player.id, playerName: player.name,
       playerNo: player.playerNo, targetId: preview.target.id, targetNo: preview.target.playerNo ?? undefined, targetName: preview.target.name,
       status: 'pending', createdAt: now.toISOString(), expiresAt: new Date(now.getTime() + LINK_REQUEST_EXPIRY_DAYS * 86400000).toISOString(),
-      gameNumbers: preview.gameNumbers,
+      gameNumbers: preview.gameNumbers, gameLabels: preview.gameLabels,
     };
     await writeJson(LINKS_KEY, [...replaced, link]);
     await setLocalStatus(player.id, nextStatus(player.status ?? 'unregistered', 'share_link'));
-    return { linkId: link.id, expiresAt: link.expiresAt, emailQueued: false, playerName: player.name, target: preview.target, gameCount: preview.gameCount, gameNumbers: preview.gameNumbers };
+    return { linkId: link.id, expiresAt: link.expiresAt, emailQueued: false, playerName: player.name, target: preview.target, gameCount: preview.gameCount, gameNumbers: preview.gameNumbers, gameLabels: preview.gameLabels };
   },
 
   /** The organiser takes a request back; the player is unregistered again. */
@@ -244,7 +247,9 @@ export const playerIdentityService = {
    */
   async listLinkRequests(ownerId: string, gameId?: string): Promise<PendingLink[]> {
     if (isSupabaseConfigured) {
-      const rows = await rpc<any[]>('list_my_link_requests', { p_game_id: gameId ?? null }).catch(() => [] as any[]);
+      // 028 adds game_labels in a _v2 twin; an older server still answers the 025 name.
+      const rows = await rpc<any[]>('list_my_link_requests_v2', { p_game_id: gameId ?? null })
+        .catch(() => rpc<any[]>('list_my_link_requests', { p_game_id: gameId ?? null }).catch(() => [] as any[]));
       return (rows ?? []).map((row) => ({ ...linkFromRow(row), kind: 'link_request' as const, targetId: row.target_id ?? undefined, targetNo: row.target_no ?? undefined, targetName: row.target_name ?? undefined }));
     }
     await this.expireOld(ownerId);
@@ -256,7 +261,11 @@ export const playerIdentityService = {
 
   /** Requests waiting for the signed-in account (Home card), with the conflict re-checked now. */
   async listLinkRequestsForMe(me: Player): Promise<LinkRequestForMe[]> {
-    if (isSupabaseConfigured) return ((await rpc<any[]>('list_link_requests_for_me').catch(() => [] as any[])) ?? []).map(linkRequestForMeFromRow);
+    if (isSupabaseConfigured) {
+      const rows = await rpc<any[]>('list_link_requests_for_me_v2')
+        .catch(() => rpc<any[]>('list_link_requests_for_me').catch(() => [] as any[]));
+      return (rows ?? []).map(linkRequestForMeFromRow);
+    }
     await this.expireOld(me.id);
     const [links, games, players] = await Promise.all([readJson<PendingLink[]>(LINKS_KEY, []), storage.getGames(), storage.getPlayers()]);
     return links
@@ -268,7 +277,8 @@ export const playerIdentityService = {
         return {
           id: l.id, ownerId: l.ownerId, ownerName: l.ownerName ?? 'A player', playerId: l.playerId, playerName: l.playerName,
           playerInitials: player?.initials ?? null, targetNo: me.playerNo ?? null,
-          gameNumbers: mine.map((g) => g.gameNumber).filter((n): n is number => n != null), gameCount: mine.length,
+          gameNumbers: mine.map((g) => g.gameNumber).filter((n): n is number => n != null),
+          gameLabels: mine.map((g) => gameLabelOf(g)).filter((label): label is string => Boolean(label)), gameCount: mine.length,
           expiresAt: l.expiresAt, conflictMessage: linkConflictSentence(l.playerName, me.playerNo ?? null, conflicts),
         };
       });

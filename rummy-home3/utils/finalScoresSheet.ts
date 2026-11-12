@@ -1,3 +1,4 @@
+import { gameLabelOf, gameTitle, LabelledGame } from '@/utils/gameLabel';
 import { formatPoints } from '@/utils/results';
 
 /** "Mon, Jul 27 · 6:27 PM" — same shape as the scorecard header. Pure copy so this module runs under node. */
@@ -9,7 +10,6 @@ export function formatWhen(value: string): string {
   return `${day} · ${time}`;
 }
 
-const shortId = (game: { id: string; shareCode?: string }) => game.shareCode ?? game.id.slice(-6).toUpperCase();
 
 /** Round scores in the long image sit in square cells, five to a row. */
 export const CELLS_PER_ROW = 5;
@@ -45,7 +45,7 @@ export type FinalScoresSheet = {
   summary: { id: string; name: string; total: number; totalText: string }[];
   players: FinalScoresPlayer[];
   totalSum: number;
-  /** "Game ID G3 · A1B2C3" */
+  /** "Game S3" */
   footer: string;
   /** "Game admins: Sree Koneru · #39, …" — who ran the game; empty when unknown. */
   adminLines: string[];
@@ -58,12 +58,14 @@ export function chunk<T>(items: T[], size: number): T[][] {
   return rows;
 }
 
-export function finalScoresHeading(game: { gameNumber?: number | null }): string {
-  return game.gameNumber != null ? `Game ${game.gameNumber} Final Scores` : 'Final Scores';
+export function finalScoresHeading(game: LabelledGame): string {
+  const label = gameLabelOf(game);
+  return label ? `Game ${label} Final Scores` : 'Final Scores';
 }
 
-export function finalScoresFooter(game: { id: string; shareCode?: string; gameNumber?: number | null }): string {
-  return game.gameNumber != null ? `Game ID G${game.gameNumber} · ${shortId(game)}` : `Game ID ${shortId(game)}`;
+/** "Game S3": the visible number only; the long id never appears on a shared sheet. */
+export function finalScoresFooter(game: LabelledGame & { id: string; shareCode?: string }): string {
+  return gameTitle(game, 'EZ Score game');
 }
 
 /** Share sheet file name and title: never "results". */

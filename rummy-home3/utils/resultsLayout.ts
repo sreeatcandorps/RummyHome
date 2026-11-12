@@ -61,7 +61,7 @@ export function buildShareBreakdown(input: {
   const players = playersByFirstName(input.players);
   const initials = input.labels ?? initialsById(firstAppearanceOrder(input.players, input.games));
   const legend = players.map((player) => ({ initials: initials.get(player.id) ?? '?', name: player.name }));
-  const labels = input.games.map((game, index) => sheetGameLabel({ label: game.label, name: game.name ?? `G${index + 1}` }));
+  const labels = input.games.map((game, index) => sheetGameLabel({ label: game.label, name: game.name ?? `Game ${index + 1}` }));
   const total = (player: { id: string }) => formatPoints(input.totals[player.id] ?? 0);
   const ranges = bandRanges(input.games.length);
   const bands: ShareBand[] = ranges.map(({ start, end }, bandIndex) => {

@@ -285,7 +285,9 @@ test('game headers use h:mm with AM/PM (nov 10: upper case, always shown)', asyn
   // A game keeps its own number whatever position it has in a result.
   assert.equal(sheetGameLabel({ label: 'G7', name: 'ABC123' }), 'G7');
   assert.equal(sheetGameLabel({ name: 'ABC123' }), 'ABC123', 'older results without a stored number show the code, never a positional G1');
-  assert.equal(gameLabelFor({ gameNumber: 7 }), 'G7');
+  assert.equal(gameLabelFor({ gameNumber: 7 }), 'S7');
+  assert.equal(gameLabelFor({ gameNumber: 7, gameType: 'pool' }), 'P7');
+  assert.equal(gameLabelFor({ gameNumber: 7, gameLabel: 'S2' }), 'S2', 'the server label wins');
   assert.equal(gameLabelFor({ gameNumber: null }), undefined);
 });
 
@@ -306,10 +308,10 @@ test('build 3: the Results list keeps Closed games selectable and warns instead 
   assert.deepEqual(listed.map((g) => g.id), ['open', 'done', 'closed']);
   assert.equal(closedSelectionWarning([{ closedAt: null, gameNumber: 1 }, { gameNumber: 2 }]), null);
   const one = closedSelectionWarning([{ closedAt: '2026-10-29T10:00:00Z', gameNumber: 2 }, { gameNumber: 3 }]);
-  assert.match(one!, /G2 is already counted/);
+  assert.match(one!, /S2 is already counted/);
   assert.match(one!, /counts it twice/);
   const two = closedSelectionWarning([{ closedAt: '2026-10-29T10:00:00Z', gameNumber: 2 }, { closedAt: '2026-10-30T10:00:00Z', gameNumber: 5 }]);
-  assert.match(two!, /G2 and G5 are already counted/);
+  assert.match(two!, /S2 and S5 are already counted/);
 });
 
 test('round 2: past results carry the top 3, players, and games', () => {

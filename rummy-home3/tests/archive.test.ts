@@ -91,19 +91,19 @@ test('migration 023 excludes deleted rows from every reader it rewrites and 023 
   assert.match(docs, /023_hide_and_soft_delete\.sql/);
 });
 
-test('the scorecard footer names the game, its creator and admins, and offers the full ID to copy', async () => {
+test('the scorecard footer names the game, its creator and admins on separate lines, with no id to copy', async () => {
   const { gameOwnersLine } = await import('../utils/gameOwners');
   const members = [
     { id: 'h', name: 'Harish', seatRole: 'game_admin' },
     { id: 'p', name: 'Priya', seatRole: 'player' },
     { id: 'c', name: 'Cora', seatRole: 'game_admin' },
   ];
-  assert.equal(gameOwnersLine({ gameNumber: 12, createdBy: 's' }, members, 'Sree'), 'G12 · Creator Sree · Admins Harish, Cora');
-  assert.equal(gameOwnersLine({ gameNumber: 3, createdBy: 'h' }, members), 'G3 · Creator Harish · Admin Cora');
+  assert.equal(gameOwnersLine({ gameLabel: 'S12', gameNumber: 12, createdBy: 's' }, members, 'Sree'), 'Game S12 · Creator Sree · Admins Harish, Cora');
+  assert.equal(gameOwnersLine({ gameNumber: 3, createdBy: 'h' }, members), 'Game S3 · Creator Harish · Admin Cora');
   assert.equal(gameOwnersLine({ gameNumber: null, createdBy: 'x' }, [{ id: 'p', name: 'Priya', seatRole: 'player' }]), '');
   const screen = src('app/(screens)/games/[id].tsx');
-  assert.match(screen, /<GameIdFooter game=\{game\} members=\{members\} onCopied=\{setLinkNote\} \/>/);
+  assert.match(screen, /<GameIdFooter game=\{game\} members=\{members\} \/>/);
   const footer = src('components/game/GameIdFooter.tsx');
-  assert.match(footer, /Clipboard\.setStringAsync\(game\.id\)/);
-  assert.match(footer, /\{`ID \$\{game\.id\}`\}/, 'the full id is shown, not a short code');
+  assert.doesNotMatch(footer, /Clipboard|game\.id/, 'final batch 2: the long id left the UI, nothing to copy');
+  assert.match(footer, /gameOwnersLines\(game, members, creatorName\)/, 'label, creator and admins each on their own line (final batch 7)');
 });

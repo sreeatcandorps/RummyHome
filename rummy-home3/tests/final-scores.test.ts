@@ -18,10 +18,12 @@ const scores = {
   c: [10, -10, 20, 0, 30, -90, 10],
 };
 
-test('heading and footer: "Game 3 Final Scores", game ID footer, never the word Results', () => {
-  assert.equal(finalScoresHeading(game), 'Game 3 Final Scores');
+test('heading and footer: "Game S3 Final Scores", "Game S3" footer, never the id, never the word Results', () => {
+  assert.equal(finalScoresHeading(game), 'Game S3 Final Scores');
   assert.equal(finalScoresHeading({ gameNumber: null }), 'Final Scores');
-  assert.equal(finalScoresFooter(game), 'Game ID G3 · 660A1B2C'.replace('660A1B2C', game.id.slice(-6).toUpperCase()));
+  assert.equal(finalScoresFooter(game), 'Game S3');
+  assert.equal(finalScoresFooter({ ...game, gameLabel: 'P3', gameType: 'pool' }), 'Game P3');
+  assert.doesNotMatch(finalScoresFooter(game), new RegExp(game.id.slice(-6), 'i'), 'the id and the short code left the sheet');
   const sheet = buildFinalScoresSheet({ game, players, scores, now: new Date('2026-11-07T10:01:00Z') });
   assert.doesNotMatch(JSON.stringify(sheet), /result/i);
   assert.doesNotMatch(JSON.stringify(sheet), /1st|2nd|3rd|podium/i);

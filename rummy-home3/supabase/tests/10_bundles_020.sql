@@ -111,7 +111,7 @@ select tests.login('00000000-0000-4000-8000-000000000003');
 select is(public.get_game_result(:R1)->'sheet'->'games'->0->'rounds',
   '{"00000000-0000-4000-8000-000000000002": [60], "00000000-0000-4000-8000-000000000003": [-25], "00000000-0000-4000-8000-0000000000a2": [-35]}'::jsonb,
   'get_game_result embeds per-round values for a game the viewer may read');
-select is(public.get_game_result(:R1)->'sheet'->'games'->0->>'label', 'G1', '018 label is still there');
+select is(public.get_game_result(:R1)->'sheet'->'games'->0->>'label', 'S1', '018 label is still there (028: the S/P label)');
 select is(public.get_game_result(:R1)->'sheet'->'players'->0->>'name', 'Harish Test', '018 players are still there');
 
 -- ---------------------------------------------------------------------------

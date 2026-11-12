@@ -86,8 +86,10 @@
       const totals = grid.map((row) => roundList.reduce((sum, round) => sum + (row[round] || 0), 0));
       const started = new Date(card.startedAt);
       const when = Number.isNaN(started.getTime()) ? card.startedAt : started.toLocaleString();
-      const fromCard = card.gameNumber != null && /^\d+$/.test(String(card.gameNumber)) ? 'G' + card.gameNumber : '';
-      const fromLink = /^\d+$/.test(params.get('g') || '') ? 'G' + params.get('g') : '';
+      // 028: the game label (S3 / P1) comes with the card; older links carried a bare number.
+      const fromCard = typeof card.gameLabel === 'string' && /^[SPG]\d+$/.test(card.gameLabel) ? 'Game ' + card.gameLabel : '';
+      const linkParam = params.get('g') || '';
+      const fromLink = /^[SPG]\d+$/.test(linkParam) ? 'Game ' + linkParam : /^\d+$/.test(linkParam) ? 'Game ' + linkParam : '';
       const gameNo = fromCard || fromLink;
       const status = card.status === 'completed' ? 'Completed' : 'Live';
       document.getElementById('meta').textContent = [gameNo, 'Started ' + when, status].filter(Boolean).join(' · ');

@@ -1,3 +1,4 @@
+import { gameTitle } from '@/utils/gameLabel';
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Button, Text, Dialog, Menu, Portal, Snackbar } from 'react-native-paper';
@@ -264,7 +265,7 @@ export default function GameScreen() {
   if (game?.deletedAt) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Stack.Screen options={{ headerShown: true, title: game.gameNumber ? `G${game.gameNumber}` : 'Scorecard' }} />
+        <Stack.Screen options={{ headerShown: true, title: gameTitle(game, 'Scorecard') }} />
         <EmptyState
           icon="delete-outline"
           title={GAME_DELETED_TITLE}
@@ -343,7 +344,7 @@ export default function GameScreen() {
     />
   );
 
-  const idFooter = <GameIdFooter game={game} members={members} onCopied={setLinkNote} />;
+  const idFooter = <GameIdFooter game={game} members={members} />;
 
   const table = (
     <ScoreTable

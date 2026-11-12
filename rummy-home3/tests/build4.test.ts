@@ -130,10 +130,10 @@ test('build 4: two result warnings — active game used, game already in another
   const active = resultWarnings([{ isComplete: false, gameNumber: 9 }, { isComplete: true, gameNumber: 7 }]);
   assert.equal(active.length, 1);
   assert.equal(active[0].kind, 'active');
-  assert.match(active[0].text, /An active game was used in these results \(G9\)/);
+  assert.match(active[0].text, /An active game was used in these results \(S9\)/);
   const both = resultWarnings([{ isComplete: false, gameNumber: 9 }, { isComplete: true, closedAt: '2026-10-29T10:00:00Z', gameNumber: 5 }]);
   assert.deepEqual(both.map((w) => w.kind), ['active', 'reused']);
-  assert.match(both[1].text, /G5 was already part of another result/);
+  assert.match(both[1].text, /S5 was already part of another result/);
   assert.equal(reusedInResult('2026-11-05T10:00:00Z', { closedAt: '2026-10-29T10:00:00Z' }), true);
   assert.equal(reusedInResult('2026-11-05T10:00:00Z', { closedAt: '2026-11-05T10:00:05Z' }), false, 'closed by this very result');
   assert.equal(reusedInResult('2026-11-05T10:00:00Z', { closedAt: null }), false);

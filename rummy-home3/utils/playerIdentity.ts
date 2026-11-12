@@ -308,6 +308,8 @@ export type PendingLink = {
   targetName?: string;
   claimedBy?: string | null;
   gameNumbers?: number[];
+  /** 028 labels ("S3") of the same games, when the server has them. */
+  gameLabels?: string[];
   movedGameIds?: string[];
 };
 
@@ -355,9 +357,11 @@ export function findClaimLink(links: PendingLink[], tokenHash: string, now: Date
   return link;
 }
 
-export function claimPrompt(link: Pick<PendingLink, 'gameNumbers' | 'ownerName'>): string {
-  const games = (link.gameNumbers ?? []).slice(0, 3).map((n) => `G${n}`);
-  return `Is this you? You played in ${games.length ? games.join(', ') : 'a game'} with ${link.ownerName || 'a friend'}`;
+export function claimPrompt(link: Pick<PendingLink, 'gameNumbers' | 'gameLabels' | 'ownerName'>): string {
+  const games = (link.gameLabels ?? []).slice(0, 3);
+  const count = link.gameLabels?.length ?? link.gameNumbers?.length ?? 0;
+  const where = games.length ? games.join(', ') : count > 1 ? `${count} games` : 'a game';
+  return `Is this you? You played in ${where} with ${link.ownerName || 'a friend'}`;
 }
 
 export function claimRequestPrompt(link: Pick<PendingLink, 'playerNo' | 'playerName'>): string {

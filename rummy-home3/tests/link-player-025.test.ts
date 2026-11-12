@@ -25,15 +25,16 @@ const games = [
 const names: Record<string, string> = { sree: 'Sree Koneru', me: 'Me' };
 const creator = (id?: string) => (id ? names[id] ?? null : null);
 
-test('item 5 fix 2: the conflict sentence names every blocking game with its G-number, full game ID and creator; no Remove button', () => {
-  const one = linkConflictSentence('R K', 11, [{ gameId: '3f2a0000-0000-4000-8000-000000000001', gameNumber: 12, creatorName: 'Sree Koneru' }]);
-  assert.equal(one, "Can't link yet. G12 (game ID 3f2a0000-0000-4000-8000-000000000001, creator Sree Koneru) has both R K and #11. In that game, clear one of their scores to zero and remove them from the game first.");
+test('item 5 fix 2 / final 2: the conflict sentence names every blocking game by label, creator and start date, never by id; no Remove button', () => {
+  const one = linkConflictSentence('R K', 11, [{ gameId: '3f2a0000-0000-4000-8000-000000000001', gameNumber: 3, gameLabel: 'S3', creatorName: 'Sree Koneru', startedAt: '2026-11-12T18:00:00' }]);
+  assert.equal(one, "Can't link yet. Game S3 (creator Sree Koneru, started Nov 12) has both R K and #11. In that game, clear one of their scores to zero and remove them from the game first.");
+  assert.doesNotMatch(one!, /3f2a0000/, 'no game id in the sentence');
   const many = linkConflictSentence('R K', 11, [
-    { gameId: 'a', gameNumber: 1, creatorName: 'Sree' },
-    { gameId: 'b', gameNumber: 2, creatorName: 'Harish' },
+    { gameId: 'a', gameNumber: 1, gameLabel: 'S1', creatorName: 'Sree', startedAt: '2026-11-01T10:00:00' },
+    { gameId: 'b', gameNumber: 2, gameLabel: 'P2', creatorName: 'Harish', startedAt: '2026-11-02T10:00:00' },
     { gameId: 'c', gameNumber: null, creatorName: null },
   ]);
-  assert.equal(many, "Can't link yet. G1 (game ID a, creator Sree), G2 (game ID b, creator Harish) and a game (game ID c, creator Player) have both R K and #11. In those games, clear one of their scores to zero and remove them from the game first.");
+  assert.equal(many, "Can't link yet. Games S1 (creator Sree, started Nov 1), P2 (creator Harish, started Nov 2) and a game (creator Player, started earlier) have both R K and #11. In those games, clear one of their scores to zero and remove them from the game first.");
   assert.equal(linkConflictSentence('R K', 11, []), null);
   const dialog = src('components/players/LinkPlayerDialog.tsx');
   assert.doesNotMatch(dialog, /Remove from game|>Remove</, 'the conflict shows the sentence only, no Remove button');
@@ -68,8 +69,9 @@ test('item 5 fix 1: the local preview mirrors the server — who, how many games
   const clash = localLinkPreview(rk, priya, games, null, creator);
   assert.equal(clash.gameCount, 2, 'rk sits in A and C');
   assert.deepEqual(clash.gameNumbers, [4, 7]);
-  assert.deepEqual(clash.conflicts, [{ gameId: '3f2a0000-0000-4000-8000-000000000001', gameNumber: 4, creatorName: 'Sree Koneru' }]);
-  assert.equal(linkConflictMessage(clash), "Can't link yet. G4 (game ID 3f2a0000-0000-4000-8000-000000000001, creator Sree Koneru) has both R K and #3. In that game, clear one of their scores to zero and remove them from the game first.");
+  assert.deepEqual(clash.gameLabels, ['S4', 'S7'], 'local games label themselves S<n> (Points) from their number');
+  assert.deepEqual(clash.conflicts, [{ gameId: '3f2a0000-0000-4000-8000-000000000001', gameNumber: 4, gameLabel: 'S4', creatorName: 'Sree Koneru', startedAt: undefined }]);
+  assert.equal(linkConflictMessage(clash), "Can't link yet. Game S4 (creator Sree Koneru, started earlier) has both R K and #3. In that game, clear one of their scores to zero and remove them from the game first.");
   const fine = localLinkPreview(rk, cora, games, null, creator);
   assert.deepEqual(fine.conflicts, [], 'a non-playing admin of A is not a conflict');
   assert.equal(fine.conflictMessage, null);
@@ -110,10 +112,10 @@ test('item 5 fix 1: nothing moves on Send; the owner gets the request; the row r
 });
 
 test('item 5 fix 1: the owner sees the request in-app (Home) and by email, says Yes or No; conflicts re-checked at Yes', () => {
-  const req = { id: 'lr1', ownerId: 'me', ownerName: 'Sree', playerId: 'rk', playerName: 'Harish', playerInitials: 'HG', targetNo: 40, gameNumbers: [4, 7], gameCount: 2, expiresAt: '2026-11-19T00:00:00Z', conflictMessage: null };
+  const req = { id: 'lr1', ownerId: 'me', ownerName: 'Sree', playerId: 'rk', playerName: 'Harish', playerInitials: 'HG', targetNo: 40, gameNumbers: [4, 7], gameLabels: ['S4', 'P7'], gameCount: 2, expiresAt: '2026-11-19T00:00:00Z', conflictMessage: null };
   assert.equal(linkRequestPrompt(req), 'Sree wants to link “Harish (HG)” to your Player ID #40.');
-  assert.match(linkRequestDetail(req), /^Yes moves Harish's seats and scores in 2 games \(G4, G7\) to your account\. Expires /);
-  assert.match(linkRequestDetail({ ...req, gameCount: 0, gameNumbers: [] }), /^Harish is in no games yet\. Expires /);
+  assert.match(linkRequestDetail(req), /^Yes moves Harish's seats and scores in 2 games \(S4, P7\) to your account\. Expires /);
+  assert.match(linkRequestDetail({ ...req, gameCount: 0, gameNumbers: [], gameLabels: [] }), /^Harish is in no games yet\. Expires /);
   const card = src('components/players/LinkRequestsCard.tsx');
   assert.match(card, /playerIdentityService\.listLinkRequestsForMe\(me\)/);
   assert.match(card, /playerIdentityService\.answerLinkRequest\(me, req, accept\)/);

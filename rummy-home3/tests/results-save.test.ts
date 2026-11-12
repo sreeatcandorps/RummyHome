@@ -65,9 +65,9 @@ test('nov 10: "N games selected" line', () => {
 
 test('nov 10: turning a filter off warns when it would hide a ticked game; cancel keeps everything', () => {
   const games = [game('g7'), game('g4', { closedAt: '2026-11-01T00:00:00Z' }), game('g9', { isComplete: false })];
-  // Completed is on by default; switching it off hides the ticked G7.
+  // Completed is on by default; switching it off hides the ticked S7.
   const plan = planFilterSwitch(games, ['g7'], DEFAULT_RESULTS_FILTER, 'completed');
-  assert.equal(plan.question, 'G7 is selected and will be deselected. OK?');
+  assert.equal(plan.question, 'S7 is selected and will be deselected. OK?');
   assert.deepEqual(plan.hidden.map((g) => g.id), ['g7']);
   assert.equal(plan.next.includes('completed'), false);
   // OK drops only the hidden ticks.
@@ -75,7 +75,7 @@ test('nov 10: turning a filter off warns when it would hide a ticked game; cance
 
   // Two hidden games read naturally.
   const two = planFilterSwitch([...games, game('g8')], ['g7', 'g8', 'g4'], ['completed', 'closed'], 'completed');
-  assert.equal(two.question, 'G7 and G8 are selected and will be deselected. OK?');
+  assert.equal(two.question, 'S7 and S8 are selected and will be deselected. OK?');
 
   // Turning a filter ON hides nothing: no question, no change to the ticks.
   const on = planFilterSwitch(games, ['g7'], DEFAULT_RESULTS_FILTER, 'closed');
@@ -85,7 +85,7 @@ test('nov 10: turning a filter off warns when it would hide a ticked game; cance
 
   // Every chip goes through the same check: hiding Closed with a ticked closed game asks too.
   const closedOff = planFilterSwitch(games, ['g4'], ['completed', 'closed'], 'closed');
-  assert.equal(closedOff.question, 'G4 is selected and will be deselected. OK?');
+  assert.equal(closedOff.question, 'S4 is selected and will be deselected. OK?');
 });
 
 test('nov 10: one warning per selected game, active first then closed', () => {
@@ -96,21 +96,21 @@ test('nov 10: one warning per selected game, active first then closed', () => {
     game('g4', { closedAt: '2026-11-02T00:00:00Z' }),
   ]);
   assert.deepEqual(lines.map((l) => [l.kind, l.gameId]), [['active', 'g3'], ['closed', 'g2'], ['closed', 'g4']]);
-  assert.match(lines[0].text, /G3 is still active/);
-  assert.match(lines[1].text, /G2 is already part of a previous result/);
+  assert.match(lines[0].text, /S3 is still active/);
+  assert.match(lines[1].text, /S2 is already part of a previous result/);
 });
 
 test('nov 10: save result is blocked by any active game, allowed with closed games', () => {
   assert.equal(saveBlockedReason([], me), 'Nothing to save.');
-  assert.match(saveBlockedReason([game('g1'), game('g2', { isComplete: false })], me) ?? '', /G2 is still active\. Go back and deselect it/);
-  assert.match(saveBlockedReason([game('g2', { isComplete: false }), game('g3', { isComplete: false })], me) ?? '', /G2 and G3 are still active.*deselect them/);
+  assert.match(saveBlockedReason([game('g1'), game('g2', { isComplete: false })], me) ?? '', /S2 is still active\. Go back and deselect it/);
+  assert.match(saveBlockedReason([game('g2', { isComplete: false }), game('g3', { isComplete: false })], me) ?? '', /S2 and S3 are still active.*deselect them/);
   assert.equal(saveBlockedReason([game('g1'), game('g2', { closedAt: '2026-11-01T00:00:00Z' })], me), null);
   assert.match(saveBlockedReason([game('g1', { createdBy: other, adminIds: [other] })], me) ?? '', /admin of every selected game/);
 });
 
 test('nov 10: the save popup lists each game and its status change', () => {
   const changes = saveStatusChanges([game('g11'), game('g3', { closedAt: '2026-11-01T00:00:00Z' })]);
-  assert.deepEqual(changes.map((c) => c.line), ['G11: Completed → Closed', 'G3: already Closed · counted again in this result']);
+  assert.deepEqual(changes.map((c) => c.line), ['S11: Completed → Closed', 'S3: already Closed · counted again in this result']);
   assert.equal(changes[0].from, 'Completed');
   assert.equal(changes[1].from, 'Closed');
   assert.ok(changes.every((c) => c.to === 'Closed'));

@@ -1,3 +1,4 @@
+import { gameLabelList, gameLabelOf } from '@/utils/gameLabel';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { isUnregistered, PendingLink } from '@/utils/playerIdentity';
@@ -11,13 +12,15 @@ import { isUnregistered, PendingLink } from '@/utils/playerIdentity';
 /** Days a link request stays open. Mirrors public.link_request_days(). */
 export const LINK_REQUEST_EXPIRY_DAYS = 7;
 
-export type LinkConflict = { gameId: string; gameNumber: number | null; creatorName: string | null };
+export type LinkConflict = { gameId: string; gameNumber: number | null; gameLabel?: string | null; creatorName: string | null; startedAt?: string | null };
 
 /** What link_player_check answers; the local store builds the same shape. */
 export type LinkPreview = {
   target: { id: string; name: string; playerNo: number | null };
   gameCount: number;
   gameNumbers: number[];
+  /** 028: "S3", "P1" for the same games; the app shows these, never the bare numbers. */
+  gameLabels: string[];
   conflicts: LinkConflict[];
   /** The full sentence when something blocks, else null. */
   conflictMessage: string | null;
@@ -34,6 +37,7 @@ export type LinkRequestOutcome = {
   target: { id: string; name: string; playerNo: number | null };
   gameCount: number;
   gameNumbers: number[];
+  gameLabels: string[];
 };
 
 /** What perform_player_link answers once the owner said Yes. */
@@ -56,6 +60,8 @@ export type LinkRequestForMe = {
   playerInitials: string | null;
   targetNo: number | null;
   gameNumbers: number[];
+  /** 028 labels of the same games ("S3"); what the card shows. */
+  gameLabels: string[];
   gameCount: number;
   expiresAt: string;
   conflictMessage: string | null;
@@ -72,15 +78,23 @@ const joinAnd = (parts: string[]) => (parts.length <= 1 ? parts.join('') : `${pa
 
 /**
  * The one conflict sentence (same as public.link_conflict_message). Every blocking game is named
- * with its G-number, its full game ID and its creator:
- *   Can't link yet. G12 (game ID 3f2a…, creator Sree Koneru) has both R K and #11. In that game,
- *   clear one of their scores to zero and remove them from the game first.
+ * with its label, its creator and its start date (028 wording, same as link_conflict_message):
+ *   Can't link yet. Game S3 (creator Sree Koneru, started Nov 12) has both R K and #11. In that
+ *   game, clear one of their scores to zero and remove them from the game first.
  */
 export function linkConflictSentence(playerName: string, targetNo: number | null, conflicts: LinkConflict[]): string | null {
   if (conflicts.length === 0) return null;
-  const parts = conflicts.map((c) => `${c.gameNumber != null ? `G${c.gameNumber}` : 'a game'} (game ID ${c.gameId}, creator ${c.creatorName || 'Player'})`);
+  const parts = conflicts.map((c) => `${gameLabelOf(c) ?? 'a game'} (creator ${c.creatorName || 'Player'}, started ${startedOn(c.startedAt)})`);
   const one = conflicts.length === 1;
-  return `Can't link yet. ${joinAnd(parts)} ${one ? 'has' : 'have'} both ${playerName} and #${targetNo ?? '?'}. In ${one ? 'that game' : 'those games'}, clear one of their scores to zero and remove them from the game first.`;
+  return `Can't link yet. ${one ? 'Game' : 'Games'} ${joinAnd(parts)} ${one ? 'has' : 'have'} both ${playerName} and #${targetNo ?? '?'}. In ${one ? 'that game' : 'those games'}, clear one of their scores to zero and remove them from the game first.`;
+}
+
+/** "Nov 12", the same as to_char(created_at, 'Mon FMDD') on the server. */
+export function startedOn(iso: string | null | undefined): string {
+  if (!iso) return 'earlier';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return 'earlier';
+  return `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()]} ${date.getDate()}`;
 }
 
 /** The sentence the Send request button is blocked with; the server's wording when it sent one. */
@@ -125,8 +139,8 @@ export function linkRequestPrompt(req: Pick<LinkRequestForMe, 'ownerName' | 'pla
   return `${req.ownerName} wants to link “${who}” to your Player ID #${req.targetNo ?? '?'}.`;
 }
 
-export function linkRequestDetail(req: Pick<LinkRequestForMe, 'playerName' | 'gameCount' | 'gameNumbers' | 'expiresAt'>): string {
-  const games = req.gameNumbers.length ? ` (${req.gameNumbers.map((n) => `G${n}`).join(', ')})` : '';
+export function linkRequestDetail(req: Pick<LinkRequestForMe, 'playerName' | 'gameCount' | 'gameLabels' | 'expiresAt'> & { gameNumbers?: number[] }): string {
+  const games = gameLabelList(req.gameLabels);
   const move = req.gameCount === 0 ? `${req.playerName} is in no games yet.` : `Yes moves ${req.playerName}'s seats and scores in ${req.gameCount} ${gameWord(req.gameCount)}${games} to your account.`;
   return `${move} Expires ${new Date(req.expiresAt).toLocaleDateString()}.`;
 }
@@ -136,7 +150,7 @@ export function linkRequestDetail(req: Pick<LinkRequestForMe, 'playerName' | 'ga
 export function localConflicts(player: Pick<Player, 'id'>, targetId: string, games: Game[], creatorNameOf: (id: string | undefined) => string | null): LinkConflict[] {
   return games
     .filter((game) => game.players.includes(player.id) && game.players.includes(targetId))
-    .map((game) => ({ gameId: game.id, gameNumber: game.gameNumber ?? null, creatorName: creatorNameOf(game.createdBy) }));
+    .map((game) => ({ gameId: game.id, gameNumber: game.gameNumber ?? null, gameLabel: gameLabelOf(game), creatorName: creatorNameOf(game.createdBy), startedAt: game.date }));
 }
 
 export function localLinkPreview(player: Player, target: Player | null, games: Game[], open: PendingLink | null, creatorNameOf: (id: string | undefined) => string | null): LinkPreview {
@@ -149,6 +163,7 @@ export function localLinkPreview(player: Player, target: Player | null, games: G
     target: { id: target.id, name: target.name, playerNo: target.playerNo ?? null },
     gameCount: mine.length,
     gameNumbers: mine.map((g) => g.gameNumber).filter((n): n is number => n != null).sort((a, b) => a - b),
+    gameLabels: mine.map((g) => gameLabelOf(g)).filter((label): label is string => Boolean(label)),
     conflicts,
     conflictMessage: linkConflictSentence(player.name, target.playerNo ?? null, conflicts),
     pending: open ? { id: open.id, expiresAt: open.expiresAt, targetId: open.targetId ?? null, targetNo: open.targetNo ?? null, targetName: open.targetName ?? null } : null,

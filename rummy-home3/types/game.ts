@@ -28,8 +28,10 @@ export type Game = {
   adminIds?: string[];
   /** Game admins with no score column. */
   unseatedAdminIds?: string[];
-  /** Per-creator sequential game number (G1, G2...). Assigned at creation, never changes. */
+  /** Numeric part of the visible number. Pre-028 servers: per-creator sequence. Assigned at creation, never changes. */
   gameNumber?: number | null;
+  /** The visible number (028): S<n> for Points, P<n> for Pool. Assigned by the server at creation, never changes; shown instead of the id. */
+  gameLabel?: string | null;
   /** When included in a declared result. A closed game is part of finalized results. */
   closedAt?: string | null;
   /** When Complete game was pressed. Kept when the game is later Closed. */

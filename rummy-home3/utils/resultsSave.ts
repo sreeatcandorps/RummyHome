@@ -1,3 +1,4 @@
+import { gameLabelOf, LabelledGame } from '@/utils/gameLabel';
 import { userAdminsGame } from '@/utils/gameAccess';
 import { playerIdBadge } from '@/utils/gamePlayers';
 import { baseInitials } from '@/utils/playerInitials';
@@ -30,9 +31,9 @@ export function selectedCountLine(count: number): string {
   return count === 1 ? '1 game selected' : `${count} games selected`;
 }
 
-const gName = (game: { gameNumber?: number | null }) => (game.gameNumber != null ? `G${game.gameNumber}` : 'a game');
+const gName = (game: LabelledGame) => gameLabelOf(game) ?? 'a game';
 
-export function listNames(games: { gameNumber?: number | null }[]): string {
+export function listNames(games: LabelledGame[]): string {
   const names = games.map(gName);
   if (names.length <= 1) return names[0] ?? '';
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;

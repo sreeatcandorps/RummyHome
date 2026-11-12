@@ -20,10 +20,10 @@ import { Game } from '@/types/game';
  */
 
 export type HiddenGameRow = {
-  id: string; gameNumber: number | null; createdAt: string; status: string; creatorName: string; hiddenAt: string; playerCount: number;
+  id: string; gameNumber: number | null; gameLabel?: string | null; createdAt: string; status: string; creatorName: string; hiddenAt: string; playerCount: number;
 };
 export type DeletedGameRow = {
-  id: string; gameNumber: number | null; createdAt: string; status: string; creatorName: string; deletedAt: string;
+  id: string; gameNumber: number | null; gameLabel?: string | null; createdAt: string; status: string; creatorName: string; deletedAt: string;
   deletedByMe: boolean; deletedByName: string; playerCount: number; removedFromResults: number;
 };
 export type DeletedResultRow = {
@@ -232,12 +232,12 @@ export const archiveService = {
     return {
       hidden: games
         .filter((g) => hidden[g.id] && !g.deletedAt)
-        .map((g) => ({ id: g.id, gameNumber: g.gameNumber ?? null, createdAt: g.date, status: g.isComplete ? 'completed' : 'active', creatorName: nameOf(g.createdBy), hiddenAt: hidden[g.id], playerCount: seatCount(g) }))
+        .map((g) => ({ id: g.id, gameNumber: g.gameNumber ?? null, gameLabel: g.gameLabel ?? null, createdAt: g.date, status: g.isComplete ? 'completed' : 'active', creatorName: nameOf(g.createdBy), hiddenAt: hidden[g.id], playerCount: seatCount(g) }))
         .sort((a, b) => b.hiddenAt.localeCompare(a.hiddenAt)),
       deletedGames: games
         .filter((g) => g.deletedAt && (g.deletedBy === userId || localUserCanManage(g, userId)))
         .map((g) => ({
-          id: g.id, gameNumber: g.gameNumber ?? null, createdAt: g.date, status: g.isComplete ? 'completed' : 'active', creatorName: nameOf(g.createdBy),
+          id: g.id, gameNumber: g.gameNumber ?? null, gameLabel: g.gameLabel ?? null, createdAt: g.date, status: g.isComplete ? 'completed' : 'active', creatorName: nameOf(g.createdBy),
           deletedAt: g.deletedAt as string, deletedByMe: g.deletedBy === userId, deletedByName: nameOf(g.deletedBy), playerCount: seatCount(g),
           removedFromResults: results.filter((r) => !r.deletedAt && (r.removedGameIds ?? []).includes(g.id)).length,
         }))

@@ -278,6 +278,22 @@ What it does:
 
 Verified on a scratch Postgres 16 loaded with 001–027 and the CI seed: 633 pgTAP checks (45 new in `supabase/tests/17_remove_my_players_027.sql`), the rollback replay (rollback 027 → 013, re-apply, second apply; 97 checks) and the 31 race checks all pass.
 
+## 028 — Game numbers S/P (replaces the UUID in the app)
+
+File: `supabase/migrations/028_game_labels.sql`. Run after 027. Safe to re-run (the backfill only touches games with no label). Rollback: `supabase/rollback/rollback_028_game_labels.sql` (drops the label columns, the trigger and the new functions, puts the 023/024/025 bodies back; `game_number` keeps the backfilled values, which are still unique per creator).
+
+Backward compatible with the APK on phones: no existing function changes its signature or column list. The old app keeps reading `game_number` and shows `G<n>`; it sees the same number the new app shows after the letter (S/P). The old app's local creation sets no label; the trigger fills `game_number` and `game_label` on insert the same way, so a game created from the old app gets a correct S/P number. `list_my_link_requests`, `list_link_requests_for_me` and `link_conflicts` are untouched (025 stays re-runnable); the new app reads `list_my_link_requests_v2`, `list_link_requests_for_me_v2` and `link_conflicts_detail`, and falls back to the 025 names on an older server.
+
+What it does:
+
+- `games.game_label` (text, e.g. `S3`, `P1`) and `player_links.game_labels` (text[]). `S` is a Points (stake) game, `P` a Pool game. A trigger refuses any later change to the label or number ("A game's number never changes.").
+- `next_game_number(creator, prefix)`: the lowest positive integer not used by any game of the same prefix that is active or completed, not closed, not deleted, and that involves the creator or anyone in the creator's active My players (027 removed rows do not count), as creator or active seat. Closing or deleting a game frees its number. Assigned by the `games_assign_number` trigger at insert, under `pg_advisory_xact_lock(hashtext('games.game_label'))`, so two people creating at the same moment get different numbers (checked by the CI race script, section 8).
+- Backfill: every existing game without a label gets one in creation order (`created_at, id`) by the same rule. This also **renumbers `game_number`** for games whose old per-creator number clashes under the new rule; the label and the number always agree afterwards. Reads the game type to pick S or P.
+- Everything that showed the number now shows the label: `get_game_bundle`, `get_game_result`, `list_hidden_and_deleted`, `public_scorecard`, `public_result`, the game-started and result emails ("Game S1"), and the link request rows. Pending link requests get `game_labels` filled by a trigger and a one-off backfill.
+- Link conflict sentence (`link_conflict_message`): "Can't link yet. Game S3 (creator Sree Koneru, started Nov 12) has both R K and #11. In that game, clear one of their scores to zero and remove them from the game first." (plural form for several games). Used by `request_player_link`, the link preview and `get_home_bundle`.
+
+Verified on a scratch Postgres 16 loaded with 001–028 and the CI seed: 687 pgTAP checks (54 new in `supabase/tests/18_game_labels_028.sql`), the rollback replay (rollback 028 → 013, re-apply, second apply; 103 checks) and the 34 race checks (3 new: concurrent creates get distinct labels) all pass.
+
 ## Apply order for the Nov 10–11 batch
 
 017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023, 024, 025 and 026 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
@@ -292,6 +308,7 @@ Verified on a scratch Postgres 16 loaded with 001–027 and the CI seed: 633 pgT
 Final launch batch (Nov 12), after the six above, each as its own run:
 
 7. `supabase/migrations/027_remove_from_my_players.sql`
+8. `supabase/migrations/028_game_labels.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

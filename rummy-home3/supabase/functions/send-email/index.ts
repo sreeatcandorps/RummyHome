@@ -62,7 +62,7 @@ function render(row: OutboxRow): { subject: string; html: string; text: string }
 
   if (row.kind === 'link_request') {
     const who = `${p.playerName ?? 'a player'}${p.playerInitials ? ` (${p.playerInitials})` : ''}`;
-    const games = Array.isArray(p.gameNumbers) && p.gameNumbers.length ? ` (${(p.gameNumbers as number[]).map((n) => `G${n}`).join(', ')})` : '';
+    const games = Array.isArray(p.gameLabels) && p.gameLabels.length ? ` (${(p.gameLabels as string[]).join(', ')})` : '';
     const count = Number(p.gameCount) || 0;
     const subject = `Link "${p.playerName ?? 'a player'}" to your Player ID #${p.playerNo ?? ''}?`;
     const html = `<p>Hi ${escapeHtml(p.targetName ?? 'there')},</p>
@@ -76,7 +76,7 @@ function render(row: OutboxRow): { subject: string; html: string; text: string }
   }
 
   if (row.kind === 'game_started') {
-    const g = p.gameNumber != null ? `G${p.gameNumber}` : 'A game';
+    const g = typeof p.gameLabel === 'string' && p.gameLabel ? `Game ${p.gameLabel}` : 'A game';
     const subject = `${g} has started · live scores`;
     const html = `<p>Hi ${name},</p>
 <p>${escapeHtml(p.creatorName ?? 'A player')} started ${escapeHtml(g)}${p.startedAt ? ` on ${escapeHtml(when(p.startedAt))}` : ''}.</p>
@@ -188,7 +188,7 @@ Deno.serve(async (request) => {
     if (gameError || !game) return json({ sent: false, message: 'Only a game admin can email this scorecard.' }, 403);
     to = Array.isArray(body.emails) ? body.emails.map((email: string) => String(email)) : [];
     subject = `Rummy scorecard ${body.gameLabel || game.share_code}`;
-    html = `<p>A live Rummy scorecard is ready.</p><p>Started ${escapeHtml(body.startedAt || '')}. Game ID ${escapeHtml(body.gameLabel || game.share_code)}.</p><p><a href="${escapeHtml(body.url)}">Open the scorecard</a></p>`;
+    html = `<p>A live Rummy scorecard is ready.</p><p>Started ${escapeHtml(body.startedAt || '')}. ${escapeHtml(body.gameLabel ? `Game ${body.gameLabel}` : `Game ${game.share_code}`)}.</p><p><a href="${escapeHtml(body.url)}">Open the scorecard</a></p>`;
   } else {
     return json({ sent: false, message: 'Unknown email.' }, 400);
   }

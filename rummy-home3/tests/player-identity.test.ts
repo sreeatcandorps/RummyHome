@@ -163,7 +163,8 @@ test('Yes on a link is single use and moves only games the account is not alread
   assert.deepEqual(out.links[0].movedGameIds, ['g3']);
   assert.equal(findClaimLink(out.links, hash(t), NOW), null);
   assert.throws(() => acceptClaim(out.links, 'l1', 'acct', out.games, NOW), /no longer valid/);
-  assert.equal(claimPrompt(links[0]), 'Is this you? You played in G3 with Sree');
+  assert.equal(claimPrompt(links[0]), 'Is this you? You played in a game with Sree', 'no label known: no G-number is invented');
+  assert.equal(claimPrompt({ ...links[0], gameLabels: ['S3'] }), 'Is this you? You played in S3 with Sree');
 });
 
 test('Not me leaves the player unregistered and tells the creator', () => {

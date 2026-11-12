@@ -1,3 +1,4 @@
+import { gameLabelOf } from '@/utils/gameLabel';
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Icon, Snackbar, Text } from 'react-native-paper';
@@ -12,8 +13,8 @@ import { formatGameDateTime } from '@/utils/gameDisplay';
 import { restoreGameNote } from '@/utils/archive';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
-const gameTitle = (row: { gameNumber: number | null; creatorName: string }) =>
-  `${row.gameNumber != null ? `G${row.gameNumber}` : 'Game'} · ${row.creatorName}`;
+const gameTitle = (row: { gameNumber: number | null; gameLabel?: string | null; creatorName: string }) =>
+  `${gameLabelOf(row) ? `Game ${gameLabelOf(row)}` : 'Game'} · ${row.creatorName}`;
 
 /** Settings > Hidden & deleted: games I hid (Unhide), games I deleted (Restore), results I deleted (Restore). */
 export default function HiddenAndDeletedScreen() {

@@ -1,3 +1,4 @@
+import { nextLocalGameLabel } from '@/utils/gameLabel';
 import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
@@ -132,6 +133,7 @@ export const legacyGameFromServer = (
       .filter((membership) => membership.role === 'game_admin' && membership.seated === false)
       .map((membership) => membership.profile_id),
     gameNumber: game.game_number ?? null,
+    gameLabel: game.game_label ?? null,
     closedAt: game.closed_at ?? null,
     completedAt: game.completed_at ?? null,
     deletedAt: game.deleted_at ?? null,
@@ -149,6 +151,7 @@ export const deletedGameFromServer = (row: Record<string, any>): Game => ({
   gameType: 'stake',
   settings: legacySettingsForGameType('stake', false),
   gameNumber: row.game_number ?? null,
+  gameLabel: row.game_label ?? null,
   deletedAt: row.deleted_at ?? null,
   canRestore: row.can_restore === true,
 });
@@ -366,10 +369,7 @@ export const gamesService = {
 
     if (!isSupabaseConfigured) {
       const existingGames = await storage.getGames();
-      const creatorGames = existingGames.filter((g) => g.createdBy === input.createdBy);
-      const nextNumber = creatorGames.length > 0
-        ? Math.max(...creatorGames.map((g) => g.gameNumber ?? 0)) + 1
-        : 1;
+      const nextLabel = nextLocalGameLabel(existingGames, input.createdBy, input.gameType);
       const legacyGame: Game = {
         id: Date.now().toString(),
         date: new Date().toISOString(),
@@ -385,7 +385,8 @@ export const gamesService = {
         adminIds: [input.createdBy],
         unseatedAdminIds: seated.includes(input.createdBy) ? [] : [input.createdBy],
         spectators: [],
-        gameNumber: nextNumber,
+        gameNumber: Number(nextLabel.slice(1)),
+        gameLabel: nextLabel,
         closedAt: null,
         labels: input.labels,
       };

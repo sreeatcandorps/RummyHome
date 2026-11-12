@@ -70,7 +70,7 @@
       if (!token || !injected(PROJECT) || !injected(ANON_KEY)) { textEl.textContent = 'This link is not valid.'; return; }
       const req = await rpc('peek_link_request', { p_token: token });
       if (!req) { textEl.textContent = 'This link was already used, cancelled or has expired.'; return; }
-      const games = Array.isArray(req.gameNumbers) && req.gameNumbers.length ? ' (' + req.gameNumbers.map((n) => 'G' + n).join(', ') + ')' : '';
+      const games = Array.isArray(req.gameLabels) && req.gameLabels.length ? ' (' + req.gameLabels.join(', ') + ')' : '';
       textEl.textContent = req.requesterName + ' asked to link their player "' + label(req) + '" to your Player ID #' + req.playerNo
         + '. Yes moves ' + req.playerName + "'s seats and scores" + games + ' to your account.';
       if (req.conflictMessage) { warnEl.textContent = req.conflictMessage; warnEl.hidden = false; }
