@@ -11,12 +11,36 @@
 //    what the database already decided to send, once per row: the row's event_key is the
 //    Resend Idempotency-Key and sent_at is stamped on success, so a retry never doubles.
 //    SUPABASE_SERVICE_ROLE_KEY is provided to every edge function by the platform.
+//    Guardrails (029): a row is never dropped. A failed send backs off (next_attempt_at),
+//    a Resend rate limit waits a minute, the daily quota waits for the next window, and the
+//    flush itself stops at email_per_day sends per rolling day (90; Resend's free tier is 100)
+//    and email_per_flush rows per run (50). Both numbers come from public.guardrails.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SITE = 'https://ezscore.mindweavetech.com';
-const FLUSH_BATCH = 50;
-const MAX_ATTEMPTS = 5;
+const DEFAULT_FLUSH_BATCH = 50;
+const DEFAULT_PER_DAY = 90;
+/** Resend allows 2 requests a second; a short pause between sends keeps a burst under it. */
+const SEND_GAP_MS = 550;
+const MINUTE_MS = 60_000;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+
+/**
+ * When a failed row may be tried again. Resend 429 with a daily quota message: the next day;
+ * any other 429: a minute; otherwise exponential from 5 minutes, capped at 24 hours. Pure so it
+ * can be unit tested; exported for that.
+ */
+export function nextAttemptAfter(attempts: number, status: number, detail: string, now = Date.now()): Date {
+  if (status === 429) {
+    return new Date(now + (/daily|quota|per day/i.test(detail) ? DAY_MS : MINUTE_MS));
+  }
+  const backoff = Math.min(DAY_MS, 5 * MINUTE_MS * 2 ** Math.max(0, attempts - 1));
+  return new Date(now + backoff);
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -101,24 +125,59 @@ function render(row: OutboxRow): { subject: string; html: string; text: string }
 async function resend(apiKey: string, from: string, message: { to: string[]; subject: string; html: string; text?: string }, idempotencyKey?: string) {
   const headers: Record<string, string> = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
-  const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers, body: JSON.stringify({ from, ...message }) });
-  return { ok: response.ok, detail: response.ok ? '' : await response.text() };
+  try {
+    const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers, body: JSON.stringify({ from, ...message }) });
+    return { ok: response.ok, status: response.status, detail: response.ok ? '' : await response.text() };
+  } catch (error) {
+    // Provider unreachable: treated like any failure, the row backs off and waits.
+    return { ok: false, status: 0, detail: `Resend unreachable: ${(error as Error)?.message ?? String(error)}` };
+  }
 }
 
-/** Deliver the unsent outbox rows (oldest first). Rows that failed MAX_ATTEMPTS times are left alone. */
+/** The two email limits from public.guardrails, with the shipped defaults when the table is older. */
+async function emailLimits(admin: ReturnType<typeof createClient>) {
+  const { data } = await admin.from('guardrails').select('key, value').in('key', ['email_per_day', 'email_per_flush']);
+  const rows = (data ?? []) as { key: string; value: number }[];
+  const value = (key: string, fallback: number) => rows.find((r) => r.key === key)?.value ?? fallback;
+  return { perDay: value('email_per_day', DEFAULT_PER_DAY), perFlush: value('email_per_flush', DEFAULT_FLUSH_BATCH) };
+}
+
+/**
+ * Deliver the due, unsent outbox rows (oldest first) within the daily cap. Nothing is ever
+ * dropped: a failed row gets next_attempt_at pushed out and is picked up by a later flush.
+ */
 async function flush(apiKey: string, from: string) {
   const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-  const { data, error } = await admin
+  const limits = await emailLimits(admin);
+  const nowIso = new Date().toISOString();
+
+  const { count: sentToday } = await admin
     .from('email_outbox')
-    .select('id, event_key, kind, to_email, payload, attempts')
-    .is('sent_at', null)
-    .lt('attempts', MAX_ATTEMPTS)
-    .order('created_at', { ascending: true })
-    .limit(FLUSH_BATCH);
+    .select('id', { count: 'exact', head: true })
+    .gt('sent_at', new Date(Date.now() - DAY_MS).toISOString());
+  const left = Math.max(0, limits.perDay - (sentToday ?? 0));
+  if (left === 0) {
+    const { count: waiting } = await admin.from('email_outbox').select('id', { count: 'exact', head: true }).is('sent_at', null);
+    return json({ sent: false, message: `Daily email cap reached (${limits.perDay}). ${waiting ?? 0} waiting for the next window.`, count: 0, failed: 0, waiting: waiting ?? 0 });
+  }
+
+  const unsent = (dueOnly: boolean) => {
+    const query = admin
+      .from('email_outbox')
+      .select('id, event_key, kind, to_email, payload, attempts')
+      .is('sent_at', null)
+      .order('created_at', { ascending: true })
+      .limit(Math.min(limits.perFlush, left));
+    return dueOnly ? query.lte('next_attempt_at', nowIso) : query;
+  };
+  let { data, error } = await unsent(true);
+  // A database without 029 has no next_attempt_at: fall back to every unsent row.
+  if (error && /next_attempt_at/.test(error.message)) ({ data, error } = await unsent(false));
   if (error) return json({ sent: false, message: `Could not read the outbox. ${error.message}` }, 500);
 
   let sent = 0;
   let failed = 0;
+  let first = true;
   for (const row of (data ?? []) as OutboxRow[]) {
     // Claim first so two flushes running at once do not both send the same row.
     const { data: claimed } = await admin
@@ -130,6 +189,8 @@ async function flush(apiKey: string, from: string) {
       .select('id');
     if (!claimed || claimed.length === 0) continue;
 
+    if (!first) await sleep(SEND_GAP_MS);
+    first = false;
     const message = render(row);
     const result = await resend(apiKey, from, { to: [row.to_email], ...message }, row.event_key);
     if (result.ok) {
@@ -137,10 +198,15 @@ async function flush(apiKey: string, from: string) {
       await admin.from('email_outbox').update({ sent_at: new Date().toISOString(), last_error: null }).eq('id', row.id);
     } else {
       failed += 1;
-      await admin.from('email_outbox').update({ last_error: result.detail.slice(0, 500) }).eq('id', row.id);
+      const retryAt = nextAttemptAfter(row.attempts + 1, result.status, result.detail).toISOString();
+      const patch = { last_error: result.detail.slice(0, 500), next_attempt_at: retryAt };
+      const { error: patchError } = await admin.from('email_outbox').update(patch).eq('id', row.id);
+      if (patchError) await admin.from('email_outbox').update({ last_error: patch.last_error }).eq('id', row.id);
+      // A rate limit or quota answer applies to every later row too: stop this run, the rows wait.
+      if (result.status === 429) break;
     }
   }
-  return json({ sent: sent > 0 || failed === 0, message: `Sent ${sent}, failed ${failed}.`, count: sent, failed });
+  return json({ sent: sent > 0 || failed === 0, message: `Sent ${sent}, failed ${failed}.`, count: sent, failed, left: left - sent });
 }
 
 Deno.serve(async (request) => {

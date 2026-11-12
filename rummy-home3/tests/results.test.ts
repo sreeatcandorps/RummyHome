@@ -157,12 +157,12 @@ test('game and Total columns are fixed; the player column takes the rest and onl
   assert.equal(resultsVisibleGameCount(phone, 0), 0);
 });
 
-test('results stop at 50 players and a game stops at 15', () => {
+test('results stop at 50 players and a game stops at 20 (the players_per_game guardrail)', () => {
   const tooMany = [{ players: Array.from({ length: MAX_RESULTS_PLAYERS + 1 }, (_, index) => `p${index}`), scores: {} }];
   assert.equal(resultsPlayerCount(tooMany), 51);
   assert.equal(resultsPlayerCount([{ players: ['a', 'EX', 'a'], scores: {} }]), 1);
   assert.equal(RESULTS_PLAYER_LIMIT, 'Results can include at most 50 players.');
-  assert.equal(SEATED_PLAYER_LIMIT, 'A game can have at most 15 players.');
+  assert.equal(SEATED_PLAYER_LIMIT, 'A game holds at most 20 players.');
 });
 
 test('the share image names EZ Score: Rummy and shortens a long list', () => {

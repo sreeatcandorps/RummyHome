@@ -294,6 +294,23 @@ What it does:
 
 Verified on a scratch Postgres 16 loaded with 001–028 and the CI seed: 687 pgTAP checks (54 new in `supabase/tests/18_game_labels_028.sql`), the rollback replay (rollback 028 → 013, re-apply, second apply; 103 checks) and the 34 race checks (3 new: concurrent creates get distinct labels) all pass.
 
+## 029 — Guardrails (server-enforced limits)
+
+File: `supabase/migrations/029_guardrails.sql`. Run after 028. Safe to re-run (tuned values are kept; only the message and description texts are refreshed). Rollback: `supabase/rollback/rollback_029_guardrails.sql` (drops the table, the five triggers and the helper functions, removes `email_outbox.next_attempt_at`, restores the 024 unsent index).
+
+Backward compatible with the APK on phones: no function changes its signature or column list; the old app meets a refusal as an ordinary error message in the place it shows any error. Its own seat cap (15) is below the server's 20. Full list of limits, messages and failure modes: `docs/guardrails.md`.
+
+What it does:
+
+- `public.guardrails` (key, value, message, description): one row per limit. Signed-in users may read it; nobody but the service role may change it. Tune with `update public.guardrails set value = … where key = …`; the triggers read it on every check.
+- Limits: My players 2,000 per owner; 100 players added per day per owner; 20 players per game; 500 rounds per game; 10 live games per creator; 50 games created per day; 20 pending link requests per owner; and two email numbers for the flush (90 sends per day, 50 per run). "Per day" is a rolling 24 hours.
+- Enforcement is in `BEFORE` triggers on `my_players`, `game_players`, `rounds`, `games`, `player_links` (named `<table>_0_guard`), so the app's inserts, the RPCs and scripts all meet the same check. Each takes an advisory lock on its scope first so two inserts at once count one after the other. A refusal raises SQLSTATE `GRD01` with the message and hint `guardrail:<key>`.
+- `email_outbox.next_attempt_at`: the `send-email` flush now sends only due rows, backs a failed row off (5 min doubling to 24 h; a Resend 429 waits a minute, a daily-quota answer a day), stops at the daily cap and never drops a row. `email_sends_left_today()` and `email_outbox_backlog()` (service role) report the state.
+
+Outside the database (also not done by this change): `supabase functions deploy send-email` again so the flush reads `next_attempt_at` and the caps. Until then the 024 flush keeps working against the new column (it ignores it).
+
+Verified on a scratch Postgres 16 loaded with 001–029 and the CI seed: 743 pgTAP checks (56 new in `supabase/tests/19_guardrails_029.sql`), the rollback replay (rollback 029 → 013, re-apply, second apply; 109 checks) and the 38 race checks (4 new: two admins adding the last seat at once) all pass.
+
 ## Apply order for the Nov 10–11 batch
 
 017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023, 024, 025 and 026 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
@@ -309,6 +326,7 @@ Final launch batch (Nov 12), after the six above, each as its own run:
 
 7. `supabase/migrations/027_remove_from_my_players.sql`
 8. `supabase/migrations/028_game_labels.sql`
+9. `supabase/migrations/029_guardrails.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

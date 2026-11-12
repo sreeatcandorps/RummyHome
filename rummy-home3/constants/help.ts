@@ -45,7 +45,7 @@ export const HELP = {
   ),
   newGame: bullets(
     'Tap yourself if you are playing. You can run a game without sitting in it.',
-    'Tap a face or the × under Playing to send someone back to the list. Up to 15 players.',
+    'Tap a face or the × under Playing to send someone back to the list. Up to 20 players.',
     'Recent partners come first, then everyone else by how often you play together.',
     'Add players: new people by initials, seated as you save them. Add player from database: a registered player, seated here and added to My players at once.',
     'Drop, Middle drop, and Full count for this game are in the ⋮ menu and can change mid-game.',

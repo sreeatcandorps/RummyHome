@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–028) applied, check the function state after each, then re-apply the forward
+# has every migration (001–029) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,20 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 029 (guardrails; rolled back before 028)
+HAS_029=f
+if [ -f "$RB/rollback_029_guardrails.sql" ]; then
+  HAS_029=t
+  if apply "$RB/rollback_029_guardrails.sql"; then tap ok "rollback_029 applies"; else tap fail "rollback_029 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists guardrail_refuse)" = f ] && [ "$(fn_exists guard_games)" = f ] \
+    && [ "$(q "select exists(select 1 from information_schema.tables where table_schema='public' and table_name='guardrails')")" = f ] \
+    && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='email_outbox' and column_name='next_attempt_at')")" = f ] \
+    && tap ok "after rollback_029 the guardrails table, the guard functions and email_outbox.next_attempt_at are gone" \
+    || tap fail "after rollback_029 guardrails / guard_games / guardrail_refuse / next_attempt_at should be gone"
+  [ "$(q "select count(*) from pg_trigger where tgname like '%\_0\_guard'")" = 0 ] \
+    && tap ok "after rollback_029 no guard trigger remains" || tap fail "after rollback_029 guard triggers remain"
+fi
 
 # 028 (game labels S/P; rolled back before 027)
 HAS_028=f
@@ -239,6 +253,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_026" = t ] && FORWARD="$FORWARD 026_delete_account"
 [ "$HAS_027" = t ] && FORWARD="$FORWARD 027_remove_from_my_players"
 [ "$HAS_028" = t ] && FORWARD="$FORWARD 028_game_labels"
+[ "$HAS_029" = t ] && FORWARD="$FORWARD 029_guardrails"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -301,6 +316,11 @@ if [ "$HAS_028" = t ]; then
   [ "$(fn_exists next_game_number)" = t ] && [ "$(fn_has assign_game_number pg_advisory_xact_lock)" = t ] \
     && [ "$(q "select count(*) from public.games where game_label is null")" = 0 ] \
     && tap ok "028 restored (next_game_number, locked trigger, every game labelled)" || tap fail "028 restored"
+fi
+if [ "$HAS_029" = t ]; then
+  [ "$(fn_exists guardrail_refuse)" = t ] && [ "$(q "select count(*) from public.guardrails")" = 9 ] \
+    && [ "$(q "select count(*) from pg_trigger where tgname like '%\_0\_guard'")" = 5 ] \
+    && tap ok "029 restored (guardrails table with 9 limits, 5 guard triggers)" || tap fail "029 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

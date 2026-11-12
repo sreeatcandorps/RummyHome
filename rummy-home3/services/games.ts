@@ -20,6 +20,7 @@ import { storage } from '@/utils/storage';
 import { createUuid, isUuid } from '@/utils/uuid';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
+import { localGameGuard, localRoundsGuard } from '@/utils/guardrails';
 import { BundleSeatRow, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
 import { queryCache } from '@/utils/queryCache';
 import { normalizeInitials } from '@/utils/initials';
@@ -369,6 +370,8 @@ export const gamesService = {
 
     if (!isSupabaseConfigured) {
       const existingGames = await storage.getGames();
+      const refused = localGameGuard(existingGames.map((g) => ({ createdBy: g.createdBy, status: g.isComplete ? 'completed' : 'active', closedAt: g.closedAt, deletedAt: g.deletedAt, createdAt: g.date })), input.createdBy);
+      if (refused) throw new Error(refused);
       const nextLabel = nextLocalGameLabel(existingGames, input.createdBy, input.gameType);
       const legacyGame: Game = {
         id: Date.now().toString(),
@@ -752,6 +755,11 @@ export const gamesService = {
       if (!game) throw new Error('Game not found.');
 
       const roundIndex = input.roundNumber - 1;
+      const liveRounds = Math.max(0, ...game.players.map((id) => game.scores[id]?.length ?? 0));
+      if (roundIndex >= liveRounds) {
+        const refused = localRoundsGuard(liveRounds);
+        if (refused) throw new Error(refused);
+      }
       const updatedScores = { ...game.scores };
       game.players.forEach((playerId) => {
         if (!updatedScores[playerId]) updatedScores[playerId] = [];
@@ -786,6 +794,11 @@ export const gamesService = {
       const game = await this.getGame(input.gameId);
       if (!game) throw new Error('Game not found.');
       const roundIndex = input.roundNumber - 1;
+      const liveRounds = Math.max(0, ...game.players.map((id) => game.scores[id]?.length ?? 0));
+      if (roundIndex >= liveRounds) {
+        const refused = localRoundsGuard(liveRounds);
+        if (refused) throw new Error(refused);
+      }
       const updatedScores = { ...game.scores };
       game.players.forEach((playerId) => {
         const column = [...(updatedScores[playerId] ?? [])];

@@ -9,6 +9,7 @@ import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { queryCache } from '@/utils/queryCache';
 import { assignInitials, initialsProblem, normalizeInitials } from '@/utils/initials';
 import { removeMyPlayerError, restoredRow } from '@/utils/removeMyPlayer';
+import { localMyPlayersGuard } from '@/utils/guardrails';
 
 export const MIGRATION_007_HINT = NOT_READY_MESSAGE;
 
@@ -338,6 +339,10 @@ export const playersService = {
   async addMyPlayer(ownerId: string, player: Pick<Player, 'id' | 'name' | 'playerCode'>): Promise<void> {
     const rows = await readRoster();
     const existing = rows.find((row) => row.ownerId === ownerId && row.playerId === player.id);
+    if (!isSupabaseConfigured && !existing) {
+      const refused = localMyPlayersGuard(rows, ownerId);
+      if (refused) throw new Error(refused);
+    }
     const without = rows.filter((row) => !(row.ownerId === ownerId && row.playerId === player.id));
     // Re-adding (a rename, a claim, after Remove from My players) keeps the row's age, games
     // and initials: a rename never changes initials; a removed row's come back when still free.

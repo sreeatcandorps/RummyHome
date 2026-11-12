@@ -306,6 +306,43 @@ async function main() {
       '8. the two games got different S-labels', { detail: JSON.stringify(rows) });
   }
 
+  // ---------------------------------------------------------------------------------------
+  // 9. Guardrails (029): two admins add a player to the same game at the same moment with one
+  //    seat left. The guard trigger takes a per-game advisory lock before counting, so the
+  //    second insert waits for the first to commit and is then refused: never 21 (here 5 at a
+  //    lowered cap of 4; game A seats 4).
+  // ---------------------------------------------------------------------------------------
+  if ((await admin.query(`select exists(select 1 from pg_proc where proname = 'guard_game_players') as e`)).rows[0].e) {
+    const CD = '00000000-0000-4000-8000-0000000000a3';
+    const OUTSIDER = '00000000-0000-4000-8000-000000000005';
+    const seatCount = async () => (await admin.query(
+      `select count(*)::int as c from public.game_players where game_id = $1 and is_active and role <> 'spectator' and coalesce(seated, true)`, [GAME_A])).rows[0].c;
+    const cap = (await seatCount()) + 1;
+    await admin.query(`update public.guardrails set value = $1 where key = 'players_per_game'`, [cap]);
+    const seat = (c, profile, order) => c.query(
+      `insert into public.game_players (game_id, profile_id, player_order, role, seated) values ($1, $2, $3, 'player', true)`,
+      [GAME_A, profile, order],
+    );
+    await beginAs(a, SREE);
+    const s1 = await attempt(() => seat(a, CD, 21));
+    await beginAs(b, SREE);
+    let secondDone = false;
+    const s2P = attempt(() => seat(b, OUTSIDER, 22)).then((r) => { secondDone = true; return r; });
+    await pause(300);
+    const waited = !secondDone;
+    await a.query(s1.ok ? 'commit' : 'rollback');
+    const s2 = await s2P;
+    await b.query(s2.ok ? 'commit' : 'rollback');
+    const after = await seatCount();
+    ok(s1.ok, `9. the first add (seat ${cap} of ${cap}) succeeds`, { detail: s1.error?.message });
+    ok(waited, '9. the second add waited on the guard lock while the first transaction was open (still pending 300 ms later)');
+    ok(!s2.ok && s2.error?.code === 'GRD01' && /A game holds at most 20 players\./.test(s2.error?.message ?? ''),
+      '9. the second add is refused with GRD01 and the guardrail message', { detail: `${s2.error?.code ?? 'ok'} ${s2.error?.message ?? ''}` });
+    ok(after === cap, `9. the game has exactly ${cap} seats, never ${cap + 1}`, { detail: `seats: ${after}` });
+    await admin.query(`delete from public.game_players where game_id = $1 and profile_id in ($2, $3)`, [GAME_A, CD, OUTSIDER]);
+    await admin.query(`update public.guardrails set value = 20 where key = 'players_per_game'`);
+  }
+
   await Promise.all([a.end(), b.end(), admin.end()]);
   console.log(`1..${n}`);
   if (findings.length) {
