@@ -193,3 +193,26 @@ test('final batch 10: bottom bar is three same-size icon-only buttons; the profi
   assert.doesNotMatch(layout, /flex: 1\.45/);
   assert.match(HELP.home, /## Bottom bar/);
 });
+
+test('final batch 11: the Joker mascot is the app icon and splash; four PNG options are kept; no version number beside the icon', () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const app = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8')).expo;
+  assert.equal(app.icon, './assets/icon.png');
+  assert.equal(app.splash.image, './assets/icon.png');
+  assert.equal(app.android.adaptiveIcon.foregroundImage, './assets/adaptive-icon.png', 'the adaptive foreground keeps the card inside the 66% safe zone');
+  assert.equal(app.android.adaptiveIcon.backgroundColor, '#FBF1E1');
+  const png = (rel: string) => {
+    const bytes = readFileSync(join(root, rel));
+    assert.equal(bytes.subarray(1, 4).toString('latin1'), 'PNG', `${rel} is a PNG`);
+    return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+  };
+  for (let i = 1; i <= 4; i += 1) assert.deepEqual(png(`assets/icon-options/joker-${i}.png`), { width: 1024, height: 1024 });
+  assert.deepEqual(png('assets/icon.png'), { width: 1024, height: 1024 });
+  assert.deepEqual(png('assets/adaptive-icon.png'), { width: 1024, height: 1024 });
+  assert.deepEqual(png('assets/icon-small.png'), { width: 320, height: 320 });
+  // Option 1 is wired: the launcher icon is byte-for-byte the first option.
+  assert.ok(readFileSync(join(root, 'assets/icon.png')).equals(readFileSync(join(root, 'assets/icon-options/joker-1.png'))));
+  const layout = src('app/(tabs)/_layout.tsx');
+  assert.doesNotMatch(layout, /VERSION_LABEL|brandVersion/, 'the header is the logo and the name only');
+  assert.match(src('app/(tabs)/me.tsx'), /`EZ Score \$\{VERSION_LABEL\}`/, 'the version moved to the foot of Profile');
+});

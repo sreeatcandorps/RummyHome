@@ -9,12 +9,7 @@ import { authService } from '@/services/auth';
 import { playersService } from '@/services/players';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
-import { shortVersionLabel } from '@/utils/appVersion';
-import { readAppVersion } from '@/utils/appVersionRuntime';
-
-const APP_VERSION = readAppVersion();
-const VERSION_LABEL = shortVersionLabel(APP_VERSION);
-
+/** The logo and the name, nothing else (final batch item 11: no version number beside the icon). The version is at the foot of Profile. */
 function BrandTitle() {
   const theme = useAppTheme();
   return (
@@ -22,21 +17,9 @@ function BrandTitle() {
       <View style={[styles.brandDisc, { backgroundColor: theme.colors.secondaryContainer }]}>
         <Image source={require('../../assets/icon-small.png')} style={styles.brandLogo} />
       </View>
-      <View style={styles.brandCopy}>
-        <Text variant="titleLarge" numberOfLines={1} style={[styles.brandText, { color: theme.colors.onSurface }]}>
-          EZ Score: Rummy
-        </Text>
-        {VERSION_LABEL ? (
-          <Text
-            variant="labelSmall"
-            numberOfLines={1}
-            style={[styles.brandVersion, { color: theme.colors.onSurfaceVariant }]}
-            accessibilityLabel={`App version ${VERSION_LABEL}`}
-          >
-            {VERSION_LABEL}
-          </Text>
-        ) : null}
-      </View>
+      <Text variant="titleLarge" numberOfLines={1} style={[styles.brandText, { color: theme.colors.onSurface }]}>
+        EZ Score: Rummy
+      </Text>
     </View>
   );
 }
@@ -162,17 +145,11 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: radius.full,
   },
-  brandCopy: {
-    flexShrink: 1,
-  },
   brandText: {
+    flexShrink: 1,
     fontWeight: '800',
     letterSpacing: -0.2,
     lineHeight: 24,
-  },
-  brandVersion: {
-    fontWeight: '600',
-    lineHeight: 14,
   },
   headerRight: {
     flexDirection: 'row',

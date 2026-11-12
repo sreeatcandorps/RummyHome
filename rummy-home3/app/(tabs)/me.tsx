@@ -25,6 +25,10 @@ import { LoadingRows } from '@/components/ui/LoadingRows';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { APPEARANCE_OPTIONS } from '@/utils/appearance';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { shortVersionLabel } from '@/utils/appVersion';
+import { readAppVersion } from '@/utils/appVersionRuntime';
+
+const VERSION_LABEL = shortVersionLabel(readAppVersion());
 
 type PhoneState = { kind: 'idle' } | { kind: 'saved' } | { kind: 'error'; message: string };
 
@@ -417,6 +421,12 @@ export default function MeScreen() {
         </View>
       </SectionCard>
 
+      {VERSION_LABEL ? (
+        <Text variant="labelSmall" style={[styles.version, { color: colors.onSurfaceVariant }]} accessibilityLabel={`App version ${VERSION_LABEL}`}>
+          {`EZ Score ${VERSION_LABEL}`}
+        </Text>
+      ) : null}
+
       <DeleteAccountDialog
         visible={deleteOpen}
         onDismiss={() => setDeleteOpen(false)}
@@ -432,6 +442,7 @@ export default function MeScreen() {
 
 const styles = StyleSheet.create({
   content: { gap: spacing.sm },
+  version: { textAlign: 'center', paddingVertical: spacing.sm },
   identityCard: {
     borderWidth: 1,
     borderRadius: radius.lg,

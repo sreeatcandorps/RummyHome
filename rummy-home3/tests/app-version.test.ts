@@ -22,7 +22,7 @@ const resolveConfig = (env: string | undefined) => {
   }
 };
 
-test('the Home header shows the installed version and build', () => {
+test('Profile shows the installed version and build', () => {
   assert.equal(shortVersionLabel({ version: '1.1.0', build: '7' }), 'v1.1.0 (build 7)');
   assert.equal(fullVersionLabel({ version: '1.1.0', build: '7' }), 'EZ Score v1.1.0 (build 7)');
 });
@@ -32,7 +32,8 @@ test('no build number: the version alone, never a "dev" label (Google Play item 
   assert.equal(shortVersionLabel({ version: null, build: null }), '');
   assert.equal(fullVersionLabel({ version: null, build: null }), 'EZ Score');
   assert.doesNotMatch(readFileSync(path.join(process.cwd(), 'utils/appVersion.ts'), 'utf8'), /'dev'|dev build/);
-  assert.match(readFileSync(path.join(process.cwd(), 'app/(tabs)/_layout.tsx'), 'utf8'), /\{VERSION_LABEL \? \(/, 'the header line is skipped when there is nothing to show');
+  assert.match(readFileSync(path.join(process.cwd(), 'app/(tabs)/me.tsx'), 'utf8'), /\{VERSION_LABEL \? \(/, 'the Profile line is skipped when there is nothing to show');
+  assert.doesNotMatch(readFileSync(path.join(process.cwd(), 'app/(tabs)/_layout.tsx'), 'utf8'), /VERSION_LABEL|appVersion/, 'no version number beside the icon in the header (final batch item 11)');
 });
 
 test('Help says whether an over-the-air update replaced the embedded code', () => {
