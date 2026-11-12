@@ -220,7 +220,9 @@ test('ScoreTable rows are memoised by value so a reload redraws only changed rou
 });
 
 test('icons come from subpath imports and the in-app logo is the small asset; the launcher icon stays 1024', () => {
-  assert.match(src('app/(tabs)/_layout.tsx'), /from '@expo\/vector-icons\/Ionicons'/);
+  // The tab bar draws MDI icons through Paper (already loaded for every screen); no second icon font.
+  assert.doesNotMatch(src('app/(tabs)/_layout.tsx'), /@expo\/vector-icons/);
+  assert.doesNotMatch(src('components/ui/TabBarButtons.tsx'), /@expo\/vector-icons/);
   assert.match(src('components/share/ShareCardView.tsx'), /from '@expo\/vector-icons\/MaterialCommunityIcons'/);
   for (const path of ['app/(tabs)/_layout.tsx', 'app/index.tsx', 'components/ui/AuthShell.tsx']) {
     assert.match(src(path), /assets\/icon-small\.png/, path);
