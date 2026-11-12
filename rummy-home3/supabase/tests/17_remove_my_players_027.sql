@@ -50,7 +50,7 @@ insert into public.scores (round_id, game_id, profile_id, score_type, value) val
   ('30000000-0000-4000-8000-0000000000c1', :C, :CD, 'rummy', 40);
 
 select tests.anon();
-select throws_like($$ select public.remove_my_player('00000000-0000-4000-8000-0000000000a3') $$, 'Sign in required', 'anon cannot remove');
+select throws_like($$ select public.remove_my_player('00000000-0000-4000-8000-0000000000a3') $$, '%permission denied%', 'anon cannot remove (033: no EXECUTE for anon)');
 select tests.logout();
 
 -- ---------- sree: blocked while in a live game sree can see ----------

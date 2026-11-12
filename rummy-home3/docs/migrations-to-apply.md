@@ -355,18 +355,36 @@ What it does:
 
 Verified on a scratch Postgres 16 loaded with 001–032 and the CI seed: 812 pgTAP checks (13 new in `supabase/tests/22_results_volume_032.sql`), the rollback replay (124 checks) and the 38 race checks all pass. Full volume results: `docs/volume-testing.md`.
 
-## Apply order for the Nov 10–11 batch
+## 033 — Security advisor cleanup (final launch batch add-on)
 
-017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023, 024, 025 and 026 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
+File: `supabase/migrations/033_security_advisor_cleanup.sql`. Run after 032 (it also works right after 026: the three 028 functions are covered only when 028 is present). Safe to re-run; prints one NOTICE with the number of functions anon lost EXECUTE on (38 on a database at 032). Rollback: `supabase/rollback/rollback_033_security_advisor_cleanup.sql` (the 024 view, no pinned search_path, anon EXECUTE back on the 38).
 
-1. `supabase/migrations/021_email_uniqueness.sql`
-2. `supabase/migrations/022_player_initials.sql`
-3. `supabase/migrations/023_hide_and_soft_delete.sql`
-4. `supabase/migrations/024_emails_and_public_results.sql`
-5. `supabase/migrations/025_link_player_to_account.sql`
-6. `supabase/migrations/026_delete_account.sql`
+Backward compatible with the APK on phones: the app always calls RPCs signed in, reads `my_profile` with `select` only (`services/auth.ts`, `services/emails.ts`), and the view keeps the same columns, order and types. The four public web pages (`/scorecard.html`, `/r/`, `/unsubscribe.html`, `/link.html`) keep working signed out.
 
-Final launch batch (Nov 12), after the six above, each as its own run:
+What it does, finding by finding:
+
+- **security_definer_view on `public.my_profile`** — recreated `WITH (security_invoker = true, security_barrier = true)`. The owner's private columns (`email`, `phone`, `zip_code`, `email_game_started`, `email_results`, `email_token`) are deliberately not granted to `authenticated` on `profiles` (019/024), so a security-invoker view straight over the table would refuse `select *` for everyone; the view therefore reads its row from a new `my_profile_rows()` (security definer, `search_path = public, pg_temp`, EXECUTE for `authenticated` and `service_role` only) whose body is exactly the old view body. A user still sees only their own row with every column; another account's `email` on the table is still "permission denied"; anon is refused on the view. The view is now select-only.
+- **function_search_path_mutable** — `alter function … set search_path = public, pg_temp` on `initials_words`, `initials_push`, `initials_candidates`, `player_label`, `site_base_url`, `link_request_days`, `lock_profile_email`, `lock_public_player_no`, `touch_updated_at`, and the 028 trio `game_label_text`, `game_label_prefix`, `lock_game_label`. Bodies unchanged. After this no function of ours is without a search_path.
+- **SECURITY DEFINER functions callable with the anon key** — Supabase's default privileges grant EXECUTE on every new function to `anon`, so every RPC that did not revoke it was callable signed out (38 of them, including 11 trigger functions that also carried Postgres's built-in PUBLIC grant). EXECUTE is revoked from `anon` (and PUBLIC) on all of them. Kept for anon: the five public-page RPCs `public_scorecard`, `public_result`, `unsubscribe_email`, `peek_link_request`, `answer_link_request_by_token`, plus the four helpers referenced by row policies (`is_app_admin`, `is_game_admin`, `is_game_member`, `can_see_profile`) so an anon read of a table keeps returning zero rows rather than an error.
+
+Revoked from anon (signed-in users keep them): `add_my_player`, `add_prize_entry`, `answer_claim_link`, `answer_claim_request`, `assign_game_number`, `create_claim_link`, `create_prize_session`, `create_unregistered_player`, `delete_unregistered_player`, `game_coin_shares`, `generate_player_code`, `get_prize_session`, `guard_game_players`, `guard_games`, `guard_my_players`, `guard_player_links`, `guard_rounds`, `handle_new_user`, `list_claim_requests`, `list_my_player_links`, `list_my_unregistered_players`, `list_prize_sessions`, `lock_profile_role`, `my_players_restore_initials`, `my_verified_email`, `peek_claim_link`, `player_links_fill_labels`, `recompute_session_status`, `remove_my_player`, `request_claim_by_player_no`, `require_my_unregistered`, `revoke_claim_link`, `search_players`, `session_visible`, `touch_my_players`, `unlink_player`, `update_prize_entry`, `update_unregistered_player`. (`peek_claim_link` / `answer_claim_link` are only called by the app after sign-in; there is no public claim page.)
+
+Verified on a scratch Postgres 16 loaded with 001–033 and the CI seed: 877 pgTAP checks (65 new in `supabase/tests/23_security_033.sql`: view semantics per user and for anon, all twelve search_paths, the exact anon allow-list, the four web pages signed out, and the signed-in flows — add to My players, search, links, claim requests, prize sessions, unregistered player, new game with its label and guard triggers, sign-up creating a profile, profile edits with the email/player-number locks), the rollback replay (129 checks) and the 38 race checks all pass. `tests/security-033.test.ts` (4 unit tests) ties every RPC the `public/*.html` pages call to the migration's allow-list and checks the app only reads through `my_profile`.
+
+After applying, re-run the Supabase security advisor: the `security_definer_view` and `function_search_path_mutable` findings for these objects should be gone.
+
+## Apply order for the Nov 10–12 batches
+
+017–020 were applied on Nov 11 (~11:25 AM PT); 021–026 were applied on Nov 12 from PR 7 head `d62d9c6`. Steps 1–6 are kept for the record (all re-runnable):
+
+1. `supabase/migrations/021_email_uniqueness.sql` — applied
+2. `supabase/migrations/022_player_initials.sql` — applied
+3. `supabase/migrations/023_hide_and_soft_delete.sql` — applied
+4. `supabase/migrations/024_emails_and_public_results.sql` — applied
+5. `supabase/migrations/025_link_player_to_account.sql` — applied
+6. `supabase/migrations/026_delete_account.sql` — applied
+
+Final launch batch (Nov 12), unapplied. Paste each into the Supabase SQL editor as its own run, in this order:
 
 7. `supabase/migrations/027_remove_from_my_players.sql`
 8. `supabase/migrations/028_game_labels.sql`
@@ -374,6 +392,7 @@ Final launch batch (Nov 12), after the six above, each as its own run:
 10. `supabase/migrations/030_my_players_at_scale.sql`
 11. `supabase/migrations/031_round_robin.sql`
 12. `supabase/migrations/032_results_volume_fixes.sql`
+13. `supabase/migrations/033_security_advisor_cleanup.sql` — then re-run the security advisor
 
 Read-only checks that go with 021 (nothing is changed):
 

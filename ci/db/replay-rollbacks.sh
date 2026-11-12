@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–032) applied, check the function state after each, then re-apply the forward
+# has every migration (001–033) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,19 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 033 (security advisor cleanup; rolled back before 032)
+HAS_033=f
+if [ -f "$RB/rollback_033_security_advisor_cleanup.sql" ]; then
+  HAS_033=t
+  if apply "$RB/rollback_033_security_advisor_cleanup.sql"; then tap ok "rollback_033 applies"; else tap fail "rollback_033 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists my_profile_rows)" = f ] \
+    && [ "$(q "select coalesce(reloptions @> array['security_invoker=true'], false) from pg_class where oid='public.my_profile'::regclass")" = f ] \
+    && [ "$(q "select exists(select 1 from pg_proc where proname='touch_updated_at' and pronamespace='public'::regnamespace and proconfig is not null)")" = f ] \
+    && [ "$(q "select has_function_privilege('anon', 'public.add_my_player(uuid)', 'execute')")" = t ] \
+    && tap ok "after rollback_033 my_profile is the 024 view, touch_updated_at has no search_path and anon executes add_my_player again" \
+    || tap fail "after rollback_033 my_profile / touch_updated_at / add_my_player should be the pre-033 state"
+fi
 
 # 032 (results volume fixes; rolled back before 031)
 HAS_032=f
@@ -287,6 +300,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_030" = t ] && FORWARD="$FORWARD 030_my_players_at_scale"
 [ "$HAS_031" = t ] && FORWARD="$FORWARD 031_round_robin"
 [ "$HAS_032" = t ] && FORWARD="$FORWARD 032_results_volume_fixes"
+[ "$HAS_033" = t ] && FORWARD="$FORWARD 033_security_advisor_cleanup"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -366,6 +380,15 @@ fi
 if [ "$HAS_032" = t ]; then
   [ "$(fn_has game_rounds_json 'distinct on')" = t ] && [ "$(q "select coalesce(proconfig @> array['jit=off'], false) from pg_proc where proname='public_result' and pronamespace='public'::regnamespace")" = t ] \
     && tap ok "032 restored (one-pass game_rounds_json, jit off on public_result)" || tap fail "032 restored"
+fi
+
+if [ "$HAS_033" = t ]; then
+  [ "$(fn_exists my_profile_rows)" = t ] \
+    && [ "$(q "select coalesce(reloptions @> array['security_invoker=true'], false) from pg_class where oid='public.my_profile'::regclass")" = t ] \
+    && [ "$(q "select count(*) from pg_proc p where p.pronamespace='public'::regnamespace and not exists (select 1 from pg_depend d where d.objid=p.oid and d.deptype='e') and not exists (select 1 from unnest(coalesce(p.proconfig,'{}')) c where c like 'search_path=%')")" = 0 ] \
+    && [ "$(q "select has_function_privilege('anon', 'public.add_my_player(uuid)', 'execute')")" = f ] \
+    && [ "$(q "select has_function_privilege('anon', 'public.public_scorecard(text)', 'execute')")" = t ] \
+    && tap ok "033 restored (security-invoker my_profile, every function has a search_path, anon only on the public RPCs)" || tap fail "033 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op
