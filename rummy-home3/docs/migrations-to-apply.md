@@ -229,15 +229,42 @@ Read-only checks after applying (nothing is changed):
 select count(*) from public.player_links where kind = 'link' and status = 'claimed' and token_hash is null;  -- 0 right after applying; grows by one per Link to Player ID
 ```
 
+## 026 — Delete account (Google Play), approved Nov 11, 10:59 PM PT, item 6
+
+File: `supabase/migrations/026_delete_account.sql`. Run after 025. Safe to re-run. Rollback: `supabase/rollback/rollback_026_delete_account.sql` (drops `delete_my_account` and `tombstone_profile`, puts back the 005/011/012 trigger bodies; accounts already deleted stay anonymised).
+
+Not applied by this change. No table or column changes; two new functions and four trigger bodies replaced in place (`enforce_profile_auth_user`, `lock_profile_email`, `lock_public_player_no`, `delete_profile_with_auth_user`).
+
+What it does:
+
+- **`delete_my_account()`** — Profile › Account › Delete account. Runs `tombstone_profile(auth.uid())`, then `delete from auth.users where id = auth.uid()` (sessions and identities go with it). Returns `{seatsKept, gamesDeleted, gamesKept, adminsPromoted}`.
+- **`tombstone_profile(uuid)`** (internal, no grants) — deleted: email, phone, first/last name, avatar, zip, Player ID number (`public_player_no` → null; `player_code` is replaced by a fresh random code because the column is not null), email token and both email preferences (off), default settings (reset), role (back to `player`); My players rows both ways; hidden games; every outbox row addressed to the person; creator notices; the person's pending invites (cancelled); viewer and non-playing-admin memberships (rows removed); seated admin rows become plain players. Games the person created where **nobody else with an account** was ever a member are soft-deleted exactly like Delete game (023): removed from saved results, `deleted_at`/`deleted_by` set, `closed_at` re-synced, `games_together` adjusted. Kept: every seat, score, round and result with other people (**`display_name` stays** so the scorecards read right; the row becomes `player_status = 'deleted_after_registering'`, already excluded from every roster and lookup since 011/012); games the person created that other accounts were in, and if no other admin is left the first other registered seated player (by seat order) is promoted to `game_admin` so the game is not orphaned (`created_by` cannot change: foreign key). Nothing in `scores` or `rounds` is ever deleted.
+- **Dashboard path** — the 005 `before delete on auth.users` trigger now calls `tombstone_profile` when the profile has any history (seats, games, scores, rounds, results) and deletes the profile outright only when it has none. So "email support and we delete it" is: Authentication → Users → delete the user; the database does the same cleanup as the in-app button, and it no longer fails on the `game_players` foreign key.
+- Trigger changes needed for the tombstone to exist without an auth user: `enforce_profile_auth_user` accepts a `deleted_after_registering` row (role must stay `player`); `lock_profile_email` and `lock_public_player_no` let such a row give up its email and number. Everything else about those triggers is unchanged.
+
+Decisions to confirm (implemented as written, easy to change): display name kept on scorecards (spec: "games others own keep the seat as an unregistered name"); games with nobody else registered are soft-deleted rather than kept; the orphaned-game admin hand-over goes to the first other registered seat.
+
+Verified on a scratch Postgres 16 loaded with 001–025 and the CI seed: 529 pgTAP checks (45 new in `supabase/tests/16_delete_account_026.sql`: grants, anon refused, the summary for a creator with one lone game, one shared game with another admin and one without, auth user gone, every personal column cleared, Player ID given up, settings reset, tombstone still writable but never an admin, lists and outbox gone, invite cancelled, placeholder kept, viewer row removed, seat kept as plain player with its score, lone game soft-deleted, shared games kept, promotion only where needed, others still open the games and manage them, deleted account hidden from My players even with a stale row, dashboard delete anonymises a seated user and removes a user with no history), 31 two-client race checks, and the rollback replay (rollback 026 → 013, re-apply 013 → 026, apply each a second time; 89 checks) all pass.
+
+Outside the database (also not done by this change): publish `public/privacy/index.html` and `public/delete-account/index.html` with the next Pages deploy (static, no keys), and paste `https://ezscore.mindweavetech.com/privacy` and `https://ezscore.mindweavetech.com/delete-account` into Play Console → App content (Privacy policy; Data safety → Account deletion).
+
+Read-only checks after applying (nothing is changed):
+
+```sql
+select count(*) from public.profiles where player_status = 'deleted_after_registering';           -- 0 right after applying; +1 per deleted account
+select count(*) from public.profiles p where p.player_status = 'deleted_after_registering' and exists (select 1 from auth.users u where u.id = p.id);  -- always 0
+```
+
 ## Apply order for the Nov 10–11 batch
 
-017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023, 024 and 025 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
+017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023, 024, 025 and 026 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
 
 1. `supabase/migrations/021_email_uniqueness.sql`
 2. `supabase/migrations/022_player_initials.sql`
 3. `supabase/migrations/023_hide_and_soft_delete.sql`
 4. `supabase/migrations/024_emails_and_public_results.sql`
 5. `supabase/migrations/025_link_player_to_account.sql`
+6. `supabase/migrations/026_delete_account.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

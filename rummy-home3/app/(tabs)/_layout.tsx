@@ -14,6 +14,7 @@ import { shortVersionLabel } from '@/utils/appVersion';
 import { readAppVersion } from '@/utils/appVersionRuntime';
 
 const APP_VERSION = readAppVersion();
+const VERSION_LABEL = shortVersionLabel(APP_VERSION);
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof Ionicons>['name'];
@@ -31,14 +32,16 @@ function BrandTitle() {
         <Text variant="titleLarge" numberOfLines={1} style={[styles.brandText, { color: theme.colors.onSurface }]}>
           EZ Score: Rummy
         </Text>
-        <Text
-          variant="labelSmall"
-          numberOfLines={1}
-          style={[styles.brandVersion, { color: theme.colors.onSurfaceVariant }]}
-          accessibilityLabel={`App version ${shortVersionLabel(APP_VERSION)}`}
-        >
-          {shortVersionLabel(APP_VERSION)}
-        </Text>
+        {VERSION_LABEL ? (
+          <Text
+            variant="labelSmall"
+            numberOfLines={1}
+            style={[styles.brandVersion, { color: theme.colors.onSurfaceVariant }]}
+            accessibilityLabel={`App version ${VERSION_LABEL}`}
+          >
+            {VERSION_LABEL}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

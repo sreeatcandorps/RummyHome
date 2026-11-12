@@ -128,6 +128,7 @@ export const HELP = {
     'Phone is optional and never texted.',
     'User settings are the defaults every new game starts with.',
     'Dark mode is saved on this phone only.',
+    'Delete account (under Account) removes your sign-in, email, phone and Player ID for good. Scorecards you shared keep your name as an unregistered player.',
   ),
   userSettings: bullets(
     'Which settings win, highest first: Game settings for one game, then User settings, then Game defaults.',

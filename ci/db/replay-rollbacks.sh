@@ -24,6 +24,20 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
+# 026 (account deletion; same PR, rolled back before 025)
+HAS_026=f
+if [ -f "$RB/rollback_026_delete_account.sql" ]; then
+  HAS_026=t
+  if apply "$RB/rollback_026_delete_account.sql"; then tap ok "rollback_026 applies"; else tap fail "rollback_026 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists delete_my_account)" = f ] && [ "$(fn_exists tombstone_profile)" = f ] \
+    && tap ok "after rollback_026 delete_my_account and tombstone_profile are gone" \
+    || tap fail "after rollback_026 delete_my_account / tombstone_profile should be gone"
+  [ "$(fn_has enforce_profile_auth_user deleted_after_registering)" = f ] && [ "$(fn_has delete_profile_with_auth_user tombstone_profile)" = f ] \
+    && [ "$(fn_has lock_public_player_no deleted_after_registering)" = f ] && [ "$(fn_has lock_profile_email deleted_after_registering)" = f ] \
+    && tap ok "after rollback_026 the 005/011/012 trigger bodies are back" \
+    || tap fail "after rollback_026 enforce_profile_auth_user / delete_profile_with_auth_user / lock_public_player_no should be the earlier bodies"
+fi
+
 # 025 (link player to account; same PR, rolled back before 024)
 HAS_025=f
 if [ -f "$RB/rollback_025_link_player_to_account.sql" ]; then
@@ -186,6 +200,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_023" = t ] && FORWARD="$FORWARD 023_hide_and_soft_delete"
 [ "$HAS_024" = t ] && FORWARD="$FORWARD 024_emails_and_public_results"
 [ "$HAS_025" = t ] && FORWARD="$FORWARD 025_link_player_to_account"
+[ "$HAS_026" = t ] && FORWARD="$FORWARD 026_delete_account"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -234,6 +249,10 @@ fi
 if [ "$HAS_025" = t ]; then
   [ "$(fn_exists link_player_to_account)" = t ] && [ "$(fn_exists link_player_check)" = t ] \
     && tap ok "025 restored (link_player_check / link_player_to_account)" || tap fail "025 restored"
+fi
+if [ "$HAS_026" = t ]; then
+  [ "$(fn_exists delete_my_account)" = t ] && [ "$(fn_exists tombstone_profile)" = t ] && [ "$(fn_has delete_profile_with_auth_user tombstone_profile)" = t ] \
+    && tap ok "026 restored (delete_my_account, tombstone_profile, dashboard delete anonymises)" || tap fail "026 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

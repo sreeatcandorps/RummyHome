@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { bundleSourceLabel, fullVersionLabel, helpVersionText, shortVersionLabel } from '../utils/appVersion';
 
 const require = createRequire(import.meta.url);
@@ -25,9 +27,12 @@ test('the Home header shows the installed version and build', () => {
   assert.equal(fullVersionLabel({ version: '1.1.0', build: '7' }), 'EZ Score v1.1.0 (build 7)');
 });
 
-test('Expo Go and web, with no installed binary, still show something readable', () => {
-  assert.equal(shortVersionLabel({ version: '1.1.0', build: null }), 'v1.1.0 (dev build)');
-  assert.equal(shortVersionLabel({ version: null, build: null }), 'dev (dev build)');
+test('no build number: the version alone, never a "dev" label (Google Play item 6)', () => {
+  assert.equal(shortVersionLabel({ version: '1.1.0', build: null }), 'v1.1.0');
+  assert.equal(shortVersionLabel({ version: null, build: null }), '');
+  assert.equal(fullVersionLabel({ version: null, build: null }), 'EZ Score');
+  assert.doesNotMatch(readFileSync(path.join(process.cwd(), 'utils/appVersion.ts'), 'utf8'), /'dev'|dev build/);
+  assert.match(readFileSync(path.join(process.cwd(), 'app/(tabs)/_layout.tsx'), 'utf8'), /\{VERSION_LABEL \? \(/, 'the header line is skipped when there is nothing to show');
 });
 
 test('Help says whether an over-the-air update replaced the embedded code', () => {

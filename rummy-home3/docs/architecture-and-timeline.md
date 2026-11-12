@@ -264,6 +264,11 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - One ⋮ menu per player on the game's Players · Admins page and on My players (Invite to register · Link to Player ID · Edit initials · Edit name · Make/Remove admin · Remove from game / Remove from My players), built from one model (`utils/gamePlayers`). The Register players popup (scorecard ⋮ and My players) and the Unregistered filter chip are gone; the third My players tile shows the unregistered count and filters the list; the list is one row per player.
 - `025_link_player_to_account.sql` (+ rollback), **not applied**, apply after 024: Link to Player ID now takes the account's Player ID **and** email (the pair must match; the email is never shown), checks for conflicts across every game the player is in, and moves every seat and score at once, recorded as an undoable `player_links` row. A link-complete pop-up names the result. Tests: 484 pgTAP, 31 concurrency, 83 rollback checks.
 
+### 2026-11-12 — Google Play requirements (026), item 6 of the batch
+- In-app account deletion: Profile › Account › Delete account, one tick, then `delete_my_account()` (026, **not applied**, apply after 025) anonymises the profile server-side and removes the auth user. Seats and scores with other people stay under the name as an unregistered player; lone games are soft-deleted; orphaned games get the next registered seat as admin. The dashboard "delete user" now does the same cleanup instead of failing on foreign keys. Tests: 529 pgTAP, 31 concurrency, 89 rollback checks.
+- Public pages on the share site, static and key-free: `/privacy` (policy: email, name, Player ID, optional phone/postal code, games and scores; Supabase ca-central-1; Resend; no ads, no analytics; TLS) and `/delete-account` (in-app steps, email path, and the same deleted/kept lists as the app, from `utils/accountDeletion.ts`). Contact `support@mindweavetech.com`.
+- Version label never says "dev" any more: `v1.1.0 (build 7)`, or `v1.1.0` when the build number cannot be read, or nothing.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.

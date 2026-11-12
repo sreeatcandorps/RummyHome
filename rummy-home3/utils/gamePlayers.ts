@@ -1,4 +1,4 @@
-import { isUnregistered, PlayerStatus } from '@/utils/playerIdentity';
+import { isDeletedStatus, isUnregistered, PlayerStatus } from '@/utils/playerIdentity';
 
 /** What the Players page shows and allows for one seat. Pure so it can be tested. */
 
@@ -74,6 +74,7 @@ export const SEAT_MENU_LABEL: Record<SeatMenuItem, string> = {
 };
 
 const NOT_MINE = 'Only the organiser who added this player can change them.';
+const ACCOUNT_DELETED = 'This account was deleted.';
 
 /**
  * The unified per-player ⋮ menu (Nov 11 item 5), in this order everywhere:
@@ -101,6 +102,7 @@ export function seatMenu(seat: SeatLike, game: GameLike, viewerId: string | null
   if (unregistered) items.push({ item: 'edit_name', enabled: mine, reason: mine ? undefined : NOT_MINE });
   if (seat.seatRole !== 'spectator') {
     if (admin) items.push({ item: 'remove_admin', enabled: !isCreator, reason: isCreator ? 'The creator is always an admin.' : undefined });
+    else if (isDeletedStatus(seat.status)) items.push({ item: 'make_admin', enabled: false, reason: ACCOUNT_DELETED });
     else items.push({ item: 'make_admin', enabled: true });
   }
   if (seatedPlayer) items.push({ item: 'remove_player', enabled: true });

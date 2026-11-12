@@ -17,16 +17,20 @@ export type AppVersionInfo = {
 
 export const APP_DISPLAY_NAME = 'EZ Score';
 
-/** "v1.1.0 (build 7)". A missing build number reads "dev" so Expo Go and web still show something. */
+/**
+ * "v1.1.0 (build 7)". Without a build number (Expo Go, web, a store build whose
+ * native version could not be read) it is just "v1.1.0"; with no version at all it
+ * is empty. Nothing here ever says "dev": that word belonged to prototype builds.
+ */
 export function shortVersionLabel(info: Pick<AppVersionInfo, 'version' | 'build'>): string {
-  const version = info.version ? `v${info.version}` : 'dev';
-  const build = info.build ? `build ${info.build}` : 'dev build';
-  return `${version} (${build})`;
+  if (!info.version) return '';
+  return info.build ? `v${info.version} (build ${info.build})` : `v${info.version}`;
 }
 
-/** "EZ Score v1.1.0 (build 7)". */
+/** "EZ Score v1.1.0 (build 7)", or just "EZ Score". */
 export function fullVersionLabel(info: Pick<AppVersionInfo, 'version' | 'build'>): string {
-  return `${APP_DISPLAY_NAME} ${shortVersionLabel(info)}`;
+  const short = shortVersionLabel(info);
+  return short ? `${APP_DISPLAY_NAME} ${short}` : APP_DISPLAY_NAME;
 }
 
 /**

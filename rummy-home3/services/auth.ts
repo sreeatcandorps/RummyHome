@@ -12,6 +12,7 @@ import { gameCache } from '@/utils/gameCache';
 import { queryCache } from '@/utils/queryCache';
 import { sessionNeedsRefresh } from '@/utils/sessionFreshness';
 import { EmailInUseError, isEmailInUseError, isRepeatedSignUp } from '@/utils/signUpOutcome';
+import { DeleteAccountSummary, SUPPORT_EMAIL } from '@/utils/accountDeletion';
 
 export type Profile = {
   id: string;
@@ -172,6 +173,51 @@ export const authService = {
     gameCache.clear();
     queryCache.clear();
     if (error) throw error;
+  },
+
+  /**
+   * Profile > Delete account. The server (026 delete_my_account) anonymises the profile,
+   * keeps every seat and score under the name, and removes the auth user; then the phone
+   * forgets the session. The local prototype store does the same to its own records.
+   */
+  async deleteAccount(): Promise<DeleteAccountSummary> {
+    let summary: DeleteAccountSummary = { seatsKept: 0, gamesDeleted: 0, gamesKept: 0, adminsPromoted: 0 };
+    if (isSupabaseConfigured) {
+      const { data, error } = await (supabase.rpc as any)('delete_my_account');
+      if (error) {
+        const code = (error as { code?: string }).code;
+        const message = ((error as { message?: string }).message ?? '').toLowerCase();
+        if (code === 'PGRST202' || message.includes('could not find the function')) {
+          throw new Error(`Deleting your account needs the latest database update (026). Until then, email ${SUPPORT_EMAIL} and we will delete it for you.`);
+        }
+        throw error;
+      }
+      summary = { ...summary, ...(data as Partial<DeleteAccountSummary>) };
+      // The auth user is already gone, so the sign-out call may be refused; the local wipe is what matters.
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    } else {
+      const playerId = await storage.getCurrentPlayer();
+      if (playerId) {
+        const players = await storage.getPlayers();
+        const games = await storage.getGames();
+        const mine = games.filter((game) => game.createdBy === playerId);
+        const alone = mine.filter((game) => !game.players.some((id) => id !== playerId && players.some((p) => p.id === id && !p.managedBy)));
+        summary = {
+          seatsKept: games.filter((game) => game.players.includes(playerId)).length,
+          gamesDeleted: alone.length,
+          gamesKept: mine.length - alone.length,
+          adminsPromoted: 0,
+        };
+        await storage.saveGames(games.map((game) => (alone.includes(game) ? { ...game, deletedAt: new Date().toISOString() } : game)));
+        await storage.savePlayers(players.map((p) => (p.id === playerId
+          ? { ...p, email: undefined, phone: undefined, playerCode: undefined, playerNo: undefined, status: 'deleted_after_registering' as const }
+          : p)));
+      }
+    }
+    await storage.setCurrentPlayer(null);
+    gameCache.clear();
+    queryCache.clear();
+    return summary;
   },
 
   /** Drop local session without requiring a network round-trip. */

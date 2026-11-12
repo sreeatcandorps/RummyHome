@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Linking, StyleSheet, View } from 'react-native';
 import { Button, Checkbox, Icon, Switch, Text, TextInput, TouchableRipple } from 'react-native-paper';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
@@ -14,6 +14,8 @@ import { playerIdBadge } from '@/utils/myPlayersList';
 import { clearDemoData, loadDemoData } from '@/services/demoSeed';
 import { DEFAULT_EMAIL_PREFS, EmailPrefs, emailsService } from '@/services/emails';
 import { ChangePasscodeDialog } from '@/components/auth/ChangePasscodeDialog';
+import { DeleteAccountDialog } from '@/components/account/DeleteAccountDialog';
+import { DELETE_ACCOUNT_DONE_BODY, DELETE_ACCOUNT_DONE_TITLE, PRIVACY_PAGE_URL } from '@/utils/accountDeletion';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
@@ -146,6 +148,7 @@ export default function MeScreen() {
   };
 
   const [passcodeOpen, setPasscodeOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const changePasscode = () => {
     if (!player?.email || !isSupabaseConfigured) {
       setNotice('Passcodes belong to online accounts. This build is running without the account service.');
@@ -378,6 +381,27 @@ export default function MeScreen() {
       <Button mode="contained" icon="logout" buttonColor={colors.error} onPress={logout} contentStyle={styles.action} accessibilityLabel="Log out">
         Log out
       </Button>
+
+      <SectionCard title="Account" icon="shield-account-outline" supportingText="Your data: email, name, Player ID, phone if you added one, and the games you play.">
+        <View style={styles.identityActions}>
+          <Button mode="outlined" icon="file-document-outline" onPress={() => Linking.openURL(PRIVACY_PAGE_URL).catch(() => {})} style={styles.half} contentStyle={styles.action} accessibilityLabel="Privacy policy">
+            Privacy
+          </Button>
+          <Button mode="outlined" icon="account-remove-outline" textColor={colors.error} onPress={() => setDeleteOpen(true)} style={[styles.half, { borderColor: colors.error }]} contentStyle={styles.action} accessibilityLabel="Delete account" testID="delete-account">
+            Delete account
+          </Button>
+        </View>
+      </SectionCard>
+
+      <DeleteAccountDialog
+        visible={deleteOpen}
+        onDismiss={() => setDeleteOpen(false)}
+        onDeleted={() => {
+          setDeleteOpen(false);
+          router.replace('/(auth)/login');
+          Alert.alert(DELETE_ACCOUNT_DONE_TITLE, DELETE_ACCOUNT_DONE_BODY);
+        }}
+      />
     </Screen>
   );
 }

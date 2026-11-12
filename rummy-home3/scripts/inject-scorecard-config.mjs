@@ -47,4 +47,5 @@ for (const page of PAGES) {
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, html);
 }
-console.log(`Wrote dist/${PAGES.join(', dist/')}. Publish those files (plus public/404.html as is). Do not commit dist/.`);
+// Pages with no key in them are published straight from public/: 404.html, get/, privacy/, delete-account/.
+console.log(`Wrote dist/${PAGES.join(', dist/')}. Publish those files, plus public/404.html, public/get/, public/privacy/ and public/delete-account/ as they are. Do not commit dist/.`);
