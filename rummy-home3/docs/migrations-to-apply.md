@@ -133,13 +133,38 @@ Supabase dashboard: **no setting change.** Keep Authentication → Providers →
 
 Verified on a scratch Postgres 16 loaded with 001–020 and the CI seed: 273 pgTAP checks (20 new), 31 two-client race checks, and the rollback replay (apply rollback 021, check 011 and 019 are intact, re-apply 013 → 021, apply each a second time) all pass.
 
+## 022 — scorecard initials per owner (approved Nov 11, 6:10 PM PT; names live, no refresh, 6:30 PM)
+
+File: `supabase/migrations/022_player_initials.sql`. Run after 021. Safe to re-run. Rollback: `supabase/rollback/rollback_022_player_initials.sql` (drops the two columns — stored initials and seat labels are lost and the app derives labels from names again, as before — the generator functions, triggers and the two RPCs; restores `list_my_players` (012) and `seat_rows_json` (020)).
+
+Not applied by this change. Adds columns and fills them; never deletes or renames a row.
+
+What it does:
+
+- **`my_players.initials`** — the letters a player gets in the scorecard columns of games this owner creates. Unique within that owner's list (`my_players_owner_initials_key` on `(owner_id, initials)`); two owners may label one person differently. Default: first + last initial; when that is taken, three letters from the name (Suresh Kumar → SUK, then SKU, SRK…); a digit only when every letter form is used. The owner may type any 2–3 letters (`set_my_player_initials`). A before-insert trigger fills the default, so every existing add path (`add_my_player`, `touch_my_players`, `create_unregistered_player`, the claim/link merges) keeps working unchanged.
+- **Backfill is deterministic.** Existing rows are filled oldest first (`created_at, owner_id, player_id`), so the person who joined a list first keeps the short form.
+- **Names are never copied.** Lists always show the player's current profile name (`list_my_players` reads `profiles.display_name`). A rename changes nobody's initials; the app shows a small "Name changed" note on that player when the letters no longer fit.
+- **`game_players.label`** — the column letters of one seat, fixed when the seat is created (the creator's `my_players.initials` for that player, else the first free form in the game). Existing seats are backfilled in seat order. `seat_rows_json` (so `get_game_bundle` / `get_home_bundle`) returns it; a later My players edit does not change a game already started. `set_seat_label` lets a game admin change one column (unique within the game); when the caller created the game their My players entry follows.
+- **`public.initials_candidates(text)`** mirrors `utils/initials.ts`; both are checked against the same table of names.
+
+Verified on a scratch Postgres 16 loaded with 001–021 and the CI seed: 328 pgTAP checks (55 new in `supabase/tests/12_player_initials_022.sql`: generator parity, trigger defaults, per-owner uniqueness, oldest-first backfill after a re-run, live names after a rename, the three RPCs, seat labels fixed at seat time, RLS), 31 two-client race checks, and the rollback replay (rollback 022 → 013, re-apply 013 → 022, apply each a second time) all pass.
+
+Read-only checks after applying (nothing is changed):
+
+```sql
+select count(*) filter (where initials is null) as missing, count(*) as rows from public.my_players;
+select owner_id, initials, count(*) from public.my_players group by 1, 2 having count(*) > 1;   -- must be empty
+select count(*) filter (where label is null) as missing, count(*) as seats from public.game_players;
+```
+
 ## Apply order for the Nov 10–11 batch
 
-017–020 were applied on Nov 11 (~11:25 AM PT). 021 is unapplied. Paste into the Supabase SQL editor as its own run and read the NOTICE lines it prints:
+017–020 were applied on Nov 11 (~11:25 AM PT). 021 and 022 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
 
 1. `supabase/migrations/021_email_uniqueness.sql`
+2. `supabase/migrations/022_player_initials.sql`
 
-Read-only checks that go with it (nothing is changed):
+Read-only checks that go with 021 (nothing is changed):
 
 ```sql
 select * from public.duplicate_profile_emails();
