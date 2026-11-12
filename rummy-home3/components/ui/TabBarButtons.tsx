@@ -1,33 +1,38 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Icon, Text } from 'react-native-paper';
+import { Icon } from 'react-native-paper';
 import { BUTTON_EDGE } from '@/components/ui/AppButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { radius, seatColor, spacing, useAppTheme } from '@/constants/theme';
 
 export type TabPillItem =
-  | { kind: 'icon'; icon: string; label: string; /** Share of the row; a longer label gets more. */ flex?: number }
+  | { kind: 'icon'; icon: string; label: string }
   | { kind: 'avatar'; name: string; label: string };
 
 type Props = BottomTabBarProps & {
-  /** What each route shows, by route name. Routes missing here fall back to their title. */
+  /** What each route shows, by route name. Routes missing here fall back to a circle with their title as the spoken label. */
   items: Record<string, TabPillItem | undefined>;
-  /** Shorter pills on short phones in landscape. */
+  /** Shorter buttons on short phones in landscape. */
   compact?: boolean;
 };
 
-export const TAB_PILL_HEIGHT = 48;
-export const TAB_PILL_HEIGHT_COMPACT = 40;
+export const TAB_PILL_HEIGHT = 52;
+export const TAB_PILL_HEIGHT_COMPACT = 42;
+export const TAB_ICON_SIZE = 26;
+export const TAB_ICON_SIZE_COMPACT = 22;
 
 /**
- * Bottom tabs as pill buttons: the active one filled button green with its pressable edge,
- * the others outlined, so every tappable in the app reads the same way
- * (docs/design/02-design-system.md §0). The profile tab is the account avatar in its own pill.
+ * Bottom bar (final launch batch, design item 10): three buttons of the same size, icons only.
+ * Each is a pill button like every other button in the app — the current one filled button
+ * green with its pressable edge, the others outlined — so they read as tappable at a glance.
+ * The profile button holds the account's initials as a plain circle (no ring, no badge).
+ * Labels are spoken, not drawn: the header title names the page.
  */
 export function PillTabBar({ state, descriptors, navigation, insets, items, compact = false }: Props) {
   const { colors, dark } = useAppTheme();
   const height = compact ? TAB_PILL_HEIGHT_COMPACT : TAB_PILL_HEIGHT;
+  const iconSize = compact ? TAB_ICON_SIZE_COMPACT : TAB_ICON_SIZE;
 
   return (
     <View
@@ -48,7 +53,6 @@ export function PillTabBar({ state, descriptors, navigation, insets, items, comp
         const { options } = descriptors[route.key];
         const focused = state.index === index;
         const item: TabPillItem = items[route.name] ?? { kind: 'icon', icon: 'circle-outline', label: options.title ?? route.name };
-        const label = item.label;
         const fg = focused ? colors.onPrimary : colors.primary;
 
         const onPress = () => {
@@ -64,11 +68,10 @@ export function PillTabBar({ state, descriptors, navigation, insets, items, comp
             onLongPress={onLongPress}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
-            accessibilityLabel={options.tabBarAccessibilityLabel ?? label}
+            accessibilityLabel={options.tabBarAccessibilityLabel ?? item.label}
             testID={options.tabBarButtonTestID}
             style={({ pressed }) => [
               styles.pill,
-              item.kind === 'avatar' ? styles.avatarPill : { flex: item.flex ?? 1 },
               {
                 height,
                 backgroundColor: focused ? colors.primary : colors.surfaceSunken,
@@ -80,25 +83,9 @@ export function PillTabBar({ state, descriptors, navigation, insets, items, comp
             ]}
           >
             {item.kind === 'avatar' ? (
-              <SeatAvatar
-                name={item.name}
-                size={height - 12}
-                color={seatColor(0, { onDark: dark })}
-                style={focused ? { borderWidth: 2, borderColor: colors.onPrimary } : undefined}
-              />
+              <SeatAvatar name={item.name} size={iconSize + 6} color={seatColor(0, { onDark: dark })} />
             ) : (
-              <>
-                <Icon source={item.icon} size={compact ? 20 : 22} color={fg} />
-                <Text
-                  variant="labelLarge"
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.85}
-                  style={[styles.label, compact && styles.labelCompact, { color: fg }]}
-                >
-                  {label}
-                </Text>
-              </>
+              <Icon source={item.icon} size={iconSize} color={fg} />
             )}
           </Pressable>
         );
@@ -115,27 +102,14 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   pill: {
-    flexDirection: 'row',
+    // Every button takes the same share of the row, whatever it shows.
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
     borderWidth: 2,
     borderRadius: radius.full,
-    paddingHorizontal: 6,
-  },
-  avatarPill: {
-    width: 64,
   },
   edged: {
     borderBottomWidth: BUTTON_EDGE,
-  },
-  label: {
-    fontWeight: '800',
-    fontSize: 15,
-    lineHeight: 20,
-    flexShrink: 1,
-  },
-  labelCompact: {
-    fontSize: 14,
   },
 });

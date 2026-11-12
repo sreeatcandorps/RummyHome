@@ -7,6 +7,7 @@ import { appearanceFromSettings, APPEARANCE_OPTIONS, resolveDarkMode } from '../
 import { ACCESS_TONE, gameAccessLabel, viewerManagesGame, visibleRoleTag } from '../utils/gameAccess';
 import { GAME_STATUS_TONE } from '../utils/gameStatus';
 import { REGISTRATION_ICON, REGISTRATION_TONE } from '../utils/myPlayersList';
+import { HELP } from '../constants/help';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = (path: string) => readFileSync(join(root, path), 'utf8');
@@ -175,4 +176,20 @@ test('design: Add round — selected and saved cells on white with a green ring;
   const entry = src('app/(screens)/score-entry.tsx');
   assert.match(entry, /gameBadge, \{ backgroundColor: colors\.tertiaryContainer \}/);
   assert.ok(!/SeatAvatar name=\{scorerName\} size=\{3\d\} color=\{colors\.primary\}/.test(entry), 'the scorer avatar is a seat colour');
+});
+
+test('final batch 10: bottom bar is three same-size icon-only buttons; the profile one is a plain circle of initials', () => {
+  const tabs = src('components/ui/TabBarButtons.tsx');
+  assert.match(tabs, /flex: 1,/, 'every button takes the same share of the row');
+  assert.doesNotMatch(tabs, /flex\?: number|avatarPill|<Text/, 'no per-item widths, no drawn labels');
+  assert.match(tabs, /accessibilityLabel=\{options\.tabBarAccessibilityLabel \?\? item\.label\}/, 'labels are spoken');
+  assert.match(tabs, /<Icon source=\{item\.icon\} size=\{iconSize\} color=\{fg\} \/>/);
+  assert.match(tabs, /<SeatAvatar name=\{item\.name\} size=\{iconSize \+ 6\} color=\{seatColor\(0, \{ onDark: dark \}\)\} \/>/, 'plain circle: no ring, no badge');
+  assert.match(tabs, /backgroundColor: focused \? colors\.primary : colors\.surfaceSunken/, 'current button filled, others outlined, like every button');
+  const layout = src('app/(tabs)/_layout.tsx');
+  assert.match(layout, /index: \{ kind: 'icon', icon: 'home-variant', label: 'Home' \}/);
+  assert.match(layout, /players: \{ kind: 'icon', icon: 'account-group', label: playersLabel \}/);
+  assert.match(layout, /me: \{ kind: 'avatar', name: myName, label: 'Your profile' \}/);
+  assert.doesNotMatch(layout, /flex: 1\.45/);
+  assert.match(HELP.home, /## Bottom bar/);
 });

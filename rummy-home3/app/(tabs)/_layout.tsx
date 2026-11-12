@@ -104,7 +104,7 @@ export default function TabLayout() {
           compact={isShort}
           items={{
             index: { kind: 'icon', icon: 'home-variant', label: 'Home' },
-            players: { kind: 'icon', icon: 'account-group', label: playersLabel, flex: 1.45 },
+            players: { kind: 'icon', icon: 'account-group', label: playersLabel },
             me: { kind: 'avatar', name: myName, label: 'Your profile' },
           }}
         />
