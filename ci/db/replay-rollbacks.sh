@@ -36,9 +36,9 @@ if [ -f "$RB/rollback_022_player_initials.sql" ]; then
     && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='game_players' and column_name='label')")" = f ] \
     && tap ok "after rollback_022 my_players.initials and game_players.label are gone" \
     || tap fail "after rollback_022 the 022 columns should be gone"
-  [ "$(fn_has seat_rows_json label)" = f ] && [ "$(fn_has update_unregistered_player name_snapshot)" = f ] \
-    && tap ok "after rollback_022 seat_rows_json and update_unregistered_player are the 020/012 bodies" \
-    || tap fail "after rollback_022 seat_rows_json / update_unregistered_player should be the 020/012 bodies"
+  [ "$(fn_has seat_rows_json label)" = f ] && [ "$(fn_has list_my_players initials)" = f ] \
+    && tap ok "after rollback_022 seat_rows_json and list_my_players are the 020/012 bodies" \
+    || tap fail "after rollback_022 seat_rows_json / list_my_players should be the 020/012 bodies"
   [ "$(fn_exists normalize_profile_email)" = t ] && tap ok "rollback_022 leaves 021 in place" || tap fail "rollback_022 must not touch 021"
 fi
 
@@ -165,7 +165,7 @@ fi
 if [ "$HAS_022" = t ]; then
   [ "$(fn_exists initials_candidates)" = t ] && [ "$(fn_exists set_my_player_initials)" = t ] && [ "$(fn_has seat_rows_json label)" = t ] \
     && [ "$(q "select exists(select 1 from pg_indexes where schemaname='public' and indexname='my_players_owner_initials_key')")" = t ] \
-    && [ "$(q "select count(*) from public.my_players where initials is null or name_snapshot is null")" = 0 ] \
+    && [ "$(q "select count(*) from public.my_players where initials is null")" = 0 ] \
     && [ "$(q "select count(*) from public.game_players where label is null")" = 0 ] \
     && tap ok "022 restored (generator, RPCs, seat labels, per-owner unique index, every row backfilled)" || tap fail "022 restored"
 fi

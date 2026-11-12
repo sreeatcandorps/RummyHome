@@ -61,6 +61,23 @@ export function initialsCandidates(name: string | null | undefined): string[] {
   return out;
 }
 
+/**
+ * Do stored initials still fit this name? False after a rename that leaves the letters
+ * unrelated to the name (Suresh Kumar → Suresh K. Nair keeps SK and fits; → Ravi Kiran
+ * does not). Initials never change by themselves; the app shows a small note instead.
+ */
+export function initialsFitName(initials: string | null | undefined, name: string | null | undefined): boolean {
+  if (!initials) return true;
+  const value = normalizeInitials(initials);
+  if (initialsCandidates(name).includes(value)) return true;
+  // Like every generated form: starts with the first initial, every other letter is somewhere in the name.
+  const words = nameWords(name);
+  const letters = new Set(words.join(''));
+  return words.length > 0 && value[0] === words[0][0] && [...value.slice(1)].every((letter) => letters.has(letter));
+}
+
+export const NAME_CHANGED_NOTE = 'Name changed. The initials no longer match.';
+
 /** The two-letter default for a name (SK for Sree Koneru, RA for Ravi). */
 export function defaultInitials(name: string | null | undefined): string {
   return initialsCandidates(name)[0];

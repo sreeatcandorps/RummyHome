@@ -6,6 +6,7 @@ import {
   findInitialsConflicts,
   firstFreeInitials,
   initialsCandidates,
+  initialsFitName,
   initialsProblem,
   nameWords,
   seatLabels,
@@ -56,6 +57,16 @@ test('validation: letters only, 2 or 3, unique within the owner list', () => {
   assert.equal(initialsProblem('sk', taken), 'SK is Suresh Kumar.');
   assert.equal(initialsProblem(' sko ', taken), null);
   assert.equal(initialsProblem('ék', taken), null, 'accents are folded before checking');
+});
+
+test('initialsFitName: a rename never changes initials, it only decides whether the name-changed note shows', () => {
+  assert.equal(initialsFitName('SK', 'Suresh Kumar'), true);
+  assert.equal(initialsFitName('SK', 'Suresh K. Nair'), true, 'SK is still made of word initials of the new name');
+  assert.equal(initialsFitName('SUK', 'Suresh K. Nair'), true, 'a three-letter form from the first word still fits');
+  assert.equal(initialsFitName('SK', 'Ravi Kiran'), false, 'the note shows when the letters have nothing to do with the name');
+  assert.equal(initialsFitName('HAT', 'Harish Test'), true);
+  assert.equal(initialsFitName('ZZ', 'Harish Test'), false);
+  assert.equal(initialsFitName(undefined, 'Anyone'), true, 'no stored initials, nothing to compare');
 });
 
 test('assignInitials: stored labels win, oldest keeps the short form, result is unique', () => {

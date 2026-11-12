@@ -1,14 +1,15 @@
 -- 022 initials: one label per player per owner, unique within that owner's My players, with
 -- a deterministic default (two letters, then three letters from the name, digits last),
--- a per-seat label fixed when the seat is created, and owner-only RPCs.
+-- a per-seat label fixed when the seat is created, and owner-only RPCs. Lists always show
+-- the live profile name; a rename never changes initials.
 -- Seed: sree (…0001) knows Harish Test, Priya Test, Zed Zero, R K, C D; harish (…0002) knows
 -- Priya Test and A B. Game A (…000a) is sree's, with harish, priya, rk, zero seated.
 begin;
-select plan(56);
+select plan(55);
 
 -- ---------- objects ----------
 select has_column('public', 'my_players', 'initials', 'my_players.initials exists');
-select has_column('public', 'my_players', 'name_snapshot', 'my_players.name_snapshot exists');
+select hasnt_column('public', 'my_players', 'name_snapshot', 'names are not copied into my_players (live profile name is shown)');
 select has_column('public', 'game_players', 'label', 'game_players.label exists');
 select has_index('public', 'my_players', 'my_players_owner_initials_key', 'per-owner unique index exists');
 select ok((select indisunique from pg_index i join pg_class c on c.oid = i.indexrelid where c.relname = 'my_players_owner_initials_key'), 'my_players_owner_initials_key is unique');
@@ -31,7 +32,7 @@ select is((public.initials_candidates('José Núñez'))[1], 'JN', 'accents are f
 -- ---------- seed got defaults through the trigger ----------
 select tests.login('00000000-0000-4000-8000-000000000001');
 select is((select initials from public.list_my_players() where id = '00000000-0000-4000-8000-000000000002'), 'HT', 'sree sees Harish Test as HT');
-select is((select name_snapshot from public.list_my_players() where id = '00000000-0000-4000-8000-000000000002'), 'Harish Test', 'name_snapshot is the profile name at add time');
+select is((select display_name from public.list_my_players() where id = '00000000-0000-4000-8000-000000000002'), 'Harish Test', 'list_my_players shows the profile name');
 select ok((select bool_and(initials ~ '^[A-Z][A-Z0-9]{1,2}$') from public.list_my_players()), 'every row has initials');
 select is((select count(distinct initials) from public.list_my_players())::int, 5, 'sree''s five players have five different labels');
 select tests.logout();
@@ -56,11 +57,11 @@ insert into public.my_players (owner_id, player_id, created_at) values
 alter table public.my_players enable trigger my_players_fill_defaults;
 drop index public.my_players_owner_initials_key;
 alter table public.my_players disable trigger my_players_fill_defaults;
-update public.my_players set initials = null, name_snapshot = null where owner_id = '00000000-0000-4000-8000-000000000002' and player_id = '00000000-0000-4000-8000-0000000000b2';
+update public.my_players set initials = null where owner_id = '00000000-0000-4000-8000-000000000002' and player_id = '00000000-0000-4000-8000-0000000000b2';
 alter table public.my_players enable trigger my_players_fill_defaults;
 select is((select count(*) from public.my_players where initials is null)::int, 3, 'three of harish''s rows wait for the backfill');
 \i rummy-home3/supabase/migrations/022_player_initials.sql
-select is((select count(*) from public.my_players where initials is null or name_snapshot is null)::int, 0, 're-running 022 backfills every row');
+select is((select count(*) from public.my_players where initials is null)::int, 0, 're-running 022 backfills every row');
 select is((select initials from public.my_players where owner_id = '00000000-0000-4000-8000-000000000002' and player_id = '00000000-0000-4000-8000-0000000000b3'), 'SK', 'backfill: the oldest row keeps the short form (Sunil Kohli, 10 days ago)');
 select is((select initials from public.my_players where owner_id = '00000000-0000-4000-8000-000000000002' and player_id = '00000000-0000-4000-8000-0000000000b1'), 'SUK', 'backfill: Suresh Kumar (1 day ago) gets SUK');
 select is((select initials from public.my_players where owner_id = '00000000-0000-4000-8000-000000000002' and player_id = '00000000-0000-4000-8000-0000000000b2'), 'SRK', 'backfill: Sree Koneru (newest) gets SRK');
@@ -87,19 +88,19 @@ select throws_ok($$ select public.set_my_player_initials('00000000-0000-4000-800
   'P0001', 'This player is not in your My players.', 'only the owner''s own rows can be edited');
 select tests.logout();
 
--- a profile rename does not touch anyone's snapshot until the owner refreshes
+-- a profile rename shows at once in every list and changes nobody's initials
 update public.profiles set display_name = 'Suresh K. Nair' where id = '00000000-0000-4000-8000-0000000000b1';
 select tests.login('00000000-0000-4000-8000-000000000001');
-select is((select name_snapshot from public.list_my_players() where id = '00000000-0000-4000-8000-0000000000b1'), 'Suresh Kumar', 'rename in profiles leaves the owner''s snapshot alone');
-select is((select display_name from public.list_my_players() where id = '00000000-0000-4000-8000-0000000000b1'), 'Suresh K. Nair', 'list_my_players also returns the live profile name so the app can offer Refresh');
-select is((select r.name_snapshot || '/' || r.initials from public.refresh_my_player_name('00000000-0000-4000-8000-0000000000b1') r), 'Suresh K. Nair/SK', 'Refresh from database pulls the name and keeps the initials');
-select is((select r.initials from public.refresh_my_player_name('00000000-0000-4000-8000-0000000000b1', true) r), 'SN', 'Refresh with recompute picks a fresh default for the new name');
+select is((select display_name from public.list_my_players() where id = '00000000-0000-4000-8000-0000000000b1'), 'Suresh K. Nair', 'the renamed player shows the new name in My players without any action');
+select is((select initials from public.list_my_players() where id = '00000000-0000-4000-8000-0000000000b1'), 'SK', 'the rename did not change the owner''s initials for him');
 select tests.logout();
-
--- the owner typing a new name for their placeholder updates their own snapshot
+select tests.login('00000000-0000-4000-8000-000000000002');
+select is((select initials from public.list_my_players() where id = '00000000-0000-4000-8000-0000000000b1'), 'SUK', 'nor the other owner''s');
+select tests.logout();
+-- the owner renaming their own placeholder: same rule, initials stay
 select tests.login('00000000-0000-4000-8000-000000000001');
 select lives_ok($$ select * from public.update_unregistered_player('00000000-0000-4000-8000-0000000000a1', 'Ravi', 'Kiran') $$, 'owner renames a placeholder');
-select is((select name_snapshot from public.my_players where owner_id = '00000000-0000-4000-8000-000000000001' and player_id = '00000000-0000-4000-8000-0000000000a1'), 'Ravi Kiran', 'owner''s snapshot follows the name they typed');
+select is((select display_name || '/' || initials from public.list_my_players() where id = '00000000-0000-4000-8000-0000000000a1'), 'Ravi Kiran/RK', 'the list shows Ravi Kiran and keeps RK');
 select tests.logout();
 
 -- ---------- seat labels ----------
