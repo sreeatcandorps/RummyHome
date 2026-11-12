@@ -383,11 +383,11 @@ export default function MeScreen() {
       </Button>
 
       <SectionCard title="Account" icon="shield-account-outline" supportingText="Your data: email, name, Player ID, phone if you added one, and the games you play.">
-        <View style={styles.identityActions}>
-          <Button mode="outlined" icon="file-document-outline" onPress={() => Linking.openURL(PRIVACY_PAGE_URL).catch(() => {})} style={styles.half} contentStyle={styles.action} accessibilityLabel="Privacy policy">
-            Privacy
+        <View style={styles.gap}>
+          <Button mode="outlined" icon="file-document-outline" onPress={() => Linking.openURL(PRIVACY_PAGE_URL).catch(() => {})} contentStyle={styles.action} accessibilityLabel="Privacy policy">
+            Privacy policy
           </Button>
-          <Button mode="outlined" icon="account-remove-outline" textColor={colors.error} onPress={() => setDeleteOpen(true)} style={[styles.half, { borderColor: colors.error }]} contentStyle={styles.action} accessibilityLabel="Delete account" testID="delete-account">
+          <Button mode="outlined" icon="account-remove-outline" textColor={colors.error} onPress={() => setDeleteOpen(true)} style={{ borderColor: colors.error }} contentStyle={styles.action} accessibilityLabel="Delete account" testID="delete-account">
             Delete account
           </Button>
         </View>

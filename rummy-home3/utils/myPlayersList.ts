@@ -112,8 +112,11 @@ export function orderDatabaseResults<T extends { id: string }>(results: T[], myP
 /** Fixed-height list on My players: one row per player; this many rows are visible before it scrolls. */
 export const MY_PLAYERS_VISIBLE_ROWS = 7;
 export const MY_PLAYERS_CARD_HEIGHT = 60;
+/** The list card's top padding (styles.grid); the height must include it or the last row is cut. */
+export const MY_PLAYERS_GRID_PADDING = 8;
 
 export function myPlayersGridHeight(playerCount: number, columns = 1): number {
   const rows = Math.ceil(Math.max(0, playerCount) / columns);
-  return Math.min(rows, MY_PLAYERS_VISIBLE_ROWS) * MY_PLAYERS_CARD_HEIGHT;
+  if (rows === 0) return 0;
+  return Math.min(rows, MY_PLAYERS_VISIBLE_ROWS) * MY_PLAYERS_CARD_HEIGHT + MY_PLAYERS_GRID_PADDING;
 }

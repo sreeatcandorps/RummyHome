@@ -7,6 +7,7 @@ import { isWithinLastDays, splitHomeGames } from '../utils/homeGames';
 import {
   myPlayersGridHeight,
   MY_PLAYERS_CARD_HEIGHT,
+  MY_PLAYERS_GRID_PADDING,
   nextSort,
   orderDatabaseResults,
   playerIdBadge,
@@ -70,10 +71,10 @@ test('My players sorts by name or by how often you play together', () => {
 
 test('the My players list is one row per player and shows seven rows before it scrolls', () => {
   assert.equal(myPlayersGridHeight(0), 0);
-  assert.equal(myPlayersGridHeight(1), MY_PLAYERS_CARD_HEIGHT);
-  assert.equal(myPlayersGridHeight(3), 3 * MY_PLAYERS_CARD_HEIGHT);
-  assert.equal(myPlayersGridHeight(7), 7 * MY_PLAYERS_CARD_HEIGHT);
-  assert.equal(myPlayersGridHeight(40), 7 * MY_PLAYERS_CARD_HEIGHT);
+  assert.equal(myPlayersGridHeight(1), MY_PLAYERS_CARD_HEIGHT + MY_PLAYERS_GRID_PADDING);
+  assert.equal(myPlayersGridHeight(3), 3 * MY_PLAYERS_CARD_HEIGHT + MY_PLAYERS_GRID_PADDING);
+  assert.equal(myPlayersGridHeight(7), 7 * MY_PLAYERS_CARD_HEIGHT + MY_PLAYERS_GRID_PADDING);
+  assert.equal(myPlayersGridHeight(40), 7 * MY_PLAYERS_CARD_HEIGHT + MY_PLAYERS_GRID_PADDING, 'two rows are never clipped: the padding is part of the height');
 });
 
 test('database results put people not yet in My players first', () => {
