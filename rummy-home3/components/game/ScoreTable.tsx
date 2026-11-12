@@ -1,8 +1,9 @@
-import React, { useRef, useState } from 'react';
-import { Animated, LayoutChangeEvent, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
+import { createScrollSync } from '@/utils/scrollSync';
 
 export type ScoreColumn = {
   id: string;
@@ -143,7 +144,8 @@ export function ScoreTable({
   const theme = useAppTheme();
   const { colors } = theme;
   const [tableWidth, setTableWidth] = useState(0);
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const headerRef = useRef<ScrollView>(null);
+  const bodyRef = useRef<ScrollView>(null);
   const verticalRef = useRef<ScrollView>(null);
   const shownRounds = useRef(0);
 
@@ -158,10 +160,16 @@ export function ScoreTable({
   const rowHeight = compact ? 34 : columns.length > 8 ? 40 : 44;
   const headerHeight = compact ? 58 : 64;
 
-  const translate = { transform: [{ translateX: Animated.multiply(scrollX, -1) }] };
-  const onHorizontalScroll = Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-    useNativeDriver: Platform.OS !== 'web',
-  });
+  // Header and rows are two horizontal scroll views; a swipe on either drives the other.
+  const sync = useMemo(
+    () =>
+      createScrollSync((side, x) => {
+        (side === 'header' ? headerRef : bodyRef).current?.scrollTo({ x, animated: false });
+      }),
+    [],
+  );
+  const onHeaderScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => sync.onScroll('header', event.nativeEvent.contentOffset.x);
+  const onBodyScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => sync.onScroll('body', event.nativeEvent.contentOffset.x);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const width = Math.floor(event.nativeEvent.layout.width);
@@ -285,11 +293,12 @@ export function ScoreTable({
           })}
         </View>
 
-        <Animated.ScrollView
+        <ScrollView
+          ref={bodyRef}
           horizontal
           scrollEnabled={scrollsSideways}
           showsHorizontalScrollIndicator={scrollsSideways}
-          onScroll={onHorizontalScroll}
+          onScroll={onBodyScroll}
           scrollEventThrottle={16}
           bounces={false}
         >
@@ -309,7 +318,7 @@ export function ScoreTable({
               />
             ))}
           </View>
-        </Animated.ScrollView>
+        </ScrollView>
       </View>
     );
 
@@ -334,9 +343,18 @@ export function ScoreTable({
                 </Text>
               ) : null}
             </View>
-            <View style={styles.clip}>
-              <Animated.View style={[styles.row, { width: contentWidth }, translate]}>{headerCells}</Animated.View>
-            </View>
+            <ScrollView
+              ref={headerRef}
+              horizontal
+              style={styles.flex}
+              scrollEnabled={scrollsSideways}
+              showsHorizontalScrollIndicator={false}
+              onScroll={onHeaderScroll}
+              scrollEventThrottle={16}
+              bounces={false}
+            >
+              <View style={[styles.row, { width: contentWidth }]}>{headerCells}</View>
+            </ScrollView>
           </View>
 
           <ScrollView
@@ -372,10 +390,6 @@ const styles = StyleSheet.create({
   },
   totalsRow: {
     borderTopWidth: 2,
-  },
-  clip: {
-    flex: 1,
-    overflow: 'hidden',
   },
   cell: {
     alignItems: 'center',
