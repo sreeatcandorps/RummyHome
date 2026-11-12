@@ -22,7 +22,7 @@ export type GameLike = {
 };
 
 export type SeatRoleLabel = 'Creator' | 'Admin' | 'Player' | 'View only';
-export type RegistrationLabel = 'Registered' | 'Pending registration' | 'Unregistered';
+export type RegistrationLabel = 'Registered' | 'Pending registration' | 'Link pending' | 'Unregistered';
 
 export function seatRoleLabel(seat: SeatLike, game: GameLike): SeatRoleLabel {
   if (game.createdBy && seat.id === game.createdBy) return 'Creator';
@@ -31,7 +31,13 @@ export function seatRoleLabel(seat: SeatLike, game: GameLike): SeatRoleLabel {
   return 'Player';
 }
 
-export function registrationLabel(seat: Pick<SeatLike, 'status'>): RegistrationLabel {
+/**
+ * One word per seat. `linkPending` marks a seat whose Link to Player ID request (025) is
+ * waiting for the account owner's Yes: the status is 'pending' either way, so the screen
+ * passes the open link requests it listed.
+ */
+export function registrationLabel(seat: Pick<SeatLike, 'status'>, linkPending = false): RegistrationLabel {
+  if (seat.status === 'pending' && linkPending) return 'Link pending';
   if (seat.status === 'pending') return 'Pending registration';
   if (seat.status === 'unregistered') return 'Unregistered';
   return 'Registered';

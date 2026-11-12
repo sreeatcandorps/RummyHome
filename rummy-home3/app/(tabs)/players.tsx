@@ -4,11 +4,12 @@ import { Button, Chip, Dialog, Icon, Portal, Searchbar, Text, TouchableRipple } 
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
 import { LinkPlayerDialog } from '@/components/players/LinkPlayerDialog';
-import { LinkCompleteDialog } from '@/components/players/LinkCompleteDialog';
+import { LinkRequestSentDialog } from '@/components/players/LinkRequestSentDialog';
 import { InviteToRegisterDialog } from '@/components/players/InviteToRegisterDialog';
 import { EditNameDialog } from '@/components/players/EditNameDialog';
 import { myPlayerMenu, SeatMenu, SeatMenuItem } from '@/utils/gamePlayers';
-import { LinkOutcome } from '@/utils/linkPlayer';
+import { LinkRequestOutcome } from '@/utils/linkPlayer';
+import { PendingLink } from '@/utils/playerIdentity';
 import { ActionTile } from '@/components/ui/ActionTile';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
@@ -99,11 +100,13 @@ export default function PlayersTab() {
   const [selected, setSelected] = useState<Player | null>(null);
   const [removing, setRemoving] = useState(false);
   const [unregistered, setUnregistered] = useState<Record<string, Player>>({});
+  // Open Link to Player ID requests (025) I sent, so those rows read Link pending.
+  const [linkRequests, setLinkRequests] = useState<Record<string, PendingLink>>({});
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [sheet, setSheet] = useState<
     | { kind: 'invite'; player: Player }
     | { kind: 'link'; player: Player }
-    | { kind: 'linked'; outcome: LinkOutcome }
+    | { kind: 'link_sent'; outcome: LinkRequestOutcome }
     | { kind: 'edit_name'; player: Player }
     | null
   >(null);
@@ -124,10 +127,12 @@ export default function PlayersTab() {
       // The offline copy shows at once; the server list and the open (unregistered) set load side by side.
       const fresh = playersService.listMyPlayers(player.id);
       const open = playerIdentityService.listUnregistered(player.id).catch(() => [] as Player[]);
+      const requests = playerIdentityService.listLinkRequests(player.id).catch(() => [] as PendingLink[]);
       const cached = await playersService.readMyPlayers(player.id);
       if (cached.length) setPlayers((current) => (current.length ? current : cached));
       setPlayers(await fresh);
       setUnregistered(Object.fromEntries((await open).map((p) => [p.id, p])));
+      setLinkRequests(Object.fromEntries((await requests).map((l) => [l.playerId, l])));
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
@@ -144,7 +149,7 @@ export default function PlayersTab() {
     navigation.setOptions({ title: `My players · ${players.length}` });
   }, [navigation, players.length]);
 
-  const statusOf = useCallback((player: Player) => registrationLabel(unregistered[player.id]?.status ?? player.status), [unregistered]);
+  const statusOf = useCallback((player: Player) => registrationLabel(unregistered[player.id]?.status ?? player.status, Boolean(linkRequests[player.id])), [unregistered, linkRequests]);
   // Stored initials (022) win; on an older server every row is derived here, oldest first, the same way.
   const initialsOf = useMemo(() => assignInitials(players.map((player) => ({ id: player.id, name: player.name, initials: player.initials, addedAt: player.addedAt }))), [players]);
   const nameChanged = useCallback((player: Player) => Boolean(player.initials) && !initialsFitName(player.initials, player.name), []);
@@ -354,9 +359,16 @@ export default function PlayersTab() {
           <InviteToRegisterDialog player={sheet.player} owner={me} onDismiss={() => { setSheet(null); load(); }} />
         ) : null}
         {sheet?.kind === 'link' && me ? (
-          <LinkPlayerDialog player={sheet.player} owner={me} onDismiss={() => setSheet(null)} onLinked={(outcome) => { setSheet({ kind: 'linked', outcome }); load(); }} />
+          <LinkPlayerDialog
+            player={sheet.player}
+            owner={me}
+            pending={linkRequests[sheet.player.id] ?? null}
+            onDismiss={() => setSheet(null)}
+            onRequested={(outcome) => { setSheet({ kind: 'link_sent', outcome }); load(); }}
+            onCancelled={() => { setSheet(null); load(); }}
+          />
         ) : null}
-        {sheet?.kind === 'linked' ? <LinkCompleteDialog outcome={sheet.outcome} onDismiss={() => setSheet(null)} /> : null}
+        {sheet?.kind === 'link_sent' ? <LinkRequestSentDialog outcome={sheet.outcome} onDismiss={() => setSheet(null)} /> : null}
         {sheet?.kind === 'edit_name' ? (
           <EditNameDialog seat={sheet.player} busy={sheetBusy} onDismiss={() => setSheet(null)} onSave={saveName} />
         ) : null}

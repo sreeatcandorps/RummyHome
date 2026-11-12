@@ -1,12 +1,13 @@
 import { authService, profileToPlayer } from '@/services/auth';
 import { archiveService } from '@/services/archive';
 import { gamesService, legacyGameFromServer, missingRpc } from '@/services/games';
-import { playerIdentityService, linkFromRow } from '@/services/playerIdentity';
+import { playerIdentityService, linkFromRow, linkRequestForMeFromRow } from '@/services/playerIdentity';
 import { playersService } from '@/services/players';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { isHomeBundle } from '@/utils/bundles';
+import { LinkRequestForMe } from '@/utils/linkPlayer';
 import { CreatorNotice, PendingLink } from '@/utils/playerIdentity';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 
@@ -17,6 +18,8 @@ export type HomeData = {
   notices: CreatorNotice[];
   /** Open claim requests for players this person created; `null` when the card must load its own. */
   claimRequests: PendingLink[] | null;
+  /** Link requests waiting for this account's Yes/No (025); `null` when the card must load its own. */
+  linkRequests: LinkRequestForMe[] | null;
 };
 
 export const HOME_GAME_LIMIT = 50;
@@ -55,6 +58,7 @@ async function loadHomeBundle(): Promise<HomeData | null | undefined> {
     games,
     notices: (data.notices ?? []).map((row) => playerIdentityService.noticeFromRow(player.id, row)),
     claimRequests: (data.claim_requests ?? []).map(linkFromRow),
+    linkRequests: Array.isArray(data.link_requests) ? data.link_requests.map(linkRequestForMeFromRow) : null,
   };
 }
 
@@ -80,6 +84,6 @@ export const homeService = {
       email: player.email,
     })).filter((game) => !hidden.has(game.id));
     const notices = await playerIdentityService.takeNotices(player.id).catch(() => [] as CreatorNotice[]);
-    return { player, games, notices, claimRequests: null };
+    return { player, games, notices, claimRequests: null, linkRequests: null };
   },
 };

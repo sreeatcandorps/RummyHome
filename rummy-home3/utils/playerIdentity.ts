@@ -273,7 +273,7 @@ export function backfillPlayerNumbers<T extends { id: string; createdAt?: string
 
 // ---------- claims ----------
 
-export const CLAIM_KINDS = ['link', 'id_request'] as const;
+export const CLAIM_KINDS = ['link', 'id_request', 'link_request'] as const;
 export type ClaimKind = (typeof CLAIM_KINDS)[number];
 export const LINK_STATUSES = ['pending', 'claimed', 'declined', 'expired', 'revoked', 'unlinked'] as const;
 export type LinkStatus = (typeof LINK_STATUSES)[number];
@@ -282,6 +282,7 @@ export type LinkStatus = (typeof LINK_STATUSES)[number];
  * One way to claim one unregistered player.
  * - 'link': the creator shared a secret single-use link. Only the hash is stored.
  * - 'id_request': someone typed the player ID at sign-up. The creator must approve.
+ * - 'link_request': the creator typed an account's Player ID (025). The account owner must say Yes.
  * Two creators holding records for the same person: each is claimed through its own link or
  * request into the same account, so the person ends up as one player.
  */
@@ -301,12 +302,17 @@ export type PendingLink = {
   /** For 'id_request': the account asking. */
   requesterId?: string;
   requesterName?: string;
+  /** For 'link_request': the account asked to say Yes. */
+  targetId?: string;
+  targetNo?: number;
+  targetName?: string;
   claimedBy?: string | null;
   gameNumbers?: number[];
   movedGameIds?: string[];
 };
 
-export type CreatorNotice = { ownerId: string; playerId: string; text: string };
+/** 'linked' is the one-time "Harish (HG) is now linked to #40." pop-up; everything else is a plain card. */
+export type CreatorNotice = { ownerId: string; playerId: string; text: string; kind?: 'notice' | 'linked' };
 
 export const TOKEN_BYTES = 32; // 256 bits, well over the 128-bit minimum.
 
@@ -398,6 +404,7 @@ export function acceptClaim<G extends { id: string; players: string[]; scores: R
   const link = links.find((l) => l.id === linkId);
   if (!link || link.status !== 'pending' || isExpired(link, now)) throw new Error('This claim is no longer valid.');
   if (link.kind === 'id_request' && link.requesterId !== accountId) throw new Error('This request belongs to another account.');
+  if (link.kind === 'link_request' && link.targetId !== accountId) throw new Error('This request is for another account.');
   // Games where the account already has its own seat stay with the creator.
   const moved = games.filter((g) => g.players.includes(link.playerId) && !g.players.includes(accountId)).map((g) => g.id);
   const movedSet = new Set(moved);
@@ -417,7 +424,7 @@ export function acceptClaim<G extends { id: string; players: string[]; scores: R
 export function closeClaim(link: PendingLink, reason: 'decline' | 'expire'): { link: PendingLink; playerStatus: PlayerStatus; notice: CreatorNotice } {
   if (link.status !== 'pending') throw new Error('This request is already closed.');
   const text = reason === 'expire'
-    ? `${link.playerName}: the ${link.kind === 'link' ? 'claim link' : 'claim request'} expired. ${link.playerName} is unregistered again.`
+    ? `${link.playerName}: the ${link.kind === 'link' ? 'claim link' : link.kind === 'link_request' ? 'link request' : 'claim request'} expired. ${link.playerName} is unregistered again.`
     : link.kind === 'link'
       ? `${link.playerName}: the person who opened your link said "Not me". ${link.playerName} is still unregistered.`
       : `You declined the claim for ${link.playerName}. ${link.playerName} is still unregistered.`;

@@ -33,8 +33,10 @@ export type ResultCandidate = {
 export type HomeBundle = {
   profile: Record<string, any> | null;
   games: (Record<string, any> & { game_players: BundleSeatRow[] })[];
-  notices: { player_id: string; text: string }[];
+  notices: { player_id: string; text: string; kind?: string }[];
   claim_requests: Record<string, any>[];
+  /** 025: link requests waiting for this account (absent on a database before 025). */
+  link_requests?: Record<string, any>[];
   my_players: {
     id: string; display_name: string; player_code: string | null; games_together: number;
     initials?: string | null; added_at?: string | null;

@@ -42,14 +42,16 @@ export const nextSort = (sort: MyPlayersSort): MyPlayersSort => (sort === 'name'
 /** People you play with most come first until the user flips it. */
 export const DEFAULT_MY_PLAYERS_SORT: MyPlayersSort = 'frequent';
 
-export type RegistrationLabel = 'Registered' | 'Pending registration' | 'Unregistered';
+export type RegistrationLabel = 'Registered' | 'Pending registration' | 'Link pending' | 'Unregistered';
 
 /**
- * Every player shows one of three words. An absent status is an older row for a
- * registered account; deleted and merged rows are not listed, so they read Registered too.
+ * Every player shows one word. An absent status is an older row for a registered account;
+ * deleted and merged rows are not listed, so they read Registered too. 'pending' is an open
+ * invite, or an open Link to Player ID request (025) when `linkPending` says so.
  */
-export function registrationLabel(status?: string | null): RegistrationLabel {
+export function registrationLabel(status?: string | null, linkPending = false): RegistrationLabel {
   if (status === 'unregistered') return 'Unregistered';
+  if (status === 'pending' && linkPending) return 'Link pending';
   if (status === 'pending') return 'Pending registration';
   return 'Registered';
 }
@@ -58,6 +60,7 @@ export function registrationLabel(status?: string | null): RegistrationLabel {
 export const REGISTRATION_TONE: Record<RegistrationLabel, 'positive' | 'leader' | 'info'> = {
   Registered: 'positive',
   'Pending registration': 'leader',
+  'Link pending': 'leader',
   Unregistered: 'info',
 };
 

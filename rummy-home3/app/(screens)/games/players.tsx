@@ -13,10 +13,10 @@ import { playersService } from '@/services/players';
 import { Player } from '@/types/player';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { addAdminBlockedReason, addAdminPreview, addAdminProblem, PLAYERS_ADMINS_TITLE } from '@/utils/gameAdmins';
-import { parsePlayerNo } from '@/utils/playerIdentity';
+import { parsePlayerNo, PendingLink } from '@/utils/playerIdentity';
 import { seatRemovalProblem } from '@/utils/seatRemoval';
 import { playerIdBadge, registrationLabel, seatMenu, SeatMenuItem, seatRoleLabel } from '@/utils/gamePlayers';
-import { LinkOutcome } from '@/utils/linkPlayer';
+import { LinkRequestOutcome } from '@/utils/linkPlayer';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
@@ -26,7 +26,7 @@ import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { EditNameDialog } from '@/components/players/EditNameDialog';
 import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
 import { LinkPlayerDialog } from '@/components/players/LinkPlayerDialog';
-import { LinkCompleteDialog } from '@/components/players/LinkCompleteDialog';
+import { LinkRequestSentDialog } from '@/components/players/LinkRequestSentDialog';
 import { InviteToRegisterDialog } from '@/components/players/InviteToRegisterDialog';
 import { seatLabels } from '@/utils/initials';
 
@@ -35,7 +35,7 @@ type Sheet =
   | { kind: 'initials'; seat: Player }
   | { kind: 'invite'; seat: Player }
   | { kind: 'link'; seat: Player }
-  | { kind: 'linked'; outcome: LinkOutcome }
+  | { kind: 'link_sent'; outcome: LinkRequestOutcome }
   | { kind: 'add_admin' }
   | { kind: 'remove'; seat: Player }
   | { kind: 'remove_blocked'; message: string }
@@ -61,6 +61,15 @@ export default function GamePlayersScreen() {
   const [failure, setFailure] = useState<string | null>(null);
   // Seats whose invite link was just made: shown as Pending registration at once, before the refetch lands.
   const [invited, setInvited] = useState<Set<string>>(new Set());
+  // Open Link to Player ID requests (025) for seats in this game, so those rows read Link pending.
+  const [linkRequests, setLinkRequests] = useState<PendingLink[]>([]);
+
+  useEffect(() => {
+    if (!game?.id || !viewer) return;
+    let alive = true;
+    playerIdentityService.listLinkRequests(viewer.id, game.id).then((rows) => { if (alive) setLinkRequests(rows); }).catch(() => {});
+    return () => { alive = false; };
+  }, [game?.id, viewer, roster]);
 
   useEffect(() => {
     authService.getCurrentPlayer().then((me) => setViewer(me ?? null)).catch(() => setViewer(null));
@@ -133,7 +142,8 @@ export default function GamePlayersScreen() {
   const row = (seat: Player, index: number, list: Player[]) => {
     const menu = seatMenu(seat, game, viewer?.id, canScore);
     const role = seatRoleLabel(seat, game);
-    const registration = registrationLabel(invited.has(seat.id) && seat.status === 'unregistered' ? { status: 'pending' } : seat);
+    const linkRequest = linkRequests.find((l) => l.playerId === seat.id) ?? null;
+    const registration = registrationLabel(invited.has(seat.id) && seat.status === 'unregistered' ? { status: 'pending' } : seat, Boolean(linkRequest));
     const badge = playerIdBadge(seat);
     return (
       <View key={seat.id} style={[styles.row, { borderBottomColor: colors.hairline }]}>
@@ -143,7 +153,7 @@ export default function GamePlayersScreen() {
           <View style={styles.tags}>
             {badge ? <Tag small label={badge} /> : null}
             <Tag small label={role} tone={role === 'Creator' || role === 'Admin' ? 'positive' : 'neutral'} icon={role === 'Creator' ? 'crown-outline' : role === 'Admin' ? 'shield-account-outline' : role === 'View only' ? 'eye-outline' : 'account-outline'} />
-            <Tag small label={registration} tone={registration === 'Registered' ? 'info' : registration === 'Pending registration' ? 'results' : 'neutral'} icon={registration === 'Registered' ? 'check-circle-outline' : registration === 'Pending registration' ? 'clock-outline' : 'account-question-outline'} />
+            <Tag small label={registration} tone={registration === 'Registered' ? 'info' : registration === 'Pending registration' || registration === 'Link pending' ? 'results' : 'neutral'} icon={registration === 'Registered' ? 'check-circle-outline' : registration === 'Pending registration' ? 'clock-outline' : registration === 'Link pending' ? 'link-variant' : 'account-question-outline'} />
           </View>
         </View>
         {canScore && canReorder && seat.seatRole !== 'spectator' && seat.seated !== false ? (
@@ -258,12 +268,14 @@ export default function GamePlayersScreen() {
           <LinkPlayerDialog
             player={sheet.seat}
             owner={viewer}
+            pending={linkRequests.find((l) => l.playerId === sheet.seat.id) ?? null}
             onDismiss={() => setSheet(null)}
-            onLinked={(outcome) => { setSheet({ kind: 'linked', outcome }); reload(); }}
+            onRequested={(outcome) => { setSheet({ kind: 'link_sent', outcome }); reload(); }}
+            onCancelled={() => { setSheet(null); reload(); }}
           />
         ) : null}
 
-        {sheet?.kind === 'linked' ? <LinkCompleteDialog outcome={sheet.outcome} onDismiss={() => setSheet(null)} /> : null}
+        {sheet?.kind === 'link_sent' ? <LinkRequestSentDialog outcome={sheet.outcome} onDismiss={() => setSheet(null)} /> : null}
 
         {sheet?.kind === 'add_admin' ? (
           <AddAdminDialog

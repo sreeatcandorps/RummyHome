@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
-import { Button, ProgressBar, Text } from 'react-native-paper';
+import { Button, Portal, ProgressBar, Text } from 'react-native-paper';
 import { router, useFocusEffect } from 'expo-router';
 import { Player } from '@/types/player';
 import { Game } from '@/types/game';
@@ -9,6 +9,7 @@ import { homeService } from '@/services/home';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { settleEnabled } from '@/constants/features';
 import { splitHomeGames } from '@/utils/homeGames';
+import { LINK_COMPLETE_TITLE, LinkOutcome, linkCompleteMessage, LinkRequestForMe } from '@/utils/linkPlayer';
 import { PendingLink } from '@/utils/playerIdentity';
 import { Screen, ScreenList } from '@/components/ui/Screen';
 import { SectionCard, SectionCardEnd, SectionCardRows } from '@/components/ui/SectionCard';
@@ -19,6 +20,8 @@ import { spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import { JoinRequestsDialog } from '@/components/players/JoinRequestsDialog';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
+import { LinkRequestsCard } from '@/components/players/LinkRequestsCard';
+import { NoticeDialog } from '@/components/ui/NoticeDialog';
 
 const openGame = (id: string) => router.push(`/(screens)/games/${id}`);
 
@@ -37,6 +40,9 @@ export default function Dashboard() {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [recentGames, setRecentGames] = useState<Game[]>([]);
   const [claimRequests, setClaimRequests] = useState<PendingLink[] | null>(null);
+  const [linkRequests, setLinkRequests] = useState<LinkRequestForMe[] | null>(null);
+  // One-time pop-ups (025): "Harish (HG) is now linked to #40." for the organiser, shown once each.
+  const [popups, setPopups] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -56,7 +62,11 @@ export default function Dashboard() {
       setCurrentPlayer(home.player);
       setRecentGames(home.games);
       setClaimRequests(home.claimRequests);
-      if (home.notices.length) setNotices((cur) => [...cur, ...home.notices.map((n) => n.text)]);
+      setLinkRequests(home.linkRequests);
+      const linked = home.notices.filter((n) => n.kind === 'linked').map((n) => n.text);
+      const plain = home.notices.filter((n) => n.kind !== 'linked').map((n) => n.text);
+      if (linked.length) setPopups((cur) => [...cur, ...linked]);
+      if (plain.length) setNotices((cur) => [...cur, ...plain]);
       // Warm the first live games so tapping one opens the scorecard at once.
       splitHomeGames(home.games).live.slice(0, 2).forEach((game) => { gamesService.prefetchGame(game.id); });
     } catch (error) {
@@ -148,6 +158,10 @@ export default function Dashboard() {
       <Text variant="headlineSmall" style={styles.hi}>Hi {firstName}</Text>
       <JoinRequestsDialog me={currentPlayer} onChanged={() => loadData(true)} onNotice={addNotice} />
       {currentPlayer ? <ClaimRequestsCard ownerId={currentPlayer.id} onChanged={() => loadData(true)} preloaded={claimRequests} /> : null}
+      {currentPlayer ? <LinkRequestsCard me={currentPlayer} preloaded={linkRequests} onAnswered={(outcome: LinkOutcome | null) => { if (outcome) setPopups((cur) => [...cur, linkCompleteMessage(outcome)]); loadData(true); }} /> : null}
+      <Portal>
+        {popups.length ? <NoticeDialog title={LINK_COMPLETE_TITLE} icon="link-variant" message={popups[0]} onDismiss={() => setPopups((cur) => cur.slice(1))} testID="linked-popup" /> : null}
+      </Portal>
       {notices.map((text, i) => (
         <SectionCard key={i} title="Player update" icon="account-alert-outline" supportingText={text}>
           <Button compact mode="text" onPress={() => setNotices((cur) => cur.filter((_, j) => j !== i))}>OK</Button>
