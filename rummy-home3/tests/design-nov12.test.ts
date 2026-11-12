@@ -217,3 +217,7 @@ test('final batch 11: the Joker mascot is the app icon and splash; four PNG opti
   assert.doesNotMatch(layout, /VERSION_LABEL|brandVersion/, 'the header is the logo and the name only');
   assert.match(src('app/(tabs)/me.tsx'), /`EZ Score \$\{VERSION_LABEL\}`/, 'the version moved to the foot of Profile');
 });
+
+test('design: the scorecard tag row wraps so a fourth tag is never cut short', () => {
+  assert.match(src('app/(screens)/games/[id].tsx'), /metaRow: \{[\s\S]*?flexWrap: 'wrap'/);
+});

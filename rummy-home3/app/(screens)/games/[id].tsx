@@ -643,6 +643,8 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    // Four tags (P15 · Pool · Round 17 · View only) wrap on a narrow phone instead of being cut to "Po…".
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
   compactTopBar: {
