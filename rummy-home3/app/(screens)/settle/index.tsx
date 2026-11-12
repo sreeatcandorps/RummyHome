@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { settleEnabled } from '@/constants/features';
 import { Game } from '@/types/game';

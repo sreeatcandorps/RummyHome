@@ -1,7 +1,8 @@
 import { gameLabelOf } from '@/utils/gameLabel';
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Icon, Snackbar, Text } from 'react-native-paper';
+import { Icon, Snackbar, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect } from 'expo-router';
 import { archiveService, DeletedGameRow, DeletedResultRow, HiddenAndDeleted, HiddenGameRow } from '@/services/archive';
 import { authService } from '@/services/auth';

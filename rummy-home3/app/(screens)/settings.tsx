@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
-import { Button, Icon, Text } from 'react-native-paper';
+import { Icon, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect } from 'expo-router';
 import { authService } from '@/services/auth';
 import { userSettingsService } from '@/services/userSettings';

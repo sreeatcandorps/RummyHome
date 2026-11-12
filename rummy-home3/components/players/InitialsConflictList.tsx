@@ -34,14 +34,14 @@ export function InitialsConflictList({ conflicts, choices, onChoose, taken, youI
             {conflict.label} · {conflict.others.length + 1} players
           </Text>
           <View style={styles.row}>
-            <View style={[styles.badge, { borderColor: colors.positive, backgroundColor: colors.positiveContainer }]}>
+            <View style={[styles.badge, { borderColor: colors.win, backgroundColor: colors.positiveContainer }]}>
               <Text variant="labelLarge" style={{ color: colors.onPositiveContainer, fontWeight: '800' }}>{conflict.label}</Text>
             </View>
             <View style={styles.text}>
               <Text variant="bodyLarge" style={styles.name} numberOfLines={1}>{nameOf(conflict.keeper)}</Text>
               <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>keeps {conflict.label}</Text>
             </View>
-            <Icon source="check-circle-outline" size={20} color={colors.positive} />
+            <Icon source="check-circle-outline" size={20} color={colors.win} />
           </View>
           {conflict.others.map(({ row, suggestions }) => {
             const chosen = choices[row.id] ?? suggestions[0] ?? '';

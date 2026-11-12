@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
-import { Button, Dialog, HelperText, Portal, Text } from 'react-native-paper';
+import { Dialog, HelperText, Portal, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { OtpField } from '@/components/ui/OtpField';
 import { PasscodeField } from '@/components/ui/PasscodeField';
 import { spacing, useAppTheme } from '@/constants/theme';

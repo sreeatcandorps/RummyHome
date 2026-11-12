@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { Button, Dialog, Text } from 'react-native-paper';
+import { Dialog, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { radius, useAppTheme } from '@/constants/theme';
 import { LINK_REQUEST_SENT_TITLE, LinkRequestOutcome, linkRequestSentMessage } from '@/utils/linkPlayer';
 

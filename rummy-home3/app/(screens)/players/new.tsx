@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Icon, Portal, Searchbar, Text } from 'react-native-paper';
+import { Icon, Portal, Searchbar, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';

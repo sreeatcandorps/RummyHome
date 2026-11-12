@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Icon, Text } from 'react-native-paper';
+import { Icon, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
 
 type EmptyStateProps = {

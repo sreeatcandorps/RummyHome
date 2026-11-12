@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Dialog, Text, TextInput } from 'react-native-paper';
+import { Dialog, Text, TextInput } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { playerIdentityService } from '@/services/playerIdentity';
 import { Player } from '@/types/player';

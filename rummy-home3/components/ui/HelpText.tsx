@@ -8,8 +8,8 @@ import { HelpChip, helpHeadingText, isHelpHeading, splitHelpLine } from '@/utils
 function Chip({ chip }: { chip: HelpChip }) {
   const { colors } = useAppTheme();
   const palette = {
-    positive: { bg: colors.positiveContainer, fg: colors.onPositiveContainer },
     primary: { bg: colors.primaryContainer, fg: colors.onPrimaryContainer },
+    info: { bg: colors.tertiaryContainer, fg: colors.onTertiaryContainer },
     neutral: { bg: colors.surfaceVariant, fg: colors.onSurfaceVariant },
   };
   const { bg, fg } = chip === 'Results'

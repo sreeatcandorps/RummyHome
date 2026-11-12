@@ -93,5 +93,27 @@ export function gameAccessLabel(
   return 'View only';
 }
 
-export const ACCESS_TONE: Record<AccessLabel, 'primary' | 'info' | 'neutral'> = { Creator: 'primary', Admin: 'info', Player: 'neutral', 'View only': 'neutral' };
+export const ACCESS_TONE: Record<AccessLabel, 'leader' | 'info' | 'neutral'> = { Creator: 'leader', Admin: 'info', Player: 'neutral', 'View only': 'neutral' };
+
+export type RoleTag = 'Creator' | 'Admin';
+
+/**
+ * Which role tag a viewer sees on a seat or a game card: Creator always, Admin only to
+ * creators and admins (plain players just need to know who runs the game), and never a
+ * "Player" or "View only" tag (docs/design/03-implementation-plan.md, Players/Admins).
+ */
+export function visibleRoleTag(role: AccessLabel | null | undefined, viewerManages: boolean): RoleTag | null {
+  if (role === 'Creator') return 'Creator';
+  if (role === 'Admin') return viewerManages ? 'Admin' : null;
+  return null;
+}
+
+/** Whether the viewer runs the game: its creator or one of its admins. */
+export function viewerManagesGame(
+  game: { createdBy?: string | null; adminIds?: string[] | null; unseatedAdminIds?: string[] | null },
+  userId: string | null | undefined,
+): boolean {
+  if (!userId) return false;
+  return game.createdBy === userId || Boolean(game.adminIds?.includes(userId)) || Boolean(game.unseatedAdminIds?.includes(userId));
+}
 export const ACCESS_ICON: Record<AccessLabel, string> = { Creator: 'crown-outline', Admin: 'shield-account-outline', Player: 'account-outline', 'View only': 'eye-outline' };

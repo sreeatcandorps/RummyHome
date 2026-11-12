@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Dialog, Menu, Portal, Snackbar, Text } from 'react-native-paper';
+import { Dialog, Menu, Portal, Snackbar, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { archiveService } from '@/services/archive';
 import { authService } from '@/services/auth';

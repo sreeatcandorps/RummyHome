@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Dialog, Icon, Portal, Text } from 'react-native-paper';
+import { Dialog, Icon, Portal, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { HELP } from '@/constants/help';
@@ -109,7 +110,7 @@ export default function CompleteGameScreen() {
             </View>
           ))}
           <View style={styles.checkRow}>
-            <Icon source={check.ok ? 'check-circle-outline' : 'alert-circle-outline'} size={18} color={check.ok ? colors.positive : colors.error} />
+            <Icon source={check.ok ? 'check-circle-outline' : 'alert-circle-outline'} size={18} color={check.ok ? colors.win : colors.error} />
             <Text variant="bodySmall" style={{ color: check.ok ? colors.onSurfaceVariant : colors.error, flex: 1 }}>{check.line}</Text>
           </View>
         </View>
@@ -149,7 +150,7 @@ export default function CompleteGameScreen() {
       </ScrollView>
 
       <BottomBar>
-        <Button mode="outlined" onPress={backToScorecard} disabled={completing} style={styles.flex}>
+        <Button mode="outlined" onPress={backToScorecard} disabled={completing} style={done ? styles.flex : styles.secondary}>
           {done ? 'Back to scorecard' : 'Not yet'}
         </Button>
         {!done ? (
@@ -207,4 +208,6 @@ const styles = StyleSheet.create({
   next: { gap: spacing.sm, marginTop: spacing.sm },
   dialog: { borderRadius: radius.xl },
   flex: { flex: 1 },
+  // The shorter label gives the filled action the room it needs on a narrow phone.
+  secondary: { flex: 0.8 },
 });

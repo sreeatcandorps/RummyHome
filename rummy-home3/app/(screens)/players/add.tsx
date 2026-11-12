@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, TextInput as NativeTextInput, View } from 'react-native';
-import { Button, Icon, IconButton, Portal, Text, TextInput } from 'react-native-paper';
+import { Icon, IconButton, Portal, Text, TextInput } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
@@ -212,7 +213,7 @@ export default function AddPlayersScreen() {
               key={row.key}
               style={[
                 styles.card,
-                { backgroundColor: colors.surface, borderColor: saved ? colors.positive : colors.outlineVariant },
+                { backgroundColor: colors.surface, borderColor: saved ? colors.win : colors.outlineVariant },
               ]}
             >
               <View style={styles.line}>

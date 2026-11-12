@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
-import { Button, Dialog, IconButton, Menu, Portal, Searchbar, SegmentedButtons, Text } from 'react-native-paper';
+import { Dialog, IconButton, Menu, Portal, Searchbar, SegmentedButtons, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Player } from '@/types/player';
 import { Game } from '@/types/game';

@@ -36,6 +36,8 @@ export const HELP = {
     '• [Results] show the consolidated winners from one or more games. Once results are announced, the games that were part of the results move from [Completed] to [Closed].',
     '## My players',
     '• My players is a list of players you regularly play with.',
+    '## Bottom bar',
+    '• Three buttons: Home (this page), My players (your list), and your initials (your profile and settings).',
   ].join('\n'),
   addPlayersToGame: bullets(
     'The faces under Playing are already in the game. Tap a player below to add them; they get 0 for every round already played.',

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Chip, Dialog, Portal, Text } from 'react-native-paper';
+import { Chip, Dialog, Portal, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { CO_ADMIN_NUDGE_BODY, CO_ADMIN_NUDGE_TITLE } from '@/utils/coAdmin';
 

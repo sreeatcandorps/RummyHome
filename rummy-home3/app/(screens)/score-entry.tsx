@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Dialog, Icon, IconButton, Menu, Portal, Text, TouchableRipple } from 'react-native-paper';
+import { Dialog, Icon, IconButton, Menu, Portal, Text, TouchableRipple } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Game } from '../../types/game';
 import { Player } from '../../types/player';
@@ -288,8 +289,8 @@ export default function ScoreEntryScreen() {
       <View style={styles.headerText}>
         <View style={styles.titleRow}>
           {gameNumberLabel(game) ? (
-            <View style={[styles.gameBadge, { backgroundColor: colors.felt }]}>
-              <Text variant="labelLarge" style={[styles.gameBadgeText, { color: colors.onFelt }]}>
+            <View style={[styles.gameBadge, { backgroundColor: colors.tertiaryContainer }]}>
+              <Text variant="labelLarge" style={[styles.gameBadgeText, { color: colors.onTertiaryContainer }]}>
                 {gameNumberLabel(game)}
               </Text>
             </View>
@@ -304,7 +305,7 @@ export default function ScoreEntryScreen() {
       </View>
       {scorerName ? (
         <View accessible accessibilityLabel={`Scored by ${scorerName}`}>
-          <SeatAvatar name={scorerName} size={34} color={colors.primary} />
+          <SeatAvatar name={scorerName} size={36} />
         </View>
       ) : null}
       <Menu
@@ -411,8 +412,8 @@ export default function ScoreEntryScreen() {
         const background = isSign || isRummy
           ? restFill
           : flashFor(key.id).interpolate({ inputRange: [0, 1], outputRange: [restFill, colors[PRESET_FLASH_FILL]] });
-        const border = signOn ? colors.secondary : isRummy ? colors.tertiary : colors.outlineVariant;
-        const foreground = signOn ? colors.onSecondaryContainer : isRummy ? colors.onTertiaryContainer : colors.onSurface;
+        const border = signOn ? colors.primary : isRummy ? colors.tertiary : colors.outlineVariant;
+        const foreground = signOn ? colors.onPrimaryContainer : isRummy ? colors.onTertiaryContainer : colors.onSurface;
         const accessibilityLabel = isSign
           ? key.label
           : isRummy
@@ -611,7 +612,8 @@ const styles = StyleSheet.create({
   },
   gameBadge: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    minHeight: 32,
+    justifyContent: 'center',
     borderRadius: radius.sm,
   },
   gameBadgeText: {

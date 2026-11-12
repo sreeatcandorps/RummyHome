@@ -82,11 +82,12 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
   });
   const backgroundColor = tone === 'selected' ? colors[CELL_FILL.selected] : animatedBackground;
 
-  const ringColor = tone === 'selected' ? colors.secondary : tone === 'confirmed' ? colors.positive : colors.outlineVariant;
+  // The selection ring is the button green (the cell is what you are tapping into); saved cells keep a quiet border.
+  const ringColor = tone === 'selected' ? colors.primary : tone === 'confirmed' ? colors.outline : colors.outlineVariant;
   // The scorecard standard: a win green, a penalty over half the Full count red text, the rest plain.
   const saved = isConfirmed ? scoreTextStyle(scoreTone(value ?? 0, fullCount)) : null;
   const valueColor = isPending
-    ? colors.onSecondaryContainer
+    ? colors.onSurface
     : saved
       ? saved.colorKey === 'positive' ? colors.onPositiveContainer : colors[saved.colorKey]
       : colors.onSurface;

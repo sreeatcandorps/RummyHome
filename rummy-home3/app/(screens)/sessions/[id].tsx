@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { Text, TextInput } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { Redirect, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { settleEnabled } from '@/constants/features';
 import { PrizeSession, sessionsService } from '@/services/sessions';

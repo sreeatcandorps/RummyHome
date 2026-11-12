@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Checkbox, Dialog, Portal, Text, TouchableRipple } from 'react-native-paper';
+import { Checkbox, Dialog, Portal, Text, TouchableRipple } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { authService } from '@/services/auth';
 import { formatSupabaseError } from '@/utils/supabaseErrors';

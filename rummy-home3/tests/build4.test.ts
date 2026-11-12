@@ -19,8 +19,8 @@ import { GAME_STATUS_TONE } from '../utils/gameStatus';
 
 test('build 4: Home help is Statuses, Results, My players, with coloured chips', () => {
   const { headings, bullets } = helpOutline(HELP.home);
-  assert.deepEqual(headings, ['Statuses', 'Results', 'My players']);
-  assert.equal(bullets.length, 5);
+  assert.deepEqual(headings, ['Statuses', 'Results', 'My players', 'Bottom bar']);
+  assert.equal(bullets.length, 6);
   assert.ok(bullets[0].startsWith('[Active]'));
   assert.ok(bullets[1].startsWith('[Completed]'));
   assert.ok(bullets[2].startsWith('[Closed]'));
@@ -28,6 +28,7 @@ test('build 4: Home help is Statuses, Results, My players, with coloured chips',
   assert.match(bullets[3], /move from \[Completed\] to \[Closed\]/);
   assert.equal(bullets[4], 'My players is a list of players you regularly play with.');
   assert.doesNotMatch(bullets[4], /database|register|link/i);
+  assert.match(bullets[5], /^Three buttons: Home .*My players .*your initials/);
   const parts = splitHelpLine('From [Completed] to [Closed].');
   assert.deepEqual(parts, [
     { kind: 'text', text: 'From ' },
@@ -36,7 +37,7 @@ test('build 4: Home help is Statuses, Results, My players, with coloured chips',
     { kind: 'chip', chip: 'Closed' },
     { kind: 'text', text: '.' },
   ]);
-  assert.deepEqual(GAME_STATUS_TONE, { Active: 'positive', Completed: 'primary', Closed: 'neutral' });
+  assert.deepEqual(GAME_STATUS_TONE, { Active: 'primary', Completed: 'info', Closed: 'neutral' });
 });
 
 test('build 4: Results help says to delete the old result before reusing a Closed game', () => {
@@ -86,12 +87,12 @@ test('build 4: the new-game draft is shared with Add New Players and edits flow 
   assert.deepEqual(newGameDraft.get(), []);
 });
 
-test('build 4: final Add round palette — yellow selected, green confirmed, blue Rummy, green preset flash', () => {
+test('Add round palette (Clubhouse) — selected and confirmed cells on white, soft-green active sign, blue Rummy, green preset flash', () => {
   assert.equal(CELL_FILL[cellTone('empty')], 'cellNeutral');
-  assert.equal(CELL_FILL[cellTone('selected')], 'secondaryContainer');
-  assert.equal(CELL_FILL[cellTone('pending')], 'secondaryContainer');
-  assert.equal(CELL_FILL[cellTone('confirmed')], 'positiveContainer');
-  assert.equal(actionFill('sign', true), 'secondaryContainer');
+  assert.equal(CELL_FILL[cellTone('selected')], 'surface');
+  assert.equal(CELL_FILL[cellTone('pending')], 'surface');
+  assert.equal(CELL_FILL[cellTone('confirmed')], 'surface');
+  assert.equal(actionFill('sign', true), 'primaryContainer');
   assert.equal(actionFill('sign', false), 'surface');
   assert.equal(actionFill('rummy'), 'tertiaryContainer');
   assert.equal(actionFill('preset'), 'surface');

@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { useGameRoster } from '@/hooks/useGameRoster';

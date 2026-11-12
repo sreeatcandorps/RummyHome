@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Dialog, Portal, Text } from 'react-native-paper';
+import { Dialog, Portal, Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { ResultsPage } from '@/components/results/ResultsPage';
 import { ResultsShare } from '@/components/results/ResultsShare';

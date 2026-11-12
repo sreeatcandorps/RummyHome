@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, TextInput as NativeInput, View } from 'react-native';
-import { TextInput, Button, Text, HelperText } from 'react-native-paper';
+import { TextInput, Text, HelperText } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, useLocalSearchParams } from 'expo-router';
 import { PasscodeField } from '@/components/ui/PasscodeField';
 import { storage } from '../../utils/storage';

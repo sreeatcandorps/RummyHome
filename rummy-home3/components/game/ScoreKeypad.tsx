@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Icon, Text, TouchableRipple } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { BUTTON_EDGE } from '@/components/ui/AppButton';
 
 type ScoreKeypadProps = {
   /** Digits only count while at least one player is selected. */
@@ -64,7 +65,9 @@ export function ScoreKeypad({ enabled, canSave, compact, onDigit, onSave }: Scor
             height: saveHeight,
             backgroundColor: canSave ? colors.primary : colors.surfaceVariant,
             borderColor: canSave ? colors.primary : colors.outlineVariant,
+            borderBottomColor: canSave ? colors.primaryEdge : colors.outlineVariant,
           },
+          canSave && styles.saveEdge,
         ]}
       >
         <TouchableRipple
@@ -127,6 +130,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radius.md,
     overflow: 'hidden',
+  },
+  saveEdge: {
+    borderBottomWidth: BUTTON_EDGE,
   },
   saveLabel: {
     textAlign: 'center',
