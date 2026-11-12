@@ -273,6 +273,11 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - `027` Remove from My players (soft remove, Undo), `028` game numbers S/P in place of the UUID (race-safe server assignment, backfill), `029` server-enforced guardrails (`docs/guardrails.md`), `030` My players at scale (paged list, server search), `031` round-robin rotation from the stored dealers, `032` two results-speed fixes. All **not applied**, each with a rollback and pgTAP file; apply order in `docs/migrations-to-apply.md`.
 - New CI tooling: `ci/volume/` — `volume.sql` seeds deterministic users, rosters (100 / 1,000 / 10,000) and games (2–20 players × 50–500 rounds, 100 / 1,000 / 5,000 per user) on the local DB; `run-volume.mjs` runs every case as the real user through the RPCs with timings and writes `ci/out/volume/results.{md,json}`; `screenshots.mjs` renders the web `/r/` pages from those payloads in headless Chrome. Findings and fixes in `docs/volume-testing.md` (JIT on `public_result`, `game_rounds_json` rewrite, stale statistics after bulk loads). Tests: 812 pgTAP, 38 concurrency, 124 rollback checks.
 
+### 2026-11-12 — Clubhouse green design system applied (PR 11 round 2, approved)
+- The design proposal in `docs/design/` (branch `cursor/design-review-proposal-6470`) is now the app: Clubhouse palette in `constants/theme.ts` (light and dark, button green with a pressable edge, marigold accent, info blue, win/loss tints, seat colours), one button standard (`components/ui/AppButton` wraps Paper's Button: pill, 2 px outline or filled with edge), 32 px tags, pill bottom tabs (custom `tabBar`), scorecard with G badge, tinted dealer column, signed near-black totals and the Creator/Admin footer inside the table card. Role tags: plain players see Creator (and You); creators/admins also see Admin. No new dependency; Paper's MDI icons replace Ionicons in the tab layout.
+- Appearance follows the phone by default (`userInterfaceStyle: automatic`, Profile › Appearance: Phone / Light / Dark; the old Dark mode switch value is honoured).
+- Skipped on freeze day, by choice: the Nunito font (new native asset), confetti (new dependency), and the share image / PDF palette (still the parchment-and-felt card).
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -295,7 +300,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | CI (GitHub Actions) | Done on PR 7: unit + tsc, local Supabase DB suite (migrations, rollbacks, pgTAP, concurrency), report per run. Nightly rows start once `ci.yml` is on `main`. See `docs/testing/ci.md` |
 | Game admins | Done in the app. Players/Admins page: Add admin by Player ID (non-player, open or completed games), Game admins on Complete game and the final-scores picture |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
-| Theming (light/dark) | Done; dark mode is on Profile and saved on the phone |
+| Theming (light/dark) | Done; Clubhouse green design system (Nov 12). Appearance follows the phone by default; Profile › Appearance overrides it |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
 | Public scorecard | Static HTML on ezscore.mindweavetech.com. Placeholders filled by `scripts/inject-scorecard-config.mjs` at publish time. The key is not in git |
 | Expo Go local preview | Working |
