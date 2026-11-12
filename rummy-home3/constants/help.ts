@@ -93,7 +93,7 @@ export const HELP = {
     'Find player in database adds people from the EZ Score database. Add new players takes initials; they get a player ID at once and show as Unregistered until they sign up.',
     'The Unregistered tile at the bottom shows how many have not signed up and filters the list to them. Each row’s ⋮ has Invite to register (a sign-up link, good once for 14 days) and Link to Player ID.',
     PLAYERS_NOTE,
-    'One row per player. Tap a row to see the initials; the ⋮ edits initials or the name, invites, links, or removes them from your list. Removing keeps their account and past games.',
+    'Tap a row for the initials; the ⋮ edits, invites, links or removes. Remove from My players changes only your list: past games and results stay. Undo, or add them again, brings the history back.',
     'Initials: first and last letter. If two of your players share them, the one added first keeps the short form; the other gets three letters from their name (SUK). Or type any 2–3 letters.',
     'Initials must differ only within your My players and never change by themselves. After a rename you see the new name at once, plus a “Name changed” note if the letters no longer fit.',
   ),

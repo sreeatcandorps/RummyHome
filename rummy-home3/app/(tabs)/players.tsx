@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, StyleSheet, View } from 'react-native';
-import { Button, Chip, Dialog, Icon, Portal, Searchbar, Text, TouchableRipple } from 'react-native-paper';
+import { Button, Chip, Dialog, Icon, Portal, Searchbar, Snackbar, Text, TouchableRipple } from 'react-native-paper';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
 import { LinkPlayerDialog } from '@/components/players/LinkPlayerDialog';
@@ -15,6 +15,7 @@ import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
 import { playersService } from '@/services/players';
+import { REMOVE_CONFIRM_BODY, REMOVE_CONFIRM_TITLE, REMOVED_TOAST, UNDO_REMOVE_MS } from '@/utils/removeMyPlayer';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
@@ -99,6 +100,8 @@ export default function PlayersTab() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Player | null>(null);
   const [removing, setRemoving] = useState(false);
+  /** The player just removed, while the Undo toast is up. */
+  const [undo, setUndo] = useState<Player | null>(null);
   const [unregistered, setUnregistered] = useState<Record<string, Player>>({});
   // Open Link to Player ID requests (025) I sent, so those rows read Link pending.
   const [linkRequests, setLinkRequests] = useState<Record<string, PendingLink>>({});
@@ -183,6 +186,7 @@ export default function PlayersTab() {
     setRemoving(true);
     try {
       await playersService.removeMyPlayer(me.id, removed.id);
+      setUndo(removed);
     } catch (err) {
       setPlayers((current) => [removed, ...current.filter((player) => player.id !== removed.id)]);
       setError(err instanceof Error ? err.message : 'Couldn’t remove them. Try again.');
@@ -191,10 +195,25 @@ export default function PlayersTab() {
     }
   };
 
+  /** Undo on the toast: the row comes back with its games together and, when still free, its initials. */
+  const undoRemove = async () => {
+    const back = undo;
+    if (!back || !me) return;
+    setUndo(null);
+    setPlayers((current) => [back, ...current.filter((player) => player.id !== back.id)]);
+    try {
+      await playersService.restoreMyPlayer(me.id, back.id);
+      await load();
+    } catch (err) {
+      setPlayers((current) => current.filter((player) => player.id !== back.id));
+      setError(formatSupabaseError(err));
+    }
+  };
+
   const confirmRemove = (target?: Player) => {
     const who = target ?? selected;
     if (!who) return;
-    Alert.alert(`Remove ${who.name} from your list?`, 'Their account stays. Past games stay.', [
+    Alert.alert(REMOVE_CONFIRM_TITLE(who.name), REMOVE_CONFIRM_BODY, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => remove(who) },
     ]);
@@ -417,6 +436,15 @@ export default function PlayersTab() {
             onSave={saveInitials}
           />
         ) : null}
+        <Snackbar
+          visible={Boolean(undo)}
+          onDismiss={() => setUndo(null)}
+          duration={UNDO_REMOVE_MS}
+          action={{ label: 'Undo', onPress: undoRemove }}
+          testID="remove-undo"
+        >
+          {undo ? REMOVED_TOAST(undo.name) : ''}
+        </Snackbar>
       </Portal>
     </Screen>
   );

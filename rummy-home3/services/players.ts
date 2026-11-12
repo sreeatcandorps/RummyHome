@@ -8,6 +8,7 @@ import { playerSearchMode } from '@/utils/playerSearch';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { queryCache } from '@/utils/queryCache';
 import { assignInitials, initialsProblem, normalizeInitials } from '@/utils/initials';
+import { removeMyPlayerError, restoredRow } from '@/utils/removeMyPlayer';
 
 export const MIGRATION_007_HINT = NOT_READY_MESSAGE;
 
@@ -26,7 +27,11 @@ type RosterRow = {
   playerCode?: string;
   /** Stored scorecard label, unique within this owner's rows (022). Never changed by a rename. */
   initials?: string;
+  /** 027 soft remove: set while the player is off this owner's list. The row (history, initials) stays. */
+  removedAt?: string;
 };
+
+const isActive = (row: RosterRow) => !row.removedAt;
 
 /** Same wording as set_my_player_initials / set_seat_label in migration 022. */
 export const INITIALS_FORMAT_MESSAGE = 'Initials are 2 or 3 letters, A to Z.';
@@ -99,14 +104,15 @@ function rowToPlayer(row: RosterRow): Player {
  * initials, oldest row first, so the list is unique and stable across reads.
  */
 function withLocalInitials(rows: RosterRow[], ownerId: string): { rows: RosterRow[]; changed: boolean } {
-  const mine = rows.filter((row) => row.ownerId === ownerId);
+  const mine = rows.filter((row) => row.ownerId === ownerId && isActive(row));
   if (mine.every((row) => row.initials)) return { rows, changed: false };
   const labels = assignInitials(mine.map((row) => ({ id: row.playerId, name: row.name, initials: row.initials, addedAt: row.createdAt })));
   return {
     changed: true,
-    rows: rows.map((row) => (row.ownerId === ownerId && !row.initials ? { ...row, initials: labels.get(row.playerId) } : row)),
+    rows: rows.map((row) => (row.ownerId === ownerId && isActive(row) && !row.initials ? { ...row, initials: labels.get(row.playerId) } : row)),
   };
 }
+
 
 /** A list_my_players row (RPC or home bundle) as a Player. The name is always the live profile name; pre-022 rows have no initials. */
 export const myPlayerFromRow = (row: {
@@ -140,7 +146,7 @@ export function rosterChanged(mine: RosterRow[], players: Player[]): boolean {
  */
 async function rememberMyPlayers(ownerId: string, players: Player[]): Promise<void> {
   const rows = await readRoster();
-  const mine = rows.filter((row) => row.ownerId === ownerId);
+  const mine = rows.filter((row) => row.ownerId === ownerId && isActive(row));
   if (!rosterChanged(mine, players)) return;
   const others = rows.filter((row) => row.ownerId !== ownerId);
   await writeRoster([
@@ -261,7 +267,7 @@ export const playersService = {
     const filled = withLocalInitials(current, ownerId);
     await writeRoster(filled.rows);
     return filled.rows
-      .filter((row) => row.ownerId === ownerId)
+      .filter((row) => row.ownerId === ownerId && isActive(row))
       .sort((a, b) => b.gamesTogether - a.gamesTogether || a.name.localeCompare(b.name))
       .map(rowToPlayer);
   },
@@ -333,8 +339,9 @@ export const playersService = {
     const rows = await readRoster();
     const existing = rows.find((row) => row.ownerId === ownerId && row.playerId === player.id);
     const without = rows.filter((row) => !(row.ownerId === ownerId && row.playerId === player.id));
-    // Re-adding (a rename, a claim) keeps the row's age and initials: a rename never changes initials.
-    const next: RosterRow = {
+    // Re-adding (a rename, a claim, after Remove from My players) keeps the row's age, games
+    // and initials: a rename never changes initials; a removed row's come back when still free.
+    const next: RosterRow = restoredRow({
       ownerId,
       playerId: player.id,
       gamesTogether: existing?.gamesTogether ?? 0,
@@ -342,7 +349,7 @@ export const playersService = {
       name: player.name,
       playerCode: player.playerCode,
       initials: existing?.initials,
-    };
+    }, without);
     await writeRoster([next, ...without]);
     this.forgetMyPlayers();
 
@@ -355,14 +362,36 @@ export const playersService = {
     }
   },
 
+  /**
+   * Remove from My players (027): a soft remove. The row stays with removedAt so past games,
+   * scores and results keep the name and totals, and Undo / a later re-add brings the history
+   * back. The server refuses while the player sits in a live game the owner can see.
+   */
   async removeMyPlayer(ownerId: string, playerId: string): Promise<void> {
     const rows = await readRoster();
-    await writeRoster(rows.filter((row) => !(row.ownerId === ownerId && row.playerId === playerId)));
+    const removedAt = new Date().toISOString();
+    await writeRoster(rows.map((row) => (row.ownerId === ownerId && row.playerId === playerId ? { ...row, removedAt } : row)));
     this.forgetMyPlayers();
     if (!isSupabaseConfigured) return;
     const { error } = await supabase.rpc('remove_my_player', { p_player_id: playerId });
     if (error) {
       await writeRoster(rows);
+      this.forgetMyPlayers();
+      if (missingRpc(error)) throw new Error(MIGRATION_007_HINT);
+      throw removeMyPlayerError(error);
+    }
+  },
+
+  /** Undo on the toast: the removed row comes back with its games and, when still free, its initials. */
+  async restoreMyPlayer(ownerId: string, playerId: string): Promise<void> {
+    const rows = await readRoster();
+    await writeRoster(rows.map((row) => (row.ownerId === ownerId && row.playerId === playerId && row.removedAt ? restoredRow(row, rows) : row)));
+    this.forgetMyPlayers();
+    if (!isSupabaseConfigured) return;
+    const { error } = await (supabase.rpc as any)('restore_my_player', { p_player_id: playerId });
+    if (error) {
+      await writeRoster(rows);
+      this.forgetMyPlayers();
       if (missingRpc(error)) throw new Error(MIGRATION_007_HINT);
       throw error;
     }
@@ -375,12 +404,12 @@ export const playersService = {
       const index = next.findIndex((row) => row.ownerId === ownerId && row.playerId === playerId);
       const known = names.get(playerId);
       if (index >= 0) {
-        next[index] = {
+        next[index] = restoredRow({
           ...next[index],
           gamesTogether: next[index].gamesTogether + 1,
           name: known?.name || next[index].name,
           playerCode: known?.playerCode || next[index].playerCode,
-        };
+        }, next);
       } else {
         next.unshift({
           ownerId,

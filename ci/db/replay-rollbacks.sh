@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–022) applied, check the function state after each, then re-apply the forward
+# has every migration (001–027) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,21 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 027 (remove from My Players; rolled back before 026)
+HAS_027=f
+if [ -f "$RB/rollback_027_remove_from_my_players.sql" ]; then
+  HAS_027=t
+  if apply "$RB/rollback_027_remove_from_my_players.sql"; then tap ok "rollback_027 applies"; else tap fail "rollback_027 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists restore_my_player)" = f ] && [ "$(fn_exists in_live_game_with_me)" = f ] \
+    && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='my_players' and column_name='removed_at')")" = f ] \
+    && tap ok "after rollback_027 restore_my_player, in_live_game_with_me and my_players.removed_at are gone" \
+    || tap fail "after rollback_027 restore_my_player / in_live_game_with_me / removed_at should be gone"
+  [ "$(fn_has remove_my_player 'delete from public.my_players')" = t ] && [ "$(fn_has list_my_players removed_at)" = f ] \
+    && [ "$(q "select indpred is null from pg_index i join pg_class c on c.oid = i.indexrelid where c.relname = 'my_players_owner_initials_key'")" = t ] \
+    && tap ok "after rollback_027 remove_my_player deletes again, lists are the 022/023 bodies, the initials index is whole" \
+    || tap fail "after rollback_027 remove_my_player / list_my_players / my_players_owner_initials_key should be the earlier shape"
+fi
 
 # 026 (account deletion; same PR, rolled back before 025)
 HAS_026=f
@@ -208,6 +223,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_024" = t ] && FORWARD="$FORWARD 024_emails_and_public_results"
 [ "$HAS_025" = t ] && FORWARD="$FORWARD 025_link_player_to_account"
 [ "$HAS_026" = t ] && FORWARD="$FORWARD 026_delete_account"
+[ "$HAS_027" = t ] && FORWARD="$FORWARD 027_remove_from_my_players"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -260,6 +276,11 @@ fi
 if [ "$HAS_026" = t ]; then
   [ "$(fn_exists delete_my_account)" = t ] && [ "$(fn_exists tombstone_profile)" = t ] && [ "$(fn_has delete_profile_with_auth_user tombstone_profile)" = t ] \
     && tap ok "026 restored (delete_my_account, tombstone_profile, dashboard delete anonymises)" || tap fail "026 restored"
+fi
+if [ "$HAS_027" = t ]; then
+  [ "$(fn_exists restore_my_player)" = t ] && [ "$(fn_has remove_my_player 'In a live game')" = t ] \
+    && [ "$(q "select indpred is not null from pg_index i join pg_class c on c.oid = i.indexrelid where c.relname = 'my_players_owner_initials_key'")" = t ] \
+    && tap ok "027 restored (restore_my_player, live-game block, active-only initials index)" || tap fail "027 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

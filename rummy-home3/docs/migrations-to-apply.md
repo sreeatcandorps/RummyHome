@@ -263,6 +263,21 @@ select count(*) from public.profiles where player_status = 'deleted_after_regist
 select count(*) from public.profiles p where p.player_status = 'deleted_after_registering' and exists (select 1 from auth.users u where u.id = p.id);  -- always 0
 ```
 
+## 027 — Remove from My players (soft remove, Undo)
+
+File: `supabase/migrations/027_remove_from_my_players.sql`. Run after 026. Safe to re-run. Rollback: `supabase/rollback/rollback_027_remove_from_my_players.sql` (puts the 007/022/023 bodies back and **deletes** the rows that were soft-removed, which is what the old remove would have done).
+
+Backward compatible with the APK on phones: `remove_my_player`, `add_my_player`, `touch_my_players`, `list_my_players` and `list_new_game_candidates` keep their signatures and column lists. The old app's "Remove from My players" becomes a soft remove and gets the live-game refusal as an error message; it has no Undo toast (that is in the new build).
+
+What it does:
+
+- `my_players.removed_at`: the row stays with a timestamp instead of being deleted, so every past game, score and result keeps the name and totals, and `games_together` and the initials come back on restore. Hidden from `list_my_players` and from the New game picker while set.
+- `remove_my_player` refuses with "In a live game. Remove them after the game ends." while the player is seated and active in a game that is active, not deleted/completed/closed, and that the caller can see (`list_visible_game_ids`). Removing yourself is refused. Nothing else changes: not their account, not their own My players, not other people's games; no notice, no email.
+- The per-owner unique initials index now covers active rows only, so the removed player's letters are free in your list. `default_initials` ignores removed rows.
+- `restore_my_player` (Undo), `add_my_player` (Add player by ID or by name) and `touch_my_players` (playing together again) clear `removed_at`. A trigger keeps the old initials when still free, otherwise the normal rule (SK, then SUK, ...) relabels the row.
+
+Verified on a scratch Postgres 16 loaded with 001–027 and the CI seed: 633 pgTAP checks (45 new in `supabase/tests/17_remove_my_players_027.sql`), the rollback replay (rollback 027 → 013, re-apply, second apply; 97 checks) and the 31 race checks all pass.
+
 ## Apply order for the Nov 10–11 batch
 
 017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023, 024, 025 and 026 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
@@ -273,6 +288,10 @@ select count(*) from public.profiles p where p.player_status = 'deleted_after_re
 4. `supabase/migrations/024_emails_and_public_results.sql`
 5. `supabase/migrations/025_link_player_to_account.sql`
 6. `supabase/migrations/026_delete_account.sql`
+
+Final launch batch (Nov 12), after the six above, each as its own run:
+
+7. `supabase/migrations/027_remove_from_my_players.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 
