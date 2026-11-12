@@ -1,4 +1,4 @@
-import { gameTitle } from '@/utils/gameLabel';
+import { gameLabelOf, gameTitle } from '@/utils/gameLabel';
 import { dealerForRound, nextDealer, rotationStarts } from '@/utils/dealerRotation';
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
@@ -337,9 +337,11 @@ export default function GameScreen() {
   const roundTotals = Array.from({ length: maxRounds }, (_, roundIndex) => getRoundTotal(roundIndex));
   const grandTotal = players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0);
 
-  const numberBadge = game.gameNumber ? (
-    <View style={[styles.numberBadge, { backgroundColor: theme.gameTypes[game.gameType === 'pool' ? 'pool' : 'stake'].container }]} accessibilityLabel={`Game ${game.gameNumber}`}>
-      <Text style={[styles.numberText, { color: theme.gameTypes[game.gameType === 'pool' ? 'pool' : 'stake'].on }]}>{`G${game.gameNumber}`}</Text>
+  // The 028 label (S14 / P15), never the bare G-number (final batch item 2).
+  const gameLabel = gameLabelOf(game);
+  const numberBadge = gameLabel ? (
+    <View style={[styles.numberBadge, { backgroundColor: theme.gameTypes[game.gameType === 'pool' ? 'pool' : 'stake'].container }]} accessibilityLabel={`Game ${gameLabel}`}>
+      <Text style={[styles.numberText, { color: theme.gameTypes[game.gameType === 'pool' ? 'pool' : 'stake'].on }]}>{gameLabel}</Text>
     </View>
   ) : null;
   const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : settleEnabled ? 'cash-multiple' : 'numeric'} />;

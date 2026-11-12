@@ -148,7 +148,8 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
 
   const scorecard = src('app/(screens)/games/[id].tsx');
   assert.match(scorecard, /footer=\{idFooter\}/);
-  assert.match(scorecard, /\{`G\$\{game\.gameNumber\}`\}/);
+  assert.match(scorecard, /\{gameLabel\}<\/Text>/, 'the badge is the S/P label (028), not a G-number');
+  assert.doesNotMatch(scorecard, /`G\$\{game\.gameNumber\}`/);
   const footer = src('components/game/GameIdFooter.tsx');
   // Item 7: "Game S3", Creator and Admin each on their own line (one Text per line).
   assert.match(footer, /gameOwnersLines\(/);
