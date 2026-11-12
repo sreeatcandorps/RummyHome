@@ -89,7 +89,7 @@ export const HELP = {
   ),
   settle: bullets('Finished games stay on Home under Recent.'),
   players: bullets(
-    'My players is your own list, not everyone in the EZ Score database. New game picks from it. Sorted by Frequent first.',
+    'My players is your own list, not everyone in the EZ Score database. New game picks from it. Frequent first; Alphabetical shows A–Z sections. Search finds anyone, even in a list of thousands.',
     'Find player in database adds people from the EZ Score database. Add new players takes initials; they get a player ID at once and show as Unregistered until they sign up.',
     'The Unregistered tile at the bottom shows how many have not signed up and filters the list to them. Each row’s ⋮ has Invite to register (a sign-up link, good once for 14 days) and Link to Player ID.',
     PLAYERS_NOTE,

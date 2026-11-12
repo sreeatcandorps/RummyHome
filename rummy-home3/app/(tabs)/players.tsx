@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, FlatList, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, SectionList, StyleSheet, View } from 'react-native';
 import { Button, Chip, Dialog, Icon, Portal, Searchbar, Snackbar, Text, TouchableRipple } from 'react-native-paper';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
@@ -14,12 +14,12 @@ import { ActionTile } from '@/components/ui/ActionTile';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
-import { playersService } from '@/services/players';
+import { PagedPlayer, playersService } from '@/services/players';
 import { REMOVE_CONFIRM_BODY, REMOVE_CONFIRM_TITLE, REMOVED_TOAST, UNDO_REMOVE_MS } from '@/utils/removeMyPlayer';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
-import { DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, playerIdBadge, registrationLabel, REGISTRATION_TONE, SORT_CHIP, SORT_OPTIONS, sortMyPlayers, withOwnerFirst } from '@/utils/myPlayersList';
+import { appendPage, DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, mergeSearchResults, MyPlayersCursor, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, MY_PLAYERS_PAGE_SIZE, MY_PLAYERS_SEARCH_DEBOUNCE_MS, MY_PLAYERS_SEARCH_LIMIT, nextPageCursor, playerIdBadge, registrationLabel, REGISTRATION_TONE, SEARCH_FULL_NOTE, sectionsByLetter, shouldLoadMore, SORT_CHIP, SORT_OPTIONS, sortMyPlayers, withOwnerFirst } from '@/utils/myPlayersList';
 import { seatColor } from '@/constants/theme';
 import { shareInvite } from '@/utils/invite';
 import { Screen } from '@/components/ui/Screen';
@@ -92,11 +92,22 @@ export default function PlayersTab() {
   const { colors } = useAppTheme();
   const navigation = useNavigation();
   const [me, setMe] = useState<Player | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
+  /** The pages loaded so far (030), in `sort` order. */
+  const [players, setPlayers] = useState<PagedPlayer[]>([]);
+  const [cursor, setCursor] = useState<MyPlayersCursor>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  /** How many My players there are in all, for the header; the list may hold fewer until scrolled. */
+  const [total, setTotal] = useState<number | null>(null);
   const [query, setQuery] = useState('');
+  /** The server's answer for the current query (030), or null while nothing is typed. */
+  const [searchRows, setSearchRows] = useState<PagedPlayer[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const [sort, setSort] = useState<MyPlayersSort>(DEFAULT_MY_PLAYERS_SORT);
   const [filter, setFilter] = useState<MyPlayersFilter>('all');
   const [loading, setLoading] = useState(true);
+  const sortRef = useRef(sort);
+  sortRef.current = sort;
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Player | null>(null);
   const [removing, setRemoving] = useState(false);
@@ -127,13 +138,20 @@ export default function PlayersTab() {
         setError('Not signed in.');
         return;
       }
-      // The offline copy shows at once; the server list and the open (unregistered) set load side by side.
-      const fresh = playersService.listMyPlayers(player.id);
+      // The offline copy shows at once; the first page, the count and the open (unregistered) set load side by side.
+      const currentSort = sortRef.current;
+      const firstPage = playersService.listMyPlayersPage(player.id, currentSort, null);
+      const count = playersService.countMyPlayers(player.id).catch(() => null);
       const open = playerIdentityService.listUnregistered(player.id).catch(() => [] as Player[]);
       const requests = playerIdentityService.listLinkRequests(player.id).catch(() => [] as PendingLink[]);
       const cached = await playersService.readMyPlayers(player.id);
-      if (cached.length) setPlayers((current) => (current.length ? current : cached));
-      setPlayers(await fresh);
+      if (cached.length) setPlayers((current) => (current.length ? current : sortMyPlayers(cached, currentSort)));
+      const page = await firstPage;
+      setPlayers(page);
+      setCursor(nextPageCursor(page, MY_PLAYERS_PAGE_SIZE));
+      setHasMore(page.length >= MY_PLAYERS_PAGE_SIZE);
+      const n = await count;
+      setTotal(n ?? page.length);
       setUnregistered(Object.fromEntries((await open).map((p) => [p.id, p])));
       setLinkRequests(Object.fromEntries((await requests).map((l) => [l.playerId, l])));
     } catch (err) {
@@ -147,10 +165,59 @@ export default function PlayersTab() {
     load();
   }, [load]));
 
+  // A different sort is a different page order: start again from the first page.
+  const firstSort = useRef(true);
+  useEffect(() => {
+    if (firstSort.current) { firstSort.current = false; return; }
+    setPlayers([]);
+    setCursor(null);
+    setHasMore(false);
+    load();
+  }, [sort, load]);
+
+  /** The next page (030), when the list nears its end. */
+  const loadMore = useCallback(async () => {
+    if (!me || !hasMore || loadingMore || !cursor) return;
+    setLoadingMore(true);
+    try {
+      const page = await playersService.listMyPlayersPage(me.id, sort, cursor);
+      setPlayers((current) => appendPage(current, page));
+      setCursor(nextPageCursor(page, MY_PLAYERS_PAGE_SIZE));
+      setHasMore(page.length >= MY_PLAYERS_PAGE_SIZE);
+    } catch (err) {
+      setError(formatSupabaseError(err));
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [me, hasMore, loadingMore, cursor, sort]);
+
+  // The Unregistered filter looks across everyone, so it pulls the remaining pages in.
+  useEffect(() => {
+    if (filter === 'unregistered' && hasMore && !loadingMore) void loadMore();
+  }, [filter, hasMore, loadingMore, loadMore]);
+
+  // Typing: the rows on the phone that match show at once; the server search (030) follows after a pause.
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!me || !trimmed) { setSearchRows(null); setSearching(false); return; }
+    let cancelled = false;
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const rows = await playersService.searchMyPlayers(me.id, trimmed);
+        if (!cancelled) setSearchRows(rows);
+      } catch {
+        if (!cancelled) setSearchRows(null);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, MY_PLAYERS_SEARCH_DEBOUNCE_MS);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [query, me]);
 
   React.useLayoutEffect(() => {
-    navigation.setOptions({ title: `My players · ${players.length}` });
-  }, [navigation, players.length]);
+    navigation.setOptions({ title: `My players · ${total ?? players.length}` });
+  }, [navigation, total, players.length]);
 
   const statusOf = useCallback((player: Player) => registrationLabel(unregistered[player.id]?.status ?? player.status, Boolean(linkRequests[player.id])), [unregistered, linkRequests]);
   // Stored initials (022) win; on an older server every row is derived here, oldest first, the same way.
@@ -161,13 +228,15 @@ export default function PlayersTab() {
   ), [players, initialsOf]);
   // Search, filter and sort run only when their inputs change, not on every render (each keystroke redraws the grid).
   const shown = useMemo(() => {
-    const others = sortMyPlayers(
-      filterMyPlayers(players.filter((player) => matchesMyPlayer(player, query)), filter, statusOf),
-      sort,
-    );
+    const trimmed = query.trim();
+    const pool = trimmed ? mergeSearchResults(players.filter((player) => matchesMyPlayer(player, trimmed)), searchRows) : players;
+    // Pages arrive in server order; a search answer is re-sorted the same way so the list never jumps.
+    const others = trimmed ? sortMyPlayers(filterMyPlayers(pool, filter, statusOf), sort) : filterMyPlayers(pool, filter, statusOf);
     // You are not a roster row, so you are pinned first whenever the search and filter would show you.
     return withOwnerFirst(others, me, Boolean(me) && filter === 'all' && matchesMyPlayer(me as Player, query));
-  }, [players, query, filter, sort, statusOf, me]);
+  }, [players, query, searchRows, filter, sort, statusOf, me]);
+  const sections = useMemo(() => (sort === 'name' && !query.trim() ? sectionsByLetter(shown, me?.id) : null), [sort, query, shown, me?.id]);
+  const searchFull = Boolean(query.trim()) && (searchRows?.length ?? 0) >= MY_PLAYERS_SEARCH_LIMIT;
   const openCount = useMemo(() => players.filter((player) => statusOf(player) !== 'Registered').length, [players, statusOf]);
 
   const openRow = useCallback((player: Player) => {
@@ -187,6 +256,7 @@ export default function PlayersTab() {
     try {
       await playersService.removeMyPlayer(me.id, removed.id);
       setUndo(removed);
+      setTotal((n) => (n == null ? n : Math.max(0, n - 1)));
     } catch (err) {
       setPlayers((current) => [removed, ...current.filter((player) => player.id !== removed.id)]);
       setError(err instanceof Error ? err.message : 'Couldn’t remove them. Try again.');
@@ -203,6 +273,7 @@ export default function PlayersTab() {
     setPlayers((current) => [back, ...current.filter((player) => player.id !== back.id)]);
     try {
       await playersService.restoreMyPlayer(me.id, back.id);
+      setTotal((n) => (n == null ? n : n + 1));
       await load();
     } catch (err) {
       setPlayers((current) => current.filter((player) => player.id !== back.id));
@@ -264,6 +335,20 @@ export default function PlayersTab() {
   const openMenu = useCallback((player: Player) => setMenuFor(player.id), []);
   const closeMenu = useCallback(() => setMenuFor(null), []);
 
+  const onEndReached = useCallback(() => {
+    if (!query.trim() && shouldLoadMore(hasMore, loadingMore)) void loadMore();
+  }, [query, hasMore, loadingMore, loadMore]);
+
+  const footer = useMemo(() => (loadingMore || (searching && searchRows == null)
+    ? <ActivityIndicator style={styles.footer} accessibilityLabel={searching ? 'Searching' : 'Loading more players'} />
+    : null), [loadingMore, searching, searchRows]);
+
+  const renderSectionHeader = useCallback(({ section }: { section: { title: string } }) => (
+    <View style={[styles.sectionHeader, { backgroundColor: colors.surfaceVariant }]} accessibilityRole="header">
+      <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }}>{section.title}</Text>
+    </View>
+  ), [colors]);
+
   const renderCard = useCallback(({ item: player, index }: { item: Player; index: number }) => (
     <PlayerCard
       player={player}
@@ -324,15 +409,44 @@ export default function PlayersTab() {
             : 'No one in My players matches that. Try the name, the initials, or the player ID.'}
         </Text>
       ) : null}
-      {shown.length > 0 ? (
+      {searchFull ? (
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="search-full-note">{SEARCH_FULL_NOTE(MY_PLAYERS_SEARCH_LIMIT)}</Text>
+      ) : null}
+      {shown.length > 0 && sections ? (
+        <SectionList
+          sections={sections}
+          keyExtractor={(player) => player.id}
+          renderItem={renderCard}
+          renderSectionHeader={renderSectionHeader}
+          stickySectionHeadersEnabled
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={footer}
+          initialNumToRender={12}
+          windowSize={7}
+          style={[styles.grid, { height: myPlayersGridHeight(shown.length), borderColor: colors.outlineVariant }]}
+          nestedScrollEnabled
+          showsVerticalScrollIndicator
+          accessibilityLabel="My players list, A to Z"
+          testID="my-players-sections"
+        />
+      ) : null}
+      {shown.length > 0 && !sections ? (
         <FlatList
           data={shown}
           keyExtractor={(player) => player.id}
           renderItem={renderCard}
+          onEndReached={onEndReached}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={footer}
+          initialNumToRender={12}
+          windowSize={7}
+          getItemLayout={(_, index) => ({ length: MY_PLAYERS_CARD_HEIGHT, offset: MY_PLAYERS_CARD_HEIGHT * index, index })}
           style={[styles.grid, { height: myPlayersGridHeight(shown.length), borderColor: colors.outlineVariant }]}
           nestedScrollEnabled
           showsVerticalScrollIndicator
           accessibilityLabel="My players list"
+          testID="my-players-list"
         />
       ) : null}
       {!loading && players.length === 0 && !error ? (
@@ -509,6 +623,8 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   detail: { gap: spacing.sm },
+  footer: { paddingVertical: spacing.sm },
+  sectionHeader: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.sm },
   flex: { flex: 1 },
   initialsBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.lg, padding: spacing.sm },
   initialsText: { fontWeight: '800', letterSpacing: 2 },

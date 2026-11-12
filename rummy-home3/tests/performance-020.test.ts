@@ -176,11 +176,11 @@ test('the own profile is memoised and every write to it forgets the copy', () =>
 test('My Players: one request per 30 s shared by the tab bar and the screen, roster written only when it changed', () => {
   const players = src('services/players.ts');
   assert.match(players, /MY_PLAYERS_STALE_MS = 30_000/);
-  assert.match(players, /if \(!rosterChanged\(mine, players\)\) return;/);
+  assert.match(players, /if \(!options\.partial && !rosterChanged\(mine, players\)\) return;/);
   assert.ok((players.match(/this\.forgetMyPlayers\(\)/g) ?? []).length >= 3, 'add, remove, rememberTogether');
   assert.match(src('services/playerIdentity.ts'), /if \(!READ_ONLY_RPCS\.has\(name\)\) playersService\.forgetMyPlayers\(\);/);
   const screen = src('app/(tabs)/players.tsx');
-  assert.match(screen, /const fresh = playersService\.listMyPlayers\(player\.id\);\s*const open = playerIdentityService\.listUnregistered/);
+  assert.match(screen, /const firstPage = playersService\.listMyPlayersPage\(player\.id, currentSort, null\);[\s\S]*const open = playerIdentityService\.listUnregistered/, 'the first page (030) and the open set load side by side');
   assert.match(screen, /const shown = useMemo\(/);
   assert.match(screen, /const PlayerCard = React\.memo\(/);
 });

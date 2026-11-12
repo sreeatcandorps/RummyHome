@@ -311,6 +311,22 @@ Outside the database (also not done by this change): `supabase functions deploy 
 
 Verified on a scratch Postgres 16 loaded with 001–029 and the CI seed: 743 pgTAP checks (56 new in `supabase/tests/19_guardrails_029.sql`), the rollback replay (rollback 029 → 013, re-apply, second apply; 109 checks) and the 38 race checks (4 new: two admins adding the last seat at once) all pass.
 
+## 030 — My players at scale (paged list, server search, count)
+
+File: `supabase/migrations/030_my_players_at_scale.sql`. Run after 029. Safe to re-run. Rollback: `supabase/rollback/rollback_030_my_players_at_scale.sql` (drops the three new functions and two indexes; nothing else changed).
+
+Backward compatible with the APK on phones: `list_my_players` and `list_new_game_candidates` are untouched; everything here is new. The new app falls back to the whole list when these functions are missing (older server).
+
+What it does:
+
+- `list_my_players_page(p_sort, p_limit, p_after_name, p_after_id, p_after_games)`: one page (default 100, max 200) of the caller's active My players in A–Z (`lower(display_name), id`) or Frequent (`games_together desc, name, id`) order, with a keyset cursor, so page 20 costs the same as page 1. Returns `player_status` and the sort key too.
+- `search_my_players(p_query, p_limit)`: name part, first/last-name prefix, scorecard-initials prefix, or Player ID with or without `#`; exact ID first, then name-starts-with, then most games together. An email matches nobody.
+- `count_my_players()`: the header number.
+- Indexes `profiles_display_name_lower_idx` and `my_players_owner_active_idx` (partial, active rows).
+- App: the My players screen loads a page, loads the next when scrolled near the end, shows A–Z sticky sections in Alphabetical order, searches the server after a 250 ms pause (local matches show at once), and keeps the offline copy. The New game picker keeps its recent-first page and asks `search_my_players` for anyone beyond it when the organiser types.
+
+Verified on a scratch Postgres 16 loaded with 001–030 and the CI seed: 779 pgTAP checks (36 new in `supabase/tests/20_my_players_scale_030.sql`, including a 2,000-row roster walked page by page with no repeat or gap), the rollback replay (114 checks) and the 38 race checks all pass.
+
 ## Apply order for the Nov 10–11 batch
 
 017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023, 024, 025 and 026 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
@@ -327,6 +343,7 @@ Final launch batch (Nov 12), after the six above, each as its own run:
 7. `supabase/migrations/027_remove_from_my_players.sql`
 8. `supabase/migrations/028_game_labels.sql`
 9. `supabase/migrations/029_guardrails.sql`
+10. `supabase/migrations/030_my_players_at_scale.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

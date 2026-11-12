@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–029) applied, check the function state after each, then re-apply the forward
+# has every migration (001–030) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,16 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 030 (My players at scale; rolled back before 029)
+HAS_030=f
+if [ -f "$RB/rollback_030_my_players_at_scale.sql" ]; then
+  HAS_030=t
+  if apply "$RB/rollback_030_my_players_at_scale.sql"; then tap ok "rollback_030 applies"; else tap fail "rollback_030 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists list_my_players_page)" = f ] && [ "$(fn_exists search_my_players)" = f ] && [ "$(fn_exists count_my_players)" = f ] && [ "$(fn_exists list_my_players)" = t ] \
+    && tap ok "after rollback_030 the page, search and count functions are gone and list_my_players stays" \
+    || tap fail "after rollback_030 list_my_players_page / search_my_players / count_my_players should be gone"
+fi
 
 # 029 (guardrails; rolled back before 028)
 HAS_029=f
@@ -254,6 +264,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_027" = t ] && FORWARD="$FORWARD 027_remove_from_my_players"
 [ "$HAS_028" = t ] && FORWARD="$FORWARD 028_game_labels"
 [ "$HAS_029" = t ] && FORWARD="$FORWARD 029_guardrails"
+[ "$HAS_030" = t ] && FORWARD="$FORWARD 030_my_players_at_scale"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -321,6 +332,10 @@ if [ "$HAS_029" = t ]; then
   [ "$(fn_exists guardrail_refuse)" = t ] && [ "$(q "select count(*) from public.guardrails")" = 9 ] \
     && [ "$(q "select count(*) from pg_trigger where tgname like '%\_0\_guard'")" = 5 ] \
     && tap ok "029 restored (guardrails table with 9 limits, 5 guard triggers)" || tap fail "029 restored"
+fi
+if [ "$HAS_030" = t ]; then
+  [ "$(fn_exists list_my_players_page)" = t ] && [ "$(fn_exists search_my_players)" = t ] && [ "$(fn_exists count_my_players)" = t ] \
+    && tap ok "030 restored (list_my_players_page, search_my_players, count_my_players)" || tap fail "030 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

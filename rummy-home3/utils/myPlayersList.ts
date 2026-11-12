@@ -123,3 +123,67 @@ export function myPlayersGridHeight(playerCount: number, columns = 1): number {
   if (rows === 0) return 0;
   return Math.min(rows, MY_PLAYERS_VISIBLE_ROWS) * MY_PLAYERS_CARD_HEIGHT + MY_PLAYERS_GRID_PADDING;
 }
+
+// ---------- at scale (030): pages, sections, search ----------
+
+/** Rows one page of My players fetches; the next page loads when the list nears its end. */
+export const MY_PLAYERS_PAGE_SIZE = 100;
+/** Keystrokes settle this long before the server is asked to search. */
+export const MY_PLAYERS_SEARCH_DEBOUNCE_MS = 250;
+/** Server search answers at most this many rows; the message below says so when it is full. */
+export const MY_PLAYERS_SEARCH_LIMIT = 50;
+export const SEARCH_FULL_NOTE = (limit: number) => `Showing the first ${limit} matches. Type more to narrow it down.`;
+
+export type MyPlayersCursor = { afterName: string; afterId: string; afterGames: number } | null;
+
+/** The cursor for the page after `rows` in `sort` order, or null when `rows` is the last page. */
+export function nextPageCursor<T extends ListedPlayer & { sortName?: string }>(rows: readonly T[], pageSize: number): MyPlayersCursor {
+  if (rows.length < pageSize) return null;
+  const last = rows[rows.length - 1];
+  return { afterName: last.sortName ?? last.name.toLowerCase(), afterId: last.id, afterGames: last.gamesTogether ?? 0 };
+}
+
+/** Appends a page, dropping any id already shown (a row that moved between pages while scrolling). */
+export function appendPage<T extends { id: string }>(current: readonly T[], page: readonly T[]): T[] {
+  const seen = new Set(current.map((row) => row.id));
+  return [...current, ...page.filter((row) => !seen.has(row.id))];
+}
+
+/** The A–Z heading a name files under: its first letter, or # for digits and symbols. */
+export function sectionLetter(name: string): string {
+  const first = (name ?? '').trim().charAt(0).toUpperCase();
+  return /^[A-Z]$/.test(first) ? first : first ? (/^\p{L}$/u.test(first) ? first : '#') : '#';
+}
+
+export type PlayerSection<T> = { title: string; data: T[] };
+
+/**
+ * A–Z sections for the alphabetical sort: one section per first letter in list order, "#"
+ * for names that start with a digit or symbol. The owner (pinned first) goes under "You".
+ */
+export function sectionsByLetter<T extends { id: string; name: string }>(players: readonly T[], ownerId?: string | null): PlayerSection<T>[] {
+  const sections: PlayerSection<T>[] = [];
+  for (const player of players) {
+    const title = ownerId && player.id === ownerId ? 'You' : sectionLetter(player.name);
+    const last = sections[sections.length - 1];
+    if (last && last.title === title) last.data.push(player);
+    else sections.push({ title, data: [player] });
+  }
+  return sections;
+}
+
+/** The list reached its end: ask for the next page unless there is none or one is already on its way. */
+export function shouldLoadMore(hasMore: boolean, loading: boolean): boolean {
+  return hasMore && !loading;
+}
+
+/**
+ * While the user types, the rows already on the phone that match show at once; when the
+ * server answers, its rows (which may include people not loaded yet) replace them, with any
+ * local-only match kept so nothing the user could see disappears.
+ */
+export function mergeSearchResults<T extends { id: string }>(local: readonly T[], server: readonly T[] | null): T[] {
+  if (!server) return [...local];
+  const seen = new Set(server.map((row) => row.id));
+  return [...server, ...local.filter((row) => !seen.has(row.id))];
+}

@@ -14,6 +14,7 @@ import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
+import { mergeSearchResults, MY_PLAYERS_SEARCH_DEBOUNCE_MS } from '@/utils/myPlayersList';
 import { takePlayersToCheck } from '@/utils/pendingPlayer';
 import { DEFAULT_POINTS_RULES, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
 import { Candidate, CandidateSort, newGameGrid, newGameSeats, orderCandidates, PICKER_PREFETCH, pinOrganiser } from '@/utils/playerIdentity';
@@ -119,6 +120,8 @@ export default function NewGame() {
   const [choices, setChoices] = useState<ConflictChoices>({});
   const [fixError, setFixError] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  /** 030: people beyond the recent-first page who match what is typed, from the server. */
+  const [found, setFound] = useState<Candidate[] | null>(null);
   const [staged, setStaged] = useState<Pick[]>([]);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<CandidateSort>('frequent');
@@ -184,6 +187,22 @@ export default function NewGame() {
   // Leaving without starting (or returning) forgets the draft.
   useEffect(() => () => newGameDraft.clear(), []);
 
+  // The picker holds the recent-first page (100). Typing asks the server for anyone else in My players who matches.
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!me || !trimmed) { setFound(null); return; }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const rows = await playersService.searchMyPlayers(me.id, trimmed);
+        if (!cancelled) setFound(rows.map((row) => ({ id: row.id, name: row.name, playerCode: row.playerCode, status: row.status, totalGames: row.gamesTogether ?? 0, lastPlayedAt: null })));
+      } catch {
+        if (!cancelled) setFound(null);
+      }
+    }, MY_PLAYERS_SEARCH_DEBOUNCE_MS);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [query, me]);
+
   const savedIds = useMemo(() => new Set(saved.map((p) => p.id)), [saved]);
   const selected = useMemo(() => [...saved, ...staged.filter((p) => !savedIds.has(p.id))], [saved, staged, savedIds]);
   const selectedIds = selected.map((p) => p.id);
@@ -197,7 +216,7 @@ export default function NewGame() {
   const list = useMemo(() => {
     const others = meCandidate ? candidates.filter((c) => c.id !== meCandidate.id) : candidates;
     const pool = query.trim()
-      ? others.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query))
+      ? mergeSearchResults(others.filter((c) => matchesMyPlayer({ name: c.name, playerCode: c.playerCode }, query)), found?.filter((c) => c.id !== meCandidate?.id) ?? null)
       : others;
     // The whole remaining list (not a ten-row page): the organiser scrolls and searches instead of picking to reveal more.
     const grid = newGameGrid(orderCandidates(pool, sort), selectedIds, PICKER_PREFETCH);
@@ -206,7 +225,7 @@ export default function NewGame() {
     // Mid-game, an organiser who is in the game as a non-playing admin or viewer cannot be seated from here (parked: P3).
     const meWatching = Boolean(addMode && game && me && (game.spectators?.includes(me.id) || game.unseatedAdminIds?.includes(me.id)));
     return pinOrganiser(grid, meWatching ? null : meCandidate, selectedIds, meMatches);
-  }, [candidates, selectedIds, meCandidate, query, sort, addMode, game, me]);
+  }, [candidates, found, selectedIds, meCandidate, query, sort, addMode, game, me]);
 
   const pick = (c: Pick) => {
     if (atCap) return;

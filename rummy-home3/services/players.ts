@@ -4,7 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { Player } from '@/types/player';
 import { isEphemeralTestEmail } from '@/utils/playerFilters';
-import { playerSearchMode } from '@/utils/playerSearch';
+import { matchesMyPlayer, playerSearchMode } from '@/utils/playerSearch';
+import { MY_PLAYERS_PAGE_SIZE, MY_PLAYERS_SEARCH_LIMIT, MyPlayersCursor, MyPlayersSort, sortMyPlayers } from '@/utils/myPlayersList';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { queryCache } from '@/utils/queryCache';
 import { assignInitials, initialsProblem, normalizeInitials } from '@/utils/initials';
@@ -17,6 +18,11 @@ const ROSTER_KEY = 'myPlayersRoster';
 const MY_PLAYERS_KEY = (ownerId: string) => `myPlayers:${ownerId}`;
 /** How long a list_my_players answer serves the tab bar count and the My Players screen before it is asked again. */
 export const MY_PLAYERS_STALE_MS = 30_000;
+/** Whether the server has the 030 paging functions; unknown until the first call, then remembered for the session. */
+let supportsPaging: boolean | null = null;
+
+/** A My players row from the paged list or the search (030): a Player plus the server's sort key and status. */
+export type PagedPlayer = Player & { sortName?: string };
 
 type RosterRow = {
   ownerId: string;
@@ -145,11 +151,15 @@ export function rosterChanged(mine: RosterRow[], players: Player[]): boolean {
  * blob of every owner's players) is skipped when nothing changed, which is the usual
  * case on every tab change.
  */
-async function rememberMyPlayers(ownerId: string, players: Player[]): Promise<void> {
+async function rememberMyPlayers(ownerId: string, players: Player[], options: { partial?: boolean } = {}): Promise<void> {
   const rows = await readRoster();
   const mine = rows.filter((row) => row.ownerId === ownerId && isActive(row));
-  if (!rosterChanged(mine, players)) return;
-  const others = rows.filter((row) => row.ownerId !== ownerId);
+  if (!options.partial && !rosterChanged(mine, players)) return;
+  // A first page (030) refreshes the rows it holds and keeps the rest of the offline copy.
+  const shown = new Set(players.map((player) => player.id));
+  const others = options.partial
+    ? rows.filter((row) => row.ownerId !== ownerId || !shown.has(row.playerId))
+    : rows.filter((row) => row.ownerId !== ownerId);
   await writeRoster([
     ...others,
     ...players.map((player: Player) => ({
@@ -321,6 +331,65 @@ export const playersService = {
       await rememberMyPlayers(ownerId, players);
       return players;
     }, { staleTime: MY_PLAYERS_STALE_MS });
+  },
+
+  /**
+   * 030: one page of My players in the order the screen shows. On a server without 030 (or
+   * locally) the whole list is sliced the same way, so the screen needs no second path.
+   */
+  async listMyPlayersPage(ownerId: string, sort: MyPlayersSort, cursor: MyPlayersCursor, pageSize = MY_PLAYERS_PAGE_SIZE): Promise<PagedPlayer[]> {
+    if (isSupabaseConfigured && supportsPaging !== false) {
+      const rpc = await withTimeout(
+        supabase.rpc('list_my_players_page', {
+          p_sort: sort, p_limit: pageSize,
+          p_after_name: cursor?.afterName ?? null, p_after_id: cursor?.afterId ?? null, p_after_games: cursor?.afterGames ?? null,
+        }),
+        REQUEST_TIMEOUT_MS,
+        'Couldn’t load your players.',
+      );
+      if (!rpc.error) {
+        supportsPaging = true;
+        const rows = (rpc.data ?? []) as any[];
+        const page = rows.map((row) => ({ ...myPlayerFromRow(row), status: row.player_status ?? undefined, sortName: row.sort_name ?? undefined }));
+        if (!cursor) await rememberMyPlayers(ownerId, page, { partial: page.length >= pageSize });
+        return page;
+      }
+      if (!missingRpc(rpc.error)) throw rpc.error;
+      supportsPaging = false;
+    }
+    const all = sortMyPlayers(await this.listMyPlayers(ownerId), sort).map((player) => ({ ...player, sortName: player.name.toLowerCase() }));
+    const start = cursor ? all.findIndex((player) => player.id === cursor.afterId) + 1 : 0;
+    return all.slice(start, start + pageSize);
+  },
+
+  /** 030: how many active My players the owner has, for the header. Falls back to the list length. */
+  async countMyPlayers(ownerId: string): Promise<number> {
+    if (isSupabaseConfigured && supportsPaging !== false) {
+      const { data, error } = await supabase.rpc('count_my_players');
+      if (!error && typeof data === 'number') return data;
+      if (error && !missingRpc(error)) throw error;
+    }
+    return (await this.listMyPlayers(ownerId)).length;
+  },
+
+  /**
+   * 030: the owner's My players matching a name part, initials or Player ID, from the server
+   * when it has search_my_players, otherwise from the list on the phone with the same rules.
+   */
+  async searchMyPlayers(ownerId: string, query: string, limit = MY_PLAYERS_SEARCH_LIMIT): Promise<PagedPlayer[]> {
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+    if (isSupabaseConfigured && supportsPaging !== false) {
+      const { data, error } = await withTimeout(
+        supabase.rpc('search_my_players', { p_query: trimmed, p_limit: limit }),
+        REQUEST_TIMEOUT_MS,
+        'Couldn’t search your players.',
+      );
+      if (!error) return ((data ?? []) as any[]).map((row) => ({ ...myPlayerFromRow(row), status: row.player_status ?? undefined }));
+      if (!missingRpc(error)) throw error;
+      supportsPaging = false;
+    }
+    return (await this.listMyPlayers(ownerId)).filter((player) => matchesMyPlayer(player, trimmed)).slice(0, limit);
   },
 
   /** A list_my_players result that arrived inside the home bundle. */
