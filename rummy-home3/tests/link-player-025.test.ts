@@ -101,14 +101,14 @@ test('item 5 fix 1: nothing moves on Send; the owner gets the request; the row r
   assert.equal(registrationLabel('unregistered', true), 'Unregistered', 'only an open request on a pending row reads Link pending');
   assert.equal(seatRegistrationLabel({ status: 'pending' }, true), 'Link pending');
   assert.equal(seatRegistrationLabel({ status: 'pending' }), 'Pending registration');
-  assert.equal(REGISTRATION_TONE['Link pending'], 'leader');
+  assert.equal(REGISTRATION_TONE['Link pending'], REGISTRATION_TONE['Pending registration'], 'Link pending wears the same tone as Pending registration');
   for (const screen of ['app/(tabs)/players.tsx', 'app/(screens)/games/players.tsx']) {
     const text = src(screen);
     assert.match(text, /playerIdentityService\.listLinkRequests\(/, `${screen} lists open requests for the Link pending tag`);
     assert.match(text, /<LinkRequestSentDialog/, `${screen} shows the Request sent pop-up`);
     assert.doesNotMatch(text, /LinkCompleteDialog|onLinked=/, `${screen} no longer links immediately`);
   }
-  assert.match(src('app/(screens)/games/players.tsx'), /registration === 'Link pending' \? 'link-variant'/);
+  assert.match(src('utils/myPlayersList.ts'), /'Link pending': 'link-variant'/, 'Link pending has its own icon');
 });
 
 test('item 5 fix 1: the owner sees the request in-app (Home) and by email, says Yes or No; conflicts re-checked at Yes', () => {

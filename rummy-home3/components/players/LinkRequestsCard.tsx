@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { playerIdentityService } from '@/services/playerIdentity';
 import { Player } from '@/types/player';
 import { LinkOutcome, LinkRequestForMe, linkRequestDetail, linkRequestPrompt } from '@/utils/linkPlayer';

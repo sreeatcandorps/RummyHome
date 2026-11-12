@@ -99,7 +99,7 @@ test('design: tags are one 32 px size and never button green; statuses, roles an
   assert.deepEqual(GAME_STATUS_TONE, { Active: 'primary', Completed: 'info', Closed: 'neutral' });
   assert.equal(ACCESS_TONE.Creator, 'leader');
   assert.equal(ACCESS_TONE.Admin, 'info');
-  assert.deepEqual(REGISTRATION_TONE, { Registered: 'info', 'Pending registration': 'results', Unregistered: 'neutral' });
+  assert.deepEqual(REGISTRATION_TONE, { Registered: 'info', 'Pending registration': 'results', 'Link pending': 'results', Unregistered: 'neutral' });
   assert.deepEqual(Object.keys(REGISTRATION_ICON).sort(), Object.keys(REGISTRATION_TONE).sort());
 });
 
