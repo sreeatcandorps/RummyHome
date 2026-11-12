@@ -139,7 +139,9 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
   assert.ok(!/dealsNext && \{ backgroundColor: colors\.primary \}/.test(table), 'the dealer column is no longer filled button green');
   assert.match(table, /\{signed\(total\)\}/);
   assert.match(table, /color: dealsNext \? colors\.onPrimaryContainer : total < 0 \? colors\.loss : colors\.onSurface/);
-  assert.match(table, /positive && \{ backgroundColor: colors\.winContainer \}/);
+  // Final batch item 5 in the green palette: only a win gets a background (the Clubhouse win tint); no red pill.
+  assert.match(table, /text\.highlight && \{ backgroundColor: colors\.winContainer \}/);
+  assert.doesNotMatch(table, /lossContainer/, 'no red background on a score cell');
   // The memoised row keeps the loss/zero text expression the earlier tests pin.
   assert.match(table, /color: colors\[text\.colorKey\], fontWeight: text\.fontWeight/);
 
@@ -147,7 +149,9 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
   assert.match(scorecard, /footer=\{idFooter\}/);
   assert.match(scorecard, /\{`G\$\{game\.gameNumber\}`\}/);
   const footer = src('components/game/GameIdFooter.tsx');
-  assert.match(footer, /gameOwnerParts\(/);
+  // Item 7: "Game S3", Creator and Admin each on their own line (one Text per line).
+  assert.match(footer, /gameOwnersLines\(/);
+  assert.match(footer, /lines\.map\(\(line, index\) =>/);
   assert.match(footer, /alignItems: 'flex-end'/);
 });
 

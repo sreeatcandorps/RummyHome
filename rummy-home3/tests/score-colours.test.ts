@@ -20,7 +20,7 @@ test('final batch 5: the score colour standard, the same in the app, round entry
 
   const table = src('components/game/ScoreTable.tsx');
   assert.doesNotMatch(table, /errorContainer/, 'no red background anywhere on the scorecard (score cells or the round column)');
-  assert.match(table, /text\.highlight && \{ backgroundColor: colors\.positiveContainer \}/, 'the only background is the win highlight');
+  assert.match(table, /text\.highlight && \{ backgroundColor: colors\.(positiveContainer|winContainer) \}/, 'the only background is the win highlight');
   assert.match(table, /color: colors\.error \}\]\} numberOfLines=\{1\} accessibilityLabel=\{`Round does not add up/, 'a round that does not add up is red text, not a red cell');
 
   for (const rel of ['web/scorecard.html', 'public/scorecard.html']) {
