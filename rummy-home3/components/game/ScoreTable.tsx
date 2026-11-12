@@ -21,6 +21,8 @@ type ScoreTableProps = {
   grandTotal: number;
   dealerLabelForRound: (roundIndex: number) => string | undefined;
   nextDealerId?: string;
+  /** Round indexes that start a new rotation (the first dealer deals again); a divider is drawn above each. */
+  rotationStarts?: number[];
   leaderIds: string[];
   /** Short screens (phone landscape) trade padding for visible rows. */
   compact?: boolean;
@@ -45,6 +47,8 @@ type ScoreRowProps = {
   cells: (number | undefined)[];
   isLatest: boolean;
   stripe: boolean;
+  /** One full rotation ended above this row: draw the round-robin divider. */
+  rotationStart: boolean;
   columnWidth: number;
   rowHeight: number;
   fontSize: number;
@@ -61,7 +65,7 @@ const sameCells = (a: (number | undefined)[], b: (number | undefined)[]) => a.le
  * scores objects on every render), so a reload, a menu or a realtime echo
  * redraws only the rows whose numbers changed, usually just the newest one.
  */
-const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe, columnWidth, rowHeight, fontSize, fullCount, colors }: ScoreRowProps) {
+const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe, rotationStart, columnWidth, rowHeight, fontSize, fullCount, colors }: ScoreRowProps) {
   return (
     <View
       style={[
@@ -72,6 +76,7 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
           borderBottomWidth: StyleSheet.hairlineWidth,
           backgroundColor: isLatest ? colors.tableLatest : stripe ? colors.tableStripe : colors.surface,
         },
+        rotationStart && [styles.rotationDivider, { borderTopColor: colors.primary }],
       ]}
     >
       {columns.map((column, index) => {
@@ -117,6 +122,7 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
 }, (prev, next) =>
   prev.isLatest === next.isLatest
   && prev.stripe === next.stripe
+  && prev.rotationStart === next.rotationStart
   && prev.columnWidth === next.columnWidth
   && prev.rowHeight === next.rowHeight
   && prev.fontSize === next.fontSize
@@ -134,11 +140,13 @@ export function ScoreTable({
   grandTotal,
   dealerLabelForRound,
   nextDealerId,
+  rotationStarts,
   leaderIds,
   compact = false,
   fullCount,
   emptyMessage,
 }: ScoreTableProps) {
+  const rotationStartSet = useMemo(() => new Set(rotationStarts ?? []), [rotationStarts]);
   const theme = useAppTheme();
   const { colors } = theme;
   const [tableWidth, setTableWidth] = useState(0);
@@ -259,9 +267,11 @@ export function ScoreTable({
             const dealer = dealerLabelForRound(roundIndex);
             const offBy = roundTotals[roundIndex] ?? 0;
             const isLatest = roundIndex === roundCount - 1;
+            const rotationStart = rotationStartSet.has(roundIndex);
             return (
               <View
                 key={roundIndex}
+                accessibilityLabel={rotationStart ? `Round ${roundIndex + 1}, new rotation` : undefined}
                 style={[
                   styles.cell,
                   styles.roundCell,
@@ -272,6 +282,7 @@ export function ScoreTable({
                     borderBottomColor: colors.hairline,
                     backgroundColor: isLatest ? colors.tableLatest : colors.tableHeader,
                   },
+                  rotationStart && [styles.rotationDivider, { borderTopColor: colors.primary }],
                 ]}
               >
                 <Text style={[styles.roundText, tabularNums, { fontSize: fontSize - 1, color: colors.onSurface }]}>
@@ -308,6 +319,7 @@ export function ScoreTable({
                 cells={columns.map((column) => scores[column.id]?.[roundIndex])}
                 isLatest={roundIndex === roundCount - 1}
                 stripe={roundIndex % 2 === 1}
+                rotationStart={rotationStartSet.has(roundIndex)}
                 columnWidth={columnWidth}
                 rowHeight={rowHeight}
                 fontSize={fontSize}
@@ -397,6 +409,10 @@ const styles = StyleSheet.create({
   },
   roundCell: {
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  // The round-robin line: one full rotation ended above this row.
+  rotationDivider: {
+    borderTopWidth: 2,
   },
   headerLabelRow: {
     flexDirection: 'row',

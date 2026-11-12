@@ -38,6 +38,8 @@ export type Game = {
   completedAt?: string | null;
   /** Local (no Supabase) games only: column label per seat, fixed at seat time. Server games carry it on the seat row. */
   labels?: Record<string, string>;
+  /** Who dealt each saved round, by round index (031). Missing before 031; the seat-order rule fills in. */
+  dealerIds?: (string | null | undefined)[];
   /** Soft delete (023). A deleted game is gone for everyone until restored; only the id, number and this stamp are readable. */
   deletedAt?: string | null;
   deletedBy?: string | null;

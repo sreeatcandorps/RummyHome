@@ -1,4 +1,5 @@
 import { gameTitle } from '@/utils/gameLabel';
+import { dealerForRound, nextDealer, rotationStarts } from '@/utils/dealerRotation';
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Button, Text, Dialog, Menu, Portal, Snackbar } from 'react-native-paper';
@@ -309,9 +310,11 @@ export default function GameScreen() {
   const initialsFor = (playerId: string) => labelById.get(playerId) ?? '?';
 
   const seats = players;
-  const dealerIdForRound = (roundIndex: number) =>
-    seats.length ? seats[roundIndex % seats.length]?.id : undefined;
-  const nextDealerId = game.isComplete ? undefined : dealerIdForRound(maxRounds);
+  // 031: the deal follows the actual rotation (stored per round); a player added mid-game lengthens the next rotation.
+  const rotation = { players: seats.map((seat) => seat.id), dealerIds: game.dealerIds };
+  const dealerIdForRound = (roundIndex: number) => dealerForRound(rotation, roundIndex);
+  const nextDealerId = game.isComplete ? undefined : nextDealer(rotation, maxRounds);
+  const rotationStartRounds = rotationStarts(rotation, maxRounds);
 
   const colorFor = (playerId: string) => seatColor(seats.findIndex((seat) => seat.id === playerId));
 
@@ -356,6 +359,7 @@ export default function GameScreen() {
         return dealerId ? initialsFor(dealerId) : undefined;
       }}
       nextDealerId={nextDealerId}
+      rotationStarts={rotationStartRounds}
       leaderIds={leaderIds}
       compact={isShort}
       fullCount={game.settings?.maxCount}

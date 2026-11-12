@@ -21,6 +21,7 @@
     th .total { display: block; font-size: 16px; font-weight: 800; }
     td.pos { color: #0E7A43; font-weight: 700; background: #E6F4EA; }
     td.big { color: #B3261E; }
+    tr.rotation td { border-top: 2px solid #0E7A43; }
     tfoot td.neg { color: #8C2F2F; }
     .msg { padding: 24px; }
   </style>
@@ -98,13 +99,17 @@
       // The scorecard standard: a win green, a penalty of more than half the Full count red text, the rest plain.
       const maxCount = Math.abs(Number(card.maxCount) || 0);
       const bigLoss = maxCount ? Math.floor(maxCount / 2) + 1 : null;
-      const body = roundList.map((round) => {
+      // 031: a divider above each round where the first dealer deals again (one full rotation done).
+      const dealers = card.dealers || {};
+      const firstDealer = roundList.length ? dealers[String(roundList[0])] : null;
+      const body = roundList.map((round, index) => {
         const cells = grid.map((row) => {
           const value = row[round] || 0;
           const cls = value > 0 ? 'pos' : (bigLoss !== null && value <= -bigLoss) ? 'big' : '';
           return '<td class="' + cls + '">' + (value > 0 ? '+' + value : value) + '</td>';
         }).join('');
-        return '<tr><td>' + round + '</td>' + cells + '</tr>';
+        const rotation = index > 0 && firstDealer && dealers[String(round)] === firstDealer ? ' class="rotation"' : '';
+        return '<tr' + rotation + '><td>' + round + '</td>' + cells + '</tr>';
       }).join('');
       const totalCells = totals.map((value) => '<td class="' + (value > 0 ? 'pos' : value < 0 ? 'neg' : '') + '">' + (value > 0 ? '+' + value : value) + '</td>').join('');
       const sum = totals.reduce((total, value) => total + value, 0);

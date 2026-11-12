@@ -22,7 +22,34 @@ export type GameBundle = {
   game: Record<string, any>;
   game_players: BundleSeatRow[];
   scores: BundleScoreRow[];
+  /** 031: round number -> dealer profile id for every live round (absent on a database before 031). */
+  dealers?: Record<string, string | null>;
 };
+
+/** `Game.dealerIds` (by round index) from a 031 bundle's dealers or legacy `rounds(dealer_profile_id)` score rows. */
+export function dealerIdsFrom(
+  dealers: Record<string, string | null> | null | undefined,
+  scores?: { rounds?: { round_number?: number; undone_at?: string | null; dealer_profile_id?: string | null } | null }[],
+): (string | null)[] | undefined {
+  const out: (string | null)[] = [];
+  let any = false;
+  const put = (roundNumber: unknown, dealer: unknown) => {
+    const n = Number(roundNumber);
+    if (!Number.isInteger(n) || n < 1 || n >= 1000) return;
+    any = true;
+    while (out.length < n) out.push(null);
+    out[n - 1] = typeof dealer === 'string' ? dealer : null;
+  };
+  if (dealers && typeof dealers === 'object') {
+    for (const [round, dealer] of Object.entries(dealers)) put(round, dealer);
+  } else if (scores) {
+    for (const row of scores) {
+      if (!row.rounds || row.rounds.undone_at || !('dealer_profile_id' in row.rounds)) continue;
+      put(row.rounds.round_number, row.rounds.dealer_profile_id);
+    }
+  }
+  return any ? out : undefined;
+}
 
 export type ResultCandidate = {
   game: Record<string, any>;

@@ -21,7 +21,8 @@ import { createUuid, isUuid } from '@/utils/uuid';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 import { localGameGuard, localRoundsGuard } from '@/utils/guardrails';
-import { BundleSeatRow, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
+import { BundleSeatRow, dealerIdsFrom, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
+import { nextDealer, withDealer } from '@/utils/dealerRotation';
 import { queryCache } from '@/utils/queryCache';
 import { normalizeInitials } from '@/utils/initials';
 
@@ -93,6 +94,7 @@ export const legacyGameFromServer = (
   game: any,
   scores: any[] = [],
   gamePlayers: any[] = [],
+  dealers?: Record<string, string | null> | null,
 ): Game => {
   const memberships = [...gamePlayers].sort((a, b) => (a.player_order ?? 0) - (b.player_order ?? 0));
   const seated = memberships.filter((membership) => membership.role !== 'spectator' && membership.seated !== false);
@@ -133,6 +135,7 @@ export const legacyGameFromServer = (
     unseatedAdminIds: memberships
       .filter((membership) => membership.role === 'game_admin' && membership.seated === false)
       .map((membership) => membership.profile_id),
+    dealerIds: dealerIdsFrom(dealers, scores),
     gameNumber: game.game_number ?? null,
     gameLabel: game.game_label ?? null,
     closedAt: game.closed_at ?? null,
@@ -179,7 +182,7 @@ export const seatFromMembership = (membership: any): Player => ({
 
 /** A game bundle (020) as the Game the mapper builds from the three legacy selects. */
 export const gameFromBundle = (bundle: GameBundle): Game =>
-  legacyGameFromServer(bundle.game, legacyScoreRows(bundle.scores), bundle.game_players ?? []);
+  legacyGameFromServer(bundle.game, legacyScoreRows(bundle.scores), bundle.game_players ?? [], bundle.dealers);
 
 /** Seats of a bundle, in player_order, as listGamePlayers returns them. */
 export const seatsFromBundle = (rows: BundleSeatRow[] | null | undefined): Player[] =>
@@ -559,7 +562,7 @@ export const gamesService = {
       await Promise.all([
         supabase.from('games').select('*').eq('id', gameId).maybeSingle(),
         supabase.from('game_players').select('*').eq('game_id', gameId).order('player_order', { ascending: true }),
-        supabase.from('scores').select('*, rounds(round_number, undone_at)').eq('game_id', gameId),
+        supabase.from('scores').select('*, rounds(round_number, undone_at, dealer_profile_id)').eq('game_id', gameId),
       ]);
 
     if (gameError) throw gameError;
@@ -772,7 +775,11 @@ export const gamesService = {
         updatedScores[key][roundIndex] = score.value;
       });
 
-      const updatedGame = { ...game, scores: updatedScores, currentRound: input.roundNumber + 1 };
+      // A new round is dealt by the seat after the last dealer; an edited round keeps its dealer.
+      const dealerIds = roundIndex >= liveRounds || !game.dealerIds?.[roundIndex]
+        ? withDealer(game.dealerIds, roundIndex, nextDealer(game, roundIndex))
+        : game.dealerIds;
+      const updatedGame = { ...game, scores: updatedScores, currentRound: input.roundNumber + 1, dealerIds };
       await storage.updateGame(updatedGame);
       return updatedGame;
     }
