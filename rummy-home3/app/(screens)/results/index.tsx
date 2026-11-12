@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View } from 'react-native';
-import { Button, Chip, Dialog, Icon, Portal, Text, TouchableRipple } from 'react-native-paper';
+import { Chip, Dialog, Icon, Portal, Text, TouchableRipple } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect } from 'expo-router';
 import { GameListItem } from '@/components/ui/GameListItem';
 import { LoadingRows } from '@/components/ui/LoadingRows';
@@ -68,7 +69,7 @@ function PastResult({ item }: { item: GameResultSummary }) {
         <View style={styles.pastInner}>
           <View style={styles.winner} accessibilityLabel={`Winner ${rows[0]?.name ?? ''}`}>
             <Icon source="crown" size={18} color={colors.secondary} />
-            <SeatAvatar name={rows[0]?.name ?? '?'} label={winnerInitials(item.top)} color={colors.primary} size={44} />
+            <SeatAvatar name={rows[0]?.name ?? '?'} label={winnerInitials(item.top)} size={44} />
           </View>
           <View style={styles.pastBody}>
             <Text variant="titleSmall" style={styles.left} numberOfLines={1}>{formatGameDateTime(item.declaredAt)}</Text>
@@ -84,7 +85,7 @@ function PastResult({ item }: { item: GameResultSummary }) {
                 <View key={`${row.label}-${row.name}`} style={styles.placeRow}>
                   <Text variant="bodyLarge" style={[styles.placeLabel, { color: colors.onSurfaceVariant }]}>{row.label}</Text>
                   <Text variant="bodyLarge" style={styles.placeName} numberOfLines={1}>{row.name}</Text>
-                  <Text variant="bodyLarge" style={[tabularNums, styles.placePoints, { color: row.points.startsWith('-') ? colors.negative : colors.positive }]}>{row.points}</Text>
+                  <Text variant="bodyLarge" style={[tabularNums, styles.placePoints, { color: row.points.startsWith('-') ? colors.loss : colors.onSurface }]}>{row.points}</Text>
                 </View>
               ))
             )}

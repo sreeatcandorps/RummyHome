@@ -70,7 +70,7 @@ export function ResultsPage({
                   <Text variant="bodyLarge" style={styles.totalNameText} numberOfLines={1}>{row.name}</Text>
                   <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{totalsSubline(initials.get(row.id), byId.get(row.id))}</Text>
                 </View>
-                <Text variant="bodyLarge" numberOfLines={1} style={[tabularNums, styles.totalPoints, { color: colors.primary }]}>
+                <Text variant="bodyLarge" numberOfLines={1} style={[tabularNums, styles.totalPoints, { color: colors.onSurface }]}>
                   {formatPoints(row.points)}
                 </Text>
               </View>
@@ -83,7 +83,7 @@ export function ResultsPage({
                   <Text variant="bodyLarge" style={styles.totalNameText} numberOfLines={1}>{row.name}</Text>
                   <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{totalsSubline(initials.get(row.id), byId.get(row.id))}</Text>
                 </View>
-                <Text variant="bodyLarge" numberOfLines={1} style={[tabularNums, styles.totalPoints, { color: colors.error }]}>
+                <Text variant="bodyLarge" numberOfLines={1} style={[tabularNums, styles.totalPoints, { color: colors.loss }]}>
                   {formatPoints(row.points)}
                 </Text>
               </View>
@@ -155,8 +155,11 @@ const styles = StyleSheet.create({
   totalNameText: {
     fontWeight: '600',
   },
+  // Totals are the biggest numbers on the page and near-black, not green (Sree, Nov 12).
   totalPoints: {
     fontWeight: '800',
+    fontSize: 26,
+    lineHeight: 32,
   },
   places: {
     gap: spacing.sm,

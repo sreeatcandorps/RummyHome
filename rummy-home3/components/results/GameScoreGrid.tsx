@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PixelRatio, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import { brand, spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { playerIdBadge } from '@/utils/gamePlayers';
 import { longestScoreChars, sheetGameLabel, playersByFirstName, resultsColumnWidths, scoreCell } from '@/utils/results';
 
@@ -44,8 +44,9 @@ export function GameScoreGrid({
 
   const scoreLook = (text: string) => {
     if (text === '—') return { color: colors.onSurfaceVariant };
-    if (text.startsWith('-')) return { color: colors.error };
-    return { color: colors.primary };
+    if (text.startsWith('-')) return { color: colors.loss };
+    // Wins are near-black, never green: the button green belongs to buttons.
+    return { color: colors.onSurface };
   };
 
   const isWeb = Platform.OS === 'web';
@@ -53,26 +54,26 @@ export function GameScoreGrid({
 
   const table = (
     <View style={{ width: Math.max(contentWidth, frameWidth) }} testID="results-grid">
-      <View style={[styles.headerLine, { height: HEADER_H, borderBottomColor: colors.outlineVariant, backgroundColor: brand.felt }]}>
-        <View style={[styles.corner, styles.stuckLeft, { width: nameWidth, borderRightColor: colors.outlineVariant, backgroundColor: brand.felt }]}>
-          <Text variant="labelLarge" style={styles.cornerText}>Player</Text>
+      <View style={[styles.headerLine, { height: HEADER_H, borderBottomColor: colors.outlineVariant, backgroundColor: colors.primaryContainer }]}>
+        <View style={[styles.corner, styles.stuckLeft, { width: nameWidth, borderRightColor: colors.outlineVariant, backgroundColor: colors.primaryContainer }]}>
+          <Text variant="labelLarge" style={[styles.cornerText, { color: colors.onPrimaryContainer }]}>Player</Text>
         </View>
         {games.map((game, index) => (
           <View
             key={game.id}
             testID={`col-${index + 1}`}
             accessibilityLabel={`${sheetGameLabel(game)}${game.when ? `, started ${game.when}` : ''}`}
-            style={[styles.headCell, { width: scoreWidths[index], backgroundColor: brand.felt }]}
+            style={[styles.headCell, { width: scoreWidths[index], backgroundColor: colors.primaryContainer }]}
           >
-            <Text numberOfLines={1} style={styles.headLabel}>{sheetGameLabel(game)}</Text>
-            <Text numberOfLines={1} style={styles.headSmall}>{game.when}</Text>
+            <Text numberOfLines={1} style={[styles.headLabel, { color: colors.onPrimaryContainer }]}>{sheetGameLabel(game)}</Text>
+            <Text numberOfLines={1} style={[styles.headSmall, { color: colors.onPrimaryContainer }]}>{game.when}</Text>
           </View>
         ))}
         <View
           testID="col-Total"
-          style={[styles.headCell, styles.stuckRight, styles.totalEdge, { width: scoreWidths[games.length], backgroundColor: brand.felt, borderLeftColor: colors.outlineVariant }]}
+          style={[styles.headCell, styles.stuckRight, styles.totalEdge, { width: scoreWidths[games.length], backgroundColor: colors.primaryContainer, borderLeftColor: colors.outlineVariant }]}
         >
-          <Text numberOfLines={1} style={styles.headLabel}>Total</Text>
+          <Text numberOfLines={1} style={[styles.headLabel, { color: colors.onPrimaryContainer }]}>Total</Text>
         </View>
       </View>
       {rows.map((player, index) => (
@@ -154,7 +155,6 @@ const styles = StyleSheet.create({
     borderRightWidth: StyleSheet.hairlineWidth,
   },
   cornerText: {
-    color: brand.cream,
     fontWeight: '800',
   },
   headCell: {
@@ -164,14 +164,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xs,
   },
   headLabel: {
-    color: brand.cream,
     fontWeight: '800',
     fontSize: 13,
     lineHeight: 16,
     textAlign: 'right',
   },
   headSmall: {
-    color: brand.cream,
     fontSize: 8,
     lineHeight: 10,
     letterSpacing: -0.2,
@@ -205,7 +203,7 @@ const styles = StyleSheet.create({
   },
   scoreText: {
     fontWeight: '700',
-    fontSize: 13,
+    fontSize: 15,
     textAlign: 'right',
   },
   // Sticky edges only exist on web; on phones they would pull cells out of the row.

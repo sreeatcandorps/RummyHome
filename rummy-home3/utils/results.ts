@@ -420,8 +420,8 @@ export const RESULTS_TOTAL_COL = 54;
  */
 export const RESULTS_NAME_MIN = 96;
 
-/** Roughly one bold tabular digit at the table's 13px, plus the cell padding. */
-const SCORE_CHAR_PX = 8;
+/** Roughly one bold tabular digit at the table's 15px, plus the cell padding. */
+const SCORE_CHAR_PX = 9;
 const SCORE_CELL_PAD = 10;
 
 /**
