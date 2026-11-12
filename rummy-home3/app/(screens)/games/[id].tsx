@@ -34,7 +34,6 @@ import { editableRounds } from '@/utils/editRound';
 import { Tag } from '@/components/ui/Tag';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
-import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
 import { rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame } from '@/utils/gameStatus';
 
@@ -64,8 +63,6 @@ export default function GameScreen() {
   const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
   const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
   const [editRoundOpen, setEditRoundOpen] = useState(false);
-  const [registerOpen, setRegisterOpen] = useState(false);
-  const [viewer, setViewer] = useState<Player | null>(null);
   const [linkNote, setLinkNote] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -439,13 +436,6 @@ export default function GameScreen() {
                 {canScore && !game.isComplete ? (
                   <Menu.Item leadingIcon="pencil-outline" title="Edit round" disabled={maxRounds === 0} onPress={() => { setMenuOpen(false); setEditRoundOpen(true); }} />
                 ) : null}
-                {canScore ? (
-                  <Menu.Item leadingIcon="account-check-outline" title="Register players" onPress={async () => {
-                    setMenuOpen(false);
-                    setViewer(await authService.getCurrentPlayer());
-                    setRegisterOpen(true);
-                  }} />
-                ) : null}
                 {canScore && canReopenGame(game) ? (
                   <Menu.Item leadingIcon="lock-open-variant-outline" title="Reopen game" onPress={() => { setMenuOpen(false); setShowReopenConfirm(true); }} />
                 ) : null}
@@ -607,13 +597,6 @@ export default function GameScreen() {
           const updated = await gamesService.updateGameRules(game.id, rules);
           if (updated) setGame(updated);
         }}
-      />
-      <RegisterPlayersDialog
-        visible={registerOpen}
-        me={viewer}
-        gameId={game.id}
-        gameNumbers={game.gameNumber ? [game.gameNumber] : []}
-        onDismiss={() => { setRegisterOpen(false); loadGameData(); }}
       />
     </View>
   );

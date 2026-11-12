@@ -58,7 +58,10 @@ test('From database lets the organiser add themselves to a new game; picker and 
 test('My players: three actions side by side, the registered-only note lives in help, Add new players starts in row 1', () => {
   const tab = read('app/(tabs)/players.tsx');
   assert.equal((tab.match(/<ActionTile/g) ?? []).length, 3);
-  assert.match(tab, /label="Register unregistered players"/);
+  assert.match(tab, /`Unregistered · \$\{openCount\}`/, 'the third tile is the unregistered count and filters the list');
+  assert.doesNotMatch(tab, /RegisterPlayersDialog|Register unregistered players/, 'the Register popup is gone');
+  assert.doesNotMatch(tab, /numColumns/, 'one row per player');
+  assert.match(tab, /<PlayerActionMenu/, 'the unified ⋮ menu on each row');
   assert.doesNotMatch(tab, /PLAYERS_NOTE/, 'the banner above the list is gone');
   const help = read('constants/help.ts');
   assert.match(help, /players: bullets\([\s\S]*PLAYERS_NOTE,/, 'the note is a My players help bullet');

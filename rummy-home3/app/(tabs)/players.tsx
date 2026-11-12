@@ -1,6 +1,14 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { Button, Chip, Dialog, Icon, Portal, Searchbar, Text, TouchableRipple } from 'react-native-paper';
+import { SeatAvatar } from '@/components/ui/SeatAvatar';
+import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
+import { LinkPlayerDialog } from '@/components/players/LinkPlayerDialog';
+import { LinkCompleteDialog } from '@/components/players/LinkCompleteDialog';
+import { InviteToRegisterDialog } from '@/components/players/InviteToRegisterDialog';
+import { EditNameDialog } from '@/components/players/EditNameDialog';
+import { myPlayerMenu, SeatMenu, SeatMenuItem } from '@/utils/gamePlayers';
+import { LinkOutcome } from '@/utils/linkPlayer';
 import { ActionTile } from '@/components/ui/ActionTile';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
@@ -10,6 +18,7 @@ import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, playerIdBadge, registrationLabel, REGISTRATION_TONE, SORT_CHIP, SORT_OPTIONS, sortMyPlayers, withOwnerFirst } from '@/utils/myPlayersList';
+import { seatColor } from '@/constants/theme';
 import { shareInvite } from '@/utils/invite';
 import { Screen } from '@/components/ui/Screen';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -18,42 +27,62 @@ import { BoldName } from '@/components/ui/BoldName';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { Tag } from '@/components/ui/Tag';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
-import { RegisterPlayersDialog } from '@/components/players/RegisterPlayersDialog';
 import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { playerIdentityService } from '@/services/playerIdentity';
 import { assignInitials, initialsFitName, NAME_CHANGED_NOTE } from '@/utils/initials';
 
-type PlayerCardProps = { player: Player; status: ReturnType<typeof registrationLabel>; isMe: boolean; initials?: string; nameChanged: boolean; onPress: (player: Player) => void };
+type PlayerCardProps = {
+  player: Player;
+  status: ReturnType<typeof registrationLabel>;
+  isMe: boolean;
+  index: number;
+  initials?: string;
+  nameChanged: boolean;
+  menu: SeatMenu;
+  menuOpen: boolean;
+  onPress: (player: Player) => void;
+  onMenuOpen: (player: Player) => void;
+  onMenuDismiss: () => void;
+  onMenuSelect: (item: SeatMenuItem, player: Player) => void;
+};
 
-/** One roster tile. Memoised: typing in the search box redraws only tiles whose inputs changed. */
-const PlayerCard = React.memo(function PlayerCard({ player, status, isMe, initials, nameChanged, onPress }: PlayerCardProps) {
+/** One row per player: letters, name, Player ID, status, and the unified ⋮ menu. Memoised: typing in the search box redraws only rows whose inputs changed. */
+const PlayerCard = React.memo(function PlayerCard({ player, status, isMe, index, initials, nameChanged, menu, menuOpen, onPress, onMenuOpen, onMenuDismiss, onMenuSelect }: PlayerCardProps) {
   const { colors } = useAppTheme();
   const badge = playerIdBadge(player);
   return (
-    <TouchableRipple
-      onPress={() => onPress(player)}
-      style={[styles.card, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}
-      accessibilityRole="button"
-      accessibilityLabel={`${player.name}, ${initials ? `initials ${initials}, ` : ''}${badge ?? 'no player ID yet'}, ${status.toLowerCase()}${nameChanged ? ', name changed' : ''}`}
-    >
-      <View style={styles.cardInner}>
-        <BoldName name={player.name} numberOfLines={2} style={styles.cardName} />
-        <View style={styles.cardMeta}>
-          {initials ? (
-            <View style={[styles.idBadge, { borderColor: nameChanged ? colors.error : colors.primary, backgroundColor: nameChanged ? colors.errorContainer : colors.primaryContainer }]}>
-              <Text variant="labelSmall" style={[styles.idText, { color: nameChanged ? colors.onErrorContainer : colors.onPrimaryContainer }]}>{initials}</Text>
+    <View style={[styles.card, { borderBottomColor: colors.outlineVariant }]} testID={`my-player-row-${player.id}`}>
+      <TouchableRipple
+        onPress={() => onPress(player)}
+        style={styles.cardPress}
+        accessibilityRole="button"
+        accessibilityLabel={`${player.name}, ${initials ? `initials ${initials}, ` : ''}${badge ?? 'no player ID yet'}, ${status.toLowerCase()}${nameChanged ? ', name changed' : ''}`}
+      >
+        <View style={styles.cardInner}>
+          <SeatAvatar name={player.name} label={initials} color={seatColor(index)} size={36} />
+          <View style={styles.flex}>
+            <BoldName name={player.name} numberOfLines={1} style={styles.cardName} />
+            <View style={styles.cardMeta}>
+              {badge ? (
+                <View style={[styles.idBadge, { borderColor: colors.outline }]}>
+                  <Text variant="labelSmall" style={[styles.idText, { color: colors.onSurfaceVariant }]}>{badge}</Text>
+                </View>
+              ) : null}
+              {isMe ? <Tag label="You" tone="primary" small /> : null}
+              {nameChanged ? <Tag label="Name changed" tone="results" small icon="alert-outline" /> : <Tag label={status} tone={REGISTRATION_TONE[status]} small />}
             </View>
-          ) : null}
-          {badge ? (
-            <View style={[styles.idBadge, { borderColor: colors.outline }]}>
-              <Text variant="labelSmall" style={[styles.idText, { color: colors.onSurfaceVariant }]}>{badge}</Text>
-            </View>
-          ) : null}
-          {isMe ? <Tag label="You" tone="primary" /> : null}
-          {nameChanged ? <Tag label="Name changed" tone="results" small icon="alert-outline" /> : <Tag label={status} tone={REGISTRATION_TONE[status]} small />}
+          </View>
         </View>
-      </View>
-    </TouchableRipple>
+      </TouchableRipple>
+      <PlayerActionMenu
+        name={player.name}
+        items={menu}
+        visible={menuOpen}
+        onOpen={() => onMenuOpen(player)}
+        onDismiss={onMenuDismiss}
+        onSelect={(item) => onMenuSelect(item, player)}
+      />
+    </View>
   );
 });
 
@@ -70,7 +99,15 @@ export default function PlayersTab() {
   const [selected, setSelected] = useState<Player | null>(null);
   const [removing, setRemoving] = useState(false);
   const [unregistered, setUnregistered] = useState<Record<string, Player>>({});
-  const [registerOpen, setRegisterOpen] = useState(false);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<
+    | { kind: 'invite'; player: Player }
+    | { kind: 'link'; player: Player }
+    | { kind: 'linked'; outcome: LinkOutcome }
+    | { kind: 'edit_name'; player: Player }
+    | null
+  >(null);
+  const [sheetBusy, setSheetBusy] = useState(false);
   const [editingInitials, setEditingInitials] = useState(false);
   const [savingInitials, setSavingInitials] = useState(false);
   const [initialsError, setInitialsError] = useState<string | null>(null);
@@ -124,7 +161,6 @@ export default function PlayersTab() {
     return withOwnerFirst(others, me, Boolean(me) && filter === 'all' && matchesMyPlayer(me as Player, query));
   }, [players, query, filter, sort, statusOf, me]);
   const openCount = useMemo(() => players.filter((player) => statusOf(player) !== 'Registered').length, [players, statusOf]);
-  const unregisteredCount = Object.keys(unregistered).length;
 
   const openRow = useCallback((player: Player) => {
     if (me && player.id === me.id) {
@@ -134,9 +170,9 @@ export default function PlayersTab() {
     setSelected(player);
   }, [me]);
 
-  const remove = async () => {
-    if (!selected || !me) return;
-    const removed = selected;
+  const remove = async (target?: Player) => {
+    const removed = target ?? selected;
+    if (!removed || !me) return;
     setPlayers((current) => current.filter((player) => player.id !== removed.id));
     setSelected(null);
     setRemoving(true);
@@ -150,12 +186,38 @@ export default function PlayersTab() {
     }
   };
 
-  const confirmRemove = () => {
-    if (!selected) return;
-    Alert.alert(`Remove ${selected.name} from your list?`, 'Their account stays. Past games stay.', [
+  const confirmRemove = (target?: Player) => {
+    const who = target ?? selected;
+    if (!who) return;
+    Alert.alert(`Remove ${who.name} from your list?`, 'Their account stays. Past games stay.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: remove },
+      { text: 'Remove', style: 'destructive', onPress: () => remove(who) },
     ]);
+  };
+
+  /** The unified ⋮ menu (utils/gamePlayers.myPlayerMenu): Invite · Link · Edit initials · Edit name · Remove from My players. */
+  const act = (item: SeatMenuItem, player: Player) => {
+    setMenuFor(null);
+    const full = unregistered[player.id] ? { ...player, ...unregistered[player.id], initials: player.initials, addedAt: player.addedAt } : player;
+    if (item === 'invite') setSheet({ kind: 'invite', player: full });
+    else if (item === 'link_id') setSheet({ kind: 'link', player: full });
+    else if (item === 'edit_name') setSheet({ kind: 'edit_name', player: full });
+    else if (item === 'edit_initials') { setInitialsError(null); setSelected(player); setEditingInitials(true); }
+    else if (item === 'remove_from_list') confirmRemove(player);
+  };
+
+  const saveName = async (first: string, last: string) => {
+    if (!me || sheet?.kind !== 'edit_name') return;
+    setSheetBusy(true);
+    try {
+      await playerIdentityService.updateNewPlayer(me.id, sheet.player.id, first, last);
+      setSheet(null);
+      await load();
+    } catch (err) {
+      setError(formatSupabaseError(err));
+    } finally {
+      setSheetBusy(false);
+    }
   };
 
   const saveInitials = async (value: string) => {
@@ -174,16 +236,26 @@ export default function PlayersTab() {
     }
   };
 
-  const renderCard = useCallback(({ item: player }: { item: Player }) => (
+  const menuFor_ = useCallback((player: Player) => myPlayerMenu({ id: player.id, status: unregistered[player.id]?.status ?? player.status, managedBy: unregistered[player.id]?.managedBy ?? player.managedBy ?? (unregistered[player.id] ? me?.id : undefined) }, me?.id), [unregistered, me?.id]);
+  const openMenu = useCallback((player: Player) => setMenuFor(player.id), []);
+  const closeMenu = useCallback(() => setMenuFor(null), []);
+
+  const renderCard = useCallback(({ item: player, index }: { item: Player; index: number }) => (
     <PlayerCard
       player={player}
       status={statusOf(player)}
       isMe={me?.id === player.id}
+      index={index}
       initials={me?.id === player.id ? undefined : initialsOf.get(player.id)}
       nameChanged={nameChanged(player)}
+      menu={menuFor_(player)}
+      menuOpen={menuFor === player.id}
       onPress={openRow}
+      onMenuOpen={openMenu}
+      onMenuDismiss={closeMenu}
+      onMenuSelect={act}
     />
-  ), [statusOf, me?.id, openRow, initialsOf, nameChanged]);
+  ), [statusOf, me?.id, openRow, initialsOf, nameChanged, menuFor_, menuFor, openMenu, closeMenu, act]);
 
   return (
     <Screen>
@@ -212,20 +284,6 @@ export default function PlayersTab() {
             </Chip>
           ))}
         </View>
-        <Chip
-          compact
-          icon={filter === 'unregistered' ? 'filter-check' : 'filter-outline'}
-          selected={filter === 'unregistered'}
-          showSelectedCheck={false}
-          mode={filter === 'unregistered' ? 'flat' : 'outlined'}
-          onPress={() => setFilter((cur) => (cur === 'all' ? 'unregistered' : 'all'))}
-          style={[styles.chip, filter === 'unregistered' && { backgroundColor: colors.tertiaryContainer }]}
-          textStyle={styles.chipText}
-          accessibilityLabel={filter === 'unregistered' ? 'Showing unregistered only. Tap to show everyone' : 'Show unregistered only'}
-          accessibilityState={{ selected: filter === 'unregistered' }}
-        >
-          {`Unregistered · ${openCount}`}
-        </Chip>
       </View>
       {me ? <ClaimRequestsCard ownerId={me.id} onChanged={load} /> : null}
       {error ? (
@@ -247,8 +305,6 @@ export default function PlayersTab() {
           data={shown}
           keyExtractor={(player) => player.id}
           renderItem={renderCard}
-          numColumns={2}
-          columnWrapperStyle={styles.gridRow}
           style={[styles.grid, { height: myPlayersGridHeight(shown.length), borderColor: colors.outlineVariant }]}
           nestedScrollEnabled
           showsVerticalScrollIndicator
@@ -280,12 +336,11 @@ export default function PlayersTab() {
           accessibilityLabel="Find player in database"
         />
         <ActionTile
-          icon="account-check-outline"
-          label="Register unregistered players"
-          tone="outlined"
-          badge={unregisteredCount || undefined}
-          onPress={() => setRegisterOpen(true)}
-          accessibilityLabel={`Register unregistered players${unregisteredCount ? `, ${unregisteredCount} waiting` : ''}`}
+          icon={filter === 'unregistered' ? 'filter-check' : 'account-question-outline'}
+          label={filter === 'unregistered' ? 'Showing unregistered' : `Unregistered · ${openCount}`}
+          tone={filter === 'unregistered' ? 'tonal' : 'outlined'}
+          onPress={() => setFilter((cur) => (cur === 'all' ? 'unregistered' : 'all'))}
+          accessibilityLabel={filter === 'unregistered' ? 'Showing unregistered only. Tap to show everyone' : `Show unregistered only, ${openCount}`}
         />
       </View>
       {!loading && players.length === 0 ? (
@@ -294,8 +349,17 @@ export default function PlayersTab() {
         </Button>
       ) : null}
 
-      <RegisterPlayersDialog visible={registerOpen} me={me} onDismiss={() => { setRegisterOpen(false); load(); }} />
       <Portal>
+        {sheet?.kind === 'invite' && me ? (
+          <InviteToRegisterDialog player={sheet.player} owner={me} onDismiss={() => { setSheet(null); load(); }} />
+        ) : null}
+        {sheet?.kind === 'link' && me ? (
+          <LinkPlayerDialog player={sheet.player} owner={me} onDismiss={() => setSheet(null)} onLinked={(outcome) => { setSheet({ kind: 'linked', outcome }); load(); }} />
+        ) : null}
+        {sheet?.kind === 'linked' ? <LinkCompleteDialog outcome={sheet.outcome} onDismiss={() => setSheet(null)} /> : null}
+        {sheet?.kind === 'edit_name' ? (
+          <EditNameDialog seat={sheet.player} busy={sheetBusy} onDismiss={() => setSheet(null)} onSave={saveName} />
+        ) : null}
         <Dialog visible={!!selected && !editingInitials} onDismiss={() => setSelected(null)}>
           <Dialog.Title>{selected?.name ?? ''}</Dialog.Title>
           <Dialog.Content style={styles.detail}>
@@ -325,10 +389,7 @@ export default function PlayersTab() {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setSelected(null)}>Close</Button>
-            {selected && unregistered[selected.id] ? (
-              <Button onPress={() => { setSelected(null); setRegisterOpen(true); }}>Register</Button>
-            ) : null}
-            <Button textColor={colors.error} onPress={confirmRemove} loading={removing}>
+            <Button textColor={colors.error} onPress={() => confirmRemove()} loading={removing}>
               Remove from My players
             </Button>
           </Dialog.Actions>
@@ -370,22 +431,19 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     paddingBottom: 0,
   },
-  gridRow: {
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
   card: {
-    flex: 1,
-    height: MY_PLAYERS_CARD_HEIGHT - spacing.sm,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
+    height: MY_PLAYERS_CARD_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  cardPress: { flex: 1, height: '100%', justifyContent: 'center' },
   cardInner: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    justifyContent: 'space-between',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
   cardName: {
     lineHeight: 19,

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, AppState, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Dialog, IconButton, Menu, Portal, Text, TextInput } from 'react-native-paper';
-import * as Clipboard from 'expo-clipboard';
+import { Button, Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { radius, seatColor, spacing, useAppTheme } from '@/constants/theme';
 import { HELP } from '@/constants/help';
@@ -16,29 +15,27 @@ import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { addAdminBlockedReason, addAdminPreview, addAdminProblem, PLAYERS_ADMINS_TITLE } from '@/utils/gameAdmins';
 import { parsePlayerNo } from '@/utils/playerIdentity';
 import { seatRemovalProblem } from '@/utils/seatRemoval';
-import {
-  linkLanding,
-  linkTargetProblem,
-  playerIdBadge,
-  registrationLabel,
-  SEAT_MENU_LABEL,
-  seatMenu,
-  SeatMenuItem,
-  seatRoleLabel,
-} from '@/utils/gamePlayers';
+import { playerIdBadge, registrationLabel, seatMenu, SeatMenuItem, seatRoleLabel } from '@/utils/gamePlayers';
+import { LinkOutcome } from '@/utils/linkPlayer';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { InitialsDialog } from '@/components/players/InitialsDialog';
+import { EditNameDialog } from '@/components/players/EditNameDialog';
+import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
+import { LinkPlayerDialog } from '@/components/players/LinkPlayerDialog';
+import { LinkCompleteDialog } from '@/components/players/LinkCompleteDialog';
+import { InviteToRegisterDialog } from '@/components/players/InviteToRegisterDialog';
 import { seatLabels } from '@/utils/initials';
 
 type Sheet =
   | { kind: 'edit'; seat: Player }
   | { kind: 'initials'; seat: Player }
-  | { kind: 'invite'; seat: Player; message?: string; notice?: string }
+  | { kind: 'invite'; seat: Player }
   | { kind: 'link'; seat: Player }
+  | { kind: 'linked'; outcome: LinkOutcome }
   | { kind: 'add_admin' }
   | { kind: 'remove'; seat: Player }
   | { kind: 'remove_blocked'; message: string }
@@ -46,9 +43,10 @@ type Sheet =
 
 /**
  * Players in this game as a full page (no stacked popups). Each seat shows the
- * name, Player ID, role and registration, and a ⋮ menu for admins. Adding happens
- * on the picker screen; removing is in the ⋮ menu (confirmed first, and only while
- * every round score the player has is 0).
+ * name, Player ID, role and registration, and the unified ⋮ menu for admins (Invite to
+ * register · Link to Player ID · Edit initials · Make/Remove admin · Remove from game).
+ * Adding happens on the picker screen; Remove from game is confirmed first and works only
+ * while every round score the player has is 0.
  */
 export default function GamePlayersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -154,31 +152,15 @@ export default function GamePlayersScreen() {
             <IconButton icon="chevron-down" size={18} disabled={busy || index === list.length - 1} onPress={() => run(() => gamesService.moveSeat(game.id, seat.id, 1))} accessibilityLabel={`Move ${seat.name} down`} />
           </View>
         ) : null}
-        {menu.length > 0 ? (
-          <Menu
-            visible={menuFor === seat.id}
-            onDismiss={() => setMenuFor(null)}
-            anchor={<IconButton icon="dots-vertical" onPress={() => setMenuFor(seat.id)} disabled={busy} accessibilityLabel={`Options for ${seat.name}`} />}
-          >
-            {menu.map((entry) => (
-              <Menu.Item
-                key={entry.item}
-                title={entry.enabled || !entry.reason ? SEAT_MENU_LABEL[entry.item] : `${SEAT_MENU_LABEL[entry.item]} · ${entry.reason}`}
-                disabled={!entry.enabled}
-                leadingIcon={
-                  entry.item === 'make_admin' ? 'shield-plus-outline'
-                    : entry.item === 'remove_admin' ? 'shield-off-outline'
-                      : entry.item === 'edit_initials' ? 'format-letter-case'
-                      : entry.item === 'edit_name' ? 'pencil-outline'
-                        : entry.item === 'invite' ? 'send-outline'
-                          : entry.item === 'remove_player' ? 'account-remove-outline'
-                            : 'link-variant'
-                }
-                onPress={() => act(entry.item, seat)}
-              />
-            ))}
-          </Menu>
-        ) : null}
+        <PlayerActionMenu
+          name={seat.name}
+          items={menu}
+          visible={menuFor === seat.id}
+          disabled={busy}
+          onOpen={() => setMenuFor(seat.id)}
+          onDismiss={() => setMenuFor(null)}
+          onSelect={(item) => act(item, seat)}
+        />
       </View>
     );
   };
@@ -209,7 +191,7 @@ export default function GamePlayersScreen() {
         ) : null}
         {canScore ? (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            A player added now gets 0 for every round already played. Remove player (in a row's ⋮ menu) works only while every round score they have is 0.
+            A player added now gets 0 for every round already played. Remove from game (in a row's ⋮ menu) works only while every round score they have is 0.
           </Text>
         ) : null}
         {canScore ? (
@@ -261,59 +243,27 @@ export default function GamePlayersScreen() {
           />
         ) : null}
 
-        {sheet?.kind === 'invite' ? (
-          <Dialog visible onDismiss={() => setSheet(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
-            <Dialog.Title>Invite {sheet.seat.name} to register</Dialog.Title>
-            <Dialog.Content style={styles.gap}>
-              <Text variant="bodyMedium">
-                Prepares a one-time sign-up link and opens your share sheet so you can send it on WhatsApp, text, or anything else. Nothing is sent until you pick where. The link works once and lasts 14 days.
-              </Text>
-              {sheet.notice ? <Text variant="bodyMedium" style={{ fontWeight: '700' }}>{sheet.notice}</Text> : null}
-              {sheet.message ? (
-                <View style={[styles.preview, { backgroundColor: colors.surfaceVariant }]}>
-                  <Text variant="bodySmall" selectable>{sheet.message}</Text>
-                  <Button compact icon="content-copy" onPress={() => Clipboard.setStringAsync(sheet.message as string)}>Copy</Button>
-                </View>
-              ) : null}
-            </Dialog.Content>
-            <Dialog.Actions>
-              <Button onPress={() => setSheet(null)}>Close</Button>
-              <Button
-                mode="contained"
-                icon="share-variant"
-                loading={busy}
-                disabled={busy || !viewer}
-                onPress={async () => {
-                  if (!viewer) return;
-                  setBusy(true);
-                  try {
-                    const result = await playerIdentityService.shareClaimLink(viewer, sheet.seat, game.gameNumber != null ? [game.gameNumber] : []);
-                    // The link exists now, so the seat is Pending registration whether or not the sheet was used.
-                    setInvited((current) => new Set([...current, sheet.seat.id]));
-                    setSheet({ kind: 'invite', seat: sheet.seat, notice: result.notice, message: result.shared ? undefined : result.message });
-                    await reload();
-                  } catch (caught) {
-                    setFailure(formatSupabaseError(caught));
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                Prepare link
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        ) : null}
-
-        {sheet?.kind === 'link' ? (
-          <LinkPlayerDialog
-            seat={sheet.seat}
-            game={game}
-            busy={busy}
-            onDismiss={() => setSheet(null)}
-            onConfirm={(target) => viewer && run(() => playerIdentityService.linkSeatToPlayer(game.id, sheet.seat, target, viewer.id), () => setSheet(null))}
+        {sheet?.kind === 'invite' && viewer ? (
+          <InviteToRegisterDialog
+            player={sheet.seat}
+            owner={viewer}
+            gameNumbers={game.gameNumber != null ? [game.gameNumber] : []}
+            onDismiss={() => { setSheet(null); reload(); }}
+            // The link exists now, so the seat is Pending registration whether or not the sheet was used.
+            onPrepared={() => setInvited((current) => new Set([...current, sheet.seat.id]))}
           />
         ) : null}
+
+        {sheet?.kind === 'link' && viewer ? (
+          <LinkPlayerDialog
+            player={sheet.seat}
+            owner={viewer}
+            onDismiss={() => setSheet(null)}
+            onLinked={(outcome) => { setSheet({ kind: 'linked', outcome }); reload(); }}
+          />
+        ) : null}
+
+        {sheet?.kind === 'linked' ? <LinkCompleteDialog outcome={sheet.outcome} onDismiss={() => setSheet(null)} /> : null}
 
         {sheet?.kind === 'add_admin' ? (
           <AddAdminDialog
@@ -342,7 +292,7 @@ export default function GamePlayersScreen() {
                 accessibilityLabel={`Confirm remove ${sheet.seat.name}`}
                 onPress={() => run(() => gamesService.removeSeatIfNoScores(game.id, sheet.seat.id), () => setSheet(null))}
               >
-                Remove player
+                Remove from game
               </Button>
             </Dialog.Actions>
           </Dialog>
@@ -351,7 +301,7 @@ export default function GamePlayersScreen() {
         {sheet?.kind === 'remove_blocked' ? (
           <Dialog visible onDismiss={() => setSheet(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
             <Dialog.Icon icon="alert-circle-outline" />
-            <Dialog.Title>Remove player</Dialog.Title>
+            <Dialog.Title>Remove from game</Dialog.Title>
             <Dialog.Content><Text variant="bodyMedium">{sheet.message}</Text></Dialog.Content>
             <Dialog.Actions><Button mode="contained" onPress={() => setSheet(null)}>Got it</Button></Dialog.Actions>
           </Dialog>
@@ -365,107 +315,6 @@ export default function GamePlayersScreen() {
         </Dialog>
       </Portal>
     </View>
-  );
-}
-
-function EditNameDialog({ seat, busy, onDismiss, onSave }: { seat: Player; busy: boolean; onDismiss: () => void; onSave: (first: string, last: string) => void }) {
-  const { colors } = useAppTheme();
-  const [first, setFirst] = useState(seat.firstName ?? seat.name.split(' ')[0] ?? '');
-  const [last, setLast] = useState(seat.lastName ?? seat.name.split(' ').slice(1).join(' '));
-  return (
-    <Dialog visible onDismiss={onDismiss} style={[styles.dialog, { backgroundColor: colors.surface }]}>
-      <Dialog.Title>Edit name</Dialog.Title>
-      <Dialog.Content style={styles.gap}>
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          Changes this player's name everywhere they appear. Only works until they register; after that the name is theirs.
-        </Text>
-        <TextInput label="First name" value={first} onChangeText={setFirst} mode="outlined" accessibilityLabel="First name" autoCapitalize="words" />
-        <TextInput label="Last name" value={last} onChangeText={setLast} mode="outlined" accessibilityLabel="Last name" autoCapitalize="words" />
-      </Dialog.Content>
-      <Dialog.Actions>
-        <Button onPress={onDismiss} disabled={busy}>Cancel</Button>
-        <Button mode="contained" onPress={() => onSave(first, last)} loading={busy} disabled={busy || !first.trim() || !last.trim()} accessibilityLabel="Save name">Save</Button>
-      </Dialog.Actions>
-    </Dialog>
-  );
-}
-
-function LinkPlayerDialog({ seat, game, busy, onDismiss, onConfirm }: {
-  seat: Player;
-  game: { players: string[]; spectators?: string[]; unseatedAdminIds?: string[] };
-  busy: boolean;
-  onDismiss: () => void;
-  onConfirm: (target: Player) => void;
-}) {
-  const { colors } = useAppTheme();
-  const [query, setQuery] = useState('');
-  const [looking, setLooking] = useState(false);
-  const [target, setTarget] = useState<Player | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
-  const [searched, setSearched] = useState(false);
-
-  const lookUp = async () => {
-    const no = parsePlayerNo(query);
-    if (no === null) {
-      setProblem('Type the Player ID number, like #42.');
-      setTarget(null);
-      return;
-    }
-    setLooking(true);
-    setSearched(true);
-    try {
-      const found = (await playersService.searchPlayers(`#${no}`)).find((player) => player.playerNo === no || player.playerCode === `#${no}`) ?? null;
-      const why = linkTargetProblem(found, game, seat.id);
-      setTarget(why ? null : found);
-      setProblem(why);
-    } catch (caught) {
-      setProblem(formatSupabaseError(caught));
-      setTarget(null);
-    } finally {
-      setLooking(false);
-    }
-  };
-
-  return (
-    <Dialog visible onDismiss={onDismiss} style={[styles.dialog, { backgroundColor: colors.surface }]}>
-      <Dialog.Title>Link {seat.name} to a Player ID</Dialog.Title>
-      <Dialog.Content style={styles.gap}>
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          If this person already has an account, type their Player ID. Their seat and scores in this game move to that account. Nothing else changes.
-        </Text>
-        <View style={styles.lookupRow}>
-          <TextInput
-            label="Player ID"
-            value={query}
-            onChangeText={(text) => { setQuery(text); setTarget(null); setProblem(null); setSearched(false); }}
-            mode="outlined"
-            keyboardType="number-pad"
-            accessibilityLabel="Player ID to link"
-            style={styles.flex}
-            onSubmitEditing={lookUp}
-          />
-          <Button mode="contained-tonal" onPress={lookUp} loading={looking} disabled={looking || !query.trim()} accessibilityLabel="Look up Player ID">Look up</Button>
-        </View>
-        {problem ? <Text variant="bodyMedium" style={{ color: colors.error }}>{problem}</Text> : null}
-        {target ? (
-          <View style={[styles.preview, { backgroundColor: colors.positiveContainer }]}>
-            <Text variant="titleMedium" style={{ color: colors.onPositiveContainer }}>{target.name}</Text>
-            <Text variant="bodySmall" style={{ color: colors.onPositiveContainer }}>{playerIdBadge(target)} · Registered</Text>
-            <Text variant="bodySmall" style={{ color: colors.onPositiveContainer, marginTop: spacing.xs }}>
-              {linkLanding(target, game) === 'admin_takes_seat'
-                ? `${target.name} is an admin here but not playing. They take ${seat.name}'s seat and scores and stay admin.`
-                : linkLanding(target, game) === 'viewer_takes_seat'
-                  ? `${target.name} is watching this game. They take ${seat.name}'s seat and scores.`
-                  : `${seat.name}'s seat and scores in this game become ${target.name}'s.`}
-            </Text>
-          </View>
-        ) : searched && !problem ? <Text variant="bodyMedium">No registered player has that Player ID.</Text> : null}
-      </Dialog.Content>
-      <Dialog.Actions>
-        <Button onPress={onDismiss} disabled={busy}>Cancel</Button>
-        <Button mode="contained" onPress={() => target && onConfirm(target)} loading={busy} disabled={busy || !target} accessibilityLabel="Confirm link">Link</Button>
-      </Dialog.Actions>
-    </Dialog>
   );
 }
 

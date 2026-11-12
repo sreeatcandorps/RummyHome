@@ -34,7 +34,7 @@ test('an invited (pending) seat reads "Pending registration" everywhere', () => 
   // Optimistic: the seat is marked invited the moment the link exists, and the roster reloads when the share sheet closes.
   assert.match(page, /setInvited\(\(current\) => new Set\(\[\.\.\.current, sheet\.seat\.id\]\)\)/);
   assert.match(page, /AppState\.addEventListener\('change'/);
-  assert.match(read('components/players/RegisterPlayersDialog.tsx'), /Pending registration/);
+  assert.match(read('utils/myPlayersList.ts'), /Pending registration/);
 });
 
 test('mid-game add: "Add new player" button, "Added N" counter, whole list, yellow for new picks only', () => {

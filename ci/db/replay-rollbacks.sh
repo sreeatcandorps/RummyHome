@@ -24,6 +24,19 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
+# 025 (link player to account; same PR, rolled back before 024)
+HAS_025=f
+if [ -f "$RB/rollback_025_link_player_to_account.sql" ]; then
+  HAS_025=t
+  if apply "$RB/rollback_025_link_player_to_account.sql"; then tap ok "rollback_025 applies"; else tap fail "rollback_025 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists link_player_to_account)" = f ] && [ "$(fn_exists link_player_check)" = f ] && [ "$(fn_exists link_conflicts)" = f ] \
+    && tap ok "after rollback_025 the link functions are gone" \
+    || tap fail "after rollback_025 link_player_to_account / link_player_check / link_conflicts should be gone"
+  [ "$(fn_exists link_seat_to_player)" = t ] && [ "$(fn_exists unlink_player)" = t ] \
+    && tap ok "after rollback_025 the 015/017 seat link and 011 unlink are untouched" \
+    || tap fail "after rollback_025 link_seat_to_player / unlink_player should remain"
+fi
+
 # 024 (emails + public results page; same PR, rolled back before 023)
 HAS_024=f
 if [ -f "$RB/rollback_024_emails_and_public_results.sql" ]; then
@@ -172,6 +185,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_022" = t ] && FORWARD="$FORWARD 022_player_initials"
 [ "$HAS_023" = t ] && FORWARD="$FORWARD 023_hide_and_soft_delete"
 [ "$HAS_024" = t ] && FORWARD="$FORWARD 024_emails_and_public_results"
+[ "$HAS_025" = t ] && FORWARD="$FORWARD 025_link_player_to_account"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -216,6 +230,10 @@ if [ "$HAS_024" = t ]; then
   [ "$(fn_exists queue_game_started_emails)" = t ] && [ "$(fn_exists public_result)" = t ] && [ "$(fn_has declare_game_result queue_result_saved_emails)" = t ] \
     && [ "$(q "select count(*) from public.profiles where email_token is null")" = 0 ] \
     && tap ok "024 restored (outbox RPCs, public results reader, declare queues emails, every profile has a token)" || tap fail "024 restored"
+fi
+if [ "$HAS_025" = t ]; then
+  [ "$(fn_exists link_player_to_account)" = t ] && [ "$(fn_exists link_player_check)" = t ] \
+    && tap ok "025 restored (link_player_check / link_player_to_account)" || tap fail "025 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

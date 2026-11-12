@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { linkLanding, linkTargetProblem, playerIdBadge, registrationLabel, SEAT_MENU_LABEL, seatMenu, seatRoleLabel, zerosForJoiner } from '../utils/gamePlayers';
+import { linkLanding, linkTargetProblem, myPlayerMenu, playerIdBadge, registrationLabel, SEAT_MENU_LABEL, seatMenu, seatRoleLabel, zerosForJoiner } from '../utils/gamePlayers';
 
 const game = { createdBy: 'me', players: ['me', 'a', 'u'], adminIds: ['me', 'a'], unseatedAdminIds: [], spectators: ['w'] };
 
@@ -20,19 +20,25 @@ test('role and registration tags', () => {
   assert.equal(playerIdBadge({}), null);
 });
 
-test('per-player menu: creator keeps admin, identity actions only for my unregistered players, nothing for viewers', () => {
+test('per-player menu (unified, item 5): Invite · Link · Edit initials · Edit name · Make/Remove admin · Remove from game', () => {
   assert.deepEqual(seatMenu({ id: 'u', name: 'U' }, game, 'me', false), []);
   const creator = seatMenu({ id: 'me', name: 'Me', seatRole: 'game_admin' }, game, 'me', true);
-  assert.deepEqual(creator.map((m) => [m.item, m.enabled]), [['remove_admin', false], ['edit_initials', true], ['remove_player', true]]);
+  assert.deepEqual(creator.map((m) => [m.item, m.enabled]), [['edit_initials', true], ['remove_admin', false], ['remove_player', true]]);
   const registered = seatMenu({ id: 'a', name: 'A', seatRole: 'game_admin', status: 'registered' }, game, 'me', true);
-  assert.deepEqual(registered.map((m) => m.item), ['remove_admin', 'edit_initials', 'remove_player']);
+  assert.deepEqual(registered.map((m) => m.item), ['edit_initials', 'remove_admin', 'remove_player']);
   const mine = seatMenu({ id: 'u', name: 'U', seatRole: 'player', status: 'unregistered', managedBy: 'me' }, game, 'me', true);
-  assert.deepEqual(mine.map((m) => [m.item, m.enabled]), [['make_admin', true], ['edit_initials', true], ['edit_name', true], ['invite', true], ['link_id', true], ['remove_player', true]]);
+  assert.deepEqual(mine.map((m) => [m.item, m.enabled]), [['invite', true], ['link_id', true], ['edit_initials', true], ['edit_name', true], ['make_admin', true], ['remove_player', true]]);
   const theirs = seatMenu({ id: 'u', name: 'U', seatRole: 'player', status: 'pending', managedBy: 'someone-else' }, game, 'me', true);
-  assert.deepEqual(theirs.map((m) => [m.item, m.enabled]), [['make_admin', true], ['edit_initials', true], ['edit_name', false], ['invite', false], ['link_id', false], ['remove_player', true]]);
-  assert.match(theirs[2].reason ?? '', /organiser who added/);
+  assert.deepEqual(theirs.map((m) => [m.item, m.enabled]), [['invite', false], ['link_id', false], ['edit_initials', true], ['edit_name', false], ['make_admin', true], ['remove_player', true]]);
+  assert.match(theirs[0].reason ?? '', /organiser who added/);
   const viewer = seatMenu({ id: 'w', name: 'W', seatRole: 'spectator' }, game, 'me', true);
   assert.deepEqual(viewer, []);
+  assert.equal(SEAT_MENU_LABEL.link_id, 'Link to Player ID');
+  assert.equal(SEAT_MENU_LABEL.invite, 'Invite to register');
+  // The same menu on My players: no game roles; Remove from My players at the end.
+  assert.deepEqual(myPlayerMenu({ id: 'u', status: 'unregistered', managedBy: 'me' }, 'me').map((m) => m.item), ['invite', 'link_id', 'edit_initials', 'edit_name', 'remove_from_list']);
+  assert.deepEqual(myPlayerMenu({ id: 'a', status: 'registered' }, 'me').map((m) => m.item), ['edit_initials', 'remove_from_list']);
+  assert.deepEqual(myPlayerMenu({ id: 'me', status: 'registered' }, 'me'), [], 'the owner has no menu on their own row');
 });
 
 test('link target checks: unknown, same, unregistered, already seated, ok', () => {
@@ -57,18 +63,19 @@ test('a player joining mid-game gets an explicit 0 for every round already playe
   assert.deepEqual(zerosForJoiner({}, ['a']), []);
 });
 
-test('the Players page has Remove player (rule-checked, confirmed) but no "Add view only" or "Add non-player admin"', () => {
+test('the Players page has Remove from game (rule-checked, confirmed) but no "Add view only" or "Add non-player admin"', () => {
   const page = readFileSync(path.join(process.cwd(), 'app/(screens)/games/players.tsx'), 'utf8');
   assert.doesNotMatch(page, /Add view only|Add non-player admin/);
   assert.match(page, />\s*Add new player\s*</, 'the bottom button reads Add new player');
   assert.doesNotMatch(page, /Add new players/);
-  assert.match(page, /Link to a Player ID|link_id/);
+  assert.match(page, /link_id/);
+  assert.match(page, /<PlayerActionMenu/, 'the unified menu component');
   assert.match(page, /item === 'remove_player'/);
   assert.match(page, /seatRemovalProblem\(game\.scores\[seat\.id\]\)/, 'the delete rule runs before anything is asked');
   assert.match(page, /kind: 'remove_blocked', message: problem/, 'a blocked removal shows the exact message');
   assert.match(page, /Remove \{sheet\.seat\.name\}\?/, 'a confirmation comes first');
   assert.match(page, /gamesService\.removeSeatIfNoScores\(game\.id, sheet\.seat\.id\)/, 'the confirm runs the same removal as the picker');
-  assert.equal(SEAT_MENU_LABEL.remove_player, 'Remove player');
+  assert.equal(SEAT_MENU_LABEL.remove_player, 'Remove from game');
 });
 
 test('migration 015 checks admin, ownership, registration and duplicates before moving a seat', () => {

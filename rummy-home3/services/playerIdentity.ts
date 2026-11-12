@@ -6,6 +6,7 @@ import { playersService } from '@/services/players';
 import { storage } from '@/utils/storage';
 import { Player } from '@/types/player';
 import { NOT_READY_MESSAGE } from '@/utils/notReady';
+import { linkConflictMessage, LinkOutcome, LinkPreview, localLinkedGame, localLinkPreview } from '@/utils/linkPlayer';
 import {
   acceptClaim,
   Candidate,
@@ -162,41 +163,57 @@ export const playerIdentityService = {
   },
 
   /**
-   * Hand an unregistered seat in one game to a registered account found by its
-   * Player ID. Seat order and scores in that game stay with the seat. Needs
-   * migration 015 on the server.
+   * Link to Player ID (025): preview who the (Player ID, email) pair names and which games
+   * would clash. Throws a plain sentence when the pair does not match; the email is never shown.
    */
-  async linkSeatToPlayer(gameId: string, seat: Player, target: Player, ownerId: string): Promise<void> {
+  async linkPreview(ownerId: string, player: Player, playerNo: number, email: string): Promise<LinkPreview> {
     if (isSupabaseConfigured) {
-      const { error } = await (supabase.rpc as any)('link_seat_to_player', { p_game_id: gameId, p_seat_profile: seat.id, p_target_profile: target.id });
+      const { data, error } = await (supabase.rpc as any)('link_player_check', { p_player_id: player.id, p_player_no: playerNo, p_email: email.trim() });
       if (error) {
-        if (missingRpc(error)) throw new Error('Linking to a Player ID needs a database update (migration 015) before it works here.');
+        if (missingRpc(error)) throw new Error('Linking to a Player ID needs the latest database update (025) before it works here.');
         throw error;
       }
-      return;
+      return data as LinkPreview;
     }
+    if (player.managedBy !== ownerId) throw new Error('Only your own unregistered players can be linked.');
+    const target = (await storage.getPlayers()).find((p) => p.playerNo === playerNo && !p.managedBy) ?? null;
+    return localLinkPreview(player, target, email, await storage.getGames());
+  },
+
+  /**
+   * Link to Player ID (025): move the player's seat, scores and dealer marks in EVERY game to the
+   * account, refuse when the account already plays in one of them, mark the player merged and
+   * fold the owner's My players row. Undo is unlink_player (011) on the returned link id.
+   */
+  async linkPlayerToAccount(ownerId: string, player: Player, playerNo: number, email: string): Promise<LinkOutcome> {
+    if (isSupabaseConfigured) {
+      const { data, error } = await (supabase.rpc as any)('link_player_to_account', { p_player_id: player.id, p_player_no: playerNo, p_email: email.trim() });
+      if (error) {
+        if (missingRpc(error)) throw new Error('Linking to a Player ID needs the latest database update (025) before it works here.');
+        throw error;
+      }
+      playersService.forgetMyPlayers();
+      return data as LinkOutcome;
+    }
+    const preview = await this.linkPreview(ownerId, player, playerNo, email);
+    const clash = linkConflictMessage(preview);
+    if (clash) throw new Error(clash);
     const games = await storage.getGames();
-    const game = games.find((g) => g.id === gameId);
-    if (!game) throw new Error('Game not found.');
-    if (!game.players.includes(seat.id)) throw new Error('That player is not in this game.');
-    if (game.players.includes(target.id)) throw new Error('They are already playing in this game.');
-    if (seat.managedBy !== ownerId) throw new Error('Only the organiser who added this player can change them.');
-    if (!isUnregistered(seat.status)) throw new Error('Only an unregistered player can be linked to a Player ID.');
-    const swap = (id: string) => (id === seat.id ? target.id : id);
-    const scores = Object.fromEntries(Object.entries(game.scores).map(([id, column]) => [swap(id), column]));
-    // A non-playing admin or viewer who takes the seat is now seated: one membership, admin role kept.
-    const wasUnseatedAdmin = game.unseatedAdminIds?.includes(target.id) ?? false;
-    await storage.updateGame({
-      ...game,
-      players: game.players.map(swap),
-      adminIds: [...new Set([...(game.adminIds ?? []).map(swap), ...(wasUnseatedAdmin ? [target.id] : [])])],
-      unseatedAdminIds: game.unseatedAdminIds?.filter((id) => id !== target.id && id !== seat.id),
-      spectators: game.spectators?.filter((id) => id !== target.id && id !== seat.id),
-      scores,
-    });
-    const elsewhere = games.some((g) => g.id !== gameId && g.players.includes(seat.id));
-    if (!elsewhere) await setLocalStatus(seat.id, 'merged');
-    if (target.id !== ownerId) await playersService.addMyPlayer(ownerId, target).catch(() => {});
+    const mine = games.filter((game) => game.players.includes(player.id));
+    for (const game of mine) await storage.updateGame(localLinkedGame(game, player.id, preview.target.id));
+    await setLocalStatus(player.id, 'merged');
+    await playersService.removeMyPlayer(ownerId, player.id).catch(() => {});
+    if (preview.target.id !== ownerId) {
+      const target = (await storage.getPlayers()).find((p) => p.id === preview.target.id);
+      if (target) await playersService.addMyPlayer(ownerId, target).catch(() => {});
+    }
+    return {
+      linkId: null,
+      playerName: player.name,
+      target: preview.target,
+      movedGameIds: mine.map((game) => game.id),
+      movedGameNumbers: mine.map((game) => game.gameNumber).filter((n): n is number => n != null).sort((a, b) => a - b),
+    };
   },
 
   /** Soft delete. Past scores stay; the player leaves My players; any claim link stops working. */

@@ -68,12 +68,12 @@ test('My players sorts by name or by how often you play together', () => {
   assert.equal(nextSort('frequent'), 'name');
 });
 
-test('the My players grid shows four rows of two before it scrolls', () => {
+test('the My players list is one row per player and shows seven rows before it scrolls', () => {
   assert.equal(myPlayersGridHeight(0), 0);
   assert.equal(myPlayersGridHeight(1), MY_PLAYERS_CARD_HEIGHT);
-  assert.equal(myPlayersGridHeight(3), 2 * MY_PLAYERS_CARD_HEIGHT);
-  assert.equal(myPlayersGridHeight(12), 4 * MY_PLAYERS_CARD_HEIGHT);
-  assert.equal(myPlayersGridHeight(40), 4 * MY_PLAYERS_CARD_HEIGHT);
+  assert.equal(myPlayersGridHeight(3), 3 * MY_PLAYERS_CARD_HEIGHT);
+  assert.equal(myPlayersGridHeight(7), 7 * MY_PLAYERS_CARD_HEIGHT);
+  assert.equal(myPlayersGridHeight(40), 7 * MY_PLAYERS_CARD_HEIGHT);
 });
 
 test('database results put people not yet in My players first', () => {
@@ -99,7 +99,7 @@ test('help copy matches the new Home, My players, and Find screens', () => {
   assert.match(HELP.home, /\[Completed\] to \[Closed\]/);
   assert.match(HELP.home, /My players/);
   assert.doesNotMatch(HELP.home, /Last 24 hours|Resume|avatar/);
-  for (const button of ['Add new players', 'Find player in database', 'Register unregistered players']) {
+  for (const button of ['Add new players', 'Find player in database', 'Unregistered']) {
     assert.match(HELP.players, new RegExp(button));
   }
   assert.match(HELP.players, /live link/);

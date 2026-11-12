@@ -207,14 +207,37 @@ select count(*) filter (where email_game_started), count(*) filter (where email_
 select count(*), count(sent_at) from public.email_outbox;  -- 0, 0 right after applying
 ```
 
+## 025 — Link to Player ID: ID + email, every game, conflict check (approved Nov 11, 10:59 PM PT, item 5)
+
+File: `supabase/migrations/025_link_player_to_account.sql`. Run after 024. Safe to re-run. Rollback: `supabase/rollback/rollback_025_link_player_to_account.sql` (drops the four functions; links already made stay linked and can still be undone one by one with 011 `unlink_player`; nothing from 012/015/017 was replaced).
+
+Not applied by this change. Adds four functions; no table or column changes.
+
+What it does:
+
+- **`link_player_check(p_player_id, p_player_no, p_email)`** — the preview behind the Check button. The caller must own the unregistered player. The Player ID and the email must name the same registered account (compared lower-cased and trimmed); otherwise a plain sentence — "No registered player has that Player ID." / "That email does not match Player ID #42." — and the account's email is never returned. Answers `{target: {id, name, playerNo}, gameCount, conflicts: [{gameId, gameNumber}]}`, where a conflict is any game the unregistered player sits in where that account already **plays** (seated, not a viewer, not a non-playing admin). Every game counts, not just the open one.
+- **`link_player_to_account(p_player_id, p_player_no, p_email)`** — the Link button. Same checks; refuses with "Priya already plays in G4, G7. Remove one of the two from those games first, then link." when there is any conflict, so nothing half-moves. Otherwise, under the same per-game lock as `save_round` (019), every seat, score and dealer mark moves to the account in every game (deleted games included, so history stays whole); a viewer or non-playing admin of a game takes the seat and keeps the admin role (as 017 did). The player becomes `merged`, pending claim links are revoked, the owner's My players row for the placeholder becomes the account's (games together added), and a `player_links` row (`kind = 'link'`, `status = 'claimed'`, `moved_game_ids`) records the move so `unlink_player` (011) can undo it.
+- `link_target_for` and `link_conflicts` are internal helpers (no grants).
+
+The app's one-game "Link to a Player ID" (015/017 `link_seat_to_player`) is no longer called; the function stays in place.
+
+Verified on a scratch Postgres 16 loaded with 001–024 and the CI seed: 484 pgTAP checks (36 new in `supabase/tests/15_link_player_025.sql`: grants, ownership, every way the pair can fail, case/space-insensitive email, conflict found in A for Priya, viewer and non-playing admin are not conflicts, the full move for RK → Cora incl. role kept, score moved, merged status, My players folded, the claimed link row, and 011 unlink restoring the seat), 31 two-client race checks, and the rollback replay (rollback 025 → 013, re-apply 013 → 025, apply each a second time; 83 checks) all pass.
+
+Read-only checks after applying (nothing is changed):
+
+```sql
+select count(*) from public.player_links where kind = 'link' and status = 'claimed' and token_hash is null;  -- 0 right after applying; grows by one per Link to Player ID
+```
+
 ## Apply order for the Nov 10–11 batch
 
-017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023 and 024 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
+017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023, 024 and 025 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
 
 1. `supabase/migrations/021_email_uniqueness.sql`
 2. `supabase/migrations/022_player_initials.sql`
 3. `supabase/migrations/023_hide_and_soft_delete.sql`
 4. `supabase/migrations/024_emails_and_public_results.sql`
+5. `supabase/migrations/025_link_player_to_account.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

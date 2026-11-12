@@ -109,11 +109,11 @@ export function orderDatabaseResults<T extends { id: string }>(results: T[], myP
   return [...tagged.filter((row) => !row.inMyPlayers), ...tagged.filter((row) => row.inMyPlayers)];
 }
 
-/** Fixed-height list on My players: this many rows of the two-column grid are visible before it scrolls. */
-export const MY_PLAYERS_VISIBLE_ROWS = 4;
-export const MY_PLAYERS_CARD_HEIGHT = 104;
+/** Fixed-height list on My players: one row per player; this many rows are visible before it scrolls. */
+export const MY_PLAYERS_VISIBLE_ROWS = 7;
+export const MY_PLAYERS_CARD_HEIGHT = 60;
 
-export function myPlayersGridHeight(playerCount: number, columns = 2): number {
+export function myPlayersGridHeight(playerCount: number, columns = 1): number {
   const rows = Math.ceil(Math.max(0, playerCount) / columns);
   return Math.min(rows, MY_PLAYERS_VISIBLE_ROWS) * MY_PLAYERS_CARD_HEIGHT;
 }

@@ -47,19 +47,42 @@ export function isSeatAdmin(seat: SeatLike, game: GameLike): boolean {
   return seat.seatRole === 'game_admin' || Boolean(game.adminIds?.includes(seat.id)) || Boolean(game.unseatedAdminIds?.includes(seat.id));
 }
 
-export type SeatMenuItem = 'make_admin' | 'remove_admin' | 'edit_initials' | 'edit_name' | 'invite' | 'link_id' | 'remove_player';
+export type SeatMenuItem = 'invite' | 'link_id' | 'edit_initials' | 'edit_name' | 'make_admin' | 'remove_admin' | 'remove_player' | 'remove_from_list';
 
 export type SeatMenu = { item: SeatMenuItem; enabled: boolean; reason?: string }[];
 
+export const SEAT_MENU_ICON: Record<SeatMenuItem, string> = {
+  invite: 'send-outline',
+  link_id: 'link-variant',
+  edit_initials: 'format-letter-case',
+  edit_name: 'pencil-outline',
+  make_admin: 'shield-plus-outline',
+  remove_admin: 'shield-off-outline',
+  remove_player: 'account-remove-outline',
+  remove_from_list: 'account-minus-outline',
+};
+
+export const SEAT_MENU_LABEL: Record<SeatMenuItem, string> = {
+  invite: 'Invite to register',
+  link_id: 'Link to Player ID',
+  edit_initials: 'Edit initials',
+  edit_name: 'Edit name',
+  make_admin: 'Make admin',
+  remove_admin: 'Remove admin',
+  remove_player: 'Remove from game',
+  remove_from_list: 'Remove from My players',
+};
+
+const NOT_MINE = 'Only the organiser who added this player can change them.';
+
 /**
- * The per-player ⋮ menu for a game admin. The creator always stays admin.
- * Edit initials changes this game's column label for any seated player (022; the
- * creator's My players entry follows when the creator does it).
- * Edit name and Link to a Player ID work only on an unregistered player the
- * viewer manages: another organiser's player is theirs to change.
- * Remove player is offered for every seated player; whether it is allowed (no
- * scores, or every round score exactly 0) is decided at the tap with the exact
- * message from utils/seatRemoval, after a confirmation.
+ * The unified per-player ⋮ menu (Nov 11 item 5), in this order everywhere:
+ * Invite to register · Link to Player ID · Edit initials · (Edit name) · Make/Remove admin · Remove from game.
+ * The identity actions appear only for an unregistered player, and work only for the organiser
+ * who added them. The creator always stays admin. Edit initials changes this game's column
+ * label (022). Remove from game is offered for every seated player; whether it is allowed (no
+ * scores, or every round score exactly 0) is decided at the tap with the exact message from
+ * utils/seatRemoval, after a confirmation.
  */
 export function seatMenu(seat: SeatLike, game: GameLike, viewerId: string | null | undefined, canManage: boolean): SeatMenu {
   if (!canManage) return [];
@@ -67,35 +90,42 @@ export function seatMenu(seat: SeatLike, game: GameLike, viewerId: string | null
   const admin = isSeatAdmin(seat, game);
   const unregistered = isUnregistered(seat.status);
   const mine = Boolean(viewerId) && seat.managedBy === viewerId;
+  const seatedPlayer = seat.seatRole !== 'spectator' && seat.seated !== false;
   const items: SeatMenu = [];
+  if (unregistered) {
+    const reason = mine ? undefined : NOT_MINE;
+    items.push({ item: 'invite', enabled: mine, reason });
+    items.push({ item: 'link_id', enabled: mine, reason });
+  }
+  if (seatedPlayer) items.push({ item: 'edit_initials', enabled: true });
+  if (unregistered) items.push({ item: 'edit_name', enabled: mine, reason: mine ? undefined : NOT_MINE });
   if (seat.seatRole !== 'spectator') {
     if (admin) items.push({ item: 'remove_admin', enabled: !isCreator, reason: isCreator ? 'The creator is always an admin.' : undefined });
     else items.push({ item: 'make_admin', enabled: true });
   }
-  if (seat.seatRole !== 'spectator' && seat.seated !== false) {
-    items.push({ item: 'edit_initials', enabled: true });
-  }
-  if (unregistered) {
-    const reason = mine ? undefined : 'Only the organiser who added this player can change them.';
-    items.push({ item: 'edit_name', enabled: mine, reason });
-    items.push({ item: 'invite', enabled: mine, reason });
-    items.push({ item: 'link_id', enabled: mine, reason });
-  }
-  if (seat.seatRole !== 'spectator' && seat.seated !== false) {
-    items.push({ item: 'remove_player', enabled: true });
-  }
+  if (seatedPlayer) items.push({ item: 'remove_player', enabled: true });
   return items;
 }
 
-export const SEAT_MENU_LABEL: Record<SeatMenuItem, string> = {
-  make_admin: 'Make admin',
-  remove_admin: 'Remove admin',
-  edit_initials: 'Edit initials',
-  edit_name: 'Edit name',
-  invite: 'Invite to register',
-  link_id: 'Link to a Player ID',
-  remove_player: 'Remove player',
-};
+/**
+ * The same menu on My players, where there is no game: Invite · Link · Edit initials · Edit name
+ * for my unregistered players, then Remove from My players. The owner's own row has no menu.
+ */
+export function myPlayerMenu(player: Pick<SeatLike, 'id' | 'status' | 'managedBy'>, viewerId: string | null | undefined): SeatMenu {
+  if (!viewerId || player.id === viewerId) return [];
+  const unregistered = isUnregistered(player.status);
+  const mine = player.managedBy === viewerId;
+  const items: SeatMenu = [];
+  if (unregistered) {
+    const reason = mine ? undefined : NOT_MINE;
+    items.push({ item: 'invite', enabled: mine, reason });
+    items.push({ item: 'link_id', enabled: mine, reason });
+  }
+  items.push({ item: 'edit_initials', enabled: true });
+  if (unregistered) items.push({ item: 'edit_name', enabled: mine, reason: mine ? undefined : NOT_MINE });
+  items.push({ item: 'remove_from_list', enabled: true });
+  return items;
+}
 
 /**
  * Why a looked-up registered player cannot take this seat, or null when they can.
