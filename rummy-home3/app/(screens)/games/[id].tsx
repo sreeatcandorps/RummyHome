@@ -13,7 +13,7 @@ import { storage } from '@/utils/storage';
 import { PLAYERS_ADMINS_TITLE } from '@/utils/gameAdmins';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { gameTypeLabel } from '@/utils/gameDisplay';
-import { buildPlayerInitials } from '@/utils/playerInitials';
+import { seatLabels } from '@/utils/initials';
 import { scorecardUrl } from '@/utils/shareLink';
 import { canShareResults } from '@/utils/scorecardSheet';
 import { shareLiveScorecard } from '@/utils/shareImage';
@@ -216,8 +216,9 @@ export default function GameScreen() {
 
   const maxRounds = getMaxRounds();
 
-  const initials = buildPlayerInitials(players.map((player) => player.name));
-  const initialsFor = (playerId: string) => initials[players.findIndex((p) => p.id === playerId)] ?? '?';
+  // Stored seat labels (022) first; a seat without one gets a letter form nobody else in this game has.
+  const labelById = seatLabels(players);
+  const initialsFor = (playerId: string) => labelById.get(playerId) ?? '?';
 
   const seats = players;
   const dealerIdForRound = (roundIndex: number) =>
@@ -234,9 +235,9 @@ export default function GameScreen() {
   const hasLeader = maxRounds > 0 && standings.length > 0;
   const leaderIds = hasLeader ? standings.filter((entry) => entry.total === bestTotal).map((entry) => entry.player.id) : [];
 
-  const columns: ScoreColumn[] = players.map((player, index) => ({
+  const columns: ScoreColumn[] = players.map((player) => ({
     id: player.id,
-    label: initials[index],
+    label: initialsFor(player.id),
     color: colorFor(player.id),
   }));
 

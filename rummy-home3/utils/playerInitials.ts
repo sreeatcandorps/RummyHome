@@ -22,10 +22,12 @@ export function buildPlayerInitials(names: string[]): string[] {
   return names.map((_, index) => labels.get(String(index)) ?? '?');
 }
 
-/** Same labels keyed by player id, so sorted views can look them up after reordering. */
-export function initialsById<T extends { id: string; name: string }>(players: T[]): Map<string, string> {
-  const labels = buildPlayerInitials(players.map((player) => player.name));
-  return new Map(players.map((player, index) => [player.id, labels[index]]));
+/**
+ * Same labels keyed by player id, so sorted views can look them up after reordering.
+ * A player with a stored seat `label` (022) keeps it; the others are derived around it.
+ */
+export function initialsById<T extends { id: string; name: string; label?: string | null }>(players: T[]): Map<string, string> {
+  return assignInitials(players.map((player, index) => ({ id: player.id, name: player.name, initials: player.label, addedAt: String(index).padStart(4, '0') })));
 }
 
 /**

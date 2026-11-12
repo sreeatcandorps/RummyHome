@@ -32,8 +32,11 @@ export type ResultSheetGame = {
 };
 
 export type ResultSheet = {
-  /** playerNo is the public Player ID (#39); filled by 018 on the server, or from the games' seats. */
-  players: { id: string; name: string; playerNo?: number | null }[];
+  /**
+   * playerNo is the public Player ID (#39); filled by 018 on the server, or from the games' seats.
+   * label is the seat's column initials (022) from the first game that has them; filled from the games' seats.
+   */
+  players: { id: string; name: string; playerNo?: number | null; label?: string | null }[];
   games: ResultSheetGame[];
 };
 

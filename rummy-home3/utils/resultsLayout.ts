@@ -51,13 +51,15 @@ export function bandRanges(count: number, size = SHARE_BREAKDOWN_MAX_GAMES): { s
  * into another band of headers with matching score rows, so it always fits.
  */
 export function buildShareBreakdown(input: {
-  players: { id: string; name: string }[];
+  players: { id: string; name: string; label?: string | null }[];
   games: SheetLikeGame[];
   totals: Record<string, number>;
+  /** Already-decided column initials; otherwise derived from stored seat labels and names. */
+  labels?: Map<string, string>;
 }): ShareBreakdown | null {
   if (input.games.length === 0) return null;
   const players = playersByFirstName(input.players);
-  const initials = initialsById(firstAppearanceOrder(input.players, input.games));
+  const initials = input.labels ?? initialsById(firstAppearanceOrder(input.players, input.games));
   const legend = players.map((player) => ({ initials: initials.get(player.id) ?? '?', name: player.name }));
   const labels = input.games.map((game, index) => sheetGameLabel({ label: game.label, name: game.name ?? `G${index + 1}` }));
   const total = (player: { id: string }) => formatPoints(input.totals[player.id] ?? 0);

@@ -72,17 +72,27 @@ export default function DeclaredResult() {
     setReused(reusedGameIds(present, loaded.declaredAt));
   }, []);
 
-  /** Player IDs come with the result on 018; older servers get them from the games' seats. */
+  /**
+   * Player IDs come with the result on 018; older servers get them from the games' seats.
+   * Column initials (022) always come from the seats: the first game's label for each player.
+   */
   const fillPlayerNos = useCallback(async (loaded: GameResult): Promise<GameResult> => {
     const sheet = sheetFor(loaded);
-    if (sheet.players.every((player) => player.playerNo != null)) return loaded;
     const seatLists = await Promise.all(loaded.gameIds.map((gameId) => gamesService.listGamePlayers(gameId).catch(() => [] as Player[])));
     const numbers: Record<string, number> = {};
+    const labels: Record<string, string> = {};
     seatLists.flat().forEach((seat) => {
       if (seat.playerNo != null) numbers[seat.id] = seat.playerNo;
+      if (seat.label && !labels[seat.id]) labels[seat.id] = seat.label;
     });
-    if (Object.keys(numbers).length === 0) return loaded;
-    return { ...loaded, sheet: { ...sheet, players: sheet.players.map((player) => ({ ...player, playerNo: player.playerNo ?? numbers[player.id] ?? null })) } };
+    if (Object.keys(numbers).length === 0 && Object.keys(labels).length === 0) return loaded;
+    return {
+      ...loaded,
+      sheet: {
+        ...sheet,
+        players: sheet.players.map((player) => ({ ...player, playerNo: player.playerNo ?? numbers[player.id] ?? null, label: labels[player.id] ?? null })),
+      },
+    };
   }, []);
 
   const load = useCallback(async () => {

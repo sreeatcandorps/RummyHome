@@ -29,13 +29,15 @@ function param(value: string | string[] | undefined): string {
   return value ?? '';
 }
 
-type Seats = { names: Record<string, string>; numbers: Record<string, number> };
+type Seats = { names: Record<string, string>; numbers: Record<string, number>; labels: Record<string, string> };
 
 function seated(players: Player[], into: Seats) {
   players.forEach((player) => {
     if (player.id === 'EX' || player.seated === false || player.seatRole === 'spectator') return;
     if (player.name?.trim()) into.names[player.id] = player.name.trim();
     if (player.playerNo != null) into.numbers[player.id] = player.playerNo;
+    // The first game's label wins when the same person has different letters in later games.
+    if (player.label && !into.labels[player.id]) into.labels[player.id] = player.label;
   });
 }
 
@@ -50,7 +52,7 @@ export default function ShownResults() {
   const idKey = param(params.ids);
   const createdAt = param(params.at) || new Date().toISOString();
   const [games, setGames] = useState<Game[]>([]);
-  const [seats, setSeats] = useState<Seats>({ names: {}, numbers: {} });
+  const [seats, setSeats] = useState<Seats>({ names: {}, numbers: {}, labels: {} });
   const [userId, setUserId] = useState<string | null>(null);
   const [standings, setStandings] = useState<ResultStanding[]>([]);
   const [sheet, setSheet] = useState<ResultSheet>({ players: [], games: [] });
@@ -74,7 +76,7 @@ export default function ShownResults() {
         return;
       }
       const listed = await Promise.all(loaded.map((game) => gamesService.listGamePlayers(game.id).catch(() => [] as Player[])));
-      const found: Seats = { names: {}, numbers: {} };
+      const found: Seats = { names: {}, numbers: {}, labels: {} };
       listed.forEach((players) => seated(players, found));
       const shaped = loaded.map((game) => ({
         id: game.id,
@@ -95,7 +97,7 @@ export default function ShownResults() {
       setStandings(presented.standings);
       setSheet({
         ...presented.sheet,
-        players: presented.sheet.players.map((player) => ({ ...player, playerNo: found.numbers[player.id] ?? null })),
+        players: presented.sheet.players.map((player) => ({ ...player, playerNo: found.numbers[player.id] ?? null, label: found.labels[player.id] ?? null })),
       });
     } catch (err) {
       setError(formatSupabaseError(err));

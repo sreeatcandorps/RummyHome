@@ -111,7 +111,7 @@ export function buildRoundTable(
 export function buildResultsDetails(input: {
   createdAtLabel: string;
   standings: ResultStanding[];
-  players: { id: string; name: string; playerNo?: number | null }[];
+  players: { id: string; name: string; playerNo?: number | null; label?: string | null }[];
   games: ResultsDetailGame[];
   footer?: string;
 }): ResultsDetails {
@@ -131,6 +131,7 @@ export function buildResultsDetails(input: {
   const totals = splitTotals(input.standings);
   const seatedCount = uniquePlayerCount(input.games);
   const breakdown = buildShareBreakdown({
+    labels,
     players: input.players,
     games: input.games,
     totals: Object.fromEntries(input.standings.map((row) => [row.id, row.points])),

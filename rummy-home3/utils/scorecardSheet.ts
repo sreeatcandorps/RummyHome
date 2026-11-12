@@ -1,4 +1,4 @@
-import { buildPlayerInitials } from '@/utils/playerInitials';
+import { initialsById } from '@/utils/playerInitials';
 import { formatPoints, placeLabel, podiumPlaces, totalAcrossGames } from '@/utils/results';
 
 export type ScoreCell = {
@@ -32,10 +32,11 @@ export function buildScorecardSheet(input: {
   gameLabel: string;
   when: string;
   isComplete: boolean;
-  players: { id: string; name: string }[];
+  players: { id: string; name: string; label?: string | null }[];
   scores: Record<string, number[]>;
 }): ScorecardSheet {
-  const labels = buildPlayerInitials(input.players.map((player) => player.name));
+  const byId = initialsById(input.players);
+  const labels = input.players.map((player) => byId.get(player.id));
   const roundCount = input.players.reduce(
     (max, player) => Math.max(max, input.scores[player.id]?.length ?? 0),
     0,

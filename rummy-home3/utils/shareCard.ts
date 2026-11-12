@@ -85,15 +85,15 @@ export function buildResultsShareCard(input: {
   places?: { label: string; names: string; points: number }[];
   gameCount?: number;
   games?: SheetLikeGame[];
-  /** Seats with Player IDs, for the second line under each name. */
-  players?: { id: string; name: string; playerNo?: number | null }[];
+  /** Seats with Player IDs, for the second line under each name, and their stored column initials (022). */
+  players?: { id: string; name: string; playerNo?: number | null; label?: string | null }[];
   footer?: string;
 }): ShareCard {
   const sorted = [...input.rows].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
   const gameCount = input.gameCount ?? input.games?.length;
   const seated = input.rows.filter((row): row is typeof row & { id: string } => typeof row.id === 'string');
-  const initials = initialsById(seated.map((row) => ({ id: row.id, name: row.name })));
   const byId = new Map((input.players ?? []).map((player) => [player.id, player]));
+  const initials = initialsById(seated.map((row) => ({ id: row.id, name: row.name, label: byId.get(row.id)?.label })));
   const subFor = (row: { id?: string }) => {
     if (!row.id) return undefined;
     const sub = totalsSubline(initials.get(row.id), byId.get(row.id));
@@ -104,6 +104,7 @@ export function buildResultsShareCard(input: {
       players: seated.map((row) => ({ id: row.id, name: row.name })),
       games: input.games,
       totals: Object.fromEntries(seated.map((row) => [row.id, row.points])),
+      labels: initials,
     })
     : null;
   return {
