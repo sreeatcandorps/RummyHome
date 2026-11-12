@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
-import { Button, Icon, Switch, Text, TextInput, TouchableRipple } from 'react-native-paper';
+import { Button, Checkbox, Icon, Switch, Text, TextInput, TouchableRipple } from 'react-native-paper';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
@@ -12,6 +12,7 @@ import { sharePlayerId } from '@/utils/invite';
 import { normalizePhone, phoneProblem } from '@/utils/phone';
 import { playerIdBadge } from '@/utils/myPlayersList';
 import { clearDemoData, loadDemoData } from '@/services/demoSeed';
+import { DEFAULT_EMAIL_PREFS, EmailPrefs, emailsService } from '@/services/emails';
 import { ChangePasscodeDialog } from '@/components/auth/ChangePasscodeDialog';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -41,6 +42,8 @@ export default function MeScreen() {
   const [showDemo, setShowDemo] = useState(false);
   const [demoBusy, setDemoBusy] = useState<null | 'load' | 'clear'>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [emailPrefs, setEmailPrefs] = useState<EmailPrefs>(DEFAULT_EMAIL_PREFS);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -61,6 +64,7 @@ export default function MeScreen() {
         email = data.session?.user.email ?? email;
       }
       setShowDemo(isAdminEmail(email));
+      setEmailPrefs(await emailsService.getPrefs());
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
@@ -125,6 +129,19 @@ export default function MeScreen() {
       setPhoneState({ kind: 'error', message: formatSupabaseError(err) });
     } finally {
       setSavingPhone(false);
+    }
+  };
+
+  const toggleEmail = async (key: keyof EmailPrefs) => {
+    const previous = emailPrefs;
+    const next = { ...emailPrefs, [key]: !emailPrefs[key] };
+    setEmailPrefs(next);
+    setEmailError(null);
+    try {
+      setEmailPrefs(await emailsService.savePrefs(next));
+    } catch (err) {
+      setEmailPrefs(previous);
+      setEmailError(formatSupabaseError(err));
     }
   };
 
@@ -299,6 +316,28 @@ export default function MeScreen() {
         )}
       </SectionCard>
 
+      <SectionCard title="Email" icon="email-outline" supportingText="Sent to the address you signed up with. Each email has an unsubscribe link.">
+        <TouchableRipple onPress={() => toggleEmail('gameStarted')} accessibilityRole="checkbox" accessibilityState={{ checked: emailPrefs.gameStarted }} accessibilityLabel="Email me when a game starts, with the live score link">
+          <View style={styles.checkRow}>
+            <Checkbox status={emailPrefs.gameStarted ? 'checked' : 'unchecked'} onPress={() => toggleEmail('gameStarted')} />
+            <View style={styles.flex}>
+              <Text variant="bodyLarge">Game started (live link)</Text>
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>When a game you are in starts, with a link to follow the scores live.</Text>
+            </View>
+          </View>
+        </TouchableRipple>
+        <TouchableRipple onPress={() => toggleEmail('results')} accessibilityRole="checkbox" accessibilityState={{ checked: emailPrefs.results }} accessibilityLabel="Email me when a result I am in is saved">
+          <View style={styles.checkRow}>
+            <Checkbox status={emailPrefs.results ? 'checked' : 'unchecked'} onPress={() => toggleEmail('results')} />
+            <View style={styles.flex}>
+              <Text variant="bodyLarge">Results</Text>
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>When a result you are in is saved, with a link to the result page.</Text>
+            </View>
+          </View>
+        </TouchableRipple>
+        {emailError ? <Text variant="bodySmall" style={{ color: colors.error }}>{emailError}</Text> : null}
+      </SectionCard>
+
       <SectionCard title="Settings" icon="cog-outline">
         <TouchableRipple
           onPress={() => router.push('/(screens)/settings')}
@@ -393,6 +432,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: spacing.sm,
   },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs },
   settingsInner: {
     flexDirection: 'row',
     alignItems: 'center',

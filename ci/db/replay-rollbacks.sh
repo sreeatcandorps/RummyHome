@@ -24,6 +24,23 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
+# 024 (emails + public results page; same PR, rolled back before 023)
+HAS_024=f
+if [ -f "$RB/rollback_024_emails_and_public_results.sql" ]; then
+  HAS_024=t
+  if apply "$RB/rollback_024_emails_and_public_results.sql"; then tap ok "rollback_024 applies"; else tap fail "rollback_024 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists queue_game_started_emails)" = f ] && [ "$(fn_exists public_result)" = f ] && [ "$(fn_exists unsubscribe_email)" = f ] \
+    && tap ok "after rollback_024 the email RPCs and the public results reader are gone" \
+    || tap fail "after rollback_024 queue_game_started_emails / public_result / unsubscribe_email should be gone"
+  [ "$(q "select exists(select 1 from information_schema.tables where table_schema='public' and table_name='email_outbox')")" = f ] \
+    && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='email_token')")" = f ] \
+    && tap ok "after rollback_024 the outbox and the preference columns are gone" \
+    || tap fail "after rollback_024 email_outbox / profiles.email_token should be gone"
+  [ "$(fn_has declare_game_result queue_result_saved_emails)" = f ] && [ "$(fn_exists delete_game)" = t ] \
+    && tap ok "after rollback_024 declare_game_result is the 023 body and 023 is in place" \
+    || tap fail "after rollback_024 declare_game_result should be the 023 body"
+fi
+
 # 023 (hide / soft delete; same PR, rolled back before 022)
 HAS_023=f
 if [ -f "$RB/rollback_023_hide_and_soft_delete.sql" ]; then
@@ -154,6 +171,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_021" = t ] && FORWARD="$FORWARD 021_email_uniqueness"
 [ "$HAS_022" = t ] && FORWARD="$FORWARD 022_player_initials"
 [ "$HAS_023" = t ] && FORWARD="$FORWARD 023_hide_and_soft_delete"
+[ "$HAS_024" = t ] && FORWARD="$FORWARD 024_emails_and_public_results"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -193,6 +211,11 @@ if [ "$HAS_023" = t ]; then
   [ "$(fn_exists delete_game)" = t ] && [ "$(fn_exists list_hidden_and_deleted)" = t ] && [ "$(fn_has get_home_bundle hidden_count)" = t ] \
     && [ "$(q "select exists(select 1 from information_schema.tables where table_schema='public' and table_name='hidden_games')")" = t ] \
     && tap ok "023 restored (hide list, delete/restore RPCs, soft-delete aware bundles)" || tap fail "023 restored"
+fi
+if [ "$HAS_024" = t ]; then
+  [ "$(fn_exists queue_game_started_emails)" = t ] && [ "$(fn_exists public_result)" = t ] && [ "$(fn_has declare_game_result queue_result_saved_emails)" = t ] \
+    && [ "$(q "select count(*) from public.profiles where email_token is null")" = 0 ] \
+    && tap ok "024 restored (outbox RPCs, public results reader, declare queues emails, every profile has a token)" || tap fail "024 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

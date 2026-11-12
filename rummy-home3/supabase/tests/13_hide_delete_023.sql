@@ -101,7 +101,7 @@ create temp table t_r2 as select id from public.game_results where declared_by =
 grant select on t_r2 to authenticated, anon;
 \set R2 '(select id from t_r2)'
 select tests.login(:SREE);
-select is((select jsonb_array_length(public.get_game_result(:R2)->'standings')), 5, 'R2 ranks the five players of B and C');
+select is((select jsonb_array_length(public.get_game_result(:R2)->'standings')), 3, 'R2 ranks the three scored players (C has no rounds, so only B''s players score)');
 select is((select public.get_game_result(:R2)->'reusedGameIds'), to_jsonb(array[:B]), 'B is reused (also in R1)');
 select is((select count(*) from public.results_holding_game(:B))::int, 2, 'two live results hold B');
 select tests.logout();
@@ -111,8 +111,8 @@ select tests.logout();
 select tests.login(:SREE);
 select is((select public.get_game_result(:R2)->'gameIds'), to_jsonb(array[:C]), 'R2 now holds only C');
 select is((select public.get_game_result(:R2)->'removedGameIds'), to_jsonb(array[:B]), 'R2 says B was removed');
-select is((select jsonb_array_length(public.get_game_result(:R2)->'standings')), 3, 'R2 is recomputed from C alone: three players');
-select ok((select bool_and((s->>'points')::int = 0 and (s->>'place')::int = 1) from jsonb_array_elements(public.get_game_result(:R2)->'standings') s), 'all three tie at 0 points, place 1');
+select is((select jsonb_array_length(public.get_game_result(:R2)->'standings')), 0, 'R2 is recomputed from C alone: no scored players remain');
+select is((select jsonb_array_length(public.get_game_result(:R2)->'sheet'->'games')), 1, 'the sheet keeps only C');
 select is((select public.get_game_result(:R2)->'reusedGameIds'), '[]'::jsonb, 'nothing reused once B is out');
 select tests.logout();
 select ok((select closed_at is null from public.games where id = :B), 'B is not Closed any more');

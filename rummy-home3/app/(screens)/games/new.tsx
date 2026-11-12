@@ -31,6 +31,8 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
+import { CoAdminNudge, coAdminCandidates } from '@/components/game/CoAdminNudge';
+import { emailsService } from '@/services/emails';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 type Pick = DraftPick;
@@ -124,6 +126,8 @@ export default function NewGame() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  /** Start game paused on the co-admin nudge; holds the resolved column letters. */
+  const [nudge, setNudge] = useState<{ labels: Map<string, string> } | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const [blocked, setBlocked] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -256,7 +260,7 @@ export default function NewGame() {
     });
   };
 
-  const createWithLabels = async (labels: Map<string, string>) => {
+  const createGame = async (labels: Map<string, string>, coAdminId: string | null) => {
     if (!me) return;
     const playerIds = newGameSeats(selectedIds);
     setCreating(true);
@@ -268,15 +272,32 @@ export default function NewGame() {
         rules,
         labels: Object.fromEntries(labels),
       });
+      if (coAdminId) await gamesService.setSeatRole(created.id, coAdminId, 'game_admin').catch(() => {});
+      // Best effort: the game exists either way; a failed email never blocks scoring.
+      emailsService.gameStarted(created.id).catch(() => {});
       newGameDraft.clear();
       setFix(null);
+      setNudge(null);
       router.replace(`/(screens)/games/${created.id}`);
     } catch (err) {
       setError(formatSupabaseError(err));
       setFix(null);
+      setNudge(null);
     } finally {
       setCreating(false);
     }
+  };
+
+  /** Registered seated players other than the organiser, for the co-admin nudge. */
+  const coAdminPicks = useMemo(() => {
+    const byId = new Map(candidates.map((c) => [c.id, c]));
+    return coAdminCandidates(selected.map((p) => ({ ...p, status: byId.get(p.id)?.status ?? null })), me?.id);
+  }, [candidates, selected, me?.id]);
+
+  const createWithLabels = async (labels: Map<string, string>) => {
+    setFix(null);
+    if (coAdminPicks.length) { setNudge({ labels }); return; }
+    await createGame(labels, null);
   };
 
   const startGame = async () => {
@@ -464,6 +485,9 @@ export default function NewGame() {
       </BottomBar>
 
       <GameSettingsDialog visible={settingsOpen} rules={rules} onDismiss={() => setSettingsOpen(false)} onSave={(r) => setRules(r)} />
+      <CoAdminNudge visible={Boolean(nudge)} candidates={coAdminPicks} busy={creating}
+        onSkip={() => { if (nudge) createGame(nudge.labels, null); }}
+        onPick={(id) => { if (nudge) createGame(nudge.labels, id); }} />
 
       <Portal>
         <Dialog visible={Boolean(blocked)} onDismiss={() => setBlocked(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>

@@ -12,6 +12,7 @@ import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { authService } from '@/services/auth';
 import { gamesService } from '@/services/games';
 import { resultsService } from '@/services/results';
+import { emailsService } from '@/services/emails';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
@@ -122,6 +123,8 @@ export default function ShownResults() {
       // The scorecard and Home read from the cache first; show these games Closed right away.
       games.forEach((game) => gameCache.putGame({ ...game, closedAt: game.closedAt ?? result.declaredAt }));
       setSavedChanges({ id: result.id, changes: saveStatusChanges(games) });
+      // Result-saved emails were queued inside declare_game_result; deliver them, best effort.
+      emailsService.resultSaved().catch(() => {});
     } catch (err) {
       setSaveError(formatSupabaseError(err));
     } finally {

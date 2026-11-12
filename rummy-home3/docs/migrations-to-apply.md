@@ -182,13 +182,39 @@ select count(*) from public.game_results where deleted_at is not null;     -- 0 
 select count(*) from public.hidden_games;                                  -- 0 right after applying
 ```
 
+## 024 — game-started and result emails, public results page (approved Nov 11, 10:59 PM PT, item 3; amended 11:03 PM)
+
+File: `supabase/migrations/024_emails_and_public_results.sql`. Run after 023. Safe to re-run. Rollback: `supabase/rollback/rollback_024_emails_and_public_results.sql` (drops `email_outbox` and the six functions, the three `profiles` columns — every preference and unsubscribe token is lost; everyone is back to "on" when 024 is applied again — and restores the 023 `declare_game_result` and `my_profile`).
+
+Not applied by this change. Adds three columns, one table and six functions; `declare_game_result` is replaced so it queues the result email itself. Nothing in the database sends mail or calls out.
+
+What it does:
+
+- **Preferences** `profiles.email_game_started` and `profiles.email_results` (both default **on**), plus a per-person `email_token` for one-click unsubscribe. Only the owner reads them (`my_profile`); `set_email_prefs(p_game_started, p_results)` writes them. `unsubscribe_email(p_token, p_kind)` is callable by `anon` from the share site and never says whether the token matched.
+- **Outbox** `public.email_outbox`: one row per `(event, recipient)`, `event_key` unique (`game_started:<game>:<profile>`, `result_saved:<result>:<profile>`), so a second Start, a retry or a second admin never queues a duplicate. No client policy reads it; only the service role (the edge function) does.
+- `queue_game_started_emails(p_game_id)` (creator or game admin): one row for every **registered** seated player with an email and the preference on, with the live scorecard link (`/scorecard.html?t=<view_token>`). The app calls it once after Start game.
+- `queue_result_saved_emails(p_result_id)` runs inside `declare_game_result`: one row per registered player in the standings with the preference on, linking to the public page `/r/<result id>`. **No game-completed email** (dropped 11:03 PM PT).
+- `public_result(p_id)` (`anon`): what the result PDF shows and nothing more — names, Player IDs, places, points, games, the by-game table, the reused-game warning — or `{deleted: true}` for a soft-deleted result, `null` when it does not exist. No emails, phones, user ids or view tokens.
+
+Outside the database, two deploys go with it (also not done by this change): `supabase functions deploy send-email` (the `flush` action; needs `RESEND_API_KEY` and `RESEND_FROM="EZ Score <scores@mindweavetech.com>"` already set for the OTP mail), and the GitHub Pages site picks up `public/r/index.html`, `public/unsubscribe.html` and `public/404.html` on the next Pages deploy. Before the function is deployed, rows simply wait in the outbox and go out on the first flush.
+
+Verified on a scratch Postgres 16 loaded with 001–023 and the CI seed: 448 pgTAP checks (49 new in `supabase/tests/14_emails_024.sql`: defaults on, prefs are owner-only, queue once per recipient, no row for unregistered / no-email / opted-out players, non-admin refused, result save queues and a second declare does not, unsubscribe by token and by kind, `public_result` shape, deleted and missing results), 31 two-client race checks, and the rollback replay (rollback 024 → 013, re-apply 013 → 024, apply each a second time; 77 checks) all pass.
+
+Read-only checks after applying (nothing is changed):
+
+```sql
+select count(*) filter (where email_game_started), count(*) filter (where email_results), count(*) from public.profiles;  -- all three equal right after applying
+select count(*), count(sent_at) from public.email_outbox;  -- 0, 0 right after applying
+```
+
 ## Apply order for the Nov 10–11 batch
 
-017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022 and 023 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
+017–020 were applied on Nov 11 (~11:25 AM PT). 021, 022, 023 and 024 are unapplied. Paste each into the Supabase SQL editor as its own run, in this order, and read the NOTICE lines 021 prints:
 
 1. `supabase/migrations/021_email_uniqueness.sql`
 2. `supabase/migrations/022_player_initials.sql`
 3. `supabase/migrations/023_hide_and_soft_delete.sql`
+4. `supabase/migrations/024_emails_and_public_results.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 
