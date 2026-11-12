@@ -150,7 +150,7 @@ export default function CompleteGameScreen() {
       </ScrollView>
 
       <BottomBar>
-        <Button mode="outlined" onPress={backToScorecard} disabled={completing} style={styles.flex}>
+        <Button mode="outlined" onPress={backToScorecard} disabled={completing} style={done ? styles.flex : styles.secondary}>
           {done ? 'Back to scorecard' : 'Not yet'}
         </Button>
         {!done ? (
@@ -208,4 +208,6 @@ const styles = StyleSheet.create({
   next: { gap: spacing.sm, marginTop: spacing.sm },
   dialog: { borderRadius: radius.xl },
   flex: { flex: 1 },
+  // The shorter label gives the filled action the room it needs on a narrow phone.
+  secondary: { flex: 0.8 },
 });

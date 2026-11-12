@@ -227,7 +227,9 @@ export default function GamePlayersScreen() {
         ) : null}
       </ScrollView>
       <BottomBar>
-        <Button mode="outlined" onPress={back}>Back to scorecard</Button>
+        <Button mode="outlined" icon={canScore ? 'arrow-left' : undefined} onPress={back} accessibilityLabel="Back to scorecard">
+          {canScore ? 'Scorecard' : 'Back to scorecard'}
+        </Button>
         {canScore ? (
           <Button mode="contained" icon="account-plus-outline" onPress={openAdd} disabled={busy} style={styles.flex} accessibilityLabel="Add new player">
             Add new player
