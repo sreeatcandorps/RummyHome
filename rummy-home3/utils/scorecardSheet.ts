@@ -1,4 +1,5 @@
-import { buildPlayerInitials } from '@/utils/playerInitials';
+import { gameLabelOf } from '@/utils/gameLabel';
+import { initialsById } from '@/utils/playerInitials';
 import { formatPoints, placeLabel, podiumPlaces, totalAcrossGames } from '@/utils/results';
 
 export type ScoreCell = {
@@ -29,13 +30,18 @@ export function placeLine(place: { label: string; names: string }): string {
 /** Full scorecard for the results picture: every round, every score, names at the bottom. */
 export function buildScorecardSheet(input: {
   gameNumber: number | null;
+  /** Fallback heading when the game has no number (share code). */
   gameLabel: string;
+  /** The 028 label (S3 / P1) when the server has one. */
+  gameLabelText?: string | null;
+  gameType?: 'stake' | 'pool' | null;
   when: string;
   isComplete: boolean;
-  players: { id: string; name: string }[];
+  players: { id: string; name: string; label?: string | null }[];
   scores: Record<string, number[]>;
 }): ScorecardSheet {
-  const labels = buildPlayerInitials(input.players.map((player) => player.name));
+  const byId = initialsById(input.players);
+  const labels = input.players.map((player) => byId.get(player.id));
   const roundCount = input.players.reduce(
     (max, player) => Math.max(max, input.scores[player.id]?.length ?? 0),
     0,
@@ -61,7 +67,7 @@ export function buildScorecardSheet(input: {
   }]);
   return {
     brand: 'EZ Score: Rummy',
-    heading: input.gameNumber != null ? `G${input.gameNumber}` : input.gameLabel,
+    heading: gameLabelOf({ gameNumber: input.gameNumber, gameLabel: input.gameLabelText ?? null, gameType: input.gameType }) ?? input.gameLabel,
     when: input.when,
     status: input.isComplete ? 'Completed' : 'Live',
     columns,

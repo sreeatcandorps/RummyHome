@@ -1,3 +1,4 @@
+import { gameLabelOf } from '@/utils/gameLabel';
 import { Game } from '@/types/game';
 import { gameTypeColors } from '@/constants/theme';
 import { isLocalToday, isWithinLast24Hours } from '@/utils/localDay';
@@ -36,9 +37,9 @@ export function gameTypeTint(gameType: Game['gameType'], tints: typeof gameTypeC
   return gameType === 'pool' ? tints.pool : tints.stake;
 }
 
-/** G-number badge label (e.g. "G1", "G2"). Returns null if no number assigned. */
-export function gameNumberLabel(game: Pick<Game, 'gameNumber'>): string | null {
-  return game.gameNumber != null ? `G${game.gameNumber}` : null;
+/** The badge label (028): "S1" for a Points game, "P1" for a Pool game. Null until the server has assigned one. */
+export function gameNumberLabel(game: Pick<Game, 'gameNumber' | 'gameLabel' | 'gameType'>): string | null {
+  return gameLabelOf(game);
 }
 
 /** Game status for card display: Active, Completed, or Closed. */
@@ -47,7 +48,11 @@ export function gameStatusLabel(game: Pick<Game, 'isComplete' | 'closedAt'>): 'A
   return game.isComplete ? 'Completed' : 'Active';
 }
 
+export { GAME_STATUS_ICON, GAME_STATUS_TONE } from '@/utils/gameStatus';
+export type { GameStatus } from '@/utils/gameStatus';
+
 /** True if the game has been included in a declared result. */
 export function isGameClosed(game: Pick<Game, 'closedAt'>): boolean {
   return Boolean(game.closedAt);
 }
+

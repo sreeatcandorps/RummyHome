@@ -21,7 +21,7 @@ const signedField = (text: string) => {
 };
 
 /** Game type (Points only for now), Drop, Middle drop, and Full count. */
-export function RulesForm({ draft, onChange, showType }: { draft: RulesDraft; onChange: (d: RulesDraft) => void; showType?: boolean }) {
+export function RulesForm({ draft, onChange, showType, disabled = false }: { draft: RulesDraft; onChange: (d: RulesDraft) => void; showType?: boolean; disabled?: boolean }) {
   const { colors } = useAppTheme();
   return (
     <View style={styles.wrap}>
@@ -39,9 +39,9 @@ export function RulesForm({ draft, onChange, showType }: { draft: RulesDraft; on
         </>
       ) : null}
       <View style={styles.row}>
-        <TextInput mode="outlined" label="Drop" keyboardType="number-pad" value={draft.drop} onChangeText={(t) => onChange({ ...draft, drop: signedField(t) })} style={styles.input} />
-        <TextInput mode="outlined" label="Middle drop" keyboardType="number-pad" value={draft.middleDrop} onChangeText={(t) => onChange({ ...draft, middleDrop: signedField(t) })} style={styles.input} />
-        <TextInput mode="outlined" label="Full count" keyboardType="number-pad" value={draft.fullCount} onChangeText={(t) => onChange({ ...draft, fullCount: signedField(t) })} style={styles.input} />
+        <TextInput mode="outlined" label="Drop" keyboardType="number-pad" disabled={disabled} value={draft.drop} onChangeText={(t) => onChange({ ...draft, drop: signedField(t) })} style={styles.input} />
+        <TextInput mode="outlined" label="Middle drop" keyboardType="number-pad" disabled={disabled} value={draft.middleDrop} onChangeText={(t) => onChange({ ...draft, middleDrop: signedField(t) })} style={styles.input} />
+        <TextInput mode="outlined" label="Full count" keyboardType="number-pad" disabled={disabled} value={draft.fullCount} onChangeText={(t) => onChange({ ...draft, fullCount: signedField(t) })} style={styles.input} />
       </View>
       <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
         Drop, Middle drop, and Full count are negative. Defaults are -10, -30, and -80.

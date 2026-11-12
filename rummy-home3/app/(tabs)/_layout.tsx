@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { Tabs, router, usePathname } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Text, TouchableRipple } from 'react-native-paper';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Text } from 'react-native-paper';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { HELP } from '@/constants/help';
@@ -10,6 +10,11 @@ import { authService } from '@/services/auth';
 import { playersService } from '@/services/players';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
+import { shortVersionLabel } from '@/utils/appVersion';
+import { readAppVersion } from '@/utils/appVersionRuntime';
+
+const APP_VERSION = readAppVersion();
+const VERSION_LABEL = shortVersionLabel(APP_VERSION);
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof Ionicons>['name'];
@@ -22,38 +27,66 @@ function BrandTitle() {
   const theme = useAppTheme();
   return (
     <View style={styles.brand}>
-      <Image source={require('../../assets/icon.png')} style={styles.brandLogo} />
-      <Text variant="titleLarge" style={[styles.brandText, { color: theme.colors.onSurface }]}>
-        EZ Score: Rummy
-      </Text>
+      <Image source={require('../../assets/icon-small.png')} style={styles.brandLogo} />
+      <View style={styles.brandCopy}>
+        <Text variant="titleLarge" numberOfLines={1} style={[styles.brandText, { color: theme.colors.onSurface }]}>
+          EZ Score: Rummy
+        </Text>
+        {VERSION_LABEL ? (
+          <Text
+            variant="labelSmall"
+            numberOfLines={1}
+            style={[styles.brandVersion, { color: theme.colors.onSurfaceVariant }]}
+            accessibilityLabel={`App version ${VERSION_LABEL}`}
+          >
+            {VERSION_LABEL}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** The signed-in person's initials, refreshed on every tab change so a renamed profile shows up. */
+function useMyName() {
+  const path = usePathname();
+  const [name, setName] = useState('?');
+  useEffect(() => {
+    authService.getCurrentPlayer().then((player) => setName(player?.name ?? '?')).catch(() => {});
+  }, [path]);
+  return name;
+}
+
+/** Icon (24) plus label (16) plus their gap: the avatar tab has no label, so the chip takes the whole height. */
+export const TAB_AVATAR = 44;
+
+/**
+ * Bottom-tab avatar: the account chip lives in the tab bar only (no duplicate in the header
+ * of tab pages). Sized to the full Home tab (icon + label) and centred vertically; active is
+ * the full-strength chip, inactive is softened, with no ring.
+ */
+function ProfileTabIcon({ focused }: { focused: boolean }) {
+  const theme = useAppTheme();
+  const name = useMyName();
+  return (
+    <View style={[styles.tabAvatar, { opacity: focused ? 1 : 0.6 }]}>
+      <SeatAvatar name={name} size={TAB_AVATAR} color={theme.colors.primary} />
     </View>
   );
 }
 
 function HeaderTools() {
   const path = usePathname();
-  const theme = useAppTheme();
-  const [name, setName] = useState('?');
-  const text = path.includes('/players') ? HELP.players : path.includes('/me') ? HELP.me : HELP.home;
+  const text = path.includes('/players')
+    ? HELP.players
+    : path.includes('/me')
+      ? HELP.me
+      : HELP.home;
 
-  useEffect(() => {
-    authService.getCurrentPlayer().then((player) => setName(player?.name ?? '?')).catch(() => {});
-  }, [path]);
-
+  // Tab pages already carry the account chip in the bottom bar; the header keeps only Help.
   return (
     <View style={styles.headerRight}>
       <HelpButton text={text} />
-      {path.includes('/players') || path.includes('/me') ? null : (
-        <TouchableRipple
-          onPress={() => router.push('/(tabs)/me')}
-          borderless
-          style={styles.avatarButton}
-          accessibilityRole="button"
-          accessibilityLabel="Open Me"
-        >
-          <SeatAvatar name={name} size={36} color={theme.colors.primary} />
-        </TouchableRipple>
-      )}
     </View>
   );
 }
@@ -61,8 +94,10 @@ function HeaderTools() {
 export default function TabLayout() {
   const theme = useAppTheme();
   const { insets, isShort } = useLayout();
+  const path = usePathname();
   const [playerCount, setPlayerCount] = useState<number | null>(null);
 
+  // Re-count on every tab change so "My players · N" matches the list right after adding people.
   useEffect(() => {
     const loadPlayerCount = async () => {
       try {
@@ -80,7 +115,7 @@ export default function TabLayout() {
       }
     };
     loadPlayerCount();
-  }, []);
+  }, [path]);
 
   return (
     <Tabs
@@ -124,8 +159,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="me"
         options={{
-          title: 'Me',
-          tabBarIcon: ({ color, focused }) => <TabBarIcon name={focused ? 'person' : 'person-outline'} color={color} />,
+          title: 'Profile',
+          // tabBarShowLabel is read from the focused tab only, so a per-screen false leaks the
+          // label whenever another tab is active; an empty label renderer is per-route.
+          tabBarLabel: () => null,
+          tabBarIconStyle: styles.tabAvatarSlot,
+          tabBarAccessibilityLabel: 'Your profile',
+          tabBarIcon: ({ focused }) => <ProfileTabIcon focused={focused} />,
         }}
       />
     </Tabs>
@@ -133,6 +173,8 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+  tabAvatar: { alignItems: 'center', justifyContent: 'center' },
+  tabAvatarSlot: { flex: 1, width: TAB_AVATAR, height: TAB_AVATAR, alignItems: 'center', justifyContent: 'center' },
   brand: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -143,20 +185,20 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: radius.sm,
   },
+  brandCopy: {
+    flexShrink: 1,
+  },
   brandText: {
     fontWeight: '800',
     letterSpacing: -0.2,
+    lineHeight: 24,
+  },
+  brandVersion: {
+    fontWeight: '600',
+    lineHeight: 14,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  avatarButton: {
-    marginRight: spacing.sm,
-    width: MIN_TOUCH_TARGET,
-    height: MIN_TOUCH_TARGET,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Button, Dialog, IconButton, Portal, Text } from 'react-native-paper';
+import { Button, Dialog, IconButton, Portal } from 'react-native-paper';
 import { useAppTheme } from '@/constants/theme';
+import { HelpText } from '@/components/ui/HelpText';
 
 type HelpButtonProps = {
   text: string;
@@ -25,7 +26,7 @@ export function HelpButton({ text, color }: HelpButtonProps) {
         <Dialog visible={open} onDismiss={() => setOpen(false)}>
           <Dialog.Title>Help</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium">{text}</Text>
+            <HelpText text={text} />
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setOpen(false)}>Close</Button>

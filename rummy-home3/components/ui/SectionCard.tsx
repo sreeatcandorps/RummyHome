@@ -13,6 +13,12 @@ type SectionCardProps = {
   style?: ViewStyle;
   /** `outlined` is a quieter treatment for secondary/informational groupings. */
   mode?: 'elevated' | 'outlined';
+  /**
+   * `top` draws only the card's head (title row, open at the bottom) so a virtualised
+   * list can draw the rows (SectionCardRows) and the closing edge (SectionCardEnd) itself.
+   * Together the three pieces look exactly like one card.
+   */
+  part?: 'whole' | 'top';
 };
 
 export function SectionCard({
@@ -23,6 +29,7 @@ export function SectionCard({
   children,
   style,
   mode = 'elevated',
+  part = 'whole',
 }: SectionCardProps) {
   const theme = useAppTheme();
 
@@ -34,6 +41,7 @@ export function SectionCard({
           backgroundColor: mode === 'outlined' ? 'transparent' : theme.colors.surface,
           borderColor: theme.colors.outlineVariant,
         },
+        part === 'top' && styles.top,
         style,
       ]}
     >
@@ -62,12 +70,52 @@ export function SectionCard({
   );
 }
 
+/** One row's worth of a split card: the side edges around the content. */
+export function SectionCardRows({ children }: { children?: React.ReactNode }) {
+  const theme = useAppTheme();
+  return (
+    <View style={[styles.rows, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
+      {children}
+    </View>
+  );
+}
+
+/** The closing edge of a split card. */
+export function SectionCardEnd() {
+  const theme = useAppTheme();
+  return <View style={[styles.end, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]} />;
+}
+
+const BORDER = StyleSheet.hairlineWidth * 2;
+
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderWidth: BORDER,
     padding: spacing.lg,
     gap: spacing.md,
+  },
+  // The whole card is header, then (gap md, child) per child, then padding lg: the
+  // pieces below add up to the same.
+  top: {
+    borderBottomWidth: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    paddingBottom: 0,
+  },
+  rows: {
+    borderLeftWidth: BORDER,
+    borderRightWidth: BORDER,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  end: {
+    borderLeftWidth: BORDER,
+    borderRightWidth: BORDER,
+    borderBottomWidth: BORDER,
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+    height: spacing.lg + BORDER,
   },
   header: {
     flexDirection: 'row',

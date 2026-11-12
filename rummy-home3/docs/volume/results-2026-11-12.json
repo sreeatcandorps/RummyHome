@@ -1,0 +1,1065 @@
+{
+  "ranAt": "2026-11-12T16:31:23.551Z",
+  "quick": false,
+  "database": {
+    "games": 6269,
+    "scores": 281831,
+    "my_players": 13490,
+    "size": "100 MB"
+  },
+  "rows": [
+    {
+      "area": "My players seed",
+      "size": "100",
+      "expected": "rows inserted with initials",
+      "actual": "100 rows seeded",
+      "pass": true,
+      "ms": 11.8,
+      "screenshot": ""
+    },
+    {
+      "area": "My players count",
+      "size": "100",
+      "expected": "100",
+      "actual": "100",
+      "pass": true,
+      "ms": 0.8,
+      "screenshot": ""
+    },
+    {
+      "area": "My players page 1 (A-Z)",
+      "size": "100",
+      "expected": "≤ 100 rows, < 150 ms",
+      "actual": "100 rows, 24.3 KB",
+      "pass": true,
+      "ms": 1.6,
+      "screenshot": ""
+    },
+    {
+      "area": "My players page 1 (Frequent)",
+      "size": "100",
+      "expected": "sorted by games desc, < 150 ms",
+      "actual": "100 rows, top 39 games",
+      "pass": true,
+      "ms": 1.6,
+      "screenshot": ""
+    },
+    {
+      "area": "My players walk all pages",
+      "size": "100",
+      "expected": "100 distinct ids, worst page < 150 ms",
+      "actual": "100 ids over 2 pages, worst 1 ms",
+      "pass": true,
+      "ms": 0.9,
+      "screenshot": ""
+    },
+    {
+      "area": "My players search by name",
+      "size": "100",
+      "expected": "finds \"Guest 00050\" first, < 300 ms",
+      "actual": "1 hits, first \"Guest 00050 Mname\"",
+      "pass": true,
+      "ms": 1.2,
+      "screenshot": ""
+    },
+    {
+      "area": "My players search (broad)",
+      "size": "100",
+      "expected": "capped at 50 hits, < 300 ms",
+      "actual": "50 hits",
+      "pass": true,
+      "ms": 1.4,
+      "screenshot": ""
+    },
+    {
+      "area": "My players whole list (older app)",
+      "size": "100",
+      "expected": "still answers",
+      "actual": "100 rows, 18.1 KB",
+      "pass": true,
+      "ms": 0.9,
+      "screenshot": ""
+    },
+    {
+      "area": "New game picker candidates",
+      "size": "100",
+      "expected": "answers < 500 ms",
+      "actual": "100 rows, 16.8 KB",
+      "pass": true,
+      "ms": 1.3,
+      "screenshot": ""
+    },
+    {
+      "area": "My players seed",
+      "size": "1000",
+      "expected": "rows inserted with initials",
+      "actual": "1000 rows seeded",
+      "pass": true,
+      "ms": 145.4,
+      "screenshot": ""
+    },
+    {
+      "area": "My players count",
+      "size": "1000",
+      "expected": "1000",
+      "actual": "1000",
+      "pass": true,
+      "ms": 1.1,
+      "screenshot": ""
+    },
+    {
+      "area": "My players page 1 (A-Z)",
+      "size": "1000",
+      "expected": "≤ 100 rows, < 150 ms",
+      "actual": "100 rows, 24.3 KB",
+      "pass": true,
+      "ms": 2.6,
+      "screenshot": ""
+    },
+    {
+      "area": "My players page 1 (Frequent)",
+      "size": "1000",
+      "expected": "sorted by games desc, < 150 ms",
+      "actual": "100 rows, top 39 games",
+      "pass": true,
+      "ms": 2.4,
+      "screenshot": ""
+    },
+    {
+      "area": "My players walk all pages",
+      "size": "1000",
+      "expected": "1000 distinct ids, worst page < 150 ms",
+      "actual": "1000 ids over 11 pages, worst 3 ms",
+      "pass": true,
+      "ms": 2.7,
+      "screenshot": ""
+    },
+    {
+      "area": "My players search by name",
+      "size": "1000",
+      "expected": "finds \"Guest 00500\" first, < 300 ms",
+      "actual": "1 hits, first \"Guest 00500 Qname\"",
+      "pass": true,
+      "ms": 4.3,
+      "screenshot": ""
+    },
+    {
+      "area": "My players search (broad)",
+      "size": "1000",
+      "expected": "capped at 50 hits, < 300 ms",
+      "actual": "50 hits",
+      "pass": true,
+      "ms": 3.9,
+      "screenshot": ""
+    },
+    {
+      "area": "My players whole list (older app)",
+      "size": "1000",
+      "expected": "still answers",
+      "actual": "1000 rows, 181.4 KB",
+      "pass": true,
+      "ms": 5.5,
+      "screenshot": ""
+    },
+    {
+      "area": "New game picker candidates",
+      "size": "1000",
+      "expected": "answers < 500 ms",
+      "actual": "100 rows, 16.8 KB",
+      "pass": true,
+      "ms": 3,
+      "screenshot": ""
+    },
+    {
+      "area": "My players seed",
+      "size": "10000",
+      "expected": "rows inserted with initials",
+      "actual": "10000 rows seeded",
+      "pass": true,
+      "ms": 316.3,
+      "screenshot": ""
+    },
+    {
+      "area": "My players count",
+      "size": "10000",
+      "expected": "10000",
+      "actual": "10000",
+      "pass": true,
+      "ms": 3.5,
+      "screenshot": ""
+    },
+    {
+      "area": "My players page 1 (A-Z)",
+      "size": "10000",
+      "expected": "≤ 100 rows, < 150 ms",
+      "actual": "100 rows, 24.2 KB",
+      "pass": true,
+      "ms": 10.6,
+      "screenshot": ""
+    },
+    {
+      "area": "My players page 1 (Frequent)",
+      "size": "10000",
+      "expected": "sorted by games desc, < 150 ms",
+      "actual": "100 rows, top 39 games",
+      "pass": true,
+      "ms": 9.8,
+      "screenshot": ""
+    },
+    {
+      "area": "My players walk all pages",
+      "size": "10000",
+      "expected": "10000 distinct ids, worst page < 150 ms",
+      "actual": "10000 ids over 101 pages, worst 13 ms",
+      "pass": true,
+      "ms": 12.6,
+      "screenshot": ""
+    },
+    {
+      "area": "My players search by name",
+      "size": "10000",
+      "expected": "finds \"Guest 05000\" first, < 300 ms",
+      "actual": "1 hits, first \"Guest 05000 Ename\"",
+      "pass": true,
+      "ms": 30.6,
+      "screenshot": ""
+    },
+    {
+      "area": "My players search (broad)",
+      "size": "10000",
+      "expected": "capped at 50 hits, < 300 ms",
+      "actual": "50 hits",
+      "pass": true,
+      "ms": 23.3,
+      "screenshot": ""
+    },
+    {
+      "area": "My players whole list (older app)",
+      "size": "10000",
+      "expected": "still answers",
+      "actual": "10000 rows, 1809.2 KB",
+      "pass": true,
+      "ms": 51.2,
+      "screenshot": ""
+    },
+    {
+      "area": "New game picker candidates",
+      "size": "10000",
+      "expected": "answers < 500 ms",
+      "actual": "100 rows, 16.8 KB",
+      "pass": true,
+      "ms": 11.6,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "2p × 50r",
+      "expected": "100 scores",
+      "actual": "game ba78b291 seeded",
+      "pass": true,
+      "ms": 10,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "2p × 50r",
+      "expected": "100 scores, 50 dealers, < 500 ms",
+      "actual": "100 scores, 50 dealers, 13.6 KB",
+      "pass": true,
+      "ms": 1.3,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "2p × 50r",
+      "expected": "100 scores, < 500 ms",
+      "actual": "100 scores, 13.7 KB",
+      "pass": true,
+      "ms": 1.3,
+      "screenshot": "ci/out/volume/screenshots/scorecard-2p-50r.png"
+    },
+    {
+      "area": "Add round (save_round)",
+      "size": "2p × 50r",
+      "expected": "saved < 300 ms",
+      "actual": "round 51 saved",
+      "pass": true,
+      "ms": 3.9,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "2p × 100r",
+      "expected": "200 scores",
+      "actual": "game a29d3510 seeded",
+      "pass": true,
+      "ms": 10.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "2p × 100r",
+      "expected": "200 scores, 100 dealers, < 500 ms",
+      "actual": "200 scores, 100 dealers, 26.0 KB",
+      "pass": true,
+      "ms": 1.4,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "2p × 100r",
+      "expected": "200 scores, < 500 ms",
+      "actual": "200 scores, 27.2 KB",
+      "pass": true,
+      "ms": 1.6,
+      "screenshot": "ci/out/volume/screenshots/scorecard-2p-100r.png"
+    },
+    {
+      "area": "Add round (save_round)",
+      "size": "2p × 100r",
+      "expected": "saved < 300 ms",
+      "actual": "round 101 saved",
+      "pass": true,
+      "ms": 3,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "2p × 200r",
+      "expected": "400 scores",
+      "actual": "game 0af37c62 seeded",
+      "pass": true,
+      "ms": 16.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "2p × 200r",
+      "expected": "400 scores, 200 dealers, < 500 ms",
+      "actual": "400 scores, 200 dealers, 51.0 KB",
+      "pass": true,
+      "ms": 2.3,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "2p × 200r",
+      "expected": "400 scores, < 500 ms",
+      "actual": "400 scores, 54.4 KB",
+      "pass": true,
+      "ms": 3.1,
+      "screenshot": "ci/out/volume/screenshots/scorecard-2p-200r.png"
+    },
+    {
+      "area": "Add round (save_round)",
+      "size": "2p × 200r",
+      "expected": "saved < 300 ms",
+      "actual": "round 201 saved",
+      "pass": true,
+      "ms": 3.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "2p × 500r",
+      "expected": "1000 scores",
+      "actual": "game a5d1d192 seeded",
+      "pass": true,
+      "ms": 42.8,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "2p × 500r",
+      "expected": "1000 scores, 500 dealers, < 500 ms",
+      "actual": "1000 scores, 500 dealers, 125.9 KB",
+      "pass": true,
+      "ms": 4.4,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "2p × 500r",
+      "expected": "1000 scores, < 500 ms",
+      "actual": "1000 scores, 136.1 KB",
+      "pass": true,
+      "ms": 6,
+      "screenshot": "ci/out/volume/screenshots/scorecard-2p-500r.png"
+    },
+    {
+      "area": "Add round at the cap",
+      "size": "2p × 500r",
+      "expected": "GRD01 rounds_per_game",
+      "actual": "GRD01: This game has 500 rounds, the most a game can hold. Start a new game.",
+      "pass": true,
+      "ms": 2.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "10p × 50r",
+      "expected": "500 scores",
+      "actual": "game a3c422fc seeded",
+      "pass": true,
+      "ms": 13.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "10p × 50r",
+      "expected": "500 scores, 50 dealers, < 500 ms",
+      "actual": "500 scores, 50 dealers, 57.4 KB",
+      "pass": true,
+      "ms": 3,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "10p × 50r",
+      "expected": "500 scores, < 500 ms",
+      "actual": "500 scores, 60.1 KB",
+      "pass": true,
+      "ms": 3,
+      "screenshot": "ci/out/volume/screenshots/scorecard-10p-50r.png"
+    },
+    {
+      "area": "Add round (save_round)",
+      "size": "10p × 50r",
+      "expected": "saved < 300 ms",
+      "actual": "round 51 saved",
+      "pass": true,
+      "ms": 3.7,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "10p × 100r",
+      "expected": "1000 scores",
+      "actual": "game f45596cd seeded",
+      "pass": true,
+      "ms": 21.6,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "10p × 100r",
+      "expected": "1000 scores, 100 dealers, < 500 ms",
+      "actual": "1000 scores, 100 dealers, 110.8 KB",
+      "pass": true,
+      "ms": 4.4,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "10p × 100r",
+      "expected": "1000 scores, < 500 ms",
+      "actual": "1000 scores, 119.7 KB",
+      "pass": true,
+      "ms": 5,
+      "screenshot": "ci/out/volume/screenshots/scorecard-10p-100r.png"
+    },
+    {
+      "area": "Add round (save_round)",
+      "size": "10p × 100r",
+      "expected": "saved < 300 ms",
+      "actual": "round 101 saved",
+      "pass": true,
+      "ms": 3.7,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "10p × 200r",
+      "expected": "2000 scores",
+      "actual": "game b8fdfff5 seeded",
+      "pass": true,
+      "ms": 38.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "10p × 200r",
+      "expected": "2000 scores, 200 dealers, < 500 ms",
+      "actual": "2000 scores, 200 dealers, 218.7 KB",
+      "pass": true,
+      "ms": 7.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "10p × 200r",
+      "expected": "2000 scores, < 500 ms",
+      "actual": "2000 scores, 239.9 KB",
+      "pass": true,
+      "ms": 8.9,
+      "screenshot": "ci/out/volume/screenshots/scorecard-10p-200r.png"
+    },
+    {
+      "area": "Add round (save_round)",
+      "size": "10p × 200r",
+      "expected": "saved < 300 ms",
+      "actual": "round 201 saved",
+      "pass": true,
+      "ms": 3.7,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "10p × 500r",
+      "expected": "5000 scores",
+      "actual": "game 711d2c59 seeded",
+      "pass": true,
+      "ms": 92.3,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "10p × 500r",
+      "expected": "5000 scores, 500 dealers, < 500 ms",
+      "actual": "5000 scores, 500 dealers, 542.2 KB",
+      "pass": true,
+      "ms": 16.5,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "10p × 500r",
+      "expected": "5000 scores, < 500 ms",
+      "actual": "5000 scores, 600.6 KB",
+      "pass": true,
+      "ms": 26,
+      "screenshot": "ci/out/volume/screenshots/scorecard-10p-500r.png"
+    },
+    {
+      "area": "Add round at the cap",
+      "size": "10p × 500r",
+      "expected": "GRD01 rounds_per_game",
+      "actual": "GRD01: This game has 500 rounds, the most a game can hold. Start a new game.",
+      "pass": true,
+      "ms": 2.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "20p × 50r",
+      "expected": "1000 scores",
+      "actual": "game 3871ac4e seeded",
+      "pass": true,
+      "ms": 21.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "20p × 50r",
+      "expected": "1000 scores, 50 dealers, < 500 ms",
+      "actual": "1000 scores, 50 dealers, 112.1 KB",
+      "pass": true,
+      "ms": 4,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "20p × 50r",
+      "expected": "1000 scores, < 500 ms",
+      "actual": "1000 scores, 117.9 KB",
+      "pass": true,
+      "ms": 5.1,
+      "screenshot": "ci/out/volume/screenshots/scorecard-20p-50r.png"
+    },
+    {
+      "area": "Add round (save_round)",
+      "size": "20p × 50r",
+      "expected": "saved < 300 ms",
+      "actual": "round 51 saved",
+      "pass": true,
+      "ms": 4.4,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "20p × 100r",
+      "expected": "2000 scores",
+      "actual": "game ff7dbbe1 seeded",
+      "pass": true,
+      "ms": 35.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "20p × 100r",
+      "expected": "2000 scores, 100 dealers, < 500 ms",
+      "actual": "2000 scores, 100 dealers, 216.8 KB",
+      "pass": true,
+      "ms": 7.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "20p × 100r",
+      "expected": "2000 scores, < 500 ms",
+      "actual": "2000 scores, 235.1 KB",
+      "pass": true,
+      "ms": 8.8,
+      "screenshot": "ci/out/volume/screenshots/scorecard-20p-100r.png"
+    },
+    {
+      "area": "Add round (save_round)",
+      "size": "20p × 100r",
+      "expected": "saved < 300 ms",
+      "actual": "round 101 saved",
+      "pass": true,
+      "ms": 4.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "20p × 200r",
+      "expected": "4000 scores",
+      "actual": "game 0dd59205 seeded",
+      "pass": true,
+      "ms": 64,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "20p × 200r",
+      "expected": "4000 scores, 200 dealers, < 500 ms",
+      "actual": "4000 scores, 200 dealers, 428.1 KB",
+      "pass": true,
+      "ms": 13.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "20p × 200r",
+      "expected": "4000 scores, < 500 ms",
+      "actual": "4000 scores, 471.5 KB",
+      "pass": true,
+      "ms": 19.9,
+      "screenshot": "ci/out/volume/screenshots/scorecard-20p-200r.png"
+    },
+    {
+      "area": "Add round (save_round)",
+      "size": "20p × 200r",
+      "expected": "saved < 300 ms",
+      "actual": "round 201 saved",
+      "pass": true,
+      "ms": 4.5,
+      "screenshot": ""
+    },
+    {
+      "area": "Game seed",
+      "size": "20p × 500r",
+      "expected": "10000 scores",
+      "actual": "game 6ad83b37 seeded",
+      "pass": true,
+      "ms": 153.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Scorecard open (get_game_bundle)",
+      "size": "20p × 500r",
+      "expected": "10000 scores, 500 dealers, < 500 ms",
+      "actual": "10000 scores, 500 dealers, 1062.0 KB",
+      "pass": true,
+      "ms": 30.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ scorecard payload",
+      "size": "20p × 500r",
+      "expected": "10000 scores, < 500 ms",
+      "actual": "10000 scores, 1180.7 KB",
+      "pass": true,
+      "ms": 49.9,
+      "screenshot": "ci/out/volume/screenshots/scorecard-20p-500r.png"
+    },
+    {
+      "area": "Add round at the cap",
+      "size": "20p × 500r",
+      "expected": "GRD01 rounds_per_game",
+      "actual": "GRD01: This game has 500 rounds, the most a game can hold. Start a new game.",
+      "pass": true,
+      "ms": 2.8,
+      "screenshot": ""
+    },
+    {
+      "area": "Games seed (game-number trigger per insert)",
+      "size": "100 games",
+      "expected": "numbers 1..N, no gaps",
+      "actual": "100 games in 0.2 s (2.3 ms/game)",
+      "pass": true,
+      "ms": 228.9,
+      "screenshot": ""
+    },
+    {
+      "area": "Game numbers unique and dense",
+      "size": "100 games",
+      "expected": "100 distinct, max 100",
+      "actual": "100 distinct, max 100",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Home open (get_home_bundle)",
+      "size": "100 games",
+      "expected": "50 games, < 500 ms",
+      "actual": "50 games, 60.6 KB (6 ms before ANALYZE ran on the bulk load)",
+      "pass": true,
+      "ms": 5,
+      "screenshot": ""
+    },
+    {
+      "area": "Results picker (list_result_candidates)",
+      "size": "100 games",
+      "expected": "50 candidates, < 500 ms",
+      "actual": "50 candidates, 110.8 KB",
+      "pass": true,
+      "ms": 9.7,
+      "screenshot": ""
+    },
+    {
+      "area": "Results list (list_game_results_page)",
+      "size": "100 games",
+      "expected": "< 500 ms",
+      "actual": "1 results, 0.0 KB",
+      "pass": true,
+      "ms": 1,
+      "screenshot": ""
+    },
+    {
+      "area": "Visible games (list_visible_game_ids)",
+      "size": "100 games",
+      "expected": "100 ids, < 500 ms",
+      "actual": "100 ids",
+      "pass": true,
+      "ms": 0.8,
+      "screenshot": ""
+    },
+    {
+      "area": "Create one more game (number assignment)",
+      "size": "100 games",
+      "expected": "lowest free number S101, < 200 ms",
+      "actual": "S101",
+      "pass": true,
+      "ms": 1.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Games seed (game-number trigger per insert)",
+      "size": "1000 games",
+      "expected": "numbers 1..N, no gaps",
+      "actual": "1000 games in 4.0 s (4.0 ms/game)",
+      "pass": true,
+      "ms": 4034.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Game numbers unique and dense",
+      "size": "1000 games",
+      "expected": "1000 distinct, max 1000",
+      "actual": "1000 distinct, max 1000",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Home open (get_home_bundle)",
+      "size": "1000 games",
+      "expected": "50 games, < 500 ms",
+      "actual": "50 games, 60.5 KB (13 ms before ANALYZE ran on the bulk load)",
+      "pass": true,
+      "ms": 11.9,
+      "screenshot": ""
+    },
+    {
+      "area": "Results picker (list_result_candidates)",
+      "size": "1000 games",
+      "expected": "50 candidates, < 500 ms",
+      "actual": "50 candidates, 110.6 KB",
+      "pass": true,
+      "ms": 19.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Results list (list_game_results_page)",
+      "size": "1000 games",
+      "expected": "< 500 ms",
+      "actual": "1 results, 0.0 KB",
+      "pass": true,
+      "ms": 1.1,
+      "screenshot": ""
+    },
+    {
+      "area": "Visible games (list_visible_game_ids)",
+      "size": "1000 games",
+      "expected": "1000 ids, < 500 ms",
+      "actual": "1000 ids",
+      "pass": true,
+      "ms": 2.4,
+      "screenshot": ""
+    },
+    {
+      "area": "Create one more game (number assignment)",
+      "size": "1000 games",
+      "expected": "lowest free number S1001, < 200 ms",
+      "actual": "S1001",
+      "pass": true,
+      "ms": 2.8,
+      "screenshot": ""
+    },
+    {
+      "area": "Games seed (game-number trigger per insert)",
+      "size": "5000 games",
+      "expected": "numbers 1..N, no gaps",
+      "actual": "5000 games in 30.4 s (6.1 ms/game)",
+      "pass": true,
+      "ms": 30432.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Game numbers unique and dense",
+      "size": "5000 games",
+      "expected": "5000 distinct, max 5000",
+      "actual": "5000 distinct, max 5000",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Home open (get_home_bundle)",
+      "size": "5000 games",
+      "expected": "50 games, < 500 ms",
+      "actual": "50 games, 60.6 KB (46 ms before ANALYZE ran on the bulk load)",
+      "pass": true,
+      "ms": 43,
+      "screenshot": ""
+    },
+    {
+      "area": "Results picker (list_result_candidates)",
+      "size": "5000 games",
+      "expected": "50 candidates, < 500 ms",
+      "actual": "50 candidates, 110.8 KB",
+      "pass": true,
+      "ms": 50.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Results list (list_game_results_page)",
+      "size": "5000 games",
+      "expected": "< 500 ms",
+      "actual": "1 results, 0.0 KB",
+      "pass": true,
+      "ms": 2.4,
+      "screenshot": ""
+    },
+    {
+      "area": "Visible games (list_visible_game_ids)",
+      "size": "5000 games",
+      "expected": "5000 ids, < 500 ms",
+      "actual": "5000 ids",
+      "pass": true,
+      "ms": 9.4,
+      "screenshot": ""
+    },
+    {
+      "area": "Create one more game (number assignment)",
+      "size": "5000 games",
+      "expected": "lowest free number S5001, < 200 ms",
+      "actual": "S5001",
+      "pass": true,
+      "ms": 37.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Results seed",
+      "size": "50 games × 20 players",
+      "expected": "50 completed games, 20 seats, 10 rounds",
+      "actual": "seeded in 1.2 s",
+      "pass": true,
+      "ms": 1180.6,
+      "screenshot": ""
+    },
+    {
+      "area": "Declare results over 50 games",
+      "size": "50 games × 20 players",
+      "expected": "refused: at most 30 games per result (024 rule)",
+      "actual": "Results can include at most 30 games",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Declare results over 30 games",
+      "size": "30 games × 20 players",
+      "expected": "saved < 1,000 ms",
+      "actual": "result 740fb743",
+      "pass": true,
+      "ms": 67,
+      "screenshot": ""
+    },
+    {
+      "area": "Results sheet (get_game_result)",
+      "size": "30 games × 20 players",
+      "expected": "20 standings, 30 games with 20 round arrays each, < 200 ms (was ~250 ms before 032)",
+      "actual": "20 standings, 30 games (30 with rounds), 82.1 KB",
+      "pass": true,
+      "ms": 42,
+      "screenshot": ""
+    },
+    {
+      "area": "Web /r/ results payload (public_result)",
+      "size": "30 games × 20 players",
+      "expected": "< 200 ms (was ~600 ms before 032)",
+      "actual": "10.6 KB",
+      "pass": true,
+      "ms": 9.6,
+      "screenshot": "ci/out/volume/screenshots/result-30x20.png"
+    },
+    {
+      "area": "Results picker with 20-seat games",
+      "size": "50 games × 20 players",
+      "expected": "50 candidates (closed games can be reused, 018), < 500 ms",
+      "actual": "50 candidates, 429.0 KB",
+      "pass": true,
+      "ms": 25.5,
+      "screenshot": ""
+    },
+    {
+      "area": "Five admins save the same round at once",
+      "size": "5 admins, 5 seats",
+      "expected": "1 saved, 4 PT409, one live round 4",
+      "actual": "1 saved, 4 PT409, 1 live round(s)",
+      "pass": true,
+      "ms": 28.6,
+      "screenshot": ""
+    },
+    {
+      "area": "Five admins save the next five rounds in turn",
+      "size": "5 admins",
+      "expected": "5 saved, 9 live rounds, < 1,000 ms for all five",
+      "actual": "5 saved, 9 live rounds",
+      "pass": true,
+      "ms": 26.6,
+      "screenshot": ""
+    },
+    {
+      "area": "Dealer rotation under concurrent saves",
+      "size": "9 rounds",
+      "expected": "each dealer is the seat after the previous",
+      "actual": "rotation intact",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Ten creators in one circle start games at once",
+      "size": "10 games",
+      "expected": "ten distinct numbers S1..S10",
+      "actual": "S1 S2 S3 S4 S5 S6 S7 S8 S9 S10",
+      "pass": true,
+      "ms": 331.2,
+      "screenshot": ""
+    },
+    {
+      "area": "Thirty games save a round at the same instant",
+      "size": "30 games",
+      "expected": "30 saved, < 2,000 ms wall",
+      "actual": "30 saved",
+      "pass": true,
+      "ms": 78.9,
+      "screenshot": ""
+    },
+    {
+      "area": "Email burst queued",
+      "size": "150 emails",
+      "expected": "150 waiting and due, ≤ 90 sends left today",
+      "actual": "155 waiting, 155 due, 90 left today",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Email daily cap reached",
+      "size": "150 emails",
+      "expected": "90 sent, 60 wait for tomorrow, none dropped",
+      "actual": "90 sent, 60 deferred (to tomorrow), 150 rows kept, 0 left today",
+      "pass": true,
+      "ms": 2.4,
+      "screenshot": ""
+    },
+    {
+      "area": "Email provider down",
+      "size": "1 email",
+      "expected": "row kept with backoff",
+      "actual": "1 row kept, retries in 20 minutes",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Guardrail my_players_max",
+      "size": "2000",
+      "expected": "GRD01 \"My players is full (2,000). Remove someone first.\"",
+      "actual": "GRD01 My players is full (2,000). Remove someone first.",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Guardrail players_added_per_day",
+      "size": "100/day",
+      "expected": "GRD01 \"You added 100 players today. Try again tomorrow.\"",
+      "actual": "GRD01 You added 100 players today. Try again tomorrow.",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Guardrail players_per_game",
+      "size": "20",
+      "expected": "GRD01 \"A game holds at most 20 players.\"",
+      "actual": "GRD01 A game holds at most 20 players.",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Guardrail rounds_per_game",
+      "size": "500",
+      "expected": "GRD01 \"This game has 500 rounds, the most a game can hold. Start a new game.\"",
+      "actual": "see \"Add round at the cap\" rows above",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Guardrail live_games_per_user",
+      "size": "10 live",
+      "expected": "GRD01 \"You have 10 live games. Finish or close one first.\"",
+      "actual": "GRD01 You have 10 live games. Finish or close one first.",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Guardrail games_per_day",
+      "size": "50/day",
+      "expected": "GRD01 \"You created 50 games today. Try again tomorrow.\"",
+      "actual": "GRD01 You created 50 games today. Try again tomorrow.",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    },
+    {
+      "area": "Guardrail link_requests_pending",
+      "size": "20 pending",
+      "expected": "GRD01 \"You have 20 link requests waiting. Wait for an answer or cancel one first.\"",
+      "actual": "GRD01 You have 20 link requests waiting. Wait for an answer or cancel one first.",
+      "pass": true,
+      "ms": null,
+      "screenshot": ""
+    }
+  ]
+}

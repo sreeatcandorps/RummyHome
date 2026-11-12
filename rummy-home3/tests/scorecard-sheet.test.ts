@@ -29,10 +29,10 @@ test('a results image is the full scorecard and names the places without scores'
   });
 
   assert.equal(sheet.brand, 'EZ Score: Rummy');
-  assert.equal(sheet.heading, 'G4');
+  assert.equal(sheet.heading, 'S4');
   assert.equal(sheet.when, 'Fri, Oct 30 · 8:47 PM');
   assert.equal(sheet.status, 'Completed');
-  assert.deepEqual(sheet.columns.map((column) => column.label), ['SK', 'P1', 'HG']);
+  assert.deepEqual(sheet.columns.map((column) => column.label), ['SK', 'PL', 'HG']);
   assert.equal(sheet.rounds.length, 2);
   assert.deepEqual(sheet.rounds[0].cells.map((cell) => cell.text), ['+90', '-40', '-50']);
   assert.deepEqual(sheet.rounds[1].cells.map((cell) => cell.text), ['+30', '-10', '-20']);

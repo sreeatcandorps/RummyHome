@@ -28,10 +28,23 @@ export type Game = {
   adminIds?: string[];
   /** Game admins with no score column. */
   unseatedAdminIds?: string[];
-  /** Per-creator sequential game number (G1, G2...). Assigned at creation, never changes. */
+  /** Numeric part of the visible number. Pre-028 servers: per-creator sequence. Assigned at creation, never changes. */
   gameNumber?: number | null;
+  /** The visible number (028): S<n> for Points, P<n> for Pool. Assigned by the server at creation, never changes; shown instead of the id. */
+  gameLabel?: string | null;
   /** When included in a declared result. A closed game is part of finalized results. */
   closedAt?: string | null;
+  /** When Complete game was pressed. Kept when the game is later Closed. */
+  completedAt?: string | null;
+  /** Local (no Supabase) games only: column label per seat, fixed at seat time. Server games carry it on the seat row. */
+  labels?: Record<string, string>;
+  /** Who dealt each saved round, by round index (031). Missing before 031; the seat-order rule fills in. */
+  dealerIds?: (string | null | undefined)[];
+  /** Soft delete (023). A deleted game is gone for everyone until restored; only the id, number and this stamp are readable. */
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  /** Whether the viewer may restore a deleted game (the deleter, or a creator/admin). */
+  canRestore?: boolean;
 };
 
 export interface Round {

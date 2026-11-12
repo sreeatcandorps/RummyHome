@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>EZ Score</title>
+  <script>
+    // GitHub Pages serves this for unknown paths. /r/<result id> is a results link from an
+    // email: forward it to the results page with the id as a query parameter.
+    (function () {
+      var m = location.pathname.match(/^\/r\/([0-9a-f-]{36})\/?$/i);
+      if (m) { location.replace('/r/?id=' + m[1]); }
+    })();
+  </script>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", sans-serif; background: #FBF1E1; color: #1B1F1C; }
+    main { padding: 40px 20px; text-align: center; }
+    a { color: #17402F; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>EZ Score</h1>
+    <p>That page is not here. <a href="/">Home</a></p>
+  </main>
+</body>
+</html>

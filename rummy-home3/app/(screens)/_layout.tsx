@@ -30,12 +30,16 @@ export default function ScreensLayout() {
       />
       <Stack.Screen name="profile" options={{ title: 'Me' }} />
       <Stack.Screen name="settings" options={{ title: 'User settings', headerRight: () => <HelpButton text={HELP.userSettings} /> }} />
+      <Stack.Screen name="hidden-deleted" options={{ title: 'Hidden & deleted', headerRight: () => <HelpButton text={HELP.hiddenDeleted} /> }} />
       <Stack.Screen
         name="games/new"
         options={{ title: 'New game', headerRight: () => <HelpButton text={HELP.newGame} /> }}
       />
       <Stack.Screen name="games/history" options={{ title: 'Home' }} />
       <Stack.Screen name="games/[id]" options={{ title: 'Scorecard', headerTitleAlign: 'left' }} />
+      <Stack.Screen name="games/complete" options={{ title: 'Complete game' }} />
+      <Stack.Screen name="games/players" options={{ title: 'Players/Admins' }} />
+      <Stack.Screen name="games/final-scores" options={{ title: 'Final scores' }} />
       <Stack.Screen
         name="sessions/[id]"
         options={{
@@ -68,6 +72,15 @@ export default function ScreensLayout() {
       <Stack.Screen
         name="players/new"
         options={{ title: 'Find player in database', headerRight: () => <HelpButton text={HELP.find} /> }}
+      />
+      <Stack.Screen
+        name="players/add"
+        options={{
+          title: 'Add New Players by Initials',
+          headerBackVisible: false,
+          gestureEnabled: false,
+          headerRight: () => <HelpButton text={HELP.addPlayers} />,
+        }}
       />
       <Stack.Screen name="players/[id]" options={{ title: 'Players' }} />
       <Stack.Screen name="players/[id]/edit" options={{ title: 'Me' }} />

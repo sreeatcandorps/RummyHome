@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Platform, StyleSheet, TextInput as NativeInput, View } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { router, useLocalSearchParams } from 'expo-router';
 import { PasscodeField } from '@/components/ui/PasscodeField';
@@ -14,15 +14,26 @@ import { HELP } from '@/constants/help';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
-  const params = useLocalSearchParams<{ email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; notice?: string }>();
   const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
   const [passcode, setPasscode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState(typeof params.notice === 'string' ? params.notice : '');
+
+  const emailRef = useRef<NativeInput>(null);
 
   useEffect(() => {
-    const notice = takeStartupNotice();
-    if (notice) setError(notice);
+    const startup = takeStartupNotice();
+    if (startup) setError(startup);
+  }, []);
+
+  // Cursor in Email on launch. Android ignores autoFocus on a screen that mounts mid-transition, so focus once laid out.
+  useEffect(() => {
+    if (email) return;
+    const timer = setTimeout(() => emailRef.current?.focus(), Platform.OS === 'web' ? 0 : 350);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleEmailLogin = async () => {
@@ -118,6 +129,7 @@ export default function LoginScreen() {
       }
     >
       <TextInput
+        ref={emailRef}
         label="Email"
         value={email}
         onChangeText={setEmail}
@@ -125,13 +137,19 @@ export default function LoginScreen() {
         keyboardType="email-address"
         autoCapitalize="none"
         autoComplete="email"
+        autoFocus={!email}
+        returnKeyType="next"
+        cursorColor={theme.colors.primary}
+        selectionColor={theme.colors.primary}
         left={<TextInput.Icon icon="email-outline" />}
       />
 
       <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} />
-      <HelperText type="info" visible>
-        Numbers only. Use the eye to check the digits as you type.
-      </HelperText>
+      {notice ? (
+        <HelperText type="info" visible style={styles.notice} onPress={() => setNotice('')}>
+          {notice}
+        </HelperText>
+      ) : null}
 
       {error ? (
         <HelperText type="error" visible={!!error}>
@@ -153,7 +171,7 @@ export default function LoginScreen() {
 
       <Button
         mode="text"
-        onPress={() => router.push('/(auth)/forgot-password')}
+        onPress={() => router.push({ pathname: '/(auth)/forgot-password', params: email ? { email: email.trim() } : {} })}
         contentStyle={styles.secondaryContent}
       >
         Forgot passcode?
@@ -163,6 +181,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  notice: { fontWeight: '700' },
   pill: {
     borderRadius: radius.full,
   },

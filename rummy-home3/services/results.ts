@@ -2,6 +2,7 @@ import { RESULTS_PLAYER_LIMIT } from '@/constants/limits';
 import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { Game } from '@/types/game';
+import { canSeeResult, ResultAccessGame } from '@/utils/resultsAccess';
 import {
   canDeclareResults,
   RESULTS_PAGE_SIZE,
@@ -14,6 +15,7 @@ import {
   summaryFrom,
   withinResultsPlayerLimit,
   winnerLineFromNames,
+  gameLabelFor,
 } from '@/utils/results';
 
 const LOCAL_KEY = 'gameResults';
@@ -66,6 +68,26 @@ function numberRecord(value: unknown): Record<string, number> {
   return scores;
 }
 
+/**
+ * Per-round values per player. A null (a round the player has no score in, as the
+ * 020 server embed sends it) stays an empty slot, exactly as the array built from
+ * getGame() has, so the sheet shows "—" there rather than 0.
+ */
+function roundsRecord(value: unknown): Record<string, number[]> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const rounds: Record<string, number[]> = {};
+  Object.entries(value as Record<string, unknown>).forEach(([key, raw]) => {
+    if (!Array.isArray(raw)) return;
+    const values: number[] = [];
+    raw.forEach((item, index) => {
+      if (item != null) values[index] = Number(item) || 0;
+    });
+    values.length = raw.length;
+    rounds[key] = values;
+  });
+  return rounds;
+}
+
 function sheetFrom(value: unknown, standings: ResultStanding[]): ResultSheet {
   const fallback: ResultSheet = {
     players: standings.map((row) => ({ id: row.id, name: row.name })),
@@ -76,21 +98,29 @@ function sheetFrom(value: unknown, standings: ResultStanding[]): ResultSheet {
   const players = Array.isArray(row.players)
     ? row.players.flatMap((item) => {
       if (!item || typeof item !== 'object') return [];
-      const player = item as { id?: unknown; name?: unknown };
+      const player = item as { id?: unknown; name?: unknown; playerNo?: unknown };
       if (typeof player.id !== 'string') return [];
-      return [{ id: player.id, name: typeof player.name === 'string' && player.name.trim() ? player.name : 'Player' }];
+      const playerNo = Number(player.playerNo);
+      return [{
+        id: player.id,
+        name: typeof player.name === 'string' && player.name.trim() ? player.name : 'Player',
+        ...(Number.isFinite(playerNo) && playerNo > 0 ? { playerNo } : {}),
+      }];
     })
     : fallback.players;
   const games = Array.isArray(row.games)
     ? row.games.flatMap((item) => {
       if (!item || typeof item !== 'object') return [];
-      const game = item as { id?: unknown; name?: unknown; date?: unknown; scores?: unknown };
+      const game = item as { id?: unknown; name?: unknown; label?: unknown; date?: unknown; scores?: unknown; rounds?: unknown };
       if (typeof game.id !== 'string') return [];
+      const rounds = roundsRecord(game.rounds);
       return [{
         id: game.id,
         name: typeof game.name === 'string' && game.name.trim() ? game.name : game.id.slice(-6).toUpperCase(),
+        ...(typeof game.label === 'string' && game.label.trim() ? { label: game.label.trim() } : {}),
         date: typeof game.date === 'string' ? game.date : '',
         scores: numberRecord(game.scores),
+        ...(rounds ? { rounds } : {}),
       }];
     })
     : [];
@@ -106,8 +136,25 @@ function resultFrom(value: unknown): GameResult | null {
     gameIds?: unknown;
     standings?: unknown;
     sheet?: unknown;
+    reusedGameIds?: unknown;
+    removedGameIds?: unknown;
+    canManage?: unknown;
+    deleted?: unknown;
+    deletedAt?: unknown;
+    canRestore?: unknown;
   };
   if (typeof row.id !== 'string') return null;
+  if (row.deleted === true || (typeof row.deletedAt === 'string' && row.deletedAt)) {
+    return {
+      id: row.id,
+      declaredAt: typeof row.declaredAt === 'string' ? row.declaredAt : '',
+      declaredBy: typeof row.declaredBy === 'string' ? row.declaredBy : '',
+      gameIds: [],
+      standings: [],
+      deletedAt: typeof row.deletedAt === 'string' ? row.deletedAt : new Date().toISOString(),
+      canRestore: row.canRestore === true,
+    };
+  }
   let standingsRaw = row.standings;
   let sheetRaw = row.sheet;
   if (standingsRaw && !Array.isArray(standingsRaw) && typeof standingsRaw === 'object') {
@@ -126,6 +173,13 @@ function resultFrom(value: unknown): GameResult | null {
     gameIds,
     standings,
     sheet: sheetFrom(sheetRaw, standings),
+    ...(Array.isArray(row.reusedGameIds)
+      ? { reusedGameIds: row.reusedGameIds.filter((id): id is string => typeof id === 'string') }
+      : {}),
+    ...(Array.isArray(row.removedGameIds)
+      ? { removedGameIds: row.removedGameIds.filter((id): id is string => typeof id === 'string') }
+      : {}),
+    ...(typeof row.canManage === 'boolean' ? { canManage: row.canManage } : {}),
   };
 }
 
@@ -140,11 +194,46 @@ function assertDeclarable(games: Game[], names: Record<string, string>, userId: 
   }
 }
 
+/** Who is looking: the signed-in account, or the chosen player in the local store. */
+async function viewer(): Promise<{ id: string | null; isAppAdmin: boolean }> {
+  const { authService } = await import('@/services/auth');
+  if (!isSupabaseConfigured) {
+    const { storage } = await import('@/utils/storage');
+    const id = await storage.getCurrentPlayer();
+    const player = id ? await authService.getCurrentPlayer().catch(() => null) : null;
+    return { id, isAppAdmin: player?.role === 'admin' };
+  }
+  const id = await authService.getCurrentUserId().catch(() => null);
+  const profile = id ? await authService.getCurrentProfile().catch(() => null) : null;
+  return { id: id ?? null, isAppAdmin: profile?.role === 'app_admin' };
+}
+
+/** Games in the result the viewer can read. Unreadable games (RLS) simply drop out. */
+async function readableGames(gameIds: string[]): Promise<(ResultAccessGame | null)[]> {
+  const { gamesService } = await import('@/services/games');
+  return Promise.all(gameIds.map((id) => gamesService.getGame(id).catch(() => null)));
+}
+
+async function visibleTo(result: GameResult, who: { id: string | null; isAppAdmin: boolean }, games?: (ResultAccessGame | null)[]) {
+  const playerIds = [...new Set([...(result.sheet?.players ?? []).map((p) => p.id), ...result.standings.map((row) => row.id)])];
+  if (canSeeResult({ declaredBy: result.declaredBy, playerIds }, who.id, who)) return true;
+  const loaded = games ?? await readableGames(result.gameIds);
+  return canSeeResult({ declaredBy: result.declaredBy, playerIds, games: loaded }, who.id, who);
+}
+
 export const resultsService = {
-  /** Past results, newest first, one page at a time. */
+  /** Past results, newest first, one page at a time. Only results the viewer is part of. */
   async list(offset = 0, limit = RESULTS_PAGE_SIZE): Promise<GameResultSummary[]> {
     if (!isSupabaseConfigured) {
-      const results = await readLocal();
+      const who = await viewer();
+      const all = (await readLocal()).filter((result) => !result.deletedAt);
+      const { storage } = await import('@/utils/storage');
+      const games = (await storage.getGames()).filter((game) => !game.deletedAt);
+      const byId = new Map(games.map((game) => [game.id, game]));
+      const results: GameResult[] = [];
+      for (const result of all) {
+        if (await visibleTo(result, who, result.gameIds.map((id) => byId.get(id) ?? null))) results.push(result);
+      }
       return results
         .map(summaryFrom)
         .sort((a, b) => b.declaredAt.localeCompare(a.declaredAt))
@@ -165,7 +254,7 @@ export const resultsService = {
     if (error) throw error;
     const rows = (Array.isArray(data) ? data : []) as {
       id?: string; declaredAt?: string; gameCount?: number; playerCount?: number;
-      firstNames?: string[]; top?: { name?: string; points?: number; place?: number }[];
+      firstNames?: string[]; top?: { name?: string; points?: number; place?: number }[]; reusedGameIds?: unknown[];
     }[];
     return rows
       .filter((row) => typeof row.id === 'string')
@@ -174,6 +263,8 @@ export const resultsService = {
         declaredAt: row.declaredAt ?? '',
         gameCount: Number(row.gameCount) || 0,
         playerCount: Number(row.playerCount) || 0,
+        // Servers before 018 send no reusedGameIds; the card then shows no flag.
+        ...(Array.isArray(row.reusedGameIds) ? { reusedCount: row.reusedGameIds.length } : {}),
         top: (Array.isArray(row.top) ? row.top : []).map((item) => ({
           name: typeof item.name === 'string' ? item.name : 'Player',
           points: Number(item.points) || 0,
@@ -183,18 +274,34 @@ export const resultsService = {
       }));
   },
 
+  /**
+   * One result, or null when it does not exist or is not the viewer's to see. The server
+   * (013_results_privacy.sql) already returns null for strangers; the client check repeats
+   * the same rule so an older database cannot leak a result to an unrelated account.
+   */
   async get(resultId: string): Promise<GameResult | null> {
+    const who = await viewer();
+    let result: GameResult | null;
     if (!isSupabaseConfigured) {
       const results = await readLocal();
-      return results.find((result) => result.id === resultId) ?? null;
+      const found = results.find((item) => item.id === resultId) ?? null;
+      if (found?.deletedAt) {
+        const deletedBy = (found as GameResult & { deletedBy?: string | null }).deletedBy;
+        const mine = Boolean(who.id) && (deletedBy === who.id || found.declaredBy === who.id || who.isAppAdmin);
+        return mine ? { ...found, gameIds: [], standings: [], sheet: undefined, canRestore: true } : null;
+      }
+      result = found ? { ...found, canManage: Boolean(who.id) && (found.declaredBy === who.id || who.isAppAdmin) } : null;
+    } else {
+      const { data, error } = await supabase.rpc('get_game_result', { p_id: resultId });
+      if (error) {
+        if (missingRpc(error)) throw new Error(MIGRATION_008_HINT);
+        throw error;
+      }
+      result = data ? resultFrom(data) : null;
     }
-    const { data, error } = await supabase.rpc('get_game_result', { p_id: resultId });
-    if (error) {
-      if (missingRpc(error)) throw new Error(MIGRATION_008_HINT);
-      throw error;
-    }
-    if (!data) return null;
-    return resultFrom(data);
+    if (!result) return null;
+    if (result.deletedAt) return result;
+    return (await visibleTo(result, who)) ? result : null;
   },
 
   async declare(input: { games: Game[]; names: Record<string, string>; userId: string }): Promise<GameResult> {
@@ -202,6 +309,7 @@ export const resultsService = {
     const presented = presentResults(input.games.map((game) => ({
       id: game.id,
       name: gameResultName(game),
+      label: gameLabelFor(game),
       date: game.date,
       players: game.players,
       scores: game.scores,
@@ -217,6 +325,8 @@ export const resultsService = {
         gameIds: input.games.map((game) => game.id),
         standings: presented.standings,
         sheet: presented.sheet,
+        // Already Closed when saved: an earlier result had these; their points count twice.
+        reusedGameIds: input.games.filter((game) => Boolean(game.closedAt)).map((game) => game.id),
       };
       const existing = await readLocal();
       await writeLocal([result, ...existing]);

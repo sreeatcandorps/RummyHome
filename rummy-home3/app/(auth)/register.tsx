@@ -1,9 +1,10 @@
-import { normalizeEmail, normalizeZip, parsePlayerNo } from '@/utils/playerIdentity';
+import { normalizeEmail, parsePlayerNo } from '@/utils/playerIdentity';
+import { COUNTRIES, Country, DEFAULT_COUNTRY, internationalPhone, phoneForCountryProblem, postalProblem } from '@/utils/countries';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PENDING_PLAYER_NO_KEY } from '@/services/playerIdentity';
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { TextInput, Button, Text, HelperText } from 'react-native-paper';
+import { TextInput, Button, Text, HelperText, Menu } from 'react-native-paper';
 import { router } from 'expo-router';
 import { storage } from '../../utils/storage';
 import { authService } from '../../services/auth';
@@ -15,13 +16,6 @@ import { sendWelcomeEmail } from '@/services/mail';
 import { HELP } from '@/constants/help';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 // import * as Location from 'expo-location';
-
-interface SimpleCountry {
-  code: string;
-  name: string;
-  callingCode: string;
-  flag: string;
-}
 
 export default function RegisterScreen() {
   const theme = useAppTheme();
@@ -37,41 +31,8 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Country state
-  const [selectedCountry, setSelectedCountry] = useState<SimpleCountry | null>(null);
-  const [locationLoading, setLocationLoading] = useState(false); // Changed to false
-
-  // Default to US if location detection fails
-  const defaultCountry: SimpleCountry = {
-    code: 'US',
-    name: 'United States',
-    callingCode: '1',
-    flag: '🇺🇸',
-  };
-
-  useEffect(() => {
-    // Temporarily disable location detection
-    setSelectedCountry(defaultCountry);
-    // detectUserLocation();
-  }, []);
-
-  const getCountryByCode = (isoCode: string): SimpleCountry | null => {
-    // Common countries mapping
-    const countries: { [key: string]: SimpleCountry } = {
-      'US': { code: 'US', name: 'United States', callingCode: '1', flag: '🇺🇸' },
-      'CA': { code: 'CA', name: 'Canada', callingCode: '1', flag: '🇨🇦' },
-      'GB': { code: 'GB', name: 'United Kingdom', callingCode: '44', flag: '🇬🇧' },
-      'IN': { code: 'IN', name: 'India', callingCode: '91', flag: '🇮🇳' },
-      'AU': { code: 'AU', name: 'Australia', callingCode: '61', flag: '🇦🇺' },
-      'DE': { code: 'DE', name: 'Germany', callingCode: '49', flag: '🇩🇪' },
-      'FR': { code: 'FR', name: 'France', callingCode: '33', flag: '🇫🇷' },
-      'JP': { code: 'JP', name: 'Japan', callingCode: '81', flag: '🇯🇵' },
-      'BR': { code: 'BR', name: 'Brazil', callingCode: '55', flag: '🇧🇷' },
-      'MX': { code: 'MX', name: 'Mexico', callingCode: '52', flag: '🇲🇽' },
-    };
-    
-    return countries[isoCode] || null;
-  };
+  const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
+  const [countryOpen, setCountryOpen] = useState(false);
 
   const clearFields = () => {
     setFirstName('');
@@ -119,16 +80,14 @@ export default function RegisterScreen() {
     setError('');
 
     try {
-      // Format phone number with country code if provided
-      let formattedPhone = phone.trim();
-      if (formattedPhone && selectedCountry) {
-        // Remove any existing country code and add the selected one
-        formattedPhone = formattedPhone.replace(/^\+?\d{1,4}/, ''); // Remove existing country code
-        formattedPhone = `+${selectedCountry.callingCode}${formattedPhone}`;
-      }
+      const phoneIssue = phoneForCountryProblem(country, phone);
+      if (phoneIssue) throw new Error(phoneIssue);
+      const postalIssue = postalProblem(country, zip);
+      if (postalIssue) throw new Error(postalIssue);
+      const formattedPhone = internationalPhone(country, phone) ?? '';
 
       const displayName = `${firstName} ${lastName}`;
-      const zipCode = normalizeZip(zip);
+      const zipCode = zip.trim() || null;
       const claimNo = playerIdText.trim() ? parsePlayerNo(playerIdText) : null;
       if (playerIdText.trim() && claimNo == null) throw new Error('A player ID is a number, like #42.');
       // Sent to the creator after the first sign-in (once the email is confirmed).
@@ -177,7 +136,7 @@ export default function RegisterScreen() {
       }
 
       if (isSupabaseConfigured) {
-        sendWelcomeEmail(email.trim(), displayName).catch(() => {});
+        sendWelcomeEmail(cleanEmail, displayName).catch(() => {});
       }
 
       if (isSupabaseConfigured && !authData.session) {
@@ -295,14 +254,14 @@ export default function RegisterScreen() {
       </HelperText>
       <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} />
       <HelperText type="info" visible>
-        Numbers only — this is your quick login code. Use the eye to check each digit.
+        Numbers only. This is what you sign in with.
       </HelperText>
 
       <Text variant="titleSmall" style={styles.groupLabel}>
-        Enter your player ID if you have one.
+        Player ID <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>Optional</Text>
       </Text>
       <TextInput
-        label="Player ID (optional)"
+        label="Player ID"
         placeholder="#42"
         value={playerIdText}
         onChangeText={(t) => setPlayerIdText(t.replace(/[^0-9#]/g, '').slice(0, 13))}
@@ -312,41 +271,64 @@ export default function RegisterScreen() {
         left={<TextInput.Icon icon="pound" />}
       />
       <HelperText type="info" visible>
-        From the friend who added you. They approve it, then your past scores join your account. A player ID is never used to sign in. Opened a link from them? You can leave this empty.
+        Enter your player ID if you were given one by an organizer; otherwise leave it empty.
       </HelperText>
 
       <Button mode="text" onPress={() => setPhoneOpen((open) => !open)} icon={phoneOpen ? 'chevron-up' : 'chevron-down'}>
-        Optional: phone and zip code
+        Optional: country, phone and {country.postalLabel.toLowerCase()}
       </Button>
       {phoneOpen ? (
-        <View>
+        <View style={styles.contact}>
           <HelperText type="info" visible>
-            Both are optional. We never text you and never ask for your address.
+            All optional. We never text you and never ask for your address.
           </HelperText>
+          <Menu
+            visible={countryOpen}
+            onDismiss={() => setCountryOpen(false)}
+            anchor={(
+              <Button
+                mode="outlined"
+                icon="chevron-down"
+                contentStyle={styles.countryButton}
+                onPress={() => setCountryOpen(true)}
+                disabled={loading}
+                accessibilityLabel="Country"
+              >
+                {country.flag} {country.name}{country.callingCode ? ` (+${country.callingCode})` : ''}
+              </Button>
+            )}
+          >
+            {COUNTRIES.map((item) => (
+              <Menu.Item
+                key={item.code}
+                title={`${item.flag} ${item.name}${item.callingCode ? ` (+${item.callingCode})` : ''}`}
+                onPress={() => { setCountry(item); setCountryOpen(false); }}
+              />
+            ))}
+          </Menu>
           <TextInput
-            label="Zip code"
-            value={zip}
-            onChangeText={(t) => setZip(t.replace(/[^0-9-]/g, '').slice(0, 10))}
-            mode="outlined"
-            keyboardType="number-pad"
-            disabled={loading}
-            left={<TextInput.Icon icon="map-marker-outline" />}
-            style={{ marginBottom: 8 }}
-          />
-          <TextInput
-            label="Phone number"
+            label={country.callingCode ? `Phone (+${country.callingCode})` : 'Phone with country code'}
             value={phone}
             onChangeText={setPhone}
             mode="outlined"
             keyboardType="phone-pad"
+            autoComplete="tel"
             disabled={loading}
             left={<TextInput.Icon icon="phone-outline" />}
+            accessibilityLabel="Phone"
           />
-          {selectedCountry && (
-            <HelperText type="info" visible>
-              {selectedCountry.flag} {selectedCountry.name} (+{selectedCountry.callingCode})
-            </HelperText>
-          )}
+          <TextInput
+            label={country.postalLabel}
+            placeholder={country.postalExample}
+            value={zip}
+            onChangeText={(t) => setZip(t.replace(/[^0-9A-Za-z -]/g, '').slice(0, 12))}
+            mode="outlined"
+            autoCapitalize="characters"
+            keyboardType={/^\d+$/.test(country.postalExample) ? 'number-pad' : 'default'}
+            disabled={loading}
+            left={<TextInput.Icon icon="map-marker-outline" />}
+            accessibilityLabel={country.postalLabel}
+          />
         </View>
       ) : null}
 
@@ -392,6 +374,8 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+  contact: { gap: 8 },
+  countryButton: { justifyContent: 'flex-start', height: 48 },
   groupLabel: {
     marginTop: spacing.xs,
     fontWeight: '700',

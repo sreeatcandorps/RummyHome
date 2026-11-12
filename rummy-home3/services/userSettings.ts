@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { DEFAULT_POINTS_RULES, PointsRules, rulesFromProfileDefaults, rulesToProfileDefaults } from '@/utils/gameSettings';
+import { queryCache } from '@/utils/queryCache';
 
 const KEY = 'userGameDefaults';
 
@@ -21,5 +22,7 @@ export const userSettingsService = {
     const merged = { ...((data?.default_settings as any) ?? {}), ...rulesToProfileDefaults(rules) };
     const { error } = await supabase.from('profiles').update({ default_settings: merged } as any).eq('id', userId);
     if (error) throw error;
+    // The memoised own-profile row (authService) carries default_settings; drop it.
+    queryCache.invalidate('profile:');
   },
 };

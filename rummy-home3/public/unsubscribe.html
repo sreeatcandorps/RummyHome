@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>EZ Score · Email settings</title>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", sans-serif; background: #FBF1E1; color: #1B1F1C; }
+    header { background: #17402F; color: #FBF1E1; padding: 16px 18px 14px; }
+    header h1 { margin: 0; font-size: 22px; }
+    main { padding: 20px; max-width: 520px; margin: 0 auto; }
+    section { background: #fff; border-radius: 12px; padding: 16px; }
+    button { background: #17402F; color: #FBF1E1; border: 0; border-radius: 8px; padding: 10px 16px; font-size: 15px; cursor: pointer; margin: 6px 8px 0 0; }
+    button.alt { background: #E7E0D4; color: #1B1F1C; }
+    .note { color: #5A5F5B; font-size: 13px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <header><h1>EZ Score: Email settings</h1></header>
+  <main>
+    <section>
+      <p id="text">Loading…</p>
+      <div id="actions"></div>
+      <p class="note">You can turn these back on in the app under Me &gt; Email.</p>
+    </section>
+  </main>
+  <script>
+    // Filled in at deploy (scripts/inject-scorecard-config.mjs). Never commit a real key.
+    const PROJECT = '__SUPABASE_URL__';
+    const ANON_KEY = '__SUPABASE_ANON_KEY__';
+    const params = new URLSearchParams(location.search);
+    const token = params.get('t') || '';
+    const kind = params.get('k') || 'all';
+    const LABEL = { game_started: 'Game started emails', result_saved: 'Results emails', all: 'all EZ Score emails' };
+
+    function injected(value) { return typeof value === 'string' && value.length > 0 && value.indexOf('__') === -1; }
+
+    async function unsubscribe(which) {
+      const response = await fetch(PROJECT.replace(/\/$/, '') + '/rest/v1/rpc/unsubscribe_email', {
+        method: 'POST',
+        headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_token: token, p_kind: which }),
+      });
+      const ok = await response.json();
+      document.getElementById('actions').innerHTML = '';
+      document.getElementById('text').textContent = ok === true
+        ? 'Done. You will no longer get ' + (LABEL[which] || 'these emails') + '.'
+        : 'This link is not valid any more. Open the app and change Email under Me.';
+    }
+
+    if (!token || !injected(PROJECT) || !injected(ANON_KEY)) {
+      document.getElementById('text').textContent = 'This link is not valid.';
+    } else {
+      document.getElementById('text').textContent = 'Stop ' + (LABEL[kind] || 'these emails') + '?';
+      const actions = document.getElementById('actions');
+      const yes = document.createElement('button'); yes.textContent = 'Yes, stop ' + (kind === 'all' ? 'all' : 'these'); yes.onclick = () => unsubscribe(kind);
+      actions.appendChild(yes);
+      if (kind !== 'all') { const all = document.createElement('button'); all.className = 'alt'; all.textContent = 'Stop all EZ Score emails'; all.onclick = () => unsubscribe('all'); actions.appendChild(all); }
+    }
+  </script>
+</body>
+</html>

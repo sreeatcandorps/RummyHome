@@ -74,3 +74,24 @@ export function canEnterScores(access: ScoreAccess): boolean {
 export function isViewOnly(access: ScoreAccess): boolean {
   return !canEnterScores(access);
 }
+
+export type AccessLabel = 'Creator' | 'Admin' | 'Player' | 'View only';
+
+/**
+ * What a game is to the viewer, on the Home and Results cards: the organizer who created
+ * it, someone made admin (seated or not), a seated player who cannot score, or anyone
+ * else who can open it and only look.
+ */
+export function gameAccessLabel(
+  game: { createdBy?: string | null; adminIds?: string[] | null; unseatedAdminIds?: string[] | null; players?: string[] },
+  userId: string | null | undefined,
+): AccessLabel | null {
+  if (!userId) return null;
+  if (game.createdBy === userId) return 'Creator';
+  if (game.adminIds?.includes(userId) || game.unseatedAdminIds?.includes(userId)) return 'Admin';
+  if (game.players?.includes(userId)) return 'Player';
+  return 'View only';
+}
+
+export const ACCESS_TONE: Record<AccessLabel, 'primary' | 'info' | 'neutral'> = { Creator: 'primary', Admin: 'info', Player: 'neutral', 'View only': 'neutral' };
+export const ACCESS_ICON: Record<AccessLabel, string> = { Creator: 'crown-outline', Admin: 'shield-account-outline', Player: 'account-outline', 'View only': 'eye-outline' };

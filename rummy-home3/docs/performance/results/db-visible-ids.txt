@@ -1,0 +1,88 @@
+Pager usage is off.
+                                                set_config                                                 
+-----------------------------------------------------------------------------------------------------------
+ {"sub" : "b04e1a05-9a06-49d9-b383-39365833327c", "email" : "user1@example.com", "role" : "authenticated"}
+(1 row)
+
+################ V1 list_visible_game_ids REWRITE, email branch via existing lower(btrim(email)) partial index
+                                                                                          QUERY PLAN                                                                                           
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate  (cost=587.83..588.97 rows=114 width=16) (actual time=0.460..0.466 rows=83 loops=1)
+   Group Key: g.id
+   Batches: 1  Memory Usage: 24kB
+   Buffers: shared hit=180 read=2
+   ->  Append  (cost=4.42..587.55 rows=114 width=16) (actual time=0.029..0.436 rows=181 loops=1)
+         Buffers: shared hit=180 read=2
+         ->  Bitmap Heap Scan on games g  (cost=4.42..61.52 rows=15 width=16) (actual time=0.029..0.060 rows=15 loops=1)
+               Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+               Heap Blocks: exact=11
+               Buffers: shared hit=13
+               ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (actual time=0.019..0.019 rows=16 loops=1)
+                     Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                     Buffers: shared hit=2
+         ->  Bitmap Heap Scan on game_players gp  (cost=4.89..257.28 rows=74 width=16) (actual time=0.023..0.289 rows=83 loops=1)
+               Recheck Cond: (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+               Filter: is_active
+               Heap Blocks: exact=81
+               Buffers: shared hit=83
+               ->  Bitmap Index Scan on game_players_profile_idx  (cost=0.00..4.87 rows=74 width=0) (actual time=0.013..0.013 rows=83 loops=1)
+                     Index Cond: (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                     Buffers: shared hit=2
+         ->  Nested Loop  (cost=5.17..268.18 rows=25 width=16) (actual time=0.042..0.075 rows=83 loops=1)
+               Buffers: shared hit=84 read=2
+               ->  Index Scan using profiles_email_normalized_key on profiles p  (cost=0.29..8.31 rows=1 width=16) (actual time=0.029..0.029 rows=1 loops=1)
+                     Index Cond: (lower(btrim(email)) = lower(btrim((COALESCE((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb, '{}'::jsonb) ->> 'email'::text))))
+                     Buffers: shared hit=1 read=2
+               ->  Bitmap Heap Scan on game_players gp_1  (cost=4.88..259.12 rows=75 width=32) (actual time=0.012..0.039 rows=83 loops=1)
+                     Recheck Cond: (profile_id = p.id)
+                     Filter: is_active
+                     Heap Blocks: exact=81
+                     Buffers: shared hit=83
+                     ->  Bitmap Index Scan on game_players_profile_idx  (cost=0.00..4.86 rows=75 width=0) (actual time=0.006..0.006 rows=83 loops=1)
+                           Index Cond: (profile_id = p.id)
+                           Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=305
+ Planning Time: 0.664 ms
+ Execution Time: 0.529 ms
+(38 rows)
+
+################ V2 rewrite WITHOUT the email branch (functionality change: seats matched by email only are not listed)
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate  (cost=319.46..320.35 rows=89 width=16) (actual time=0.101..0.107 rows=83 loops=1)
+   Group Key: g.id
+   Batches: 1  Memory Usage: 24kB
+   Buffers: shared hit=96
+   ->  Append  (cost=4.42..319.24 rows=89 width=16) (actual time=0.016..0.088 rows=98 loops=1)
+         Buffers: shared hit=96
+         ->  Bitmap Heap Scan on games g  (cost=4.42..61.52 rows=15 width=16) (actual time=0.015..0.022 rows=15 loops=1)
+               Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+               Heap Blocks: exact=11
+               Buffers: shared hit=13
+               ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (actual time=0.010..0.010 rows=16 loops=1)
+                     Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                     Buffers: shared hit=2
+         ->  Bitmap Heap Scan on game_players gp  (cost=4.89..257.28 rows=74 width=16) (actual time=0.013..0.059 rows=83 loops=1)
+               Recheck Cond: (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+               Filter: is_active
+               Heap Blocks: exact=81
+               Buffers: shared hit=83
+               ->  Bitmap Index Scan on game_players_profile_idx  (cost=0.00..4.87 rows=74 width=0) (actual time=0.006..0.006 rows=83 loops=1)
+                     Index Cond: (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                     Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=1
+ Planning Time: 0.121 ms
+ Execution Time: 0.130 ms
+(25 rows)
+
+################ V3 full function call as shipped, for reference
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_visible_game_ids  (cost=0.25..10.25 rows=1000 width=16) (actual time=428.108..428.112 rows=83 loops=1)
+   Buffers: shared hit=5178
+ Planning Time: 0.012 ms
+ Execution Time: 428.140 ms
+(4 rows)
+

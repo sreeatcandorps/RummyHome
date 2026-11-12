@@ -1,79 +1,56 @@
-type NameParts = {
-  words: string[];
-  numericLast: boolean;
-};
-
-function partsFor(name: string): NameParts {
-  const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
-  const last = words.length > 1 ? words[words.length - 1] : '';
-  return { words, numericLast: /^\d+$/.test(last) };
-}
-
-/** First initial plus last initial. A numeric last name stays whole so Player 1 and Player 10 differ. */
-function initialsFor(name: string): string {
-  const clean = (name ?? '').trim();
-  if (!clean) return '?';
-
-  const { words, numericLast } = partsFor(clean);
-  const first = words[0]?.[0] ?? '';
-  const lastWord = words.length > 1 ? words[words.length - 1] : '';
-  const last = numericLast ? lastWord : lastWord.slice(0, 1);
-  return `${first}${last}`.toUpperCase() || '?';
-}
-
 /**
- * Extra letter from the first name when two players would otherwise share a
- * header (Sam Kumar / Sunil Kohli → SaK / SuK).
+ * Labels for one context (a result sheet, a share image, an older game whose seats
+ * carry no stored label). Display only; nothing here is saved.
+ *
+ * Rule (Nov 11): first initial + last initial. When two or more players in the same
+ * context share a label, the first keeps it and the others get a three-letter form
+ * of their own name (Suresh Kumar → SUK) — never a number unless every letter form
+ * is taken. "First" is the order given: seat order in a game, first appearance
+ * across the games in a result. Stored labels (My players / game seats) take
+ * precedence when the caller passes them; see utils/initials.ts.
  */
-function expandedInitials(name: string): string {
-  const clean = (name ?? '').trim();
-  if (!clean) return '?';
 
-  const { words, numericLast } = partsFor(clean);
-  if (words.length === 0) return '?';
-  if (numericLast) return initialsFor(clean);
+import { assignInitials, defaultInitials } from '@/utils/initials';
 
-  const first = words[0].slice(0, Math.min(2, words[0].length));
-  const lastWord = words.length > 1 ? words[words.length - 1] : '';
-  const last = lastWord.slice(0, 1);
-  return `${first}${last}`.toUpperCase() || initialsFor(clean);
+/** HY for Harish Yadav, RA for a single word Ravi. Always 2 characters. */
+export function baseInitials(name: string): string {
+  return defaultInitials(name);
 }
 
-function countLabels(labels: string[]): Record<string, number> {
-  return labels.reduce<Record<string, number>>((acc, label) => {
-    acc[label] = (acc[label] ?? 0) + 1;
-    return acc;
-  }, {});
-}
-
-function numberDuplicates(labels: string[]): string[] {
-  const totals = countLabels(labels);
-  const used: Record<string, number> = {};
-
-  return labels.map((label) => {
-    if ((totals[label] ?? 0) < 2) return label;
-    const nth = (used[label] ?? 0) + 1;
-    used[label] = nth;
-    if (nth === 1) return label;
-    // "P12" would look like Player 12, so numbered numeric labels get a dash.
-    const dash = /\d$/.test(label);
-    return dash ? `${label}-${nth}` : `${label}${nth}`;
-  });
-}
-
-/**
- * Labels every player in a game. Identical initials grow by one letter before
- * a number is added, so two different people are not both shown as SK1 / SK2.
- */
 export function buildPlayerInitials(names: string[]): string[] {
-  const base = names.map(initialsFor);
-  const totals = countLabels(base);
+  const labels = assignInitials(names.map((name, index) => ({ id: String(index), name, addedAt: String(index).padStart(4, '0') })));
+  return names.map((_, index) => labels.get(String(index)) ?? '?');
+}
 
-  const expanded = names.map((name, index) => {
-    const label = base[index];
-    if ((totals[label] ?? 0) < 2) return label;
-    return expandedInitials(name);
+/**
+ * Same labels keyed by player id, so sorted views can look them up after reordering.
+ * A player with a stored seat `label` (022) keeps it; the others are derived around it.
+ */
+export function initialsById<T extends { id: string; name: string; label?: string | null }>(players: T[]): Map<string, string> {
+  return assignInitials(players.map((player, index) => ({ id: player.id, name: player.name, initials: player.label, addedAt: String(index).padStart(4, '0') })));
+}
+
+/**
+ * Players in the order they first appear across the given games (games in the
+ * order given, seats in each game's order). Anyone in no game goes last.
+ */
+export function firstAppearanceOrder<T extends { id: string }>(
+  players: T[],
+  games: { scores: Record<string, unknown> }[],
+): T[] {
+  const byId = new Map(players.map((player) => [player.id, player]));
+  const ordered: T[] = [];
+  const placed = new Set<string>();
+  games.forEach((game) => {
+    Object.keys(game.scores).forEach((id) => {
+      const player = byId.get(id);
+      if (!player || placed.has(id)) return;
+      placed.add(id);
+      ordered.push(player);
+    });
   });
-
-  return numberDuplicates(expanded);
+  players.forEach((player) => {
+    if (!placed.has(player.id)) ordered.push(player);
+  });
+  return ordered;
 }

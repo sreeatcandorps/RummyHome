@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>EZ Score · Results</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; font-family: "Segoe UI", sans-serif; background: #FBF1E1; color: #1B1F1C; }
+    header { background: #17402F; color: #FBF1E1; padding: 16px 18px 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    header h1 { margin: 0; font-size: 22px; }
+    .meta { margin-top: 6px; font-size: 14px; opacity: 0.9; }
+    main { padding: 12px; max-width: 980px; margin: 0 auto; }
+    section { background: #fff; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+    h2 { margin: 0 0 8px; font-size: 16px; }
+    .warn { background: #FBE9E7; color: #7A1F1F; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-weight: 600; }
+    .note { color: #5A5F5B; font-size: 13px; }
+    .podium { display: flex; gap: 10px; flex-wrap: wrap; }
+    .place { flex: 1 1 140px; border: 1px solid #E7E0D4; border-radius: 10px; padding: 10px; }
+    .place .label { font-size: 12px; color: #5A5F5B; }
+    .place .name { font-weight: 700; }
+    .totals { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .totals ul { list-style: none; margin: 0; padding: 0; }
+    .totals li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #F1EBDF; }
+    .scroll { overflow-x: auto; }
+    table { border-collapse: collapse; min-width: 100%; }
+    th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid #E7E0D4; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    th { background: #F4EFE4; font-size: 13px; }
+    th small, td small { display: block; font-weight: 400; color: #5A5F5B; font-size: 11px; }
+    td.name, th.name { text-align: left; position: sticky; left: 0; background: #fff; }
+    th.name { background: #F4EFE4; }
+    .pos { color: #0E7A43; font-weight: 700; }
+    .neg { color: #8C2F2F; }
+    .msg { padding: 24px; text-align: center; }
+    footer { text-align: center; color: #5A5F5B; font-size: 12px; padding: 16px; }
+    footer a { color: inherit; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>EZ Score: Results</h1>
+      <div class="meta" id="meta">Loading…</div>
+    </div>
+  </header>
+  <main id="page"></main>
+  <footer>Read-only copy of a saved result. <a href="/privacy">Privacy</a></footer>
+  <script>
+    // Filled in at deploy (scripts/inject-scorecard-config.mjs). Never commit a real key.
+    const PROJECT = '__SUPABASE_URL__';
+    const ANON_KEY = '__SUPABASE_ANON_KEY__';
+
+    function injected(value) { return typeof value === 'string' && value.length > 0 && value.indexOf('__') === -1; }
+    function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+    function points(n) { return n > 0 ? '+' + n : String(n); }
+    function cls(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : ''; }
+    function placeLabel(place) {
+      const m = place % 100;
+      if (m >= 11 && m <= 13) return place + 'th';
+      return place + (['th', 'st', 'nd', 'rd'][place % 10] || 'th');
+    }
+    function when(iso) { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(); }
+    function clock(iso) {
+      const d = new Date(iso); if (Number.isNaN(d.getTime())) return '';
+      const h = d.getHours() % 12 || 12; return h + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + (d.getHours() < 12 ? 'AM' : 'PM');
+    }
+    function shortId(id) { const c = String(id).replace(/[^a-z0-9]/gi, ''); return c.slice(-6).toUpperCase(); }
+    function sub(player) {
+      const parts = [];
+      if (player.label) parts.push(player.label);
+      if (player.playerNo != null) parts.push('#' + player.playerNo);
+      return parts.join(' · ');
+    }
+
+    // The id comes from /r/<id> (404.html forwards it as ?id=) or ?id=<id>.
+    function resultId() {
+      const q = new URLSearchParams(location.search).get('id');
+      if (q) return q;
+      const m = location.pathname.match(/\/r\/([0-9a-f-]{36})/i);
+      return m ? m[1] : '';
+    }
+
+    function render(r) {
+      const page = document.getElementById('page');
+      const meta = document.getElementById('meta');
+      if (r.deleted) {
+        meta.textContent = 'Result deleted';
+        page.innerHTML = '<p class="msg">This result was deleted.</p>';
+        return;
+      }
+      meta.textContent = when(r.declaredAt) + ' · Result ID ' + shortId(r.id) + ' · saved by ' + r.declarerName;
+      const players = r.players || [];
+      const standings = r.standings || [];
+      const games = r.games || [];
+
+      // Warnings: the same lines the app shows on the Results screen and in the PDF/image.
+      const warnings = [];
+      games.forEach((g) => { if (g.reused) warnings.push((g.label || 'A game') + ' was already part of an earlier result. Its points count again here.'); });
+      if (r.removedCount > 0) warnings.push(r.removedCount === 1 ? 'One game was deleted after this result was saved. The totals no longer count it.' : r.removedCount + ' games were deleted after this result was saved. The totals no longer count them.');
+
+      // Podium: first three places, ties share a place.
+      const groups = [];
+      standings.forEach((s) => {
+        const last = groups[groups.length - 1];
+        if (last && last[0].place === s.place) { last.push(s); return; }
+        if (groups.length >= 3) return;
+        groups.push([s]);
+      });
+      const podium = groups.map((g) => '<div class="place"><div class="label">' + esc(placeLabel(g[0].place)) + '</div>'
+        + g.map((s) => '<div class="name">' + esc(s.name) + '</div>').join('')
+        + '<div class="' + cls(g[0].points) + '">' + esc(points(g[0].points)) + '</div></div>').join('');
+
+      const byMag = (a, b) => Math.abs(b.points) - Math.abs(a.points) || a.name.localeCompare(b.name);
+      const positive = standings.filter((s) => s.points >= 0).sort(byMag);
+      const negative = standings.filter((s) => s.points < 0).sort(byMag);
+      const list = (rows) => '<ul>' + rows.map((s) => '<li><span>' + esc(s.name) + '<small>' + esc(sub(players[s.player] || {})) + '</small></span><span class="' + cls(s.points) + '">' + esc(points(s.points)) + '</span></li>').join('') + '</ul>';
+
+      // Sheet: players down, games across (sideways scroll), total last.
+      const totalFor = new Map(standings.map((s) => [s.player, s.points]));
+      const head = '<tr><th class="name">Player</th>' + games.map((g) => '<th>' + esc(g.label || '') + '<small>' + esc(clock(g.date)) + '</small></th>').join('') + '<th>Total</th></tr>';
+      const body = players.map((p, i) => '<tr><td class="name">' + esc(p.name) + '<small>' + esc(sub(p)) + '</small></td>'
+        + games.map((g) => { const v = g.scores ? g.scores[String(i)] : undefined; return v == null ? '<td>—</td>' : '<td class="' + cls(v) + '">' + esc(points(v)) + '</td>'; }).join('')
+        + '<td class="' + cls(totalFor.get(i) || 0) + '"><strong>' + esc(points(totalFor.get(i) || 0)) + '</strong></td></tr>').join('');
+
+      page.innerHTML =
+        warnings.map((w) => '<div class="warn">' + esc(w) + '</div>').join('')
+        + '<section><h2>Results</h2><div class="note">' + esc(games.length === 1 ? '1 game' : games.length + ' games') + ' · ' + esc(players.length === 1 ? '1 player' : players.length + ' players') + '</div>'
+        + '<div class="podium" style="margin-top:10px">' + podium + '</div></section>'
+        + '<section><h2>Totals</h2><div class="totals"><div>' + list(positive) + '</div><div>' + list(negative) + '</div></div></section>'
+        + '<section><h2>Games</h2><div class="scroll"><table><thead>' + head + '</thead><tbody>' + (body || '<tr><td>No scores.</td></tr>') + '</tbody></table></div></section>';
+    }
+
+    async function load() {
+      const id = resultId();
+      if (!/^[0-9a-f-]{36}$/i.test(id)) { document.getElementById('meta').textContent = 'This results link is not valid.'; return; }
+      if (!injected(PROJECT) || !injected(ANON_KEY)) { document.getElementById('meta').textContent = 'This page is not configured yet.'; return; }
+      const response = await fetch(PROJECT.replace(/\/$/, '') + '/rest/v1/rpc/public_result', {
+        method: 'POST',
+        headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_id: id }),
+      });
+      const result = await response.json();
+      if (!result || !result.id) { document.getElementById('meta').textContent = 'This results link is not valid.'; return; }
+      render(result);
+    }
+
+    load().catch(() => { document.getElementById('meta').textContent = 'Could not load the result.'; });
+  </script>
+</body>
+</html>

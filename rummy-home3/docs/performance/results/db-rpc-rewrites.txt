@@ -1,0 +1,310 @@
+Pager usage is off.
+                                                set_config                                                 
+-----------------------------------------------------------------------------------------------------------
+ {"sub" : "b04e1a05-9a06-49d9-b383-39365833327c", "email" : "user1@example.com", "role" : "authenticated"}
+(1 row)
+
+################ list_visible_game_ids BODY (as written in 006)
+                                                                                                                                                  QUERY PLAN                                                                                                                                                  
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=0.02..1969246.14 rows=15007 width=16) (actual time=400.978..424.975 rows=83 loops=1)
+   One-Time Filter: ((((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid IS NOT NULL)
+   Buffers: shared hit=5137
+   ->  Seq Scan on games g  (cost=0.02..1969246.14 rows=15007 width=16) (actual time=273.485..297.472 rows=83 loops=1)
+         Filter: ((created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR (hashed SubPlan 2))
+         Rows Removed by Filter: 29917
+         Buffers: shared hit=5137
+         SubPlan 2
+           ->  Hash Join  (cost=568.00..4463.65 rows=824 width=16) (actual time=12.307..270.407 rows=83 loops=1)
+                 Hash Cond: (gp.profile_id = p.id)
+                 Join Filter: ((gp.profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR (lower(p.email) = lower((COALESCE((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb, '{}'::jsonb) ->> 'email'::text))))
+                 Rows Removed by Join Filter: 149988
+                 Buffers: shared hit=2434
+                 ->  Seq Scan on game_players gp  (cost=0.00..3501.71 rows=150071 width=32) (actual time=8.255..20.441 rows=150071 loops=1)
+                       Filter: is_active
+                       Buffers: shared hit=2001
+                 ->  Hash  (cost=493.00..493.00 rows=6000 width=36) (actual time=1.577..1.579 rows=6000 loops=1)
+                       Buckets: 8192  Batches: 1  Memory Usage: 386kB
+                       Buffers: shared hit=433
+                       ->  Seq Scan on profiles p  (cost=0.00..493.00 rows=6000 width=36) (actual time=0.118..1.006 rows=6000 loops=1)
+                             Buffers: shared hit=433
+ Planning:
+   Buffers: shared hit=403
+ Planning Time: 1.990 ms
+ JIT:
+   Functions: 28
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 0.823 ms, Inlining 49.704 ms, Optimization 54.334 ms, Emission 31.720 ms, Total 136.581 ms
+ Execution Time: 436.896 ms
+(29 rows)
+
+################ list_visible_game_ids REWRITE (union, index-driven)
+                                                                                    QUERY PLAN                                                                                     
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate  (cost=4834.39..4842.78 rows=839 width=16) (actual time=25.102..25.115 rows=83 loops=1)
+   Group Key: g.id
+   Batches: 1  Memory Usage: 49kB
+   Buffers: shared hit=2529
+   ->  Append  (cost=4.42..4832.29 rows=839 width=16) (actual time=0.024..25.071 rows=181 loops=1)
+         Buffers: shared hit=2529
+         ->  Bitmap Heap Scan on games g  (cost=4.42..61.52 rows=15 width=16) (actual time=0.024..0.034 rows=15 loops=1)
+               Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+               Heap Blocks: exact=10
+               Buffers: shared hit=12
+               ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (actual time=0.018..0.018 rows=15 loops=1)
+                     Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                     Buffers: shared hit=2
+         ->  Bitmap Heap Scan on game_players gp  (cost=4.89..257.28 rows=74 width=16) (actual time=0.018..0.111 rows=83 loops=1)
+               Recheck Cond: (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+               Filter: is_active
+               Heap Blocks: exact=81
+               Buffers: shared hit=83
+               ->  Bitmap Index Scan on game_players_profile_idx  (cost=0.00..4.87 rows=74 width=0) (actual time=0.010..0.010 rows=83 loops=1)
+                     Index Cond: (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                     Buffers: shared hit=2
+         ->  Hash Join  (cost=613.38..4509.30 rows=750 width=16) (actual time=5.247..24.911 rows=83 loops=1)
+               Hash Cond: (gp_1.profile_id = p.id)
+               Buffers: shared hit=2434
+               ->  Seq Scan on game_players gp_1  (cost=0.00..3501.71 rows=150071 width=32) (actual time=0.002..12.222 rows=150071 loops=1)
+                     Filter: is_active
+                     Buffers: shared hit=2001
+               ->  Hash  (cost=613.00..613.00 rows=30 width=16) (actual time=5.055..5.056 rows=1 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                     Buffers: shared hit=433
+                     ->  Seq Scan on profiles p  (cost=0.00..613.00 rows=30 width=16) (actual time=1.434..5.053 rows=1 loops=1)
+                           Filter: (lower(email) = lower((COALESCE((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb, '{}'::jsonb) ->> 'email'::text)))
+                           Rows Removed by Filter: 5999
+                           Buffers: shared hit=433
+ Planning:
+   Buffers: shared hit=14
+ Planning Time: 0.321 ms
+ Execution Time: 25.153 ms
+(38 rows)
+
+################ list_new_game_candidates BODY (012)
+                                                                                                          QUERY PLAN                                                                                                           
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=265462.94..265463.19 rows=100 width=123) (actual time=289.283..289.295 rows=64 loops=1)
+   Buffers: shared hit=182475
+   CTE stats
+     ->  HashAggregate  (cost=264600.45..264625.45 rows=2000 width=28) (actual time=270.808..270.833 rows=64 loops=1)
+           Group Key: gp.profile_id
+           Batches: 1  Memory Usage: 121kB
+           Buffers: shared hit=182024
+           ->  Nested Loop  (cost=0.30..264319.08 rows=37516 width=24) (actual time=154.313..270.736 rows=65 loops=1)
+                 Buffers: shared hit=182024
+                 ->  Seq Scan on game_players gp  (cost=0.00..6878.31 rows=74998 width=32) (actual time=0.017..124.461 rows=149988 loops=1)
+                       Filter: (COALESCE(seated, true) AND (role <> 'spectator'::game_member_role) AND (profile_id <> (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid))
+                       Rows Removed by Filter: 83
+                       Buffers: shared hit=2001
+                 ->  Memoize  (cost=0.30..8.95 rows=1 width=24) (actual time=0.001..0.001 rows=0 loops=149988)
+                       Cache Key: gp.game_id
+                       Cache Mode: logical
+                       Hits: 119988  Misses: 30000  Evictions: 0  Overflows: 0  Memory Usage: 2345kB
+                       Buffers: shared hit=180023
+                       ->  Index Scan using games_pkey on games g  (cost=0.29..8.94 rows=1 width=24) (actual time=0.004..0.004 rows=0 loops=30000)
+                             Index Cond: (id = gp.game_id)
+                             Filter: ((created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR (SubPlan 1))
+                             Rows Removed by Filter: 1
+                             Buffers: shared hit=180023
+                             SubPlan 1
+                               ->  Index Scan using game_players_game_id_profile_id_key on game_players a  (cost=0.44..8.46 rows=1 width=0) (actual time=0.001..0.001 rows=0 loops=29985)
+                                     Index Cond: ((game_id = g.id) AND (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid))
+                                     Filter: (role = 'game_admin'::game_member_role)
+                                     Rows Removed by Filter: 0
+                                     Buffers: shared hit=90023
+   ->  Sort  (cost=837.49..842.49 rows=2000 width=123) (actual time=273.061..273.065 rows=64 loops=1)
+         Sort Key: ((s.last_played_at >= (now() - '14 days'::interval))) DESC NULLS LAST, s.total_games DESC, s.last_played_at DESC NULLS LAST, p.display_name
+         Sort Method: quicksort  Memory: 33kB
+         Buffers: shared hit=182475
+         ->  Hash Join  (cost=589.38..761.05 rows=2000 width=123) (actual time=272.798..272.962 rows=64 loops=1)
+               Hash Cond: (s.profile_id = p.id)
+               Buffers: shared hit=182461
+               ->  Append  (cost=0.00..126.35 rows=2030 width=28) (actual time=270.814..270.950 rows=64 loops=1)
+                     Buffers: shared hit=182028
+                     ->  CTE Scan on stats s  (cost=0.00..40.00 rows=2000 width=28) (actual time=270.813..270.856 rows=64 loops=1)
+                           Buffers: shared hit=182024
+                     ->  Subquery Scan on "*SELECT* 2"  (cost=65.44..76.20 rows=30 width=28) (actual time=0.086..0.087 rows=0 loops=1)
+                           Buffers: shared hit=4
+                           ->  Hash Anti Join  (cost=65.44..75.90 rows=30 width=28) (actual time=0.085..0.086 rows=0 loops=1)
+                                 Hash Cond: (m.player_id = s_1.profile_id)
+                                 Buffers: shared hit=4
+                                 ->  Index Only Scan using my_players_pkey on my_players m  (cost=0.43..5.47 rows=59 width=16) (actual time=0.051..0.055 rows=64 loops=1)
+                                       Index Cond: (owner_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                       Heap Fetches: 0
+                                       Buffers: shared hit=4
+                                 ->  Hash  (cost=40.00..40.00 rows=2000 width=16) (actual time=0.014..0.014 rows=64 loops=1)
+                                       Buckets: 2048  Batches: 1  Memory Usage: 19kB
+                                       ->  CTE Scan on stats s_1  (cost=0.00..40.00 rows=2000 width=16) (actual time=0.003..0.006 rows=64 loops=1)
+               ->  Hash  (cost=515.50..515.50 rows=5910 width=61) (actual time=1.951..1.951 rows=6000 loops=1)
+                     Buckets: 8192  Batches: 1  Memory Usage: 631kB
+                     Buffers: shared hit=433
+                     ->  Seq Scan on profiles p  (cost=0.00..515.50 rows=5910 width=61) (actual time=0.059..1.092 rows=6000 loops=1)
+                           Filter: (COALESCE(player_status, 'registered'::text) <> ALL ('{deleted_before_registering,deleted_after_registering,merged}'::text[]))
+                           Buffers: shared hit=433
+ Planning:
+   Buffers: shared hit=123
+ Planning Time: 0.679 ms
+ JIT:
+   Functions: 52
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 1.569 ms, Inlining 0.000 ms, Optimization 0.688 ms, Emission 15.611 ms, Total 17.868 ms
+ Execution Time: 291.453 ms
+(66 rows)
+
+################ list_new_game_candidates REWRITE (my_games via union)
+                                                                                                             QUERY PLAN                                                                                                              
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1722.82..1723.07 rows=100 width=123) (actual time=2.050..2.064 rows=64 loops=1)
+   Buffers: shared hit=655
+   CTE stats
+     ->  GroupAggregate  (cost=1162.32..1164.03 rows=76 width=28) (actual time=0.305..0.325 rows=64 loops=1)
+           Group Key: gp.profile_id
+           Buffers: shared hit=218
+           ->  Sort  (cost=1162.32..1162.51 rows=76 width=24) (actual time=0.302..0.309 rows=65 loops=1)
+                 Sort Key: gp.profile_id
+                 Sort Method: quicksort  Memory: 28kB
+                 Buffers: shared hit=218
+                 ->  Nested Loop  (cost=444.26..1159.94 rows=76 width=24) (actual time=0.149..0.284 rows=65 loops=1)
+                       Buffers: shared hit=215
+                       ->  HashAggregate  (cost=443.84..444.14 rows=30 width=24) (actual time=0.132..0.137 rows=15 loops=1)
+                             Group Key: g.id, g.created_at
+                             Batches: 1  Memory Usage: 24kB
+                             Buffers: shared hit=140
+                             ->  Append  (cost=4.42..443.69 rows=30 width=24) (actual time=0.013..0.128 rows=30 loops=1)
+                                   Buffers: shared hit=140
+                                   ->  Bitmap Heap Scan on games g  (cost=4.42..61.52 rows=15 width=24) (actual time=0.012..0.021 rows=15 loops=1)
+                                         Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                         Heap Blocks: exact=10
+                                         Buffers: shared hit=12
+                                         ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (actual time=0.009..0.009 rows=15 loops=1)
+                                               Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                               Buffers: shared hit=2
+                                   ->  Nested Loop  (cost=5.16..382.02 rows=15 width=24) (actual time=0.020..0.103 rows=15 loops=1)
+                                         Buffers: shared hit=128
+                                         ->  Bitmap Heap Scan on game_players a  (cost=4.87..257.45 rows=15 width=16) (actual time=0.017..0.081 rows=15 loops=1)
+                                               Recheck Cond: (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                               Filter: (role = 'game_admin'::game_member_role)
+                                               Rows Removed by Filter: 68
+                                               Heap Blocks: exact=81
+                                               Buffers: shared hit=83
+                                               ->  Bitmap Index Scan on game_players_profile_idx  (cost=0.00..4.87 rows=74 width=0) (actual time=0.009..0.009 rows=83 loops=1)
+                                                     Index Cond: (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                                     Buffers: shared hit=2
+                                         ->  Index Scan using games_pkey on games g_1  (cost=0.29..8.30 rows=1 width=24) (actual time=0.001..0.001 rows=1 loops=15)
+                                               Index Cond: (id = a.game_id)
+                                               Buffers: shared hit=45
+                       ->  Index Scan using game_players_game_idx on game_players gp  (cost=0.42..23.82 rows=3 width=32) (actual time=0.006..0.009 rows=4 loops=15)
+                             Index Cond: (game_id = g.id)
+                             Filter: (COALESCE(seated, true) AND (role <> 'spectator'::game_member_role) AND (profile_id <> (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid))
+                             Rows Removed by Filter: 1
+                             Buffers: shared hit=75
+   ->  Sort  (cost=558.79..559.12 rows=131 width=123) (actual time=2.049..2.055 rows=64 loops=1)
+         Sort Key: ((s.last_played_at >= (now() - '14 days'::interval))) DESC NULLS LAST, s.total_games DESC, s.last_played_at DESC NULLS LAST, p.display_name
+         Sort Method: quicksort  Memory: 33kB
+         Buffers: shared hit=655
+         ->  Hash Join  (cost=12.59..554.19 rows=131 width=123) (actual time=0.426..1.993 rows=64 loops=1)
+               Hash Cond: (p.id = s.profile_id)
+               Buffers: shared hit=655
+               ->  Seq Scan on profiles p  (cost=0.00..515.50 rows=5910 width=61) (actual time=0.045..1.237 rows=6000 loops=1)
+                     Filter: (COALESCE(player_status, 'registered'::text) <> ALL ('{deleted_before_registering,deleted_after_registering,merged}'::text[]))
+                     Buffers: shared hit=433
+               ->  Hash  (cost=10.93..10.93 rows=133 width=28) (actual time=0.373..0.376 rows=64 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 12kB
+                     Buffers: shared hit=222
+                     ->  Append  (cost=0.00..10.93 rows=133 width=28) (actual time=0.306..0.368 rows=64 loops=1)
+                           Buffers: shared hit=222
+                           ->  CTE Scan on stats s  (cost=0.00..1.52 rows=76 width=28) (actual time=0.306..0.333 rows=64 loops=1)
+                                 Buffers: shared hit=218
+                           ->  Subquery Scan on "*SELECT* 2"  (cost=6.21..8.75 rows=57 width=28) (actual time=0.029..0.030 rows=0 loops=1)
+                                 Buffers: shared hit=4
+                                 ->  Hash Right Anti Join  (cost=6.21..8.18 rows=57 width=28) (actual time=0.028..0.029 rows=0 loops=1)
+                                       Hash Cond: (s_1.profile_id = m.player_id)
+                                       Buffers: shared hit=4
+                                       ->  CTE Scan on stats s_1  (cost=0.00..1.52 rows=76 width=16) (actual time=0.000..0.004 rows=64 loops=1)
+                                       ->  Hash  (cost=5.47..5.47 rows=59 width=16) (actual time=0.017..0.017 rows=64 loops=1)
+                                             Buckets: 1024  Batches: 1  Memory Usage: 11kB
+                                             Buffers: shared hit=4
+                                             ->  Index Only Scan using my_players_pkey on my_players m  (cost=0.43..5.47 rows=59 width=16) (actual time=0.008..0.012 rows=64 loops=1)
+                                                   Index Cond: (owner_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                                   Heap Fetches: 0
+                                                   Buffers: shared hit=4
+ Planning:
+   Buffers: shared hit=17
+ Planning Time: 0.520 ms
+ Execution Time: 2.136 ms
+(78 rows)
+
+################ list_game_results_page BODY (013): visibility filter over ALL results
+                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.28..9.08 rows=5 width=1115) (actual time=44.161..126.165 rows=5 loops=1)
+   Buffers: shared hit=36652
+   ->  Index Scan using game_results_declared_at_idx on game_results gr  (cost=0.28..3518.65 rows=2000 width=1115) (actual time=44.160..126.162 rows=5 loops=1)
+         Filter: can_see_game_result(id)
+         Rows Removed by Filter: 885
+         Buffers: shared hit=36652
+ Planning:
+   Buffers: shared hit=42
+ Planning Time: 0.109 ms
+ Execution Time: 126.173 ms
+(10 rows)
+
+################ list_game_results_page REWRITE: candidate results from my games first
+                                                                                        QUERY PLAN                                                                                        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=2222.75..2222.77 rows=5 width=1115) (actual time=7.658..7.662 rows=5 loops=1)
+   Buffers: shared hit=1296
+   ->  Sort  (cost=2222.75..2222.90 rows=57 width=1115) (actual time=7.657..7.660 rows=5 loops=1)
+         Sort Key: gr.declared_at DESC
+         Sort Method: top-N heapsort  Memory: 36kB
+         Buffers: shared hit=1296
+         ->  Nested Loop  (cost=1848.42..2221.81 rows=57 width=1115) (actual time=7.542..7.633 rows=54 loops=1)
+               Buffers: shared hit=1296
+               ->  HashAggregate  (cost=1848.13..1848.70 rows=57 width=16) (actual time=7.537..7.544 rows=54 loops=1)
+                     Group Key: r.id
+                     Batches: 1  Memory Usage: 24kB
+                     Buffers: shared hit=1134
+                     ->  Append  (cost=0.00..1847.99 rows=57 width=16) (actual time=1.227..7.524 rows=72 loops=1)
+                           Buffers: shared hit=1134
+                           ->  Seq Scan on game_results r  (cost=0.00..1047.00 rows=3 width=16) (actual time=1.227..5.515 rows=3 loops=1)
+                                 Filter: (declared_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                 Rows Removed by Filter: 5997
+                                 Buffers: shared hit=867
+                           ->  Hash Join  (cost=258.20..618.46 rows=45 width=16) (actual time=0.197..1.948 rows=60 loops=1)
+                                 Hash Cond: (grg.game_id = gp.game_id)
+                                 Buffers: shared hit=216
+                                 ->  Seq Scan on game_result_games grg  (cost=0.00..313.00 rows=18000 width=32) (actual time=0.003..0.837 rows=18000 loops=1)
+                                       Buffers: shared hit=133
+                                 ->  Hash  (cost=257.28..257.28 rows=74 width=16) (actual time=0.093..0.094 rows=83 loops=1)
+                                       Buckets: 1024  Batches: 1  Memory Usage: 12kB
+                                       Buffers: shared hit=83
+                                       ->  Bitmap Heap Scan on game_players gp  (cost=4.89..257.28 rows=74 width=16) (actual time=0.024..0.086 rows=83 loops=1)
+                                             Recheck Cond: (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                             Filter: is_active
+                                             Heap Blocks: exact=81
+                                             Buffers: shared hit=83
+                                             ->  Bitmap Index Scan on game_players_profile_idx  (cost=0.00..4.87 rows=74 width=0) (actual time=0.013..0.013 rows=83 loops=1)
+                                                   Index Cond: (profile_id = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                                   Buffers: shared hit=2
+                           ->  Nested Loop  (cost=4.71..182.24 rows=9 width=16) (actual time=0.035..0.055 rows=9 loops=1)
+                                 Buffers: shared hit=51
+                                 ->  Bitmap Heap Scan on games g  (cost=4.42..61.52 rows=15 width=16) (actual time=0.011..0.018 rows=15 loops=1)
+                                       Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                       Heap Blocks: exact=10
+                                       Buffers: shared hit=12
+                                       ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (actual time=0.007..0.007 rows=15 loops=1)
+                                             Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                                             Buffers: shared hit=2
+                                 ->  Index Scan using game_result_games_game_idx on game_result_games grg_1  (cost=0.29..8.04 rows=1 width=32) (actual time=0.002..0.002 rows=1 loops=15)
+                                       Index Cond: (game_id = g.id)
+                                       Buffers: shared hit=39
+               ->  Index Scan using game_results_pkey on game_results gr  (cost=0.28..6.55 rows=1 width=1115) (actual time=0.001..0.001 rows=1 loops=54)
+                     Index Cond: (id = r.id)
+                     Buffers: shared hit=162
+ Planning:
+   Buffers: shared hit=30
+ Planning Time: 0.283 ms
+ Execution Time: 7.696 ms
+(53 rows)
+

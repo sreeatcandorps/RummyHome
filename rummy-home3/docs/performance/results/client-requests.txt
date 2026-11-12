@@ -1,0 +1,47 @@
+
+## HOME focus (cold, 2 live games): 17 HTTP requests, 4 serial round-trips before first paint
+     4  GET /game_players
+     3  GET /profiles
+     3  GET /games
+     2  GET /scores
+     1  POST auth:/token
+     1  POST /rpc/list_visible_game_ids
+     1  POST /rpc/take_creator_notices
+     1  POST /rpc/list_claim_requests
+     1  POST /rpc/list_my_players
+
+## SCORECARD open (games/[id].tsx loadGameData): 4 HTTP requests, 1 serial round-trips before first paint
+     2  GET /game_players
+     1  GET /scores
+     1  GET /games
+
+## ROUND ENTRY open (score-entry.tsx loadGameData): 5 HTTP requests, 1 serial round-trips before first paint
+     2  GET /game_players
+     1  GET /games
+     1  GET /scores
+     1  GET /profiles
+
+## PLAYERS page open (useGameRoster.reload + getCurrentPlayer): 5 HTTP requests, 1 serial round-trips before first paint
+     2  GET /game_players
+     1  GET /games
+     1  GET /scores
+     1  GET /profiles
+
+## SAVE ROUND (gamesService.addRound: save_round RPC + refetch): 4 HTTP requests, 2 serial round-trips before first paint
+     1  POST /rpc/save_round
+     1  GET /game_players
+     1  GET /scores
+     1  GET /games
+
+## REALTIME ECHO on the scorer's own scorecard after one save (7 postgres_changes events + 1 focus reload): 32 HTTP requests, 0 serial round-trips before first paint
+    16  GET /game_players
+     8  GET /scores
+     8  GET /games
+
+## RESULTS page open (12 visible games): 17 HTTP requests, 5 serial round-trips before first paint
+    12  GET /game_players
+     1  GET /profiles
+     1  POST /rpc/list_visible_game_ids
+     1  GET /games
+     1  GET /scores
+     1  POST /rpc/list_game_results_page

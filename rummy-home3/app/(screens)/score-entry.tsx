@@ -3,13 +3,18 @@ import { ActivityIndicator, Animated, Easing, ScrollView, StyleSheet, View } fro
 import { Button, Dialog, Icon, IconButton, Menu, Portal, Text, TouchableRipple } from 'react-native-paper';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Game } from '../../types/game';
+import { Player } from '../../types/player';
 import { gamesService } from '../../services/games';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
 import { storage } from '../../utils/storage';
+import { gameCache } from '../../utils/gameCache';
 import {
+  actionFill,
   applyPreset,
   applyRummy,
+  PRESET_FLASH_FILL,
+  PRESET_FLASH_MS,
   balance as roundBalance,
   canSaveRound,
   cellView,
@@ -28,7 +33,10 @@ import {
 } from '../../utils/roundEntry';
 import { MAX_CONTENT_WIDTH, radius, spacing, tabularNums, useAppTheme } from '../../constants/theme';
 import { useLayout } from '../../hooks/useLayout';
+import { useMenuThenShare } from '../../hooks/useMenuThenShare';
 import { HELP } from '../../constants/help';
+import { entryFromRound, nextRoundNumber } from '../../utils/editRound';
+import { HelpText } from '../../components/ui/HelpText';
 import { BottomBar } from '../../components/ui/BottomBar';
 import { SeatAvatar } from '../../components/ui/SeatAvatar';
 import { ScoreCell } from '../../components/game/ScoreCell';
@@ -39,13 +47,14 @@ import { formatGameDateTime, gameNumberLabel } from '../../utils/gameDisplay';
 import { scorecardUrl } from '../../utils/shareLink';
 import { shareLiveScorecard } from '../../utils/shareImage';
 import { formatSupabaseError } from '../../utils/supabaseErrors';
+import { isRoundConflict, roundConflictMessage } from '../../utils/roundConflict';
 
 type Participant = {
   id: string;
   name: string;
 };
 
-type Notice = { title: string; body: string; icon: string };
+type Notice = { title: string; body: string; icon: string; onClose?: () => void };
 
 const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
@@ -55,25 +64,39 @@ const GRID_GAP = spacing.sm;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+const participantsFrom = (seats: Player[]): Participant[] => seats
+  .filter((player) => player.seatRole !== 'spectator' && player.seated !== false)
+  .map((player) => ({ id: player.id, name: player.name }));
+
 export default function ScoreEntryScreen() {
   const { colors } = useAppTheme();
   const { isShort, insets, gutterLeft, gutterRight } = useLayout();
-  const { gameId } = useLocalSearchParams();
+  const { gameId, round } = useLocalSearchParams<{ gameId?: string; round?: string }>();
+  // Edit mode: `round=N` opens a finished round with its scores already in the cells.
+  const editRound = round && /^\d+$/.test(String(round)) ? Number(round) : null;
 
-  const [game, setGame] = useState<Game | null>(null);
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  // Seed from the copy the scorecard just showed, so the grid draws at once while the fresh copy loads.
+  const seededGame = useRef(gameCache.peekGame(gameId ? String(gameId) : null)).current;
+  const seededSeats = useRef(gameCache.peekSeats(gameId ? String(gameId) : null)).current;
+  const seeded = Boolean(seededGame && seededSeats);
+  const [game, setGame] = useState<Game | null>(seeded ? seededGame : null);
+  const [participants, setParticipants] = useState<Participant[]>(seeded ? participantsFrom(seededSeats ?? []) : []);
   const [scorerName, setScorerName] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!seeded);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
-  const [entry, setEntry] = useState<RoundEntryState>(initialRoundEntryState);
+  const [entry, setEntry] = useState<RoundEntryState>(seeded && seededGame && editRound ? entryFromRound(seededGame, editRound) : initialRoundEntryState);
+  // The fresh copy must not wipe cells the person has already filled from the seeded round.
+  const entrySeeded = useRef(seeded && Boolean(editRound));
   const [flashKeys, setFlashKeys] = useState<Record<string, number>>({});
   const [gridWidth, setGridWidth] = useState(0);
 
   const balancePulse = useRef(new Animated.Value(1)).current;
+  const presetFlash = useRef<Record<string, Animated.Value>>({}).current;
+  const flashFor = (id: string) => (presetFlash[id] ??= new Animated.Value(0));
 
   useEffect(() => {
     loadGameData();
@@ -90,8 +113,14 @@ export default function ScoreEntryScreen() {
       const userId = isSupabaseConfigured
         ? await authService.getCurrentUserId()
         : await storage.getCurrentPlayer();
-      const access = await gamesService.accessFor(String(gameId), userId);
-      const currentGame = access.game ?? await gamesService.getGame(String(gameId));
+      // One trip for the game and its seats; access is worked out from them (it used to refetch both).
+      const [fetchedGame, gamePlayers, scorer] = await Promise.all([
+        gamesService.getGame(String(gameId)),
+        gamesService.listGamePlayers(String(gameId)),
+        authService.getCurrentPlayer().catch(() => null),
+      ]);
+      const access = await gamesService.accessFor(String(gameId), userId, { game: fetchedGame, seats: gamePlayers });
+      const currentGame = access.game;
 
       if (!currentGame) {
         setNotice({ title: 'Game not found', body: 'This game may have been removed.', icon: 'alert-circle-outline' });
@@ -108,16 +137,10 @@ export default function ScoreEntryScreen() {
       }
 
       setGame(currentGame);
+      if (editRound && !entrySeeded.current) setEntry(entryFromRound(currentGame, editRound));
+      entrySeeded.current = false;
 
-      const [gamePlayers, scorer] = await Promise.all([
-        gamesService.listGamePlayers(currentGame.id),
-        authService.getCurrentPlayer().catch(() => null),
-      ]);
-      setParticipants(
-        gamePlayers
-          .filter((player) => player.seatRole !== 'spectator' && player.seated !== false)
-          .map((player) => ({ id: player.id, name: player.name })),
-      );
+      setParticipants(participantsFrom(gamePlayers));
       setScorerName(scorer?.name ?? null);
     } catch (error) {
       setNotice({ title: 'Could not load game', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
@@ -179,14 +202,33 @@ export default function ScoreEntryScreen() {
         : await storage.getCurrentPlayer();
       if (!createdBy) throw new Error('You must be signed in to save a round.');
 
-      await gamesService.addRound({
-        gameId: game.id,
-        roundNumber: game.currentRound || 1,
-        scores: toRoundScores(finalState),
-        createdBy,
-      });
+      if (editRound) {
+        await gamesService.replaceRound({ gameId: game.id, roundNumber: editRound, scores: toRoundScores(finalState), createdBy });
+      } else {
+        await gamesService.addRound({
+          gameId: game.id,
+          roundNumber: nextRoundNumber(game),
+          scores: toRoundScores(finalState),
+          createdBy,
+        });
+      }
       router.back();
     } catch (error) {
+      if (isRoundConflict(error)) {
+        // Someone else saved this round (or changed the players) first. Show what the server
+        // said and drop the typed scores so they cannot land on the next round by accident.
+        // Add mode then returns to the scorecard (it reloads on focus) instead of staying here
+        // numbered for the next round. Edit mode reloads the round as it is now.
+        if (!editRound) setEntry(initialRoundEntryState);
+        else await loadGameData();
+        setNotice({
+          title: 'Round already saved',
+          body: roundConflictMessage(error),
+          icon: 'refresh',
+          onClose: editRound ? undefined : closeScreen,
+        });
+        return;
+      }
       console.error('Score submission error:', error);
       setNotice({ title: 'Could not save round', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
     } finally {
@@ -194,9 +236,8 @@ export default function ScoreEntryScreen() {
     }
   };
 
-  const shareLive = async () => {
+  const shareLive = () => afterMenu(async () => {
     if (!game) return;
-    setMenuOpen(false);
     try {
       const token = game.viewToken ?? await gamesService.ensureViewToken(game.id);
       const result = await shareLiveScorecard(scorecardUrl(token, game.gameNumber));
@@ -204,9 +245,15 @@ export default function ScoreEntryScreen() {
     } catch (error) {
       setNotice({ title: 'Could not share', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
     }
-  };
+  });
 
   const closeScreen = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
+
+  const dismissNotice = () => {
+    const onClose = notice?.onClose;
+    setNotice(null);
+    onClose?.();
+  };
 
   if (loading) {
     return (
@@ -248,7 +295,7 @@ export default function ScoreEntryScreen() {
             </View>
           ) : null}
           <Text variant="titleLarge" numberOfLines={1} style={[styles.title, { color: colors.onSurface }]}>
-            Round {game.currentRound || 1}
+            {editRound ? `Edit round ${editRound}` : `Round ${nextRoundNumber(game)}`}
           </Text>
         </View>
         <Text variant="labelMedium" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
@@ -261,6 +308,7 @@ export default function ScoreEntryScreen() {
         </View>
       ) : null}
       <Menu
+        key={menuKey}
         visible={menuOpen}
         onDismiss={() => setMenuOpen(false)}
         anchor={
@@ -276,9 +324,9 @@ export default function ScoreEntryScreen() {
         <Menu.Item leadingIcon="share-variant" title="Share live scorecard" onPress={shareLive} />
         <Menu.Item
           leadingIcon="eraser-variant"
-          title="Clear this round"
+          title={editRound ? 'Undo my changes' : 'Clear this round'}
           disabled={!hasAnything}
-          onPress={() => { setMenuOpen(false); setEntry(initialRoundEntryState()); }}
+          onPress={() => { setMenuOpen(false); setEntry(editRound && game ? entryFromRound(game, editRound) : initialRoundEntryState()); }}
         />
         <Menu.Item
           leadingIcon="help-circle-outline"
@@ -312,6 +360,7 @@ export default function ScoreEntryScreen() {
                 value={view.value}
                 width={cellWidth}
                 compact={isShort}
+                fullCount={game?.settings.maxCount}
                 flashKey={flashKeys[participant.id] ?? 0}
                 onPress={() => update((state) => tapPlayer(state, participant.id))}
                 onClear={() => update((state) => clearPlayer(state, participant.id))}
@@ -334,11 +383,19 @@ export default function ScoreEntryScreen() {
     { id: 'rummy', label: 'Rummy' },
   ];
 
+  // Each preset key gets a green flash when tapped so the hand knows it landed.
+  const flashPreset = (id: string) => {
+    const value = flashFor(id);
+    value.setValue(1);
+    Animated.timing(value, { toValue: 0, duration: PRESET_FLASH_MS, delay: 80, easing: Easing.out(Easing.quad), useNativeDriver: false }).start();
+  };
+
   const pressAction = (key: ActionKey) => {
     if (key.id === 'plus') return update((state) => setNegative(state, false));
     if (key.id === 'minus') return update((state) => setNegative(state, true));
     if (key.id === 'rummy') return update(applyRummy);
     const kind: PresetKind = key.id;
+    flashPreset(key.id);
     return update((state) => applyPreset(state, kind, presets));
   };
 
@@ -350,16 +407,19 @@ export default function ScoreEntryScreen() {
         const isRummy = key.id === 'rummy';
         const signOn = isSign && entry.draft.negative === (key.id === 'minus');
         const enabled = isSign || hasSelection;
-        const background = signOn ? colors.primary : isRummy ? colors.leaderContainer : colors.surface;
-        const border = signOn ? colors.primary : isRummy ? colors.leaderContainer : colors.outlineVariant;
-        const foreground = signOn ? colors.onPrimary : isRummy ? colors.onLeaderContainer : colors.onSurface;
+        const restFill = colors[actionFill(isSign ? 'sign' : isRummy ? 'rummy' : 'preset', signOn)];
+        const background = isSign || isRummy
+          ? restFill
+          : flashFor(key.id).interpolate({ inputRange: [0, 1], outputRange: [restFill, colors[PRESET_FLASH_FILL]] });
+        const border = signOn ? colors.secondary : isRummy ? colors.tertiary : colors.outlineVariant;
+        const foreground = signOn ? colors.onSecondaryContainer : isRummy ? colors.onTertiaryContainer : colors.onSurface;
         const accessibilityLabel = isSign
           ? key.label
           : isRummy
             ? 'Rummy'
             : `${key.id === 'drop' ? 'Drop' : key.id === 'middle_drop' ? 'Middle drop' : 'Full count'} ${key.label}`;
         return (
-          <View
+          <Animated.View
             key={key.id}
             style={[
               styles.action,
@@ -390,7 +450,7 @@ export default function ScoreEntryScreen() {
                 )}
               </View>
             </TouchableRipple>
-          </View>
+          </Animated.View>
         );
       })}
     </View>
@@ -436,13 +496,13 @@ export default function ScoreEntryScreen() {
       contentStyle={styles.saveRoundContent}
       labelStyle={styles.saveRoundLabel}
     >
-      Save round
+      {editRound ? 'Save edit' : 'Save round'}
     </Button>
   );
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false, title: `Round ${game.currentRound || 1}` }} />
+      <Stack.Screen options={{ headerShown: false, title: `Round ${nextRoundNumber(game)}` }} />
 
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {header}
@@ -480,16 +540,20 @@ export default function ScoreEntryScreen() {
       </View>
 
       <Portal>
-        <Dialog visible={!!notice} onDismiss={() => setNotice(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+        <Dialog visible={!!notice} onDismiss={dismissNotice} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Icon icon={notice?.icon ?? 'information-outline'} />
           <Dialog.Title style={styles.dialogTitle}>{notice?.title}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
-              {notice?.body}
-            </Text>
+            {notice?.body.startsWith('•') ? (
+              <HelpText text={notice.body} color={colors.onSurfaceVariant} />
+            ) : (
+              <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
+                {notice?.body}
+              </Text>
+            )}
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
-            <Button mode="contained" onPress={() => setNotice(null)} contentStyle={styles.dialogButtonContent}>
+            <Button mode="contained" onPress={dismissNotice} contentStyle={styles.dialogButtonContent}>
               Got it
             </Button>
           </Dialog.Actions>

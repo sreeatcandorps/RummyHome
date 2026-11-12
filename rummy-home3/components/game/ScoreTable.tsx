@@ -1,7 +1,9 @@
-import React, { useRef, useState } from 'react';
-import { Animated, LayoutChangeEvent, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
+import { createScrollSync } from '@/utils/scrollSync';
 
 export type ScoreColumn = {
   id: string;
@@ -19,9 +21,13 @@ type ScoreTableProps = {
   grandTotal: number;
   dealerLabelForRound: (roundIndex: number) => string | undefined;
   nextDealerId?: string;
+  /** Round indexes that start a new rotation (the first dealer deals again); a divider is drawn above each. */
+  rotationStarts?: number[];
   leaderIds: string[];
   /** Short screens (phone landscape) trade padding for visible rows. */
   compact?: boolean;
+  /** Full count of the game; losses of half this or more are shown in red. */
+  fullCount?: number | null;
   emptyMessage: string;
 };
 
@@ -35,6 +41,96 @@ const fontSizeFor = (columnWidth: number) => {
   return 13;
 };
 
+type ScoreRowProps = {
+  columns: ScoreColumn[];
+  /** The stored value per column for this round; undefined where the player had no score. */
+  cells: (number | undefined)[];
+  isLatest: boolean;
+  stripe: boolean;
+  /** One full rotation ended above this row: draw the round-robin divider. */
+  rotationStart: boolean;
+  columnWidth: number;
+  rowHeight: number;
+  fontSize: number;
+  fullCount?: number | null;
+  colors: ReturnType<typeof useAppTheme>['colors'];
+};
+
+const sameColumns = (a: ScoreColumn[], b: ScoreColumn[]) =>
+  a.length === b.length && a.every((column, i) => column.id === b[i].id && column.label === b[i].label && column.color === b[i].color && column.isExpense === b[i].isExpense);
+const sameCells = (a: (number | undefined)[], b: (number | undefined)[]) => a.length === b.length && a.every((value, i) => value === b[i]);
+
+/**
+ * One round of scores. Memoised by value (the screen rebuilds its columns and
+ * scores objects on every render), so a reload, a menu or a realtime echo
+ * redraws only the rows whose numbers changed, usually just the newest one.
+ */
+const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe, rotationStart, columnWidth, rowHeight, fontSize, fullCount, colors }: ScoreRowProps) {
+  return (
+    <View
+      style={[
+        styles.row,
+        {
+          height: rowHeight,
+          borderBottomColor: colors.hairline,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          backgroundColor: isLatest ? colors.tableLatest : stripe ? colors.tableStripe : colors.surface,
+        },
+        rotationStart && [styles.rotationDivider, { borderTopColor: colors.primary }],
+      ]}
+    >
+      {columns.map((column, index) => {
+        const stored = cells[index];
+        // A saved 0 is a real score; a missing cell (player not in that round) shows a dash.
+        const hasScore = typeof stored === 'number';
+        const score = hasScore ? stored : 0;
+        const tone = scoreTone(score, fullCount);
+        const positive = tone === 'positive';
+        const text = scoreTextStyle(tone);
+        return (
+          <View
+            key={column.id}
+            style={[styles.cell, { width: columnWidth, height: rowHeight, borderRightColor: colors.hairline }]}
+          >
+            <View
+              style={[
+                styles.scorePill,
+                // The standard: only a win gets a highlight; a big penalty is red text alone, never a red background.
+                text.highlight && { backgroundColor: colors.positiveContainer },
+              ]}
+            >
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={[
+                  styles.scoreText,
+                  tabularNums,
+                  { fontSize },
+                  positive
+                    ? { color: colors.onPositiveContainer, fontWeight: text.fontWeight }
+                    : { color: colors[text.colorKey], fontWeight: text.fontWeight },
+                ]}
+              >
+                {!hasScore ? '–' : positive ? `+${score}` : `${score}`}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}, (prev, next) =>
+  prev.isLatest === next.isLatest
+  && prev.stripe === next.stripe
+  && prev.rotationStart === next.rotationStart
+  && prev.columnWidth === next.columnWidth
+  && prev.rowHeight === next.rowHeight
+  && prev.fontSize === next.fontSize
+  && prev.fullCount === next.fullCount
+  && prev.colors === next.colors
+  && sameColumns(prev.columns, next.columns)
+  && sameCells(prev.cells, next.cells));
+
 export function ScoreTable({
   columns,
   scores,
@@ -44,14 +140,18 @@ export function ScoreTable({
   grandTotal,
   dealerLabelForRound,
   nextDealerId,
+  rotationStarts,
   leaderIds,
   compact = false,
+  fullCount,
   emptyMessage,
 }: ScoreTableProps) {
+  const rotationStartSet = useMemo(() => new Set(rotationStarts ?? []), [rotationStarts]);
   const theme = useAppTheme();
   const { colors } = theme;
   const [tableWidth, setTableWidth] = useState(0);
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const headerRef = useRef<ScrollView>(null);
+  const bodyRef = useRef<ScrollView>(null);
   const verticalRef = useRef<ScrollView>(null);
   const shownRounds = useRef(0);
 
@@ -66,10 +166,16 @@ export function ScoreTable({
   const rowHeight = compact ? 34 : columns.length > 8 ? 40 : 44;
   const headerHeight = compact ? 58 : 64;
 
-  const translate = { transform: [{ translateX: Animated.multiply(scrollX, -1) }] };
-  const onHorizontalScroll = Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-    useNativeDriver: Platform.OS !== 'web',
-  });
+  // Header and rows are two horizontal scroll views; a swipe on either drives the other.
+  const sync = useMemo(
+    () =>
+      createScrollSync((side, x) => {
+        (side === 'header' ? headerRef : bodyRef).current?.scrollTo({ x, animated: false });
+      }),
+    [],
+  );
+  const onHeaderScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => sync.onScroll('header', event.nativeEvent.contentOffset.x);
+  const onBodyScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => sync.onScroll('body', event.nativeEvent.contentOffset.x);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const width = Math.floor(event.nativeEvent.layout.width);
@@ -161,9 +267,11 @@ export function ScoreTable({
             const dealer = dealerLabelForRound(roundIndex);
             const offBy = roundTotals[roundIndex] ?? 0;
             const isLatest = roundIndex === roundCount - 1;
+            const rotationStart = rotationStartSet.has(roundIndex);
             return (
               <View
                 key={roundIndex}
+                accessibilityLabel={rotationStart ? `Round ${roundIndex + 1}, new rotation` : undefined}
                 style={[
                   styles.cell,
                   styles.roundCell,
@@ -172,15 +280,16 @@ export function ScoreTable({
                     height: rowHeight,
                     borderRightColor: colors.outlineVariant,
                     borderBottomColor: colors.hairline,
-                    backgroundColor: offBy !== 0 ? colors.errorContainer : isLatest ? colors.tableLatest : colors.tableHeader,
+                    backgroundColor: isLatest ? colors.tableLatest : colors.tableHeader,
                   },
+                  rotationStart && [styles.rotationDivider, { borderTopColor: colors.primary }],
                 ]}
               >
                 <Text style={[styles.roundText, tabularNums, { fontSize: fontSize - 1, color: colors.onSurface }]}>
                   {roundIndex + 1}
                 </Text>
                 {offBy !== 0 ? (
-                  <Text style={[styles.roundMeta, { color: colors.onErrorContainer }]} numberOfLines={1}>
+                  <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1} accessibilityLabel={`Round does not add up, off by ${offBy}`}>
                     {offBy > 0 ? `+${offBy}` : offBy}
                   </Text>
                 ) : dealer ? (
@@ -193,65 +302,33 @@ export function ScoreTable({
           })}
         </View>
 
-        <Animated.ScrollView
+        <ScrollView
+          ref={bodyRef}
           horizontal
           scrollEnabled={scrollsSideways}
           showsHorizontalScrollIndicator={scrollsSideways}
-          onScroll={onHorizontalScroll}
+          onScroll={onBodyScroll}
           scrollEventThrottle={16}
           bounces={false}
         >
           <View style={{ width: contentWidth }}>
-            {Array.from({ length: roundCount }, (_, roundIndex) => {
-              const isLatest = roundIndex === roundCount - 1;
-              const stripe = roundIndex % 2 === 1;
-              return (
-                <View
-                  key={roundIndex}
-                  style={[
-                    styles.row,
-                    {
-                      height: rowHeight,
-                      borderBottomColor: colors.hairline,
-                      borderBottomWidth: StyleSheet.hairlineWidth,
-                      backgroundColor: isLatest ? colors.tableLatest : stripe ? colors.tableStripe : colors.surface,
-                    },
-                  ]}
-                >
-                  {columns.map((column) => {
-                    const score = scores[column.id]?.[roundIndex] || 0;
-                    const positive = score > 0;
-                    return (
-                      <View
-                        key={column.id}
-                        style={[styles.cell, { width: columnWidth, height: rowHeight, borderRightColor: colors.hairline }]}
-                      >
-                        <View style={[styles.scorePill, positive && { backgroundColor: colors.positiveContainer }]}>
-                          <Text
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
-                            style={[
-                              styles.scoreText,
-                              tabularNums,
-                              { fontSize },
-                              positive
-                                ? { color: colors.onPositiveContainer, fontWeight: '800' }
-                                : score === 0
-                                  ? { color: colors.outline }
-                                  : { color: colors.onSurface },
-                            ]}
-                          >
-                            {score !== 0 ? (positive ? `+${score}` : score) : '–'}
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              );
-            })}
+            {Array.from({ length: roundCount }, (_, roundIndex) => (
+              <ScoreRow
+                key={roundIndex}
+                columns={columns}
+                cells={columns.map((column) => scores[column.id]?.[roundIndex])}
+                isLatest={roundIndex === roundCount - 1}
+                stripe={roundIndex % 2 === 1}
+                rotationStart={rotationStartSet.has(roundIndex)}
+                columnWidth={columnWidth}
+                rowHeight={rowHeight}
+                fontSize={fontSize}
+                fullCount={fullCount}
+                colors={colors}
+              />
+            ))}
           </View>
-        </Animated.ScrollView>
+        </ScrollView>
       </View>
     );
 
@@ -276,9 +353,18 @@ export function ScoreTable({
                 </Text>
               ) : null}
             </View>
-            <View style={styles.clip}>
-              <Animated.View style={[styles.row, { width: contentWidth }, translate]}>{headerCells}</Animated.View>
-            </View>
+            <ScrollView
+              ref={headerRef}
+              horizontal
+              style={styles.flex}
+              scrollEnabled={scrollsSideways}
+              showsHorizontalScrollIndicator={false}
+              onScroll={onHeaderScroll}
+              scrollEventThrottle={16}
+              bounces={false}
+            >
+              <View style={[styles.row, { width: contentWidth }]}>{headerCells}</View>
+            </ScrollView>
           </View>
 
           <ScrollView
@@ -315,10 +401,6 @@ const styles = StyleSheet.create({
   totalsRow: {
     borderTopWidth: 2,
   },
-  clip: {
-    flex: 1,
-    overflow: 'hidden',
-  },
   cell: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -327,6 +409,10 @@ const styles = StyleSheet.create({
   },
   roundCell: {
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  // The round-robin line: one full rotation ended above this row.
+  rotationDivider: {
+    borderTopWidth: 2,
   },
   headerLabelRow: {
     flexDirection: 'row',

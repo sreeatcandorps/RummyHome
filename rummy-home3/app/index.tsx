@@ -49,7 +49,7 @@ export default function Index() {
   // Matches the native splash so cold start has no flash.
   return (
     <View style={styles.splash}>
-      <Image source={require('../assets/icon.png')} style={styles.logo} />
+      <Image source={require('../assets/icon-small.png')} style={styles.logo} />
       <ActivityIndicator color={brand.felt} />
       <Text style={styles.hint}>Opening EZ Score: Rummy…</Text>
     </View>

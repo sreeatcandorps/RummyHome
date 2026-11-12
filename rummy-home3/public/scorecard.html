@@ -19,8 +19,10 @@
     th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid #E7E0D4; font-variant-numeric: tabular-nums; }
     th { background: #F4EFE4; font-size: 13px; }
     th .total { display: block; font-size: 16px; font-weight: 800; }
-    td.pos { color: #0E7A43; font-weight: 700; }
-    td.neg { color: #8C2F2F; }
+    td.pos { color: #0E7A43; font-weight: 700; background: #E6F4EA; }
+    td.big { color: #B3261E; }
+    tr.rotation td { border-top: 2px solid #0E7A43; }
+    tfoot td.neg { color: #8C2F2F; }
     .msg { padding: 24px; }
   </style>
 </head>
@@ -48,21 +50,23 @@
       return typeof value === 'string' && value.length > 0 && value.indexOf('__') === -1;
     }
 
+    // Same rule as utils/playerInitials.ts in the app: first keeps HY, later duplicates read H2, H3, in seat order.
     function initials(names) {
       const base = names.map((name) => {
         const words = (name || '').trim().split(/\s+/).filter(Boolean);
         if (!words.length) return '?';
-        const last = words.length > 1 ? words[words.length - 1] : '';
-        const lastPart = /^\d+$/.test(last) ? last : last.slice(0, 1);
-        return (words[0][0] + lastPart).toUpperCase();
+        if (words.length === 1) return words[0].slice(0, 2).toUpperCase().padEnd(2, '?');
+        return (words[0][0] + words[words.length - 1][0]).toUpperCase();
       });
-      const counts = {};
-      base.forEach((label) => { counts[label] = (counts[label] || 0) + 1; });
-      return base.map((label, index) => {
-        if (counts[label] < 2) return label;
-        const words = (names[index] || '').trim().split(/\s+/);
-        const last = words.length > 1 ? words[words.length - 1][0] : '';
-        return (words[0].slice(0, 2) + last).toUpperCase();
+      const taken = new Set(base);
+      const seen = new Set();
+      return base.map((label) => {
+        if (!seen.has(label)) { seen.add(label); return label; }
+        let n = 2;
+        while (taken.has(label[0] + n)) n += 1;
+        const next = label[0] + n;
+        taken.add(next); seen.add(next);
+        return next;
       });
     }
 
@@ -84,24 +88,33 @@
       const totals = grid.map((row) => roundList.reduce((sum, round) => sum + (row[round] || 0), 0));
       const started = new Date(card.startedAt);
       const when = Number.isNaN(started.getTime()) ? card.startedAt : started.toLocaleString();
-      const fromCard = card.gameNumber != null && /^\d+$/.test(String(card.gameNumber)) ? 'G' + card.gameNumber : '';
-      const fromLink = /^\d+$/.test(params.get('g') || '') ? 'G' + params.get('g') : '';
+      // 028: the game label (S3 / P1) comes with the card; older links carried a bare number.
+      const fromCard = typeof card.gameLabel === 'string' && /^[SPG]\d+$/.test(card.gameLabel) ? 'Game ' + card.gameLabel : '';
+      const linkParam = params.get('g') || '';
+      const fromLink = /^[SPG]\d+$/.test(linkParam) ? 'Game ' + linkParam : /^\d+$/.test(linkParam) ? 'Game ' + linkParam : '';
       const gameNo = fromCard || fromLink;
       const status = card.status === 'completed' ? 'Completed' : 'Live';
       document.getElementById('meta').textContent = [gameNo, 'Started ' + when, status].filter(Boolean).join(' · ');
       const head = labels.map((label, index) => '<th>' + label + '<span class="total">' + totals[index] + '</span></th>').join('');
-      const body = roundList.map((round) => {
+      // The scorecard standard: a win green, a penalty of more than half the Full count red text, the rest plain.
+      const maxCount = Math.abs(Number(card.maxCount) || 0);
+      const bigLoss = maxCount ? Math.floor(maxCount / 2) + 1 : null;
+      // 031: a divider above each round where the first dealer deals again (one full rotation done).
+      const dealers = card.dealers || {};
+      const firstDealer = roundList.length ? dealers[String(roundList[0])] : null;
+      const body = roundList.map((round, index) => {
         const cells = grid.map((row) => {
           const value = row[round] || 0;
-          const cls = value > 0 ? 'pos' : value < 0 ? 'neg' : '';
+          const cls = value > 0 ? 'pos' : (bigLoss !== null && value <= -bigLoss) ? 'big' : '';
           return '<td class="' + cls + '">' + (value > 0 ? '+' + value : value) + '</td>';
         }).join('');
-        return '<tr><td>' + round + '</td>' + cells + '</tr>';
+        const rotation = index > 0 && firstDealer && dealers[String(round)] === firstDealer ? ' class="rotation"' : '';
+        return '<tr' + rotation + '><td>' + round + '</td>' + cells + '</tr>';
       }).join('');
       const totalCells = totals.map((value) => '<td class="' + (value > 0 ? 'pos' : value < 0 ? 'neg' : '') + '">' + (value > 0 ? '+' + value : value) + '</td>').join('');
       const sum = totals.reduce((total, value) => total + value, 0);
-      const totalRow = roundList.length ? '<tr><td>Total</td>' + totalCells + '</tr>' : '';
-      document.getElementById('board').innerHTML = '<table><thead><tr><th>Rnd</th>' + head + '</tr></thead><tbody>' + (body || '<tr><td colspan="8">No rounds yet.</td></tr>') + totalRow + '</tbody></table><p class="meta">Totals add to ' + sum + '</p>';
+      const totalRow = roundList.length ? '<tfoot><tr><td>Total</td>' + totalCells + '</tr></tfoot>' : '';
+      document.getElementById('board').innerHTML = '<table><thead><tr><th>Rnd</th>' + head + '</tr></thead><tbody>' + (body || '<tr><td colspan="8">No rounds yet.</td></tr>') + '</tbody>' + totalRow + '</table><p class="meta">Totals add to ' + sum + '</p>';
     }
 
     async function load() {
@@ -121,6 +134,11 @@
         body: JSON.stringify({ p_token: token }),
       });
       const card = await response.json();
+      if (card && card.deleted === true) {
+        document.getElementById('meta').textContent = 'This game was deleted.';
+        document.getElementById('board').innerHTML = '';
+        return;
+      }
       if (!card || card.gameId == null) {
         document.getElementById('meta').textContent = 'This scorecard link is not valid.';
         return;

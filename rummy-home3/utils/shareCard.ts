@@ -1,4 +1,7 @@
+import { initialsById } from '@/utils/playerInitials';
 import { formatPoints, placeLabel, podiumPlaces, resultsCountLine, ResultStanding } from '@/utils/results';
+import { buildShareBreakdown, ShareBreakdown, shareBreakdownOmitted, SHARE_BREAKDOWN_OMITTED, SheetLikeGame } from '@/utils/resultsLayout';
+import { totalsSubline } from '@/utils/resultsSave';
 
 /** Long lists keep the leaders and say how many names were left off the image. */
 export const SHARE_CARD_LINE_CAP = 12;
@@ -6,6 +9,10 @@ export const SHARE_CARD_LINE_CAP = 12;
 export type ShareCardLine = {
   name: string;
   points: string;
+  /** 1, 2, or 3 puts a crown and the place beside the row. */
+  place?: number;
+  /** Second line under the name: initials and Player ID ("SK · #39"). */
+  sub?: string;
 };
 
 export type ShareCardPlace = {
@@ -25,6 +32,18 @@ export type ShareCard = {
   podiumFirst?: boolean;
   /** e.g. "3 games · 6 players" under the date. */
   summary?: string;
+  /** Results image: how each game adds up to the total. Null when there are too many games. */
+  breakdown?: ShareBreakdown | null;
+  /** Shown under the breakdown when the rounds are only in the PDF. */
+  breakdownNote?: string;
+  /**
+   * What the screen says above the totals, word for word: the "Not saved yet" banner on an
+   * unsaved result and every warning line (still active, counted before). The picture never
+   * shows a cleaner result than the screen did.
+   */
+  notes?: string[];
+  /** Last line: "Result ID · ABC123" on saved results, "Preview · not saved" before. */
+  footer?: string;
 };
 
 /** The results picture stays short: the podium, then the leading totals. */
@@ -61,22 +80,56 @@ export function buildShareCard(input: {
   };
 }
 
-/** A simple results picture: Rummy Home, the title, the date, the podium, and the top totals. */
+/**
+ * The results picture: header, every total highest first with a crown on the top three
+ * places, then (for up to SHARE_BREAKDOWN_MAX_GAMES games) the per-game grid.
+ */
 export function buildResultsShareCard(input: {
   title: string;
   date: string;
-  rows: { name: string; points: number }[];
+  rows: { id?: string; name: string; points: number; place?: number }[];
   places?: { label: string; names: string; points: number }[];
   gameCount?: number;
+  games?: SheetLikeGame[];
+  /** Seats with Player IDs, for the second line under each name, and their stored column initials (022). */
+  players?: { id: string; name: string; playerNo?: number | null; label?: string | null }[];
+  notes?: string[];
+  footer?: string;
 }): ShareCard {
-  // The image is the Totals section: every player, highest first, then 1st/2nd/3rd at the bottom.
+  const sorted = [...input.rows].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+  const gameCount = input.gameCount ?? input.games?.length;
+  const seated = input.rows.filter((row): row is typeof row & { id: string } => typeof row.id === 'string');
+  const byId = new Map((input.players ?? []).map((player) => [player.id, player]));
+  const initials = initialsById(seated.map((row) => ({ id: row.id, name: row.name, label: byId.get(row.id)?.label })));
+  const subFor = (row: { id?: string }) => {
+    if (!row.id) return undefined;
+    const sub = totalsSubline(initials.get(row.id), byId.get(row.id));
+    return sub || undefined;
+  };
+  const breakdown = input.games && seated.length === input.rows.length
+    ? buildShareBreakdown({
+      players: seated.map((row) => ({ id: row.id, name: row.name })),
+      games: input.games,
+      totals: Object.fromEntries(seated.map((row) => [row.id, row.points])),
+      labels: initials,
+    })
+    : null;
   return {
     ...buildShareCard({ ...input, rows: input.rows }),
     podiumFirst: false,
-    summary: input.gameCount != null ? resultsCountLine(input.gameCount, input.rows.length) : undefined,
-    lines: [...input.rows]
-      .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
-      .map((row) => ({ name: row.name, points: formatPoints(row.points) })),
+    summary: gameCount != null ? resultsCountLine(gameCount, input.rows.length) : undefined,
+    lines: sorted.map((row) => ({
+      name: row.name,
+      points: formatPoints(row.points),
+      place: row.place != null && row.place <= 3 ? row.place : undefined,
+      sub: subFor(row),
+    })),
     moreCount: 0,
+    // The crowns beside the rows replace the 1st/2nd/3rd paragraph.
+    places: [],
+    breakdown,
+    breakdownNote: gameCount != null && shareBreakdownOmitted(gameCount) ? SHARE_BREAKDOWN_OMITTED : undefined,
+    notes: input.notes?.length ? input.notes : undefined,
+    footer: input.footer,
   };
 }

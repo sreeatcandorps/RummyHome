@@ -40,7 +40,7 @@ Game settings start from profile defaults and are copied onto the game at creati
 - The game creator is always the first player. There is no "I'm playing" switch.
 - My players, unregistered players and email linking: see docs/players-and-identity.md.
 
-- A game must have at least 2 players and at most 15 players.
+- A game must have at least 2 players and at most 20 players.
 - Player order is explicit and controls dealer rotation.
 - A default expense player is represented as a system score, not a normal profile.
 - Player colors and display numbers are per-game metadata.

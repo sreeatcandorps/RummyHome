@@ -49,14 +49,13 @@ npx eas-cli submit --platform android
 npx eas-cli update --channel production --message "Describe the fix" --environment production
 ```
 
-## Privacy policy URL
+## Privacy policy and account deletion URLs
 
-Host `docs/privacy-policy.html` from the repo root (GitHub Pages on `/docs` works).
+Both pages live on the share site, next to the scorecard: `public/privacy/index.html` and `public/delete-account/index.html` (static, no keys; publish them as they are with the next Pages deploy).
 
-1. GitHub → repo **Settings** → **Pages**
-2. Source: Deploy from a branch → `main` / `/docs`
-3. Use: `https://sreeatcandorps.github.io/RummyHome/privacy-policy.html`
+- Privacy policy: `https://ezscore.mindweavetech.com/privacy` → Play Console → App content → Privacy policy.
+- Account deletion: `https://ezscore.mindweavetech.com/delete-account` → Play Console → App content → Data safety → Account deletion ("Yes, in the app and at this URL").
 
-Paste that URL into Play Console → App content → Privacy policy.
+In the app: Profile → Account → Delete account (migration 026 `delete_my_account`). The dialog, the page and the policy share one list of what is deleted and what is kept (`utils/accountDeletion.ts`).
 
 Store listing text and graphics: see `docs/store-listing.md` at the repo root.

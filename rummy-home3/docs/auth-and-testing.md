@@ -142,3 +142,27 @@ while ($true) {
 Stop with `Ctrl+C`.
 
 For full device UI automation later, consider [Maestro](https://maestro.mobile.dev/) or Detox. That is a separate setup step and is not wired up yet.
+
+
+## Passcode recovery (build 5): emailed code, no browser page
+
+Both entry points are in the app:
+
+- Signed out → **Forgot passcode** → email → Supabase sends the recovery email → the person types the **6-digit code** from that email plus a new 6-digit passcode (twice) → the app calls `verifyOtp({ type: 'recovery' })` then `updateUser({ password })`, signs out, and returns to Sign in with the email pre-filled. They prove the new passcode by signing in.
+- Signed in → Profile → **Change passcode** → current passcode, new passcode twice → the app re-checks the current passcode with `signInWithPassword`, then `updateUser({ password })`. No email. If the project has **Secure password change** on, Supabase asks for a fresh check: the dialog then asks for the emailed code (`reauthenticate()` + `updateUser({ password, nonce })`).
+
+Nothing is changed until the code is accepted *and* both new entries match; wrong length, letters, mismatch and a wrong current passcode all stop before any server write. A failed save after a verified code keeps the recovery session, so the person can retry without a new code. Flow logic is in `utils/passcodeFlow.ts` and is unit-tested against a fake client.
+
+### Supabase dashboard settings this depends on (not changed by code)
+
+1. **Authentication → Email Templates → Reset Password**: the body must include `{{ .Token }}`. Default templates only have `{{ .ConfirmationURL }}`, so the person never sees a code. Paste `supabase/templates/recovery-passcode.html` (app-only: OTP, no browser link). Subject: "Your EZ Score: Rummy OTP". Set Email OTP length 6 and expiry 900 s to match the app copy ("expires in 15 minutes").
+2. **Authentication → Providers → Email**: minimum password length 6; **Password requirements** must be "No required characters" (letters-required settings reject a numeric passcode; the app shows "The server is set to require letters").
+3. **Email OTP expiration**: default 3600 s is fine; the app copy says "expires soon".
+4. **SMTP sender** (for the branded From name "EZ Score: Rummy") is a P2 item; Supabase's built-in sender is rate limited to a few emails an hour and shows "Supabase Auth".
+5. **URL Configuration**: the link in the email still points at `EXPO_PUBLIC_AUTH_REDIRECT_URL` (GitHub Pages today). The app no longer needs it; moving it to `https://ezscore.mindweavetech.com/` is the P2 branding step.
+
+### What was and was not tested
+
+- Unit tests (`tests/passcode.test.ts`): validation, every error mapping (never says "password"), happy path, wrong/expired/reused code, mismatch, server failure after verification (passcode untouched, retry without new code), current-passcode check, reauthentication nonce path.
+- Web UI run against a local fake of the GoTrue endpoints (`/auth/v1/recover`, `/verify`, `/user`, `/logout`) to exercise the real client on the real screens.
+- **Not tested here**: real email delivery from the Supabase project (no project credentials on the build machine) and the native Android keyboard/autofill of the code. Do one real round trip on a test account after updating the template.

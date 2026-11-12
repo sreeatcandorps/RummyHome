@@ -1,19 +1,41 @@
-import React, { useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput as NativeInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Platform, StyleSheet, TextInput as NativeInput, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
-import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 type PasscodeFieldProps = {
   value: string;
   onChangeText: (value: string) => void;
   disabled?: boolean;
   label?: string;
+  autoFocus?: boolean;
 };
 
-/** Six large cells so each digit is obvious, with an eye toggle to reveal them. */
-export function PasscodeField({ value, onChangeText, disabled, label = '6-digit passcode' }: PasscodeFieldProps) {
+/** A blinking bar in the cell about to be typed into, so the field visibly has the cursor. */
+function Caret({ color }: { color: string }) {
+  const blink = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(blink, { toValue: 0, duration: 450, delay: 350, useNativeDriver: true }),
+      Animated.timing(blink, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [blink]);
+  return <Animated.View pointerEvents="none" style={[styles.caret, { backgroundColor: color, opacity: blink }]} />;
+}
+
+/**
+ * Six large cells, digits visible by default, with an eye toggle to hide them and a clear button.
+ * The cell waiting for the next digit shows a blinking caret while the field is focused.
+ * The real TextInput sits invisibly on top of the cells, so a tap lands on the input itself and
+ * the OS opens the keyboard on the first tap. (Focusing a hidden input from a Pressable needed a
+ * second tap on Android.)
+ */
+export function PasscodeField({ value, onChangeText, disabled, label = '6-digit passcode', autoFocus }: PasscodeFieldProps) {
   const { colors } = useAppTheme();
-  const [revealed, setRevealed] = useState(false);
+  const [revealed, setRevealed] = useState(true);
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef<NativeInput>(null);
   const digits = value.replace(/\D/g, '').slice(0, 6);
 
@@ -23,57 +45,73 @@ export function PasscodeField({ value, onChangeText, disabled, label = '6-digit 
         <Text variant="titleSmall" style={styles.label}>
           {label}
         </Text>
-        <IconButton
-          icon={revealed ? 'eye-off-outline' : 'eye-outline'}
-          size={22}
-          onPress={() => setRevealed((current) => !current)}
-          disabled={disabled}
-          accessibilityLabel={revealed ? 'Hide passcode' : 'Show passcode'}
-          style={styles.eye}
+        <View style={styles.actions}>
+          {digits.length > 0 ? (
+            <IconButton
+              icon="close-circle"
+              size={22}
+              onPress={() => {
+                onChangeText('');
+                inputRef.current?.focus();
+              }}
+              disabled={disabled}
+              accessibilityLabel={`Clear ${label}`}
+              style={styles.action}
+            />
+          ) : null}
+          <IconButton
+            icon={revealed ? 'eye-off-outline' : 'eye-outline'}
+            size={22}
+            onPress={() => setRevealed((current) => !current)}
+            disabled={disabled}
+            accessibilityLabel={revealed ? 'Hide passcode' : 'Show passcode'}
+            style={styles.action}
+          />
+        </View>
+      </View>
+      <View style={styles.cells}>
+        {Array.from({ length: 6 }, (_, index) => {
+          const filled = Boolean(digits[index]);
+          const active = focused && digits.length === index;
+          return (
+            <View
+              key={index}
+              style={[
+                styles.cell,
+                {
+                  borderColor: active ? colors.primary : colors.outline,
+                  backgroundColor: colors.surface,
+                },
+              ]}
+            >
+              <Text style={[styles.glyph, { color: filled ? colors.onSurface : colors.outline }]}>
+                {filled ? (revealed ? digits[index] : '●') : ''}
+              </Text>
+              {active && !disabled ? <Caret color={colors.primary} /> : null}
+            </View>
+          );
+        })}
+        <NativeInput
+          ref={inputRef}
+          value={digits}
+          onChangeText={(text) => onChangeText(text.replace(/\D/g, '').slice(0, 6))}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          keyboardType="number-pad"
+          inputMode="numeric"
+          maxLength={6}
+          editable={!disabled}
+          autoFocus={autoFocus}
+          caretHidden
+          contextMenuHidden
+          autoComplete="off"
+          autoCorrect={false}
+          importantForAutofill="no"
+          style={styles.overlay}
+          accessibilityLabel={label}
+          accessibilityHint="Six digits"
         />
       </View>
-      <Pressable
-        onPress={() => inputRef.current?.focus()}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        disabled={disabled}
-      >
-        <View style={styles.cells}>
-          {Array.from({ length: 6 }, (_, index) => {
-            const filled = Boolean(digits[index]);
-            const active = digits.length === index;
-            return (
-              <View
-                key={index}
-                style={[
-                  styles.cell,
-                  {
-                    borderColor: active ? colors.primary : colors.outline,
-                    backgroundColor: colors.surface,
-                  },
-                ]}
-              >
-                <Text style={[styles.glyph, { color: filled ? colors.onSurface : colors.outline }]}>
-                  {filled ? (revealed ? digits[index] : '●') : ''}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-      </Pressable>
-      <NativeInput
-        ref={inputRef}
-        value={digits}
-        onChangeText={(text) => onChangeText(text.replace(/\D/g, '').slice(0, 6))}
-        keyboardType="number-pad"
-        maxLength={6}
-        editable={!disabled}
-        caretHidden
-        autoComplete="off"
-        importantForAutofill="no"
-        style={styles.hidden}
-        accessibilityLabel={label}
-      />
     </View>
   );
 }
@@ -90,7 +128,11 @@ const styles = StyleSheet.create({
   label: {
     fontWeight: '700',
   },
-  eye: {
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  action: {
     margin: 0,
   },
   cells: {
@@ -111,10 +153,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 34,
   },
-  hidden: {
+  caret: {
     position: 'absolute',
-    opacity: 0,
-    height: MIN_TOUCH_TARGET,
-    width: '100%',
+    width: 2,
+    height: 30,
+    borderRadius: 1,
+  },
+  // Covers the cells; text and background are transparent so only the cells show.
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    color: 'transparent',
+    backgroundColor: 'transparent',
+    fontSize: 1,
+    padding: 0,
+    // The cells draw their own focus ring; hide the browser's rectangle on web.
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
   },
 });

@@ -112,6 +112,20 @@ export function newPlayerDisplayName(first: string, last: string): string {
   return `${given} ${family}`;
 }
 
+/**
+ * Add new players by initials. Neither initial can start with a digit: scorecard
+ * initials are letters (SK, then SUK on a clash), and a digit is used there only
+ * when every letter form is taken, so a name that starts with one would collide.
+ */
+export function validateInitials(first: string, last: string): string | null {
+  const given = first.trim();
+  const family = last.trim();
+  if (!given || !family) return 'Type a first and a last initial.';
+  if (/^\d/.test(given)) return 'The first initial must be a letter.';
+  if (/^\d/.test(family)) return 'The last initial must be a letter. Scorecard initials are letters only.';
+  return null;
+}
+
 export function chipInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';
@@ -179,6 +193,49 @@ export function seatedOrder(meId: string, selectedIds: string[]): string[] {
   return [meId, ...selectedIds.filter((id) => id !== meId)];
 }
 
+/**
+ * New game list: the creator is offered first but never pre-selected, because
+ * they may only be scoring. Then everyone else not yet picked, one page at a time.
+ */
+/** Everyone not yet seated, in the given order. The organizer is not pushed to the front. */
+export function newGameGrid<T extends { id: string }>(sorted: T[], selectedIds: string[], size = PICKER_PAGE): T[] {
+  const taken = new Set(selectedIds);
+  const seen = new Set<string>();
+  return sorted
+    .filter((player) => {
+      if (taken.has(player.id) || seen.has(player.id)) return false;
+      seen.add(player.id);
+      return true;
+    })
+    .slice(0, size);
+}
+
+/**
+ * The organiser is one more candidate, but the server never counts them in the
+ * "games together" stats, so by Frequent they sorted dead last and fell off the
+ * ten-row page whenever the roster had more than ten people. They are pinned to
+ * the top of the list instead, until they are seated or the search excludes them.
+ */
+export function pinOrganiser<T extends { id: string }>(grid: T[], organiser: T | null | undefined, selectedIds: readonly string[], matchesQuery = true): T[] {
+  if (!organiser) return grid;
+  const rest = grid.filter((candidate) => candidate.id !== organiser.id);
+  if (selectedIds.includes(organiser.id) || !matchesQuery) return rest;
+  return [organiser, ...rest];
+}
+
+export type CandidateSort = 'frequent' | 'name';
+
+/** Frequent keeps sortCandidates' order (recent partners, then most games); Alphabetical is by name. */
+export function orderCandidates<T extends { name: string }>(sorted: T[], sort: CandidateSort): T[] {
+  if (sort === 'name') return [...sorted].sort((a, b) => a.name.localeCompare(b.name));
+  return sorted;
+}
+
+/** Only the people tapped are seated, in the order they were tapped. */
+export function newGameSeats(selectedIds: string[]): string[] {
+  return selectedIds.filter((id, index) => selectedIds.indexOf(id) === index);
+}
+
 // ---------- add-new-players stepper ----------
 
 export const MAX_NEW_PLAYERS_AT_ONCE = 5;
@@ -216,7 +273,7 @@ export function backfillPlayerNumbers<T extends { id: string; createdAt?: string
 
 // ---------- claims ----------
 
-export const CLAIM_KINDS = ['link', 'id_request'] as const;
+export const CLAIM_KINDS = ['link', 'id_request', 'link_request'] as const;
 export type ClaimKind = (typeof CLAIM_KINDS)[number];
 export const LINK_STATUSES = ['pending', 'claimed', 'declined', 'expired', 'revoked', 'unlinked'] as const;
 export type LinkStatus = (typeof LINK_STATUSES)[number];
@@ -225,6 +282,7 @@ export type LinkStatus = (typeof LINK_STATUSES)[number];
  * One way to claim one unregistered player.
  * - 'link': the creator shared a secret single-use link. Only the hash is stored.
  * - 'id_request': someone typed the player ID at sign-up. The creator must approve.
+ * - 'link_request': the creator typed an account's Player ID (025). The account owner must say Yes.
  * Two creators holding records for the same person: each is claimed through its own link or
  * request into the same account, so the person ends up as one player.
  */
@@ -244,12 +302,19 @@ export type PendingLink = {
   /** For 'id_request': the account asking. */
   requesterId?: string;
   requesterName?: string;
+  /** For 'link_request': the account asked to say Yes. */
+  targetId?: string;
+  targetNo?: number;
+  targetName?: string;
   claimedBy?: string | null;
   gameNumbers?: number[];
+  /** 028 labels ("S3") of the same games, when the server has them. */
+  gameLabels?: string[];
   movedGameIds?: string[];
 };
 
-export type CreatorNotice = { ownerId: string; playerId: string; text: string };
+/** 'linked' is the one-time "Harish (HG) is now linked to #40." pop-up; everything else is a plain card. */
+export type CreatorNotice = { ownerId: string; playerId: string; text: string; kind?: 'notice' | 'linked' };
 
 export const TOKEN_BYTES = 32; // 256 bits, well over the 128-bit minimum.
 
@@ -292,9 +357,11 @@ export function findClaimLink(links: PendingLink[], tokenHash: string, now: Date
   return link;
 }
 
-export function claimPrompt(link: Pick<PendingLink, 'gameNumbers' | 'ownerName'>): string {
-  const games = (link.gameNumbers ?? []).slice(0, 3).map((n) => `G${n}`);
-  return `Is this you? You played in ${games.length ? games.join(', ') : 'a game'} with ${link.ownerName || 'a friend'}`;
+export function claimPrompt(link: Pick<PendingLink, 'gameNumbers' | 'gameLabels' | 'ownerName'>): string {
+  const games = (link.gameLabels ?? []).slice(0, 3);
+  const count = link.gameLabels?.length ?? link.gameNumbers?.length ?? 0;
+  const where = games.length ? games.join(', ') : count > 1 ? `${count} games` : 'a game';
+  return `Is this you? You played in ${where} with ${link.ownerName || 'a friend'}`;
 }
 
 export function claimRequestPrompt(link: Pick<PendingLink, 'playerNo' | 'playerName'>): string {
@@ -341,6 +408,7 @@ export function acceptClaim<G extends { id: string; players: string[]; scores: R
   const link = links.find((l) => l.id === linkId);
   if (!link || link.status !== 'pending' || isExpired(link, now)) throw new Error('This claim is no longer valid.');
   if (link.kind === 'id_request' && link.requesterId !== accountId) throw new Error('This request belongs to another account.');
+  if (link.kind === 'link_request' && link.targetId !== accountId) throw new Error('This request is for another account.');
   // Games where the account already has its own seat stay with the creator.
   const moved = games.filter((g) => g.players.includes(link.playerId) && !g.players.includes(accountId)).map((g) => g.id);
   const movedSet = new Set(moved);
@@ -360,7 +428,7 @@ export function acceptClaim<G extends { id: string; players: string[]; scores: R
 export function closeClaim(link: PendingLink, reason: 'decline' | 'expire'): { link: PendingLink; playerStatus: PlayerStatus; notice: CreatorNotice } {
   if (link.status !== 'pending') throw new Error('This request is already closed.');
   const text = reason === 'expire'
-    ? `${link.playerName}: the ${link.kind === 'link' ? 'claim link' : 'claim request'} expired. ${link.playerName} is unregistered again.`
+    ? `${link.playerName}: the ${link.kind === 'link' ? 'claim link' : link.kind === 'link_request' ? 'link request' : 'claim request'} expired. ${link.playerName} is unregistered again.`
     : link.kind === 'link'
       ? `${link.playerName}: the person who opened your link said "Not me". ${link.playerName} is still unregistered.`
       : `You declined the claim for ${link.playerName}. ${link.playerName} is still unregistered.`;

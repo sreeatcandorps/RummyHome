@@ -32,7 +32,8 @@ test('the public scorecard reads placeholders and never a real key', () => {
   }
   const script = read('scripts/inject-scorecard-config.mjs');
   assert.match(script, /__SUPABASE_ANON_KEY__/);
-  assert.match(script, /dist\/scorecard\.html/);
+  assert.match(script, /PAGES = \['scorecard\.html', 'r\/index\.html', 'unsubscribe\.html', 'link\.html'\]/);
+  assert.match(script, /join\(root, 'dist', page\)/);
   assert.doesNotMatch(script, /console\.log\(.*(key|anon)/i);
 });
 
