@@ -41,18 +41,39 @@ const ordinal = (n: number) => {
 type OutboxRow = {
   id: number;
   event_key: string;
-  kind: 'game_started' | 'result_saved';
+  kind: 'game_started' | 'result_saved' | 'link_request';
   to_email: string;
   payload: Record<string, unknown>;
   attempts: number;
 };
 
-/** Subject and body for one queued row. Every email ends with its own unsubscribe link. */
+const button = (href: unknown, label: string, alt = false) =>
+  `<a href="${escapeHtml(href)}" style="display:inline-block;background:${alt ? '#E7E0D4' : '#17402F'};color:${alt ? '#1B1F1C' : '#FBF1E1'};padding:10px 16px;border-radius:8px;text-decoration:none;margin-right:8px">${label}</a>`;
+
+/**
+ * Subject and body for one queued row. Game and result emails end with their own unsubscribe
+ * link; the link request is a question to the account owner (025), so it carries Yes / No instead.
+ */
 function render(row: OutboxRow): { subject: string; html: string; text: string } {
   const p = row.payload;
   const unsubscribe = `${SITE}/unsubscribe.html?t=${encodeURIComponent(String(p.unsubscribeToken ?? ''))}&k=${row.kind}`;
   const footer = `<p style="color:#666;font-size:12px;margin-top:24px">You get this because you are a registered EZ Score player in this game. <a href="${unsubscribe}">Unsubscribe from these emails</a> · <a href="${SITE}/privacy">Privacy</a></p>`;
   const name = escapeHtml(p.playerName ?? 'there');
+
+  if (row.kind === 'link_request') {
+    const who = `${p.playerName ?? 'a player'}${p.playerInitials ? ` (${p.playerInitials})` : ''}`;
+    const games = Array.isArray(p.gameNumbers) && p.gameNumbers.length ? ` (${(p.gameNumbers as number[]).map((n) => `G${n}`).join(', ')})` : '';
+    const count = Number(p.gameCount) || 0;
+    const subject = `Link "${p.playerName ?? 'a player'}" to your Player ID #${p.playerNo ?? ''}?`;
+    const html = `<p>Hi ${escapeHtml(p.targetName ?? 'there')},</p>
+<p>${escapeHtml(p.requesterName ?? 'A player')} asked to link their player <strong>${escapeHtml(who)}</strong> to your EZ Score account (Player ID <strong>#${escapeHtml(p.playerNo)}</strong>).</p>
+<p>If that is you, say Yes: ${escapeHtml(who)}'s seats and scores in ${count} ${count === 1 ? 'game' : 'games'}${escapeHtml(games)} move to your account. Nothing moves until you answer.</p>
+<p>${button(p.yesUrl, 'Yes, that is me')}${button(p.noUrl, 'No', true)}</p>
+<p style="font-size:13px;color:#444">You can also answer on the Home screen of the app. This request expires on ${escapeHtml(when(p.expiresAt))}.</p>
+<p style="color:#666;font-size:12px;margin-top:24px">You get this because an EZ Score organiser typed your Player ID. If you did not expect it, tap No or ignore it. <a href="${SITE}/privacy">Privacy</a></p>`;
+    const text = `Hi ${p.targetName ?? 'there'},\n\n${p.requesterName ?? 'A player'} asked to link their player ${who} to your EZ Score account (#${p.playerNo ?? ''}). If that is you, their seats and scores in ${count} ${count === 1 ? 'game' : 'games'}${games} move to your account.\n\nYes: ${p.yesUrl}\nNo: ${p.noUrl}\n\nExpires ${when(p.expiresAt)}. You can also answer in the app.`;
+    return { subject, html, text };
+  }
 
   if (row.kind === 'game_started') {
     const g = p.gameNumber != null ? `G${p.gameNumber}` : 'A game';

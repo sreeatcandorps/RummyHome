@@ -1,7 +1,7 @@
 /**
  * Fill the public scorecard before it is published.
  *
- * public/scorecard.html, public/r/index.html and public/unsubscribe.html keep the tokens
+ * public/scorecard.html, public/r/index.html, public/unsubscribe.html and public/link.html keep the tokens
  * __SUPABASE_URL__ and __SUPABASE_ANON_KEY__. This script copies each page to
  * dist/ with those tokens replaced from the environment.
  * It does not print the key and it does not edit the files in git.
@@ -21,7 +21,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 // Every public page that talks to Supabase with the anon key. Each is copied to dist/ with
 // the same relative path (public/r/index.html -> dist/r/index.html).
-const PAGES = ['scorecard.html', 'r/index.html', 'unsubscribe.html'];
+const PAGES = ['scorecard.html', 'r/index.html', 'unsubscribe.html', 'link.html'];
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() ?? '';
 const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? '';
