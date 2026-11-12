@@ -26,6 +26,9 @@ export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: Re
       <Text style={styles.title}>{card.title}</Text>
       <Text style={styles.date}>{card.date}</Text>
       {card.summary ? <Text style={styles.date}>{card.summary}</Text> : null}
+      {card.notes?.map((note) => (
+        <Text key={note} style={styles.note} testID="share-note">{note}</Text>
+      ))}
       <View style={styles.rule} />
       {card.podiumFirst ? card.places.map((place) => (
         <Text key={place.label} style={styles.podium}>
@@ -269,6 +272,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  note: {
+    color: brand.felt,
+    backgroundColor: brand.gold,
+    fontSize: 12,
+    fontWeight: '700',
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    marginTop: 6,
+    alignSelf: 'flex-start',
   },
   gridTotal: {
     width: GRID_TOTAL_W,

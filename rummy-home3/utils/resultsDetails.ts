@@ -60,6 +60,10 @@ export type ResultsDetails = {
   negative: { name: string; sub?: string; points: string }[];
   places: { label: string; names: string; points: string }[];
   roundTables: ResultsRoundTable[];
+  /** "Saved" once the result is saved; "Created" for a preview. Goes before createdAtLabel. */
+  dateWord: 'Saved' | 'Created';
+  /** The screen's banner and warning lines, word for word (see ShareCard.notes). */
+  notes?: string[];
   /** "Result ID · ABC123" — the same stable id as on the image. */
   footer?: string;
 };
@@ -113,6 +117,9 @@ export function buildResultsDetails(input: {
   standings: ResultStanding[];
   players: { id: string; name: string; playerNo?: number | null; label?: string | null }[];
   games: ResultsDetailGame[];
+  /** Set for a saved result; a preview says Created. */
+  saved?: boolean;
+  notes?: string[];
   footer?: string;
 }): ResultsDetails {
   const players = playersByFirstName(input.players);
@@ -154,6 +161,8 @@ export function buildResultsDetails(input: {
       points: formatPoints(group[0].points),
     })),
     roundTables: input.games.map((game, index) => buildRoundTable(game, index, input.players, labels)),
+    dateWord: input.saved ? 'Saved' : 'Created',
+    ...(input.notes?.length ? { notes: input.notes } : {}),
     ...(input.footer ? { footer: input.footer } : {}),
   };
 }
@@ -245,13 +254,15 @@ export function resultsDetailsHtml(details: ResultsDetails): string {
   .legend { font-size: 11px; color: #7A6E5B; margin-top: 4px; }
   .legend b { color: #17402F; }
   .footer { margin-top: 16px; font-size: 11px; color: #7A6E5B; font-weight: 700; }
+  .note { background: #F3EBDD; color: #5C4A1E; border-radius: 6px; padding: 6px 8px; font-size: 12px; margin: 4px 0; }
 </style>
 </head>
 <body>
   <p class="brand">EZ Score: Rummy</p>
   <h1>${escapeHtml(details.title)}</h1>
-  <p class="meta">Created ${escapeHtml(details.createdAtLabel)}</p>
+  <p class="meta">${details.dateWord} ${escapeHtml(details.createdAtLabel)}</p>
   <p class="meta">${details.gameCount} ${gameWord} · ${details.playerCount} ${playerWord}</p>
+  ${(details.notes ?? []).map((note) => `<p class="note">${escapeHtml(note)}</p>`).join('')}
   <ul>${games}</ul>
   <h2>Totals</h2>
   <div class="totals-row">${totalsTable('Positive', details.positive)}${totalsTable('Negative', details.negative)}</div>
@@ -290,8 +301,9 @@ export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
   const lines: string[] = [
     'EZ Score: Rummy',
     details.title,
-    `Created ${details.createdAtLabel}`,
+    `${details.dateWord} ${details.createdAtLabel}`,
     `${details.gameCount} games  ${details.playerCount} players`,
+    ...(details.notes ?? []),
     ...details.games.map((game) => `${game.name}  ${game.when}`),
     '',
     'Positive totals',

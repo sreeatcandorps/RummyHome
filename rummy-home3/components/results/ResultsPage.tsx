@@ -15,8 +15,11 @@ export function ResultsPage({
   sheet,
   reusedNote,
   removedCount = 0,
+  saved = false,
 }: {
   createdAt: string;
+  /** A saved result shows "Saved <date>"; a preview shows the date alone (the screen's banner says it is not saved). */
+  saved?: boolean;
   standings: ResultStanding[];
   sheet: ResultSheet;
   /** Set when the result counts a game from an earlier result; shows a small flag beside the title. */
@@ -49,7 +52,7 @@ export function ResultsPage({
             </View>
           ) : null}
         </View>
-        <Text variant="titleMedium">{formatGameDateTime(createdAt)}</Text>
+        <Text variant="titleMedium" testID="result-date">{saved ? `Saved ${formatGameDateTime(createdAt)}` : formatGameDateTime(createdAt)}</Text>
         {reusedNote ? <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{reusedNote}</Text> : null}
         {removedNote ? <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="result-removed-note">{removedNote}</Text> : null}
       </View>

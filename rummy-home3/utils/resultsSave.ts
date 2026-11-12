@@ -74,6 +74,14 @@ export function applyFilterSwitch(checked: string[], hidden: { id: string }[]): 
 /** One line per game that needs a flag on the results page, Active first then Closed. */
 export type ResultLine = { kind: 'active' | 'closed'; gameId: string; text: string };
 
+/** Shown on screen and in every share of a result that is not saved yet. */
+export const RESULT_UNSAVED_BANNER = 'Not saved yet. This result may change.';
+
+/** Everything the screen says above the totals, in order, for the picture and the PDF. */
+export function resultShareNotes(warnings: { text: string }[], saved: boolean): string[] {
+  return [...(saved ? [] : [RESULT_UNSAVED_BANNER]), ...warnings.map((warning) => warning.text)];
+}
+
 export function resultWarningLines(games: PickableGame[]): ResultLine[] {
   const active: ResultLine[] = games
     .filter((game) => !game.isComplete)

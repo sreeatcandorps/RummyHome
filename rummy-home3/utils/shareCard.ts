@@ -36,6 +36,12 @@ export type ShareCard = {
   breakdown?: ShareBreakdown | null;
   /** Shown under the breakdown when the rounds are only in the PDF. */
   breakdownNote?: string;
+  /**
+   * What the screen says above the totals, word for word: the "Not saved yet" banner on an
+   * unsaved result and every warning line (still active, counted before). The picture never
+   * shows a cleaner result than the screen did.
+   */
+  notes?: string[];
   /** Last line: "Result ID · ABC123" on saved results, "Preview · not saved" before. */
   footer?: string;
 };
@@ -87,6 +93,7 @@ export function buildResultsShareCard(input: {
   games?: SheetLikeGame[];
   /** Seats with Player IDs, for the second line under each name, and their stored column initials (022). */
   players?: { id: string; name: string; playerNo?: number | null; label?: string | null }[];
+  notes?: string[];
   footer?: string;
 }): ShareCard {
   const sorted = [...input.rows].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
@@ -122,6 +129,7 @@ export function buildResultsShareCard(input: {
     places: [],
     breakdown,
     breakdownNote: gameCount != null && shareBreakdownOmitted(gameCount) ? SHARE_BREAKDOWN_OMITTED : undefined,
+    notes: input.notes?.length ? input.notes : undefined,
     footer: input.footer,
   };
 }

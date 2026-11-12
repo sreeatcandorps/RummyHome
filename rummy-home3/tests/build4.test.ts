@@ -43,7 +43,7 @@ test('build 4: Results help says to delete the old result before reusing a Close
   assert.match(HELP.results, /delete the old result that closed it/);
   // Nov 10: the help also explains the explicit save and that sharing needs a saved result.
   assert.match(HELP.results, /Save result/);
-  assert.match(HELP.results, /Share is available once the result is saved/);
+  assert.match(HELP.results, /Share works before or after saving/);
 });
 
 test('build 4: names bold the first letter of the first and last name instead of an avatar', () => {

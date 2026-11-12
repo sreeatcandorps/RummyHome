@@ -21,7 +21,7 @@ import { formatGameDateTime } from '@/utils/gameDisplay';
 import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
 import { gameLabelFor, gameResultName, presentResults, resultFooter, ResultSheet, ResultStanding, withinResultsPlayerLimit, gameClock } from '@/utils/results';
-import { resultWarningLines, saveBlockedReason, saveStatusChanges, StatusChange } from '@/utils/resultsSave';
+import { RESULT_UNSAVED_BANNER, resultShareNotes, resultWarningLines, saveBlockedReason, saveStatusChanges, StatusChange } from '@/utils/resultsSave';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
@@ -43,9 +43,10 @@ function seated(players: Player[], into: Seats) {
 }
 
 /**
- * Results for the picked games. Nothing is saved by looking. Save result closes
- * the games (the P1 fix: a result that is not saved never closed anything) and
- * says which game changed status; Share opens once the result is saved.
+ * Results for the picked games. Nothing is saved by looking. The one Save button closes
+ * the games (the P1 fix: a result that is not saved never closed anything) and says which
+ * game changed status. Share works before saving too; the picture and PDF then carry the
+ * same "Not saved yet" banner and warnings the screen shows.
  */
 export default function ShownResults() {
   const { colors } = useAppTheme();
@@ -112,6 +113,7 @@ export default function ShownResults() {
   }, [load]));
 
   const warnings = useMemo(() => resultWarningLines(games), [games]);
+  const notes = useMemo(() => resultShareNotes(warnings, false), [warnings]);
   const blockedReason = useMemo(() => (loading ? 'Loading…' : saveBlockedReason(games, userId)), [games, userId, loading]);
 
   const save = async () => {
@@ -148,9 +150,10 @@ export default function ShownResults() {
       gameCount: games.length,
       games: sheet.games,
       players: sheet.players,
+      notes,
       footer: resultFooter({ preview: true }),
     });
-  }, [standings, createdAt, games.length, sheet]);
+  }, [standings, createdAt, games.length, sheet, notes]);
 
   const details = useMemo(() => {
     if (standings.length === 0) return null;
@@ -166,28 +169,27 @@ export default function ShownResults() {
         scores: game.scores,
         rounds: game.rounds,
       })),
+      saved: false,
+      notes,
       footer: resultFooter({ preview: true }),
     });
-  }, [standings, sheet, createdAt]);
+  }, [standings, sheet, createdAt, notes]);
 
   const ready = !loading && !error && !blocked;
 
   return (
     <Screen>
-      <ResultsShare
-        card={card}
-        details={details}
-        createdAt={createdAt}
-        onSave={save}
-        saveDisabled={Boolean(blockedReason)}
-        saving={saving}
-        shareEnabled={false}
-      />
+      <ResultsShare card={card} details={details} createdAt={createdAt} />
+      {ready ? (
+        <View style={[styles.banner, { backgroundColor: colors.tertiaryContainer }]} accessibilityRole="alert" testID="results-unsaved-banner">
+          <Text variant="bodyMedium" style={{ color: colors.onTertiaryContainer, fontWeight: '700' }}>{RESULT_UNSAVED_BANNER}</Text>
+        </View>
+      ) : null}
       <ResultWarnings warnings={warnings} />
       {ready ? (
         <View style={[styles.saveBox, { backgroundColor: colors.surfaceVariant }]} testID="results-save-box">
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-            {blockedReason ?? 'Not saved yet. Saving moves these games to Closed and lets you share the result.'}
+            {blockedReason ?? 'Saving moves these games to Closed and fixes this result.'}
           </Text>
           <Button
             mode="contained"
@@ -234,6 +236,7 @@ export default function ShownResults() {
 }
 
 const styles = StyleSheet.create({
+  banner: { padding: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.md },
   saveBox: { gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg },
   changes: { gap: spacing.xs },
   dialog: { borderRadius: radius.xl, maxWidth: 520, width: '94%', alignSelf: 'center' },

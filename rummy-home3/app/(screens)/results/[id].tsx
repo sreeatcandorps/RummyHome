@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { HELP } from '@/constants/help';
 import { radius, spacing } from '@/constants/theme';
-import { DELETE_RESULT_BODY, DELETE_RESULT_TITLE, deletedBody, RESULT_DELETED_TITLE } from '@/utils/archive';
+import { DELETE_RESULT_BODY, DELETE_RESULT_TITLE, deletedBody, removedGamesNote, RESULT_DELETED_TITLE } from '@/utils/archive';
 import { ResultsPage } from '@/components/results/ResultsPage';
 import { ResultsShare } from '@/components/results/ResultsShare';
 import { LoadingRows } from '@/components/ui/LoadingRows';
@@ -21,7 +21,7 @@ import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
 import { GameResult, RESULT_EXPENSE_ID, resultFooter, ResultSheet, gameClock } from '@/utils/results';
 import { RESULT_NOT_AVAILABLE } from '@/utils/resultsAccess';
-import { resultReusedNote, reusedGameIds, reusedWarningLines } from '@/utils/resultsSave';
+import { resultReusedNote, resultShareNotes, reusedGameIds, reusedWarningLines } from '@/utils/resultsSave';
 import { ResultWarnings } from '@/components/results/ResultWarnings';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { Player } from '@/types/player';
@@ -159,6 +159,11 @@ export default function DeclaredResult() {
 
   const warnings = useMemo(() => (result ? reusedWarningLines(sheetFor(result).games, reused) : []), [result, reused]);
   const reusedNote = resultReusedNote(reused.length);
+  // The saved screen's warning lines (and the removed-games note) travel with every share.
+  const notes = useMemo(() => {
+    const removed = removedGamesNote(result?.removedGameIds?.length ?? 0);
+    return [...resultShareNotes(warnings, true), ...(removed ? [removed] : [])];
+  }, [warnings, result?.removedGameIds?.length]);
 
   useEffect(() => {
     load();
@@ -168,15 +173,16 @@ export default function DeclaredResult() {
     if (!result) return null;
     return buildResultsShareCard({
       title: 'Results',
-      date: formatGameDateTime(result.declaredAt),
+      date: `Saved ${formatGameDateTime(result.declaredAt)}`,
       rows: result.standings.map((row) => ({ id: row.id, name: row.name, points: row.points, place: row.place })),
       places: sharePlaces(result.standings),
       gameCount: result.gameIds.length || sheetFor(result).games.length,
       games: sheetFor(result).games,
       players: sheetFor(result).players,
+      notes,
       footer: resultFooter({ resultId: result.id }),
     });
-  }, [result]);
+  }, [result, notes]);
 
   const details = useMemo(() => {
     if (!result) return null;
@@ -193,9 +199,11 @@ export default function DeclaredResult() {
         scores: game.scores,
         rounds: game.rounds,
       })),
+      saved: true,
+      notes,
       footer: resultFooter({ resultId: result.id }),
     });
-  }, [result]);
+  }, [result, notes]);
 
   if (result?.deletedAt) {
     return (
@@ -246,7 +254,7 @@ export default function DeclaredResult() {
         <Text variant="bodyLarge">{RESULT_NOT_AVAILABLE}</Text>
       ) : null}
       {result ? (
-        <ResultsPage createdAt={result.declaredAt} standings={result.standings} sheet={sheetFor(result)} reusedNote={reusedNote} removedCount={result.removedGameIds?.length ?? 0} />
+        <ResultsPage createdAt={result.declaredAt} saved standings={result.standings} sheet={sheetFor(result)} reusedNote={reusedNote} removedCount={result.removedGameIds?.length ?? 0} />
       ) : null}
       <Portal>
         <Dialog visible={deleteOpen} onDismiss={() => busy || setDeleteOpen(false)} style={styles.dialog}>

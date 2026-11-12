@@ -13,16 +13,14 @@ type Props = {
   card: ShareCard | null;
   details: ResultsDetails | null;
   createdAt?: string;
-  /** Unsaved results: a Save icon sits beside Share, and Share stays off until the result is saved. */
-  onSave?: () => void;
-  saveDisabled?: boolean;
-  saving?: boolean;
-  /** False while the result is not saved yet (sharing requires saving first). */
-  shareEnabled?: boolean;
 };
 
-/** Header Save (when offered) and Share. The results page body stays the four sections. */
-export function ResultsShare({ card, details, createdAt, onSave, saveDisabled = false, saving = false, shareEnabled = true }: Props) {
+/**
+ * Header Share and Help. Sharing is allowed before the result is saved: the picture and the
+ * PDF then carry the same "Not saved yet" banner and warnings as the screen (card.notes).
+ * The one Save button lives in the screen body.
+ */
+export function ResultsShare({ card, details, createdAt }: Props) {
   const navigation = useNavigation();
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -32,32 +30,22 @@ export function ResultsShare({ card, details, createdAt, onSave, saveDisabled = 
     navigation.setOptions({
       headerRight: () => (
         <View style={styles.tools}>
-          {onSave ? (
-            <IconButton
-              icon="content-save-outline"
-              size={22}
-              accessibilityLabel="Save result"
-              testID="results-save-icon"
-              onPress={onSave}
-              disabled={saveDisabled || saving}
-            />
-          ) : null}
           <IconButton
             icon="share-variant"
             size={22}
-            accessibilityLabel={shareEnabled ? 'Share' : 'Share (save the result first)'}
+            accessibilityLabel="Share"
             testID="results-share-icon"
             onPress={() => {
               setNotice(null);
               setOpen(true);
             }}
-            disabled={!card || !shareEnabled}
+            disabled={!card}
           />
           <HelpButton text={HELP.results} />
         </View>
       ),
     });
-  }, [navigation, card, onSave, saveDisabled, saving, shareEnabled]);
+  }, [navigation, card]);
 
   const sharePdf = async () => {
     if (!details || pdfBusy) return;

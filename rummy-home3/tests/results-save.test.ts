@@ -198,15 +198,15 @@ test('nov 10: the by-game header clock is upper-case AM/PM and the player cell c
   assert.match(grid, /playerIdBadge\(player\)/);
 });
 
-test('nov 10: the results view saves explicitly; share is off until saved; the picker never saves', () => {
+test('nov 10: the results view saves explicitly; the picker never saves (share before save: nov 11 item 4)', () => {
   const view = readFileSync(path.join(__dirname, '..', 'app', '(screens)', 'results', 'view.tsx'), 'utf8');
   assert.match(view, /resultsService\.declare/);
-  assert.match(view, /shareEnabled=\{false\}/);
+  assert.doesNotMatch(view, /shareEnabled/, 'share is no longer gated on saving');
   assert.match(view, /saveBlockedReason/);
   assert.match(view, /saveStatusChanges/);
   assert.match(view, /router\.replace\(`\/\(screens\)\/results\/\$\{id\}`\)/);
   assert.match(view, /Result saved/);
   const saved = readFileSync(path.join(__dirname, '..', 'app', '(screens)', 'results', '[id].tsx'), 'utf8');
-  assert.doesNotMatch(saved, /shareEnabled=\{false\}/, 'a saved result can be shared');
+  assert.doesNotMatch(saved, /shareEnabled/, 'a saved result can be shared');
   assert.match(saved, /reusedNote/);
 });
