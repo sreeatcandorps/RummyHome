@@ -41,7 +41,7 @@ Times are the measured RPC round-trip on the test VM after one warm-up call, DB 
 |---|-----------|------|----------|--------|------|------|------------|
 | 1 | My players: page 1 (A–Z, Frequent), walk all pages, search by name, broad search (cap 50), whole list (older app), picker candidates | 100 | each < 150–500 ms | 2 pages, worst page 1 ms; search 1 ms | pass | 1–2 ms | — |
 | 2 | same | 1,000 | same | 11 pages, worst 3 ms; search 4 ms; whole list 181 KB in 6 ms | pass | 2–6 ms | — |
-| 3 | same | 10,000 (guard bypassed to seed; the live cap is 2,000) | same | 101 pages, worst 13 ms; search 31 ms; broad search 23 ms; whole list 1.8 MB in 51 ms; picker 12 ms | pass | 4–51 ms | — |
+| 3 | same | 10,000 (guard bypassed to seed; the live cap is 1,000) | same | 101 pages, worst 13 ms; search 31 ms; broad search 23 ms; whole list 1.8 MB in 51 ms; picker 12 ms | pass | 4–51 ms | — |
 | 4 | Game: open scorecard (`get_game_bundle`), web `/r/` payload (`public_scorecard`), add a round | 2p × 50/100/200/500 r | < 500 ms, < 300 ms | 500 r: 1,000 scores, 126 KB bundle in 4 ms; round 501 refused GRD01 | pass | 2–6 ms | `volume/scorecard-2p-50r.png` |
 | 5 | same | 10p × 50/100/200/500 r | same | 500 r: 5,000 scores, 601 KB web payload in 26 ms; round 501 refused GRD01 | pass | 3–26 ms | `volume/scorecard-10p-200r.png` |
 | 6 | same | 20p × 50/100/200/500 r | same | 500 r: 10,000 scores, 1,062 KB bundle in 31 ms; web payload 1,181 KB in 61–141 ms; round 501 refused GRD01 | pass | 4–141 ms | `volume/scorecard-20p-500r.png` |
@@ -54,7 +54,7 @@ Times are the measured RPC round-trip on the test VM after one warm-up call, DB 
 | 13 | Several admins scoring at once: five admins save the same round number in the same instant; then five rounds in turn | 5 admins, 5 seats | 1 saved, 4 PT409 (stale round); then 5 saved, dealer chain intact | 1 saved, 4 PT409 in 29 ms; 5 saved, 9 live rounds in 27 ms | pass | 27–29 ms | — |
 | 14 | Many concurrent games: ten creators in one circle start a game at the same instant (number race); thirty games save a round at once | 10 games; 30 games | S1..S10 distinct; 30 saved < 2 s | S1 S2 … S10 in 331 ms; 30 saved in 79 ms | pass | 79–331 ms | — |
 | 15 | Email burst vs daily cap: 150 outbox rows, flush with 90 sends left; provider down | 150 emails | 90 sent, 60 wait for tomorrow, none dropped; failed row kept with backoff | exactly that; failed row retries in 20 minutes | pass | 2 ms | — |
-| 16 | Every guardrail hit (029): My players 2,000; 100 new players/day; 20 per game; 500 rounds; 10 live games; 50 games/day; 20 pending link requests | the limit | GRD01 with the documented message | GRD01 with the documented message, each | pass | — | — |
+| 16 | Every guardrail hit (029): My players 1,000 (2,000 at the time of the recorded run); 100 new players/day; 20 per game; 500 rounds; 10 live games; 50 games/day; 20 pending link requests | the limit | GRD01 with the documented message | GRD01 with the documented message, each | pass | — | — |
 | 17 | Client: scorecard totals, rotation dividers, score tones, final-scores image, scorecard sheet | 2/10/20 p × 50–500 r | each < 200 ms | worst 1.5 ms | pass | ≤ 1.5 ms | — |
 | 18 | Client: My players A–Z sections, name sort, search merge, 100-row paging | 100 / 1,000 / 10,000 | sections < 150 ms | 10,000: sections 1.8 ms, sort 0.8 ms, paging 33 ms | pass | ≤ 33 ms | — |
 | 19 | Client: 500 rounds of dealer rotation with players joining mid-game | 500 r, 9→10→11 players | first rotation 10 rounds, none shorter than the table | as expected | pass | < 1 ms | — |
@@ -89,6 +89,6 @@ Database after the run: 6,269 games, 281,831 scores, 13,490 My players rows, ~10
   builders (`tests/volume-client.test.ts`), not screenshotted — there is no device in CI. Light
   and dark screenshots of the app screens come with the design PR.
 - 10,000 My players can only be seeded with the 029 guard trigger disabled (the live cap is
-  2,000); the case shows the list, search and paging stay fast well past the cap.
+  1,000, 2,000 when the run in `docs/volume/` was recorded); the case shows the list, search and paging stay fast well past the cap.
 - Email flushing is simulated against `email_sends_left_today()` and the outbox rows; the
   provider itself is not called.

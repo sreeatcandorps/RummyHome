@@ -68,7 +68,8 @@ select is(public.count_my_players(), 2, 'harish has two');
 select is((select count(*) from public.search_my_players('pri')), 1::bigint, 'harish finds priya in his roster');
 select tests.logout();
 
--- ---------- 2,000 rows for the outsider ----------
+-- ---------- 2,000 rows for the outsider (twice the 029 cap of 1,000, raised here on purpose: this file is about paging at scale) ----------
+update public.guardrails set value = 2000 where key = 'my_players_max';
 insert into public.profiles (id, display_name, first_name, last_name, player_status, managed_by, player_code)
 select ('b0000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid,
        chr(65 + (n % 26)) || 'name ' || lpad(n::text, 4, '0'), chr(65 + (n % 26)) || 'name', lpad(n::text, 4, '0'), 'unregistered', :OUTSIDER, 'BLK' || lpad(n::text, 6, '0')

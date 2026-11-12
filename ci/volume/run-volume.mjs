@@ -92,7 +92,7 @@ async function myPlayers(client) {
   for (const [i, size] of sizes.entries()) {
     const k = 11 + i;
     const user = uid(k);
-    const seed = await timed(client, 'select volume.add_my_players($1, $2, $3)', [k, size, size > 2000]);
+    const seed = await timed(client, 'select volume.add_my_players($1, $2, $3)', [k, size, size >= 1000]);
     await analyze(client);
     record({ area: 'My players seed', size: `${size}`, expected: 'rows inserted with initials', actual: `${size} rows seeded`, pass: true, ms: seed.ms });
 

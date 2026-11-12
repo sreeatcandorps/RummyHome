@@ -21,13 +21,16 @@ const sql = src('supabase/migrations/029_guardrails.sql');
 
 test('029: the limits Sree asked for, and the app repeats the exact server wording', () => {
   assert.deepEqual(GUARDRAILS, {
-    myPlayersMax: 2000, playersAddedPerDay: 100, playersPerGame: 20, roundsPerGame: 500,
+    myPlayersMax: 1000, playersAddedPerDay: 100, playersPerGame: 20, roundsPerGame: 500,
     liveGamesPerUser: 10, gamesPerDay: 50, linkRequestsPending: 20, emailPerDay: 90, emailPerFlush: 50,
   });
   for (const [key, message] of Object.entries(GUARDRAIL_MESSAGES)) {
     assert.match(sql, new RegExp(`\\('${key}', \\d+, '${message.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/'/g, "''")}'`), `${key}: the migration inserts the same message`);
   }
-  assert.match(sql, /\('my_players_max', 2000,/);
+  assert.match(sql, /\('my_players_max', 1000,/);
+  assert.match(sql, /update public\.guardrails set value = 1000 where key = 'my_players_max' and value = 2000/, 'a database that ran the 2,000 version is brought to 1,000');
+  assert.equal(GUARDRAIL_MESSAGES.my_players_max, "You've reached your limit of 1,000 players.");
+  assert.equal(GUARDRAIL_MESSAGES.rounds_per_game, 'This game has reached 500 rounds. Create a new game to keep playing.');
   assert.match(sql, /\('players_added_per_day', 100,/);
   assert.match(sql, /\('players_per_game', 20,/);
   assert.match(sql, /\('rounds_per_game', 500,/);
@@ -84,7 +87,7 @@ test('029: the local prototype applies the same caps', () => {
   assert.equal(localGameGuard(burst, 'me', now), GUARDRAIL_MESSAGES.games_per_day);
   assert.equal(localGameGuard(burst.slice(1), 'me', now), null);
 
-  const roster = Array.from({ length: 2000 }, () => ({ ownerId: 'me', createdAt: old }));
+  const roster = Array.from({ length: 1000 }, () => ({ ownerId: 'me', createdAt: old }));
   assert.equal(localMyPlayersGuard(roster, 'me', now), GUARDRAIL_MESSAGES.my_players_max);
   assert.equal(localMyPlayersGuard(roster.map((r, i) => (i === 0 ? { ...r, removedAt: recent } : r)), 'me', now), null, 'a removed row does not count');
   const added = Array.from({ length: 100 }, () => ({ ownerId: 'me', createdAt: recent }));

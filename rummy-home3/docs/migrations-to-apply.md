@@ -303,13 +303,13 @@ Backward compatible with the APK on phones: no function changes its signature or
 What it does:
 
 - `public.guardrails` (key, value, message, description): one row per limit. Signed-in users may read it; nobody but the service role may change it. Tune with `update public.guardrails set value = … where key = …`; the triggers read it on every check.
-- Limits: My players 2,000 per owner; 100 players added per day per owner; 20 players per game; 500 rounds per game; 10 live games per creator; 50 games created per day; 20 pending link requests per owner; and two email numbers for the flush (90 sends per day, 50 per run). "Per day" is a rolling 24 hours.
+- Limits: My players **1,000** per owner (Sree, Nov 12: was 2,000; the message is "You've reached your limit of 1,000 players." and the 500-round message is "This game has reached 500 rounds. Create a new game to keep playing."; a database that ran the earlier 2,000 version is brought to 1,000 by re-running the file); 100 players added per day per owner; 20 players per game; 500 rounds per game; 10 live games per creator; 50 games created per day; 20 pending link requests per owner; and two email numbers for the flush (90 sends per day, 50 per run). "Per day" is a rolling 24 hours.
 - Enforcement is in `BEFORE` triggers on `my_players`, `game_players`, `rounds`, `games`, `player_links` (named `<table>_0_guard`), so the app's inserts, the RPCs and scripts all meet the same check. Each takes an advisory lock on its scope first so two inserts at once count one after the other. A refusal raises SQLSTATE `GRD01` with the message and hint `guardrail:<key>`.
 - `email_outbox.next_attempt_at`: the `send-email` flush now sends only due rows, backs a failed row off (5 min doubling to 24 h; a Resend 429 waits a minute, a daily-quota answer a day), stops at the daily cap and never drops a row. `email_sends_left_today()` and `email_outbox_backlog()` (service role) report the state.
 
 Outside the database (also not done by this change): `supabase functions deploy send-email` again so the flush reads `next_attempt_at` and the caps. Until then the 024 flush keeps working against the new column (it ignores it).
 
-Verified on a scratch Postgres 16 loaded with 001–029 and the CI seed: 743 pgTAP checks (56 new in `supabase/tests/19_guardrails_029.sql`), the rollback replay (rollback 029 → 013, re-apply, second apply; 109 checks) and the 38 race checks (4 new: two admins adding the last seat at once) all pass.
+Verified on a scratch Postgres 16 loaded with 001–029 and the CI seed: 743 pgTAP checks (56 new in `supabase/tests/19_guardrails_029.sql`, 60 after the Nov 12 limit change), the rollback replay (rollback 029 → 013, re-apply, second apply; 109 checks) and the 38 race checks (4 new: two admins adding the last seat at once) all pass.
 
 ## 030 — My players at scale (paged list, server search, count)
 

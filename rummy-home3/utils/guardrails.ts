@@ -6,7 +6,7 @@
  * Tuning the table later changes the server at once; these numbers are only the defaults.
  */
 export const GUARDRAILS = {
-  myPlayersMax: 2000,
+  myPlayersMax: 1000,
   playersAddedPerDay: 100,
   playersPerGame: 20,
   roundsPerGame: 500,
@@ -28,10 +28,10 @@ export type GuardrailKey =
 
 /** Same wording as the rows migration 029 inserts. */
 export const GUARDRAIL_MESSAGES: Record<GuardrailKey, string> = {
-  my_players_max: 'My players is full (2,000). Remove someone first.',
+  my_players_max: "You've reached your limit of 1,000 players.",
   players_added_per_day: 'You added 100 players today. Try again tomorrow.',
   players_per_game: 'A game holds at most 20 players.',
-  rounds_per_game: 'This game has 500 rounds, the most a game can hold. Start a new game.',
+  rounds_per_game: 'This game has reached 500 rounds. Create a new game to keep playing.',
   live_games_per_user: 'You have 10 live games. Finish or close one first.',
   games_per_day: 'You created 50 games today. Try again tomorrow.',
   link_requests_pending: 'You have 20 link requests waiting. Wait for an answer or cancel one first.',

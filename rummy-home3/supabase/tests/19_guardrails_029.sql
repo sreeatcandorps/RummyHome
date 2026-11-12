@@ -1,11 +1,11 @@
 -- 029 Guardrails: every limit lives in public.guardrails and is enforced by BEFORE triggers,
 -- so the app's inserts, the RPCs and a script with a user's token all meet the same refusal
 -- (SQLSTATE GRD01, the message from the table). Limits are lowered here through the table
--- to keep the test small; one check uses the real 2,000.
+-- to keep the test small; one check uses the real 1,000.
 -- Seed: sree (…0001) has 5 active My players; game A (sree's, active) seats harish, priya,
 -- rk, zero (+ viewer spectator, coadmin unseated) and has rounds 1, 2 and an undone 1003.
 begin;
-select plan(56);
+select plan(60);
 
 \set A '''10000000-0000-4000-8000-00000000000a'''
 \set SREE '''00000000-0000-4000-8000-000000000001'''
@@ -21,7 +21,9 @@ select plan(56);
 -- ---------- objects, defaults and grants ----------
 select has_table('public', 'guardrails', 'the guardrails table exists');
 select is((select count(*) from public.guardrails), 9::bigint, 'nine limits are configured');
-select is((select value from public.guardrails where key = 'my_players_max'), 2000, 'My players max 2,000');
+select is((select value from public.guardrails where key = 'my_players_max'), 1000, 'My players max 1,000');
+select is((select message from public.guardrails where key = 'my_players_max'), 'You''ve reached your limit of 1,000 players.', 'My players message');
+select is((select message from public.guardrails where key = 'rounds_per_game'), 'This game has reached 500 rounds. Create a new game to keep playing.', 'rounds message');
 select is((select value from public.guardrails where key = 'players_added_per_day'), 100, '100 players added per day');
 select is((select value from public.guardrails where key = 'players_per_game'), 20, '20 players per game');
 select is((select value from public.guardrails where key = 'rounds_per_game'), 500, '500 rounds per game');
@@ -46,10 +48,10 @@ select ok(not has_function_privilege('authenticated', 'public.email_sends_left_t
 -- A re-run keeps a tuned value and refreshes the texts.
 update public.guardrails set value = 7, message = 'old text' where key = 'rounds_per_game';
 insert into public.guardrails (key, value, message, description) values
-  ('rounds_per_game', 500, 'This game has 500 rounds, the most a game can hold. Start a new game.', 'x')
+  ('rounds_per_game', 500, 'This game has reached 500 rounds. Create a new game to keep playing.', 'x')
 on conflict (key) do update set message = excluded.message, description = excluded.description;
 select is((select value from public.guardrails where key = 'rounds_per_game'), 7, 're-applying the migration keeps a tuned value');
-select is((select message from public.guardrails where key = 'rounds_per_game'), 'This game has 500 rounds, the most a game can hold. Start a new game.', 'and refreshes the message');
+select is((select message from public.guardrails where key = 'rounds_per_game'), 'This game has reached 500 rounds. Create a new game to keep playing.', 'and refreshes the message');
 update public.guardrails set value = 500 where key = 'rounds_per_game';
 
 -- ---------- players per game ----------
@@ -72,7 +74,7 @@ update public.guardrails set value = 2 where key = 'rounds_per_game';
 select tests.login(:SREE);
 select throws_ok($$ select public.save_round('10000000-0000-4000-8000-00000000000a', 3,
        '[{"playerId":"00000000-0000-4000-8000-000000000002","scoreType":"count","value":-10}]'::jsonb, false) $$,
-  'GRD01', 'This game has 500 rounds, the most a game can hold. Start a new game.', 'round 3 at limit 2 is refused (the undone 1003 does not count)');
+  'GRD01', 'This game has reached 500 rounds. Create a new game to keep playing.', 'round 3 at limit 2 is refused (the undone 1003 does not count)');
 select lives_ok($$ select public.save_round('10000000-0000-4000-8000-00000000000a', 2,
        '[{"playerId":"00000000-0000-4000-8000-000000000002","scoreType":"rummy","value":40},
          {"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"count","value":-30}]'::jsonb, true) $$,
@@ -110,13 +112,13 @@ select is((select count(*) from public.games where share_code like 'GRD%' and ga
 update public.guardrails set value = 5 where key = 'my_players_max';
 select tests.login(:SREE);
 select throws_ok($$ select public.add_my_player('00000000-0000-4000-8000-0000000000a2') $$,
-                 'GRD01', 'My players is full (2,000). Remove someone first.', 'sree has 5 active My players: a sixth is refused at limit 5, through the RPC');
+                 'GRD01', 'You''ve reached your limit of 1,000 players.', 'sree has 5 active My players: a sixth is refused at limit 5, through the RPC');
 select lives_ok($$ select public.remove_my_player('00000000-0000-4000-8000-0000000000a3') $$, 'remove cd (not in a live game)');
 select lives_ok($$ select public.add_my_player('00000000-0000-4000-8000-0000000000a2') $$, 'with a slot free, ab is added');
 select throws_ok($$ select public.restore_my_player('00000000-0000-4000-8000-0000000000a3') $$,
-                 'GRD01', 'My players is full (2,000). Remove someone first.', 'Undo (restore) is a sixth active row too: refused');
+                 'GRD01', 'You''ve reached your limit of 1,000 players.', 'Undo (restore) is a sixth active row too: refused');
 select tests.logout();
-update public.guardrails set value = 2000 where key = 'my_players_max';
+update public.guardrails set value = 1000 where key = 'my_players_max';
 
 update public.guardrails set value = 1 where key = 'players_added_per_day';
 select throws_ok($$ insert into public.my_players (owner_id, player_id) values ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000005') $$,
@@ -128,18 +130,27 @@ select lives_ok($$ insert into public.my_players (owner_id, player_id) values ('
                 'priya added nobody today: allowed');
 update public.guardrails set value = 100 where key = 'players_added_per_day';
 
--- The real 2,000, as the server would count it: 1,995 old rows for the outsider, then the 2,000th fits and the 2,001st does not.
+-- The real 1,000, as the server would count it: 999 old rows for the outsider, then the 1,000th fits and the 1,001st does not.
 insert into public.profiles (id, display_name, first_name, last_name, player_status, managed_by, player_code)
 select ('a0000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, 'Bulk ' || n, 'Bulk', n::text, 'unregistered', :OUTSIDER, 'BULK' || lpad(n::text, 6, '0')
-  from generate_series(1, 2000) n;
+  from generate_series(1, 1000) n;
 insert into public.my_players (owner_id, player_id, created_at, initials)
 select :OUTSIDER, ('a0000000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid, now() - interval '2 days', chr(65 + n / 100) || lpad((n % 100)::text, 2, '0')
-  from generate_series(1, 1999) n;
-select lives_ok($$ insert into public.my_players (owner_id, player_id) values ('00000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000002000') $$,
-                'the 2,000th My player is allowed');
+  from generate_series(1, 999) n;
+select lives_ok($$ insert into public.my_players (owner_id, player_id) values ('00000000-0000-4000-8000-000000000005', 'a0000000-0000-4000-8000-000000001000') $$,
+                'the 1,000th My player is allowed');
 select throws_ok($$ insert into public.my_players (owner_id, player_id) values ('00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000001') $$,
-                 'GRD01', 'My players is full (2,000). Remove someone first.', 'the 2,001st is refused');
-select is((select count(*) from public.my_players where owner_id = :OUTSIDER and removed_at is null), 2000::bigint, 'exactly 2,000 active rows');
+                 'GRD01', 'You''ve reached your limit of 1,000 players.', 'the 1,001st is refused');
+select is((select count(*) from public.my_players where owner_id = :OUTSIDER and removed_at is null), 1000::bigint, 'exactly 1,000 active rows');
+
+-- a database that ran the 2,000 version of 029 is brought to 1,000 by a re-run; a tuned value is kept
+update public.guardrails set value = 2000 where key = 'my_players_max';
+update public.guardrails set value = 1000 where key = 'my_players_max' and value = 2000;
+select is((select value from public.guardrails where key = 'my_players_max'), 1000, 'the old 2,000 default becomes 1,000');
+update public.guardrails set value = 1500 where key = 'my_players_max';
+update public.guardrails set value = 1000 where key = 'my_players_max' and value = 2000;
+select is((select value from public.guardrails where key = 'my_players_max'), 1500, 'a tuned value (1,500) is left alone');
+update public.guardrails set value = 1000 where key = 'my_players_max';
 
 -- ---------- pending link requests per owner ----------
 update public.guardrails set value = 1 where key = 'link_requests_pending';

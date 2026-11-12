@@ -9,10 +9,10 @@
 -- at once count one after the other and the cap holds exactly.
 --
 -- Limits (key → value, message):
---   my_players_max           2000  My players is full (2,000). Remove someone first.
+--   my_players_max           1000  You've reached your limit of 1,000 players.
 --   players_added_per_day     100  You added 100 players today. Try again tomorrow.
 --   players_per_game           20  A game holds at most 20 players.
---   rounds_per_game           500  This game has 500 rounds, the most a game can hold. Start a new game.
+--   rounds_per_game           500  This game has reached 500 rounds. Create a new game to keep playing.
 --   live_games_per_user        10  You have 10 live games. Finish or close one first.
 --   games_per_day              50  You created 50 games today. Try again tomorrow.
 --   link_requests_pending      20  You have 20 link requests waiting. Wait for an answer or cancel one first.
@@ -45,13 +45,13 @@ comment on table public.guardrails is
   'One row per limit. value is the cap; message is what the app shows when the cap is hit. Tune with update … set value = …; the triggers read it on every check.';
 
 insert into public.guardrails (key, value, message, description) values
-  ('my_players_max', 2000, 'My players is full (2,000). Remove someone first.',
+  ('my_players_max', 1000, 'You''ve reached your limit of 1,000 players.',
    'Active (not removed) rows in my_players per owner.'),
   ('players_added_per_day', 100, 'You added 100 players today. Try again tomorrow.',
    'New my_players rows per owner in the last 24 hours (by Player ID, by name, or by playing together). Restoring a removed player does not count.'),
   ('players_per_game', 20, 'A game holds at most 20 players.',
    'Active seated non-spectator rows in game_players per game.'),
-  ('rounds_per_game', 500, 'This game has 500 rounds, the most a game can hold. Start a new game.',
+  ('rounds_per_game', 500, 'This game has reached 500 rounds. Create a new game to keep playing.',
    'Rounds per game that are not undone.'),
   ('live_games_per_user', 10, 'You have 10 live games. Finish or close one first.',
    'Games per creator that are active, not deleted and not closed.'),
@@ -64,6 +64,10 @@ insert into public.guardrails (key, value, message, description) values
   ('email_per_flush', 50, 'Email is queued.',
    'Outbox rows one send-email flush run delivers.')
 on conflict (key) do update set message = excluded.message, description = excluded.description;
+
+-- Nov 12: Sree lowered My players from 2,000 to 1,000. A database that ran this file before that
+-- change still carries 2000; bring it to the new default (a value tuned to anything else is kept).
+update public.guardrails set value = 1000 where key = 'my_players_max' and value = 2000;
 
 -- ---------- B. readers ----------
 create or replace function public.guardrail(p_key text)

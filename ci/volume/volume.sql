@@ -50,7 +50,7 @@ $$;
 
 -- Add p_n guests to owner p_owner_n's My players (names "Guest 00042 <Surname>", spread over
 -- the alphabet so A-Z sections fill). p_spread_days spreads created_at so the per-day cap
--- is not hit; p_bypass_guard switches the 029 trigger off to go past the 2,000 cap on purpose.
+-- is not hit; p_bypass_guard switches the 029 trigger off to go past the 1,000 cap on purpose.
 create or replace function volume.add_my_players(p_owner_n integer, p_n integer, p_bypass_guard boolean default false)
 returns integer
 language plpgsql as $$
