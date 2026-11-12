@@ -9,6 +9,8 @@ type ScoreCellProps = {
   name: string;
   status: CellStatus;
   value?: number;
+  /** Full count of the game; a saved loss of more than half of it is red text. */
+  fullCount?: number | null;
   /** Bump this to flash the cell once, e.g. right after its score was saved. */
   flashKey: number;
   /** Measured by the grid so two (or three) columns fit exactly. */
@@ -37,7 +39,7 @@ const nameFontSize = (name: string, compact?: boolean) => {
  * Beige while nothing is entered, light yellow while selected (or while a
  * number is being typed), light green once a score is confirmed for the round.
  */
-export function ScoreCell({ name, status, value, flashKey, width, compact, onPress, onClear }: ScoreCellProps) {
+export function ScoreCell({ name, status, value, flashKey, width, compact, fullCount, onPress, onClear }: ScoreCellProps) {
   const { colors } = useAppTheme();
 
   const isConfirmed = status === 'confirmed';
@@ -81,12 +83,12 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, onPre
   const backgroundColor = tone === 'selected' ? colors[CELL_FILL.selected] : animatedBackground;
 
   const ringColor = tone === 'selected' ? colors.secondary : tone === 'confirmed' ? colors.positive : colors.outlineVariant;
-  // A saved loss is red (it used to read dark green like a win); same size as a win, not bold.
-  const saved = isConfirmed ? scoreTextStyle(scoreTone(value ?? 0)) : null;
+  // The scorecard standard: a win green, a penalty over half the Full count red text, the rest plain.
+  const saved = isConfirmed ? scoreTextStyle(scoreTone(value ?? 0, fullCount)) : null;
   const valueColor = isPending
     ? colors.onSecondaryContainer
     : saved
-      ? saved.colorKey === 'outline' ? colors.onPositiveContainer : colors[saved.colorKey]
+      ? saved.colorKey === 'positive' ? colors.onPositiveContainer : colors[saved.colorKey]
       : colors.onSurface;
   const valueWeight = saved?.fontWeight ?? '800';
 

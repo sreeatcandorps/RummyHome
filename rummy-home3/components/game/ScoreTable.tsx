@@ -81,7 +81,6 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
         const score = hasScore ? stored : 0;
         const tone = scoreTone(score, fullCount);
         const positive = tone === 'positive';
-        const bigLoss = tone === 'bigNegative';
         const text = scoreTextStyle(tone);
         return (
           <View
@@ -91,8 +90,8 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
             <View
               style={[
                 styles.scorePill,
-                positive && { backgroundColor: colors.positiveContainer },
-                bigLoss && { backgroundColor: colors.errorContainer },
+                // The standard: only a win gets a highlight; a big penalty is red text alone, never a red background.
+                text.highlight && { backgroundColor: colors.positiveContainer },
               ]}
             >
               <Text
@@ -102,7 +101,6 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
                   styles.scoreText,
                   tabularNums,
                   { fontSize },
-                  // Wins green and bold; every loss red, same size, not bold (a big loss also gets the red pill).
                   positive
                     ? { color: colors.onPositiveContainer, fontWeight: text.fontWeight }
                     : { color: colors[text.colorKey], fontWeight: text.fontWeight },
@@ -272,7 +270,7 @@ export function ScoreTable({
                     height: rowHeight,
                     borderRightColor: colors.outlineVariant,
                     borderBottomColor: colors.hairline,
-                    backgroundColor: offBy !== 0 ? colors.errorContainer : isLatest ? colors.tableLatest : colors.tableHeader,
+                    backgroundColor: isLatest ? colors.tableLatest : colors.tableHeader,
                   },
                 ]}
               >
@@ -280,7 +278,7 @@ export function ScoreTable({
                   {roundIndex + 1}
                 </Text>
                 {offBy !== 0 ? (
-                  <Text style={[styles.roundMeta, { color: colors.onErrorContainer }]} numberOfLines={1}>
+                  <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1} accessibilityLabel={`Round does not add up, off by ${offBy}`}>
                     {offBy > 0 ? `+${offBy}` : offBy}
                   </Text>
                 ) : dealer ? (

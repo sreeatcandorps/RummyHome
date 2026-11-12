@@ -2,14 +2,20 @@
 export type ScoreTone = 'positive' | 'zero' | 'negative' | 'bigNegative';
 
 /**
- * A loss counts as "big" from half the Full count upwards (a full count of 80
- * makes -40 and worse red). Wins stay green; small losses are plain.
+ * The standard for every game (Nov 12): a win is highlighted green; a penalty whose size is
+ * MORE than half the maximum possible score is red text with no background; every other
+ * score, a small loss or a 0, is plain black. No red backgrounds anywhere on the scorecard.
+ */
+
+/**
+ * The smallest loss that counts as big: more than half the Full count (a full count of 80
+ * makes -41 and worse red; -40 is exactly half and stays black).
  */
 export function bigNegativeThreshold(fullCount: number | undefined | null): number | null {
   // Settings store Full count as a loss (-80) in older games and as 80 in newer ones.
   const magnitude = Math.abs(Number(fullCount) || 0);
   if (magnitude === 0) return null;
-  return Math.ceil(magnitude / 2);
+  return Math.floor(magnitude / 2) + 1;
 }
 
 export function scoreTone(score: number, fullCount?: number | null): ScoreTone {
@@ -20,15 +26,14 @@ export function scoreTone(score: number, fullCount?: number | null): ScoreTone {
 }
 
 /**
- * How a round score is typed on the scorecard and in round entry/edit:
- * wins green and bold, every loss red (small or big) at the same size and not
- * bold, a saved 0 muted. `colorKey` names the theme colour so the rule is
- * testable without a theme.
+ * How a round score is typed on the scorecard and in round entry/edit: a win green and bold
+ * (on the green highlight), a big penalty red text, everything else plain black at the same
+ * size. `colorKey` names the theme colour so the rule is testable without a theme.
  */
-export type ScoreTextStyle = { colorKey: 'positive' | 'negative' | 'outline'; fontWeight: '800' | '600' };
+export type ScoreTextStyle = { colorKey: 'positive' | 'negative' | 'onSurface'; fontWeight: '800' | '600'; highlight: boolean };
 
 export function scoreTextStyle(tone: ScoreTone): ScoreTextStyle {
-  if (tone === 'positive') return { colorKey: 'positive', fontWeight: '800' };
-  if (tone === 'zero') return { colorKey: 'outline', fontWeight: '600' };
-  return { colorKey: 'negative', fontWeight: '600' };
+  if (tone === 'positive') return { colorKey: 'positive', fontWeight: '800', highlight: true };
+  if (tone === 'bigNegative') return { colorKey: 'negative', fontWeight: '600', highlight: false };
+  return { colorKey: 'onSurface', fontWeight: '600', highlight: false };
 }

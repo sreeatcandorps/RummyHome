@@ -360,6 +360,7 @@ export default function ScoreEntryScreen() {
                 value={view.value}
                 width={cellWidth}
                 compact={isShort}
+                fullCount={game?.settings.maxCount}
                 flashKey={flashKeys[participant.id] ?? 0}
                 onPress={() => update((state) => tapPlayer(state, participant.id))}
                 onClear={() => update((state) => clearPlayer(state, participant.id))}

@@ -71,14 +71,15 @@ test('My players: three actions side by side, the registered-only note lives in 
   assert.match(add, /const fresh = blank\(\);/, 'a new row appears once every row is saved');
 });
 
-test('round scores: every loss is red, same size, not bold; wins stay green and bold; the Playing badge fits two digits', async () => {
+test('round scores (final batch 5): a win green, a penalty over half the Full count red text, the rest plain black; the Playing badge fits two digits', async () => {
   const { scoreTextStyle, scoreTone } = await import('../utils/scoreTone');
-  assert.deepEqual(scoreTextStyle(scoreTone(40, 80)), { colorKey: 'positive', fontWeight: '800' });
-  assert.deepEqual(scoreTextStyle(scoreTone(-10, 80)), { colorKey: 'negative', fontWeight: '600' }, 'a small loss is red too');
-  assert.deepEqual(scoreTextStyle(scoreTone(-80, 80)), { colorKey: 'negative', fontWeight: '600' }, 'a big loss is the same red, not bolder');
-  assert.deepEqual(scoreTextStyle(scoreTone(0, 80)), { colorKey: 'outline', fontWeight: '600' });
+  assert.deepEqual(scoreTextStyle(scoreTone(40, 80)), { colorKey: 'positive', fontWeight: '800', highlight: true });
+  assert.deepEqual(scoreTextStyle(scoreTone(-10, 80)), { colorKey: 'onSurface', fontWeight: '600', highlight: false }, 'a small loss is plain black');
+  assert.deepEqual(scoreTextStyle(scoreTone(-80, 80)), { colorKey: 'negative', fontWeight: '600', highlight: false }, 'a big loss is red text, no background');
+  assert.deepEqual(scoreTextStyle(scoreTone(0, 80)), { colorKey: 'onSurface', fontWeight: '600', highlight: false }, 'a saved 0 is plain black too');
   const cell = read('components/game/ScoreCell.tsx');
-  assert.match(cell, /scoreTextStyle\(scoreTone\(value \?\? 0\)\)/, 'round entry / edit round colour saved losses red');
+  assert.match(cell, /scoreTextStyle\(scoreTone\(value \?\? 0, fullCount\)\)/, 'round entry / edit round apply the same rule with the game\'s Full count');
+  assert.match(read('app/(screens)/score-entry.tsx'), /fullCount=\{game\?\.settings\.maxCount\}/);
   assert.doesNotMatch(cell, /\(value \?\? 0\) > 0 \? colors\.positive : colors\.onPositiveContainer/, 'the dark-green-for-everything rule is gone');
   const table = read('components/game/ScoreTable.tsx');
   assert.match(table, /color: colors\[text\.colorKey\], fontWeight: text\.fontWeight/);

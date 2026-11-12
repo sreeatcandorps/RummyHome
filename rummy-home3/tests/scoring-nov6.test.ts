@@ -67,15 +67,16 @@ test('Edit round loads a saved 0 as a confirmed cell, and a missing cell as empt
   assert.equal(confirmedValue(round2, 'b'), undefined);
 });
 
-test('big losses turn red from half the Full count; wins stay green', () => {
-  assert.equal(bigNegativeThreshold(80), 40);
-  assert.equal(bigNegativeThreshold(-80), 40, 'older games store Full count as a loss');
+test('big losses turn red when MORE than half the Full count; wins stay green', () => {
+  assert.equal(bigNegativeThreshold(80), 41, '-40 is exactly half and stays plain; -41 is red');
+  assert.equal(bigNegativeThreshold(-80), 41, 'older games store Full count as a loss');
   assert.equal(bigNegativeThreshold(75), 38);
   assert.equal(bigNegativeThreshold(0), null);
   assert.equal(bigNegativeThreshold(undefined), null);
 
   assert.equal(scoreTone(-39, 80), 'negative');
-  assert.equal(scoreTone(-40, 80), 'bigNegative');
+  assert.equal(scoreTone(-40, 80), 'negative', 'exactly half is not more than half');
+  assert.equal(scoreTone(-41, 80), 'bigNegative');
   assert.equal(scoreTone(-80, 80), 'bigNegative');
   assert.equal(scoreTone(-200, 80), 'bigNegative');
   assert.equal(scoreTone(40, 80), 'positive');
