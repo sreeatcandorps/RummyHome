@@ -47,7 +47,7 @@ function RoundBlockView({ block, title, testID }: { block: RoundBlock; title: st
     <View style={[styles.block, { borderColor: colors.primary, backgroundColor: colors.surface }]} testID={testID}>
       {title ? <Text variant="labelMedium" style={[styles.blockTitle, { color: colors.onSurfaceVariant }]}>{title}</Text> : null}
       <View style={[styles.row, styles.headRow, { backgroundColor: colors.tableHeader, borderBottomColor: colors.primaryEdge }]}>
-        <Text variant="labelSmall" style={[styles.roundCell, { color: colors.onSurfaceVariant }]}>Rnd</Text>
+        <Text variant="labelSmall" style={[styles.roundCell, { color: colors.onSurfaceVariant }]}>Rd</Text>
         {block.heads.map((head, index) => (
           <View key={index} style={[styles.cell, styles.headCell, index > 0 && [styles.leftLine, line]]}>
             <Text style={[styles.initials, { color: colors.onSurface }]} numberOfLines={1}>{head.initials}</Text>
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   blockTitle: { paddingHorizontal: 8, paddingTop: 6, fontWeight: '700' },
   row: { flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: StyleSheet.hairlineWidth },
   headRow: { borderBottomWidth: 2 },
-  roundCell: { width: 34, paddingHorizontal: 6, alignSelf: 'center' },
+  roundCell: { width: 40, paddingHorizontal: 6, alignSelf: 'center' },
   cell: { flex: 1, flexBasis: 0, minWidth: 0, paddingVertical: 4, paddingHorizontal: 4, alignItems: 'flex-end', justifyContent: 'center' },
   headCell: { alignItems: 'center', paddingVertical: 6 },
   leftLine: { borderLeftWidth: StyleSheet.hairlineWidth },

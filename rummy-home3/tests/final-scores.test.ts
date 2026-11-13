@@ -92,7 +92,7 @@ test('PR 8 part B: the single-game picture is the standings card; the rounds com
   assert.equal(sheet.card.positive.length, 2, 'two players finished up');
   assert.equal(sheet.card.positive[0].medal, 1, 'gold medal on the top total');
   assert.equal(sheet.card.negative.length, 5);
-  assert.match(sheet.card.date, /2 rounds$/);
+  assert.equal(sheet.card.summary, '7 players · 2 rounds');
   assert.equal(sheet.card.footer, 'Game S3');
   assert.equal(sheet.table.blocks.length, 2, 'seven players wrap into 5 + 2');
   assert.equal(sheet.table.blocks[0].heads.length, 5);

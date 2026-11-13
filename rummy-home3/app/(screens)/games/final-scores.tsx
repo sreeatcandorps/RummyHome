@@ -91,10 +91,9 @@ export default function FinalScoresScreen() {
             {note ? <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="final-scores-note">{note}</Text> : null}
           </ScrollView>
           <BottomBar>
-            <Button mode="outlined" onPress={back} disabled={busy !== null}>Back</Button>
+            <Button mode="text" onPress={back} disabled={busy !== null} compact>Back</Button>
             <Button
               mode="outlined"
-              icon="table"
               onPress={shareRounds}
               loading={busy === 'rounds'}
               disabled={busy !== null}

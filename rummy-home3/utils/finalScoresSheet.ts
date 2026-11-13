@@ -117,7 +117,8 @@ export function buildFinalScoresSheet(input: {
   );
   const card = buildScoresCard({
     title: finalScoresHeading(input.game),
-    date: `${formatWhen(input.game.date)} · ${roundCount === 1 ? '1 round' : `${roundCount} rounds`}`,
+    date: formatWhen(input.game.date),
+    summary: `${players.length} ${players.length === 1 ? 'player' : 'players'} · ${roundCount === 1 ? '1 round' : `${roundCount} rounds`}`,
     standings: summary.map((row, index) => ({ id: row.id, name: row.name, points: row.total, games: 1, place: index + 1 })),
     players: input.players,
     games: [{ scores: totals }],
