@@ -17,34 +17,17 @@ tags: [smoke]
 - assertVisible: "Round 31"
 - assertVisible: "TA"
 - takeScreenshot: 10-scorecard-20p
-- swipe:
-    direction: LEFT
-    duration: 400
-    waitToSettleTimeoutMs: 1000
-- swipe:
-    direction: LEFT
-    duration: 400
-    waitToSettleTimeoutMs: 1000
-- swipe:
-    direction: LEFT
-    duration: 400
-    waitToSettleTimeoutMs: 1000
-- extendedWaitUntil:
-    visible: "TU"
-    timeout: 5000
+# As few commands as possible: each one re-reads the 600-cell hierarchy (~90 s on the runner).
+- scrollUntilVisible:
+    element: "TU"
+    direction: RIGHT
+    speed: 60
+    timeout: 180000
 - takeScreenshot: 10b-scorecard-20p-scrolled-right
 - swipe:
-    direction: RIGHT
-    duration: 400
+    start: 5%, 40%
+    end: 95%, 40%
+    duration: 1500
     waitToSettleTimeoutMs: 1000
-- swipe:
-    direction: RIGHT
-    duration: 400
-    waitToSettleTimeoutMs: 1000
-- swipe:
-    direction: RIGHT
-    duration: 400
-    waitToSettleTimeoutMs: 1000
-- assertVisible: "TA"
 - scroll
 - takeScreenshot: 10c-scorecard-20p-scrolled-down
