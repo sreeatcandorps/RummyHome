@@ -306,6 +306,9 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 ### 2026-11-13 — Delete result visible, Undo, Deleted + Restore (PR 9, no migration)
 - Delete result moved from a ⋮ item to a red **Delete this result** button at the foot of the result page with its consequence line, and a Delete chip on each Past results row the viewer may manage (`can_manage_result` per row). Deleting runs at once with a 10-second Undo toast backed by `restore_result` (D9.2); only a result shared from this phone (picture or PDF, tracked in AsyncStorage since the server records no share) asks first. D9.1 kept: games go back to Completed unless another live result holds them. D9.3: a Deleted section under Past results lists the last 30 days with Restore for the people who could delete them. Behaviour documented first in `docs/results-delete.md`; the 023 functions get their own pgTAP file (30).
 
+### 2026-11-13 — Pool design resumed as a spec (PR 10, nothing built)
+- `docs/pool-design.md`: the Pool mockups (P01–P30) written up against the schema after 039 as a buildable spec — migration 040 outline (pool settings, awards in `prize_shares`, out / re-entry columns, pool-only score sign rule, `reenter_player`, `set_pool_awards`, pool branches of `save_round` / `undo_last_round`, results reading awards, five new Logs kinds), the screens, the app surfaces, 24 test cases and the 12 questions Sree must answer before the build starts.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
