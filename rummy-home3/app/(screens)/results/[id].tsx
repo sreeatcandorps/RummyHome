@@ -9,7 +9,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { HELP } from '@/constants/help';
 import { radius, spacing } from '@/constants/theme';
-import { DELETE_RESULT_BODY, DELETE_RESULT_TITLE, deletedBody, removedGamesNote, RESULT_DELETED_TITLE } from '@/utils/archive';
+import { deletedBody, removedGamesNote, RESULT_DELETED_TITLE } from '@/utils/archive';
+import { DELETE_RESULT_BUTTON, deleteConsequence, deletedToast, gameLabelsOf, RESTORED_TOAST, SHARED_CONFIRM_BODY, SHARED_CONFIRM_TITLE, UNDO_DELETE_MS } from '@/utils/resultsDelete';
+import { sharedResults } from '@/utils/sharedResults';
 import { ChangedAfterSharingLine, ResultHistorySection, RESULT_HISTORY_TITLE } from '@/components/results/ResultHistory';
 import { ResultsPage } from '@/components/results/ResultsPage';
 import { ResultsShare } from '@/components/results/ResultsShare';
@@ -93,6 +95,10 @@ export default function DeclaredResult() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  /** The Undo toast after Delete this result; the page goes back when it closes without Undo. */
+  const [undoToast, setUndoToast] = useState<string | null>(null);
+  const undone = useRef(false);
+  const [wasShared, setWasShared] = useState(false);
   const [gameMeta, setGameMeta] = useState<Record<string, GameMeta>>({});
   const [declarerName, setDeclarerName] = useState<string | null>(null);
   const [history, setHistory] = useState<ResultHistory | null>(null);
@@ -106,19 +112,61 @@ export default function DeclaredResult() {
 
   const actorId = async () => authService.getCurrentPlayer().then((me) => me?.id ?? null).catch(() => null);
 
+  const gameLabels = result ? gameLabelsOf(sheetFor(result).games) : [];
+
+  /**
+   * Delete this result: straight away with a 10-second Undo, or after a question when it was shared
+   * from here (D9.2). The marker is read again here so a share made on this very visit counts.
+   */
+  const startDelete = async () => {
+    setMenuOpen(false);
+    const shared = wasShared || (result ? await sharedResults.was(result.id).catch(() => false) : false);
+    if (shared) {
+      setWasShared(true);
+      setDeleteOpen(true);
+    } else {
+      await confirmDelete();
+    }
+  };
+
   const confirmDelete = async () => {
     if (!result) return;
     setBusy(true);
     try {
       await archiveService.deleteResult(result.id, await actorId());
       setDeleteOpen(false);
-      router.back();
+      undone.current = false;
+      setUndoToast(deletedToast(gameLabels));
     } catch (err) {
       setDeleteOpen(false);
       setError(formatSupabaseError(err));
     } finally {
       setBusy(false);
     }
+  };
+
+  /** Undo on the toast: `restore_result` puts it back and the games are Closed again. */
+  const undoDelete = async () => {
+    if (!result) return;
+    undone.current = true;
+    setUndoToast(null);
+    setBusy(true);
+    try {
+      await archiveService.restoreResult(result.id, await actorId());
+      setNote(RESTORED_TOAST);
+      setLoading(true);
+      await load();
+    } catch (err) {
+      setError(formatSupabaseError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** The toast closed: without Undo the deleted result is left behind (it stays under Deleted for 30 days). */
+  const undoToastClosed = () => {
+    setUndoToast(null);
+    if (!undone.current) router.back();
   };
 
   const restore = async () => {
@@ -180,6 +228,7 @@ export default function DeclaredResult() {
       const loaded = await resultsService.get(id);
       setResult(loaded);
       if (loaded) {
+        sharedResults.was(loaded.id).then(setWasShared).catch(() => {});
         withRounds(loaded).then(fillPlayerNos).then(setResult).catch(() => {});
         flagReuse(loaded).catch(() => {});
         loadGameMeta(loaded).then(setGameMeta).catch(() => {});
@@ -277,7 +326,7 @@ export default function DeclaredResult() {
                 >
                   <Menu.Item leadingIcon="history" title={RESULT_HISTORY_TITLE} onPress={scrollToHistory} testID="result-menu-history" />
                   {result.canManage ? (
-                    <Menu.Item leadingIcon="delete-outline" title="Delete result" titleStyle={{ color: colors.error }} onPress={() => { setMenuOpen(false); setDeleteOpen(true); }} />
+                    <Menu.Item leadingIcon="delete-outline" title="Delete result" titleStyle={{ color: colors.error }} onPress={startDelete} />
                   ) : null}
                 </Menu>
               ) : null}
@@ -285,7 +334,7 @@ export default function DeclaredResult() {
           ),
         }}
       />
-      <ResultsShare card={card} details={details} createdAt={result?.declaredAt} />
+      <ResultsShare card={card} details={details} createdAt={result?.declaredAt} resultId={result?.id} />
       <ChangedAfterSharingLine note={history?.changedNote ?? null} onPress={scrollToHistory} />
       <ResultWarnings warnings={warnings} />
       {error ? (
@@ -312,24 +361,59 @@ export default function DeclaredResult() {
         />
       ) : null}
       {result ? <ResultHistorySection history={history} onLayout={(event) => { historyY.current = event.nativeEvent.layout.y; }} /> : null}
+      {result?.canManage ? (
+        <View style={styles.deleteBlock}>
+          <Button
+            mode="outlined"
+            icon="delete-outline"
+            textColor={colors.error}
+            style={[styles.deleteButton, { borderColor: colors.error }]}
+            contentStyle={styles.deleteContent}
+            labelStyle={styles.deleteLabel}
+            onPress={startDelete}
+            disabled={busy || Boolean(undoToast)}
+            accessibilityLabel={DELETE_RESULT_BUTTON}
+            testID="result-delete"
+          >
+            {DELETE_RESULT_BUTTON}
+          </Button>
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, textAlign: 'center' }} testID="result-delete-consequence">
+            {deleteConsequence(gameLabels)}
+          </Text>
+        </View>
+      ) : null}
       <Portal>
         <Dialog visible={deleteOpen} onDismiss={() => busy || setDeleteOpen(false)} style={styles.dialog}>
-          <Dialog.Title>{DELETE_RESULT_TITLE}</Dialog.Title>
+          <Dialog.Icon icon="share-variant" />
+          <Dialog.Title>{SHARED_CONFIRM_TITLE}</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{DELETE_RESULT_BODY}</Text>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{SHARED_CONFIRM_BODY}</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setDeleteOpen(false)} disabled={busy}>Cancel</Button>
-            <Button mode="contained" buttonColor={colors.error} textColor={colors.onError} onPress={confirmDelete} loading={busy} disabled={busy}>Delete</Button>
+            <Button onPress={() => setDeleteOpen(false)} disabled={busy} accessibilityLabel="Keep the result">Cancel</Button>
+            <Button mode="contained" buttonColor={colors.error} textColor={colors.onError} onPress={confirmDelete} loading={busy} disabled={busy} accessibilityLabel="Delete the shared result">Delete</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
       <Snackbar visible={Boolean(note)} onDismiss={() => setNote(null)} duration={3000}>{note ?? ''}</Snackbar>
+      <Snackbar
+        visible={Boolean(undoToast)}
+        onDismiss={undoToastClosed}
+        duration={UNDO_DELETE_MS}
+        action={{ label: 'Undo', onPress: undoDelete, accessibilityLabel: 'Undo delete result' }}
+        testID="result-delete-undo"
+      >
+        {undoToast ?? ''}
+      </Snackbar>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center' },
+  deleteBlock: { gap: spacing.sm, marginTop: spacing.md },
+  deleteButton: { borderWidth: 2, borderRadius: radius.full },
+  deleteContent: { minHeight: 52 },
+  deleteLabel: { fontSize: 17, fontWeight: '800' },
   dialog: { borderRadius: radius.xl, maxWidth: 480, width: '90%', alignSelf: 'center' },
 });

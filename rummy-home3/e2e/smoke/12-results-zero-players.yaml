@@ -57,3 +57,67 @@ tags: [smoke]
       text: "Games in this result"
     direction: DOWN
     timeout: 15000
+# PR 9: the saved result shows Delete this result at its foot (sree saved it) with the one-line
+# consequence under it. Delete → Undo toast → Undo, then Delete on the Past results row → toast
+# runs out → Deleted + Restore → Restore. G's result is back (G Closed) when this flow ends.
+- scrollUntilVisible:
+    element:
+      id: "result-delete"
+    direction: DOWN
+    timeout: 15000
+- assertVisible: "Delete this result"
+- assertVisible:
+    text: ".*back to Completed and can go into a new result. Everyone loses this result; you can restore it for 30 days."
+- takeScreenshot: 12c-delete-this-result-button
+- tapOn:
+    id: "result-delete"
+- extendedWaitUntil:
+    visible: "Result deleted · .* Completed again"
+    timeout: 15000
+- assertVisible: "Undo.*"
+- takeScreenshot: 12d-deleted-undo-toast
+- tapOn: "Undo.*"
+# The "Result restored" toast lasts 3 s while the page reloads, and the page keeps its scroll
+# position (foot of the page, History in view): the History row is the durable proof.
+- extendedWaitUntil:
+    visible: ".*Result restored · .* back to Closed.*"
+    timeout: 20000
+- takeScreenshot: 12e-restored-by-undo
+- launchApp
+- tapOn: "Results"
+- extendedWaitUntil:
+    visible: "Past results"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "past-result-delete-.*"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: 12f-past-results-delete-chip
+- tapOn:
+    id: "past-result-delete-.*"
+- extendedWaitUntil:
+    visible: "Result deleted · its games are Completed again"
+    timeout: 15000
+- takeScreenshot: 12g-row-deleted-toast
+- extendedWaitUntil:
+    notVisible: "Result deleted · its games are Completed again"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "deleted-result-restore-.*"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Deleted"
+- assertVisible: ".*stay listed for 30 days under \"Deleted\".*"
+- takeScreenshot: 12h-past-results-deleted-restore
+- tapOn:
+    id: "deleted-result-restore-.*"
+- extendedWaitUntil:
+    visible: "Result restored · its games are Closed again"
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible:
+      id: "deleted-result-restore-.*"
+    timeout: 20000
+- takeScreenshot: 12i-past-results-restored

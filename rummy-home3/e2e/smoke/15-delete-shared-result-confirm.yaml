@@ -1,0 +1,58 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# PR 9 (D9.2): a result shared from this phone asks before Delete. Open the newest past result
+# (G's, saved and restored by smoke/12), share the picture (the Android share sheet opens; Back closes
+# it, which still counts as shared), then Delete this result shows "Delete a shared result?" with
+# Cancel / Delete. Cancel keeps the result, so nothing changes for the flows after this one.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "Results"
+- extendedWaitUntil:
+    visible: "Past results"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Open results from .*"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Open results from .*"
+- extendedWaitUntil:
+    visible: "Scores"
+    timeout: 20000
+- tapOn: "Share"
+- extendedWaitUntil:
+    visible: "Share results"
+    timeout: 10000
+- tapOn: "Share results"
+# The system share sheet (or the "Image ready." notice when the sheet cannot open) — give it a moment, then Back.
+- extendedWaitUntil:
+    notVisible: "Share results"
+    timeout: 15000
+    optional: true
+- back
+- runFlow:
+    when:
+      visible: "Close share results"
+    commands:
+      - tapOn: "Close"
+- extendedWaitUntil:
+    visible: "Scores"
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "result-delete"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "result-delete"
+- extendedWaitUntil:
+    visible: "Delete a shared result?"
+    timeout: 10000
+- assertVisible: "This result was shared from this phone.*"
+- assertVisible: "Delete the shared result"
+- takeScreenshot: 15-delete-shared-result-confirm
+- tapOn: "Keep the result"
+- extendedWaitUntil:
+    notVisible: "Delete a shared result?"
+    timeout: 5000
+- assertVisible: "Delete this result"
