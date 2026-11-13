@@ -29,6 +29,11 @@
     tr.rotation td { border-top: 2px solid var(--green); }
     .sum { color: var(--muted); font-size: 13px; margin: 0 4px; }
     .legend { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 4px 4px 0; }
+    .changes { margin: 16px 4px 0; padding: 10px 12px; border: 1px solid rgba(0,0,0,0.12); border-radius: 10px; }
+    .changes h2 { font-size: 14px; margin: 0 0 6px; }
+    .changes p { margin: 4px 0; font-size: 13px; line-height: 1.4; }
+    .changes .t { color: var(--muted); margin-right: 6px; font-variant-numeric: tabular-nums; }
+    .changes .more { color: var(--muted); font-size: 12px; margin-top: 6px; }
     .legend b { color: var(--ink); }
     .msg { padding: 24px; color: var(--muted); }
     @media (min-width: 900px) { main { max-width: 1100px; } .blocks { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; } .block { flex: 1 1 420px; margin-bottom: 0; } }
@@ -47,6 +52,7 @@
     <form method="dialog"><button>Close</button></form>
   </dialog>
   <main id="board"></main>
+  <section id="changes"></section>
   <script>
     // Filled in at deploy. The repo keeps these tokens. Never commit a real key.
     const PROJECT = '__SUPABASE_URL__';
@@ -135,6 +141,32 @@
         + '<p class="sum">' + (roundList.length === 1 ? '1 round' : roundList.length + ' rounds') + ' · Totals add to ' + sum + '</p>' + legend;
     }
 
+    // 036: the last 10 important changes (round added / edited / undone, players, settings…); the full log is in the app.
+    function renderChanges(rows) {
+      const box = document.getElementById('changes');
+      if (!Array.isArray(rows) || rows.length === 0) { box.innerHTML = ''; return; }
+      const lines = rows.map((row) => {
+        const at = new Date(row.at);
+        const time = Number.isNaN(at.getTime()) ? '' : at.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        return '<p><span class="t">' + esc(time) + '</span><b>' + esc(row.actorName || 'System') + '</b> · ' + esc(row.summary) + '</p>';
+      }).join('');
+      box.innerHTML = '<div class="changes"><h2>Changes</h2>' + lines + '<p class="more">Last ' + rows.length + ' important changes · full log in the app</p></div>';
+    }
+
+    async function loadChanges() {
+      try {
+        const response = await fetch(PROJECT.replace(/\/$/, '') + '/rest/v1/rpc/public_scorecard_changes', {
+          method: 'POST',
+          headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_token: token }),
+        });
+        if (!response.ok) return;
+        renderChanges(await response.json());
+      } catch (e) {
+        // Before 036 there is no changes list; the scorecard itself is unaffected.
+      }
+    }
+
     async function load() {
       if (!/^[0-9a-f]{48}$/.test(token)) {
         document.getElementById('meta').textContent = 'This scorecard link is not valid.';
@@ -162,6 +194,7 @@
         return;
       }
       render(card);
+      loadChanges();
     }
 
     load().catch(() => {

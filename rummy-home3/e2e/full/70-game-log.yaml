@@ -1,0 +1,88 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# Logs PR (036): add a round, edit it, undo it, then the Log shows the three rows newest first
+# (undone · edited · added), the edited row expands to a was→now table, and Important hides
+# nothing here (all three are important). Fixture: game E (GAMEE1), 4 players; sree is creator.
+# Runs after smoke/13, which leaves game E at round 1 saved (Round 2 next).
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    id: "game-card-GAMEE1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- assertVisible: "Round 2"
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- tapOn: "Sree Test, no score"
+- tapOn: "Drop -10"
+- tapOn: "Harish Test, no score"
+- tapOn: "Drop -10"
+- tapOn: "Zed Zero, no score"
+- tapOn: "Drop -10"
+- tapOn: "Priya Test, no score"
+- tapOn: "Rummy"
+- assertVisible: "Balance 0"
+- tapOn: "Save round"
+- extendedWaitUntil:
+    visible: "Round 3"
+    timeout: 20000
+# edit round 2: Harish takes Middle drop, Priya's Rummy absorbs the difference
+- tapOn: "Scorecard menu"
+- tapOn: "Edit round"
+- extendedWaitUntil:
+    visible: "Edit which round?"
+    timeout: 5000
+- tapOn: "Edit round 2"
+- extendedWaitUntil:
+    visible: "Save edit"
+    timeout: 15000
+- tapOn: "Harish Test, score -10"
+- tapOn: "Middle drop -30"
+# Priya holds the Rummy: her share follows the others, so the round still balances.
+- assertVisible: "Priya Test, score +50"
+- assertVisible: "Balance 0"
+- tapOn: "Save edit"
+- extendedWaitUntil:
+    visible: "Add round"
+    timeout: 20000
+- tapOn: "Undo round"
+- extendedWaitUntil:
+    visible: "Remove the last round?"
+    timeout: 5000
+- tapOn: "Remove"
+- extendedWaitUntil:
+    visible: "Round 2"
+    timeout: 15000
+# the Log: three rows, newest first
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*Round 2 undone.*"
+- assertVisible:
+    text: ".*Round 2 edited.*"
+- assertVisible:
+    text: ".*Round 2 added.*"
+- takeScreenshot: 70-game-log-three-rows
+- tapOn:
+    text: ".*Round 2 edited.*"
+- assertVisible: "Was"
+- assertVisible: "Now"
+- takeScreenshot: 70b-game-log-edit-expanded
+- tapOn:
+    id: "game-log-filter-important"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*Round 2 undone.*"
+- takeScreenshot: 70c-game-log-important
+- back

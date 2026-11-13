@@ -191,6 +191,30 @@ export type Database = {
         Args: { p_game_id: string };
         Returns: Json;
       };
+      create_game: {
+        Args: { p_game_type: string; p_settings: Json; p_player_ids: string[]; p_labels?: Json; p_share_code?: string | null; p_id?: string | null };
+        Returns: string;
+      };
+      add_seated_player: {
+        Args: { p_game_id: string; p_profile_id: string; p_label?: string | null };
+        Returns: undefined;
+      };
+      list_game_log: {
+        Args: { p_game_id: string; p_level?: string | null; p_before?: number | null; p_limit?: number };
+        Returns: Json;
+      };
+      list_result_history: {
+        Args: { p_result_id: string };
+        Returns: Json;
+      };
+      public_result_note: {
+        Args: { p_id: string };
+        Returns: Json;
+      };
+      public_scorecard_changes: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
       is_demo_admin: {
         Args: Record<string, never>;
         Returns: boolean;

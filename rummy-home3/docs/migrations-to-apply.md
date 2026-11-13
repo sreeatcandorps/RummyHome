@@ -402,6 +402,21 @@ What it does:
 
 Verified on a scratch Postgres 16 loaded with 001–035 and the CI seed: pgTAP (959 checks; 30 new in `supabase/tests/25_undo_035.sql`, the conflict expectation in `05_save_round_014.sql` updated to the named message, two counts in `02_games_visibility.sql` for the new seeded undone row), the rollback replay (139 checks) and the race checks (44, six new in case 10: undo in flight vs save) all pass.
 
+## 036 — Game and result logs (Logs PR)
+
+File: `supabase/migrations/036_event_log.sql`. Run after 035. Safe to re-run. Rollback: `supabase/rollback/rollback_036_event_log.sql` (drops the triggers, the reader RPCs, `create_game`, `add_seated_player`, the `event_log` table and the `event_level` type; re-grants direct insert/delete on `rounds` and `scores`; restores the 035 `save_round` as security invoker).
+
+Backward compatible with the APK on phones: the shipped app writes rounds through `save_round` (kept, same signature) and undoes through two direct `update`s (UPDATE stays granted). What the shipped app can no longer do is insert `rounds`/`scores` rows directly — it never does. New game and Add player from the shipped app still use direct inserts (allowed; they are logged by the row triggers, one row per seat instead of the one "Created game" line the new app gets through `create_game`). **Status: ready for live** once CI is green on the Logs PR (Build Bot applies; nothing applied by the agent).
+
+What it does:
+
+- **One append-only table `public.event_log`** (`game_id`, `result_id`, `kind`, `level` important/routine, `actor_id`, `actor_name` snapshot, `summary`, `details` jsonb, `txid`). UPDATE and DELETE are refused by trigger (FK cascades and actor set-null excepted); only server code writes it (`log_event` is not executable by clients). Members read their game's rows and anyone who can see or manage a result reads its rows (RLS). Added to the realtime publication so the Log screen updates live.
+- **Writers.** Triggers on `games` (created, settings, completed/reopened with the leader, closed/unclosed with the result code, deleted/restored), `game_players` (player/admin/view-only added or removed, initials changed), `rounds` (round undone), `profiles` (renamed, into every active game), `game_results` (result deleted/restored), `game_result_games` (game removed → result changed), and a mirror trigger that writes `result_changed` into every saved result holding a game whose round was edited or undone or that was reopened, restored or whose players changed. `save_round` (security definer now) logs `round_added` / `round_edited` with the per-player was→now list. New RPCs `create_game` and `add_seated_player` write the game or the seat plus one log line in the same transaction.
+- **Readers.** `list_game_log(p_game_id, p_level, p_before, p_limit)` → `{rows, hasMore}` newest first, 50 a page; `list_result_history(p_result_id)` → `{rows (result_* only), versions (034), changedNote}`; anon `public_result_note(uuid)` for the `/r/` page and `public_scorecard_changes(text)` (last 10 important rows) for the live scorecard page.
+- **D4.** `insert, delete` on `rounds` and `scores` revoked from `authenticated`: every score change goes through `save_round` / `undo_last_round` and is therefore logged.
+
+Verified on a scratch Postgres 16 loaded with 001–036 and the CI seed: pgTAP (1057 checks; 98 new in `supabase/tests/26_event_log_036.sql`; `02_games_visibility.sql` negatives now expect "permission denied" and its positives go through `save_round`; `23_security_033.sql` anon list gains the two public readers), the rollback replay (144 checks) and the 44 race checks all pass.
+
 ## Apply order for the Nov 10–12 batches
 
 017–020 were applied on Nov 11 (~11:25 AM PT); 021–026 were applied on Nov 12 from PR 7 head `d62d9c6`. Steps 1–6 are kept for the record (all re-runnable):
@@ -430,6 +445,10 @@ PR 8 (Nov 13), unapplied, ready for live once CI is green:
 PR 2 (Nov 13), unapplied, ready for live once CI is green:
 
 15. `supabase/migrations/035_undo_round.sql`
+
+Logs PR (Nov 13), unapplied, ready for live once CI is green:
+
+16. `supabase/migrations/036_event_log.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

@@ -6,6 +6,17 @@ import path from 'node:path';
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
 const migration = src('supabase/migrations/033_security_advisor_cleanup.sql');
 
+/** Anon RPCs added after 033, each by a later migration's own explicit grant (036: the two log readers). */
+const laterAnonGrants = (): Map<string, string> => {
+  const out = new Map<string, string>();
+  const dir = path.join(process.cwd(), 'supabase/migrations');
+  for (const file of readdirSync(dir).filter((f) => f.slice(0, 3) > '033' && f.endsWith('.sql'))) {
+    const text = readFileSync(path.join(dir, file), 'utf8');
+    for (const m of text.matchAll(/grant execute on function public\.([a-z_]+)\([^)]*\) to anon/g)) out.set(m[1], file);
+  }
+  return out;
+};
+
 /** Every RPC the signed-out web pages call (fetch .../rest/v1/rpc/<name> or rpc('<name>')). */
 const publicPageRpcs = (): Map<string, string[]> => {
   const out = new Map<string, string[]>();
@@ -41,15 +52,18 @@ test('033: every RPC a signed-out web page calls stays executable by anon', () =
     ['public/link.html', 'public/r/index.html', 'public/scorecard.html', 'public/unsubscribe.html'],
     'the public pages that call the database',
   );
+  const later = laterAnonGrants();
   for (const [page, names] of pages) {
     for (const name of names) {
+      if (later.has(name)) continue;
       assert.ok(keep.includes(name), `${page} calls ${name}, which 033 must keep for anon`);
       assert.match(migration, new RegExp(`grant execute on function public\\.${name}\\([^)]*\\) to anon`), `${name} is granted to anon explicitly`);
     }
   }
+  assert.deepEqual([...later.keys()].sort(), ['public_result', 'public_result_note', 'public_scorecard_changes'], 'anon RPCs after 033: public_result re-created by 034 and the two 036 log readers');
   assert.deepEqual(pages.get('public/link.html'), ['answer_link_request_by_token', 'peek_link_request']);
-  assert.deepEqual(pages.get('public/r/index.html'), ['public_result']);
-  assert.deepEqual(pages.get('public/scorecard.html'), ['public_scorecard']);
+  assert.deepEqual(pages.get('public/r/index.html'), ['public_result', 'public_result_note']);
+  assert.deepEqual(pages.get('public/scorecard.html'), ['public_scorecard', 'public_scorecard_changes']);
   assert.deepEqual(pages.get('public/unsubscribe.html'), ['unsubscribe_email']);
 });
 

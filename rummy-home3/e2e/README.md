@@ -25,7 +25,7 @@ The database is the local Supabase on the runner: `supabase db reset` (`seed.sql
 | Game | Share code | State at the start | Used by |
 | --- | --- | --- | --- |
 | A | `GAMEA1` | active, 4 players, 2 rounds (from `seed.sql`) | `smoke/01–06`: 04 adds round 3, 05 completes it, 06 shows its result, `full/40` saves the result |
-| E | `GAMEE1` | active, 4 players, 1 round, sree seated as game admin | `full/30`, `full/60`, `smoke/13` (undo then add round saves round 1 again; PR 2 / 035) |
+| E | `GAMEE1` | active, 4 players, 1 round, sree seated as game admin | `full/30`, `full/60`, `smoke/13` (undo then add round saves round 1 again; PR 2 / 035), `full/70` (add → edit → undo round 2, then the Log shows three rows; Logs PR / 036) |
 | H | `GAMEH1` | active, 3 players, no rounds | `known-bugs/pr3` (rummy with a positive pot) |
 | G | `GAMEG1` | completed, 6 seated, no rounds | `smoke/12` (seated players with no rounds make a 6-player result; saves and closes G) |
 | F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11`, `full/20` |

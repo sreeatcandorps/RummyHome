@@ -12,7 +12,7 @@ select is((select count(*) from public.scores)::int, 0, 'outsider reads no score
 select is((select count(*) from public.game_players)::int, 0, 'outsider reads no seats');
 select throws_like(
   $$ insert into public.rounds (game_id, round_number, created_by) values ('10000000-0000-4000-8000-00000000000a', 9, auth.uid()) $$,
-  '%row-level security%', 'outsider cannot insert a round');
+  '%permission denied%', 'outsider cannot insert a round (036: no direct inserts at all)');
 
 -- seated player: sees, cannot score
 select tests.login('00000000-0000-4000-8000-000000000003');
@@ -21,7 +21,7 @@ select ok('10000000-0000-4000-8000-00000000000a' in (select * from public.list_v
 select is((select count(*) from public.rounds where game_id = '10000000-0000-4000-8000-00000000000a')::int, 4, 'seated player reads all four round rows (2 live + 2 undone)');
 select throws_like(
   $$ insert into public.rounds (game_id, round_number, created_by) values ('10000000-0000-4000-8000-00000000000a', 9, auth.uid()) $$,
-  '%row-level security%', 'seated player cannot insert a round');
+  '%permission denied%', 'seated player cannot insert a round');
 update public.game_players set role = 'game_admin' where game_id = '10000000-0000-4000-8000-00000000000a' and profile_id = auth.uid();
 select is((select role::text from public.game_players where game_id = '10000000-0000-4000-8000-00000000000a' and profile_id = auth.uid()), 'player', 'seated player cannot promote themselves (update touches 0 rows)');
 select ok(not exists (select 1 from public.games where id = '10000000-0000-4000-8000-00000000000c'), 'seated player does not see game C they are not in');
@@ -32,7 +32,7 @@ select ok(exists (select 1 from public.games where id = '10000000-0000-4000-8000
 select is((select count(*) from public.scores where game_id = '10000000-0000-4000-8000-00000000000a')::int, 12, 'viewer reads the scores');
 select throws_like(
   $$ insert into public.rounds (game_id, round_number, created_by) values ('10000000-0000-4000-8000-00000000000a', 9, auth.uid()) $$,
-  '%row-level security%', 'viewer cannot insert a round');
+  '%permission denied%', 'viewer cannot insert a round');
 select ok(not public.is_game_admin('10000000-0000-4000-8000-00000000000a'), 'viewer is not a game admin');
 
 -- non-playing creator: sees and can score
@@ -40,16 +40,20 @@ select tests.login('00000000-0000-4000-8000-000000000001');
 select ok(exists (select 1 from public.games where id = '10000000-0000-4000-8000-00000000000a'), 'non-playing creator sees game A');
 select ok(public.is_game_admin('10000000-0000-4000-8000-00000000000a'), 'non-playing creator is a game admin');
 select lives_ok(
-  $$ insert into public.rounds (game_id, round_number, created_by) values ('10000000-0000-4000-8000-00000000000a', 9, auth.uid()) $$,
-  'non-playing creator can insert a round');
+  $$ select public.save_round('10000000-0000-4000-8000-00000000000a', 3,
+       '[{"playerId":"00000000-0000-4000-8000-000000000002","scoreType":"count","value":-10},
+         {"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"rummy","value":10}]'::jsonb, false) $$,
+  'non-playing creator can save a round (036: through save_round only)');
 
 -- unseated co-admin: sees and can score
 select tests.login('00000000-0000-4000-8000-000000000006');
 select ok(exists (select 1 from public.games where id = '10000000-0000-4000-8000-00000000000a'), 'unseated co-admin sees game A');
 select ok(public.is_game_admin('10000000-0000-4000-8000-00000000000a'), 'unseated co-admin is a game admin');
 select lives_ok(
-  $$ insert into public.rounds (game_id, round_number, created_by) values ('10000000-0000-4000-8000-00000000000a', 10, auth.uid()) $$,
-  'unseated co-admin can insert a round');
+  $$ select public.save_round('10000000-0000-4000-8000-00000000000a', 4,
+       '[{"playerId":"00000000-0000-4000-8000-000000000002","scoreType":"count","value":-10},
+         {"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"rummy","value":10}]'::jsonb, false) $$,
+  'unseated co-admin can save a round');
 
 -- app admin: sees everything
 select tests.login('00000000-0000-4000-8000-000000000007');

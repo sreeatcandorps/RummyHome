@@ -42,3 +42,15 @@ tags: [smoke]
     timeout: 15000
 - assertVisible: "Add round"
 - takeScreenshot: 04c-scorecard-after-round-3
+# 036: the Log opens from the ⋮ menu and its first row is the round just saved.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*Round 3 added.*"
+- takeScreenshot: 04d-game-log-round-3
+- back

@@ -39,6 +39,7 @@ export default function ScreensLayout() {
       <Stack.Screen name="games/[id]" options={{ title: 'Scorecard', headerTitleAlign: 'left' }} />
       <Stack.Screen name="games/complete" options={{ title: 'Complete game' }} />
       <Stack.Screen name="games/players" options={{ title: 'Players/Admins' }} />
+      <Stack.Screen name="games/log" options={{ title: 'Log' }} />
       <Stack.Screen name="games/final-scores" options={{ title: 'Final scores' }} />
       <Stack.Screen
         name="sessions/[id]"
