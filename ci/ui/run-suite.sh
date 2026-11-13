@@ -19,11 +19,16 @@ mkdir -p "$OUT"
 adb devices
 adb install -r "$APK"
 
-# Keep the screen on and the orientation ours for the whole run; dismiss the keyguard.
+# Keep the screen on and the orientation ours for the whole run; dismiss the keyguard. System
+# "isn't responding" / "has stopped" dialogs are hidden: one launcher ANR after a snapshot restore
+# sat on top of every flow once. Our own app's crashes still fail the flow (the screen is gone).
 adb shell settings put system screen_off_timeout 1800000
 adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 0
+adb shell settings put global hide_error_dialogs 1
 adb shell input keyevent 82
+adb shell input keyevent 3
+sleep 5
 
 echo 0 > "$OUT/smoke.status"
 ci/ui/run-flows.sh rummy-home3/e2e/smoke "$OUT/smoke" || echo 1 > "$OUT/smoke.status"
