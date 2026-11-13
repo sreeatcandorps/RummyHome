@@ -89,7 +89,7 @@ After any scoring or schema change:
 | --- | --- | --- | --- |
 | `e2e/smoke/` | every pull request (`ui-smoke`) | sign in, Home, Scorecard (4 and 20 players, portrait and landscape), Add round (drops + rummy, save), Complete game, Results, Profile, My players, New game | the PR does not merge |
 | `e2e/full/` | nightly and `workflow_dispatch` (`ui-full`) | sign out / wrong passcode, 20-player scorecard swiped to the last column, Players · Admins, Game settings, Save result and Past results, every Help note, dark appearance | fix before the next APK |
-| `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 6 initials clash → HT2; PR 8's 0-players flow moved to `smoke/12`, PR 2's undo→add round flow to `smoke/13` and PR 3's positive-pot Rummy flow to `smoke/14` when those PRs landed) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
+| `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 8's 0-players flow moved to `smoke/12`, PR 2's undo→add round flow to `smoke/13`, PR 3's positive-pot Rummy flow to `smoke/14` and PR 6's initials clash → HT2 into `smoke/09` when those PRs landed; the set is empty now and passes with zero flows) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
 
 Every flow starts from `e2e/lib/ensure-signed-in.yaml` (sign in only when the login screen is showing), uses the seeded account `sree@test.local` / `123456` (local database only), and ends with `takeScreenshot`. Landscape flows (file name contains `landscape`) rotate with Maestro's `setOrientation` once the app is up; the runner also rotates the emulator for them (`adb shell wm set-user-rotation`). Fixtures the flows rely on are in `supabase/seed-e2e.sql`: game A `GAMEA1` (4 players, 2 rounds, from `seed.sql`), E `GAMEE1` (4 players, 1 round), H `GAMEH1` (3 players, no rounds), G `GAMEG1` (completed, 6 seated, no rounds), F `GAMEF1` (20 players × 30 rounds). Which flow changes what, and in which order they must run, is in `e2e/README.md`.
 
@@ -115,8 +115,8 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | I'm playing on/off, settings (type, drop, middle, full) | U | N | — |
 | | co-admin add / skip | — | N | — |
 | | guardrails: 20th seat, player limits (029) | U, D | D + N | — |
-| Initials | 1+2 cells, auto-advance, clash → HT2, edit, 3 at a time | partly U, known-bug | U + **S** | `known-bugs/pr6` → PR 6 |
-| | edit initials mid-game | — | U + N | — |
+| Initials | 1+2 cells, auto-advance, clash → HT2, edit, 3 at a time | U, D, S | U + D + **S** | `smoke/09` (was `known-bugs/pr6`) |
+| | edit initials mid-game (digit allowed, Save above the keyboard) | U, N | U + N | `full/31` |
 | Scorecard | 4 / 20 players render, header not clipped, DEALS | U (source grep), S | **S** | `smoke/02`, `smoke/10` |
 | | 20 players: last column reachable by swiping, header in step | N | N | `full/20` (slow: 600-cell hierarchy) |
 | | portrait ↔ landscape | S | **S** | `smoke/03`, `smoke/11` |
@@ -155,7 +155,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | Offline / degraded | cached scorecard opens, save fails with a message, retry | U | N | — |
 | Help | every ? opens and closes, text fits | N | N (PR 12 adds one flow per screen) | `full/50`, `smoke/02`, `smoke/06` |
 
-**Smoke set on every PR (12 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4, then Log shows "Round 3 added" first) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add New Players by Initials) → Scorecard 20p → Scorecard 20p landscape → Results with no rounds (game G, 6 players, saved). Undo → Add round joins the smoke set with PR 2; Rummy with a positive pot (negative share, confirm, save) with PR 3.
+**Smoke set on every PR (12 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4, then Log shows "Round 3 added" first) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add new players: H + T → HT2 with PR 6) → Scorecard 20p → Scorecard 20p landscape → Results with no rounds (game G, 6 players, saved). Undo → Add round joins the smoke set with PR 2; Rummy with a positive pot (negative share, confirm, save) with PR 3.
 
 **Nightly / before each APK:** the smoke set, everything marked N, dark appearance, plus C and the volume scripts monthly.
 
@@ -208,6 +208,22 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | A3-7 | D | `ci/db/replay-rollbacks.sh` | Rollback 037 restores the ≥ 0 rule NOT VALID (saved rounds stay); forward replay validates the relaxed constraint; 037 is safe to run twice |
 | A3-8 | S | `smoke/14-rummy-positive-pot.yaml` | Game H: +50 typed (yellow cell screenshot, light green saved cell), Drop, Rummy → "Priya Test, score -40", Balance 0, Save on → "Rummy share is not a win" confirm → Yes, save → Round 2 |
 | A3-9 | N | `full/80-add-round-count-warnings.yaml` | Typing 1-2 shows no dialog, 1-2-0 shows "Over the Full count … Keep -120" once; Keep leaves -120 typed with the warning line; 40 shows "40 is half the Full count (80)." with no dialog |
+
+## PR 6 test cases (initials rule, Add new players by initials, one editor; migration 039)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| I6-1 | U | `tests/initials-pr6.test.ts`, `supabase/tests/fixtures/initials-cases.csv` | One table of typed + taken → stored initials drives `pickFreeInitials` here and `public.pick_free_initials` in pgTAP (SK free → SK; SK taken → SK2; SK, SK2 → SK3; digits 2–9 used → S10; SKR taken → SK2; SK2 typed; S1 taken → S2) |
+| I6-2 | U | same 6.2–6.4 | Exact sentence "Sree Koneru is already SK. This new player is SK2."; `splitInitials` separates the digits for the red colour |
+| I6-3 | U | same 6.5, `tests/initials-022.test.ts` | Three letters typed directly are accepted; suggestions keep the Nov 11 letter-first order (no digits-first rule, Sree 13 Nov); a digit may be suggested later (HT2) but never first |
+| I6-4 | U | same 6.6 | "S" → "Type at least 2 characters.", "SK45" → "Up to 3 characters.", "4K" → "The first character must be a letter, A to Z."; SK2 accepted |
+| I6-5 | U | same 6.1, `tests/build3.test.ts` | Cell 1 one letter (a digit refused at once), cell 2 one or two letters or digits |
+| I6-6 | U | same (row cap) | `NEW_PLAYER_ROWS_MAX = 3`, no fourth row appended, no delete on the screen, one `InitialsDialog`, title "Add new players", heading "…3 at a time" |
+| I6-7 | U | same (one editor) | The dialog is digit-tolerant, shows "Change the letters to save." when unchanged, sits in a `KeyboardAvoidingView`; My players, Players/Admins, Add new players and Find player all use it; `services/players.ts` and `services/games.ts` use `INITIALS_PATTERN`; 039 defines both RPCs and widens both editors |
+| I6-8 | D | `supabase/tests/29_initials_039.sql` | As sree: 'HT' → HT2 named HT2, `taken_by` Harish Test, My players row and `list_my_players` carry HT2; again → HT3; 'xy' → XY; 'SK2' typed; '4K', 'S', 'SK45', 'S-K', '' refused with the exact reason; signed out refused. Editors: XYZ and XY2 accepted and the initials-named player is renamed with them; Harish → HT9 keeps his name; '2SK' and 'SKOR' refused; a clash names the other player; `set_seat_label` H2 on game A, the creator's My players follows, '2H' refused |
+| I6-9 | D | `ci/db/replay-rollbacks.sh`, `supabase/tests/12_player_initials_022.sql` | Rollback 039 removes the RPCs and restores the letters-only editors; forward replay restores 039; safe to run twice; a re-run of 022 followed by 039 keeps the wider rule |
+| I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
+| I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
 
 ## PR 5 test cases (Home bottom buttons, My players badge, Light default, game numbers 038)
 

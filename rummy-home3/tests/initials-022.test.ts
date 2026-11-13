@@ -49,12 +49,14 @@ test('defaultInitials, firstFreeInitials and suggestInitials', () => {
   assert.deepEqual(suggestInitials('Jo', allLetters, 2), ['JO2', 'JO3']);
 });
 
-test('validation: letters only, 2 or 3, unique within the owner list', () => {
+test('validation: 2 or 3 characters, the first a letter, unique within the owner list (PR 6 rule)', () => {
   const taken = new Map([['SK', 'Suresh Kumar'], ['HT', 'Harish Test']]);
-  assert.equal(initialsProblem('', taken), 'Type 2 or 3 letters.');
-  assert.equal(initialsProblem('S2', taken), 'Letters only, A to Z.');
-  assert.equal(initialsProblem('S', taken), 'Type at least 2 letters.');
-  assert.equal(initialsProblem('SKOR', taken), 'Up to 3 letters.');
+  assert.equal(initialsProblem('', taken), 'Type 2 or 3 characters.');
+  assert.equal(initialsProblem('S2', taken), null, 'a digit after the letter is allowed (Sree, 13 Nov)');
+  assert.equal(initialsProblem('2S', taken), 'The first character must be a letter, A to Z.');
+  assert.equal(initialsProblem('S-K', taken), 'Letters and digits only.');
+  assert.equal(initialsProblem('S', taken), 'Type at least 2 characters.');
+  assert.equal(initialsProblem('SKOR', taken), 'Up to 3 characters.');
   assert.equal(initialsProblem('sk', taken), 'SK is Suresh Kumar.');
   assert.equal(initialsProblem(' sko ', taken), null);
   assert.equal(initialsProblem('ék', taken), null, 'accents are folded before checking');

@@ -8,7 +8,7 @@ import { matchesMyPlayer, playerSearchMode } from '@/utils/playerSearch';
 import { MY_PLAYERS_PAGE_SIZE, MY_PLAYERS_SEARCH_LIMIT, MyPlayersCursor, MyPlayersSort, sortMyPlayers } from '@/utils/myPlayersList';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { queryCache } from '@/utils/queryCache';
-import { assignInitials, initialsProblem, normalizeInitials } from '@/utils/initials';
+import { assignInitials, INITIALS_PATTERN, initialsProblem, normalizeInitials } from '@/utils/initials';
 import { removeMyPlayerError, restoredRow } from '@/utils/removeMyPlayer';
 import { localMyPlayersGuard } from '@/utils/guardrails';
 
@@ -40,8 +40,8 @@ type RosterRow = {
 
 const isActive = (row: RosterRow) => !row.removedAt;
 
-/** Same wording as set_my_player_initials / set_seat_label in migration 022. */
-export const INITIALS_FORMAT_MESSAGE = 'Initials are 2 or 3 letters, A to Z.';
+/** Same wording as set_my_player_initials / set_seat_label in migration 039. */
+export const INITIALS_FORMAT_MESSAGE = 'Initials are 2 or 3 characters: a letter, then letters or digits.';
 
 const missingRpc = (error: unknown) => {
   const code = (error as { code?: string })?.code;
@@ -284,12 +284,12 @@ export const playersService = {
   },
 
   /**
-   * The owner types the scorecard initials for one of their players. Letters only,
-   * 2–3, unique within their My players. Returns the stored (upper-case) value.
+   * The owner types the scorecard initials for one of their players. 2–3 characters, the
+   * first a letter (039), unique within their My players. Returns the stored (upper-case) value.
    */
   async setInitials(ownerId: string, playerId: string, initials: string): Promise<string> {
     const value = normalizeInitials(initials);
-    if (!/^[A-Z]{2,3}$/.test(value)) throw new Error(INITIALS_FORMAT_MESSAGE);
+    if (!INITIALS_PATTERN.test(value)) throw new Error(INITIALS_FORMAT_MESSAGE);
 
     if (!isSupabaseConfigured) {
       const rows = await readRoster();

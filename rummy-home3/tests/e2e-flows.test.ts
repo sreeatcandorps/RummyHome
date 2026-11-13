@@ -26,7 +26,9 @@ const libs = walk('e2e/lib', '.yaml');
 const appPackage: string = JSON.parse(read('app.json')).expo.android.package;
 
 test('e2e: there are flows in every set and the sets are what the runner expects', () => {
-  for (const set of SETS) assert.ok(flows.some((f) => f.startsWith(set)), `${set} has flows`);
+  // known-bugs may be empty: every flow there moves into smoke/ or full/ when its PR lands (PR 6 moved the last one).
+  for (const set of SETS.filter((s) => s !== 'e2e/known-bugs')) assert.ok(flows.some((f) => f.startsWith(set)), `${set} has flows`);
+  assert.ok(existsSync(join(root, 'e2e/known-bugs')), 'the known-bugs set directory stays (the runner lists it)');
   assert.ok(flows.filter((f) => f.startsWith('e2e/smoke')).length >= 9, 'smoke set has at least 9 flows');
   assert.ok(libs.includes(join('e2e/lib', 'ensure-signed-in.yaml')));
   assert.ok(libs.includes(join('e2e/lib', 'sign-in.yaml')));

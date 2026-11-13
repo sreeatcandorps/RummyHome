@@ -1,21 +1,26 @@
 /**
  * Initials: the short label a player gets in scorecard columns.
  *
- * Rules (Sree, 11 Nov 2026):
+ * Rules (Sree, 11 Nov 2026; widened 13 Nov 2026, PR 6):
  * - Two letters by default: first initial + last initial (one word: its first two letters).
  * - When two people in the same list share the two letters, the one who was there first
  *   keeps them and the other gets three letters built from the name (Suresh Kumar → SUK,
  *   then SKU, then SRK …). A digit is used only when every letter form is taken.
- * - The owner may type any 2–3 letters (A–Z, upper-cased) instead.
+ * - The owner may type any free 2–3 characters instead. The only forced rule: the FIRST
+ *   character is a letter A–Z; the rest may be letters or digits (SK2 is fine, 2SK is not).
  * - Labels are unique within one owner's My players, never across owners.
  *
  * `initialsCandidates` is mirrored by `public.initials_candidates(text)` in migration
- * 022 so the database trigger and the app always agree on the default for a name.
+ * 022 and `pickFreeInitials` by `public.pick_free_initials(text, text[])` in 039, so the
+ * database and the app always agree.
  */
 
-export const INITIALS_PATTERN = /^[A-Z]{2,3}$/;
-/** What the database accepts: letters, or a letter followed by letters/digits when letters ran out. */
-export const STORED_INITIALS_PATTERN = /^[A-Z][A-Z0-9]{1,2}$/;
+/** What may be typed and stored: a letter, then one or two letters or digits. */
+export const INITIALS_PATTERN = /^[A-Z][A-Z0-9]{1,2}$/;
+/** Same as INITIALS_PATTERN; kept for callers that spell out "stored". */
+export const STORED_INITIALS_PATTERN = INITIALS_PATTERN;
+/** Letter-only forms come before digit forms in every suggestion list. */
+const LETTERS_ONLY = /^[A-Z]{2,3}$/;
 
 const LIGATURES: Record<string, string> = { Æ: 'AE', Œ: 'OE', ß: 'SS', Ø: 'O', Ð: 'D', Þ: 'TH', Ł: 'L', Đ: 'D' };
 
@@ -90,10 +95,55 @@ export function defaultInitials(name: string | null | undefined): string {
 export function suggestInitials(name: string | null | undefined, taken: Iterable<string>, limit = 3): string[] {
   const used = new Set(Array.from(taken, normalizeInitials));
   const candidates = initialsCandidates(name).slice(1);
-  const letters = candidates.filter((c) => INITIALS_PATTERN.test(c) && !used.has(c));
+  const letters = candidates.filter((c) => LETTERS_ONLY.test(c) && !used.has(c));
   if (letters.length >= limit) return letters.slice(0, limit);
-  const digits = candidates.filter((c) => !INITIALS_PATTERN.test(c) && !used.has(c));
+  const digits = candidates.filter((c) => !LETTERS_ONLY.test(c) && !used.has(c));
   return [...letters, ...digits].slice(0, limit);
+}
+
+/**
+ * The initials a NEW player gets from what was typed (PR 6, D6.1/D6.2): the typed form when
+ * it is free, else the first free digit form built on it (SK → SK2 … SK9, then S10 … S99;
+ * SKR → SK2 …). Never a shorter form than typed. Mirrored by `public.pick_free_initials`.
+ */
+export function pickFreeInitials(typed: string, taken: Iterable<string>): string {
+  const value = normalizeInitials(typed);
+  const used = new Set(Array.from(taken, normalizeInitials));
+  if (!used.has(value)) return value;
+  const head = splitInitials(value).letters.slice(0, 2);
+  const forms: string[] = [];
+  for (let d = 2; d <= 9; d += 1) forms.push(head + d);
+  for (let d = 10; d <= 99; d += 1) forms.push(head[0] + d);
+  return forms.find((c) => c !== value && c.length >= value.length && !used.has(c)) ?? value;
+}
+
+/** The exact sentence under a new player's row when the typed initials were someone else's. */
+export function clashSentence(typed: string, holderName: string, stored: string): string {
+  return `${holderName} is already ${normalizeInitials(typed)}. This new player is ${normalizeInitials(stored)}.`;
+}
+
+/** Letters and the trailing digits of a label, so the digits can be drawn in red. */
+export function splitInitials(label: string): { letters: string; digits: string } {
+  const value = normalizeInitials(label);
+  const match = value.match(/^([A-Z]+)(\d*)$/);
+  return match ? { letters: match[1], digits: match[2] } : { letters: value, digits: '' };
+}
+
+/** How many rows the Add new players screen offers per visit. */
+export const NEW_PLAYER_ROWS_MAX = 3;
+
+/**
+ * Cell 1 holds one letter; cell 2 one or two letters or digits. Returns the reason the
+ * row cannot be saved yet, or null when `first + last` is a well-formed label.
+ */
+export function initialsCellsProblem(first: string, last: string): string | null {
+  const a = normalizeInitials(first);
+  const b = normalizeInitials(last);
+  if (!a && !b) return 'Type the initials: one letter, then one or two more.';
+  if (!/^[A-Z]$/.test(a)) return 'The first character must be a letter, A to Z.';
+  if (!b) return 'Type one or two more letters or digits.';
+  if (!/^[A-Z0-9]{1,2}$/.test(b)) return 'Letters and digits only.';
+  return null;
 }
 
 /** The first default form of `name` not in `taken`. */
@@ -105,14 +155,19 @@ export function firstFreeInitials(name: string | null | undefined, taken: Iterab
 export const normalizeInitials = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, '');
 
 export const INITIALS_HELP = 'Shown in scorecard columns. Must be different from everyone else in your My players.';
+/** The format line under the initials box. */
+export const INITIALS_FORMAT = '2 or 3 characters. The first is a letter, A to Z; the rest letters or digits.';
+/** Shown instead of a disabled Save when nothing has been changed yet. */
+export const INITIALS_UNCHANGED_HINT = 'Change the letters to save.';
 
 /** Why typed initials cannot be saved, or null when they can. `taken` maps label → name of who has it. */
 export function initialsProblem(text: string, taken: Map<string, string>): string | null {
   const value = normalizeInitials(text);
-  if (!value) return 'Type 2 or 3 letters.';
-  if (!/^[A-Z]+$/.test(value)) return 'Letters only, A to Z.';
-  if (value.length < 2) return 'Type at least 2 letters.';
-  if (value.length > 3) return 'Up to 3 letters.';
+  if (!value) return 'Type 2 or 3 characters.';
+  if (!/^[A-Z]/.test(value)) return 'The first character must be a letter, A to Z.';
+  if (!/^[A-Z0-9]+$/.test(value)) return 'Letters and digits only.';
+  if (value.length < 2) return 'Type at least 2 characters.';
+  if (value.length > 3) return 'Up to 3 characters.';
   const owner = taken.get(value);
   return owner ? `${value} is ${owner}.` : null;
 }

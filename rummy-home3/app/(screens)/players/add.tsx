@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, TextInput as NativeTextInput, View } from 'react-native';
-import { Icon, IconButton, Portal, Text, TextInput } from 'react-native-paper';
+import { Portal, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
@@ -10,9 +10,15 @@ import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
-import { validateInitials } from '@/utils/playerIdentity';
 import { playersService } from '@/services/players';
-import { assignInitials, defaultInitials } from '@/utils/initials';
+import {
+  assignInitials,
+  clashSentence,
+  initialsCellsProblem,
+  NEW_PLAYER_ROWS_MAX,
+  normalizeInitials,
+  splitInitials,
+} from '@/utils/initials';
 import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { playerIdBadge } from '@/utils/myPlayersList';
 import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
@@ -23,16 +29,36 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 
-type Row = { key: string; first: string; last: string; player?: Player; editing: boolean; busy: boolean; error?: string };
+type Row = {
+  key: string;
+  /** Cell 1: one letter. */
+  first: string;
+  /** Cell 2: one or two letters or digits. */
+  last: string;
+  player?: Player;
+  /** What the database stored (SK, or SK2 on a clash). */
+  initials?: string;
+  /** Who already had the typed letters, for the sentence under the row. */
+  takenBy?: string | null;
+  busy: boolean;
+  error?: string;
+};
 
-export const DEFAULT_NEW_PLAYER_ROWS = 3;
+export const DEFAULT_NEW_PLAYER_ROWS = NEW_PLAYER_ROWS_MAX;
+export const ADD_PLAYERS_TITLE = 'Add new players';
+export const ADD_PLAYERS_HEADING = `Add new players by initials, ${NEW_PLAYER_ROWS_MAX} at a time`;
+export const CELL_HINT = 'Cell 1: one letter, jumps on. Cell 2: one or two letters.';
+export const NO_DELETE_NOTE = 'No delete here — remove a player from the previous screen. Edit lets you type any free 2–3 characters; the first must be a letter.';
+
 let rowSeq = 0;
-const blank = (): Row => ({ key: `row-${Date.now()}-${rowSeq++}`, first: '', last: '', editing: true, busy: false });
+const blank = (): Row => ({ key: `row-${Date.now()}-${rowSeq++}`, first: '', last: '', busy: false });
 
 /**
- * A full screen, not a sheet: nothing behind it can be tapped and the only way
- * out is Done. Each row saves on its own; saved people are already in My players
- * (and seated in the new game when we came from there).
+ * Add new players by initials (PR 6). Three rows per visit, no more: cell 1 takes one
+ * letter and jumps on, cell 2 one or two letters or digits; the initials are the player's
+ * name (D6.2). When the letters are already someone's in My players the database stores
+ * the first free digit form (SK → SK2) and the row says so. One Edit per row opens the
+ * shared initials editor. Nothing behind this screen can be tapped; Done is the only exit.
  */
 export default function AddPlayersScreen() {
   const { colors } = useAppTheme();
@@ -41,11 +67,11 @@ export default function AddPlayersScreen() {
   const params = useLocalSearchParams<{ from?: string }>();
   const fromNewGame = params.from === 'new-game';
   const [ownerId, setOwnerId] = useState<string | null>(null);
-  const [rows, setRows] = useState<Row[]>(() => Array.from({ length: DEFAULT_NEW_PLAYER_ROWS }, blank));
+  const [rows, setRows] = useState<Row[]>(() => Array.from({ length: NEW_PLAYER_ROWS_MAX }, blank));
   const [seated, setSeated] = useState<DraftPick[]>(() => (fromNewGame ? newGameDraft.get() : []));
-  /** The owner's My players after each save: stored initials (022) for the saved rows, and who has which letters. */
+  /** The owner's My players after each save: who has which initials, for the editor. */
   const [mine, setMine] = useState<Player[]>([]);
-  const [editInitials, setEditInitials] = useState<Player | null>(null);
+  const [editRow, setEditRow] = useState<Row | null>(null);
   const [savingInitials, setSavingInitials] = useState(false);
 
   // The New game behind us owns the seats; we show and edit the same list.
@@ -58,7 +84,7 @@ export default function AddPlayersScreen() {
   const firstInputs = useRef<Record<string, NativeTextInput | null>>({});
   const lastInputs = useRef<Record<string, NativeTextInput | null>>({});
 
-  // The cursor starts in row 1's first initial. Android ignores autoFocus on a screen that mounts mid-transition.
+  // The cursor starts in row 1's first cell. Android ignores autoFocus on a screen that mounts mid-transition.
   useEffect(() => {
     const timer = setTimeout(() => firstInputs.current[rows[0]?.key]?.focus(), Platform.OS === 'web' ? 0 : 350);
     return () => clearTimeout(timer);
@@ -89,7 +115,7 @@ export default function AddPlayersScreen() {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      title: 'Add New Players by Initials',
+      title: ADD_PLAYERS_TITLE,
       headerBackVisible: false,
       headerLeft: () => null,
       gestureEnabled: false,
@@ -101,16 +127,21 @@ export default function AddPlayersScreen() {
     setRows((all) => all.map((row) => (row.key === key ? { ...row, ...next } : row)));
   }, []);
 
-  // Digits are refused the moment they are typed, not only on Save.
-  const typed = (row: Row, next: { first?: string; last?: string }) => {
-    const first = next.first ?? row.first;
-    const last = next.last ?? row.last;
-    const digit = /^\d/.test(first.trim()) || /^\d/.test(last.trim());
-    patch(row.key, { ...next, error: digit ? validateInitials(first.trim() || 'x', last.trim() || 'x') ?? undefined : undefined });
+  // Cell 1 keeps one character and jumps to cell 2 when it is a letter; a digit is refused at once.
+  const typedFirst = (row: Row, text: string) => {
+    const first = normalizeInitials(text).slice(-1);
+    const error = first && !/^[A-Z]$/.test(first) ? initialsCellsProblem(first, row.last) ?? undefined : undefined;
+    patch(row.key, { first, error });
+    if (first && /^[A-Z]$/.test(first)) lastInputs.current[row.key]?.focus();
+  };
+  const typedLast = (row: Row, text: string) => {
+    const last = normalizeInitials(text).slice(0, 2);
+    const error = last && !/^[A-Z0-9]{1,2}$/.test(last) ? initialsCellsProblem(row.first || 'X', last) ?? undefined : undefined;
+    patch(row.key, { last, error });
   };
 
   const save = async (row: Row) => {
-    const problem = validateInitials(row.first, row.last);
+    const problem = initialsCellsProblem(row.first, row.last);
     if (problem) {
       patch(row.key, { error: problem });
       return;
@@ -121,40 +152,19 @@ export default function AddPlayersScreen() {
     }
     patch(row.key, { busy: true, error: undefined });
     try {
-      const player = row.player
-        ? await playerIdentityService.updateNewPlayer(ownerId, row.player.id, row.first, row.last)
-        : await playerIdentityService.createNewPlayer(ownerId, row.first, row.last);
-      if (fromNewGame) newGameDraft.add({ id: player.id, name: player.name, playerCode: player.playerCode });
+      const made = await playerIdentityService.createPlayerByInitials(ownerId, row.first + row.last);
+      if (fromNewGame) newGameDraft.add({ id: made.player.id, name: made.player.name, playerCode: made.player.playerCode });
       refreshMine(ownerId).catch(() => {});
-      // Keep typing: the cursor moves to the next open row, and a new row appears when every row is saved.
+      // Keep typing: the cursor moves to the next open row; there is no fourth row (3 at a time).
       setRows((all) => {
-        const next = all.map((item) => (item.key === row.key ? { ...item, player, editing: false, busy: false } : item));
-        const open = next.find((item) => !item.player || item.editing);
-        if (open) {
-          setTimeout(() => firstInputs.current[open.key]?.focus(), 50);
-          return next;
-        }
-        const fresh = blank();
-        setTimeout(() => firstInputs.current[fresh.key]?.focus(), 50);
-        return [...next, fresh];
+        const next = all.map((item) => (item.key === row.key ? { ...item, player: made.player, initials: made.initials, takenBy: made.takenBy, busy: false } : item));
+        const open = next.find((item) => !item.player);
+        if (open) setTimeout(() => firstInputs.current[open.key]?.focus(), 50);
+        return next;
       });
     } catch (err) {
       patch(row.key, { busy: false, error: formatSupabaseError(err) });
     }
-  };
-
-  const remove = async (row: Row) => {
-    if (row.player && ownerId) {
-      patch(row.key, { busy: true, error: undefined });
-      try {
-        await playerIdentityService.deleteNewPlayer(ownerId, row.player.id);
-        if (fromNewGame) newGameDraft.remove(row.player.id);
-      } catch (err) {
-        patch(row.key, { busy: false, error: formatSupabaseError(err) });
-        return;
-      }
-    }
-    setRows((all) => (all.length === 1 ? [blank()] : all.filter((item) => item.key !== row.key)));
   };
 
   const done = () => {
@@ -162,34 +172,25 @@ export default function AddPlayersScreen() {
     router.back();
   };
 
-  const savedRows = rows.filter((row) => row.player && !row.editing);
-  // Stored initials from My players (the database picked a unique default); derived the same way until the list arrives.
-  const initialsOf = assignInitials(mine.map((player) => ({ id: player.id, name: player.name, initials: player.initials, addedAt: player.addedAt })));
-  const labelFor = (key: string) => {
-    const row = savedRows.find((item) => item.key === key);
-    return row?.player ? initialsOf.get(row.player.id) ?? defaultInitials(row.player.name) : '';
-  };
-  /** Three letters instead of two: someone already in My players has the short form. */
-  const clashNote = (player: Player) => {
-    const label = initialsOf.get(player.id);
-    const short = defaultInitials(player.name);
-    if (!label || label === short) return null;
-    const holder = mine.find((other) => other.id !== player.id && initialsOf.get(other.id) === short);
-    return holder ? `${short} is ${holder.name}, so ${player.name.split(' ')[0]} is ${label}.` : `${player.name.split(' ')[0]} is ${label}.`;
-  };
-  const takenFor = (except: Player) => new Map(mine.filter((player) => player.id !== except.id).map((player) => [initialsOf.get(player.id) ?? '', player.name] as const).filter(([label]) => label));
+  const savedRows = rows.filter((row) => row.player);
   const savedCount = savedRows.length;
+  const initialsOf = assignInitials(mine.map((player) => ({ id: player.id, name: player.name, initials: player.initials, addedAt: player.addedAt })));
+  const takenFor = (except: Player) => new Map(mine.filter((player) => player.id !== except.id).map((player) => [initialsOf.get(player.id) ?? '', player.name] as const).filter(([label]) => label));
 
   const saveInitials = async (value: string) => {
-    if (!editInitials || !ownerId) return;
+    if (!editRow?.player || !ownerId) return;
+    const { player } = editRow;
     setSavingInitials(true);
     try {
-      await playersService.setInitials(ownerId, editInitials.id, value);
+      const stored = await playerIdentityService.setInitialsAndName(ownerId, player, editRow.initials, value);
       await refreshMine(ownerId);
-      setEditInitials(null);
+      const renamed = player.name === editRow.initials ? { ...player, name: stored, firstName: stored } : player;
+      if (fromNewGame && renamed !== player) newGameDraft.add({ id: renamed.id, name: renamed.name, playerCode: renamed.playerCode });
+      patch(editRow.key, { player: renamed, initials: stored, takenBy: null, error: undefined });
+      setEditRow(null);
     } catch (err) {
-      setRows((all) => all.map((row) => (row.player?.id === editInitials.id ? { ...row, error: err instanceof Error ? err.message : formatSupabaseError(err) } : row)));
-      setEditInitials(null);
+      patch(editRow.key, { error: err instanceof Error ? err.message : formatSupabaseError(err) });
+      setEditRow(null);
     } finally {
       setSavingInitials(false);
     }
@@ -201,69 +202,72 @@ export default function AddPlayersScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}
       >
-        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          Type the first initial and the last initial for each person, then Save. More letters are fine. The last initial cannot be a number. A new row appears when these are saved.
-        </Text>
+        <Text variant="titleMedium" style={styles.heading} accessibilityRole="header">{ADD_PLAYERS_HEADING}</Text>
 
-        {rows.map((row, index) => {
-          const saved = Boolean(row.player) && !row.editing;
-          const badge = row.player ? playerIdBadge(row.player) : null;
-          return (
-            <View
-              key={row.key}
-              style={[
-                styles.card,
-                { backgroundColor: colors.surface, borderColor: saved ? colors.win : colors.outlineVariant },
-              ]}
-            >
-              <View style={styles.line}>
-                <Text variant="labelLarge" style={[styles.num, { color: colors.onSurfaceVariant }]}>{index + 1}</Text>
-                <TextInput
-                  mode="outlined"
-                  dense
-                  value={row.first}
-                  placeholder="A"
-                  placeholderTextColor={colors.outlineVariant}
-                  disabled={saved || row.busy}
-                  onChangeText={(first) => typed(row, { first })}
-                  style={styles.input}
-                  contentStyle={styles.inputText}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  maxLength={12}
-                  returnKeyType="next"
-                  blurOnSubmit={false}
-                  onSubmitEditing={() => lastInputs.current[row.key]?.focus()}
-                  ref={(ref: NativeTextInput | null) => { firstInputs.current[row.key] = ref; }}
-                  accessibilityLabel={`Row ${index + 1} first initial`}
-                />
-                <TextInput
-                  mode="outlined"
-                  dense
-                  value={row.last}
-                  placeholder="B"
-                  placeholderTextColor={colors.outlineVariant}
-                  disabled={saved || row.busy}
-                  onChangeText={(last) => typed(row, { last })}
-                  style={styles.input}
-                  contentStyle={styles.inputText}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  maxLength={12}
-                  returnKeyType="done"
-                  onSubmitEditing={() => save(row)}
-                  ref={(ref: NativeTextInput | null) => { lastInputs.current[row.key] = ref; }}
-                  accessibilityLabel={`Row ${index + 1} last initial`}
-                />
-                <View style={styles.actions}>
-                  {saved ? (
-                    <>
-                      <View style={[styles.savedPill, { backgroundColor: colors.positiveContainer }]} accessibilityLabel={`Saved ${labelFor(row.key)}`}>
-                        <Icon source="check" size={16} color={colors.onPositiveContainer} />
-                        <Text variant="labelMedium" style={{ color: colors.onPositiveContainer }}>Saved</Text>
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
+          {rows.map((row, index) => {
+            const saved = Boolean(row.player);
+            const label = row.initials ? splitInitials(row.initials) : null;
+            const badge = row.player ? playerIdBadge(row.player) : null;
+            const cellBorder = saved ? colors.outlineVariant : row.error ? colors.error : colors.leader;
+            return (
+              <View key={row.key} style={[styles.row, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.outlineVariant }]}>
+                <View style={styles.line}>
+                  <TextInput
+                    mode="outlined"
+                    dense
+                    value={row.first}
+                    disabled={saved || row.busy}
+                    onChangeText={(text) => typedFirst(row, text)}
+                    style={[styles.cell, !saved && { backgroundColor: colors.leaderContainer }]}
+                    outlineStyle={{ borderColor: cellBorder, borderWidth: saved ? 1 : 2 }}
+                    contentStyle={styles.cellText}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    maxLength={1}
+                    returnKeyType="next"
+                    blurOnSubmit={false}
+                    onSubmitEditing={() => lastInputs.current[row.key]?.focus()}
+                    ref={(ref: NativeTextInput | null) => { firstInputs.current[row.key] = ref; }}
+                    accessibilityLabel={`Row ${index + 1} first initial`}
+                  />
+                  <TextInput
+                    mode="outlined"
+                    dense
+                    value={row.last}
+                    disabled={saved || row.busy}
+                    onChangeText={(text) => typedLast(row, text)}
+                    style={[styles.cell, styles.cellWide, !saved && { backgroundColor: colors.leaderContainer }]}
+                    outlineStyle={{ borderColor: cellBorder, borderWidth: saved ? 1 : 2 }}
+                    contentStyle={styles.cellText}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    maxLength={2}
+                    returnKeyType="done"
+                    onSubmitEditing={() => save(row)}
+                    ref={(ref: NativeTextInput | null) => { lastInputs.current[row.key] = ref; }}
+                    accessibilityLabel={`Row ${index + 1} last initial`}
+                  />
+                  <View style={styles.middle}>
+                    {saved && label ? (
+                      <View accessibilityLabel={`Saved ${row.initials}`} accessible>
+                        <Text variant="headlineSmall" style={styles.label}>
+                          <Text variant="headlineSmall" style={[styles.label, { color: colors.win }]}>{label.letters}</Text>
+                          {label.digits ? <Text variant="headlineSmall" style={[styles.label, { color: colors.error }]}>{label.digits}</Text> : null}
+                        </Text>
+                        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+                          {row.takenBy ? clashSentence(row.first + row.last, row.takenBy, row.initials!) : 'Saved'}
+                        </Text>
+                        {badge ? <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>{badge} · Unregistered</Text> : null}
                       </View>
-                      <IconButton icon="pencil-outline" size={18} style={styles.iconButton} onPress={() => patch(row.key, { editing: true })} accessibilityLabel={`Edit row ${index + 1}`} />
-                    </>
+                    ) : (
+                      <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{CELL_HINT}</Text>
+                    )}
+                  </View>
+                  {saved ? (
+                    <Button mode="outlined" compact onPress={() => setEditRow(row)} style={styles.rowButton} accessibilityLabel={`Edit initials for ${row.player!.name}`}>
+                      Edit
+                    </Button>
                   ) : (
                     <Button
                       mode="contained"
@@ -271,46 +275,35 @@ export default function AddPlayersScreen() {
                       loading={row.busy}
                       disabled={row.busy}
                       onPress={() => save(row)}
-                      style={styles.saveButton}
+                      style={styles.rowButton}
                       accessibilityLabel={`Save row ${index + 1}`}
                     >
                       Save
                     </Button>
                   )}
-                  <IconButton icon="delete-outline" size={18} style={styles.iconButton} iconColor={colors.error} disabled={row.busy} onPress={() => remove(row)} accessibilityLabel={`Delete row ${index + 1}`} />
                 </View>
+                {row.error ? (
+                  <Text variant="labelSmall" style={{ color: isNotReadyMessage(row.error) ? colors.onSurfaceVariant : colors.error }}>
+                    {row.error}
+                  </Text>
+                ) : null}
               </View>
-              {row.player ? (
-                <Text variant="labelSmall" style={[styles.meta, { color: colors.onSurfaceVariant }]}>
-                  {[saved ? labelFor(row.key) : null, badge ?? 'Player ID pending', 'Unregistered'].filter(Boolean).join(' · ')}
-                </Text>
-              ) : null}
-              {row.player && saved && clashNote(row.player) ? (
-                <View style={styles.clash}>
-                  <Icon source="information-outline" size={14} color={colors.onSurfaceVariant} />
-                  <Text variant="labelSmall" style={[styles.flex, { color: colors.onSurfaceVariant }]}>{clashNote(row.player)}</Text>
-                  <Button compact mode="text" onPress={() => setEditInitials(row.player!)} accessibilityLabel={`Edit initials for ${row.player.name}`}>Edit</Button>
-                </View>
-              ) : null}
-              {row.error ? (
-                <Text variant="labelSmall" style={[styles.meta, { color: isNotReadyMessage(row.error) ? colors.onSurfaceVariant : colors.error }]}>
-                  {row.error}
-                </Text>
-              ) : null}
-            </View>
-          );
-        })}
+            );
+          })}
+        </View>
+
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{NO_DELETE_NOTE}</Text>
       </ScrollView>
 
       <Portal>
-        {editInitials ? (
+        {editRow?.player ? (
           <InitialsDialog
-            name={editInitials.name}
-            current={initialsOf.get(editInitials.id)}
-            taken={takenFor(editInitials)}
+            name={editRow.player.name}
+            current={editRow.initials ?? initialsOf.get(editRow.player.id)}
+            taken={takenFor(editRow.player)}
             scope="my-players"
             busy={savingInitials}
-            onDismiss={() => setEditInitials(null)}
+            onDismiss={() => setEditRow(null)}
             onSave={saveInitials}
           />
         ) : null}
@@ -326,11 +319,7 @@ export default function AddPlayersScreen() {
               title="Playing in this game"
               emptyText="Nobody seated yet. Saved players are seated as you go."
             />
-          ) : (
-            <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }}>
-              {savedCount === 0 ? 'Nothing saved yet' : `${savedCount} saved`}
-            </Text>
-          )}
+          ) : null}
           <Button
             mode="contained"
             onPress={done}
@@ -339,7 +328,7 @@ export default function AddPlayersScreen() {
             labelStyle={styles.doneLabel}
             accessibilityLabel="Done adding players"
           >
-            Done
+            {savedCount === 0 ? 'Done' : `Done · ${savedCount} added`}
           </Button>
         </View>
       </BottomBar>
@@ -350,24 +339,16 @@ export default function AddPlayersScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { paddingTop: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm },
-  card: {
-    borderWidth: 1.5,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    gap: 2,
-  },
+  heading: { fontWeight: '800' },
+  card: { borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: spacing.sm },
+  row: { paddingVertical: spacing.sm, gap: 4 },
   line: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  num: { width: 18, textAlign: 'center' },
-  input: { width: 64, height: 44, backgroundColor: 'transparent' },
-  inputText: { textAlign: 'center', fontSize: 18, fontWeight: '700', letterSpacing: 1 },
-  actions: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 2 },
-  saveButton: { minWidth: 72 },
-  savedPill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, height: 32, borderRadius: radius.full },
-  iconButton: { margin: 0 },
-  meta: { paddingLeft: 22 },
-  clash: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 22 },
-  flex: { flex: 1 },
+  cell: { width: 56, height: 56 },
+  cellWide: { width: 72 },
+  cellText: { textAlign: 'center', fontSize: 24, fontWeight: '700', letterSpacing: 1 },
+  middle: { flex: 1, minWidth: 0, paddingLeft: spacing.xs },
+  label: { fontWeight: '800', letterSpacing: 1 },
+  rowButton: { minWidth: 72, borderRadius: radius.full },
   footer: { flex: 1, gap: spacing.sm },
   done: { borderRadius: radius.full },
   doneContent: { height: 60 },

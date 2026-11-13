@@ -77,7 +77,7 @@ export default function ScreensLayout() {
       <Stack.Screen
         name="players/add"
         options={{
-          title: 'Add New Players by Initials',
+          title: 'Add new players',
           headerBackVisible: false,
           gestureEnabled: false,
           headerRight: () => <HelpButton text={HELP.addPlayers} />,

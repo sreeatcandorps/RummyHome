@@ -1,0 +1,71 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# PR 6 (6.9): from Players/Admins of game E, Edit initials for Zed Zero → ZZ2 (a digit after the
+# letters is allowed) → Save sits above the keyboard → the scorecard column reads ZZ2. Then back
+# to ZZ so the fixture is unchanged for the other flows.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    id: "game-card-GAMEE1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- assertVisible: "ZZ"
+- tapOn: "Scorecard menu"
+- extendedWaitUntil:
+    visible: "Players/Admins"
+    timeout: 5000
+- tapOn: "Players/Admins"
+- extendedWaitUntil:
+    visible: "Add admin by Player ID"
+    timeout: 15000
+- tapOn: "Options for Zed Zero"
+- extendedWaitUntil:
+    visible: "Edit initials"
+    timeout: 5000
+- tapOn: "Edit initials"
+- extendedWaitUntil:
+    visible: "Initials for Zed Zero"
+    timeout: 5000
+- assertVisible: "Initials hint: Change the letters to save."
+- tapOn:
+    id: "initials-input"
+- eraseText
+- inputText: "ZZ2"
+- assertVisible: "Initials hint: 2 or 3 characters. The first is a letter, A to Z; the rest letters or digits."
+- assertVisible: "Save initials"
+- takeScreenshot: 31-edit-initials-mid-game
+- tapOn: "Save initials"
+- extendedWaitUntil:
+    notVisible: "Initials for Zed Zero"
+    timeout: 15000
+- assertVisible: "ZZ2"
+- tapOn: "Back to scorecard"
+- extendedWaitUntil:
+    visible: "Add round"
+    timeout: 15000
+- assertVisible: "ZZ2"
+- takeScreenshot: 31b-scorecard-after-edit
+- tapOn: "Scorecard menu"
+- tapOn: "Players/Admins"
+- extendedWaitUntil:
+    visible: "Add admin by Player ID"
+    timeout: 15000
+- tapOn: "Options for Zed Zero"
+- tapOn: "Edit initials"
+- extendedWaitUntil:
+    visible: "Initials for Zed Zero"
+    timeout: 5000
+- tapOn:
+    id: "initials-input"
+- eraseText
+- inputText: "ZZ"
+- tapOn: "Save initials"
+- extendedWaitUntil:
+    notVisible: "Initials for Zed Zero"
+    timeout: 15000
+- tapOn: "Back to scorecard"
+- extendedWaitUntil:
+    visible: "Add round"
+    timeout: 15000
+- assertVisible: "ZZ"

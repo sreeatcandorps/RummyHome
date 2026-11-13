@@ -7,6 +7,7 @@ import { playersService } from '@/services/players';
 import { storage } from '@/utils/storage';
 import { Player } from '@/types/player';
 import { NOT_READY_MESSAGE } from '@/utils/notReady';
+import { assignInitials, initialsProblem, normalizeInitials, pickFreeInitials } from '@/utils/initials';
 import { LINK_REQUEST_EXPIRY_DAYS, linkCompleteMessage, linkConflictSentence, LinkOutcome, LinkPreview, LinkRequestForMe, LinkRequestOutcome, localConflicts, localLinkedGame, localLinkPreview } from '@/utils/linkPlayer';
 import {
   acceptClaim,
@@ -54,6 +55,12 @@ const missingRpc = (error: unknown) => {
 
 /** RPCs that only read; every other one may change the roster, so the cached My Players list is dropped. */
 const READ_ONLY_RPCS = new Set(['list_my_player_links', 'list_claim_requests', 'take_creator_notices', 'list_my_unregistered_players', 'list_new_game_candidates', 'peek_claim_link', 'list_my_link_requests', 'list_link_requests_for_me', 'list_my_link_requests_v2', 'list_link_requests_for_me_v2']);
+/** 039 is not on the server yet. */
+export const INITIALS_NOT_READY = 'Adding players by initials needs the latest database update (039) before it works here.';
+
+/** What createPlayerByInitials hands back: the new player, what was typed and what was stored. */
+export type NewPlayerByInitials = { player: Player; typed: string; initials: string; takenBy: string | null };
+
 const LINK_NOT_READY = 'Linking to a Player ID needs the latest database update (025) before it works here.';
 
 const rpc = async <T,>(name: string, args: Record<string, unknown> = {}): Promise<T> => {
@@ -162,6 +169,54 @@ export const playerIdentityService = {
     await storage.addPlayer(player);
     await playersService.addMyPlayer(ownerId, player);
     return player;
+  },
+
+  /**
+   * Add new players by initials (PR 6). The typed label is the player's name (D6.2); when
+   * it is already someone's in My players the stored initials become the first free digit
+   * form (SK → SK2) and `takenBy` names who holds the typed one, for the note under the row.
+   */
+  async createPlayerByInitials(ownerId: string, typed: string): Promise<NewPlayerByInitials> {
+    const value = normalizeInitials(typed);
+    const problem = initialsProblem(value, new Map());
+    if (problem) throw new Error(problem);
+    if (isSupabaseConfigured) {
+      const row = first(await rpc<any>('create_player_by_initials', { p_initials: value }));
+      if (!row) throw new Error(INITIALS_NOT_READY);
+      const player = serverPlayer(row);
+      await playersService.addMyPlayer(ownerId, player).catch(() => {});
+      return { player, typed: value, initials: row.initials ?? value, takenBy: row.taken_by ?? null };
+    }
+    const mine = await playersService.readMyPlayers(ownerId);
+    const labels = assignInitials(mine.map((p) => ({ id: p.id, name: p.name, initials: p.initials, addedAt: p.addedAt })));
+    const taken = new Map(mine.map((p) => [labels.get(p.id) ?? '', p.name] as const).filter(([label]) => label));
+    const initials = pickFreeInitials(value, taken.keys());
+    const no = await takeLocalPlayerNo();
+    const player: Player = {
+      id: `np-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: initials, firstName: initials,
+      playerNo: no, playerCode: formatPlayerNo(no),
+      status: 'unregistered', managedBy: ownerId, role: 'player',
+    };
+    await storage.addPlayer(player);
+    await playersService.addMyPlayer(ownerId, player);
+    await playersService.setInitials(ownerId, player.id, initials);
+    return { player: { ...player, initials }, typed: value, initials, takenBy: taken.get(value) ?? null };
+  },
+
+  /**
+   * Edit initials from the Add new players screen: the label changes and, when the player's
+   * name was the initials (D6.2), the name follows so Results and the scorecard agree. The
+   * 039 RPC does the rename on the server; here only the local copy needs it.
+   */
+  async setInitialsAndName(ownerId: string, player: Player, previous: string | null | undefined, initials: string): Promise<string> {
+    const stored = await playersService.setInitials(ownerId, player.id, initials);
+    if (!isSupabaseConfigured && previous && player.name === normalizeInitials(previous)) {
+      const found = (await storage.getPlayers()).find((p) => p.id === player.id);
+      if (found) await storage.updatePlayer({ ...found, name: stored, firstName: stored });
+      await playersService.addMyPlayer(ownerId, { ...player, name: stored }).catch(() => {});
+    }
+    return stored;
   },
 
   async updateNewPlayer(ownerId: string, playerId: string, firstName: string, lastName: string): Promise<Player> {

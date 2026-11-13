@@ -48,7 +48,8 @@ night_mode() {
 
 failed=0
 total=0
-for f in $(ls "$SET_DIR"/*.yaml | sort); do
+# An empty set (every known bug fixed) is a pass with zero flows.
+for f in $(ls "$SET_DIR"/*.yaml 2>/dev/null | sort); do
   name="$(basename "$f" .yaml)"
   total=$((total + 1))
   case "$name" in *landscape*) rotate 1 ;; *) rotate 0 ;; esac
