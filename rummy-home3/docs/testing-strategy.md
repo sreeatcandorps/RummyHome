@@ -209,6 +209,21 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | A3-8 | S | `smoke/14-rummy-positive-pot.yaml` | Game H: +50 typed (yellow cell screenshot, light green saved cell), Drop, Rummy → "Priya Test, score -40", Balance 0, Save on → "Rummy share is not a win" confirm → Yes, save → Round 2 |
 | A3-9 | N | `full/80-add-round-count-warnings.yaml` | Typing 1-2 shows no dialog, 1-2-0 shows "Over the Full count … Keep -120" once; Keep leaves -120 typed with the warning line; 40 shows "40 is half the Full count (80)." with no dialog |
 
+## PR 5 test cases (Home bottom buttons, My players badge, Light default, game numbers 038)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| H5-1 | U | `tests/home-pr5.test.ts` H5-1 | Badge text: count, `99+` past 99, nothing while unknown; spoken label "My players · N" |
+| H5-2 | U | same H5-2 | Bottom bar items are Home and Profile only; the players route is `href: null` with a "Back to Home" arrow; a route with no item is not drawn |
+| H5-3 | U | same H5-3 | Results and My players share one row where Results was; cached count then fresh; Live / Recent headers, the game cards and New game are unchanged (Sree: buttons only) |
+| H5-4 | U | same H5-4, `tests/design-nov12.test.ts` | `DEFAULT_APPEARANCE = 'light'` read by the context (default + initial state) and the settings reader; a saved Phone / Dark choice wins; `app.json` keeps `automatic` so Phone still follows the OS |
+| H5-5 | U | same H5-5, `tests/build4.test.ts` | Home help: "Two buttons…", badge sentence |
+| H5-6 | U | `tests/game-labels-028.test.ts` | Local games: completed games free their number (038 rule), a live one holds it |
+| H5-7 | D | `supabase/tests/28_game_numbers_038.sql` | Fresh circle S1, S2; Completed → next is S1 again; Closed and Deleted free; the lowest hole is filled; Pool is its own series; another circle holds P1 / S1 at the same time; a My players member's live seat counts and stops counting on completion; a Reopened game keeps its label (two live S1, flagged); labels never change; no backfill |
+| H5-8 | D | `ci/db/replay-rollbacks.sh` | Rollback 038 restores the 028 rule (Completed blocks); forward replay restores 038; safe to run twice |
+| H5-9 | S | `smoke/01-home.yaml`, `smoke/08-my-players.yaml` | Home: `home-my-players` button with `home-my-players-badge`, bottom bar "Home" + "Your profile"; My players opens from the button, "Back to Home" returns |
+| H5-10 | N | `full/60-dark-mode.yaml`, `full/61-first-launch-light-night-phone.yaml` | Dark set and back to Light (the default); `ci/ui/run-flows.sh` turns night mode on for `*night-phone*`: a cleared first launch on a dark phone opens Light (screenshot) |
+
 ## PR 4 test cases (Scorecard header, one scroller, players chip, footer lines; no migration)
 
 | # | Kind | Where | What it proves |

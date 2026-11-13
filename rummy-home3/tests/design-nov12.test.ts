@@ -35,12 +35,13 @@ test('design: Clubhouse tokens — button green with a pressable edge, light and
   assert.match(src('app.json'), /"userInterfaceStyle": "automatic"/);
 });
 
-test('design: appearance follows the phone by default; the saved dark switch still means Dark', () => {
+test('design: appearance is Light by default (PR 5); "Phone" stays a choice; the saved dark switch still means Dark', () => {
   assert.deepEqual(APPEARANCE_OPTIONS.map((o) => o.value), ['system', 'light', 'dark']);
-  assert.equal(appearanceFromSettings(undefined), 'system');
-  assert.equal(appearanceFromSettings({}), 'system');
+  assert.equal(appearanceFromSettings(undefined), 'light');
+  assert.equal(appearanceFromSettings({}), 'light');
   assert.equal(appearanceFromSettings({ darkMode: true }), 'dark');
-  assert.equal(appearanceFromSettings({ darkMode: false }), 'system');
+  assert.equal(appearanceFromSettings({ darkMode: false }), 'light');
+  assert.equal(appearanceFromSettings({ appearance: 'system' }), 'system', 'someone who chose Phone keeps it');
   assert.equal(appearanceFromSettings({ appearance: 'light', darkMode: true }), 'light', 'an explicit appearance wins');
   assert.equal(resolveDarkMode('system', 'dark'), true);
   assert.equal(resolveDarkMode('system', 'light'), false);
@@ -182,7 +183,7 @@ test('design: Add round — selected cell yellow, saved win light green with a g
   assert.ok(!/SeatAvatar name=\{scorerName\} size=\{3\d\} color=\{colors\.primary\}/.test(entry), 'the scorer avatar is a seat colour');
 });
 
-test('final batch 10: bottom bar is three same-size icon-only buttons; the profile one is a plain circle of initials', () => {
+test('final batch 10 / PR 5: bottom bar is two same-size icon-only buttons (Home, Profile); the profile one is a plain circle of initials', () => {
   const tabs = src('components/ui/TabBarButtons.tsx');
   assert.match(tabs, /flex: 1,/, 'every button takes the same share of the row');
   assert.doesNotMatch(tabs, /flex\?: number|avatarPill|<Text/, 'no per-item widths, no drawn labels');
@@ -192,7 +193,7 @@ test('final batch 10: bottom bar is three same-size icon-only buttons; the profi
   assert.match(tabs, /backgroundColor: focused \? colors\.primary : colors\.surfaceSunken/, 'current button filled, others outlined, like every button');
   const layout = src('app/(tabs)/_layout.tsx');
   assert.match(layout, /index: \{ kind: 'icon', icon: 'home-variant', label: 'Home' \}/);
-  assert.match(layout, /players: \{ kind: 'icon', icon: 'account-group', label: playersLabel \}/);
+  assert.doesNotMatch(layout, /players: \{ kind: 'icon'/, 'PR 5: My players left the bar');
   assert.match(layout, /me: \{ kind: 'avatar', name: myName, label: 'Your profile' \}/);
   assert.doesNotMatch(layout, /flex: 1\.45/);
   assert.match(HELP.home, /## Bottom bar/);

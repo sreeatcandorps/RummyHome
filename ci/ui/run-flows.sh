@@ -2,7 +2,8 @@
 # Run every Maestro flow in one e2e set, in file-name order, against the app already installed on the
 # connected emulator. One JUnit file and one debug folder per flow; the screenshots a flow takes land
 # in <out>/screens. Flows whose file name contains "landscape" run with the emulator turned sideways;
-# flows whose file name contains "font-scale" run with the phone font at 1.3x (PR 4: nothing may clip).
+# flows whose file name contains "font-scale" run with the phone font at 1.3x (PR 4: nothing may clip);
+# flows whose file name contains "night-phone" run with the phone in dark mode (PR 5: the app opens Light).
 #
 #   ci/ui/run-flows.sh <set-dir> <out-dir> [--quarantine]
 #
@@ -40,6 +41,11 @@ font_scale() {
   echo "font scale now: $(adb shell settings get system font_scale 2>/dev/null || echo unknown)"
 }
 
+night_mode() {
+  adb shell cmd uimode night "$1" >/dev/null 2>&1 || true
+  sleep 2
+}
+
 failed=0
 total=0
 for f in $(ls "$SET_DIR"/*.yaml | sort); do
@@ -47,6 +53,7 @@ for f in $(ls "$SET_DIR"/*.yaml | sort); do
   total=$((total + 1))
   case "$name" in *landscape*) rotate 1 ;; *) rotate 0 ;; esac
   case "$name" in *font-scale*) font_scale 1.3 ;; *) font_scale 1.0 ;; esac
+  case "$name" in *night-phone*) night_mode yes ;; *) night_mode no ;; esac
 
   echo "::group::flow $name"
   start=$(date +%s)
@@ -78,6 +85,7 @@ for f in $(ls "$SET_DIR"/*.yaml | sort); do
 done
 rotate 0
 font_scale 1.0
+night_mode no
 
 echo "$SET_DIR: $((total - failed))/$total flows passed"
 if [ "$failed" -gt 0 ] && [ "$QUARANTINE" -eq 0 ]; then

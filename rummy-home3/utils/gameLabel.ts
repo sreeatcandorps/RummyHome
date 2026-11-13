@@ -33,19 +33,19 @@ export function gameLabelList(labels: readonly string[] | null | undefined): str
 }
 
 /**
- * Local (no Supabase) games: the same rule as next_game_number, over the games this device
- * knows. Lowest number not used by a live or completed, not closed, not deleted game of the
- * same prefix that the creator created or sits in.
+ * Local (no Supabase) games: the same rule as next_game_number (038), over the games this
+ * device knows. Lowest number not used by an ACTIVE (not completed, not closed, not deleted)
+ * game of the same prefix that the creator created or sits in.
  */
 export function nextLocalGameLabel(
-  games: readonly { gameLabel?: string | null; gameNumber?: number | null; gameType?: 'stake' | 'pool' | null; createdBy?: string | null; players?: string[]; closedAt?: string | null; deletedAt?: string | null }[],
+  games: readonly { gameLabel?: string | null; gameNumber?: number | null; gameType?: 'stake' | 'pool' | null; createdBy?: string | null; players?: string[]; isComplete?: boolean; closedAt?: string | null; deletedAt?: string | null }[],
   creatorId: string,
   gameType: 'stake' | 'pool',
 ): string {
   const prefix = gameLabelPrefix(gameType);
   const taken = new Set<number>();
   for (const game of games) {
-    if (game.closedAt || game.deletedAt) continue;
+    if (game.isComplete || game.closedAt || game.deletedAt) continue;
     if (game.createdBy !== creatorId && !(game.players ?? []).includes(creatorId)) continue;
     const label = gameLabelOf(game);
     if (!label || label[0] !== prefix) continue;

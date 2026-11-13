@@ -6,8 +6,14 @@ tags: [smoke]
 - assertVisible: "New game"
 - assertVisible: "Results"
 - assertNotVisible: "Settle"
+# PR 5: My players is a Home button beside Results with its count badge; the bottom bar is Home and Profile.
+- assertVisible:
+    id: "home-my-players"
+- assertVisible:
+    id: "home-my-players-badge"
 - assertVisible:
     text: "Live.*"
+- assertVisible: "Home"
 - assertVisible: "Your profile"
 - takeScreenshot: 01-home
 - scrollUntilVisible:

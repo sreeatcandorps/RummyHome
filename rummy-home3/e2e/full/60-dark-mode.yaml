@@ -38,5 +38,6 @@ tags: [nightly]
 - extendedWaitUntil:
     visible: "Appearance"
     timeout: 15000
-- tapOn: "Phone"
+# PR 5: Light is the default, so the set is left as a fresh install would be.
+- tapOn: "Light"
 - assertVisible: "Appearance"

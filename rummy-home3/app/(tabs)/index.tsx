@@ -7,6 +7,8 @@ import { Player } from '@/types/player';
 import { Game } from '@/types/game';
 import { gamesService } from '@/services/games';
 import { homeService } from '@/services/home';
+import { playersService } from '@/services/players';
+import { myPlayersAccessibilityLabel, myPlayersBadge } from '@/utils/homeButtons';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { settleEnabled } from '@/constants/features';
 import { splitHomeGames } from '@/utils/homeGames';
@@ -42,6 +44,8 @@ export default function Dashboard() {
   const [recentGames, setRecentGames] = useState<Game[]>([]);
   const [claimRequests, setClaimRequests] = useState<PendingLink[] | null>(null);
   const [linkRequests, setLinkRequests] = useState<LinkRequestForMe[] | null>(null);
+  // The My players button's badge (PR 5, D5.3): cached count at once, then the fresh one.
+  const [playerCount, setPlayerCount] = useState<number | null>(null);
   // One-time pop-ups (025): "Harish (HG) is now linked to #40." for the organiser, shown once each.
   const [popups, setPopups] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +66,11 @@ export default function Dashboard() {
       }
       setCurrentPlayer(home.player);
       setRecentGames(home.games);
+      playersService.readMyPlayers(home.player.id)
+        .then((cached) => { if (cached.length > 0) setPlayerCount(cached.length); })
+        .then(() => playersService.listMyPlayers(home.player.id))
+        .then((fresh) => setPlayerCount(fresh.length))
+        .catch(() => {});
       setClaimRequests(home.claimRequests);
       setLinkRequests(home.linkRequests);
       const linked = home.notices.filter((n) => n.kind === 'linked').map((n) => n.text);
@@ -91,20 +100,44 @@ export default function Dashboard() {
     </SectionCardRows>
   ), [viewerId]);
 
+  // PR 5: Results and My players side by side where Results was; the bottom bar is Home and Profile.
+  const badge = myPlayersBadge(playerCount);
   const resultsButton = (
-    <Button
-      mode="contained"
-      icon="podium"
-      buttonColor={colors.secondaryContainer}
-      textColor={colors.onSecondaryContainer}
-      onPress={() => router.push('/(screens)/results')}
-      style={styles.results}
-      contentStyle={styles.resultsContent}
-      labelStyle={styles.resultsLabel}
-      accessibilityLabel="Results"
-    >
-      Results
-    </Button>
+    <View style={styles.actionRow}>
+      <Button
+        mode="contained"
+        icon="podium"
+        buttonColor={colors.secondaryContainer}
+        textColor={colors.onSecondaryContainer}
+        onPress={() => router.push('/(screens)/results')}
+        style={styles.results}
+        contentStyle={styles.resultsContent}
+        labelStyle={styles.resultsLabel}
+        accessibilityLabel="Results"
+      >
+        Results
+      </Button>
+      <View style={styles.results}>
+        <Button
+          mode="contained"
+          icon="account-group"
+          buttonColor={colors.secondaryContainer}
+          textColor={colors.onSecondaryContainer}
+          onPress={() => router.push('/(tabs)/players')}
+          contentStyle={styles.resultsContent}
+          labelStyle={styles.resultsLabel}
+          accessibilityLabel={myPlayersAccessibilityLabel(playerCount)}
+          testID="home-my-players"
+        >
+          My players
+        </Button>
+        {badge ? (
+          <View style={[styles.badge, { backgroundColor: colors.leaderContainer, borderColor: colors.background }]} pointerEvents="none" testID="home-my-players-badge">
+            <Text variant="labelMedium" style={[styles.badgeText, { color: colors.onLeaderContainer }]}>{badge}</Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
   );
 
   const settleButton = settleEnabled ? (
@@ -263,9 +296,30 @@ const styles = StyleSheet.create({
   errorBox: {
     marginBottom: spacing.md,
   },
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
   results: {
+    flex: 1,
     marginBottom: spacing.lg,
     borderRadius: 16,
+  },
+  badge: {
+    position: 'absolute',
+    top: -8,
+    right: -4,
+    minWidth: 26,
+    height: 26,
+    paddingHorizontal: 6,
+    borderRadius: 13,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
   },
   resultsContent: {
     minHeight: 56,

@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { Tabs, usePathname } from 'expo-router';
-import { Text } from 'react-native-paper';
+import { router, Tabs, usePathname } from 'expo-router';
+import { IconButton, Text } from 'react-native-paper';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { PillTabBar } from '@/components/ui/TabBarButtons';
 import { HELP } from '@/constants/help';
 import { authService } from '@/services/auth';
-import { playersService } from '@/services/players';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 /** The logo and the name, nothing else (final batch item 11: no version number beside the icon). The version is at the foot of Profile. */
@@ -50,35 +49,19 @@ function HeaderTools() {
   );
 }
 
+/** The My players page is reached from Home (PR 5), so its header carries a back arrow to Home. */
+function BackToHome() {
+  const theme = useAppTheme();
+  return <IconButton icon="arrow-left" iconColor={theme.colors.onSurface} onPress={() => router.navigate('/(tabs)')} accessibilityLabel="Back to Home" style={styles.back} />;
+}
+
 export default function TabLayout() {
   const theme = useAppTheme();
   const { isShort } = useLayout();
-  const path = usePathname();
-  const [playerCount, setPlayerCount] = useState<number | null>(null);
   const myName = useMyName();
-  const playersLabel = playerCount != null ? `My players · ${playerCount}` : 'My players';
 
-  // Re-count on every tab change so "My players · N" matches the list right after adding people.
-  useEffect(() => {
-    const loadPlayerCount = async () => {
-      try {
-        const player = await authService.getCurrentPlayer();
-        if (player) {
-          const cached = await playersService.readMyPlayers(player.id);
-          if (cached.length > 0) {
-            setPlayerCount(cached.length);
-          }
-          const fresh = await playersService.listMyPlayers(player.id);
-          setPlayerCount(fresh.length);
-        }
-      } catch {
-        // Ignore errors, count will update when Players tab loads
-      }
-    };
-    loadPlayerCount();
-  }, [path]);
-
-  // The account chip lives in the tab bar only (no duplicate in the header of tab pages).
+  // PR 5: two bottom buttons (Home, Profile). The players route stays (href null) and is opened
+  // from the My players button on Home, which carries the count badge.
   return (
     <Tabs
       tabBar={(props) => (
@@ -87,7 +70,6 @@ export default function TabLayout() {
           compact={isShort}
           items={{
             index: { kind: 'icon', icon: 'home-variant', label: 'Home' },
-            players: { kind: 'icon', icon: 'account-group', label: playersLabel },
             me: { kind: 'avatar', name: myName, label: 'Your profile' },
           }}
         />
@@ -113,7 +95,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="players"
         options={{
-          title: playersLabel,
+          title: 'My players',
+          href: null,
+          headerLeft: () => <BackToHome />,
         }}
       />
       <Tabs.Screen
@@ -154,5 +138,8 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  back: {
+    marginLeft: spacing.xs,
   },
 });

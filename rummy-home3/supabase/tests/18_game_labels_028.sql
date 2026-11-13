@@ -62,11 +62,11 @@ insert into public.games (id, created_by, status, game_type, settings, share_cod
 values ('10000000-0000-4000-8000-0000000000f1', :HARISH, 'active', 'stake', :STAKE::jsonb, 'GAMEF1');
 select is((select game_label from public.games where id = '10000000-0000-4000-8000-0000000000f1'), 'S2', 'harish gets S2: a My players member sits in live S1');
 
--- completed (not closed) still blocks; closed frees; deleted frees
+-- 038: a completed game frees its number, but harish (in sree's list) holds S2 live (f1); closed frees; deleted frees
 update public.games set status = 'completed', completed_at = now() where id = '10000000-0000-4000-8000-0000000000d0';
 insert into public.games (id, created_by, status, game_type, settings, share_code)
 values ('10000000-0000-4000-8000-0000000000d1', :SREE, 'active', 'stake', :STAKE::jsonb, 'GAMED1');
-select is((select game_label from public.games where id = '10000000-0000-4000-8000-0000000000d1'), 'S3', 'a completed game still holds its number (S2), so the next is S3');
+select is((select game_label from public.games where id = '10000000-0000-4000-8000-0000000000d1'), 'S3', 'd0 (completed) no longer holds S2 (038), but harish''s live f1 is S2, so the next is S3');
 update public.games set closed_at = now() where id = '10000000-0000-4000-8000-0000000000d0';
 insert into public.games (id, created_by, status, game_type, settings, share_code)
 values ('10000000-0000-4000-8000-0000000000d2', :SREE, 'active', 'stake', :STAKE::jsonb, 'GAMED2');
