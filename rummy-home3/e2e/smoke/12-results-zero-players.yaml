@@ -1,10 +1,10 @@
 appId: com.mindweavetech.rummyhome
-tags: [known-bug, pr8]
-# PR 8: a completed game with seated players but no saved rounds must show its players in a saved
-# result ("1 game · 6 players"). Today declare_game_result builds standings from score rows only,
-# so the saved result says "1 game · 0 players". Expected RED until PR 8 lands.
+tags: [smoke, pr8]
+# PR 8 (migration 034): a completed game with seated players but no saved rounds shows its players
+# in a saved result ("1 game · 6 players", every total 0). Before 034 the standings came from score
+# rows only and the saved result said "1 game · 0 players". Was known-bugs/pr8; blocking since PR 8.
 # Fixture: game G (GAMEG1), completed, 6 seated, 0 rounds, sree creator. Game A is unticked first
-# when it is listed (it is Completed and ticked by default once smoke/05 has run).
+# when it is listed (it is Completed and ticked by default once smoke/05 has run). Saving closes G.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Results"
@@ -22,10 +22,14 @@ tags: [known-bug, pr8]
     id: "game-card-GAMEG1"
 - tapOn: "Show results"
 - extendedWaitUntil:
-    visible: "Totals"
+    visible: "Scores"
     timeout: 20000
 - assertVisible: "1 game · 6 players"
-- takeScreenshot: pr8-results-preview-no-rounds
+- assertVisible:
+    id: "results-band-table"
+- assertVisible: "Games in this result"
+- assertVisible: "Even: .*"
+- takeScreenshot: 12-results-preview-no-rounds
 - tapOn:
     id: "results-save-button"
 - extendedWaitUntil:
@@ -33,7 +37,10 @@ tags: [known-bug, pr8]
     timeout: 20000
 - tapOn: "OK, open the saved result"
 - extendedWaitUntil:
-    visible: "Totals"
+    visible: "Scores"
     timeout: 20000
-- takeScreenshot: pr8-results-saved-no-rounds
+- takeScreenshot: 12-results-saved-no-rounds
 - assertVisible: "1 game · 6 players"
+- assertVisible:
+    id: "results-band-table"
+- assertVisible: "Games in this result"

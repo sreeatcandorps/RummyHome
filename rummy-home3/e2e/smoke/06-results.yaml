@@ -16,12 +16,16 @@ tags: [smoke]
 - takeScreenshot: 06-results-picker
 - tapOn: "Show results"
 - extendedWaitUntil:
-    visible: "Totals"
+    visible: "Scores"
     timeout: 20000
 - assertVisible:
     text: "\\d+ games? · \\d+ players"
 - assertVisible:
     id: "results-save-button"
+# PR 8 design: ranked scores split, bordered bands of five games, the games list.
+- assertVisible:
+    id: "results-band-table"
+- assertVisible: "Games in this result"
 - takeScreenshot: 06b-results-one-game
 - tapOn: "Help"
 # The results help is long and opens scrolled, so wait for a sentence from it rather than the title.
@@ -30,4 +34,4 @@ tags: [smoke]
     timeout: 5000
 - takeScreenshot: 06c-results-help
 - back
-- assertVisible: "Totals"
+- assertVisible: "Scores"

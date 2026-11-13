@@ -89,7 +89,7 @@ After any scoring or schema change:
 | --- | --- | --- | --- |
 | `e2e/smoke/` | every pull request (`ui-smoke`) | sign in, Home, Scorecard (4 and 20 players, portrait and landscape), Add round (drops + rummy, save), Complete game, Results, Profile, My players, New game | the PR does not merge |
 | `e2e/full/` | nightly and `workflow_dispatch` (`ui-full`) | sign out / wrong passcode, 20-player scorecard swiped to the last column, Players · Admins, Game settings, Save result and Past results, every Help note, dark appearance | fix before the next APK |
-| `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 2 undo→add round, PR 3 rummy with a positive pot, PR 6 initials clash → HT2, PR 8 results with 0 players) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
+| `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 2 undo→add round, PR 3 rummy with a positive pot, PR 6 initials clash → HT2; PR 8's 0-players flow moved to `smoke/12` when PR 8 landed) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
 
 Every flow starts from `e2e/lib/ensure-signed-in.yaml` (sign in only when the login screen is showing), uses the seeded account `sree@test.local` / `123456` (local database only), and ends with `takeScreenshot`. Landscape flows (file name contains `landscape`) rotate with Maestro's `setOrientation` once the app is up; the runner also rotates the emulator for them (`adb shell wm set-user-rotation`). Fixtures the flows rely on are in `supabase/seed-e2e.sql`: game A `GAMEA1` (4 players, 2 rounds, from `seed.sql`), E `GAMEE1` (4 players, 1 round), H `GAMEH1` (3 players, no rounds), G `GAMEG1` (completed, 6 seated, no rounds), F `GAMEF1` (20 players × 30 rounds). Which flow changes what, and in which order they must run, is in `e2e/README.md`.
 
@@ -139,9 +139,12 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | Complete game | confirm, points only, status to Completed | U, S | **S** | `smoke/05` |
 | Results | picker chips, tick rules, non-admin message | U, S (picker) | N | `smoke/06` |
 | | show results 1 game / 5 games / 30 × 20 | U, volume, S (1 game) | **S** (1 game), N (30 × 20) | `smoke/06` |
+| | PR 8 design: ranked split + medals, bands of five games with borders, legend, Games in this result | U (model, HTML, CSS parity), S | **S** | `smoke/06`, `smoke/12` |
 | | save result (completed → closed), closed-reuse warning | U, D, N | N | `full/40` |
-| | 0 players in a saved result when the game has no rounds | known-bug | U + D + N | `known-bugs/pr8` → PR 8 |
-| | share image / PDF match screen | U | N (share sheet screenshot) | — |
+| | 0 players in a saved result when the game has no rounds (034) | U, D (pgTAP 24), S | U + D + **S** | `smoke/12` |
+| | result versions after a game is deleted; `/r/` page shows the edited notice and older versions (034) | D (pgTAP 24), U (page source) | D + N (web screenshot) | — |
+| | share image (summary only, generator initials, cap 8 a side) / PDF (phone pages, 16 px) match screen | U | N (share sheet screenshot) | — |
+| | single game: Final scores card (standings) + rounds in blocks of five, Rounds PDF, web scorecard blocks | U | **S** (button visible), N | `smoke/05` |
 | | past results list, result detail, "Games in this result" | U, N (list) | N | `full/40` |
 | | delete result (PR 9) | D (023) | U + D + N | — |
 | | public `/r/` page, result emails (024) | D | D | — |
@@ -150,11 +153,31 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | Offline / degraded | cached scorecard opens, save fails with a message, retry | U | N | — |
 | Help | every ? opens and closes, text fits | N | N (PR 12 adds one flow per screen) | `full/50`, `smoke/02`, `smoke/06` |
 
-**Smoke set on every PR (11 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add New Players by Initials) → Scorecard 20p → Scorecard 20p landscape. Undo → Add round joins the smoke set with PR 2.
+**Smoke set on every PR (12 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add New Players by Initials) → Scorecard 20p → Scorecard 20p landscape → Results with no rounds (game G, 6 players, saved). Undo → Add round joins the smoke set with PR 2.
 
 **Nightly / before each APK:** the smoke set, everything marked N, dark appearance, plus C and the volume scripts monthly.
 
 **Stays unit / DB only:** pure math (`scoring`, `rummyDistribution`, `initials`), RLS and grants, migrations / rollbacks, guardrail counts, label numbering, result JSON shapes.
+
+## PR 8 test cases (Results design, migration 034)
+
+Each case names the layer, the steps and what must be true. U = `npm test`, D = `ci/db/local-run.sh`, S = `e2e/smoke`, M = by hand on the emulator or phone.
+
+| # | Layer | Steps | Expected |
+|---|---|---|---|
+| R8-1 | U | `tests/results-design.test.ts` | Positive totals left with medals on the top three (competition rank: two +40s are both gold, the next is bronze), negatives right closest to zero first, "Even:" line for zeros; 7 games → 2 bands (5 + 2, the second padded to five); legend "RK #8 Ravi Kumar"; Games block lines: bold time then date, "N players · N rounds · *Game ID CODE*", "Creator … · Admins …" |
+| R8-2 | U | `tests/results-design.test.ts` (CSS parity) | `RESULTS_DESIGN_CSS` in `utils/resultsDetails.ts` is byte-for-byte inside `public/r/index.html` (`.box`, `.box.head`, `.medal`, `.m1`, `.pl`, `.gid`); PDF HTML has four `.page` sections at 390 × 780 |
+| R8-3 | U | `tests/final-scores.test.ts` | Single game: `sheet.card` is the standings card titled "Game S3 Final Scores", footer "Game S3", never the word Results; 7 players → blocks 5 + 2 with the game total in each head; `public/scorecard.html` has `BLOCK = 5` and equals `web/scorecard.html` |
+| R8-4 | D | `supabase/tests/24_results_design_034.sql` | Game with 4 seated, a spectator and a non-playing admin and **no rounds** → 4 standings at 0; re-declare with one player unseated keeps their −25; `public_result(id)` carries version, creatorName, adminNames (creator excluded), roundCount, declarerName; `delete_game` on a game in a result → version 2 with note "… removed · game deleted", `public_result(id, 1)` still shows the game; `delete_result` → `deleted: true`, old versions still readable |
+| R8-5 | D | `ci/db/replay-rollbacks.sh` | Rollback 034 restores the 024 `declare_game_result` and the one-argument `public_result`; forward replay restores the table, trigger and two-argument function |
+| R8-6 | S | `smoke/06-results.yaml` | Game A: "Scores" heading, `results-band-table`, "Games in this result", Save button; Help opens |
+| R8-7 | S | `smoke/12-results-zero-players.yaml` | Game G (6 seated, 0 rounds): preview says "1 game · 6 players" and "Even: …"; after Save the saved result says the same and shows the band table and the games list |
+| R8-8 | S | `smoke/05-complete-game.yaml` | After Complete game the "Share final scores" button is visible (image path unchanged for Maestro) |
+| R8-9 | M | Results → Show results (7 games) → Share icon | Dialog shows the one-page card: counts line, two columns with medals, "Generated by SK" (initials), link; tapping Share full details (PDF) opens the share sheet with a 4-section PDF whose band borders match the header |
+| R8-10 | M | Show results with 30 games | Six bands; every band header and every row band is a bordered box of five; legend wraps; no horizontal scroll |
+| R8-11 | M | Scorecard › ⋮ › Share final scores | Standings card on top, "Round by round" blocks below, two buttons: Rounds (PDF) and Share final scores (image). The card has no "Results" wording |
+| R8-12 | M (web) | `/r/<id>` after 034 | Same bands, medals and games list as the app; after a game in the result is deleted a blue "edited after it was saved" notice lists versions and `?v=1` opens the first; a deleted result shows the red notice |
+| R8-13 | M (web) | `/scorecard?t=…` | Blocks of five players with totals in the head, green header, win cells tinted, divider where the first dealer deals again |
 
 ## Phone pass (manual, milestone APKs only)
 
