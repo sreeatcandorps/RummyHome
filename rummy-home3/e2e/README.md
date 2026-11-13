@@ -9,7 +9,7 @@ journey is covered where is in `docs/testing-strategy.md`.
 | Folder | Runs | Blocks |
 | --- | --- | --- |
 | `lib/` | shared pieces (`ensure-signed-in`, `sign-in`), never run on their own | — |
-| `smoke/` | every push and pull request, and in the nightly | yes: a failed flow fails `ui-smoke` |
+| `smoke/` | every pull request, and in the nightly | yes: a failed flow fails `ui-smoke` |
 | `full/` | nightly (`schedule`) and `workflow_dispatch` | yes, in `ui-full` |
 | `known-bugs/` | both suites, after the sets above | no (quarantined). One flow per bug from the Nov 12 phone test, named after the PR that fixes it. That PR moves the flow into `smoke/` or `full/`, where it becomes blocking |
 

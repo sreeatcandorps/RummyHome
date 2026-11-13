@@ -87,7 +87,7 @@ After any scoring or schema change:
 
 | Set | When | What | Red means |
 | --- | --- | --- | --- |
-| `e2e/smoke/` | every push and pull request (`ui-smoke`) | sign in, Home, Scorecard (4 and 20 players, portrait and landscape), Add round (drops + rummy, save), Complete game, Results, Profile, My players, New game | the PR does not merge |
+| `e2e/smoke/` | every pull request (`ui-smoke`) | sign in, Home, Scorecard (4 and 20 players, portrait and landscape), Add round (drops + rummy, save), Complete game, Results, Profile, My players, New game | the PR does not merge |
 | `e2e/full/` | nightly and `workflow_dispatch` (`ui-full`) | sign out / wrong passcode, Players · Admins, Game settings, Save result and Past results, every Help note, dark appearance | fix before the next APK |
 | `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 2 undo→add round, PR 3 rummy with a positive pot, PR 6 initials clash → HT2, PR 8 results with 0 players) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
 

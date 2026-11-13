@@ -9,7 +9,7 @@
 # How to read the result: open the run → "Summary" → scroll to "EZ Score test report".
 # Or download the "test-report-<branch>" artifact and open report.md.
 #
-# Device UI tests (job "ui-smoke" on every push/PR, "ui-full" nightly and on demand) build the app
+# Device UI tests (job "ui-smoke" on every pull request, "ui-full" nightly and on demand) build the app
 # with Gradle on the runner, point it at the same throw-away local Supabase, and drive it on an
 # Android emulator with Maestro (rummy-home3/e2e). Screenshots: "ui-screenshots-<branch>" artifact,
 # open ui/index.html. Details: rummy-home3/e2e/README.md and docs/testing-strategy.md.
@@ -291,7 +291,7 @@ jobs:
   # ------------------------------------------------------------------------------------------------
   # Device UI tests: the real Android app on an emulator, driven by Maestro flows (rummy-home3/e2e).
   #
-  #   ui-smoke  every push and pull request. Sets: smoke (blocking) + known-bugs (quarantined: these
+  #   ui-smoke  every pull request (not plain pushes). Sets: smoke (blocking) + known-bugs (quarantined: these
   #             flows describe behaviour a later PR fixes; they are expected to fail until then and
   #             never fail the job).
   #   ui-full   nightly and workflow_dispatch. Sets: smoke + full + known-bugs.
@@ -304,6 +304,9 @@ jobs:
   # ------------------------------------------------------------------------------------------------
   ui:
     name: ui-${{ matrix.suite }} (${{ github.head_ref || github.ref_name }})
+    # Not on plain pushes: every branch here has a pull request, and the PR run is the one that counts.
+    # Running on both would double the emulator minutes for the same commit.
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 75
     permissions:
@@ -357,7 +360,14 @@ jobs:
       - name: Start a throw-away local Supabase
         working-directory: rummy-home3
         run: |
-          supabase start -x studio,imgproxy,edge-runtime,logflare,vector 2>&1 | grep -viE 'key|secret|token' || true
+          # No mail container either (the UI tests send nothing); its host port has clashed on a runner before.
+          for attempt in 1 2 3; do
+            supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1; rc=$?
+            grep -viE 'key|secret|token' /tmp/supabase-start.log || true
+            [ "$rc" -eq 0 ] && break
+            echo "supabase start failed (attempt $attempt), retrying"; supabase stop --no-backup || true; sleep 10
+          done
+          psql "$DB_URL" -tAc "select version()"
           supabase db reset 2>&1 | tail -3
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
           psql "$DB_URL" -tAc "select count(*) || ' games seeded for the UI tests' from public.games"
