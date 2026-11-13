@@ -18,8 +18,12 @@ tags: [smoke]
 - assertVisible: "TA"
 - takeScreenshot: 10-scorecard-20p
 # As few commands as possible: each one re-reads the 600-cell hierarchy (~90 s on the runner).
+# "TU" is also the dealer label of round 20 in the fixed RND column, so wait for a second TU on
+# screen: the header cell of the last column.
 - scrollUntilVisible:
-    element: "TU"
+    element:
+      text: "TU"
+      index: 1
     direction: RIGHT
     speed: 60
     timeout: 180000
