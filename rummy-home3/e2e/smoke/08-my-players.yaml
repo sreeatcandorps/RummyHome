@@ -1,0 +1,19 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# My players tab: the roster with A-Z sections, search, the two add tiles.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    text: "My players.*"
+- extendedWaitUntil:
+    visible: "Harish Test"
+    timeout: 15000
+- assertVisible: "Add new players"
+- assertVisible: "Find player in database"
+- takeScreenshot: 08-my-players
+- tapOn: "Search name or player ID"
+- inputText: "Pri"
+- assertVisible: "Priya Test"
+- assertNotVisible: "Harish Test"
+- takeScreenshot: 08b-my-players-search
+- hideKeyboard

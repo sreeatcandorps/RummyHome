@@ -1,0 +1,39 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Score round 3 of game A: Drop, Middle drop, Full count on three players and Rummy on the fourth.
+# The round must balance to 0, Save round must enable, and the scorecard must show the next round.
+# Seats in game A: Harish Test, Priya Test, R K, Zed Zero (supabase/seed.sql).
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    id: "game-card-GAMEA1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- assertVisible: "Round 3"
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- assertVisible: "Round 3"
+- takeScreenshot: 04-add-round-empty
+- tapOn: "Harish Test, no score"
+- tapOn: "Drop -10"
+- tapOn: "Priya Test, no score"
+- tapOn: "Middle drop -30"
+- tapOn: "R K, no score"
+- tapOn: "Full count -80"
+- tapOn: "Zed Zero, no score"
+- tapOn: "Rummy"
+- assertVisible: "Zed Zero, score +120"
+- assertVisible: "Balance 0"
+- assertVisible:
+    text: "Save round"
+    enabled: true
+- takeScreenshot: 04b-add-round-balanced
+- tapOn: "Save round"
+- extendedWaitUntil:
+    visible: "Round 4"
+    timeout: 15000
+- assertVisible: "Add round"
+- takeScreenshot: 04c-scorecard-after-round-3

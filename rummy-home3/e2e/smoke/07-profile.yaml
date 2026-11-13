@@ -1,0 +1,19 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Profile tab: name, Player ID, Appearance, Settings, the version line, Log out present.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "Your profile"
+- extendedWaitUntil:
+    visible: "Appearance"
+    timeout: 15000
+- assertVisible: "Sree Test"
+- assertVisible: "Change passcode"
+- takeScreenshot: 07-profile
+- scrollUntilVisible:
+    element: "Log out"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    text: "EZ Score v.*"
+- takeScreenshot: 07b-profile-bottom

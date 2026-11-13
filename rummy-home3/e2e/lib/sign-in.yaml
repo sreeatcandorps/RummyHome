@@ -1,0 +1,19 @@
+appId: com.mindweavetech.rummyhome
+# Signs in with the seeded test account (supabase/seed.sql). Called by ensure-signed-in.yaml.
+env:
+  EMAIL: sree@test.local
+  PASSCODE: "123456"
+---
+- tapOn:
+    id: "login-email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "login-passcode"
+- inputText: ${PASSCODE}
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 30000

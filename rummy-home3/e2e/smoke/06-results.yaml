@@ -1,0 +1,31 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Results picker and the results page for one completed game (game A, completed by 05-complete-game).
+# Nothing is saved here; saving (which closes games) is covered in the full set.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "Results"
+- extendedWaitUntil:
+    visible: "Show results"
+    timeout: 15000
+- assertVisible:
+    id: "game-card-GAMEA1"
+- takeScreenshot: 06-results-picker
+- tapOn: "Show results"
+- extendedWaitUntil:
+    visible: "Totals"
+    timeout: 20000
+- assertVisible:
+    text: "1 game · \\d+ players"
+- assertVisible:
+    id: "results-save-button"
+- takeScreenshot: 06b-results-one-game
+- tapOn: "Help"
+- extendedWaitUntil:
+    visible:
+      text: "Help"
+      index: 1
+    timeout: 5000
+- takeScreenshot: 06c-results-help
+- back
+- assertVisible: "Totals"

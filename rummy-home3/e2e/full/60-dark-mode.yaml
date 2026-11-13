@@ -1,0 +1,42 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# Dark appearance: switch in Profile, screenshot the main screens, switch back to Phone.
+# Runs last in the full set so every other screenshot is in light.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "Your profile"
+- extendedWaitUntil:
+    visible: "Appearance"
+    timeout: 15000
+- tapOn: "Dark"
+- takeScreenshot: 60-profile-dark
+- launchApp
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000
+- takeScreenshot: 60b-home-dark
+- tapOn:
+    id: "game-card-GAMEE1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- takeScreenshot: 60c-scorecard-dark
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- takeScreenshot: 60d-add-round-dark
+- back
+- launchApp
+- tapOn:
+    text: "My players.*"
+- extendedWaitUntil:
+    visible: "Harish Test"
+    timeout: 15000
+- takeScreenshot: 60e-my-players-dark
+- tapOn: "Your profile"
+- extendedWaitUntil:
+    visible: "Appearance"
+    timeout: 15000
+- tapOn: "Phone"
+- assertVisible: "Appearance"

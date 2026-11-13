@@ -1,0 +1,28 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Complete game A from the scorecard: the Complete screen, the confirm, the Completed state.
+# Runs after 04-add-round so the game has three rounds. Game A is then a Completed game sree runs,
+# which 06-results relies on.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    id: "game-card-GAMEA1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- tapOn: "Complete game"
+- extendedWaitUntil:
+    visible: "Game admins"
+    timeout: 15000
+- takeScreenshot: 05-complete-screen
+- tapOn: "Complete game"
+- extendedWaitUntil:
+    visible: "Confirm complete game"
+    timeout: 5000
+- takeScreenshot: 05b-complete-confirm
+- tapOn: "Confirm complete game"
+- extendedWaitUntil:
+    visible: "Share final scores"
+    timeout: 20000
+- assertVisible: "Go to Results"
+- takeScreenshot: 05c-completed
