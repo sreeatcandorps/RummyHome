@@ -20,4 +20,5 @@ test('final batch 7: Creator and Admin sit on separate lines in the scorecard in
   const footer = src('components/game/GameIdFooter.tsx');
   assert.match(footer, /\{lines\.map\(\(line, index\) => \(/, 'the footer renders one Text per line');
   assert.match(footer, /numberOfLines=\{1\}/);
+  assert.match(footer, /footerOneLine\(lines\)/, 'PR 4: landscape joins them on one line');
 });

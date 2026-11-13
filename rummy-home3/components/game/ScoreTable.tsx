@@ -1,9 +1,19 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, ScrollView, StyleSheet, View } from 'react-native';
+import { Animated, LayoutChangeEvent, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
-import { createScrollSync } from '@/utils/scrollSync';
+import {
+  cellFontSize,
+  columnLayout,
+  DEALER_BAR,
+  dealsBadge,
+  headerHeight,
+  headerPadding,
+  headerType,
+  rowHeight as rowHeightFor,
+  TABLE_MAX_FONT_SCALE,
+} from '@/utils/scorecardLayout';
 
 export type ScoreColumn = {
   id: string;
@@ -29,18 +39,6 @@ type ScoreTableProps = {
   /** Full count of the game; losses of half this or more are shown in red. */
   fullCount?: number | null;
   emptyMessage: string;
-  /** Drawn inside the card under the rows: pinned to the bottom on short games, after the last row on long ones. */
-  footer?: React.ReactNode;
-};
-
-/** Below this a column can no longer show "-1234" legibly, so the table scrolls sideways instead. */
-const MIN_COLUMN_WIDTH = 38;
-
-const fontSizeFor = (columnWidth: number) => {
-  if (columnWidth >= 64) return 18;
-  if (columnWidth >= 52) return 16;
-  if (columnWidth >= 44) return 15;
-  return 13;
 };
 
 /** Totals and the header read a size up from the cells; every number carries its sign. */
@@ -107,6 +105,7 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
               <Text
                 numberOfLines={1}
                 adjustsFontSizeToFit
+                maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
                 style={[
                   styles.scoreText,
                   tabularNums,
@@ -136,6 +135,12 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
   && sameColumns(prev.columns, next.columns)
   && sameCells(prev.cells, next.cells));
 
+/**
+ * The scorecard grid. One horizontal scroller holds the header and every row, so they can
+ * never drift apart; the header is pinned by the vertical scroller's native sticky header; the
+ * round column sits beside the scroller, frozen, and follows the rows through a native-driver
+ * translate. Nothing runs on the JS thread while the finger moves.
+ */
 export function ScoreTable({
   columns,
   scores,
@@ -150,46 +155,42 @@ export function ScoreTable({
   compact = false,
   fullCount,
   emptyMessage,
-  footer,
 }: ScoreTableProps) {
   const rotationStartSet = useMemo(() => new Set(rotationStarts ?? []), [rotationStarts]);
   const theme = useAppTheme();
   const { colors } = theme;
+  const { fontScale } = useWindowDimensions();
   const [tableWidth, setTableWidth] = useState(0);
-  const headerRef = useRef<ScrollView>(null);
-  const bodyRef = useRef<ScrollView>(null);
+  const [bodyHeight, setBodyHeight] = useState(0);
   const verticalRef = useRef<ScrollView>(null);
   const shownRounds = useRef(0);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
-  const roundColumnWidth = compact ? 48 : 42;
-  const available = Math.max(tableWidth - roundColumnWidth, 0);
-  const fitWidth = columns.length ? available / columns.length : available;
-  const columnWidth = Math.max(MIN_COLUMN_WIDTH, fitWidth);
-  const contentWidth = columnWidth * columns.length;
-  const scrollsSideways = fitWidth < MIN_COLUMN_WIDTH;
+  const { roundColumnWidth, columnWidth, contentWidth, scrollsSideways } = columnLayout(tableWidth, columns.length, compact);
 
-  const fontSize = fontSizeFor(columnWidth);
-  const rowHeight = compact ? 34 : columns.length > 8 ? 42 : 48;
-  const headerHeight = compact ? 58 : 68;
+  const fontSize = cellFontSize(columnWidth);
+  const rowHeight = rowHeightFor(columnWidth, columns.length, compact, fontScale);
+  const headerH = headerHeight(columnWidth, compact, fontScale);
+  const type = headerType(columnWidth);
   const onDark = theme.dark;
-  // Totals read a step larger than the cells, except on narrow columns where 4-digit totals must still fit.
-  const totalFontSize = columnWidth >= 56 ? fontSize + 2 : fontSize - 1;
 
-  // Header and rows are two horizontal scroll views; a swipe on either drives the other.
-  const sync = useMemo(
-    () =>
-      createScrollSync((side, x) => {
-        (side === 'header' ? headerRef : bodyRef).current?.scrollTo({ x, animated: false });
-      }),
-    [],
+  const onVerticalScroll = useMemo(
+    () => Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }),
+    [scrollY],
   );
-  const onHeaderScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => sync.onScroll('header', event.nativeEvent.contentOffset.x);
-  const onBodyScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => sync.onScroll('body', event.nativeEvent.contentOffset.x);
+  const followRows = useMemo(() => ({ transform: [{ translateY: Animated.multiply(scrollY, -1) }] }), [scrollY]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const width = Math.floor(event.nativeEvent.layout.width);
     if (width !== tableWidth) setTableWidth(width);
   };
+  // The vertical scroller sits inside the horizontal one, so it is given the measured height
+  // of the grid area instead of relying on the horizontal content stretching to fill it.
+  const handleBodyLayout = (event: LayoutChangeEvent) => {
+    const height = Math.floor(event.nativeEvent.layout.height);
+    if (height !== bodyHeight) setBodyHeight(height);
+  };
+  const gridHeight = roundCount > 0 ? bodyHeight : headerH;
 
   // Follow the newest round so the latest hand is always on screen.
   const handleContentSizeChange = () => {
@@ -212,30 +213,28 @@ export function ScoreTable({
         key={column.id}
         style={[
           styles.cell,
-          { width: columnWidth, height: headerHeight, borderRightColor: colors.hairline },
-          dealsNext && { backgroundColor: colors.primaryContainer, borderBottomWidth: 4, borderBottomColor: colors.onPrimaryContainer },
+          styles.headerCell,
+          { width: columnWidth, height: headerH, paddingVertical: headerPadding(compact), borderRightColor: colors.hairline },
+          dealsNext && { backgroundColor: colors.primaryContainer, borderBottomWidth: DEALER_BAR, borderBottomColor: colors.onPrimaryContainer },
         ]}
       >
         <Text
           numberOfLines={1}
-          style={[
-            styles.headerText,
-            {
-              fontSize: fontSize - 1,
-              color: seatText,
-            },
-          ]}
+          maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
+          style={[styles.headerText, { fontSize: type.initials.fontSize, lineHeight: type.initials.lineHeight, color: seatText }]}
         >
           {column.label}
         </Text>
         <Text
           numberOfLines={1}
           adjustsFontSizeToFit
+          maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
           style={[
             styles.headerTotal,
             tabularNums,
             {
-              fontSize: totalFontSize,
+              fontSize: type.total.fontSize,
+              lineHeight: type.total.lineHeight,
               // Totals are near-black, never green; a losing total is the loss red.
               color: dealsNext ? colors.onPrimaryContainer : total < 0 ? colors.loss : colors.onSurface,
             },
@@ -243,101 +242,88 @@ export function ScoreTable({
         >
           {signed(total)}
         </Text>
-        {dealsNext ? (
-          <View style={styles.headerLabelRow}>
-            {leader ? <Icon source="crown" size={10} color={colors.leader} /> : null}
-            <Text style={[styles.dealsText, { color: colors.onPrimaryContainer }]} numberOfLines={1}>
-              DEALS
-            </Text>
-          </View>
-        ) : leader ? (
-          <Icon source="crown" size={compact ? 12 : 14} color={colors.leader} />
-        ) : (
-          <View style={[styles.seatBar, { backgroundColor: column.isExpense ? colors.outlineVariant : seatText }]} />
-        )}
+        <View style={[styles.headerLabelRow, { height: type.deals.lineHeight }]}>
+          {dealsNext ? (
+            <>
+              {leader ? <Icon source="crown" size={type.deals.fontSize + 1} color={colors.leader} /> : null}
+              {dealsBadge(columnWidth) === 'text' ? (
+                <Text
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
+                  style={[styles.dealsText, { fontSize: type.deals.fontSize, lineHeight: type.deals.lineHeight, color: colors.onPrimaryContainer }]}
+                  accessibilityLabel="Deals next"
+                >
+                  DEALS
+                </Text>
+              ) : (
+                <Icon source="cards-playing-outline" size={type.deals.lineHeight} color={colors.onPrimaryContainer} />
+              )}
+            </>
+          ) : leader ? (
+            <Icon source="crown" size={type.deals.lineHeight} color={colors.leader} />
+          ) : (
+            <View style={[styles.seatBar, { backgroundColor: column.isExpense ? colors.outlineVariant : seatText }]} />
+          )}
+        </View>
       </View>
     );
   });
 
-  const body =
-    roundCount === 0 ? (
-      <View style={styles.emptyTable}>
-        <Icon source="cards-playing-outline" size={32} color={colors.onSurfaceVariant} />
-        <Text variant="bodyMedium" style={[styles.emptyText, { color: colors.onSurfaceVariant }]}>
-          {emptyMessage}
+  const cornerCell = (
+    <View
+      style={[
+        styles.cell,
+        { width: roundColumnWidth, height: headerH, borderRightColor: colors.outlineVariant, backgroundColor: colors.tableHeader },
+        styles.headerRow,
+        { borderBottomColor: colors.outlineVariant },
+      ]}
+    >
+      <Text style={[styles.cornerText, { color: colors.onSurfaceVariant }]} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>RND</Text>
+      {grandTotal !== 0 ? (
+        <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>
+          {grandTotal > 0 ? `+${grandTotal}` : grandTotal}
         </Text>
-      </View>
-    ) : (
-      <View style={styles.row}>
-        <View style={{ width: roundColumnWidth }}>
-          {Array.from({ length: roundCount }, (_, roundIndex) => {
-            const dealer = dealerLabelForRound(roundIndex);
-            const offBy = roundTotals[roundIndex] ?? 0;
-            const isLatest = roundIndex === roundCount - 1;
-            const rotationStart = rotationStartSet.has(roundIndex);
-            return (
-              <View
-                key={roundIndex}
-                accessibilityLabel={rotationStart ? `Round ${roundIndex + 1}, new rotation` : undefined}
-                style={[
-                  styles.cell,
-                  styles.roundCell,
-                  {
-                    width: roundColumnWidth,
-                    height: rowHeight,
-                    borderRightColor: colors.outlineVariant,
-                    borderBottomColor: colors.hairline,
-                    backgroundColor: isLatest ? colors.tableLatest : colors.tableHeader,
-                  },
-                  rotationStart && [styles.rotationDivider, { borderTopColor: colors.primary }],
-                ]}
-              >
-                <Text style={[styles.roundText, tabularNums, { fontSize: fontSize - 1, color: colors.onSurface }]}>
-                  {roundIndex + 1}
-                </Text>
-                {offBy !== 0 ? (
-                  <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1} accessibilityLabel={`Round does not add up, off by ${offBy}`}>
-                    {offBy > 0 ? `+${offBy}` : offBy}
-                  </Text>
-                ) : dealer ? (
-                  <Text style={[styles.roundMeta, { color: colors.onSurfaceVariant }]} numberOfLines={1}>
-                    {dealer}
-                  </Text>
-                ) : null}
-              </View>
-            );
-          })}
-        </View>
+      ) : null}
+    </View>
+  );
 
-        <ScrollView
-          ref={bodyRef}
-          horizontal
-          scrollEnabled={scrollsSideways}
-          showsHorizontalScrollIndicator={scrollsSideways}
-          onScroll={onBodyScroll}
-          scrollEventThrottle={16}
-          bounces={false}
-        >
-          <View style={{ width: contentWidth }}>
-            {Array.from({ length: roundCount }, (_, roundIndex) => (
-              <ScoreRow
-                key={roundIndex}
-                columns={columns}
-                cells={columns.map((column) => scores[column.id]?.[roundIndex])}
-                isLatest={roundIndex === roundCount - 1}
-                stripe={roundIndex % 2 === 1}
-                rotationStart={rotationStartSet.has(roundIndex)}
-                columnWidth={columnWidth}
-                rowHeight={rowHeight}
-                fontSize={fontSize}
-                fullCount={fullCount}
-                colors={colors}
-              />
-            ))}
-          </View>
-        </ScrollView>
+  const roundCells = Array.from({ length: roundCount }, (_, roundIndex) => {
+    const dealer = dealerLabelForRound(roundIndex);
+    const offBy = roundTotals[roundIndex] ?? 0;
+    const isLatest = roundIndex === roundCount - 1;
+    const rotationStart = rotationStartSet.has(roundIndex);
+    return (
+      <View
+        key={roundIndex}
+        accessibilityLabel={rotationStart ? `Round ${roundIndex + 1}, new rotation` : undefined}
+        style={[
+          styles.cell,
+          styles.roundCell,
+          {
+            width: roundColumnWidth,
+            height: rowHeight,
+            borderRightColor: colors.outlineVariant,
+            borderBottomColor: colors.hairline,
+            backgroundColor: isLatest ? colors.tableLatest : colors.tableHeader,
+          },
+          rotationStart && [styles.rotationDivider, { borderTopColor: colors.primary }],
+        ]}
+      >
+        <Text style={[styles.roundText, tabularNums, { fontSize: fontSize - 1, color: colors.onSurface }]} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>
+          {roundIndex + 1}
+        </Text>
+        {offBy !== 0 ? (
+          <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1} accessibilityLabel={`Round does not add up, off by ${offBy}`}>
+            {offBy > 0 ? `+${offBy}` : offBy}
+          </Text>
+        ) : dealer ? (
+          <Text style={[styles.roundMeta, { color: colors.onSurfaceVariant }]} numberOfLines={1} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>
+            {dealer}
+          </Text>
+        ) : null}
       </View>
     );
+  });
 
   return (
     <View
@@ -346,45 +332,65 @@ export function ScoreTable({
     >
       {tableWidth > 0 ? (
         <>
-          <View style={[styles.row, { backgroundColor: colors.tableHeader, borderBottomColor: colors.outlineVariant }, styles.headerRow]}>
-            <View
-              style={[
-                styles.cell,
-                { width: roundColumnWidth, height: headerHeight, borderRightColor: colors.outlineVariant },
-              ]}
-            >
-              <Text style={[styles.cornerText, { color: colors.onSurfaceVariant }]}>RND</Text>
-              {grandTotal !== 0 ? (
-                <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1}>
-                  {grandTotal > 0 ? `+${grandTotal}` : grandTotal}
-                </Text>
-              ) : null}
+          <View style={[styles.row, roundCount > 0 ? styles.flex : { height: headerH }]} onLayout={handleBodyLayout}>
+            {/* Frozen round column: the corner stays put; the round numbers follow the rows on the UI thread. */}
+            <View style={{ width: roundColumnWidth }}>
+              {cornerCell}
+              <View style={[styles.flex, styles.clip]}>
+                <Animated.View style={followRows}>{roundCells}</Animated.View>
+              </View>
             </View>
+
             <ScrollView
-              ref={headerRef}
               horizontal
               style={styles.flex}
               scrollEnabled={scrollsSideways}
-              showsHorizontalScrollIndicator={false}
-              onScroll={onHeaderScroll}
-              scrollEventThrottle={16}
+              showsHorizontalScrollIndicator={scrollsSideways}
+              directionalLockEnabled
               bounces={false}
+              testID="score-table-scroller"
             >
-              <View style={[styles.row, { width: contentWidth }]}>{headerCells}</View>
+              <Animated.ScrollView
+                ref={verticalRef}
+                style={{ width: contentWidth, height: gridHeight > 0 ? gridHeight : undefined }}
+                stickyHeaderIndices={[0]}
+                onScroll={onVerticalScroll}
+                scrollEventThrottle={16}
+                onContentSizeChange={handleContentSizeChange}
+                showsVerticalScrollIndicator={roundCount > 0}
+                scrollEnabled={roundCount > 0}
+                nestedScrollEnabled
+              >
+                <View style={[styles.row, styles.headerRow, { backgroundColor: colors.tableHeader, borderBottomColor: colors.outlineVariant }]}>
+                  {headerCells}
+                </View>
+                {Array.from({ length: roundCount }, (_, roundIndex) => (
+                  <ScoreRow
+                    key={roundIndex}
+                    columns={columns}
+                    cells={columns.map((column) => scores[column.id]?.[roundIndex])}
+                    isLatest={roundIndex === roundCount - 1}
+                    stripe={roundIndex % 2 === 1}
+                    rotationStart={rotationStartSet.has(roundIndex)}
+                    columnWidth={columnWidth}
+                    rowHeight={rowHeight}
+                    fontSize={fontSize}
+                    fullCount={fullCount}
+                    colors={colors}
+                  />
+                ))}
+              </Animated.ScrollView>
             </ScrollView>
           </View>
 
-          <ScrollView
-            ref={verticalRef}
-            style={styles.flex}
-            contentContainerStyle={styles.grow}
-            onContentSizeChange={handleContentSizeChange}
-            showsVerticalScrollIndicator={roundCount > 0}
-          >
-            {body}
-            {footer ? <View style={styles.footer}>{footer}</View> : null}
-          </ScrollView>
-
+          {roundCount === 0 ? (
+            <View style={styles.emptyTable}>
+              <Icon source="cards-playing-outline" size={32} color={colors.onSurfaceVariant} />
+              <Text variant="bodyMedium" style={[styles.emptyText, { color: colors.onSurfaceVariant }]}>
+                {emptyMessage}
+              </Text>
+            </View>
+          ) : null}
         </>
       ) : null}
     </View>
@@ -401,11 +407,8 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  grow: {
-    flexGrow: 1,
-  },
-  footer: {
-    marginTop: 'auto',
+  clip: {
+    overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
@@ -413,14 +416,14 @@ const styles = StyleSheet.create({
   headerRow: {
     borderBottomWidth: StyleSheet.hairlineWidth * 2,
   },
-  totalsRow: {
-    borderTopWidth: 2,
-  },
   cell: {
     alignItems: 'center',
     justifyContent: 'center',
     borderRightWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 2,
+  },
+  headerCell: {
+    justifyContent: 'space-between',
   },
   roundCell: {
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -432,6 +435,7 @@ const styles = StyleSheet.create({
   headerLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 1,
     maxWidth: '100%',
   },
@@ -440,22 +444,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.2,
     flexShrink: 1,
+    includeFontPadding: false,
   },
   headerTotal: {
     fontWeight: '800',
     textAlign: 'center',
+    includeFontPadding: false,
   },
   dealsText: {
-    fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.6,
-    marginTop: 1,
+    includeFontPadding: false,
   },
   seatBar: {
     width: 16,
     height: 3,
     borderRadius: 2,
-    marginTop: 3,
   },
   cornerText: {
     fontSize: 11,
@@ -479,10 +483,6 @@ const styles = StyleSheet.create({
   },
   scoreText: {
     fontWeight: '500',
-    textAlign: 'center',
-  },
-  totalText: {
-    fontWeight: '800',
     textAlign: 'center',
   },
   emptyTable: {

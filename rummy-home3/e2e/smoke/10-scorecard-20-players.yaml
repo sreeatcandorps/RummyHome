@@ -16,6 +16,7 @@ tags: [smoke]
     visible: "Scorecard"
     timeout: 20000
 - assertVisible: "Round 31"
+- assertVisible: "20 players"
 - assertVisible: "TA"
 - takeScreenshot: 10-scorecard-20p
 - scroll

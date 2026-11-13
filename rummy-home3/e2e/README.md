@@ -15,7 +15,8 @@ journey is covered where is in `docs/testing-strategy.md`.
 
 Flows run in file-name order inside a set (`01-`, `02-`, …). Files whose name contains `landscape`
 rotate: `setOrientation: LANDSCAPE_LEFT` after sign-in and back to `PORTRAIT` at the end; `ci/ui/run-flows.sh` also
-turns the emulator for them.
+turns the emulator for them. Files whose name contains `font-scale` run with the phone font at 1.3×
+(`adb shell settings put system font_scale 1.3`, set by `ci/ui/run-flows.sh`, back to 1.0 after).
 
 ## Fixtures and state
 
@@ -28,7 +29,7 @@ The database is the local Supabase on the runner: `supabase db reset` (`seed.sql
 | E | `GAMEE1` | active, 4 players, 1 round, sree seated as game admin | `full/30`, `full/60`, `smoke/13` (undo then add round saves round 1 again; PR 2 / 035), `full/70` (add → edit → undo round 2, then the Log shows three rows; Logs PR / 036) |
 | H | `GAMEH1` | active, 3 players, no rounds | `smoke/14` (Rummy with a positive pot: -40 share, confirm, saves round 1; PR 3 / 037), `full/80` (count warnings; saves nothing) |
 | G | `GAMEG1` | completed, 6 seated, no rounds | `smoke/12` (seated players with no rounds make a 6-player result; saves and closes G) |
-| F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11`, `full/20` |
+| F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11`, `full/20`, `full/21` (font scale 1.3, with A) |
 
 Order matters inside the smoke set (A gains a round, then is completed). Everything else has its own
 game so the sets stay independent of each other. `full/60` switches Appearance to Dark and back to

@@ -15,6 +15,7 @@ tags: [smoke, landscape]
     visible: "Scorecard"
     timeout: 20000
 - assertVisible: "TA"
+- assertVisible: "20 players"
 - takeScreenshot: 11-scorecard-20p-landscape
 - swipe:
     direction: LEFT
@@ -24,5 +25,7 @@ tags: [smoke, landscape]
     direction: LEFT
     duration: 400
     waitToSettleTimeoutMs: 1000
+# PR 4: header and rows are one scroller, so after the swipes the header shows the same columns as the
+# rows: a header initial that is visible must have its column of scores under it (checked in full/20).
 - takeScreenshot: 11b-scorecard-20p-landscape-right
 - setOrientation: PORTRAIT

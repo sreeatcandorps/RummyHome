@@ -103,8 +103,9 @@ test('the scorecard footer names the game, its creator and admins on separate li
   assert.equal(gameOwnersLine({ gameNumber: 3, createdBy: 'h' }, members), 'Game S3 · Creator Harish · Admin Cora');
   assert.equal(gameOwnersLine({ gameNumber: null, createdBy: 'x' }, [{ id: 'p', name: 'Priya', seatRole: 'player' }]), '');
   const screen = src('app/(screens)/games/[id].tsx');
-  assert.match(screen, /<GameIdFooter game=\{game\} members=\{members\} \/>/);
+  assert.match(screen, /<GameIdFooter game=\{game\} members=\{members\} compact=\{isShort\} \/>/);
   const footer = src('components/game/GameIdFooter.tsx');
-  assert.doesNotMatch(footer, /Clipboard|game\.id/, 'final batch 2: the long id left the UI, nothing to copy');
-  assert.match(footer, /gameOwnersLines\(game, members, creatorName\)/, 'label, creator and admins each on their own line (final batch 7)');
+  assert.doesNotMatch(footer, /Clipboard|game\.id\b/, 'final batch 2: the long id left the UI, nothing to copy');
+  // PR 4: creator and each admin on their own line, plus the Unique game ID (share code); the label moved to the strip.
+  assert.match(footer, /scorecardFooterLines\(game, members, creatorName\)/, 'creator and admins each on their own line (final batch 7 / PR 4)');
 });
