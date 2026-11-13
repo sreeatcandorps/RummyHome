@@ -26,10 +26,10 @@ The database is the local Supabase on the runner: `supabase db reset` (`seed.sql
 
 | Game | Share code | State at the start | Used by |
 | --- | --- | --- | --- |
-| A | `GAMEA1` | active, 4 players, 2 rounds (from `seed.sql`) | `smoke/01–06`: 04 adds round 3, 05 completes it, 06 shows its result, `full/40` saves the result |
+| A | `GAMEA1` | active, 4 players, 2 rounds (from `seed.sql`) | `smoke/01–06`: 04 adds round 3, 05 completes it, 06 shows its result, `full/40` saves the result, deletes it with Undo, deletes a Past results row and restores it (PR 9), `full/41` shares the newest result and checks Delete asks first (nothing deleted) |
 | E | `GAMEE1` | active, 4 players, 1 round, sree seated as game admin | `full/30`, `full/31` (Edit initials for Zed Zero → ZZ2 and back to ZZ; PR 6 / 039), `full/60`, `smoke/13` (undo then add round saves round 1 again; PR 2 / 035), `full/70` (add → edit → undo round 2, then the Log shows three rows; Logs PR / 036) |
 | H | `GAMEH1` | active, 3 players, no rounds | `smoke/14` (Rummy with a positive pot: -40 share, confirm, saves round 1; PR 3 / 037), `full/32` (Add players to this game: R K and C D in, Total 3 → 5, Return to game, then Otto Outsider #5 as non-playing admin; R K and C D removed again at the end; PR 7), `full/80` (count warnings; saves nothing) |
-| G | `GAMEG1` | completed, 6 seated, no rounds | `smoke/12` (seated players with no rounds make a 6-player result; saves and closes G) |
+| G | `GAMEG1` | completed, 6 seated, no rounds | `smoke/12` (seated players with no rounds make a 6-player result; saves and closes G; PR 9: the saved result shows Delete this result) |
 | F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11`, `full/20`, `full/21` (font scale 1.3, with A) |
 
 Order matters inside the smoke set (A gains a round, then is completed). Everything else has its own

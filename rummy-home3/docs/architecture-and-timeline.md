@@ -303,6 +303,9 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 ### 2026-11-13 — Add players to this game, picker labels, Players · Admins (PR 7, no migration)
 - The mid-game picker is "Add players to this game": a big yellow Total circle that counts seated players only (D7.1 — admins who do not play and spectators are left out, the same number as the scorecard chip), "Added now: N (yellow ring)", Return to game right under the strip and the two tiles renamed "Add new players" / "From database"; the search box is pale yellow with "Search name, initials or #ID" here and on Find player. D7.2: the "You" tag is gone everywhere (you stay first, spoken "(you)"), and the "Registered" tag and texts are gone — only Unregistered / Pending registration / Link pending are shown, through one `visibleRegistration` rule. Players · Admins gets a big outlined "Add non-playing admin" button with a one-line note. No schema change.
 
+### 2026-11-13 — Delete result visible, Undo, Deleted + Restore (PR 9, no migration)
+- Delete result moved from a ⋮ item to a red **Delete this result** button at the foot of the result page with its consequence line, and a Delete chip on each Past results row the viewer may manage (`can_manage_result` per row). Deleting runs at once with a 10-second Undo toast backed by `restore_result` (D9.2); only a result shared from this phone (picture or PDF, tracked in AsyncStorage since the server records no share) asks first. D9.1 kept: games go back to Completed unless another live result holds them. D9.3: a Deleted section under Past results lists the last 30 days with Restore for the people who could delete them. Behaviour documented first in `docs/results-delete.md`; the 023 functions get their own pgTAP file (30).
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.

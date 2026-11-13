@@ -151,8 +151,8 @@ export const HELP = {
     'Pick one or more games and tap Show results. The highest total is the winner; 1st, 2nd, and 3rd place are named. Nothing is saved by looking.',
     'Save result (the button at the top) moves the games to Closed and lists what changed. It is off while an Active game is selected: go back and deselect it.',
     'A Closed game can be picked again, but the app warns you: its points were already counted once, and the saved result carries a small warning icon. Best to first delete the old result that closed it.',
-    'Share works before or after saving: a picture of the totals (five games per row) or a PDF with every round. Before saving they carry the same "Not saved yet" banner and warnings as the screen.',
-    'A game keeps its own number (G7 stays G7); the result id is at the bottom of both. Results can include at most 50 players.',
+    'Delete this result (at the foot of a result, or Delete on its Past results row) reopens its games to Completed. Undo for 10 seconds; its admins see it under Deleted with Restore for 30 days.',
+    'Share works before or after saving: a picture of the totals (five games per row) or a PDF with every round; the result id is at the bottom of both. A game keeps its own number. At most 50 players.',
   ),
   publicScorecard: bullets(
     'This page updates on its own and needs no login.',

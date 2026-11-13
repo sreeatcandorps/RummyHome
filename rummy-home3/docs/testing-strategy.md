@@ -145,6 +145,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | PR 8 design: ranked split + medals, bands of five games with borders, legend, Games in this result | U (model, HTML, CSS parity), S | **S** | `smoke/06`, `smoke/12` |
 | | save result (completed → closed), closed-reuse warning | U, D, N | N | `full/40` |
 | | 0 players in a saved result when the game has no rounds (034) | U, D (pgTAP 24), S | U + D + **S** | `smoke/12` |
+| | PR 9: Delete this result + Undo toast, confirm only when shared, Past results Delete / Deleted + Restore (30 days) | U, D (pgTAP 30), S (button), N | U + D + **S** + N | `smoke/12`, `full/40`, `full/41` |
 | | result versions after a game is deleted; `/r/` page shows the edited notice and older versions (034) | D (pgTAP 24), U (page source) | D + N (web screenshot) | — |
 | | share image (summary only, generator initials, cap 8 a side) / PDF (phone pages, 16 px) match screen | U | N (share sheet screenshot) | — |
 | | single game: Final scores card (standings) + rounds in blocks of five, Rounds PDF, web scorecard blocks | U | **S** (button visible), N | `smoke/05` |
@@ -225,6 +226,22 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-9 | D | `ci/db/replay-rollbacks.sh`, `supabase/tests/12_player_initials_022.sql` | Rollback 039 removes the RPCs and restores the letters-only editors; forward replay restores 039; safe to run twice; a re-run of 022 followed by 039 keeps the wider rule |
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
+
+## PR 9 test cases (Delete result visible + Undo, confirm when shared, Deleted + Restore; no migration)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| R9-1 | U | `tests/results-delete-pr9.test.ts` 9.1 | Consequence line for 0 / 1 / 2 / 3 games ("S14 and S15 go back to Completed and can go into a new result. Everyone loses this result; you can restore it for 30 days."); game numbers win over short codes |
+| R9-2 | U | same 9.2 | `UNDO_DELETE_MS = 10000`; toast "Result deleted · S14, S15 are Completed again" (1 game "is", none "its games"); restored toast; shared-confirm title and body; row chip spoken label |
+| R9-3 | U | same 9.3 | 30-day window inclusive of the 30th day, bad dates out, newest deletion first; the section note |
+| R9-4 | U | same 9.4 | Shared marker: id to the front, cap 200 |
+| R9-5 | U | same 9.5 | Result page: Delete block for managers only, consequence line, confirm only when `wasShared`, Undo toast backed by `restore_result`, back to the list when the toast closes untouched, ⋮ item routes to the same, picture and PDF shares mark the result |
+| R9-6 | U | same 9.6 | Past results: `can_manage_result` per row for the Delete chip, Deleted section from `list_hidden_and_deleted` filtered to 30 days, Restore chip, Undo toast, shared confirm |
+| R9-7 | U | same 9.7 | `docs/results-delete.md` names D9.1–D9.3, `sync_closed_at`, `can_manage_result`, 30 days, the marker and `/r/`; Results help names the button, Undo and 30 days |
+| R9-8 | D | `supabase/tests/30_results_delete.sql` | 9.1 delete → `closed_at` cleared, status untouched, off `list_game_results_page` / `results_holding_game`, `get_game_result` deleted + canRestore, Deleted list row with counts, Logs `result_deleted` row and summary; 9.2 a game in two live results stays Closed; 9.3 player / outsider / signed-out refused, an admin of every game may delete and restore; 9.4 restore by a player refused, by the deleter reverses everything, Logs `result_restored`; 9.5 anon `public_result` deleted with the saved standings; a second delete is harmless |
+| R9-9 | S | `smoke/12-results-zero-players.yaml` | The saved result shows "Delete this result" with the consequence line (screenshot) |
+| R9-10 | N | `full/40-results-save-and-past.yaml` | Delete this result → toast with Undo (screenshot) → Undo → "Result restored…", Scores back; Past results row Delete → toast runs out → Deleted tag + Restore + 30-day note (screenshot) → Restore |
+| R9-11 | N | `full/41-delete-shared-result-confirm.yaml` | Share the picture (Back closes the sheet) → Delete this result → "Delete a shared result?" (screenshot) → Cancel keeps it |
 
 ## PR 7 test cases (Add players to this game, New game picker labels, Players · Admins; no migration)
 

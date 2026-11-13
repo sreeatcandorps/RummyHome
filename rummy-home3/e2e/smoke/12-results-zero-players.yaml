@@ -57,3 +57,14 @@ tags: [smoke]
       text: "Games in this result"
     direction: DOWN
     timeout: 15000
+# PR 9: the saved result shows Delete this result at its foot (sree saved it) with the one-line
+# consequence under it. Nothing is deleted here; the nightly full/40 does that with Undo.
+- scrollUntilVisible:
+    element:
+      id: "result-delete"
+    direction: DOWN
+    timeout: 15000
+- assertVisible: "Delete this result"
+- assertVisible:
+    text: ".*back to Completed and can go into a new result. Everyone loses this result; you can restore it for 30 days."
+- takeScreenshot: 12c-delete-this-result-button

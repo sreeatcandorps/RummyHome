@@ -3,6 +3,9 @@ tags: [nightly]
 # Save a result for game A only (completed by smoke/05): the "Result saved" dialog lists the status
 # change, the saved result opens, and it appears under Past results. Game G (completed, seeded) is
 # unticked when it is still open (smoke/12 saves G's result on a full run, so it is usually closed by now).
+# PR 9: Delete this result at the foot → the 10-second toast "Result deleted · S… is Completed again"
+# with Undo → Undo restores it ("Result restored · its games are Closed again"). Then Delete on a
+# Past results row → the toast runs out → the row sits under Deleted with Restore → Restore.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Results"
@@ -37,6 +40,28 @@ tags: [nightly]
 - assertNotVisible:
     id: "results-unsaved-banner"
 - takeScreenshot: 40b-saved-result
+# Delete this result → Undo toast → Undo.
+- scrollUntilVisible:
+    element:
+      id: "result-delete"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 40c-delete-this-result
+- tapOn:
+    id: "result-delete"
+- extendedWaitUntil:
+    visible: "Result deleted · .* Completed again"
+    timeout: 15000
+- assertVisible: "Undo"
+- takeScreenshot: 40d-deleted-undo-toast
+- tapOn: "Undo"
+- extendedWaitUntil:
+    visible: "Result restored · its games are Closed again"
+    timeout: 15000
+- extendedWaitUntil:
+    visible: "Scores"
+    timeout: 20000
+- takeScreenshot: 40e-restored-by-undo
 - launchApp
 - tapOn: "Results"
 - extendedWaitUntil:
@@ -46,4 +71,34 @@ tags: [nightly]
     element: "Past results"
     direction: DOWN
     timeout: 10000
-- takeScreenshot: 40c-past-results
+- takeScreenshot: 40f-past-results
+# Delete on a Past results row → let the toast run out → Deleted + Restore → Restore.
+- scrollUntilVisible:
+    element:
+      text: "Delete"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Result deleted · its games are Completed again"
+    timeout: 15000
+- takeScreenshot: 40g-row-deleted-toast
+- extendedWaitUntil:
+    notVisible: "Result deleted · its games are Completed again"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Restore"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Deleted"
+- assertVisible: ".*stay listed for 30 days under \"Deleted\".*"
+- takeScreenshot: 40h-past-results-deleted-restore
+- tapOn: "Restore"
+- extendedWaitUntil:
+    visible: "Result restored · its games are Closed again"
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: "Restore"
+    timeout: 20000
+- takeScreenshot: 40i-past-results-restored

@@ -197,6 +197,29 @@ export const archiveService = {
     return { gameIds: result.gameIds };
   },
 
+  /** Which of these saved results the viewer may delete (023 `can_manage_result`): for the Delete chip on Past results rows. */
+  async manageableResults(resultIds: string[], userId: string | null): Promise<Set<string>> {
+    if (resultIds.length === 0) return new Set();
+    if (isSupabaseConfigured) {
+      const flags = await Promise.all(resultIds.map(async (id) => {
+        try {
+          const { data, error } = await supabase.rpc('can_manage_result', { p_result_id: id });
+          return !error && data === true;
+        } catch {
+          return false;
+        }
+      }));
+      return new Set(resultIds.filter((_, index) => flags[index]));
+    }
+    if (!userId) return new Set();
+    const [results, games] = await Promise.all([readLocalResults(), storage.getGames()]);
+    const can = (result: GameResult) => result.declaredBy === userId || result.gameIds.every((id) => {
+      const game = games.find((g) => g.id === id);
+      return game ? localUserCanManage(game, userId) : false;
+    });
+    return new Set(results.filter((result) => resultIds.includes(result.id) && can(result)).map((result) => result.id));
+  },
+
   async restoreResult(resultId: string, userId: string | null): Promise<void> {
     if (isSupabaseConfigured) {
       await rpc('restore_result', { p_result_id: resultId });

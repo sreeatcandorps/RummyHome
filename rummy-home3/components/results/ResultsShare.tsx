@@ -8,11 +8,14 @@ import { HELP } from '@/constants/help';
 import { ShareCard } from '@/utils/shareCard';
 import { ResultsDetails } from '@/utils/resultsDetails';
 import { shareResultsPdf } from '@/utils/shareResultsPdf';
+import { sharedResults } from '@/utils/sharedResults';
 
 type Props = {
   card: ShareCard | null;
   details: ResultsDetails | null;
   createdAt?: string;
+  /** A saved result: a picture or PDF sent from here marks it shared, so Delete asks first (PR 9). */
+  resultId?: string;
 };
 
 /**
@@ -20,7 +23,7 @@ type Props = {
  * PDF then carry the same "Not saved yet" banner and warnings as the screen (card.notes).
  * The one Save button lives in the screen body.
  */
-export function ResultsShare({ card, details, createdAt }: Props) {
+export function ResultsShare({ card, details, createdAt, resultId }: Props) {
   const navigation = useNavigation();
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -52,6 +55,7 @@ export function ResultsShare({ card, details, createdAt }: Props) {
     setPdfBusy(true);
     try {
       setNotice(await shareResultsPdf(details, createdAt));
+      if (resultId) sharedResults.mark(resultId).catch(() => {});
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Could not make the PDF.');
     } finally {
@@ -67,7 +71,10 @@ export function ResultsShare({ card, details, createdAt }: Props) {
       title="Share"
       shareLabel="Share results"
       onDismiss={() => setOpen(false)}
-      onShared={setNotice}
+      onShared={(notice) => {
+        setNotice(notice);
+        if (resultId) sharedResults.mark(resultId).catch(() => {});
+      }}
       onFail={setNotice}
       onDetails={details ? sharePdf : undefined}
       detailsBusy={pdfBusy}
