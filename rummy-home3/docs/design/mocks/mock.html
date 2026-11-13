@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=390, initial-scale=1" />
+<title>EZ Score mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" rel="stylesheet" />
+<style>
+/* ---------- palettes (see 02-design-system.md / 04-palette-alternatives.md) ---------- */
+:root, [data-palette="A"][data-mode="light"] {
+  --bg:#F6F6F1; --surface:#FFFFFF; --sunken:#EEEEE7; --on:#17201B; --on2:#4E5752;
+  --outline:#8A918C; --outline2:#DCDDD5; --hair:#E8E8E1;
+  --primary:#15803D; --primary-edge:#0E5A2A; --on-primary:#FFFFFF; --primary-c:#D6F5DF; --on-primary-c:#0B3B1F;
+  --secondary:#8A5A00; --secondary-c:#FFE38A; --on-secondary-c:#3F2D00; --secondary-edge:#E0B33A;
+  --tertiary:#2B5FBF; --tertiary-c:#DCE8FF; --on-tertiary-c:#0F2B63;
+  --error:#B4231B; --error-c:#FFE1DD; --on-error-c:#5C0F0A;
+  --win:#0C6331; --win-c:#D6F5DF; --on-win-c:#0B3B1F; --loss:#A8201A; --loss-c:#FFE1DD; --on-loss-c:#5C0F0A;
+  --leader:#9A6700; --leader-c:#FFF0BF; --on-leader-c:#3F2D00;
+  --table-head:#F1F1EA; --table-latest:#EAF7EE; --cell:#F3F3ED;
+  --seat1:#0F766E; --seat2:#C2410C; --seat3:#1D4ED8; --seat4:#A21CAF; --seat5:#6D28D9;
+  --seat1t:#0F766E; --seat2t:#C2410C; --seat3t:#1D4ED8; --seat4t:#A21CAF; --seat5t:#6D28D9;
+  --shadow:0 2px 8px rgba(0,0,0,.06);
+}
+[data-palette="A"][data-mode="dark"] {
+  --bg:#0F1412; --surface:#181E1B; --sunken:#111614; --on:#EAEDE9; --on2:#BAC2BC;
+  --outline:#8A938D; --outline2:#343C38; --hair:#2A312D;
+  --primary:#5FD68E; --primary-edge:#2E9E5C; --on-primary:#04301A; --primary-c:#1A4A2E; --on-primary-c:#CFF4DB;
+  --secondary:#FFD45E; --secondary-c:#5C4300; --on-secondary-c:#FFE8AE; --secondary-edge:#3F2D00;
+  --tertiary:#9DBCFF; --tertiary-c:#22406E; --on-tertiary-c:#DCE8FF;
+  --error:#FF978E; --error-c:#7A1F1A; --on-error-c:#FFDAD6;
+  --win:#73DF9D; --win-c:#1A4A2E; --on-win-c:#CFF4DB; --loss:#FFA19A; --loss-c:#7A1F1A; --on-loss-c:#FFDAD6;
+  --leader:#FFD45E; --leader-c:#4D3900; --on-leader-c:#FFE8AE;
+  --table-head:#1F2622; --table-latest:#1B3326; --cell:#1C2320;
+  --seat1t:#2DD4BF; --seat2t:#FB923C; --seat3t:#7DB4FF; --seat4t:#F0ABFC; --seat5t:#C4B5FD;
+  --shadow:none;
+}
+/* B · Indigo & Marigold */
+[data-palette="B"][data-mode="light"] {
+  --bg:#F6F6FA; --surface:#FFFFFF; --sunken:#ECECF3; --on:#17182B; --on2:#4F5168;
+  --outline:#8B8DA3; --outline2:#DADBE6; --hair:#E8E8F0;
+  --primary:#4338CA; --primary-edge:#2E2894; --on-primary:#FFFFFF; --primary-c:#E0E0FF; --on-primary-c:#1E1B5C;
+  --secondary:#8A5A00; --secondary-c:#FFE38A; --on-secondary-c:#3F2D00; --secondary-edge:#E0B33A;
+  --tertiary:#0E7490; --tertiary-c:#CFF4FA; --on-tertiary-c:#0A3A45;
+  --error:#B4231B; --error-c:#FFE1DD; --on-error-c:#5C0F0A;
+  --win:#0C6331; --win-c:#D6F5DF; --on-win-c:#0B3B1F; --loss:#A8201A; --loss-c:#FFE1DD; --on-loss-c:#5C0F0A;
+  --leader:#9A6700; --leader-c:#FFF0BF; --on-leader-c:#3F2D00;
+  --table-head:#F0F0F6; --table-latest:#EBEBFF; --cell:#F2F2F7;
+  --seat1:#4338CA; --seat2:#C2410C; --seat3:#0E7490; --seat4:#A21CAF; --seat5:#15803D;
+  --seat1t:#4338CA; --seat2t:#C2410C; --seat3t:#0E7490; --seat4t:#A21CAF; --seat5t:#15803D;
+}
+[data-palette="B"][data-mode="dark"] {
+  --bg:#0F0F16; --surface:#181824; --sunken:#111119; --on:#EAEAF2; --on2:#BBBCCB;
+  --outline:#8B8DA3; --outline2:#343549; --hair:#2A2B3D;
+  --primary:#A5B4FC; --primary-edge:#6D7BE0; --on-primary:#1E1B5C; --primary-c:#312E81; --on-primary-c:#E0E0FF;
+  --secondary:#FFD45E; --secondary-c:#5C4300; --on-secondary-c:#FFE8AE; --secondary-edge:#3F2D00;
+  --tertiary:#67E8F9; --tertiary-c:#164E63; --on-tertiary-c:#CFF4FA;
+  --error:#FF978E; --error-c:#7A1F1A; --on-error-c:#FFDAD6;
+  --win:#73DF9D; --win-c:#1A4A2E; --on-win-c:#CFF4DB; --loss:#FFA19A; --loss-c:#7A1F1A; --on-loss-c:#FFDAD6;
+  --leader:#FFD45E; --leader-c:#4D3900; --on-leader-c:#FFE8AE;
+  --table-head:#1F1F2C; --table-latest:#24244A; --cell:#1C1C29;
+  --seat1t:#A5B4FC; --seat2t:#FB923C; --seat3t:#22D3EE; --seat4t:#F0ABFC; --seat5t:#4ADE80;
+}
+/* C · Teal & Coral */
+[data-palette="C"][data-mode="light"] {
+  --bg:#F3F8F7; --surface:#FFFFFF; --sunken:#E6EFED; --on:#132421; --on2:#4A5C58;
+  --outline:#86948F; --outline2:#D5E0DD; --hair:#E3ECEA;
+  --primary:#0F766E; --primary-edge:#0A544E; --on-primary:#FFFFFF; --primary-c:#CCF1EC; --on-primary-c:#073B37;
+  --secondary:#B23A2B; --secondary-c:#FFD9D0; --on-secondary-c:#4A1309; --secondary-edge:#E8A090;
+  --tertiary:#2B5FBF; --tertiary-c:#DCE8FF; --on-tertiary-c:#0F2B63;
+  --error:#B4231B; --error-c:#FFE1DD; --on-error-c:#5C0F0A;
+  --win:#0C6331; --win-c:#D6F5DF; --on-win-c:#0B3B1F; --loss:#A8201A; --loss-c:#FFE1DD; --on-loss-c:#5C0F0A;
+  --leader:#9A6700; --leader-c:#FFF0BF; --on-leader-c:#3F2D00;
+  --table-head:#ECF3F1; --table-latest:#DFF4F1; --cell:#EEF4F3;
+  --seat1:#0F766E; --seat2:#C2410C; --seat3:#1D4ED8; --seat4:#A21CAF; --seat5:#6D28D9;
+  --seat1t:#0F766E; --seat2t:#C2410C; --seat3t:#1D4ED8; --seat4t:#A21CAF; --seat5t:#6D28D9;
+}
+[data-palette="C"][data-mode="dark"] {
+  --bg:#0E1515; --surface:#171F1F; --sunken:#101717; --on:#E8EEED; --on2:#B7C4C1;
+  --outline:#86948F; --outline2:#323D3C; --hair:#283231;
+  --primary:#5EEAD4; --primary-edge:#2CB5A0; --on-primary:#03302C; --primary-c:#134E4A; --on-primary-c:#CCF1EC;
+  --secondary:#FFB4A2; --secondary-c:#6B2415; --on-secondary-c:#FFD9D0; --secondary-edge:#4A1309;
+  --tertiary:#9DBCFF; --tertiary-c:#22406E; --on-tertiary-c:#DCE8FF;
+  --error:#FF978E; --error-c:#7A1F1A; --on-error-c:#FFDAD6;
+  --win:#73DF9D; --win-c:#1A4A2E; --on-win-c:#CFF4DB; --loss:#FFA19A; --loss-c:#7A1F1A; --on-loss-c:#FFDAD6;
+  --leader:#FFD45E; --leader-c:#4D3900; --on-leader-c:#FFE8AE;
+  --table-head:#1E2727; --table-latest:#17332F; --cell:#1B2424;
+  --seat1t:#5EEAD4; --seat2t:#FB923C; --seat3t:#7DB4FF; --seat4t:#F0ABFC; --seat5t:#C4B5FD;
+}
+
+/* ---------- base ---------- */
+* { box-sizing:border-box; }
+html, body { margin:0; padding:0; }
+body { background:var(--bg); color:var(--on); font-family:'Nunito', system-ui, sans-serif; font-size:16px; line-height:24px; -webkit-font-smoothing:antialiased; }
+.phone { width:390px; height:844px; position:relative; background:var(--bg); display:flex; flex-direction:column; overflow:hidden; }
+[data-screen="results"] .phone, [data-screen="confetti"] .phone { height:auto; min-height:844px; }
+.content { overflow:hidden; }
+.content > *, .phone > * { flex-shrink:0; }
+.content .card .row { flex-shrink:0; }
+.content { padding:0 16px 16px; display:flex; flex-direction:column; gap:16px; flex:1; }
+.mdi { font-size:24px; line-height:1; }
+.tab-num { font-variant-numeric: tabular-nums; }
+
+/* header */
+.header { display:flex; align-items:center; justify-content:space-between; padding:14px 8px 8px 16px; min-height:60px; }
+.header h1 { margin:0; font-size:22px; line-height:28px; font-weight:800; display:flex; align-items:center; gap:10px; }
+.header .actions { display:flex; gap:0; }
+.iconbtn { width:48px; height:48px; display:flex; align-items:center; justify-content:center; color:var(--on2); border-radius:999px; }
+.iconbtn .mdi { color:var(--on); }
+.logo { width:36px; height:36px; border-radius:10px; background:var(--secondary-c); color:var(--on-secondary-c); display:flex; align-items:center; justify-content:center; }
+.logo .mdi { font-size:22px; }
+
+/* type */
+.headline { font-size:28px; line-height:34px; font-weight:800; margin:0; }
+.title { font-size:22px; line-height:28px; font-weight:800; margin:0; }
+.subtitle { font-size:18px; line-height:24px; font-weight:700; margin:0; }
+.body { font-size:16px; line-height:24px; }
+.label { font-size:14px; line-height:20px; font-weight:700; }
+.caption { font-size:13px; line-height:18px; font-weight:600; }
+.muted { color:var(--on2); }
+
+/* buttons */
+.btn { display:flex; align-items:center; justify-content:center; gap:10px; height:52px; padding:0 20px; border-radius:999px; font-size:18px; font-weight:800; line-height:24px; border:0; position:relative; }
+.btn .mdi { font-size:22px; }
+.btn-primary { background:var(--primary); color:var(--on-primary); box-shadow:0 4px 0 var(--primary-edge); margin-bottom:4px; }
+.btn-accent { background:var(--secondary-c); color:var(--on-secondary-c); box-shadow:0 4px 0 var(--secondary-edge); margin-bottom:4px; }
+.btn-tonal { background:var(--primary-c); color:var(--on-primary-c); }
+.btn-outline { background:transparent; color:var(--primary); border:2px solid var(--outline); }
+.btn-disabled { background:var(--sunken); color:var(--on2); opacity:.7; }
+.btn-tall { height:56px; }
+
+/* chips */
+.chips { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.chip { display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px 0 10px; border-radius:999px; font-size:14px; font-weight:700; line-height:20px; white-space:nowrap; }
+.chip .mdi { font-size:16px; }
+.chip-live { background:var(--primary-c); color:var(--on-primary-c); }
+.chip-done { background:var(--tertiary-c); color:var(--on-tertiary-c); }
+.chip-closed, .chip-neutral { background:var(--sunken); color:var(--on2); }
+.chip-leader { background:var(--leader-c); color:var(--on-leader-c); }
+.chip-info { background:var(--tertiary-c); color:var(--on-tertiary-c); }
+.chip-pool, .chip-pending { background:var(--secondary-c); color:var(--on-secondary-c); }
+.chip-you { background:var(--tertiary-c); color:var(--on-tertiary-c); }
+.chip-id { background:var(--sunken); color:var(--on); }
+.chip-id .mdi { color:var(--on2); }
+.chip-outline { background:var(--tertiary-c); color:var(--on-tertiary-c); }
+.chip-filter-on { background:var(--primary); color:var(--on-primary); }
+.chip-filter { background:transparent; color:var(--on); border:2px solid var(--outline); height:36px; }
+.filters { flex-wrap:nowrap; }
+.filters .chip { padding:0 10px; }
+.chip-filter-on { height:36px; }
+
+/* cards */
+.card { background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+.card-head { display:flex; align-items:center; gap:12px; }
+.disc { width:36px; height:36px; border-radius:999px; background:var(--primary-c); color:var(--on-primary-c); display:flex; align-items:center; justify-content:center; flex:none; }
+.disc .mdi { font-size:20px; }
+.section-label { font-size:14px; line-height:20px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--on2); margin:0 0 -4px 4px; }
+.row { display:flex; align-items:center; gap:12px; min-height:72px; padding:12px 0; }
+.row + .row { border-top:1px solid var(--hair); }
+.gbadge { width:48px; height:48px; border-radius:14px; background:var(--tertiary-c); color:var(--on-tertiary-c); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; flex:none; }
+.gbadge.pool { background:var(--secondary-c); color:var(--on-secondary-c); }
+.row .meta { flex:1; display:flex; flex-direction:column; gap:6px; min-width:0; }
+.chev { color:var(--on2); }
+.card .row:first-of-type { padding-top:4px; }
+.card .row:last-of-type { padding-bottom:0; }
+
+/* avatars */
+.av { border-radius:999px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; flex:none; position:relative; }
+.av-40 { width:40px; height:40px; font-size:16px; }
+.av-36 { width:36px; height:36px; font-size:14px; }
+.av-64 { width:64px; height:64px; font-size:26px; font-weight:800; }
+.av-56 { width:56px; height:56px; font-size:18px; font-weight:800; }
+.crown { position:absolute; right:-4px; top:-6px; width:20px; height:20px; border-radius:999px; background:var(--leader-c); color:var(--leader); display:flex; align-items:center; justify-content:center; border:2px solid var(--surface); }
+.crown .mdi { font-size:12px; }
+
+/* tab bar */
+.tabbar { margin-top:auto; background:var(--surface); border-top:1px solid var(--outline2); height:72px; display:flex; align-items:center; justify-content:space-around; padding:0 8px; }
+.tabbar { gap:10px; padding:0 16px; height:80px; }
+.tab { display:flex; flex-direction:row; align-items:center; justify-content:center; gap:8px; color:var(--on); font-size:15px; font-weight:800; line-height:18px; height:52px; padding:0 16px; border-radius:999px; border:2px solid var(--outline2); background:var(--sunken); flex:1; white-space:nowrap; }
+.tab.on { background:var(--primary); color:var(--on-primary); border-color:var(--primary); box-shadow:0 4px 0 var(--primary-edge); margin-top:-4px; }
+.tab .mdi { font-size:24px; }
+.tab.av-tab { flex:none; width:56px; padding:0; }
+.bottombar { margin-top:auto; background:var(--surface); border-top:1px solid var(--outline2); padding:12px 16px 16px; display:flex; gap:12px; }
+.bottombar .btn { flex:1; min-width:0; padding:0 12px; white-space:nowrap; }
+.bottombar.three .btn { font-size:15px; gap:6px; padding:0 10px; }
+.bottombar.three { gap:8px; }
+.bottombar .btn-wide { flex:1.6; }
+
+/* scores */
+.score { font-variant-numeric:tabular-nums; font-weight:800; }
+.win { color:var(--on); }
+.loss { color:var(--loss); font-weight:700; }
+.zero { color:var(--on2); font-weight:700; }
+.pill-win { background:var(--win-c); color:var(--on); border-radius:8px; padding:0 8px; }
+.pill-loss { background:var(--loss-c); color:var(--on-loss-c); border-radius:8px; padding:0 8px; }
+
+/* scorecard table */
+.table { background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; overflow:hidden; }
+.table table { border-collapse:collapse; width:100%; }
+.table th, .table td { border-right:1px solid var(--hair); border-bottom:1px solid var(--hair); text-align:center; padding:0; }
+.table tr > *:last-child { border-right:0; }
+.table thead th { background:var(--table-head); height:84px; vertical-align:middle; }
+.table thead th.rnd { font-size:13px; font-weight:700; color:var(--on2); width:48px; }
+.table thead th .ini { font-size:16px; font-weight:800; display:block; }
+.table thead th .tot { font-size:20px; font-weight:800; display:block; font-variant-numeric:tabular-nums; }
+.table thead th .bar { display:block; width:28px; height:4px; border-radius:2px; margin:6px auto 0; }
+.table thead th.dealer { background:var(--primary-c); color:var(--on-primary-c); box-shadow:inset 0 -4px 0 var(--on-primary-c); }
+.table thead th.dealer .tot { color:var(--on); }
+.table thead th.dealer .deals { font-size:11px; font-weight:800; letter-spacing:.5px; display:block; margin-top:4px; }
+.table tbody td { height:56px; font-size:18px; }
+.table tbody td.rnd { background:var(--table-head); }
+.table tbody td.rnd .n { font-size:16px; font-weight:800; display:block; }
+.table tbody td.rnd .d { font-size:13px; font-weight:700; color:var(--on2); display:block; }
+.table tbody tr.latest td { background:var(--table-latest); }
+.table tbody tr.latest td.rnd { background:var(--table-latest); }
+.table .cellpill { display:inline-flex; align-items:center; justify-content:center; min-width:52px; height:36px; border-radius:10px; }
+
+/* scorecard footer: creator + admins, bottom-right of the card */
+.tablewrap { display:flex; flex-direction:column; flex:1; }
+.tablewrap .table { display:flex; flex-direction:column; flex:1; }
+.table-foot { margin-top:auto; display:flex; justify-content:flex-end; align-items:flex-end; gap:6px 16px; flex-wrap:wrap; padding:10px 14px 12px; font-size:14px; line-height:18px; font-weight:600; color:var(--on2); text-align:right; }
+.table-foot b { color:var(--on); font-weight:700; }
+[data-screen="scorecard-big"] .phone, [data-screen="initials-conflicts"] .phone { height:auto; min-height:844px; }
+[data-screen="scorecard-big"] .content { overflow:visible; }
+.table.many { overflow-x:auto; }
+.table.many table { min-width:600px; }
+.table.many td { height:44px; font-size:15px; }
+.table.many thead th { height:72px; }
+.table.many thead th .tot { font-size:16px; }
+.table.many thead th .ini { font-size:14px; }
+.table.many .cellpill { min-width:40px; height:30px; border-radius:8px; }
+.table.many tbody td.rnd .n { font-size:14px; }
+.table.many tbody td.rnd .d { font-size:11px; }
+.table.many thead th.rnd { width:40px; }
+
+/* add round */
+.ar-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.ar-cell { height:88px; border-radius:16px; background:var(--cell); border:2px solid transparent; padding:12px 14px; position:relative; display:flex; flex-direction:column; justify-content:space-between; }
+.ar-cell .name { font-size:16px; font-weight:700; line-height:22px; }
+.ar-cell .val { font-size:32px; line-height:36px; font-weight:800; font-variant-numeric:tabular-nums; }
+.ar-cell .x { position:absolute; right:10px; bottom:8px; color:var(--on2); font-size:20px; }
+.ar-cell.selected { background:var(--surface); border-color:var(--primary); box-shadow:0 0 0 2px var(--primary) inset; }
+.ar-cell.confirmed { background:var(--surface); border-color:var(--outline2); }
+.ar-cell.confirmed::after { content:'\F012C'; font-family:'Material Design Icons'; position:absolute; right:12px; top:8px; color:var(--on2); font-size:20px; }
+.ar-cell.confirmed .x { display:none; }
+.keypad { background:var(--surface); border-top:1px solid var(--outline2); padding:12px 16px; display:flex; flex-direction:column; gap:10px; }
+.keyrow { display:grid; grid-template-columns:repeat(6, 1fr); gap:8px; }
+.key { height:64px; border-radius:12px; background:var(--sunken); display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--on); border:1.5px solid var(--outline2); }
+.key .mdi { font-size:30px; }
+.key-sm { font-size:20px; }
+.key-on { background:var(--primary-c); color:var(--on-primary-c); border-color:var(--primary); border-width:2px; }
+.key-rummy { background:var(--tertiary-c); color:var(--on-tertiary-c); font-size:18px; border-color:transparent; }
+.digits { display:grid; grid-template-columns:repeat(5, 1fr) 1.4fr; gap:8px; grid-template-rows:64px 64px; }
+.digits .save { grid-column:6; grid-row:1 / span 2; height:auto; border-radius:14px; display:flex; flex-direction:column; gap:4px; font-size:16px; line-height:20px; }
+.digits .save .mdi { font-size:28px; }
+.save.on { background:var(--primary); color:var(--on-primary); box-shadow:0 4px 0 var(--primary-edge); border:0; }
+.ar-bottom { background:var(--surface); border-top:1px solid var(--outline2); padding:12px 16px 16px; display:flex; gap:12px; align-items:stretch; }
+.balance { background:var(--loss-c); color:var(--on-loss-c); border-radius:16px; padding:6px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:120px; }
+.balance .l { font-size:14px; font-weight:700; line-height:18px; }
+.balance .v { font-size:32px; font-weight:800; line-height:36px; font-variant-numeric:tabular-nums; }
+.balance.ok { background:var(--win-c); color:var(--on); }
+
+/* results */
+.notice { display:flex; gap:12px; align-items:flex-start; padding:12px 16px; border-radius:16px; background:var(--secondary-c); color:var(--on-secondary-c); font-weight:600; }
+.notice .mdi { font-size:22px; flex:none; margin-top:1px; }
+.totals { display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+.tot-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.tot-row .nm { font-size:16px; font-weight:700; line-height:20px; white-space:nowrap; }
+.tot-row .sub { font-size:13px; font-weight:600; color:var(--on2); }
+.tot-row .sc { font-size:26px; line-height:30px; }
+.grid { background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; overflow:hidden; }
+.grid table { border-collapse:collapse; width:100%; }
+.grid th { background:var(--primary-c); color:var(--on-primary-c); font-size:14px; font-weight:800; height:48px; padding:0 12px; text-align:left; border-bottom:1px solid var(--hair); }
+.grid th.num, .grid td.num { text-align:right; }
+.grid th .t { display:block; font-size:11px; font-weight:700; opacity:.85; }
+.grid td { height:52px; padding:0 12px; border-bottom:1px solid var(--hair); font-size:16px; }
+.grid tr:last-child td { border-bottom:0; }
+.grid td .id { display:block; font-size:13px; color:var(--on2); font-weight:600; line-height:16px; }
+.grid td.num { font-size:18px; }
+.grid td.total, .grid th.total { background:var(--sunken); }
+.grid td.total { font-size:20px; }
+.grid td.total .win, .grid td.total .loss { color:var(--on); font-weight:800; }
+.winner { background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; padding:16px; display:flex; align-items:center; gap:16px; position:relative; overflow:hidden; }
+.winner .av-64 { box-shadow:0 0 0 3px var(--leader); }
+.winner .big { font-size:40px; line-height:44px; font-weight:800; font-variant-numeric:tabular-nums; }
+.podium { display:flex; gap:12px; }
+.podium .p { flex:1; display:flex; align-items:center; gap:10px; }
+.podium .p .av-36 { font-size:13px; }
+.podium .p .sc { font-size:20px; }
+
+/* players grid */
+.search { height:56px; border-radius:12px; border:2px solid var(--outline); background:var(--surface); display:flex; align-items:center; gap:12px; padding:0 16px; color:var(--on2); font-size:16px; }
+.search .mdi { font-size:22px; color:var(--on); }
+.pgrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.pcard { background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:10px; min-height:120px; }
+.pcard .nm { font-size:16px; font-weight:700; line-height:20px; display:flex; align-items:center; gap:8px; }
+.actions3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.tile { height:96px; border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; font-size:14px; font-weight:700; line-height:18px; text-align:center; padding:0 8px; position:relative; }
+.tile .mdi { font-size:26px; }
+.tile-primary { background:var(--primary); color:var(--on-primary); box-shadow:0 4px 0 var(--primary-edge); }
+.tile-tonal { background:var(--primary-c); color:var(--on-primary-c); }
+.tile-outline { background:var(--surface); color:var(--primary); border:2px solid var(--outline); }
+.badge { position:absolute; top:8px; right:8px; min-width:22px; height:22px; border-radius:999px; background:var(--error); color:#fff; font-size:13px; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 6px; }
+[data-mode="dark"] .badge { color:#4A0B07; }
+
+/* players/admins list */
+.prow { display:flex; align-items:center; gap:12px; min-height:64px; padding:10px 0; }
+.prow + .prow { border-top:1px solid var(--hair); }
+.prow .meta { flex:1; display:flex; flex-direction:column; gap:6px; min-width:0; }
+.prow .nm { font-size:17px; font-weight:700; line-height:22px; }
+.menu { position:absolute; right:24px; background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; padding:6px 0; box-shadow:0 8px 24px rgba(0,0,0,.18); z-index:10; min-width:220px; }
+.menu div { display:flex; align-items:center; gap:14px; padding:12px 18px; font-size:16px; font-weight:600; }
+.menu div .mdi { font-size:22px; color:var(--on2); }
+.menu div.danger { color:var(--error); }
+.menu div.danger .mdi { color:var(--error); }
+/* initials */
+.conf { background:var(--surface); border:1.5px solid var(--outline2); border-radius:16px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+.conf .who { display:flex; align-items:center; gap:12px; }
+.conf .who .nm { font-size:16px; font-weight:700; flex:1; }
+.conf .fix { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.ini-in { height:48px; min-width:84px; border-radius:12px; border:2px solid var(--outline); background:var(--surface); display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:800; letter-spacing:1px; padding:0 12px; }
+.ini-in.ok { border-color:var(--primary); }
+.ini-in.bad { border-color:var(--error); color:var(--error); }
+.sugg { display:inline-flex; align-items:center; height:36px; padding:0 14px; border-radius:999px; border:2px solid var(--outline2); background:var(--sunken); font-size:15px; font-weight:800; letter-spacing:.5px; }
+.sugg.on { background:var(--primary-c); border-color:var(--primary); color:var(--on-primary-c); }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field .lbl { font-size:14px; font-weight:700; color:var(--on2); }
+.input { height:56px; border-radius:12px; border:2px solid var(--outline); background:var(--surface); display:flex; align-items:center; padding:0 16px; font-size:17px; font-weight:600; justify-content:space-between; }
+.input.ro { background:var(--sunken); border-color:var(--outline2); color:var(--on2); }
+.kv { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-top:1px solid var(--hair); font-size:15px; }
+.kv:first-of-type { border-top:0; }
+.sheet { position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-radius:24px 24px 0 0; padding:12px 16px 24px; box-shadow:0 -8px 30px rgba(0,0,0,.25); z-index:20; display:flex; flex-direction:column; gap:12px; }
+.scrim { position:absolute; inset:0; background:rgba(23,32,27,.45); z-index:15; }
+.grab { width:40px; height:4px; border-radius:2px; background:var(--outline2); margin:0 auto 4px; }
+
+/* confetti */
+.confetti { position:absolute; left:0; right:0; top:0; height:46%; pointer-events:none; overflow:hidden; z-index:5; }
+.confetti i { position:absolute; width:10px; height:14px; border-radius:2px; display:block; }
+
+.hero { padding:4px 0 0; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const screen = q.get('screen') || 'home';
+const mode = q.get('mode') || 'light';
+const palette = q.get('palette') || 'A';
+document.documentElement.dataset.mode = mode;
+document.documentElement.dataset.palette = palette;
+document.documentElement.dataset.screen = screen;
+
+const seatVar = (i) => `var(--seat${i})`;
+const seatText = (i) => `var(--seat${i}t)`;
+const av = (i, ini, size=40, crown=false) =>
+  `<div class="av av-${size}" style="background:${seatVar(i)}">${ini}${crown?'<span class="crown"><span class="mdi mdi-crown"></span></span>':''}</div>`;
+const chip = (cls, icon, text) => `<span class="chip ${cls}"><span class="mdi mdi-${icon}"></span>${text}</span>`;
+const sc = (n, pill=false) => {
+  const cls = n > 0 ? 'win' : n < 0 ? 'loss' : 'zero';
+  const txt = n > 0 ? `+${n}` : `${n}`;
+  return `<span class="score ${cls} ${pill && n!==0 ? (n>0?'pill-win':'pill-loss') : ''}">${txt}</span>`;
+};
+const header = (title, right='', logo=false) => `
+  <div class="header">
+    <h1>${logo?'<span class="logo"><span class="mdi mdi-cards-playing-outline"></span></span>':''}${title}</h1>
+    <div class="actions">${right}</div>
+  </div>`;
+const ib = (icon) => `<div class="iconbtn"><span class="mdi mdi-${icon}"></span></div>`;
+const tabbar = (active) => `
+  <div class="tabbar">
+    <div class="tab ${active==='home'?'on':''}"><span class="mdi mdi-${active==='home'?'home':'home-outline'}"></span>Home</div>
+    <div class="tab ${active==='players'?'on':''}"><span class="mdi mdi-${active==='players'?'account-group':'account-group-outline'}"></span>My players · 9</div>
+    <div class="tab av-tab">${av(1,'SK',40)}</div>
+  </div>`;
+
+const scoreBar = () => `
+    <div class="bottombar three">
+      <div class="btn btn-outline"><span class="mdi mdi-undo-variant"></span>Undo</div>
+      <div class="btn btn-primary btn-wide"><span class="mdi mdi-plus"></span>Add round</div>
+      <div class="btn btn-outline"><span class="mdi mdi-flag-checkered"></span>Complete</div>
+    </div>`;
+
+const prow = (i, ini, name, id, chips, menu=true) => `
+    <div class="prow">${av(i, ini, 40)}
+      <div class="meta"><span class="nm" style="display:flex;align-items:center;gap:8px">${name}${chip('chip-id','pound',id).replace('class="chip chip-id"','class="chip chip-id" style="height:28px;padding:0 10px 0 8px"')}</span><div class="chips">${chips}</div></div>
+      ${menu?'<div class="iconbtn"><span class="mdi mdi-dots-vertical"></span></div>':''}
+    </div>`;
+
+const screens = {
+  home: () => `
+    ${header('EZ Score: Rummy', ib('help-circle-outline'), true)}
+    <div class="content">
+      <p class="headline hero">Hi Sree</p>
+      <div class="btn btn-primary btn-tall"><span class="mdi mdi-plus"></span>New game</div>
+      <div class="btn btn-accent btn-tall"><span class="mdi mdi-podium"></span>Results</div>
+      <div class="card">
+        <div class="card-head"><div class="disc"><span class="mdi mdi-cards-playing-outline"></span></div>
+          <div><p class="subtitle">Live · 2</p><div class="label muted" style="font-weight:600">Tap a game to carry on scoring.</div></div></div>
+        <div class="row">
+          <div class="gbadge pool">G15</div>
+          <div class="meta"><p class="subtitle">Wed, Nov 11 · 9:05 PM</p>
+            <div class="chips">${chip('chip-live','circle-medium','Live')}${chip('chip-pool','trophy-outline','Pool')}<span class="label muted"><span class="mdi mdi-account-group-outline" style="font-size:16px"></span> 9 · Anita's game</span></div></div>
+          <span class="mdi mdi-chevron-right chev"></span>
+        </div>
+        <div class="row">
+          <div class="gbadge">G14</div>
+          <div class="meta"><p class="subtitle">Wed, Nov 11 · 8:12 AM</p>
+            <div class="chips">${chip('chip-live','circle-medium','Live')}${chip('chip-leader','crown-outline','Creator')}${chip('chip-info','numeric','Points')}<span class="label muted"><span class="mdi mdi-account-group-outline" style="font-size:16px"></span> 5</span></div></div>
+          <span class="mdi mdi-chevron-right chev"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="disc"><span class="mdi mdi-history"></span></div>
+          <div><p class="subtitle">Recent · 2</p><div class="label muted" style="font-weight:600">Completed and Closed games, newest first.</div></div></div>
+        <div class="row">
+          <div class="gbadge">G13</div>
+          <div class="meta"><p class="subtitle">Tue, Nov 10 · 9:42 AM</p>
+            <div class="chips">${chip('chip-done','flag-checkered','Completed')}${chip('chip-leader','crown-outline','Creator')}${chip('chip-info','numeric','Points')}</div></div>
+          <span class="mdi mdi-chevron-right chev"></span>
+        </div>
+        <div class="row">
+          <div class="gbadge">G12</div>
+          <div class="meta"><p class="subtitle">Wed, Nov 4 · 9:42 AM</p>
+            <div class="chips">${chip('chip-closed','lock-outline','Closed')}${chip('chip-leader','crown-outline','Creator')}${chip('chip-info','numeric','Points')}</div></div>
+          <span class="mdi mdi-chevron-right chev"></span>
+        </div>
+      </div>
+    </div>
+    ${tabbar('home')}`,
+
+  scorecard: () => {
+    const rows = [
+      [1,'SK',[40,-10,-80,30,20]],
+      [2,'AR',[-10,55,-10,-30,-5]],
+      [3,'RK',[25,-30,-10,25,-10]],
+      [4,'MN',[-30,20,45,-10,-25]],
+      [5,'VM',[60,-10,-30,-20,0]],
+      [6,'SK',[-10,35,-10,15,-30]],
+    ];
+    const heads = [['SK',75,1,true],['AR',60,2,false],['RK',-95,3,false],['MN',10,4,false],['VM',-50,5,false]];
+    return `
+    ${header('Scorecard', ib('help-circle-outline')+ib('dots-vertical'))}
+    <div class="content" style="gap:12px">
+      <div class="chips"><span class="gbadge" style="width:auto;height:32px;padding:0 10px;border-radius:10px;font-size:15px">G14</span>${chip('chip-info','numeric','Points')}${chip('chip-outline','cards-outline','Round 7 · AR deals')}</div>
+      <div class="tablewrap"><div class="table"><table>
+        <thead><tr><th class="rnd">RND</th>
+          ${heads.map(([ini,tot,i,crown],idx)=>`<th class="${idx===1?'dealer':''}">
+            <span class="ini" style="color:${idx===1?'':seatText(i)}">${ini}</span>
+            <span class="tot ${tot>0?'win':tot<0?'loss':'zero'}" style="${idx===1?'':''}">${tot>0?'+'+tot:tot}</span>
+            ${idx===1?'<span class="deals">DEALS</span>':crown?'<span class="mdi mdi-crown" style="color:var(--leader);font-size:16px;display:block;margin-top:4px"></span>':`<span class="bar" style="background:${seatText(i)}"></span>`}
+          </th>`).join('')}
+        </tr></thead>
+        <tbody>${rows.map(([n,d,vals],ri)=>`<tr class="${ri===rows.length-1?'latest':''}">
+          <td class="rnd"><span class="n">${n}</span><span class="d">${d}</span></td>
+          ${vals.map(v=>`<td>${v>0?`<span class="cellpill pill-win score">+${v}</span>`:v<=-80?`<span class="cellpill pill-loss score" style="font-weight:700">${v}</span>`:sc(v)}</td>`).join('')}
+        </tr>`).join('')}</tbody>
+      </table>
+      <div class="table-foot"><span>Creator <b>Sree Koneru</b></span><span>Admin <b>Anita Rao</b></span></div>
+      </div></div>
+    </div>
+    ${scoreBar()}`;
+  },
+
+  'scorecard-big': () => {
+    const names = ['SK','AR','RK','MN','VM','LI','SK1','PS','AR1'];
+    const seatIdx = [1,2,3,4,5,1,2,3,4];
+    let seed = 5; const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const rows = []; const totals = new Array(9).fill(0);
+    for (let r = 1; r <= 16; r++) {
+      const w = Math.floor(rnd() * 9); let pot = 0; const vals = [];
+      for (let i = 0; i < 9; i++) { if (i === w) { vals.push(null); continue; } const k = rnd(); const v = k < .35 ? -10 : k < .55 ? -30 : k < .65 ? -80 : -(Math.floor(rnd()*6)+1)*5; vals.push(v); pot += -v; }
+      vals[w] = pot; vals.forEach((v,i)=>totals[i]+=v); rows.push([r, names[(r-1)%9], vals]);
+    }
+    const lead = totals.indexOf(Math.max(...totals));
+    return `
+    ${header('Scorecard', ib('help-circle-outline')+ib('dots-vertical'))}
+    <div class="content" style="gap:12px">
+      <div class="chips"><span class="gbadge pool" style="width:auto;height:32px;padding:0 10px;border-radius:10px;font-size:15px">G15</span>${chip('chip-pool','trophy-outline','Pool')}${chip('chip-outline','cards-outline','Round 17 · PS deals')}</div>
+      <div class="tablewrap"><div class="table many"><table>
+        <thead><tr><th class="rnd">RND</th>
+          ${names.map((ini,i)=>`<th class="${i===7?'dealer':''}">
+            <span class="ini" style="color:${i===7?'':seatText(seatIdx[i])}">${ini}</span>
+            <span class="tot ${totals[i]>0?'win':totals[i]<0?'loss':'zero'}">${totals[i]>0?'+'+totals[i]:totals[i]}</span>
+            ${i===7?'<span class="deals">DEALS</span>':i===lead?'<span class="mdi mdi-crown" style="color:var(--leader);font-size:14px;display:block;margin-top:2px"></span>':''}
+          </th>`).join('')}
+        </tr></thead>
+        <tbody>${rows.map(([n,d,vals],ri)=>`<tr class="${ri===rows.length-1?'latest':''}">
+          <td class="rnd"><span class="n">${n}</span><span class="d">${d}</span></td>
+          ${vals.map(v=>`<td>${v>0?`<span class="cellpill pill-win score">+${v}</span>`:v<=-80?`<span class="cellpill pill-loss score" style="font-weight:700">${v}</span>`:sc(v)}</td>`).join('')}
+        </tr>`).join('')}</tbody>
+      </table>
+      <div class="table-foot"><span>Creator <b>Anita Rao</b></span><span>Admins <b>Sree Koneru, Ravi Kumar</b></span></div>
+      </div></div>
+    </div>
+    ${scoreBar()}`;
+  },
+
+  'add-round': () => `
+    <div class="header">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <h1><span class="gbadge" style="width:auto;height:32px;padding:0 10px;border-radius:10px;font-size:15px">G14</span>Round 7</h1>
+        <span class="label muted" style="font-weight:600">Started Wed, Nov 11 · 8:12 AM</span>
+      </div>
+      <div class="actions" style="align-items:center;gap:4px">${av(1,'SK',36)}${ib('dots-vertical')}</div>
+    </div>
+    <div class="content" style="gap:12px">
+      <div class="ar-grid">
+        <div class="ar-cell selected"><span class="name">Sree Koneru</span><span class="val muted" style="font-size:16px;font-weight:600;line-height:20px">Enter score</span><span class="mdi mdi-close x"></span></div>
+        <div class="ar-cell confirmed"><span class="name">Anita Rao</span><span class="val loss">-10</span><span class="mdi mdi-close x"></span></div>
+        <div class="ar-cell confirmed"><span class="name">Ravi Kumar</span><span class="val loss">-80</span><span class="mdi mdi-close x"></span></div>
+        <div class="ar-cell"><span class="name">Meera Nair</span><span></span><span class="mdi mdi-close x"></span></div>
+        <div class="ar-cell"><span class="name">Vijay Menon</span><span></span><span class="mdi mdi-close x"></span></div>
+      </div>
+    </div>
+    <div class="keypad">
+      <div class="keyrow">
+        <div class="key"><span class="mdi mdi-plus"></span></div>
+        <div class="key key-on"><span class="mdi mdi-minus"></span></div>
+        <div class="key key-sm">-10</div><div class="key key-sm">-30</div><div class="key key-sm">-80</div>
+        <div class="key key-rummy">Rummy</div>
+      </div>
+      <div class="digits">
+        <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">4</div><div class="key">5</div>
+        <div class="key save on"><span class="mdi mdi-check"></span>Save<br/>score</div>
+        <div class="key">6</div><div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key">0</div>
+      </div>
+    </div>
+    <div class="ar-bottom">
+      <div class="balance"><span class="l">Balance</span><span class="v">-90</span></div>
+      <div class="btn btn-disabled btn-tall" style="flex:1"><span class="mdi mdi-check-circle-outline"></span>Save round</div>
+    </div>`,
+
+  results: (confetti=false) => `
+    ${header('Results', ib('content-save-outline')+ib('share-variant-outline')+ib('help-circle-outline'))}
+    <div class="content" style="gap:14px">
+      <div class="winner">
+        ${av(1,'SK',64)}
+        <div style="flex:1">
+          <div class="chips">${chip('chip-leader','crown','1st')}</div>
+          <p class="title" style="margin-top:6px">Sree Koneru</p>
+          <span class="label muted" style="font-weight:600">SK · #7 · 2 games</span>
+        </div>
+        <span class="big score win">+150</span>
+      </div>
+      <div class="podium">
+        <div class="p">${av(2,'AR',36)}<div><span class="label">2nd · Anita</span><br/><span class="sc score win">+120</span></div></div>
+        <div class="p">${av(4,'MN',36)}<div><span class="label">3rd · Meera</span><br/><span class="sc score win">+20</span></div></div>
+      </div>
+      <div class="card" style="gap:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between"><p class="subtitle">Totals</p><span class="label muted" style="font-weight:600">2 games · 5 players · Wed, Nov 11</span></div>
+        <div class="totals">
+          <div class="tot-row"><div><span class="nm">Sree Koneru</span><br/><span class="sub">SK · #7</span></div><span class="sc score win">+150</span></div>
+          <div class="tot-row"><div><span class="nm">Vijay Menon</span><br/><span class="sub">VM · #31</span></div><span class="sc score loss">-50</span></div>
+          <div class="tot-row"><div><span class="nm">Anita Rao</span><br/><span class="sub">AR · #12</span></div><span class="sc score win">+120</span></div>
+          <div class="tot-row"><div><span class="nm">Ravi Kumar</span><br/><span class="sub">RK · #19</span></div><span class="sc score loss">-190</span></div>
+          <div class="tot-row"><div><span class="nm">Meera Nair</span><br/><span class="sub">MN · #23</span></div><span class="sc score win">+20</span></div>
+        </div>
+      </div>
+      <div class="grid"><table>
+        <thead><tr><th>Player</th><th class="num">G12<span class="t">Nov 4</span></th><th class="num">G13<span class="t">Nov 10</span></th><th class="num total">Total</th></tr></thead>
+        <tbody>
+          <tr><td>Anita Rao<span class="id">#12</span></td><td class="num">${sc(60)}</td><td class="num">${sc(60)}</td><td class="num total">${sc(120)}</td></tr>
+          <tr><td>Meera Nair<span class="id">#23</span></td><td class="num">${sc(10)}</td><td class="num">${sc(10)}</td><td class="num total">${sc(20)}</td></tr>
+          <tr><td>Ravi Kumar<span class="id">#19</span></td><td class="num">${sc(-95)}</td><td class="num">${sc(-95)}</td><td class="num total">${sc(-190)}</td></tr>
+          <tr><td>Sree Koneru<span class="id">#7</span></td><td class="num">${sc(75)}</td><td class="num">${sc(75)}</td><td class="num total">${sc(150)}</td></tr>
+          <tr><td>Vijay Menon<span class="id">#31</span></td><td class="num zero">—</td><td class="num">${sc(-50)}</td><td class="num total">${sc(-50)}</td></tr>
+        </tbody>
+      </table></div>
+      <div class="notice"><span class="mdi mdi-information-outline"></span><span>Not saved yet. Saving moves these games to Closed and lets you share the result.</span></div>
+    </div>
+    <div class="bottombar"><div class="btn btn-primary btn-tall"><span class="mdi mdi-content-save-outline"></span>Save result</div></div>`,
+
+  confetti: () => screens.results(true),
+
+  players: () => `
+    ${header('My players · 9', ib('help-circle-outline'))}
+    <div class="content">
+      <div class="search"><span class="mdi mdi-magnify"></span>Search name or player ID</div>
+      <div class="chips filters">${chip('chip-filter-on','check','Frequent')}<span class="chip chip-filter">A–Z</span><span style="flex:1"></span>${chip('chip-filter','filter-variant','Unregistered · 2')}</div>
+      <div class="pgrid">
+        <div class="pcard"><div class="nm">${av(1,'SK',36)}Sree Koneru</div><div class="chips">${chip('chip-id','pound','7')}${chip('chip-you','account','You')}</div><div class="chips">${chip('chip-live','check-circle-outline','Registered')}</div></div>
+        <div class="pcard"><div class="nm">${av(2,'AR',36)}Anita Rao</div><div class="chips">${chip('chip-id','pound','12')}</div><div class="chips">${chip('chip-live','check-circle-outline','Registered')}</div></div>
+        <div class="pcard"><div class="nm">${av(3,'RK',36)}Ravi Kumar</div><div class="chips">${chip('chip-id','pound','19')}</div><div class="chips">${chip('chip-live','check-circle-outline','Registered')}</div></div>
+        <div class="pcard"><div class="nm">${av(4,'MN',36)}Meera Nair</div><div class="chips">${chip('chip-id','pound','23')}</div><div class="chips">${chip('chip-neutral','account-question-outline','Unregistered')}</div></div>
+        <div class="pcard"><div class="nm">${av(5,'VM',36)}Vijay Menon</div><div class="chips">${chip('chip-id','pound','31')}</div><div class="chips">${chip('chip-pending','clock-outline','Pending')}</div></div>
+        <div class="pcard"><div class="nm">${av(1,'LI',36).replace(seatVar(1),'#0E7490')}Lakshmi Iyer</div><div class="chips">${chip('chip-id','pound','44')}</div><div class="chips">${chip('chip-live','check-circle-outline','Registered')}</div></div>
+      </div>
+      <div class="actions3">
+        <div class="tile tile-primary"><span class="mdi mdi-account-plus-outline"></span>Add new players</div>
+        <div class="tile tile-tonal"><span class="mdi mdi-account-search-outline"></span>Find player in database</div>
+        <div class="tile tile-outline"><span class="badge">2</span><span class="mdi mdi-account-check-outline"></span>Register unregistered</div>
+      </div>
+    </div>
+    ${tabbar('players')}`,
+
+  // Players/Admins as the creator sees it: Creator + Admin tags, no "Player" tags, ⋮ on every row.
+  'game-players': (asPlayer=false) => `
+    ${header('Players/Admins', ib('help-circle-outline'))}
+    <div class="content" style="position:relative">
+      <div class="chips"><span class="gbadge" style="width:auto;height:32px;padding:0 10px;border-radius:10px;font-size:15px">G14</span><span class="section-label" style="margin:0">Playing · 5</span></div>
+      <div class="card" style="gap:0">
+        ${prow(1,'SK','Sree Koneru','7', chip('chip-leader','crown-outline','Creator')+chip('chip-live','check-circle-outline','Registered'), !asPlayer)}
+        ${prow(2,'AR','Anita Rao','12', (asPlayer?'':chip('chip-info','shield-outline','Admin'))+chip('chip-live','check-circle-outline','Registered'), !asPlayer)}
+        ${prow(3,'RK','Ravi Kumar','19', chip('chip-live','check-circle-outline','Registered')+(asPlayer?chip('chip-you','account','You'):''), !asPlayer)}
+        ${prow(4,'MN','Meera Nair','23', chip('chip-neutral','account-question-outline','Unregistered'), !asPlayer)}
+        ${prow(5,'VM','Vijay Menon','31', chip('chip-pending','clock-outline','Pending'), !asPlayer)}
+      </div>
+      ${asPlayer?`<p class="body muted" style="margin:0">Only the game's creator and admins can change players.</p>`:`
+      <p class="body muted" style="margin:0;font-size:15px;line-height:22px">A player added now gets 0 for every round already played. Remove player (in a row's ⋮ menu) works only while every round score they have is 0.</p>
+      <div style="display:flex;gap:12px;align-items:center"><div class="btn btn-outline" style="height:48px;font-size:16px;flex:none"><span class="mdi mdi-shield-plus-outline"></span>Add admin</div><span class="label muted" style="font-weight:600;flex:1;font-size:13px;line-height:18px">Let someone score and manage this game without playing in it.</span></div>
+      <div class="menu" style="top:262px">
+        <div><span class="mdi mdi-shield-plus-outline"></span>Make admin</div>
+        <div><span class="mdi mdi-pencil-outline"></span>Edit name</div>
+        <div><span class="mdi mdi-link-variant"></span>Link to Player ID</div>
+        <div class="danger"><span class="mdi mdi-account-remove-outline"></span>Remove player</div>
+      </div>`}
+    </div>
+    <div class="bottombar">
+      <div class="btn btn-outline" style="flex:${asPlayer?1:'none'};padding:0 18px"><span class="mdi mdi-arrow-left"></span>${asPlayer?'Back to scorecard':'Scorecard'}</div>
+      ${asPlayer?'':'<div class="btn btn-primary" style="flex:1"><span class="mdi mdi-account-plus-outline"></span>Add new player</div>'}
+    </div>`,
+  'game-players-player-view': () => screens['game-players'](true),
+
+  // Initials: conflict resolution before a game starts (see initials-options.md)
+  'initials-conflicts': () => `
+    ${header('Fix initials', ib('help-circle-outline'))}
+    <div class="content" style="gap:14px">
+      <div class="notice" style="background:var(--tertiary-c);color:var(--on-tertiary-c);font-size:15px;line-height:21px"><span class="mdi mdi-information-outline"></span><span>Two pairs of players in <b>G15</b> share initials. Pick a different form for one of each pair; it is saved to your My players.</span></div>
+      <p class="section-label" style="margin:0">SK · 2 players</p>
+      <div class="conf">
+        <div class="who">${av(1,'SK',36)}<span class="nm">Sree Koneru <span class="muted" style="font-weight:600">· #7 · you</span></span><div class="ini-in ok">SK</div></div>
+        <div class="who">${av(2,'SK',36)}<span class="nm">Suresh Kumar <span class="muted" style="font-weight:600">· #52</span></span><div class="ini-in bad">SK</div></div>
+        <div class="fix"><span class="label muted" style="width:100%">Suresh becomes</span><span class="sugg on">SK1</span><span class="sugg">SUK</span><span class="sugg">SKU</span><span class="sugg">Edit…</span></div>
+      </div>
+      <p class="section-label" style="margin:0">AR · 2 players</p>
+      <div class="conf">
+        <div class="who">${av(2,'AR',36)}<span class="nm">Anita Rao <span class="muted" style="font-weight:600">· #12</span></span><div class="ini-in ok">AR</div></div>
+        <div class="who">${av(4,'AR',36)}<span class="nm">Arjun Reddy <span class="muted" style="font-weight:600">· #61</span></span><div class="ini-in bad">AR</div></div>
+        <div class="fix"><span class="label muted" style="width:100%">Arjun becomes</span><span class="sugg on">AR1</span><span class="sugg">ARJ</span><span class="sugg">ARE</span><span class="sugg">Edit…</span></div>
+      </div>
+      <p class="body muted" style="margin:0;font-size:14px;line-height:20px">The player who joined your My players first keeps the short form. Initials stay the same in every game you create.</p>
+    </div>
+    <div class="bottombar">
+      <div class="btn btn-outline" style="flex:none;padding:0 18px">Not now</div>
+      <div class="btn btn-primary" style="flex:1"><span class="mdi mdi-check"></span>Apply and start</div>
+    </div>`,
+
+  // Initials: player detail in My players with the Refresh from database action
+  'player-refresh': () => `
+    ${header('My players · 9', ib('help-circle-outline'))}
+    <div class="content">
+      <div class="search"><span class="mdi mdi-magnify"></span>Search name or player ID</div>
+      <div class="pgrid" style="opacity:.5">
+        <div class="pcard"><div class="nm">${av(1,'SK',36)}Sree Koneru</div><div class="chips">${chip('chip-id','pound','7')}${chip('chip-you','account','You')}</div></div>
+        <div class="pcard"><div class="nm">${av(2,'AR',36)}Anita Rao</div><div class="chips">${chip('chip-id','pound','12')}</div></div>
+        <div class="pcard"><div class="nm">${av(3,'RK',36)}Ravi Kumar</div><div class="chips">${chip('chip-id','pound','19')}</div></div>
+        <div class="pcard"><div class="nm">${av(2,'SK1',36)}Suresh Kumar</div><div class="chips">${chip('chip-id','pound','52')}</div></div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div style="display:flex;align-items:center;gap:14px">${av(2,'SK1',56)}<div style="flex:1"><p class="title" style="font-size:20px">Suresh Kumar</p><div class="chips" style="margin-top:4px">${chip('chip-id','pound','52')}${chip('chip-live','check-circle-outline','Registered')}</div></div></div>
+      <div class="field"><span class="lbl">Initials on your scorecards</span><div class="input"><span style="font-weight:800;font-size:20px;letter-spacing:1px">SK1</span><span class="label muted">SK is Sree Koneru</span></div></div>
+      <div class="field"><span class="lbl">Name in your My players</span><div class="input ro"><span>Suresh Kumar</span><span class="mdi mdi-lock-outline" style="font-size:20px"></span></div></div>
+      <div class="notice" style="padding:10px 14px;gap:10px"><span class="mdi mdi-database-refresh-outline"></span><span style="font-size:15px;line-height:21px">Suresh changed his name to <b>Suresh K. Nair</b> in the app. Your list keeps the old name until you refresh.</span></div>
+      <div style="display:flex;gap:12px"><div class="btn btn-tonal" style="flex:1;height:48px;font-size:15px;white-space:nowrap;padding:0 12px"><span class="mdi mdi-database-refresh-outline"></span>Refresh from database</div><div class="btn btn-outline" style="height:48px;font-size:15px;color:var(--error);border-color:var(--error);padding:0 14px"><span class="mdi mdi-account-remove-outline"></span>Remove</div></div>
+      <div class="btn btn-primary" style="height:52px"><span class="mdi mdi-check"></span>Save</div>
+    </div>`,
+};
+
+function confettiHtml() {
+  const colors = ['var(--primary)','var(--secondary-c)','var(--tertiary)','var(--error)','var(--leader)','#FFFFFF'];
+  let s = '<div class="confetti">';
+  let seed = 7;
+  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  for (let i = 0; i < 70; i++) {
+    const x = rnd() * 100, y = Math.pow(rnd(), 1.6) * 100, r = rnd() * 360, c = colors[i % colors.length];
+    const w = 5 + rnd() * 5, h = 8 + rnd() * 7;
+    s += `<i style="left:${x}%;top:${y}%;transform:rotate(${r}deg);background:${c};width:${w}px;height:${h}px;opacity:${0.75 + rnd()*0.25}"></i>`;
+  }
+  return s + '</div>';
+}
+
+document.getElementById('app').innerHTML = `<div class="phone">${(screens[screen] || screens.home)()}${screen==='confetti'?confettiHtml():''}</div>`;
+</script>
+</body>
+</html>
