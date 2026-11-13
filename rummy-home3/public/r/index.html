@@ -91,10 +91,11 @@
   footer { text-align: center; color: var(--muted); font-size: 12px; padding: 0 16px 24px; }
   footer a { color: inherit; }
   @media (min-width: 900px) {
-    /* Desktop: the bands sit side by side, so seven games read as one row, still in bordered boxes. */
+    /* Desktop: the bands sit side by side, so seven games read as one row, still in bordered boxes.
+       Each box keeps at least 210px (42px a cell); with 30 games the six boxes wrap 4 + 2, header and rows alike. */
     main { max-width: 1100px; }
-    .boxes { flex-direction: row; }
-    .box { flex: 1; }
+    .boxes { flex-direction: row; flex-wrap: wrap; }
+    .box { flex: 1 1 210px; min-width: 210px; max-width: 300px; }
     .pcell { width: 160px; } .tcell { width: 72px; }
     .pl .n1 { font-size: 17px; } .pl .pt { font-size: 20px; }
   }
