@@ -77,15 +77,11 @@ tags: [smoke]
 - assertVisible: "Undo.*"
 - takeScreenshot: 12d-deleted-undo-toast
 - tapOn: "Undo.*"
-# The "Result restored" toast lasts 3 s while the page reloads; the History row is the durable proof.
+# The "Result restored" toast lasts 3 s while the page reloads, and the page keeps its scroll
+# position (foot of the page, History in view): the History row is the durable proof.
 - extendedWaitUntil:
-    visible: "Scores"
+    visible: ".*Result restored · .* back to Closed.*"
     timeout: 20000
-- scrollUntilVisible:
-    element:
-      text: ".*Result restored · .* back to Closed.*"
-    direction: DOWN
-    timeout: 15000
 - takeScreenshot: 12e-restored-by-undo
 - launchApp
 - tapOn: "Results"
