@@ -98,7 +98,7 @@ begin
 
   for v_i in 1..20 loop
     insert into public.game_players (game_id, profile_id, player_order, role, seated)
-    values (v_game, v_players[v_i], v_i - 1, case when v_i = 1 then 'game_admin' else 'player' end, true);
+    values (v_game, v_players[v_i], v_i - 1, case when v_i = 1 then 'game_admin' else 'player' end::public.game_member_role, true);
   end loop;
 
   -- Round n: everyone -10 except the winner (seat n mod 20), who takes the pot as rummy. Dealer rotates by seat.
