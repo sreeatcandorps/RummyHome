@@ -75,7 +75,7 @@ test('public results page: read-only, handles deleted and missing results, no pr
   const page = src('public/r/index.html');
   assert.match(page, /public_result/);
   assert.match(page, /This result was deleted/);
-  assert.match(page, /overflow-x:\s*auto/, 'the games table scrolls sideways');
+  assert.match(page, /class="box/, 'the games wrap into bands of five (PR 8); nothing scrolls sideways');
   assert.doesNotMatch(page, /email|phone/i, 'nothing personal beyond the PDF');
   assert.match(src('public/404.html'), /\/r\//, 'GitHub Pages: /r/<id> rewrites to /r/?id=');
   const inject = src('scripts/inject-scorecard-config.mjs');
