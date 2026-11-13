@@ -5,6 +5,11 @@ tags: [smoke]
 # which 06-results relies on.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
 - tapOn:
     id: "game-card-GAMEA1"
 - extendedWaitUntil:

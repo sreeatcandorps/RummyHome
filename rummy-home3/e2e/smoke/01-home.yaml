@@ -8,7 +8,11 @@ tags: [smoke]
 - assertNotVisible: "Settle"
 - assertVisible:
     text: "Live.*"
-- assertVisible:
-    id: "game-card-GAMEA1"
 - assertVisible: "Your profile"
 - takeScreenshot: 01-home
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 01b-home-scrolled

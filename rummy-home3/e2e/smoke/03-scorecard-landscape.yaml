@@ -5,6 +5,11 @@ tags: [smoke, landscape]
 # Item 4 of the Nov 12 phone test: initials and DEALS must stay readable when the phone is turned.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
 - tapOn:
     id: "game-card-GAMEA1"
 - extendedWaitUntil:

@@ -3,6 +3,11 @@ tags: [smoke]
 # Scorecard of seeded game A (4 players, rounds 1-2 saved): header strip, columns, totals, bottom bar.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
 - tapOn:
     id: "game-card-GAMEA1"
 - extendedWaitUntil:

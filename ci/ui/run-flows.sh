@@ -24,10 +24,13 @@ ABS_OUT="$(cd "$OUT" && pwd)"
 ABS_SET="$(cd "$SET_DIR" && pwd)"
 
 rotate() {
-  # 0 = portrait, 1 = landscape (90°). Auto-rotate is off so the setting sticks.
+  # 0 = portrait, 1 = landscape (90°). Auto-rotate is off so the setting sticks; `wm` is the
+  # explicit API 31+ way and the settings row is the fallback older images honour.
   adb shell settings put system accelerometer_rotation 0 >/dev/null 2>&1 || true
   adb shell settings put system user_rotation "$1" >/dev/null 2>&1 || true
-  sleep 2
+  adb shell wm set-user-rotation lock "$1" >/dev/null 2>&1 || true
+  sleep 3
+  echo "rotation now: $(adb shell dumpsys window displays 2>/dev/null | grep -m1 -oE 'mCurrentRotation=[^ ,]+|rotation=[0-9]' || echo unknown)"
 }
 
 failed=0
@@ -47,9 +50,8 @@ for f in $(ls "$SET_DIR"/*.yaml | sort); do
       "$ABS_SET/$name.yaml"
   rc=$?
   secs=$(( $(date +%s) - start ))
-  if [ -d "$ABS_OUT/debug/$name/takeScreenshot" ]; then
-    cp "$ABS_OUT/debug/$name/takeScreenshot/"*.png "$ABS_OUT/screens/" 2>/dev/null || true
-  fi
+  # Layout seen with 2.12: <dir>/<timestamp>/<flow>/takeScreenshot/<name>.png
+  find "$ABS_OUT/debug/$name" -path '*/takeScreenshot/*.png' -exec cp {} "$ABS_OUT/screens/" \; 2>/dev/null || true
   # Older layout (or no bundle): takeScreenshot writes next to the current directory.
   find . -maxdepth 1 -name '*.png' -newer "$ABS_OUT/results.csv" -exec mv {} "$ABS_OUT/screens/" \; 2>/dev/null || true
   echo "::endgroup::"

@@ -5,6 +5,11 @@ tags: [smoke]
 # Seats in game A: Harish Test, Priya Test, R K, Zed Zero (supabase/seed.sql).
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
 - tapOn:
     id: "game-card-GAMEA1"
 - extendedWaitUntil:

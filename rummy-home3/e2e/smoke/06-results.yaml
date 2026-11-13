@@ -8,8 +8,11 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "Show results"
     timeout: 15000
-- assertVisible:
-    id: "game-card-GAMEA1"
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
 - takeScreenshot: 06-results-picker
 - tapOn: "Show results"
 - extendedWaitUntil:
