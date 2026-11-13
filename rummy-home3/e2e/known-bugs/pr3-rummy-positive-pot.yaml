@@ -1,0 +1,32 @@
+appId: com.mindweavetech.rummyhome
+tags: [known-bug, pr3]
+# PR 3: Rummy always balances the round to 0, even when the other players' total is positive.
+# Today: distributeRummyWinnings clamps the pot at 0, Balance shows +40 and Save round stays off.
+# Expected RED until PR 3 lands. Fixture: game H (GAMEH1), 3 players, no rounds.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    id: "game-card-GAMEH1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- tapOn: "Sree Test, no score"
+- tapOn: "Plus"
+- tapOn: "5"
+- tapOn: "0"
+- tapOn: "Save score"
+- assertVisible: "Sree Test, score +50"
+- tapOn: "Harish Test, no score"
+- tapOn: "Drop -10"
+- tapOn: "Priya Test, no score"
+- tapOn: "Rummy"
+- takeScreenshot: pr3-rummy-with-positive-pot
+- assertVisible: "Priya Test, score -40"
+- assertVisible: "Balance 0"
+- assertVisible:
+    text: "Save round"
+    enabled: true

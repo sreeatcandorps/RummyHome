@@ -8,6 +8,11 @@
 #
 # How to read the result: open the run → "Summary" → scroll to "EZ Score test report".
 # Or download the "test-report-<branch>" artifact and open report.md.
+#
+# Device UI tests (job "ui-smoke" on every pull request, "ui-full" nightly and on demand) build the app
+# with Gradle on the runner, point it at the same throw-away local Supabase, and drive it on an
+# Android emulator with Maestro (rummy-home3/e2e). Screenshots: "ui-screenshots-<branch>" artifact,
+# open ui/index.html. Details: rummy-home3/e2e/README.md and docs/testing-strategy.md.
 
 name: CI
 
@@ -156,6 +161,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+          github-token: ${{ github.token }}
 
       - name: Start a throw-away local Supabase (Postgres only, no Studio/mail/edge)
         working-directory: rummy-home3
@@ -282,3 +288,208 @@ jobs:
             ci/out/unit
             ci/out/db
           if-no-files-found: error
+
+  # ------------------------------------------------------------------------------------------------
+  # Device UI tests: the real Android app on an emulator, driven by Maestro flows (rummy-home3/e2e).
+  #
+  #   ui-smoke  every pull request (not plain pushes). Sets: smoke (blocking) + known-bugs (quarantined: these
+  #             flows describe behaviour a later PR fixes; they are expected to fail until then and
+  #             never fail the job).
+  #   ui-full   nightly and workflow_dispatch. Sets: smoke + full + known-bugs.
+  #
+  # The app is built once per run from this commit (expo prebuild + gradlew assembleRelease, signed
+  # with the debug keystore the template already uses) and bundled with EXPO_PUBLIC_SUPABASE_URL
+  # pointing at the local Supabase on the runner (10.0.2.2 is the host as seen from the emulator).
+  # Nothing here reaches the production project; no secrets are used. The APK is not a release and is
+  # not uploaded anywhere but the run's own artifacts.
+  # ------------------------------------------------------------------------------------------------
+  ui:
+    name: ui-${{ matrix.suite }} (${{ github.head_ref || github.ref_name }})
+    # Not on plain pushes: every branch here has a pull request, and the PR run is the one that counts.
+    # Running on both would double the emulator minutes for the same commit.
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    permissions:
+      contents: read
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && fromJSON('["full"]') || fromJSON('["smoke"]') }}
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      # The Android app runs in the emulator; 10.0.2.2 is the runner's loopback from in there.
+      EXPO_PUBLIC_SUPABASE_URL: http://10.0.2.2:54321
+      CI: 1
+      EXPO_NO_TELEMETRY: 1
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: meta
+        name: Name this run
+        run: |
+          REF="${{ github.head_ref || github.ref_name }}"
+          echo "slug=$(echo "$REF" | tr '/' '-')" >> "$GITHUB_OUTPUT"
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: rummy-home3/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+
+      # ---- database: the same local stack the db job uses, plus the UI fixtures ------------------
+      - name: Start a throw-away local Supabase
+        working-directory: rummy-home3
+        run: |
+          # No mail container either (the UI tests send nothing); its host port has clashed on a runner before.
+          for attempt in 1 2 3; do
+            supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1; rc=$?
+            grep -viE 'key|secret|token' /tmp/supabase-start.log || true
+            [ "$rc" -eq 0 ] && break
+            echo "supabase start failed (attempt $attempt), retrying"; supabase stop --no-backup || true; sleep 10
+          done
+          psql "$DB_URL" -tAc "select version()"
+          supabase db reset 2>&1 | tail -3
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
+          psql "$DB_URL" -tAc "select count(*) || ' games seeded for the UI tests' from public.games"
+
+      - id: keys
+        name: Read the local anon key (never printed)
+        working-directory: rummy-home3
+        run: |
+          eval "$(supabase status -o env | grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=')"
+          KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          [ -n "$KEY" ] || { echo "no anon key from supabase status"; exit 1; }
+          echo "::add-mask::$KEY"
+          echo "anon=$KEY" >> "$GITHUB_OUTPUT"
+
+      # ---- app: native project + release APK pointed at the local database ----------------------
+      - name: Install app dependencies
+        working-directory: rummy-home3
+        run: npm ci --no-audit --no-fund
+
+      - name: expo prebuild (android)
+        working-directory: rummy-home3
+        env:
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.keys.outputs.anon }}
+        run: |
+          npx expo prebuild --platform android --no-install
+          # Plain http to the local Supabase: release builds block cleartext unless the manifest allows it.
+          sed -i 's|<application |<application android:usesCleartextTraffic="true" |' android/app/src/main/AndroidManifest.xml
+          grep -c usesCleartextTraffic android/app/src/main/AndroidManifest.xml
+          # One ABI (the emulator's) and a bigger heap: halves the build time on the runner.
+          printf '\nreactNativeArchitectures=x86_64\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g\n' >> android/gradle.properties
+
+      - name: gradlew assembleRelease
+        working-directory: rummy-home3/android
+        env:
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.keys.outputs.anon }}
+        run: |
+          ./gradlew assembleRelease --no-daemon --console=plain -q
+          ls -la app/build/outputs/apk/release/
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+
+      # ---- emulator: Pixel 6, API 34, snapshot cached between runs --------------------------------
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-x86_64-default-pixel6-v2
+
+      - name: Create the AVD and a boot snapshot (cache miss only)
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: default
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run the ${{ matrix.suite }} suite on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          SUITE: ${{ matrix.suite }}
+          MAESTRO_CLI_NO_ANALYTICS: 1
+        with:
+          api-level: 34
+          arch: x86_64
+          target: default
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # The action runs each script line in its own shell, so the whole suite lives in one script.
+          script: ci/ui/run-suite.sh "$SUITE" rummy-home3/android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Gallery + job summary
+        if: always()
+        run: node ci/ui/build-gallery.mjs ci/out
+
+      - name: Upload screenshots and Maestro output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots-${{ steps.meta.outputs.slug }}-${{ matrix.suite }}
+          path: ci/out/ui
+          if-no-files-found: warn
+
+      - name: Comment the result on the pull request
+        if: always() && github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- ezscore-ui-tests -->';
+            const path = 'ci/out/ui/summary.md';
+            const body = marker + '\n' + (fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '_UI tests produced no summary._') +
+              `\n\n[Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo, issue_number: context.issue.number, per_page: 100,
+            });
+            const mine = comments.find((c) => c.body && c.body.startsWith(marker));
+            if (mine) await github.rest.issues.updateComment({ ...context.repo, comment_id: mine.id, body });
+            else await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+
+      - name: Stop the local Supabase
+        if: always()
+        working-directory: rummy-home3
+        run: supabase stop --no-backup || true
+
+      - name: Fail the job if a blocking set failed
+        run: |
+          for s in smoke full; do [ -f ci/out/ui/$s.status ] && echo "$s: exit $(cat ci/out/ui/$s.status)"; done
+          for s in smoke full; do [ ! -f ci/out/ui/$s.status ] || [ "$(cat ci/out/ui/$s.status)" = 0 ] || exit 1; done

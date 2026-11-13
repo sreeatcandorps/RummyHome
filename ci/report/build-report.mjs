@@ -40,6 +40,8 @@ function parseTap(text) {
     }
     if (/^Bail out!/.test(line)) { tests.push({ n: 0, name: line, ok: false, directive: null, reason: '', diag: [] }); continue; }
     if (line.startsWith('#') && last) last.diag.push(line.replace(/^#\s?/, ''));
+    // psql chatter that is not an error: NOTICE / WARNING / INFO from `if not exists` and friends.
+    else if (/^psql:.*:\s*(NOTICE|WARNING|INFO|DETAIL|HINT|CONTEXT):/.test(line)) continue;
     else if (/ERROR|psql:/.test(line)) tests.push({ n: 0, name: line, ok: false, directive: null, reason: 'script error', diag: [] });
   }
   return { planned, tests };

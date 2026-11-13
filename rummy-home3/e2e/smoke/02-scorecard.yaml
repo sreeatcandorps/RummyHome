@@ -1,0 +1,35 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Scorecard of seeded game A (4 players, rounds 1-2 saved): header strip, columns, totals, bottom bar.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEA1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- assertVisible: "Points"
+- assertVisible:
+    text: "Round \\d+"
+- assertVisible: "Add round"
+- assertVisible: "Undo round"
+- assertVisible: "Complete game"
+- assertVisible: "DEALS"
+- assertVisible:
+    text: "Creator.*"
+- takeScreenshot: 02-scorecard-4p
+- tapOn: "Help"
+- extendedWaitUntil:
+    visible:
+      text: "Help"
+      index: 1
+    timeout: 5000
+- takeScreenshot: 02b-scorecard-help
+# Android back closes the help note (the Close button can sit below the fold on long notes).
+- back
+- assertVisible: "Add round"

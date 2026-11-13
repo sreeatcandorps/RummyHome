@@ -1,0 +1,22 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Game F: 20 players x 30 rounds (supabase/seed-e2e.sql): the table renders, the header does not clip,
+# the rounds scroll. Reaching the last column by swiping is full/20 (nightly): every command on this
+# screen costs Maestro a 600-cell hierarchy read, too slow and too variable for the PR gate.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEF1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEF1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 20000
+- assertVisible: "Round 31"
+- assertVisible: "TA"
+- takeScreenshot: 10-scorecard-20p
+- scroll
+- takeScreenshot: 10c-scorecard-20p-scrolled-down

@@ -1,5 +1,0 @@
-appId: com.rummyhome.app
----
-# Settle is behind EXPO_PUBLIC_SETTLE_ENABLED, which is off.
-- launchApp
-- assertNotVisible: "Settle"

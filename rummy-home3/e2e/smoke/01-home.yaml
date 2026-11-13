@@ -1,0 +1,18 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Home after sign-in: the three top actions, the Live list with the seeded active game, the bottom bar.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- assertVisible: "New game"
+- assertVisible: "Results"
+- assertNotVisible: "Settle"
+- assertVisible:
+    text: "Live.*"
+- assertVisible: "Your profile"
+- takeScreenshot: 01-home
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 01b-home-scrolled

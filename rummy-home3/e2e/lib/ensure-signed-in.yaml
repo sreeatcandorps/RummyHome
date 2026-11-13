@@ -1,0 +1,20 @@
+appId: com.mindweavetech.rummyhome
+# Every flow starts here: launch (keeping the saved session), sign in only if the login screen shows,
+# and wait for Home. Flows therefore work alone and in any order.
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "New game|Sign in"
+    timeout: 30000
+- runFlow:
+    when:
+      visible:
+        id: "login-email"
+    file: sign-in.yaml
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: "Loading your games"
+    timeout: 20000

@@ -1,0 +1,35 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# From the scorecard menu of game E: Players/Admins (seats, roles, Add admin by Player ID) and
+# the Game settings dialog. Nothing is changed.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    id: "game-card-GAMEE1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- tapOn: "Scorecard menu"
+- extendedWaitUntil:
+    visible: "Players/Admins"
+    timeout: 5000
+- takeScreenshot: 30-scorecard-menu
+- tapOn: "Players/Admins"
+- extendedWaitUntil:
+    visible: "Add admin by Player ID"
+    timeout: 15000
+- assertVisible: "Harish Test"
+- assertVisible: "Back to scorecard"
+- takeScreenshot: 30b-players-admins
+- tapOn: "Back to scorecard"
+- extendedWaitUntil:
+    visible: "Add round"
+    timeout: 15000
+- tapOn: "Scorecard menu"
+- tapOn: "Game settings"
+- extendedWaitUntil:
+    visible: "Full count"
+    timeout: 5000
+- takeScreenshot: 30c-game-settings
+- back
+- assertVisible: "Add round"

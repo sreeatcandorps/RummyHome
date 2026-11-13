@@ -143,9 +143,10 @@ export default function LoginScreen() {
         cursorColor={theme.colors.primary}
         selectionColor={theme.colors.primary}
         left={<TextInput.Icon icon="email-outline" />}
+        testID="login-email"
       />
 
-      <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} />
+      <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} testID="login-passcode" />
       {notice ? (
         <HelperText type="info" visible style={styles.notice} onPress={() => setNotice('')}>
           {notice}
@@ -166,6 +167,7 @@ export default function LoginScreen() {
         style={styles.pill}
         contentStyle={styles.primaryContent}
         labelStyle={styles.primaryLabel}
+        testID="login-submit"
       >
         Sign in
       </Button>

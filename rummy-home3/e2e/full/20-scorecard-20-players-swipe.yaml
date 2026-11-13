@@ -1,0 +1,37 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# Game F sideways: the last column (Test Uniform = TU) must be reachable and the header must stay in
+# step with the body. Slow on purpose: each command re-reads the 600-cell hierarchy (~1 min each on
+# the runner), which is why this is nightly and smoke/10 only opens the table.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEF1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEF1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 20000
+- assertVisible: "TA"
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
+# "TU" is also round 20's dealer label in the fixed RND column, so the header TU is the second one.
+- extendedWaitUntil:
+    visible:
+      text: "TU"
+      index: 1
+    timeout: 120000
+- takeScreenshot: 20-scorecard-20p-last-column

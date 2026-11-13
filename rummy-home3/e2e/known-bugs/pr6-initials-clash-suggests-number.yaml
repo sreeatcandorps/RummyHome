@@ -1,0 +1,30 @@
+appId: com.mindweavetech.rummyhome
+tags: [known-bug, pr6]
+# PR 6: typing H + T when Harish Test already holds HT must save the new player as HT2 and say
+# "Harish Test is already HT. This new player is HT2." On this branch the number form (HT2) already
+# wins; the note still reads "HT is Harish Test, so H is HT2." Expected RED until PR 6 lands.
+# Leaves one new player (HT2) in sree's My players; later flows do not depend on the roster size.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "New game"
+- extendedWaitUntil:
+    visible: "Add players"
+    timeout: 15000
+- tapOn: "Add players"
+- extendedWaitUntil:
+    visible: "Add New Players by Initials"
+    timeout: 15000
+- tapOn: "Row 1 first initial"
+- inputText: "H"
+- tapOn: "Row 1 last initial"
+- inputText: "T"
+- hideKeyboard
+- tapOn: "Save row 1"
+- extendedWaitUntil:
+    visible: "Saved HT.*"
+    timeout: 15000
+- takeScreenshot: pr6-initials-clash
+- assertVisible: "Saved HT2"
+- assertVisible: "Harish Test is already HT. This new player is HT2."
+- assertNotVisible: "HTE"
+- tapOn: "Done adding players"

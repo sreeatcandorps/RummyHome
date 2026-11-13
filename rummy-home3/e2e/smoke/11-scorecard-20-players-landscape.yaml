@@ -1,0 +1,28 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke, landscape]
+# Game F turned sideways: more columns fit; header stays readable; swipe reaches the last column.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- setOrientation: LANDSCAPE_LEFT
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEF1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEF1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 20000
+- assertVisible: "TA"
+- takeScreenshot: 11-scorecard-20p-landscape
+- swipe:
+    direction: LEFT
+    duration: 400
+    waitToSettleTimeoutMs: 1000
+- swipe:
+    direction: LEFT
+    duration: 400
+    waitToSettleTimeoutMs: 1000
+- takeScreenshot: 11b-scorecard-20p-landscape-right
+- setOrientation: PORTRAIT
