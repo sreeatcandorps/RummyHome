@@ -4,7 +4,7 @@
 --
 -- Every flow gets its own game so flows never share state:
 --   E  10000000-0000-4000-8000-00000000000e  GAMEE1  active, sree creator and seated, 4 players, round 1 saved
---                                                     -> full/30, full/60, known-bugs/pr2-undo-then-add-round
+--                                                     -> full/30, full/60, smoke/13-undo-then-add-round
 --   F  10000000-0000-4000-8000-00000000000f  GAMEF1  active, 20 players x 30 rounds, sree creator and seated
 --                                                     -> smoke/10 and 11 scorecard-20-players (header, swipe, rotate)
 --   G  10000000-0000-4000-8000-000000000010  GAMEG1  completed, 6 seated, no rounds, sree creator
