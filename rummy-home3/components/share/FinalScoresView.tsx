@@ -22,7 +22,7 @@ export function FinalScoresView({ sheet, testID = 'final-scores-rounds' }: { she
           key={blockIndex}
           block={block}
           title={blockCount > 1 ? `Players ${blockIndex * ROUND_BLOCK + 1}–${blockIndex * ROUND_BLOCK + block.heads.length} of ${table.names.length}` : null}
-          testID={blockIndex === 0 ? 'final-scores-block-1' : `final-scores-block-${blockIndex + 1}`}
+          testID={`final-scores-block-${blockIndex + 1}`}
         />
       ))}
       <Text variant="bodySmall" style={[styles.legend, { color: colors.onSurfaceVariant }]} testID="final-scores-legend">
