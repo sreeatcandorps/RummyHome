@@ -373,6 +373,20 @@ Verified on a scratch Postgres 16 loaded with 001–033 and the CI seed: 877 pgT
 
 After applying, re-run the Supabase security advisor: the `security_definer_view` and `function_search_path_mutable` findings for these objects should be gone.
 
+## 034 — Results design (PR 8)
+
+File: `supabase/migrations/034_results_design.sql`. Run after 033. Safe to re-run (prints one NOTICE about a trigger that does not exist yet on the first run). Rollback: `supabase/rollback/rollback_034_results_design.sql` (drops `result_versions` and every saved version, the 024 `declare_game_result`, the 028 one-argument `public_result` with 032's jit setting).
+
+Backward compatible with the APK on phones: `declare_game_result` keeps its signature and result shape (the standings simply include seated players who never scored, at 0); `get_game_result` / `list_game_results_page` are untouched. The `/r/` page posts `{p_id}` as before and gets the latest version; the new page also sends `p_version` when a version link is opened. **Status: ready for live** once CI is green on PR 8 (Build Bot applies; nothing applied by the agent).
+
+What it does:
+
+- **0-players fix.** `declare_game_result` builds each game's totals from the seated players (`game_players`, role not spectator, `seated`) LEFT JOIN their live scores, so a finished game with no rounds saves with every seated player at 0 instead of "1 game · 0 players". A player who scored and then left the seat keeps their points. The 50-player cap now counts over this set.
+- **Result versions.** New table `result_versions(result_id, version, places, note, saved_by, saved_at)`, no direct grants (read through `public_result` only). An insert trigger on `game_results` writes version 1 ("Saved"); an update trigger on `game_result_games.removed_at` writes the next version ("S14 removed · game deleted") whenever `delete_game` or account deletion takes a game out of a result. Backfill: version 1 for every existing result and a version 2 where games were already removed.
+- **`public_result(p_id uuid, p_version integer default null)`** replaces the one-argument function (dropped, so PostgREST has no ambiguity). Returns the chosen version's players/standings/games (latest by default; a version past the end falls back to the latest), `version`, `currentVersion`, `versions[]` (number, when, note, by), `deleted`/`deletedAt` with the summary kept read-only, `declarerName`, and per game `label`, `code` (share code), `creatorName`, `adminNames` (admins other than the creator), `roundCount`, `reused`, `removed`, `scores`. Still no account ids or contact fields. `jit = off` kept from 032.
+
+Verified on a scratch Postgres 16 loaded with 001–034 and the CI seed: 928 pgTAP checks (48 new in `supabase/tests/24_results_design_034.sql`; two expectations in `13_hide_delete_023.sql` updated for the seated-players rule), the rollback replay (134 checks) and the 38 race checks all pass.
+
 ## Apply order for the Nov 10–12 batches
 
 017–020 were applied on Nov 11 (~11:25 AM PT); 021–026 were applied on Nov 12 from PR 7 head `d62d9c6`. Steps 1–6 are kept for the record (all re-runnable):
@@ -393,6 +407,10 @@ Final launch batch (Nov 12), unapplied. Paste each into the Supabase SQL editor 
 11. `supabase/migrations/031_round_robin.sql`
 12. `supabase/migrations/032_results_volume_fixes.sql`
 13. `supabase/migrations/033_security_advisor_cleanup.sql` — then re-run the security advisor
+
+PR 8 (Nov 13), unapplied, ready for live once CI is green:
+
+14. `supabase/migrations/034_results_design.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

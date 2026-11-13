@@ -6,143 +6,277 @@
   <meta name="robots" content="noindex" />
   <title>EZ Score · Results</title>
   <style>
-    :root { color-scheme: light; }
-    body { margin: 0; font-family: "Segoe UI", sans-serif; background: #FBF1E1; color: #1B1F1C; }
-    header { background: #17402F; color: #FBF1E1; padding: 16px 18px 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    header h1 { margin: 0; font-size: 22px; }
-    .meta { margin-top: 6px; font-size: 14px; opacity: 0.9; }
-    main { padding: 12px; max-width: 980px; margin: 0 auto; }
-    section { background: #fff; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
-    h2 { margin: 0 0 8px; font-size: 16px; }
-    .warn { background: #FBE9E7; color: #7A1F1F; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-weight: 600; }
-    .note { color: #5A5F5B; font-size: 13px; }
-    .podium { display: flex; gap: 10px; flex-wrap: wrap; }
-    .place { flex: 1 1 140px; border: 1px solid #E7E0D4; border-radius: 10px; padding: 10px; }
-    .place .label { font-size: 12px; color: #5A5F5B; }
-    .place .name { font-weight: 700; }
-    .totals { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .totals ul { list-style: none; margin: 0; padding: 0; }
-    .totals li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #F1EBDF; }
-    .scroll { overflow-x: auto; }
-    table { border-collapse: collapse; min-width: 100%; }
-    th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid #E7E0D4; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    th { background: #F4EFE4; font-size: 13px; }
-    th small, td small { display: block; font-weight: 400; color: #5A5F5B; font-size: 11px; }
-    td.name, th.name { text-align: left; position: sticky; left: 0; background: #fff; }
-    th.name { background: #F4EFE4; }
-    .pos { color: #0E7A43; font-weight: 700; }
-    .neg { color: #8C2F2F; }
-    .msg { padding: 24px; text-align: center; }
-    footer { text-align: center; color: #5A5F5B; font-size: 12px; padding: 16px; }
-    footer a { color: inherit; }
+  /* ---- shared with the PDF: RESULTS_DESIGN_CSS in utils/resultsDetails.ts (tests/results-design.test.ts keeps them in step) ---- */
+  :root { --ink: #17201B; --muted: #4E5752; --line: #DCDDD5; --green: #15803D; --edge: #0E5A2A; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; --amber: #FFE38A; --on-amber: #3F2D00; --band: #F1F1EB; --band-alt: #E9EAE2; --band-head: #DDEFE2; --band-head-alt: #D2E9DA; }
+  body { font-family: -apple-system, Roboto, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); margin: 0; font-size: 16px; line-height: 1.3; }
+  h1 { margin: 0; font-size: 28px; font-weight: 800; }
+  h2 { font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+  h3 { font-size: 16px; margin: 0 0 6px; font-weight: 700; }
+  p { margin: 0 0 4px; }
+  .brand { color: var(--green); font-weight: 800; letter-spacing: 0.4px; font-size: 13px; margin-bottom: 2px; }
+  .meta { color: var(--muted); font-size: 14px; }
+  .count { font-size: 16px; font-weight: 700; }
+  .code { color: var(--muted); font-weight: 600; }
+  .note { background: var(--amber); color: var(--on-amber); border-radius: 8px; padding: 8px 10px; font-size: 14px; font-weight: 600; margin: 6px 0; }
+  .section { margin-top: 18px; }
+  .split { display: flex; gap: 14px; align-items: flex-start; }
+  .col { flex: 1; min-width: 0; }
+  .pl { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .pl .nm { flex: 1; min-width: 0; }
+  .pl .n1 { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 16px; }
+  .pl .n1 span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pl .n2 { color: var(--muted); font-size: 13px; }
+  .pl .pt { font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pos, .zero { color: var(--ink); }
+  .neg { color: var(--neg); }
+  .dash { color: #8A918C; }
+  .none, .mute { color: var(--muted); font-size: 14px; }
+  .even { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .medal { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex: none; border: 1px solid rgba(0,0,0,0.15); }
+  .m1 { background: #F6C84C; color: #3F2D00; } .m2 { background: #D9DCE0; color: #2B3036; } .m3 { background: #D99A66; color: #3B1D08; }
+  .bt { margin-top: 4px; }
+  .brow { display: flex; align-items: stretch; gap: 6px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .hrow { border-bottom: 2px solid var(--edge); }
+  .pcell { width: 52px; flex: none; display: flex; flex-direction: column; justify-content: center; font-size: 14px; line-height: 1.15; }
+  .pcell b { font-size: 15px; } .pcell small { color: var(--muted); font-size: 12px; }
+  .tcell { width: 56px; flex: none; display: flex; align-items: center; justify-content: flex-end; font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; padding-right: 2px; }
+  .pcell.head, .tcell.head { font-weight: 700; color: var(--muted); font-size: 13px; }
+  .boxes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+  .box { display: grid; grid-template-columns: repeat(5, 1fr); width: 100%; background: var(--band); border-radius: 5px; overflow: hidden; }
+  .box.alt { background: var(--band-alt); }
+  .box.n1 { grid-template-columns: repeat(1, 1fr); width: 20%; } .box.n2 { grid-template-columns: repeat(2, 1fr); width: 40%; }
+  .box.n3 { grid-template-columns: repeat(3, 1fr); width: 60%; } .box.n4 { grid-template-columns: repeat(4, 1fr); width: 80%; }
+  .box.head { background: var(--band-head); border-bottom: 2px solid var(--green); border-radius: 5px 5px 0 0; }
+  .box.head.alt { background: var(--band-head-alt); }
+  .box .c { text-align: right; padding: 3px 5px; font-size: 14px; font-variant-numeric: tabular-nums; border-left: 1px solid #fff; white-space: nowrap; color: var(--ink); }
+  .box .c:first-child { border-left: 0; }
+  .box.head .c { font-weight: 800; color: var(--ink); text-align: center; }
+  .box .c.win { color: var(--ink); }
+  .box .c.neg { color: var(--neg); }
+  .box .c.dash { color: #B8BBB3; text-align: center; }
+  .legend { color: var(--muted); font-size: 13px; margin-top: 8px; line-height: 1.5; }
+  .legend b { color: var(--ink); } .legend small { font-size: 12px; }
+  .gm { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .g1 { display: flex; align-items: baseline; gap: 8px; }
+  .lab { display: inline-block; background: var(--green); color: #fff; font-weight: 800; font-size: 13px; padding: 1px 7px; border-radius: 6px; }
+  .when { font-size: 15px; } .when b { font-weight: 800; }
+  .g2 { color: var(--muted); font-size: 14px; margin-top: 2px; }
+  .gid { font-style: italic; font-weight: 400; }
+  .g2.warn { color: var(--on-amber); }
+  .game { margin-top: 14px; page-break-inside: avoid; }
+  .game h3 .when { font-weight: 400; }
+  table.rb { border-collapse: collapse; width: 100%; margin-top: 6px; table-layout: fixed; }
+  table.rb th, table.rb td { border: 1px solid var(--line); padding: 3px 5px; font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; }
+  table.rb th { background: var(--head); text-align: center; vertical-align: bottom; }
+  table.rb th .ini { display: block; font-weight: 800; } table.rb th small { display: block; color: var(--muted); font-weight: 500; font-size: 11px; }
+  table.rb th .tot { display: block; font-weight: 800; font-size: 15px; }
+  table.rb .rn { width: 38px; text-align: left; color: var(--muted); }
+  table.rb td.pos { background: var(--win); font-weight: 700; }
+  .footer { margin-top: 18px; color: var(--muted); font-size: 13px; font-weight: 600; }
+  .link { color: var(--green); font-weight: 700; word-break: break-all; }
+  /* ---- page only ---- */
+  :root { color-scheme: light; }
+  html { background: var(--bg); }
+  body { background: var(--bg); }
+  .top { background: #15803D; color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .top b { font-weight: 800; letter-spacing: 0.4px; }
+  .top small { opacity: 0.9; font-size: 13px; }
+  main { max-width: 430px; margin: 0 auto; padding: 16px 16px 32px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  .hdr { display: flex; justify-content: space-between; align-items: baseline; }
+  .note.red { background: #FFE1DD; color: #5C0F0A; }
+  .note.blue { background: #DCE8FF; color: #0F2B63; }
+  .note a { color: inherit; font-weight: 800; }
+  .vlist { margin-top: 6px; font-size: 13px; }
+  .vlist a, .vlist span { display: inline-block; margin-right: 10px; }
+  .vlist .cur { font-weight: 800; }
+  .msg { text-align: center; padding: 32px 12px; color: var(--muted); }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 0 16px 24px; }
+  footer a { color: inherit; }
+  @media (min-width: 900px) {
+    /* Desktop: the bands sit side by side, so seven games read as one row, still in bordered boxes.
+       Each box keeps at least 210px (42px a cell); with 30 games the six boxes wrap 4 + 2, header and rows alike. */
+    main { max-width: 1100px; }
+    .boxes { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+    .box { flex: none; width: 260px; }
+    .box.n1 { width: 52px; } .box.n2 { width: 104px; } .box.n3 { width: 156px; } .box.n4 { width: 208px; }
+    .pcell { width: 160px; } .tcell { width: 72px; }
+    .pl .n1 { font-size: 17px; } .pl .pt { font-size: 20px; }
+  }
   </style>
 </head>
 <body>
-  <header>
-    <div>
-      <h1>EZ Score: Results</h1>
-      <div class="meta" id="meta">Loading…</div>
-    </div>
-  </header>
+  <div class="top"><div><b>EZ Score: Rummy</b> <small>· Results</small></div><small id="meta">Loading…</small></div>
   <main id="page"></main>
   <footer>Read-only copy of a saved result. <a href="/privacy">Privacy</a></footer>
   <script>
     // Filled in at deploy (scripts/inject-scorecard-config.mjs). Never commit a real key.
     const PROJECT = '__SUPABASE_URL__';
     const ANON_KEY = '__SUPABASE_ANON_KEY__';
+    const BAND = 5;
 
     function injected(value) { return typeof value === 'string' && value.length > 0 && value.indexOf('__') === -1; }
     function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
-    function points(n) { return n > 0 ? '+' + n : String(n); }
-    function cls(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : ''; }
-    function placeLabel(place) {
-      const m = place % 100;
-      if (m >= 11 && m <= 13) return place + 'th';
-      return place + (['th', 'st', 'nd', 'rd'][place % 10] || 'th');
-    }
-    function when(iso) { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleString(); }
+    function fmt(n) { return n > 0 ? '+' + n.toLocaleString('en-US') : n.toLocaleString('en-US'); }
+    function tone(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero'; }
+    function shortId(id) { return String(id).replace(/[^a-z0-9]/gi, '').slice(-6).toUpperCase(); }
+    function when(iso) { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); }
     function clock(iso) {
       const d = new Date(iso); if (Number.isNaN(d.getTime())) return '';
       const h = d.getHours() % 12 || 12; return h + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + (d.getHours() < 12 ? 'AM' : 'PM');
     }
-    function shortId(id) { const c = String(id).replace(/[^a-z0-9]/gi, ''); return c.slice(-6).toUpperCase(); }
-    function sub(player) {
+    function dayOf(iso) {
+      const d = new Date(iso); if (Number.isNaN(d.getTime())) return '';
+      const sameYear = d.getFullYear() === new Date().getFullYear();
+      return d.toLocaleDateString('en-US', Object.assign({ weekday: 'long', month: 'long', day: 'numeric' }, sameYear ? {} : { year: 'numeric' }));
+    }
+    function baseInitials(name) {
+      const w = String(name || '').trim().split(/\s+/).filter(Boolean);
+      if (w.length === 0) return '??';
+      return (w.length === 1 ? w[0].slice(0, 2) : w[0][0] + w[w.length - 1][0]).toUpperCase();
+    }
+    // Column letters: the seat label when the game had one, else first + last initial, numbered on a clash.
+    function initialsFor(players) {
+      const used = new Map(); const out = [];
+      players.forEach((p) => {
+        const base = p.label || baseInitials(p.name);
+        const k = (used.get(base) || 0) + 1; used.set(base, k);
+        out.push(k === 1 ? base : base + k);
+      });
+      return out;
+    }
+    function sub(player, ini) {
       const parts = [];
-      if (player.label) parts.push(player.label);
       if (player.playerNo != null) parts.push('#' + player.playerNo);
+      parts.push(ini);
       return parts.join(' · ');
     }
+    function medal(rank) { return rank ? '<span class="medal m' + rank + '">' + rank + '</span>' : ''; }
 
-    // The id comes from /r/<id> (404.html forwards it as ?id=) or ?id=<id>.
-    function resultId() {
-      const q = new URLSearchParams(location.search).get('id');
-      if (q) return q;
-      const m = location.pathname.match(/\/r\/([0-9a-f-]{36})/i);
-      return m ? m[1] : '';
+    // The id comes from /r/<id> (404.html forwards it as ?id=) or ?id=<id>; ?v=N opens an earlier version.
+    function params() {
+      const q = new URLSearchParams(location.search);
+      let id = q.get('id') || '';
+      if (!id) { const m = location.pathname.match(/\/r\/([0-9a-f-]{36})/i); id = m ? m[1] : ''; }
+      const v = parseInt(q.get('v') || '', 10);
+      return { id, version: Number.isFinite(v) && v > 0 ? v : null };
     }
 
-    function render(r) {
+    function playerLine(row) {
+      return '<div class="pl"><div class="nm"><div class="n1">' + medal(row.medal) + '<span>' + esc(row.name) + '</span></div>'
+        + '<div class="n2">' + esc(row.sub) + '</div></div><div class="pt ' + tone(row.points) + '">' + esc(fmt(row.points)) + '</div></div>';
+    }
+
+    function render(r, requested) {
       const page = document.getElementById('page');
       const meta = document.getElementById('meta');
-      if (r.deleted) {
-        meta.textContent = 'Result deleted';
-        page.innerHTML = '<p class="msg">This result was deleted.</p>';
-        return;
-      }
-      meta.textContent = when(r.declaredAt) + ' · Result ID ' + shortId(r.id) + ' · saved by ' + r.declarerName;
       const players = r.players || [];
       const standings = r.standings || [];
       const games = r.games || [];
+      const inis = initialsFor(players);
+      meta.textContent = (r.deleted ? 'Deleted' : 'Saved') + ' ' + when(r.declaredAt);
 
-      // Warnings: the same lines the app shows on the Results screen and in the PDF/image.
-      const warnings = [];
-      games.forEach((g) => { if (g.reused) warnings.push((g.label || 'A game') + ' was already part of an earlier result. Its points count again here.'); });
-      if (r.removedCount > 0) warnings.push(r.removedCount === 1 ? 'One game was deleted after this result was saved. The totals no longer count it.' : r.removedCount + ' games were deleted after this result was saved. The totals no longer count them.');
+      // Scores: positives ranked (ties share a medal), negatives closest to zero first, zeros as "Even".
+      const rows = standings.map((s) => ({ pos: s.player, name: s.name, points: s.points, sub: sub(players[s.player] || {}, inis[s.player] || '') }));
+      const positive = rows.filter((x) => x.points > 0).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+      const negative = rows.filter((x) => x.points < 0).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+      const even = rows.filter((x) => x.points === 0).sort((a, b) => a.name.localeCompare(b.name));
+      let rank = 0, last = null;
+      positive.forEach((x) => { if (x.points !== last) { rank += 1; last = x.points; } if (rank <= 3) x.medal = rank; });
+      const order = positive.concat(even, negative);
+      const column = (list) => list.length ? list.map(playerLine).join('') : '<div class="none">None</div>';
+      const evenLine = even.length ? '<p class="even">Even: ' + esc(even.map((x) => x.name.trim().split(/\s+/)[0]).join(', ')) + '</p>' : '';
 
-      // Podium: first three places, ties share a place.
-      const groups = [];
-      standings.forEach((s) => {
-        const last = groups[groups.length - 1];
-        if (last && last[0].place === s.place) { last.push(s); return; }
-        if (groups.length >= 3) return;
-        groups.push([s]);
-      });
-      const podium = groups.map((g) => '<div class="place"><div class="label">' + esc(placeLabel(g[0].place)) + '</div>'
-        + g.map((s) => '<div class="name">' + esc(s.name) + '</div>').join('')
-        + '<div class="' + cls(g[0].points) + '">' + esc(points(g[0].points)) + '</div></div>').join('');
+      // Notes: the same lines the app shows on the result page.
+      const notes = [];
+      games.forEach((g) => { if (g.reused) notes.push((g.label || 'A game') + ' was already part of an earlier result. Its points count again here.'); });
+      if (r.removedCount > 0) notes.push(r.removedCount === 1 ? 'One game was deleted after this result was saved. The totals no longer count it.' : r.removedCount + ' games were deleted after this result was saved. The totals no longer count them.');
 
-      const byMag = (a, b) => Math.abs(b.points) - Math.abs(a.points) || a.name.localeCompare(b.name);
-      const positive = standings.filter((s) => s.points >= 0).sort(byMag);
-      const negative = standings.filter((s) => s.points < 0).sort(byMag);
-      const list = (rows) => '<ul>' + rows.map((s) => '<li><span>' + esc(s.name) + '<small>' + esc(sub(players[s.player] || {})) + '</small></span><span class="' + cls(s.points) + '">' + esc(points(s.points)) + '</span></li>').join('') + '</ul>';
+      // Versions (migration 034): a banner when the result changed after it was saved, with links to each version.
+      const versions = Array.isArray(r.versions) ? r.versions : [];
+      let banner = '';
+      if (versions.length > 1) {
+        const current = r.version || versions[versions.length - 1].version;
+        const latest = versions[versions.length - 1];
+        const links = versions.map((v) => {
+          const text = 'v' + v.version + (v.version === 1 ? ' · as saved' : ' · ' + esc(v.note || 'changed'));
+          return v.version === current ? '<span class="cur">' + text + '</span>' : '<a href="?id=' + esc(r.id) + '&v=' + v.version + '">' + text + '</a>';
+        }).join('');
+        banner = '<p class="note">This result was edited after it was saved: ' + esc(latest.note || 'changed') + ' (' + esc(when(latest.savedAt)) + '). '
+          + (current === latest.version ? 'You are looking at the current version.' : 'You are looking at version ' + current + ' of ' + latest.version + '.')
+          + '<span class="vlist">' + links + '</span></p>';
+      } else if (requested && requested > 1 && !('version' in r)) {
+        banner = '<p class="note blue">Earlier versions are not available for this result.</p>';
+      }
+      const deleted = r.deleted ? '<p class="note red">This result was deleted' + (r.deletedAt ? ' on ' + esc(when(r.deletedAt)) : '') + '. Its games are open again; the scores below are kept for reference.</p>' : '';
 
-      // Sheet: players down, games across (sideways scroll), total last.
+      // How you got there: bands of five games; header and every row carry the same filled band, the last one as wide as its games.
+      const bands = []; for (let i = 0; i < games.length; i += BAND) bands.push(games.slice(i, i + BAND));
+      const box = (cells, head, i) => '<div class="box n' + cells.length + (head ? ' head' : '') + (i % 2 === 1 ? ' alt' : '') + '">' + cells.join('') + '</div>';
+      const headBoxes = bands.map((b, i) => box(b.map((g) => '<div class="c">' + esc(g.label || g.code || '') + '</div>'), true, i)).join('');
       const totalFor = new Map(standings.map((s) => [s.player, s.points]));
-      const head = '<tr><th class="name">Player</th>' + games.map((g) => '<th>' + esc(g.label || '') + '<small>' + esc(clock(g.date)) + '</small></th>').join('') + '<th>Total</th></tr>';
-      const body = players.map((p, i) => '<tr><td class="name">' + esc(p.name) + '<small>' + esc(sub(p)) + '</small></td>'
-        + games.map((g) => { const v = g.scores ? g.scores[String(i)] : undefined; return v == null ? '<td>—</td>' : '<td class="' + cls(v) + '">' + esc(points(v)) + '</td>'; }).join('')
-        + '<td class="' + cls(totalFor.get(i) || 0) + '"><strong>' + esc(points(totalFor.get(i) || 0)) + '</strong></td></tr>').join('');
+      const bodyRows = order.map((row) => {
+        const boxes = bands.map((b, i) => box(b.map((g) => {
+          const v = g.scores ? g.scores[String(row.pos)] : undefined;
+          if (v == null) return '<div class="c dash">—</div>';
+          return '<div class="c' + (v > 0 ? ' win' : v < 0 ? ' neg' : '') + '">' + esc(fmt(v)) + '</div>';
+        }), false, i)).join('');
+        const total = totalFor.get(row.pos) || 0;
+        const p = players[row.pos] || {};
+        return '<div class="brow"><div class="pcell"><b>' + esc(inis[row.pos] || '') + '</b>' + (p.playerNo != null ? '<small>#' + esc(p.playerNo) + '</small>' : '') + '</div>'
+          + '<div class="tcell ' + tone(total) + '">' + esc(fmt(total)) + '</div><div class="boxes">' + boxes + '</div></div>';
+      }).join('');
+      const table = games.length
+        ? '<div class="bt" data-bands="' + bands.length + '"><div class="brow hrow"><div class="pcell head">Player</div><div class="tcell head">Total</div><div class="boxes">' + headBoxes + '</div></div>' + bodyRows + '</div>'
+        : '<p class="mute">No games remain in this version.</p>';
+      const legend = '<p class="legend">' + order.map((row) => { const p = players[row.pos] || {}; return '<span><b>' + esc(inis[row.pos] || '') + '</b>' + (p.playerNo != null ? ' <small>#' + esc(p.playerNo) + '</small>' : '') + ' ' + esc(row.name) + '</span>'; }).join(' · ') + '</p>';
 
-      page.innerHTML =
-        warnings.map((w) => '<div class="warn">' + esc(w) + '</div>').join('')
-        + '<section><h2>Results</h2><div class="note">' + esc(games.length === 1 ? '1 game' : games.length + ' games') + ' · ' + esc(players.length === 1 ? '1 player' : players.length + ' players') + '</div>'
-        + '<div class="podium" style="margin-top:10px">' + podium + '</div></section>'
-        + '<section><h2>Totals</h2><div class="totals"><div>' + list(positive) + '</div><div>' + list(negative) + '</div></div></section>'
-        + '<section><h2>Games</h2><div class="scroll"><table><thead>' + head + '</thead><tbody>' + (body || '<tr><td>No scores.</td></tr>') + '</tbody></table></div></section>';
+      // Games in this result: time first (bold), then the date; the game id last, in italics.
+      const gameList = games.map((g) => {
+        const n = g.scores ? Object.keys(g.scores).length : 0;
+        const counts = (n === 1 ? '1 player' : n + ' players') + (g.roundCount != null ? ' · ' + (g.roundCount === 1 ? '1 round' : g.roundCount + ' rounds') : '');
+        const admins = Array.isArray(g.adminNames) ? g.adminNames.filter((a) => a && a !== g.creatorName) : [];
+        const people = [g.creatorName ? 'Creator ' + g.creatorName : '', admins.length ? (admins.length === 1 ? 'Admin ' : 'Admins ') + admins.join(', ') : ''].filter(Boolean).join(' · ');
+        return '<div class="gm"><div class="g1"><span class="lab">' + esc(g.label || g.code || '') + '</span><span class="when"><b>' + esc(clock(g.date)) + '</b> ' + esc(dayOf(g.date)) + '</span></div>'
+          + '<div class="g2">' + esc(counts) + ' · <i class="gid">Game ID ' + esc(g.code || g.label || '') + '</i></div>'
+          + (people ? '<div class="g2">' + esc(people) + '</div>' : '')
+          + (g.reused ? '<div class="g2 warn">Already counted in an earlier result</div>' : '') + '</div>';
+      }).join('') || '<p class="mute">No games remain in this version.</p>';
+
+      const seated = new Set(); games.forEach((g) => Object.keys(g.scores || {}).forEach((k) => seated.add(k)));
+      const playerCount = seated.size || players.length;
+      const countLine = (games.length === 1 ? '1 game' : games.length + ' games') + ' · ' + (playerCount === 1 ? '1 player' : playerCount + ' players');
+
+      page.innerHTML = deleted + banner
+        + '<div class="card"><div class="hdr"><h1>Results</h1><span class="code">' + esc(shortId(r.id)) + '</span></div>'
+        + '<p class="meta">' + (r.deleted ? 'Deleted · saved ' : 'Saved ') + esc(when(r.declaredAt)) + (r.declarerName ? ' · by ' + esc(r.declarerName) : '') + '</p>'
+        + '<p class="count">' + esc(countLine) + '</p>'
+        + notes.map((n) => '<p class="note">' + esc(n) + '</p>').join('')
+        + '<div class="section"><h2>Scores</h2><div class="split"><div class="col">' + column(positive) + '</div><div class="col">' + column(negative) + '</div></div>' + evenLine + '</div></div>'
+        + '<div class="card"><h2>How you got there · game by game</h2>' + table + legend + '</div>'
+        + '<div class="card"><h2>Games in this result</h2>' + gameList + '</div>';
     }
 
-    async function load() {
-      const id = resultId();
-      if (!/^[0-9a-f-]{36}$/i.test(id)) { document.getElementById('meta').textContent = 'This results link is not valid.'; return; }
-      if (!injected(PROJECT) || !injected(ANON_KEY)) { document.getElementById('meta').textContent = 'This page is not configured yet.'; return; }
+    async function call(id, version) {
+      const body = version ? { p_id: id, p_version: version } : { p_id: id };
       const response = await fetch(PROJECT.replace(/\/$/, '') + '/rest/v1/rpc/public_result', {
         method: 'POST',
         headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ p_id: id }),
+        body: JSON.stringify(body),
       });
-      const result = await response.json();
-      if (!result || !result.id) { document.getElementById('meta').textContent = 'This results link is not valid.'; return; }
-      render(result);
+      return response.json();
+    }
+
+    async function load() {
+      const { id, version } = params();
+      const meta = document.getElementById('meta');
+      if (!/^[0-9a-f-]{36}$/i.test(id)) { meta.textContent = 'This results link is not valid.'; return; }
+      if (!injected(PROJECT) || !injected(ANON_KEY)) { meta.textContent = 'This page is not configured yet.'; return; }
+      let result = await call(id, version);
+      // Before migration 034 the function has no p_version argument: fall back to the plain call.
+      if (version && (!result || !result.id)) result = await call(id, null);
+      if (!result || !result.id) { meta.textContent = 'This results link is not valid.'; return; }
+      render(result, version);
     }
 
     load().catch(() => { document.getElementById('meta').textContent = 'Could not load the result.'; });

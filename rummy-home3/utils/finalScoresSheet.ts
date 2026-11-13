@@ -1,5 +1,7 @@
 import { gameLabelOf, gameTitle, LabelledGame } from '@/utils/gameLabel';
 import { formatPoints } from '@/utils/results';
+import { buildRoundTable, ResultsRoundTable } from '@/utils/resultsDetails';
+import { buildScoresCard, ShareCard } from '@/utils/shareCard';
 
 /** "Mon, Jul 27 · 6:27 PM" — same shape as the scorecard header. Pure copy so this module runs under node. */
 export function formatWhen(value: string): string {
@@ -49,6 +51,10 @@ export type FinalScoresSheet = {
   footer: string;
   /** "Game admins: Sree Koneru · #39, …" — who ran the game; empty when unknown. */
   adminLines: string[];
+  /** PR 8: the rounds in blocks of five players with the game total in each column head (preview + PDF). */
+  table: ResultsRoundTable;
+  /** PR 8: the shared picture is the standings only (same card as a saved result); rounds go in the PDF. */
+  card: ShareCard;
 };
 
 export function chunk<T>(items: T[], size: number): T[][] {
@@ -72,8 +78,8 @@ export function finalScoresFooter(game: LabelledGame & { id: string; shareCode?:
 export const FINAL_SCORES_FILE = 'ez-score-final-scores.png';
 
 export function buildFinalScoresSheet(input: {
-  game: { id: string; shareCode?: string; gameNumber?: number | null; date: string; completedAt?: string | null; isComplete: boolean };
-  players: { id: string; name: string }[];
+  game: { id: string; shareCode?: string; gameNumber?: number | null; gameLabel?: string | null; date: string; completedAt?: string | null; isComplete: boolean };
+  players: { id: string; name: string; playerNo?: number | null }[];
   scores: Record<string, number[]>;
   /** "Name · #39" per admin, creator first. */
   admins?: string[];
@@ -102,6 +108,23 @@ export function buildFinalScoresSheet(input: {
       ? 'Completed'
       : 'In progress';
 
+  const label = gameLabelOf(input.game) ?? '';
+  const totals = Object.fromEntries(players.map((player) => [player.id, player.total]));
+  const table = buildRoundTable(
+    { id: input.game.id, name: input.game.shareCode ?? label, label, date: input.game.date, scores: totals, rounds: input.scores, roundCount },
+    0,
+    input.players,
+  );
+  const card = buildScoresCard({
+    title: finalScoresHeading(input.game),
+    date: formatWhen(input.game.date),
+    summary: `${players.length} ${players.length === 1 ? 'player' : 'players'} · ${roundCount === 1 ? '1 round' : `${roundCount} rounds`}`,
+    standings: summary.map((row, index) => ({ id: row.id, name: row.name, points: row.total, games: 1, place: index + 1 })),
+    players: input.players,
+    games: [{ scores: totals }],
+    footer: finalScoresFooter(input.game),
+  });
+
   return {
     brand: 'EZ Score: Rummy',
     heading: finalScoresHeading(input.game),
@@ -114,5 +137,7 @@ export function buildFinalScoresSheet(input: {
     totalSum: players.reduce((sum, player) => sum + player.total, 0),
     footer: finalScoresFooter(input.game),
     adminLines: input.admins && input.admins.length > 0 ? [`Game admins: ${input.admins.join(', ')}`] : [],
+    table,
+    card,
   };
 }

@@ -1,294 +1,102 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Text } from 'react-native-paper';
-import { brand, radius, spacing, tabularNums } from '@/constants/theme';
-import { placeLabel } from '@/utils/results';
-import { legendLines, ShareBreakdown } from '@/utils/resultsLayout';
-import { ShareCard } from '@/utils/shareCard';
+import { MedalBadge } from '@/components/results/PlayerLine';
+import { radius, spacing, tabularNums } from '@/constants/theme';
+import { ShareCard, ShareLine } from '@/utils/shareCard';
 
-const POINTS_W = 64;
-const BADGE_W = 52;
-const GRID_CELL_W = 46;
-const GRID_TOTAL_W = 56;
-const GRID_CELL_DENSE_W = 36;
+/** The share image palette: Clubhouse green frame, white card. Fixed, not themed: it is a picture. */
+export const SHARE_COLORS = {
+  frame: '#15803D',
+  onFrame: '#FFFFFF',
+  onFrameMuted: 'rgba(255,255,255,0.85)',
+  card: '#FFFFFF',
+  ink: '#17201B',
+  muted: '#4E5752',
+  line: '#DCDDD5',
+  neg: '#A8201A',
+  note: '#FFE38A',
+  onNote: '#3F2D00',
+} as const;
 
-function pointsStyle(text: string) {
-  if (text === '—') return styles.muted;
-  return text.startsWith('-') ? styles.negative : styles.positive;
-}
-
-export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: React.Ref<View> }) {
-  const hasBadges = card.lines.some((line) => line.place != null);
+function Line({ line }: { line: ShareLine }) {
   return (
-    <View ref={cardRef} collapsable={false} accessibilityLabel="EZ Score: Rummy share image" style={styles.card}>
-      <Text style={styles.brand}>EZ Score: Rummy</Text>
-      <Text style={styles.title}>{card.title}</Text>
-      <Text style={styles.date}>{card.date}</Text>
-      {card.summary ? <Text style={styles.date}>{card.summary}</Text> : null}
-      {card.notes?.map((note) => (
-        <Text key={note} style={styles.note} testID="share-note">{note}</Text>
-      ))}
-      <View style={styles.rule} />
-      {card.podiumFirst ? card.places.map((place) => (
-        <Text key={place.label} style={styles.podium}>
-          {`${place.label}  ${place.names}  ${place.points}`}
-        </Text>
-      )) : null}
-      {card.podiumFirst && card.lines.length > 0 ? <Text style={styles.more}>Totals</Text> : null}
-      {card.lines.map((line) => (
-        <View key={`${line.name}-${line.points}`} style={styles.line} testID={`share-line-${line.name}`}>
-          {hasBadges ? (
-            <View style={styles.badge} accessibilityLabel={line.place != null ? `${placeLabel(line.place)} place` : undefined}>
-              {line.place != null ? (
-                <>
-                  <MaterialCommunityIcons name="crown" size={14} color={brand.gold} />
-                  <Text style={styles.badgeText}>{placeLabel(line.place)}</Text>
-                </>
-              ) : null}
-            </View>
-          ) : null}
-          <View style={styles.nameBlock}>
-            <Text style={styles.name} numberOfLines={1}>{line.name}</Text>
-            {line.sub ? <Text style={styles.sub} numberOfLines={1}>{line.sub}</Text> : null}
-          </View>
-          <Text style={[styles.points, tabularNums, pointsStyle(line.points)]} numberOfLines={1}>{line.points}</Text>
+    <View style={styles.line} testID={`share-line-${line.name}`}>
+      <View style={styles.nameBlock}>
+        <View style={styles.nameRow}>
+          {line.medal ? <MedalBadge medal={line.medal} size={22} /> : null}
+          <Text style={styles.name} numberOfLines={2}>{line.name}</Text>
         </View>
-      ))}
-      {card.moreCount > 0 ? (
-        <Text style={styles.more}>{`and ${card.moreCount} more`}</Text>
-      ) : null}
-      {card.breakdown ? <ShareBreakdownGrid grid={card.breakdown} /> : null}
-      {card.breakdownNote ? (
-        <Text style={styles.gridNote} testID="share-breakdown-note">{card.breakdownNote}</Text>
-      ) : null}
-      {!card.podiumFirst && card.places.length > 0 ? <View style={styles.rule} /> : null}
-      {!card.podiumFirst ? card.places.map((place) => (
-        <Text key={place.label} style={styles.place}>
-          {`${place.label}  ${place.names}  ${place.points}`}
-        </Text>
-      )) : null}
-      {card.footer ? (
-        <>
-          <View style={styles.rule} />
-          <Text style={styles.footer} testID="share-footer">{card.footer}</Text>
-        </>
-      ) : null}
+        {line.sub ? <Text style={styles.sub} numberOfLines={1}>{line.sub}</Text> : null}
+      </View>
+      <Text style={[styles.points, tabularNums, line.points.startsWith('-') && styles.negative]} numberOfLines={1}>{line.points}</Text>
     </View>
   );
 }
 
 /**
- * Every game on the image: players down the side, up to five games across. More
- * games wrap into another header row (G6–G10 …) with its own score rows, so the
- * grid never grows wider than the card.
+ * The one-page picture: scores split in two columns with medals, the games line, who
+ * generated it (initials), and the link. Per-game detail stays behind the link / in the PDF.
  */
-function ShareBreakdownGrid({ grid }: { grid: ShareBreakdown }) {
-  const cellStyle = grid.dense ? styles.gridCellDense : styles.gridCell;
-  const textStyle = grid.dense ? styles.gridTextDense : styles.gridText;
+export function ShareCardView({ card, cardRef }: { card: ShareCard; cardRef?: React.Ref<View> }) {
   return (
-    <View testID="share-breakdown" accessibilityLabel={`By game, ${grid.gameCount} games`}>
-      <View style={styles.rule} />
-      <Text style={styles.gridTitle}>By game</Text>
-      {grid.bands.map((band, bandIndex) => (
-        <View key={band.columns.join('|')} style={bandIndex > 0 ? styles.gridBand : undefined} testID={`share-band-${bandIndex + 1}`}>
-          <View style={styles.gridRow}>
-            <Text style={[styles.gridHead, styles.gridHeadCol]}>Player</Text>
-            {band.columns.map((column) => (
-              <Text key={column} style={[styles.gridHead, tabularNums, column === 'Total' ? styles.gridTotal : cellStyle]} numberOfLines={1}>
-                {column}
-              </Text>
-            ))}
-          </View>
-          {band.rows.map((row) => (
-            <View key={row.head} style={styles.gridRow} testID={`share-breakdown-${row.head}`}>
-              <Text style={[textStyle, styles.gridHeadCol]}>{row.head}</Text>
-              {row.cells.map((cell, index) => {
-                const isTotal = band.hasTotal && index === row.cells.length - 1;
-                return (
-                  <Text
-                    key={`${row.head}-${band.columns[index]}`}
-                    style={[textStyle, tabularNums, isTotal ? styles.gridTotal : cellStyle, isTotal && styles.gridTotalText, pointsStyle(cell)]}
-                    numberOfLines={1}
-                  >
-                    {cell}
-                  </Text>
-                );
-              })}
-            </View>
-          ))}
+    <View ref={cardRef} collapsable={false} accessibilityLabel="EZ Score: Rummy share image" style={styles.frame}>
+      <View style={styles.frameHead}>
+        <Text style={styles.brand}>{card.brand}</Text>
+        <Text style={styles.frameDate} numberOfLines={1}>{card.date}</Text>
+      </View>
+      <View style={styles.card}>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{card.title}</Text>
+          {card.code ? <Text style={styles.code}>{card.code}</Text> : null}
         </View>
-      ))}
-      {legendLines(grid.legend, 56).map((line) => (
-        <Text key={line} style={styles.gridLegend}>{line}</Text>
-      ))}
+        {card.summary ? <Text style={styles.summary}>{card.summary}</Text> : null}
+        {card.notes?.map((note) => (
+          <Text key={note} style={styles.note} testID="share-note">{note}</Text>
+        ))}
+        <View style={styles.columns}>
+          <View style={styles.column} testID="share-positive">
+            {card.positive.length === 0 ? <Text style={styles.none}>None</Text> : card.positive.map((line) => <Line key={line.id} line={line} />)}
+          </View>
+          <View style={styles.column} testID="share-negative">
+            {card.negative.length === 0 ? <Text style={styles.none}>None</Text> : card.negative.map((line) => <Line key={line.id} line={line} />)}
+          </View>
+        </View>
+        {card.evenLine ? <Text style={styles.small}>{card.evenLine}</Text> : null}
+        {card.moreLine ? <Text style={[styles.small, styles.center]} testID="share-more">{card.moreLine}</Text> : null}
+        {card.gamesLine ? <Text style={[styles.small, styles.center, styles.gamesLine]} testID="share-games-line">{card.gamesLine}</Text> : null}
+        {card.generatedBy ? <Text style={[styles.small, styles.center]} testID="share-generated-by">{card.generatedBy}</Text> : null}
+      </View>
+      <Text style={styles.footer} testID="share-footer" numberOfLines={2}>
+        {[card.footer, card.link ? `Full details · ${card.link}` : null].filter(Boolean).join('   ')}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: brand.felt,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
-  brand: {
-    color: brand.gold,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  title: {
-    color: brand.cream,
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  date: {
-    color: brand.cream,
-    opacity: 0.9,
-  },
-  rule: {
-    height: 1,
-    backgroundColor: brand.gold,
-    opacity: 0.7,
-    marginVertical: spacing.xs,
-  },
-  line: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 24,
-  },
-  badge: {
-    width: BADGE_W,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  badgeText: {
-    color: brand.gold,
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  nameBlock: {
-    flex: 1,
-  },
-  name: {
-    color: brand.cream,
-    fontWeight: '600',
-  },
-  sub: {
-    color: brand.cream,
-    opacity: 0.75,
-    fontSize: 11,
-  },
-  points: {
-    width: POINTS_W,
-    textAlign: 'right',
-    fontWeight: '800',
-  },
-  positive: {
-    color: '#B7E4C7',
-  },
-  negative: {
-    color: '#F2B8B5',
-  },
-  muted: {
-    color: brand.cream,
-    opacity: 0.5,
-  },
-  more: {
-    color: brand.gold,
-    fontWeight: '700',
-    marginTop: spacing.xs,
-  },
-  place: {
-    color: brand.cream,
-    fontWeight: '700',
-  },
-  podium: {
-    color: brand.cream,
-    fontWeight: '800',
-    fontSize: 18,
-  },
-  gridTitle: {
-    color: brand.gold,
-    fontWeight: '700',
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  gridRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 22,
-  },
-  gridHead: {
-    color: brand.cream,
-    opacity: 0.8,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  gridText: {
-    color: brand.cream,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  gridHeadCol: {
-    flex: 1,
-    minWidth: 40,
-  },
-  gridCell: {
-    width: GRID_CELL_W,
-    textAlign: 'right',
-  },
-  gridCellDense: {
-    width: GRID_CELL_DENSE_W,
-    textAlign: 'right',
-  },
-  gridTextDense: {
-    color: brand.cream,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  gridBand: {
-    borderTopWidth: 1,
-    borderTopColor: brand.gold,
-    marginTop: 4,
-    paddingTop: 4,
-  },
-  gridLegend: {
-    color: brand.cream,
-    opacity: 0.75,
-    fontSize: 10,
-    marginTop: 4,
-  },
-  gridNote: {
-    color: brand.gold,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  footer: {
-    color: brand.gold,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  note: {
-    color: brand.felt,
-    backgroundColor: brand.gold,
-    fontSize: 12,
-    fontWeight: '700',
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    marginTop: 6,
-    alignSelf: 'flex-start',
-  },
-  gridTotal: {
-    width: GRID_TOTAL_W,
-    textAlign: 'right',
-  },
-  gridTotalText: {
-    fontWeight: '800',
-  },
+  frame: { backgroundColor: SHARE_COLORS.frame, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm },
+  frameHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4, gap: spacing.sm },
+  brand: { color: SHARE_COLORS.onFrame, fontWeight: '800', fontSize: 18, letterSpacing: 0.3 },
+  frameDate: { color: SHARE_COLORS.onFrameMuted, fontWeight: '600', fontSize: 13, flexShrink: 1 },
+  card: { backgroundColor: SHARE_COLORS.card, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.xs },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  title: { color: SHARE_COLORS.ink, fontSize: 26, fontWeight: '800' },
+  code: { color: SHARE_COLORS.muted, fontWeight: '600', fontSize: 14 },
+  summary: { color: SHARE_COLORS.ink, fontWeight: '700', fontSize: 16, marginBottom: spacing.xs },
+  note: { backgroundColor: SHARE_COLORS.note, color: SHARE_COLORS.onNote, borderRadius: radius.sm, paddingVertical: 6, paddingHorizontal: 10, fontWeight: '600', fontSize: 13 },
+  columns: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  column: { flex: 1, minWidth: 0 },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: SHARE_COLORS.line },
+  nameBlock: { flex: 1, minWidth: 0 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { color: SHARE_COLORS.ink, fontWeight: '700', fontSize: 15, flexShrink: 1 },
+  sub: { color: SHARE_COLORS.muted, fontSize: 12 },
+  points: { color: SHARE_COLORS.ink, fontWeight: '800', fontSize: 20 },
+  negative: { color: SHARE_COLORS.neg },
+  none: { color: SHARE_COLORS.muted, fontSize: 14, paddingVertical: 6 },
+  small: { color: SHARE_COLORS.muted, fontSize: 13 },
+  center: { textAlign: 'center' },
+  gamesLine: { marginTop: spacing.sm },
+  footer: { color: SHARE_COLORS.onFrame, fontWeight: '700', fontSize: 13, textAlign: 'center' },
 });

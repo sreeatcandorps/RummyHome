@@ -72,11 +72,37 @@ test('completion check: balanced rounds pass, an unbalanced round names itself, 
   assert.equal(empty.roundCount, 0);
 });
 
-test('single-game share never says Results and has no PDF; the scorecard menu says Share final scores', () => {
+test('single-game share never says Results; the scorecard menu says Share final scores; the rounds go out as a separate file (PR 8)', () => {
   const scorecard = readFileSync(path.join(process.cwd(), 'app/(screens)/games/[id].tsx'), 'utf8');
   assert.match(scorecard, /title="Share final scores"/);
   assert.doesNotMatch(scorecard, /title="Share results"/);
   const page = readFileSync(path.join(process.cwd(), 'app/(screens)/games/final-scores.tsx'), 'utf8');
-  assert.doesNotMatch(page, /pdf/i);
   assert.doesNotMatch(page, />\s*Share results\s*</i);
+  assert.doesNotMatch(page, /Share full details/i, 'the single game never borrows the results PDF wording');
+  assert.match(page, /accessibilityLabel="Share final scores"/, 'the image button keeps its name (Maestro 05 waits for it)');
+  assert.match(page, /shareFinalScoresPdf\(sheet\)/, 'the rounds PDF is a second, smaller button');
+  assert.match(page, /<ShareCardView card=\{sheet\.card\} cardRef=\{shot\} \/>/, 'the picture captured is the standings card');
+});
+
+test('PR 8 part B: the single-game picture is the standings card; the rounds come in blocks of five players with the total on top', () => {
+  const many = Array.from({ length: 7 }, (_, index) => ({ id: `p${index}`, name: `Player ${index + 1}`, playerNo: index + 1 }));
+  const manyScores = Object.fromEntries(many.map((player, index) => [player.id, [index === 0 ? 60 : -10, index === 6 ? 60 : -10]]));
+  const sheet = buildFinalScoresSheet({ game, players: many, scores: manyScores });
+  assert.equal(sheet.card.title, 'Game S3 Final Scores');
+  assert.equal(sheet.card.positive.length, 2, 'two players finished up');
+  assert.equal(sheet.card.positive[0].medal, 1, 'gold medal on the top total');
+  assert.equal(sheet.card.negative.length, 5);
+  assert.equal(sheet.card.summary, '7 players · 2 rounds');
+  assert.equal(sheet.card.footer, 'Game S3');
+  assert.equal(sheet.table.blocks.length, 2, 'seven players wrap into 5 + 2');
+  assert.equal(sheet.table.blocks[0].heads.length, 5);
+  assert.equal(sheet.table.blocks[1].heads.length, 2);
+  assert.equal(sheet.table.blocks[0].rows.length, 2, 'one row per round');
+  const sree = sheet.table.blocks.flatMap((block) => block.heads).find((head) => head.playerNo === 1);
+  assert.equal(sree?.total, '+50', 'the game total sits in the column head');
+  // The web scorecard and the PDF use the same shape.
+  const web = readFileSync(path.join(process.cwd(), 'public/scorecard.html'), 'utf8');
+  assert.match(web, /const BLOCK = 5;/);
+  assert.match(web, /<span class="total/);
+  assert.equal(web, readFileSync(path.join(process.cwd(), 'web/scorecard.html'), 'utf8'), 'web/scorecard.html is the same file');
 });

@@ -45,8 +45,8 @@ Same codebase either way.
 | App root | `rummy-home3/` | Expo Router mobile app |
 | Framework | Expo SDK **54** | React Native 0.81 app toolchain |
 | UI | React Native Paper (Material 3) | Android-familiar components |
-| Share image | `react-native-view-shot` and `expo-sharing` | Scorecard picture, and the Results podium picture, for WhatsApp or a text. The web build draws the same card |
-| Results PDF | `expo-print` and `expo-sharing` | Share full details prints HTML to a PDF on the phone and opens the share sheet. The web build downloads the same details |
+| Share image | `react-native-view-shot` and `expo-sharing` | Scorecard picture, and the one-page Results card (ranked scores with medals, generator initials, link), for WhatsApp or a text. The web build draws the same card |
+| Results PDF | `expo-print` and `expo-sharing` | Share full details prints phone-sized HTML pages (390 × 780) to a PDF on the phone and opens the share sheet; a single game's rounds go the same way. The web build downloads the same details |
 | Backend | Supabase (Auth + Postgres + RLS) | Shared multi-user data without a custom server |
 | My players | `my_players` in `007_redesign.sql` | Per-account roster. Home and New game do not read every profile |
 | Public scorecard | `https://ezscore.mindweavetech.com/scorecard.html` | Static HTML. `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__` are filled at publish time, not committed |
@@ -282,6 +282,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 ### 2026-11-13 — Device UI testing in CI (PR 1 of the Nov 12 feedback plan)
 - New CI jobs `ui-smoke` (every push/PR, blocking) and `ui-full` (nightly + on demand): the app is built on the runner with `expo prebuild` + Gradle `assembleRelease` (debug keystore, one ABI), bundled against the throw-away local Supabase (`10.0.2.2:54321`, `seed.sql` + new `supabase/seed-e2e.sql` fixtures), and driven on a Pixel 6 / API 34 emulator (`reactivecircus/android-emulator-runner`, KVM, cached AVD snapshot) by Maestro flows in `rummy-home3/e2e/` (`smoke/`, `full/`, `known-bugs/`, shared `lib/`). Runner scripts in `ci/ui/`; screenshots and a gallery (`ui/index.html`) in the `ui-screenshots-*` artifact, a table in the job summary and a PR comment. The nine never-run flows with the wrong `appId` are replaced. No app behaviour change beyond three `testID`s (login fields, game cards). The full testing matrix (journeys × U/D/C/S/N/M) is in `docs/testing-strategy.md`.
 - Known-bug flows for PR 2 (undo → add round), PR 3 (rummy with a positive pot), PR 6 (initials clash → HT2) and PR 8 (0 players in a saved result) are quarantined until their PR lands.
+
+### 2026-11-13 — Results design (PR 8) and migration 034
+- One layout model for the result (`utils/resultsDesign.ts`) feeds the app screen, the share image, the PDF and the public `/r/` page: ranked scores split (positives with medals, negatives closest to zero first), the games across in bordered bands of five with Player and Total fixed on the left, a legend, and "Games in this result" (time bold, date, players · rounds · Game ID, creator and admins). The share image is summary-only with the generator's initials; the PDF prints phone-sized pages (390 × 780, 16 px) through `expo-print`; the web page and the PDF share `RESULTS_DESIGN_CSS` byte for byte (a unit test enforces it). Single-game Final scores now share the same standings card and offer the rounds as a second PDF; the web scorecard shows blocks of five players with totals in the head.
+- `034_results_design.sql` (written, **not applied**; Build Bot applies after CI): `declare_game_result` builds standings from seated `game_players` left-joined to scores, so a completed game with no rounds yields its players at 0 instead of "0 players"; a `result_versions` table with triggers snapshots a result when saved and when one of its games is deleted; `public_result(uuid, integer)` returns the version list, creator/admins/round count per game and the deleted state so the page can show "edited after it was saved" and older versions. Rollback and pgTAP file 24 included; the full local DB suite is green (928 pgTAP, 134 rollback checks, 38 race checks).
 
 ### Now
 - Play Console personal account under Google verification (~days).

@@ -1,161 +1,184 @@
 import { Platform, Share, View } from 'react-native';
-import { ShareCard } from '@/utils/shareCard';
-import { legendLines, ShareBreakdown } from '@/utils/resultsLayout';
-import { placeLabel } from '@/utils/results';
+import { ShareCard, ShareLine } from '@/utils/shareCard';
 import { placeLine, ScorecardSheet } from '@/utils/scorecardSheet';
-import { CELLS_PER_ROW, FINAL_SCORES_FILE, FinalScoresSheet } from '@/utils/finalScoresSheet';
+import { FINAL_SCORES_FILE, FinalScoresSheet } from '@/utils/finalScoresSheet';
 
 export const IMAGE_READY = 'Image ready.';
 
 const CARD_W = 720;
-const CARD_PAD = 36;
-const CARD_FELT = '#17402F';
-const CARD_GOLD = '#E3B341';
-const CARD_CREAM = '#FBF1E1';
-const CARD_POS = '#B7E4C7';
-const CARD_NEG = '#F2B8B5';
+const CARD_PAD = 24;
+const INNER_PAD = 28;
+const FRAME = '#15803D';
+const ON_FRAME = '#FFFFFF';
+const INK = '#17201B';
+const MUTED = '#4E5752';
+const LINE = '#DCDDD5';
+const NEG = '#A8201A';
+const NOTE_BG = '#FFE38A';
+const ON_NOTE = '#3F2D00';
+const MEDAL: Record<1 | 2 | 3, { bg: string; fg: string }> = {
+  1: { bg: '#F6C84C', fg: '#3F2D00' },
+  2: { bg: '#D9DCE0', fg: '#2B3036' },
+  3: { bg: '#D99A66', fg: '#3B1D08' },
+};
 
-function pointsColor(text: string): string {
-  if (text === '—') return 'rgba(251,241,225,0.5)';
-  return text.startsWith('-') ? CARD_NEG : CARD_POS;
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = '';
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (ctx.measureText(next).width <= maxWidth || !current) {
+      current = next;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  });
+  if (current) lines.push(current);
+  if (lines.length > maxLines) {
+    const kept = lines.slice(0, maxLines);
+    kept[maxLines - 1] = `${kept[maxLines - 1].replace(/…$/, '')}…`;
+    return kept;
+  }
+  return lines;
 }
 
-/** Row height and type size of the by-game grid. Bands hold at most six columns (five games + Total). */
-function gridMetrics(grid: ShareBreakdown) {
-  const colCount = Math.max(1, ...grid.bands.map((band) => band.columns.length));
-  const headW = 90;
-  const avail = CARD_W - CARD_PAD * 2 - headW;
-  const colW = Math.max(30, Math.min(96, Math.floor(avail / colCount)));
-  const font = grid.dense || colW < 44 ? 15 : 18;
-  const rowH = font + 10;
-  const rows = grid.bands.reduce((sum, band) => sum + band.rows.length + 1, 0);
-  return { headW, colW, font, rowH, rows, bandGap: 14, legend: legendLines(grid.legend) };
+/** Height of one scores line: two name lines at most, plus the sub line. */
+function lineHeight(ctx: CanvasRenderingContext2D, line: ShareLine, nameWidth: number): number {
+  ctx.font = '700 22px sans-serif';
+  const names = wrapText(ctx, line.name, nameWidth, 2).length;
+  return 12 + names * 26 + (line.sub ? 18 : 0);
 }
 
 /**
- * Web twin of ShareCardView: brand, title, date, summary, totals with crowns,
- * the by-game grid (every game), the legend, and the footer with the result id.
+ * Web twin of ShareCardView: green frame, white card, the scores in two columns with
+ * drawn medals, the games line, who generated it, and the link in the frame's foot.
  */
 export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   if (typeof document === 'undefined') throw new Error('Could not make the image.');
-  const grid = card.breakdown ?? null;
-  const metrics = grid ? gridMetrics(grid) : null;
-  const headerH = 200 + (card.summary ? 30 : 0);
-  const podiumH = card.podiumFirst ? card.places.length * 44 + (card.lines.length > 0 ? 36 : 0) : 0;
-  const hasSub = card.lines.some((line) => line.sub);
-  const lineH = hasSub ? 52 : 40;
-  const linesH = card.lines.length * lineH + (card.moreCount > 0 ? 36 : 0);
-  const gridH = grid && metrics ? 52 + metrics.rows * metrics.rowH + (grid.bands.length - 1) * metrics.bandGap + metrics.legend.length * 20 + 24 : 0;
-  const noteH = card.breakdownNote ? 30 : 0;
-  const placesH = !card.podiumFirst ? card.places.length * 36 : 0;
-  const footerH = card.footer ? 56 : 24;
-  const height = headerH + podiumH + linesH + gridH + noteH + placesH + footerH;
-
   const canvas = document.createElement('canvas');
-  canvas.width = CARD_W;
-  canvas.height = Math.max(height, 360);
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not make the image.');
+  canvas.width = CARD_W;
+
+  const cardX = CARD_PAD;
+  const cardW = CARD_W - CARD_PAD * 2;
+  const colGap = 20;
+  const colW = (cardW - INNER_PAD * 2 - colGap) / 2;
+  const nameWidth = colW - 96;
+
+  // Measure first so the canvas is exactly as tall as the content.
+  ctx.font = '600 14px sans-serif';
+  const noteLines = (card.notes ?? []).map((note) => wrapText(ctx, note, cardW - INNER_PAD * 2 - 20, 3));
+  const notesH = noteLines.reduce((sum, lines) => sum + lines.length * 18 + 16, 0);
+  const colH = (lines: ShareLine[]) => (lines.length === 0 ? 34 : lines.reduce((sum, line) => sum + lineHeight(ctx, line, nameWidth), 0));
+  const columnsH = Math.max(colH(card.positive), colH(card.negative));
+  ctx.font = '600 16px sans-serif';
+  const gamesLines = card.gamesLine ? wrapText(ctx, card.gamesLine, cardW - INNER_PAD * 2, 3) : [];
+  const tailH = (card.evenLine ? 24 : 0) + (card.moreLine ? 24 : 0) + (gamesLines.length ? gamesLines.length * 22 + 10 : 0) + (card.generatedBy ? 22 : 0);
+  const headH = 56;
+  const cardTop = headH;
+  const cardH = INNER_PAD + 40 + (card.summary ? 30 : 0) + notesH + 12 + columnsH + 12 + tailH + INNER_PAD;
+  const footH = card.footer || card.link ? 44 : 20;
+  canvas.height = Math.max(360, cardTop + cardH + footH + CARD_PAD);
+
   const paint = (text: string, x: number, y: number, color: string, font: string, align: CanvasTextAlign = 'left') => {
     ctx.fillStyle = color;
     ctx.font = font;
     ctx.textAlign = align;
+    ctx.textBaseline = 'alphabetic';
     ctx.fillText(text, x, y);
     ctx.textAlign = 'left';
   };
-  const rule = (y: number) => {
-    ctx.fillStyle = 'rgba(227,179,65,0.7)';
-    ctx.fillRect(CARD_PAD, y, CARD_W - CARD_PAD * 2, 2);
+  const roundRect = (x: number, y: number, w: number, h: number, r: number, fill: string) => {
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    ctx.fill();
   };
-  const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
 
-  ctx.fillStyle = CARD_FELT;
+  // Frame and header.
+  ctx.fillStyle = FRAME;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  paint(card.brand, CARD_PAD, 60, CARD_GOLD, '800 22px sans-serif');
-  paint(clip(card.title, 32), CARD_PAD, 108, CARD_CREAM, '800 36px sans-serif');
-  paint(clip(card.date, 40), CARD_PAD, 144, CARD_CREAM, '600 22px sans-serif');
-  let y = 160;
+  paint(card.brand, CARD_PAD + 6, 36, ON_FRAME, '800 24px sans-serif');
+  ctx.font = '600 16px sans-serif';
+  const dateText = ctx.measureText(card.date).width > cardW / 2 ? wrapText(ctx, card.date, cardW / 2, 1)[0] : card.date;
+  paint(dateText, CARD_W - CARD_PAD - 6, 36, 'rgba(255,255,255,0.85)', '600 16px sans-serif', 'right');
+
+  // Card.
+  roundRect(cardX, cardTop, cardW, cardH, 18, '#FFFFFF');
+  let y = cardTop + INNER_PAD + 30;
+  const left = cardX + INNER_PAD;
+  const right = cardX + cardW - INNER_PAD;
+  paint(card.title, left, y, INK, '800 34px sans-serif');
+  if (card.code) paint(card.code, right, y, MUTED, '600 18px sans-serif', 'right');
+  y += 10;
   if (card.summary) {
-    paint(clip(card.summary, 40), CARD_PAD, 174, CARD_CREAM, '600 22px sans-serif');
-    y += 30;
+    y += 26;
+    paint(card.summary, left, y, INK, '700 20px sans-serif');
+    y += 4;
   }
-  rule(y);
-  y += 40;
+  noteLines.forEach((lines) => {
+    y += 8;
+    const h = lines.length * 18 + 8;
+    roundRect(left, y, cardW - INNER_PAD * 2, h, 8, NOTE_BG);
+    lines.forEach((line, index) => paint(line, left + 10, y + 18 + index * 18, ON_NOTE, '600 14px sans-serif'));
+    y += h;
+  });
+  y += 12;
 
-  const drawLine = (line: { name: string; points: string; place?: number; sub?: string }) => {
-    const hasBadges = card.lines.some((item) => item.place != null);
-    let x = CARD_PAD;
-    if (hasBadges) {
-      if (line.place != null) paint(`♛ ${placeLabel(line.place)}`, x, y, CARD_GOLD, '800 18px sans-serif');
-      x += 84;
+  const drawColumn = (lines: ShareLine[], x: number) => {
+    let cy = y;
+    if (lines.length === 0) {
+      paint('None', x, cy + 22, MUTED, '600 16px sans-serif');
+      return;
     }
-    paint(clip(line.name, 26), x, y, CARD_CREAM, '600 24px sans-serif');
-    paint(line.points, CARD_W - CARD_PAD, y, pointsColor(line.points), '800 24px sans-serif', 'right');
-    if (line.sub) paint(clip(line.sub, 30), x, y + 18, 'rgba(251,241,225,0.75)', '600 14px sans-serif');
-    y += lineH;
-  };
-  if (card.podiumFirst) {
-    card.places.forEach((place) => {
-      paint(clip(`${place.label}  ${place.names}  ${place.points}`, 42), CARD_PAD, y, CARD_CREAM, '800 28px sans-serif');
-      y += 44;
-    });
-    if (card.lines.length > 0) {
-      paint('Totals', CARD_PAD, y, CARD_GOLD, '700 22px sans-serif');
-      y += 36;
-    }
-  }
-  card.lines.forEach(drawLine);
-  if (card.moreCount > 0) {
-    paint(`and ${card.moreCount} more`, CARD_PAD, y, CARD_GOLD, '700 22px sans-serif');
-    y += 36;
-  }
-
-  if (grid && metrics) {
-    rule(y - 20);
-    paint('By game', CARD_PAD, y + 6, CARD_GOLD, '700 18px sans-serif');
-    y += 30;
-    const { headW, colW, font, rowH, bandGap } = metrics;
-    const cellX = (index: number) => CARD_PAD + headW + colW * (index + 1);
-    grid.bands.forEach((band, bandIndex) => {
-      if (bandIndex > 0) {
-        ctx.fillStyle = 'rgba(227,179,65,0.7)';
-        ctx.fillRect(CARD_PAD, y - rowH + 10, CARD_W - CARD_PAD * 2, 1);
-        y += bandGap;
+    lines.forEach((line) => {
+      const h = lineHeight(ctx, line, nameWidth);
+      ctx.font = '700 22px sans-serif';
+      const names = wrapText(ctx, line.name, nameWidth, 2);
+      let nameX = x;
+      let textY = cy + 26;
+      if (line.medal) {
+        const medal = MEDAL[line.medal];
+        ctx.fillStyle = medal.bg;
+        ctx.beginPath();
+        ctx.arc(x + 12, textY - 8, 12, 0, Math.PI * 2);
+        ctx.fill();
+        paint(String(line.medal), x + 12, textY - 3, medal.fg, '800 14px sans-serif', 'center');
+        nameX = x + 30;
       }
-      paint('Player', CARD_PAD, y, 'rgba(251,241,225,0.8)', `700 ${font - 2}px sans-serif`);
-      band.columns.forEach((column, index) => {
-        paint(column, cellX(index), y, 'rgba(251,241,225,0.8)', `700 ${font - 2}px sans-serif`, 'right');
-      });
-      y += rowH;
-      band.rows.forEach((row) => {
-        paint(row.head, CARD_PAD, y, CARD_CREAM, `600 ${font}px sans-serif`);
-        row.cells.forEach((cell, index) => {
-          const isTotal = band.hasTotal && index === row.cells.length - 1;
-          paint(cell, cellX(index), y, pointsColor(cell), `${isTotal ? '800' : '600'} ${font}px sans-serif`, 'right');
-        });
-        y += rowH;
-      });
+      names.forEach((name, index) => paint(name, nameX, textY + index * 26, INK, '700 22px sans-serif'));
+      const middle = cy + h / 2 + 9;
+      paint(line.points, x + colW, middle, line.points.startsWith('-') ? NEG : INK, '800 26px sans-serif', 'right');
+      if (line.sub) paint(line.sub, x, textY + (names.length - 1) * 26 + 18, MUTED, '600 14px sans-serif');
+      cy += h;
+      ctx.fillStyle = LINE;
+      ctx.fillRect(x, cy - 1, colW, 1);
     });
-    metrics.legend.forEach((line) => {
-      paint(line, CARD_PAD, y, 'rgba(251,241,225,0.75)', '600 13px sans-serif');
-      y += 20;
-    });
+  };
+  drawColumn(card.positive, left);
+  drawColumn(card.negative, left + colW + colGap);
+  y += columnsH + 12;
+
+  const centre = cardX + cardW / 2;
+  if (card.evenLine) { y += 18; paint(card.evenLine, left, y, MUTED, '600 15px sans-serif'); y += 6; }
+  if (card.moreLine) { y += 18; paint(card.moreLine, centre, y, MUTED, '600 15px sans-serif', 'center'); y += 6; }
+  if (gamesLines.length) {
     y += 10;
+    gamesLines.forEach((line) => { y += 20; paint(line, centre, y, MUTED, '600 16px sans-serif', 'center'); });
+    y += 2;
   }
-  if (card.breakdownNote) {
-    paint(card.breakdownNote, CARD_PAD, y, CARD_GOLD, '700 16px sans-serif');
-    y += 30;
-  }
-  if (!card.podiumFirst) {
-    card.places.forEach((place) => {
-      paint(clip(`${place.label}  ${place.names}  ${place.points}`, 48), CARD_PAD, y, CARD_CREAM, '700 22px sans-serif');
-      y += 36;
-    });
-  }
-  if (card.footer) {
-    rule(y - 12);
-    paint(card.footer, CARD_PAD, y + 22, CARD_GOLD, '700 16px sans-serif');
-  }
+  if (card.generatedBy) { y += 20; paint(card.generatedBy, centre, y, MUTED, '600 15px sans-serif', 'center'); }
+
+  const foot = [card.footer, card.link ? `Full details · ${card.link}` : null].filter(Boolean).join('   ');
+  if (foot) paint(foot, centre, cardTop + cardH + 30, ON_FRAME, '700 16px sans-serif', 'center');
   return canvas;
 }
 
@@ -358,111 +381,10 @@ export async function shareCardImage(view: View | null, card: ShareCard): Promis
   }
 }
 
-/** Same geometry as FinalScoresView, drawn on a canvas for the web build. */
-export function drawFinalScores(sheet: FinalScoresSheet): HTMLCanvasElement {
-  if (typeof document === 'undefined') throw new Error('Could not make the image.');
-  const width = 720;
-  const pad = 24;
-  const cell = Math.floor((width - pad * 2 - 32 - (CELLS_PER_ROW - 1) * 8) / CELLS_PER_ROW);
-  const headerH = 150;
-  const summaryH = 16 + 16 + 24 + sheet.summary.length * 34 + 28 + 16;
-  const playerH = (player: FinalScoresSheet['players'][number]) => 16 + 16 + 34 + player.rows.length * (cell + 8) + 16;
-  const height = headerH + summaryH + sheet.players.reduce((sum, player) => sum + playerH(player), 0) + 70 + sheet.adminLines.length * 20;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = Math.max(height, 420);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Could not make the image.');
-
-  const paint = (text: string, x: number, y: number, color: string, font: string, align: CanvasTextAlign = 'left') => {
-    ctx.fillStyle = color;
-    ctx.font = font;
-    ctx.textAlign = align;
-    ctx.fillText(text, x, y);
-    ctx.textAlign = 'left';
-  };
-  const roundRect = (x: number, y: number, w: number, h: number, r: number, fill: string, stroke?: string) => {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-    ctx.fillStyle = fill;
-    ctx.fill();
-    if (stroke) {
-      ctx.strokeStyle = stroke;
-      ctx.stroke();
-    }
-  };
-  const tone = (sign: 'pos' | 'neg' | 'zero') =>
-    sign === 'pos' ? { fg: '#0E7A43', bg: '#E3F4E8' } : sign === 'neg' ? { fg: '#8C2F2F', bg: '#FBE7E6' } : { fg: '#1B1F1C', bg: '#F4F1EA' };
-  const totalColor = (total: number) => (total < 0 ? '#8C2F2F' : total > 0 ? '#0E7A43' : '#1B1F1C');
-
-  ctx.fillStyle = '#FFF8E6';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#F2C14E';
-  ctx.fillRect(0, 0, width, headerH);
-  paint('EZ SCORE: RUMMY', pad, 40, '#5A4A10', '700 15px sans-serif');
-  paint(sheet.heading.slice(0, 30), pad, 84, '#2E2300', '800 34px sans-serif');
-  paint(sheet.startedLine, pad, 112, '#5A4A10', '600 15px sans-serif');
-  paint(sheet.completedLine, pad, 134, '#5A4A10', '600 15px sans-serif');
-
-  let y = headerH + 16;
-  const blockX = pad;
-  const blockW = width - pad * 2;
-
-  roundRect(blockX, y, blockW, summaryH - 16, 14, '#FFFFFF', '#EADFC2');
-  paint('TOTALS', blockX + 16, y + 30, '#6B6455', '800 13px sans-serif');
-  let rowY = y + 30 + 34;
-  sheet.summary.forEach((row) => {
-    paint(row.name.slice(0, 28), blockX + 16, rowY, '#1B1F1C', '700 20px sans-serif');
-    paint(row.totalText, blockX + blockW - 16, rowY, totalColor(row.total), '800 22px sans-serif', 'right');
-    rowY += 34;
-  });
-  paint(
-    `${sheet.roundCount === 1 ? '1 round' : `${sheet.roundCount} rounds`} · ${sheet.totalSum === 0 ? 'Totals add to 0' : `Totals add to ${sheet.totalSum}`}`,
-    blockX + 16,
-    rowY + 2,
-    '#6B6455',
-    '600 13px sans-serif',
-  );
-  y += summaryH;
-
-  sheet.players.forEach((player) => {
-    const h = playerH(player) - 16;
-    roundRect(blockX, y, blockW, h, 14, '#FFFFFF', '#EADFC2');
-    paint(player.name.slice(0, 28), blockX + 16, y + 36, '#1B1F1C', '800 18px sans-serif');
-    paint(player.totalText, blockX + blockW - 16, y + 36, totalColor(player.total), '800 20px sans-serif', 'right');
-    let cellY = y + 52;
-    player.rows.forEach((row) => {
-      row.forEach((c, index) => {
-        const x = blockX + 16 + index * (cell + 8);
-        const t = tone(c.sign);
-        roundRect(x, cellY, cell, cell, 10, t.bg);
-        paint(`R${c.round}`, x + cell / 2, cellY + 22, '#6B6455', '700 12px sans-serif', 'center');
-        paint(c.text, x + cell / 2, cellY + cell / 2 + 14, t.fg, '800 22px sans-serif', 'center');
-      });
-      cellY += cell + 8;
-    });
-    y += playerH(player);
-  });
-
-  sheet.adminLines.forEach((line) => {
-    paint(line.slice(0, 90), pad, y + 24, '#6B6455', '600 13px sans-serif');
-    y += 20;
-  });
-  paint(sheet.footer, pad, y + 24, '#6B6455', '600 13px sans-serif');
-  paint(sheet.generatedLine, pad, y + 44, '#6B6455', '600 13px sans-serif');
-  return canvas;
-}
-
-/** The long "Final scores" picture of one game. Web draws it; the phone captures the same layout. */
+/** The "Final scores" picture of one game: standings only (PR 8). Web draws the card; the phone captures the ShareCardView. */
 export async function shareFinalScoresImage(sheet: FinalScoresSheet, view: View | null): Promise<string> {
   try {
-    if (Platform.OS === 'web') return await shareDrawnImage(drawFinalScores(sheet).toDataURL('image/png'), FINAL_SCORES_FILE, sheet.heading);
+    if (Platform.OS === 'web') return await shareDrawnImage(drawShareCard(sheet.card).toDataURL('image/png'), FINAL_SCORES_FILE, sheet.heading);
     if (!view) throw new Error('Could not make the image.');
     const { captureRef } = await import('react-native-view-shot');
     const uri = await captureRef(view, { format: 'png', quality: 1, result: 'tmpfile' });

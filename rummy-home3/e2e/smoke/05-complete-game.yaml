@@ -31,3 +31,20 @@ tags: [smoke]
     timeout: 20000
 - assertVisible: "Go to Results"
 - takeScreenshot: 05c-completed
+# PR 8: the Final scores screen shows the standings card (the shared picture) and the rounds in
+# blocks of five players with the game total on top, with a Rounds (PDF) button beside Share.
+- tapOn: "Share final scores"
+- extendedWaitUntil:
+    visible: "Round by round"
+    timeout: 15000
+- assertVisible:
+    id: "final-scores-rounds"
+- assertVisible:
+    id: "share-rounds"
+- assertVisible:
+    id: "share-final-scores"
+- takeScreenshot: 05d-final-scores
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Go to Results"
+    timeout: 10000

@@ -19,9 +19,11 @@ import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { gameCache } from '@/utils/gameCache';
 import { formatGameDateTime } from '@/utils/gameDisplay';
-import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
+import { buildResultsShareCard } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { gameLabelFor, gameResultName, presentResults, resultFooter, ResultSheet, ResultStanding, withinResultsPlayerLimit, gameClock } from '@/utils/results';
+import { gameAdminLines } from '@/utils/gameAdmins';
+import { GameMeta } from '@/utils/resultsDesign';
+import { gameLabelFor, gameResultName, presentResults, resultFooter, ResultSheet, ResultStanding, withinResultsPlayerLimit } from '@/utils/results';
 import { RESULT_UNSAVED_BANNER, resultShareNotes, resultWarningLines, saveBlockedReason, saveStatusChanges, StatusChange } from '@/utils/resultsSave';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
@@ -56,7 +58,9 @@ export default function ShownResults() {
   const createdAt = param(params.at) || new Date().toISOString();
   const [games, setGames] = useState<Game[]>([]);
   const [seats, setSeats] = useState<Seats>({ names: {}, numbers: {}, labels: {} });
+  const [gameMeta, setGameMeta] = useState<Record<string, GameMeta>>({});
   const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [standings, setStandings] = useState<ResultStanding[]>([]);
   const [sheet, setSheet] = useState<ResultSheet>({ players: [], games: [] });
   const [loading, setLoading] = useState(true);
@@ -81,6 +85,20 @@ export default function ShownResults() {
       const listed = await Promise.all(loaded.map((game) => gamesService.listGamePlayers(game.id).catch(() => [] as Player[])));
       const found: Seats = { names: {}, numbers: {}, labels: {} };
       listed.forEach((players) => seated(players, found));
+      const meta: Record<string, GameMeta> = {};
+      loaded.forEach((game, index) => {
+        const lines = gameAdminLines(listed[index], game);
+        meta[game.id] = {
+          creatorName: lines.find((line) => line.role === 'Creator')?.name ?? null,
+          adminNames: lines.filter((line) => line.role === 'Admin').map((line) => line.name),
+          reused: Boolean(game.closedAt),
+        };
+      });
+      setGameMeta(meta);
+      if (id) {
+        const mine = listed.flat().find((player) => player.id === id);
+        setUserName(mine?.name ?? (isSupabaseConfigured ? await authService.getCurrentPlayer().then((me) => me?.name ?? null).catch(() => null) : null));
+      }
       const shaped = loaded.map((game) => ({
         id: game.id,
         name: gameResultName(game),
@@ -144,17 +162,15 @@ export default function ShownResults() {
   const card = useMemo(() => {
     if (standings.length === 0) return null;
     return buildResultsShareCard({
-      title: 'Results',
-      date: formatGameDateTime(createdAt),
-      rows: standings.map((row) => ({ id: row.id, name: row.name, points: row.points, place: row.place })),
-      places: sharePlaces(standings),
-      gameCount: games.length,
-      games: sheet.games,
+      standings,
       players: sheet.players,
+      games: sheet.games,
+      createdAtLabel: formatGameDateTime(createdAt),
+      generatedByName: userName,
       notes,
       footer: resultFooter({ preview: true }),
     });
-  }, [standings, createdAt, games.length, sheet, notes]);
+  }, [standings, createdAt, sheet, notes, userName]);
 
   const details = useMemo(() => {
     if (standings.length === 0) return null;
@@ -162,19 +178,12 @@ export default function ShownResults() {
       createdAtLabel: formatGameDateTime(createdAt),
       standings,
       players: sheet.players,
-      games: sheet.games.map((game) => ({
-        id: game.id,
-        name: game.name,
-        label: game.label,
-        when: gameClock(game.date),
-        scores: game.scores,
-        rounds: game.rounds,
-      })),
+      games: sheet.games.map((game) => ({ ...game, ...(gameMeta[game.id] ?? {}) })),
       saved: false,
       notes,
       footer: resultFooter({ preview: true }),
     });
-  }, [standings, sheet, createdAt, notes]);
+  }, [standings, sheet, createdAt, notes, gameMeta]);
 
   const ready = !loading && !error && !blocked;
 
@@ -214,7 +223,7 @@ export default function ShownResults() {
       ) : null}
       {blocked ? <Text variant="bodyLarge">{RESULTS_PLAYER_LIMIT}</Text> : null}
       {loading ? <LoadingRows /> : null}
-      {ready ? <ResultsPage createdAt={createdAt} standings={standings} sheet={sheet} /> : null}
+      {ready ? <ResultsPage createdAt={createdAt} standings={standings} sheet={sheet} gameMeta={gameMeta} /> : null}
 
       <Portal>
         <Dialog visible={Boolean(savedChanges)} onDismiss={openSaved} style={[styles.dialog, { backgroundColor: colors.surface }]}>

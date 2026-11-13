@@ -26,7 +26,7 @@ test('final batch 5: the score colour standard, the same in the app, round entry
   for (const rel of ['web/scorecard.html', 'public/scorecard.html']) {
     const page = src(rel);
     assert.match(page, /Math\.floor\(maxCount \/ 2\) \+ 1/, `${rel}: more than half the Full count`);
-    assert.match(page, /td\.big \{ color: #B3261E; \}/, `${rel}: big penalty is red text`);
+    assert.match(page, /td\.big \{ color: #A8201A; \}/, `${rel}: big penalty is red text (PR 8 palette)`);
     assert.doesNotMatch(page, /td\.big \{[^}]*background/, `${rel}: no red background`);
     assert.match(page, /value > 0 \? 'pos' : \(bigLoss !== null && value <= -bigLoss\) \? 'big' : ''/, `${rel}: small losses are plain`);
   }

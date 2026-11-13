@@ -5,25 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rummy scorecard</title>
   <style>
-    :root { color-scheme: light; }
-    body { margin: 0; font-family: "Segoe UI", sans-serif; background: #FBF1E1; color: #1B1F1C; }
-    header { background: #17402F; color: #FBF1E1; padding: 16px 18px 14px; }
-    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-    header h1 { margin: 0; font-size: 22px; }
-    button.help { background: transparent; color: #FBF1E1; border: 1px solid rgba(251,241,225,.5); border-radius: 999px; width: 32px; height: 32px; font-weight: 700; cursor: pointer; }
+    :root { color-scheme: light; --ink: #17201B; --muted: #4E5752; --line: #DCDDD5; --green: #15803D; --edge: #0E5A2A; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; }
+    body { margin: 0; font-family: -apple-system, Roboto, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--ink); font-size: 16px; }
+    header { background: var(--green); color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    header h1 { margin: 0; font-size: 20px; font-weight: 800; }
+    button.help { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); border-radius: 999px; width: 32px; height: 32px; font-weight: 700; cursor: pointer; }
     dialog { border: 0; border-radius: 12px; max-width: 420px; }
     dialog p { margin: 0 0 12px; }
-    .meta { margin-top: 6px; font-size: 14px; opacity: 0.9; }
-    main { padding: 12px; overflow-x: auto; }
-    table { border-collapse: collapse; min-width: 100%; background: #fff; border-radius: 12px; }
-    th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid #E7E0D4; font-variant-numeric: tabular-nums; }
-    th { background: #F4EFE4; font-size: 13px; }
+    .meta { margin-top: 4px; font-size: 14px; opacity: 0.95; }
+    main { padding: 12px 12px 24px; max-width: 430px; margin: 0 auto; }
+    /* Blocks of five players (same as the results PDF): one table per block, totals in the header, so nothing scrolls sideways. */
+    .block { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px; margin-bottom: 12px; }
+    .block .bt { color: var(--muted); font-size: 12px; font-weight: 700; margin: 0 0 4px 4px; }
+    table { border-collapse: collapse; width: 100%; table-layout: fixed; font-variant-numeric: tabular-nums; }
+    th, td { padding: 4px 5px; text-align: right; border: 1px solid var(--line); font-size: 15px; }
+    th { background: var(--head); text-align: center; vertical-align: bottom; }
+    th .ini { display: block; font-weight: 800; }
     th .total { display: block; font-size: 16px; font-weight: 800; }
-    td.pos { color: #0E7A43; font-weight: 700; background: #E6F4EA; }
-    td.big { color: #B3261E; }
-    tr.rotation td { border-top: 2px solid #0E7A43; }
-    tfoot td.neg { color: #8C2F2F; }
-    .msg { padding: 24px; }
+    th .total.neg { color: var(--neg); }
+    th.rn, td.rn { width: 40px; text-align: left; color: var(--muted); }
+    td.pos { background: var(--win); font-weight: 700; }
+    td.big { color: #A8201A; }
+    tr.rotation td { border-top: 2px solid var(--green); }
+    .sum { color: var(--muted); font-size: 13px; margin: 0 4px; }
+    .legend { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 4px 4px 0; }
+    .legend b { color: var(--ink); }
+    .msg { padding: 24px; color: var(--muted); }
+    @media (min-width: 900px) { main { max-width: 1100px; } .blocks { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; } .block { flex: 1 1 420px; margin-bottom: 0; } }
   </style>
 </head>
 <body>
@@ -35,7 +43,7 @@
     <button class="help" type="button" aria-label="Help" onclick="document.getElementById('help').showModal()">?</button>
   </header>
   <dialog id="help">
-    <p>This page updates on its own. It shows the game number, the start time, every round, and the totals. No login. Anyone with the link can watch.</p>
+    <p>This page updates on its own. It shows the game number, the start time, every round, and the totals, five players to a block. No login. Anyone with the link can watch.</p>
     <form method="dialog"><button>Close</button></form>
   </dialog>
   <main id="board"></main>
@@ -49,6 +57,7 @@
     function injected(value) {
       return typeof value === 'string' && value.length > 0 && value.indexOf('__') === -1;
     }
+    function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
     // Same rule as utils/playerInitials.ts in the app: first keeps HY, later duplicates read H2, H3, in seat order.
     function initials(names) {
@@ -95,26 +104,35 @@
       const gameNo = fromCard || fromLink;
       const status = card.status === 'completed' ? 'Completed' : 'Live';
       document.getElementById('meta').textContent = [gameNo, 'Started ' + when, status].filter(Boolean).join(' · ');
-      const head = labels.map((label, index) => '<th>' + label + '<span class="total">' + totals[index] + '</span></th>').join('');
       // The scorecard standard: a win green, a penalty of more than half the Full count red text, the rest plain.
       const maxCount = Math.abs(Number(card.maxCount) || 0);
       const bigLoss = maxCount ? Math.floor(maxCount / 2) + 1 : null;
       // 031: a divider above each round where the first dealer deals again (one full rotation done).
       const dealers = card.dealers || {};
       const firstDealer = roundList.length ? dealers[String(roundList[0])] : null;
-      const body = roundList.map((round, index) => {
-        const cells = grid.map((row) => {
-          const value = row[round] || 0;
-          const cls = value > 0 ? 'pos' : (bigLoss !== null && value <= -bigLoss) ? 'big' : '';
-          return '<td class="' + cls + '">' + (value > 0 ? '+' + value : value) + '</td>';
-        }).join('');
-        const rotation = index > 0 && firstDealer && dealers[String(round)] === firstDealer ? ' class="rotation"' : '';
-        return '<tr' + rotation + '><td>' + round + '</td>' + cells + '</tr>';
+      const fmt = (value) => (value > 0 ? '+' + value : String(value));
+      // Blocks of five players, totals in the header (PR 8 design, same as the results PDF).
+      const BLOCK = 5;
+      const blocks = [];
+      for (let start = 0; start < players.length; start += BLOCK) blocks.push(players.map((_, i) => i).slice(start, start + BLOCK));
+      const tables = blocks.map((idx, b) => {
+        const head = idx.map((i) => '<th><span class="ini">' + esc(labels[i]) + '</span><span class="total' + (totals[i] < 0 ? ' neg' : '') + '">' + fmt(totals[i]) + '</span></th>').join('');
+        const body = roundList.map((round, index) => {
+          const cells = idx.map((i) => {
+            const value = grid[i][round] || 0;
+            const cls = value > 0 ? 'pos' : (bigLoss !== null && value <= -bigLoss) ? 'big' : '';
+            return '<td class="' + cls + '">' + fmt(value) + '</td>';
+          }).join('');
+          const rotation = index > 0 && firstDealer && dealers[String(round)] === firstDealer ? ' class="rotation"' : '';
+          return '<tr' + rotation + '><td class="rn">' + round + '</td>' + cells + '</tr>';
+        }).join('') || '<tr><td class="msg" colspan="' + (idx.length + 1) + '">No rounds yet.</td></tr>';
+        const title = blocks.length > 1 ? '<p class="bt">Players ' + (b * BLOCK + 1) + '–' + (b * BLOCK + idx.length) + ' of ' + players.length + '</p>' : '';
+        return '<div class="block">' + title + '<table><thead><tr><th class="rn">Rnd</th>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
       }).join('');
-      const totalCells = totals.map((value) => '<td class="' + (value > 0 ? 'pos' : value < 0 ? 'neg' : '') + '">' + (value > 0 ? '+' + value : value) + '</td>').join('');
       const sum = totals.reduce((total, value) => total + value, 0);
-      const totalRow = roundList.length ? '<tfoot><tr><td>Total</td>' + totalCells + '</tr></tfoot>' : '';
-      document.getElementById('board').innerHTML = '<table><thead><tr><th>Rnd</th>' + head + '</tr></thead><tbody>' + (body || '<tr><td colspan="8">No rounds yet.</td></tr>') + '</tbody>' + totalRow + '</table><p class="meta">Totals add to ' + sum + '</p>';
+      const legend = '<p class="legend">' + labels.map((label, i) => '<span><b>' + esc(label) + '</b> ' + esc(names[i]) + '</span>').join(' · ') + '</p>';
+      document.getElementById('board').innerHTML = '<div class="blocks">' + (tables || '<p class="msg">No players yet.</p>') + '</div>'
+        + '<p class="sum">' + (roundList.length === 1 ? '1 round' : roundList.length + ' rounds') + ' · Totals add to ' + sum + '</p>' + legend;
     }
 
     async function load() {
@@ -134,6 +152,11 @@
         body: JSON.stringify({ p_token: token }),
       });
       const card = await response.json();
+      if (card && card.deleted === true) {
+        document.getElementById('meta').textContent = 'This game was deleted.';
+        document.getElementById('board').innerHTML = '';
+        return;
+      }
       if (!card || card.gameId == null) {
         document.getElementById('meta').textContent = 'This scorecard link is not valid.';
         return;

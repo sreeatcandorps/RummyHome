@@ -161,41 +161,17 @@ test('nov 10: Show results never saves on its own; the picker only opens the pre
   assert.match(src, /selectedCountLine/);
 });
 
-test('nov 10: number cells never wrap — columns widen for long scores and big fonts, and the text is one line', async () => {
-  const { resultsColumnWidths, scoreColumnWidth, longestScoreChars, RESULTS_GAME_COL, RESULTS_TOTAL_COL } = await import('../utils/results');
-  // "+732" fits the clock-width minimum; four and five digits grow past it.
-  assert.equal(scoreColumnWidth(4), RESULTS_GAME_COL);
-  assert.ok(scoreColumnWidth(5) > RESULTS_GAME_COL, '+1234 needs more than the minimum');
-  assert.ok(scoreColumnWidth(6) > scoreColumnWidth(5), '-12345 needs more again');
-  assert.ok(scoreColumnWidth(4, RESULTS_GAME_COL, 1.3) > RESULTS_GAME_COL, 'a large system font widens the column too');
-  assert.equal(longestScoreChars({ a: 732, b: -5, c: 1234 }), 5);
-  assert.equal(longestScoreChars({ a: 732 }, ['a', 'zz']), 4, 'a missing seat is a dash');
-  const widths = resultsColumnWidths(360, 2, { gameChars: [4, 6], totalChars: 7 });
-  assert.equal(widths[1], RESULTS_GAME_COL);
-  assert.equal(widths[2], scoreColumnWidth(6));
-  assert.equal(widths[3], scoreColumnWidth(7, RESULTS_TOTAL_COL));
-  assert.equal(widths[0], 360 - widths[1] - widths[2] - widths[3], 'the name column takes what is left');
-  // Default call is unchanged for callers that do not pass scores.
-  assert.deepEqual(resultsColumnWidths(360, 1), [360 - RESULTS_GAME_COL - RESULTS_TOTAL_COL, RESULTS_GAME_COL, RESULTS_TOTAL_COL]);
-
-  const grid = readFileSync(path.join(__dirname, '..', 'components', 'results', 'GameScoreGrid.tsx'), 'utf8');
-  const scoreTexts = grid.match(/<Text[^>]*styles\.scoreText[^>]*>/g) ?? [];
-  assert.ok(scoreTexts.length >= 2, 'game cells and the Total cell');
-  scoreTexts.forEach((tag) => assert.match(tag, /numberOfLines=\{1\}/, `score text must be one line: ${tag}`));
-  assert.match(grid, /longestScoreChars/);
-  assert.match(grid, /PixelRatio\.getFontScale\(\)/);
-});
-
-test('nov 10: the by-game header clock is upper-case AM/PM and the player cell carries the Player ID', async () => {
-  const { gameClock } = await import('../utils/results');
-  assert.equal(gameClock(new Date(2026, 10, 10, 23, 39).toISOString()), '11:39 PM');
-  assert.equal(gameClock(new Date(2026, 10, 10, 9, 5).toISOString()), '9:05 AM');
+test('nov 13 (PR 8): score cells in the band table are one line each and the player cell carries the Player ID', () => {
+  const table = readFileSync(path.join(__dirname, '..', 'components', 'results', 'BandTable.tsx'), 'utf8');
+  const cellTexts = table.match(/<Text[^>]*styles\.cellText[^>]*>/g) ?? [];
+  assert.ok(cellTexts.length >= 1, 'game cells');
+  cellTexts.forEach((tag) => assert.match(tag, /numberOfLines=\{1\}/, `score text must be one line: ${tag}`));
+  assert.match(table, /styles\.total, tabularNums/);
+  assert.match(table, /`#\$\{row\.playerNo\}`/);
   assert.equal(totalsSubline('SK', { playerNo: 39 }), 'SK · #39');
   assert.equal(totalsSubline('SK', { playerNo: null }), 'SK');
   assert.equal(totalsSubline('SK', undefined), 'SK');
   assert.equal(totalsSubline(undefined, { playerNo: 7 }), '#7');
-  const grid = readFileSync(path.join(__dirname, '..', 'components', 'results', 'GameScoreGrid.tsx'), 'utf8');
-  assert.match(grid, /playerIdBadge\(player\)/);
 });
 
 test('nov 10: the results view saves explicitly; the picker never saves (share before save: nov 11 item 4)', () => {

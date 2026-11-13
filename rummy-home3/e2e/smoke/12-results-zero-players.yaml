@@ -1,0 +1,59 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# PR 8 (migration 034): a completed game with seated players but no saved rounds shows its players
+# in a saved result ("1 game · 6 players", every total 0). Before 034 the standings came from score
+# rows only and the saved result said "1 game · 0 players". Was known-bugs/pr8; blocking since PR 8.
+# Fixture: game G (GAMEG1), completed, 6 seated, 0 rounds, sree creator. Game A is unticked first
+# when it is listed (it is Completed and ticked by default once smoke/05 has run). Saving closes G.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "Results"
+- extendedWaitUntil:
+    visible: "Show results"
+    timeout: 15000
+- runFlow:
+    when:
+      visible:
+        id: "game-card-GAMEA1"
+    commands:
+      - tapOn:
+          id: "game-card-GAMEA1"
+- assertVisible:
+    id: "game-card-GAMEG1"
+- tapOn: "Show results"
+- extendedWaitUntil:
+    visible: "Scores"
+    timeout: 20000
+- assertVisible: "1 game · 6 players"
+- assertVisible:
+    id: "results-band-table"
+- assertVisible: "Even: .*"
+- takeScreenshot: 12-results-preview-no-rounds
+- scrollUntilVisible:
+    element:
+      text: "Games in this result"
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "results-save-button"
+    direction: UP
+    timeout: 15000
+- tapOn:
+    id: "results-save-button"
+- extendedWaitUntil:
+    visible: "OK, open the saved result"
+    timeout: 20000
+- tapOn: "OK, open the saved result"
+- extendedWaitUntil:
+    visible: "Scores"
+    timeout: 20000
+- takeScreenshot: 12-results-saved-no-rounds
+- assertVisible: "1 game · 6 players"
+- assertVisible:
+    id: "results-band-table"
+- scrollUntilVisible:
+    element:
+      text: "Games in this result"
+    direction: DOWN
+    timeout: 15000

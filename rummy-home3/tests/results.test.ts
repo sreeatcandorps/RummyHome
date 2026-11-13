@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MAX_RESULTS_PLAYERS, RESULTS_PLAYER_LIMIT, SEATED_PLAYER_LIMIT } from '../constants/limits';
-import { buildResultsShareCard, buildShareCard, RESULTS_IMAGE_TOTAL_CAP, SHARE_CARD_LINE_CAP } from '../utils/shareCard';
+import { buildResultsShareCard, buildScoresCard, SHARE_SIDE_CAP } from '../utils/shareCard';
 import { buildResultsDetails, resultsDetailsHtml, resultsDetailsPdf } from '../utils/resultsDetails';
+import { clockOf, rankScores, resultInitials } from '../utils/resultsDesign';
 import {
   canDeclareResults,
   formatPoints,
@@ -10,15 +11,8 @@ import {
   playersByFirstName,
   podiumPlaces,
   presentResults,
-  RESULTS_GAME_COL,
-  RESULTS_NAME_MIN,
-  RESULTS_TOTAL_COL,
-  resultsColumnWidths,
   resultsPlayerCount,
-  resultsTableScrollsHorizontally,
-  resultsVisibleGameCount,
   scoreCell,
-  splitTotals,
   totalAcrossGames,
   winnerLine,
 } from '../utils/results';
@@ -73,7 +67,7 @@ test('tied totals share a place and the next place skips', () => {
   assert.equal(formatPoints(-4), '-4');
 });
 
-test('positive totals stay on the left, negative totals on the right, each by magnitude', () => {
+test('positive totals stay on the left ranked with medals, negatives on the right closest to zero first, zeros are Even', () => {
   const standings = totalAcrossGames([
     {
       players: ['a', 'b', 'c', 'd', 'e'],
@@ -81,16 +75,18 @@ test('positive totals stay on the left, negative totals on the right, each by ma
       names: { a: 'Ada', b: 'Bea', c: 'Cam', d: 'Dee', e: 'Eve' },
     },
   ]);
-  const columns = splitTotals(standings);
-  assert.deepEqual(columns.positive.map((row) => [row.name, row.points]), [
-    ['Ada', 50],
-    ['Eve', 10],
-    ['Bea', 0],
+  const players = standings.map((row) => ({ id: row.id, name: row.name }));
+  const ranked = rankScores(standings, players, resultInitials(players, []));
+  assert.deepEqual(ranked.positive.map((row) => [row.name, row.points, row.medal]), [
+    ['Ada', 50, 1],
+    ['Eve', 10, 2],
   ]);
-  assert.deepEqual(columns.negative.map((row) => [row.name, row.points]), [
-    ['Cam', -40],
-    ['Dee', -10],
+  assert.deepEqual(ranked.negative.map((row) => [row.name, row.points, row.medal]), [
+    ['Dee', -10, undefined],
+    ['Cam', -40, undefined],
   ]);
+  assert.deepEqual(ranked.even.map((row) => row.name), ['Bea']);
+  assert.deepEqual(ranked.order, ['a', 'e', 'b', 'd', 'c'], 'one order for the whole page');
 });
 
 test('a missing seat is a dash, a zero is a score, and names sort by first name', () => {
@@ -129,34 +125,6 @@ test('a missing seat is a dash, a zero is a score, and names sort by first name'
   );
 });
 
-test('game and Total columns are fixed; the player column takes the rest and only then scrolls', () => {
-  const gutter = 32;
-  const small = 360 - gutter;
-  const phone = 390 - gutter;
-  const tablet = 1024 - gutter;
-
-  // Four games on a 390 phone: no sideways scroll, the name column keeps the leftover width.
-  assert.equal(resultsTableScrollsHorizontally(phone, 4), false);
-  const four = resultsColumnWidths(phone, 4);
-  assert.equal(four.length, 6);
-  assert.equal(four.reduce((sum, value) => sum + value, 0), phone);
-  assert.equal(four[0], phone - 4 * RESULTS_GAME_COL - RESULTS_TOTAL_COL);
-  assert.ok(four[0] >= RESULTS_NAME_MIN);
-  assert.deepEqual(four.slice(1, 5), Array(4).fill(RESULTS_GAME_COL));
-  assert.equal(four[5], RESULTS_TOTAL_COL);
-
-  // More games shrink the name column until its floor, then the table scrolls.
-  assert.ok(resultsColumnWidths(phone, 2)[0] > resultsColumnWidths(phone, 4)[0]);
-  assert.equal(resultsColumnWidths(phone, 8)[0], RESULTS_NAME_MIN);
-  assert.equal(resultsTableScrollsHorizontally(phone, 8), true);
-  assert.equal(resultsVisibleGameCount(phone, 8), Math.floor((phone - RESULTS_NAME_MIN - RESULTS_TOTAL_COL) / RESULTS_GAME_COL));
-  assert.equal(resultsVisibleGameCount(phone, 7), 4);
-  assert.ok(resultsVisibleGameCount(phone, 8) >= resultsVisibleGameCount(small, 8));
-  assert.equal(resultsTableScrollsHorizontally(tablet, 8), false);
-  assert.equal(resultsVisibleGameCount(tablet, 8), 8);
-  assert.equal(resultsVisibleGameCount(phone, 0), 0);
-});
-
 test('results stop at 50 players and a game stops at 20 (the players_per_game guardrail)', () => {
   const tooMany = [{ players: Array.from({ length: MAX_RESULTS_PLAYERS + 1 }, (_, index) => `p${index}`), scores: {} }];
   assert.equal(resultsPlayerCount(tooMany), 51);
@@ -165,37 +133,50 @@ test('results stop at 50 players and a game stops at 20 (the players_per_game gu
   assert.equal(SEATED_PLAYER_LIMIT, 'A game holds at most 20 players.');
 });
 
-test('the share image names EZ Score: Rummy and shortens a long list', () => {
-  const card = buildShareCard({
+test('the share image names EZ Score: Rummy, keeps eight a side, and says who generated it by initials', () => {
+  const standings = Array.from({ length: SHARE_SIDE_CAP + 3 }, (_, index) => ({ id: `p${index}`, name: `P${index} Last`, points: index + 1, games: 1, place: 1 }));
+  const card = buildScoresCard({
     title: 'Results',
     date: 'Wed, Oct 28 · 6:40 PM',
-    rows: Array.from({ length: SHARE_CARD_LINE_CAP + 3 }, (_, index) => ({ name: `P${index}`, points: index })),
-    places: [{ label: '1st', names: 'P14', points: 14 }],
+    standings,
+    generatedByName: 'Sree Koneru',
+    link: 'ezscore.mindweavetech.com/r/x',
   });
   assert.equal(card.brand, 'EZ Score: Rummy');
   assert.equal(card.title, 'Results');
-  assert.equal(card.lines.length, SHARE_CARD_LINE_CAP);
-  assert.equal(card.moreCount, 3);
-  assert.equal(card.lines[0].name, 'P14');
-  assert.equal(card.places[0].points, '+14');
+  assert.equal(card.positive.length, SHARE_SIDE_CAP);
+  assert.equal(card.moreLine, 'and 3 more · full list in the link below');
+  assert.equal(card.positive[0].name, `P${SHARE_SIDE_CAP + 2} Last`);
+  assert.equal(card.positive[0].medal, 1);
+  assert.equal(card.positive[3].medal, undefined);
+  assert.equal(card.generatedBy, 'Generated by SK', 'initials, never the full name');
+  assert.equal(card.negative.length, 0);
 
   const resultsCard = buildResultsShareCard({
-    title: 'Results',
-    date: 'Wed, Oct 28 · 6:40 PM',
-    rows: Array.from({ length: RESULTS_IMAGE_TOTAL_CAP + 2 }, (_, index) => ({ name: `P${index}`, points: index })),
-    places: [{ label: '1st', names: 'P7', points: 7 }],
+    standings: [
+      { id: 'a', name: 'Ada', points: 30, games: 1, place: 1 },
+      { id: 'b', name: 'Bea', points: -30, games: 1, place: 2 },
+    ],
+    games: [{ name: 'ABC', label: 'S12', scores: { a: 30, b: -30 } }, { name: 'DEF', label: 'S13', scores: { a: 0, b: 0 } }],
+    createdAtLabel: 'Wed, Oct 28 · 6:40 PM',
+    resultId: '7f3a2c00-0000-4000-8000-00000000abcd',
+    generatedByName: 'Harish Gadupudi',
+    footer: 'Result ID · 00ABCD',
   });
-  assert.equal(resultsCard.podiumFirst, false);
-  assert.equal(resultsCard.brand, 'EZ Score: Rummy');
-  // Round 2: the image is the Totals section, so every player is on it.
-  assert.equal(resultsCard.lines.length, RESULTS_IMAGE_TOTAL_CAP + 2);
-  assert.equal(resultsCard.moreCount, 0);
-  // The crowns beside the rows replace the 1st/2nd/3rd paragraph.
-  assert.deepEqual(resultsCard.places, []);
-  assert.equal(resultsCard.lines[0].points, `+${RESULTS_IMAGE_TOTAL_CAP + 1}`);
+  assert.equal(resultsCard.code, '00ABCD');
+  assert.equal(resultsCard.date, 'Saved Wed, Oct 28 · 6:40 PM');
+  assert.equal(resultsCard.summary, '2 games · 2 players');
+  assert.equal(resultsCard.gamesLine, 'Games S12, S13 · saved Wed, Oct 28 · 6:40 PM');
+  assert.equal(resultsCard.link, 'ezscore.mindweavetech.com/r/7f3a2c00-0000-4000-8000-00000000abcd');
+  assert.equal(resultsCard.generatedBy, 'Generated by HG');
+  assert.equal(resultsCard.moreLine, null);
+  assert.deepEqual(resultsCard.negative.map((line) => line.points), ['-30']);
+  const preview = buildResultsShareCard({ standings: resultsCard.positive.map((line) => ({ id: line.id, name: line.name, points: 1, games: 1, place: 1 })), games: [], createdAtLabel: 'x' });
+  assert.equal(preview.link, null, 'a preview has no page to link to');
+  assert.equal(preview.code, undefined);
 });
 
-test('the full details include the games, the player table, both totals, and the places', () => {
+test('the full details carry the scores, the band table, the legend, the games block and the rounds', () => {
   const { standings, sheet } = presentResults([
     {
       id: 'g1',
@@ -220,32 +201,50 @@ test('the full details include the games, the player table, both totals, and the
     createdAtLabel: 'Wed, Oct 28 · 6:40 PM',
     standings,
     players: sheet.players,
-    games: sheet.games.map((game) => ({ ...game, when: game.date })),
+    games: sheet.games.map((game) => ({ ...game, creatorName: 'Ada', adminNames: ['Bea'] })),
+    resultId: '00000000-0000-4000-8000-0000000abcde',
+    saved: true,
   });
-  assert.deepEqual(details.rows.map((row) => row.name), ['Ada', 'Bea']);
-  assert.deepEqual(details.columns, ['G7 2026-10-28T15:00:00.000Z', 'G3 2026-10-28T17:00:00.000Z', 'Total'], 'games keep their own numbers; nothing is renumbered by position');
+  assert.deepEqual(details.table.rows.map((row) => row.name), ['Ada', 'Bea'], 'rows follow the ranked order');
+  assert.deepEqual(details.table.header, [['G7', 'G3']], 'games keep their own numbers; the band is as wide as its two games');
   assert.equal(details.gameCount, 2);
   assert.equal(details.playerCount, 2, 'Ada played both games but is counted once');
+  assert.equal(details.countLine, '2 games · 2 players');
+  assert.equal(details.code, '0ABCDE');
   assert.equal(details.roundTables.length, 2);
   assert.deepEqual(details.roundTables[0].initials, ['AD', 'BE']);
   assert.deepEqual(details.roundTables[0].rows, [{ round: 1, cells: ['+20', '-20'] }]);
   assert.deepEqual(details.roundTables[0].totals, ['+20', '-20']);
+  assert.deepEqual(details.roundTables[0].blocks[0].heads.map((head) => [head.initials, head.total]), [['AD', '+20'], ['BE', '-20']]);
   assert.equal(details.roundTables[1].totalsOnly, false);
-  assert.equal(details.rows[1].cells[1], '—');
-  assert.equal(details.rows[0].cells[2], '+25');
+  assert.deepEqual(details.table.rows[1].bands[0][1], { text: '—', tone: 'dash' });
+  assert.deepEqual(details.table.rows[0].bands[0][0], { text: '+20', tone: 'win' });
+  assert.equal(details.table.rows[0].total, '+25');
+  assert.deepEqual(details.legend.map((entry) => entry.initials), ['AD', 'BE']);
+  assert.equal(details.games[0].label, 'G7');
+  assert.equal(details.games[0].code, 'ALPHA');
+  assert.equal(details.games[0].creator, 'Ada');
+  assert.deepEqual(details.games[0].admins, ['Bea']);
+  assert.equal(details.games[0].start.time, clockOf('2026-10-28T15:00:00.000Z'));
+  assert.match(details.games[0].start.date, /^\w+day, October 28$/);
   const html = resultsDetailsHtml(details);
   assert.match(html, /EZ Score: Rummy/);
-  assert.match(html, /Created Wed, Oct 28 · 6:40 PM/);
+  assert.match(html, /Saved Wed, Oct 28 · 6:40 PM/);
   assert.match(html, /2 games · 2 players/);
-  assert.match(html, /<li>G7 — /);
-  assert.match(html, /<li>G3 — /);
-  assert.match(html, /class="totals-row"/);
-  assert.match(html, /Positive/);
-  assert.match(html, /Negative/);
-  assert.match(html, /1st/);
-  assert.match(html, /<th>Round<\/th>/);
-  assert.match(html, /max-width: 420px/);
-  assert.match(html, /width: auto/);
+  assert.match(html, /<h2>Scores<\/h2>/);
+  assert.match(html, /class="medal m1"/);
+  assert.doesNotMatch(html, /Top 3|1st/, 'the Top 3 section is gone; medals carry the rank');
+  assert.match(html, /How you got there/);
+  assert.match(html, /class="box n2 head"/);
+  assert.equal((html.match(/class="box n2"/g) ?? []).length, 2, 'one two-game band per player row');
+  assert.match(html, /Games in this result/);
+  assert.match(html, /<span class="when"><b>[^<]+<\/b> \w+day, October 28<\/span>/, 'time bold, then the date');
+  assert.match(html, /<i class="gid">Game ID ALPHA<\/i>/, 'the game id is last and italic');
+  assert.match(html, /Creator Ada · Admins Bea/);
+  assert.match(html, /<table class="rb">/);
+  assert.match(html, /font-size: 16px/);
+  assert.match(html, /page-break-after: always/);
+  assert.match(html, /ezscore\.mindweavetech\.com\/r\/00000000-0000-4000-8000-0000000abcde/);
   const many = buildResultsDetails({
     createdAtLabel: 'Wed, Oct 28 · 6:40 PM',
     standings: Array.from({ length: 50 }, (_, index) => ({
@@ -256,7 +255,7 @@ test('the full details include the games, the player table, both totals, and the
       place: 1,
     })),
     players: Array.from({ length: 50 }, (_, index) => ({ id: `p${index}`, name: `P${String(index).padStart(2, '0')}` })),
-    games: [{ id: 'g', name: 'ALPHA', label: 'G1', when: 'Wed', scores: {} }],
+    games: [{ id: 'g', name: 'ALPHA', label: 'G1', scores: {} }],
   });
   const pdf = new TextDecoder().decode(resultsDetailsPdf(many));
   assert.match(pdf, /^%PDF-1\.4/);
@@ -265,7 +264,7 @@ test('the full details include the games, the player table, both totals, and the
   assert.match(pdf, /P49/);
   const pageCount = pdf.match(/\/Count (\d+)/);
   assert.ok(pageCount && Number(pageCount[1]) >= 2);
-  assert.match(pdf, /1st/);
+  assert.match(pdf, /Even: P00/);
 });
 
 test('only an admin of every selected game can declare', () => {
@@ -277,11 +276,11 @@ test('only an admin of every selected game can declare', () => {
 });
 
 test('game headers use h:mm with AM/PM (nov 10: upper case, always shown)', async () => {
-  const { gameClock, sheetGameLabel, gameLabelFor } = await import('@/utils/results');
+  const { sheetGameLabel, gameLabelFor } = await import('@/utils/results');
   const d = new Date(2026, 9, 28, 22, 5);
-  assert.equal(gameClock(d.toISOString()), '10:05 PM');
-  assert.equal(gameClock(new Date(2026, 9, 28, 0, 7).toISOString()), '12:07 AM');
-  assert.equal(gameClock(new Date(2026, 9, 28, 11, 51).toISOString()), '11:51 AM');
+  assert.equal(clockOf(d.toISOString()), '10:05 PM');
+  assert.equal(clockOf(new Date(2026, 9, 28, 0, 7).toISOString()), '12:07 AM');
+  assert.equal(clockOf(new Date(2026, 9, 28, 11, 51).toISOString()), '11:51 AM');
   // A game keeps its own number whatever position it has in a result.
   assert.equal(sheetGameLabel({ label: 'G7', name: 'ABC123' }), 'G7');
   assert.equal(sheetGameLabel({ name: 'ABC123' }), 'ABC123', 'older results without a stored number show the code, never a positional G1');
