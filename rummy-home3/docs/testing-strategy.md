@@ -81,11 +81,83 @@ After any scoring or schema change:
 - [ ] `007_redesign.sql` has been run after `006`
 - [ ] `008_results.sql` has been run after `007` before Results can be declared on the live database
 
-## Redesign tap-through
+## Device UI tests (Maestro on an Android emulator, in CI)
 
-`npm test` does not open a screen. Maestro flows live in `rummy-home3/e2e/` and are meant for the preview APK (`appId: com.rummyhome.app`). They were not run here because this change does not build an APK. The same paths were walked on the web build where a browser was available; the report with this change says what passed and what could not be tapped.
+`npm test` does not open a screen. The screens are tested on a real build of the app, on an Android emulator, by Maestro flows in `rummy-home3/e2e/`. The GitHub Actions workflow (`.github/workflows/ci.yml`, jobs `ui-smoke` and `ui-full`) builds a test APK from the commit with `expo prebuild` + Gradle, points it at the same throw-away local Supabase the database job uses (`supabase db reset` + `supabase/seed-e2e.sql`), boots a Pixel 6 / API 34 emulator and runs the flows. Nothing reaches the production project and no secrets are used. The APK is a CI-internal artifact, never a release.
 
-Before the next APK goes to Sree, someone else does this on a physical Android phone:
+| Set | When | What | Red means |
+| --- | --- | --- | --- |
+| `e2e/smoke/` | every push and pull request (`ui-smoke`) | sign in, Home, Scorecard (4 and 20 players, portrait and landscape), Add round (drops + rummy, save), Complete game, Results, Profile, My players, New game | the PR does not merge |
+| `e2e/full/` | nightly and `workflow_dispatch` (`ui-full`) | sign out / wrong passcode, Players · Admins, Game settings, Save result and Past results, every Help note, dark appearance | fix before the next APK |
+| `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 2 undo→add round, PR 3 rummy with a positive pot, PR 6 initials clash → HT2, PR 8 results with 0 players) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
+
+Every flow starts from `e2e/lib/ensure-signed-in.yaml` (sign in only when the login screen is showing), uses the seeded account `sree@test.local` / `123456` (local database only), and ends with `takeScreenshot`. Rotation is done by the runner (`adb shell settings put system user_rotation`) for flow files whose name contains `landscape`; Maestro cannot rotate on its own. Fixtures the flows rely on are in `supabase/seed-e2e.sql`: game A `GAMEA1` (4 players, 2 rounds, from `seed.sql`), E `GAMEE1` (4 players, 1 round), H `GAMEH1` (3 players, no rounds), G `GAMEG1` (completed, 6 seated, no rounds), F `GAMEF1` (20 players × 30 rounds). Which flow changes what, and in which order they must run, is in `e2e/README.md`.
+
+What you get from a run: the job summary has a pass/fail table per set, the `ui-screenshots-<branch>-<suite>` artifact has every screenshot plus Maestro's debug output per flow, and `ui/index.html` inside it is the gallery (one card per screen, light / dark / landscape variants side by side, a `--FAILED` capture for a failed flow). On a pull request the same table is posted as a comment. A pixel diff against a baseline is phase 2, once the design stops moving.
+
+Before adding a flow: give the element a `testID` when text is ambiguous (Maestro `id:`), keep the flow independent of the ones before it (its own seeded game), and add the flow to the matrix below. `tests/e2e-flows.test.ts` checks every flow has the right `appId`, takes a screenshot and only references `testID`s that exist.
+
+## Testing matrix
+
+Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C** two-client concurrency script · **S** emulator smoke (every PR) · **N** emulator nightly / before each APK · **M** manual phone pass before a milestone APK (only after S + N are green). "—" = not covered today. Bold = the layer that must be green before merge.
+
+| Area | Journey / branch | Today | Target | Flow |
+|---|---|---|---|---|
+| Sign in | email + passcode happy path | U (copy), S | **S** | `lib/sign-in` |
+| | wrong passcode, locked, no network | U, N | N | `full/10` |
+| | register, duplicate email, forgot/reset passcode | U, D (021) | N | — |
+| | claim / link a player (request, accept, pending) | U, D (025) | N | — |
+| | sign out, delete account (026) | U, D, N (sign out) | N | `full/10` |
+| Home | live + recent list, S/P labels, role tags | U, S | **S** (light), N (dark) | `smoke/01`, `full/60` |
+| | empty state, pull to refresh, cached/offline | U (degrade) | N (airplane mode) | — |
+| | My Players button count, tab bar | S | **S** | `smoke/01`, `smoke/08` |
+| New game | pick recent players, search, from database, new by initials | U, S (screens open) | **S** | `smoke/09` |
+| | I'm playing on/off, settings (type, drop, middle, full) | U | N | — |
+| | co-admin add / skip | — | N | — |
+| | guardrails: 20th seat, player limits (029) | U, D | D + N | — |
+| Initials | 1+2 cells, auto-advance, clash → HT2, edit, 3 at a time | partly U, known-bug | U + **S** | `known-bugs/pr6` → PR 6 |
+| | edit initials mid-game | — | U + N | — |
+| Scorecard | 4 / 20 players render, header not clipped, DEALS | U (source grep), S | **S** | `smoke/02`, `smoke/10` |
+| | portrait ↔ landscape | S | **S** | `smoke/03`, `smoke/11` |
+| | dealer rotation + divider after seat change (031) | U, D | D + N | — |
+| | footer Creator / Admin / Unique ID | U, S | N | `smoke/02` |
+| | view-only (player / spectator) | D (RLS), U | N | — |
+| | 200 / 500 rounds (029 message) | volume script | N (monthly) | — |
+| | realtime refresh when another admin saves | C | C + N | — |
+| Add round | select, keypad, ±, drops, Save score, Balance pill | U, S | **S** | `smoke/04` |
+| | Rummy balance (positive others, two winners, negative share) | U, known-bug | U + **S** | `known-bugs/pr3` → PR 3 |
+| | over max count warning | — | U + N | — |
+| | edit a saved round (replace) | D, C | D + N | — |
+| | same round saved by two admins (true conflict) | D, C | C + N | — |
+| Undo | undo last round, undo on empty, **undo then add round** | partly D, known-bug | D + **S** | `known-bugs/pr2` → PR 2 |
+| | undo by second admin while first is typing | — | C | — |
+| Players / Admins | add new mid-game, from database, remove seat with no scores (016/017) | D, N (page opens) | D + N | `full/30` |
+| | add non-playing admin by ID | — | N | — |
+| | tags: Creator / Admin only; Unregistered / Pending only | U | N | — |
+| My Players | A–Z sections, search, paging to 1,000, remove + undo toast | U, D (027/030), S (search) | N | `smoke/08` |
+| Complete game | confirm, points only, status to Completed | U, S | **S** | `smoke/05` |
+| Results | picker chips, tick rules, non-admin message | U, S (picker) | N | `smoke/06` |
+| | show results 1 game / 5 games / 30 × 20 | U, volume, S (1 game) | **S** (1 game), N (30 × 20) | `smoke/06` |
+| | save result (completed → closed), closed-reuse warning | U, D, N | N | `full/40` |
+| | 0 players in a saved result when the game has no rounds | known-bug | U + D + N | `known-bugs/pr8` → PR 8 |
+| | share image / PDF match screen | U | N (share sheet screenshot) | — |
+| | past results list, result detail, "Games in this result" | U, N (list) | N | `full/40` |
+| | delete result (PR 9) | D (023) | U + D + N | — |
+| | public `/r/` page, result emails (024) | D | D | — |
+| Profile | name, player ID, passcode change, appearance, phone, email prefs, version | U, S | N | `smoke/07`, `full/60` |
+| Security | RLS matrix, anon revocations (033), search_path | D | D | — |
+| Offline / degraded | cached scorecard opens, save fails with a message, retry | U | N | — |
+| Help | every ? opens and closes, text fits | N | N (PR 12 adds one flow per screen) | `full/50`, `smoke/02`, `smoke/06` |
+
+**Smoke set on every PR (11 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add New Players by Initials) → Scorecard 20p → Scorecard 20p landscape. Undo → Add round joins the smoke set with PR 2.
+
+**Nightly / before each APK:** the smoke set, everything marked N, dark appearance, plus C and the volume scripts monthly.
+
+**Stays unit / DB only:** pure math (`scoring`, `rummyDistribution`, `initials`), RLS and grants, migrations / rollbacks, guardrail counts, label numbering, result JSON shapes.
+
+## Phone pass (manual, milestone APKs only)
+
+Only after S + N are green, with the matrix above as the checklist. Someone who is not Sree, on a physical Android phone:
 
 - Install the new APK over the old one. Cold start. Home in a few seconds on wifi, and an error with Retry on a dead network.
 - Rotate the scorecard both ways, twice. The title Scorecard stays lined up with the back button.
@@ -95,4 +167,4 @@ Before the next APK goes to Sree, someone else does this on a physical Android p
 - One points game completed from Done. Home → Results shows places. Home has no Settle button.
 - A new account’s welcome email arrives from `scores@mindweavetech.com`.
 
-Pass when Home has New game, Results, and Recent, and none of Settle, Active, History, or All players. The Today chip is the filter, not a screen. Settle stays off. `EXPO_PUBLIC_SETTLE_ENABLED` stays unset.
+Pass when Home has New game, Results, and Recent, and none of Settle, Active, History, or All players. Settle stays off. `EXPO_PUBLIC_SETTLE_ENABLED` stays unset.

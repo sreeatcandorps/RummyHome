@@ -141,7 +141,7 @@ while ($true) {
 
 Stop with `Ctrl+C`.
 
-For full device UI automation later, consider [Maestro](https://maestro.mobile.dev/) or Detox. That is a separate setup step and is not wired up yet.
+Device UI automation runs in CI with [Maestro](https://maestro.mobile.dev/) on an Android emulator (`rummy-home3/e2e/`, jobs `ui-smoke` and `ui-full`); see `docs/testing-strategy.md`.
 
 
 ## Passcode recovery (build 5): emailed code, no browser page

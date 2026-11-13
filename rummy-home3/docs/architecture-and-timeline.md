@@ -53,6 +53,7 @@ Same codebase either way.
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / production | Real store binaries |
+| Device UI tests | Maestro + `reactivecircus/android-emulator-runner` in GitHub Actions (`ci/ui/`, `rummy-home3/e2e/`) | Flows on the real APK, screenshots of every screen each run; no EAS credits, no production data |
 | OTA | `expo-updates`, on for the production profile only (`EXPO_UPDATES_ENABLED` in `eas.json` → `app.config.js`). Preview/development APKs run their embedded JS | Fix JS during the 14-day test without new Play review every time; preview builds can't be replaced by a stale update |
 | Version codes | `appVersionSource: "remote"` in `eas.json` | EAS tracks Android versionCode; no manual bumps in `app.json` |
 | Secrets for builds | EAS Environment Variables (`EXPO_PUBLIC_SUPABASE_*`) | `.env.local` never reaches EAS builders |
@@ -278,6 +279,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - Appearance follows the phone by default (`userInterfaceStyle: automatic`, Profile › Appearance: Phone / Light / Dark; the old Dark mode switch value is honoured).
 - Skipped on freeze day, by choice: the Nunito font (new native asset), confetti (new dependency), and the share image / PDF palette (still the parchment-and-felt card).
 
+### 2026-11-13 — Device UI testing in CI (PR 1 of the Nov 12 feedback plan)
+- New CI jobs `ui-smoke` (every push/PR, blocking) and `ui-full` (nightly + on demand): the app is built on the runner with `expo prebuild` + Gradle `assembleRelease` (debug keystore, one ABI), bundled against the throw-away local Supabase (`10.0.2.2:54321`, `seed.sql` + new `supabase/seed-e2e.sql` fixtures), and driven on a Pixel 6 / API 34 emulator (`reactivecircus/android-emulator-runner`, KVM, cached AVD snapshot) by Maestro flows in `rummy-home3/e2e/` (`smoke/`, `full/`, `known-bugs/`, shared `lib/`). Runner scripts in `ci/ui/`; screenshots and a gallery (`ui/index.html`) in the `ui-screenshots-*` artifact, a table in the job summary and a PR comment. The nine never-run flows with the wrong `appId` are replaced. No app behaviour change beyond three `testID`s (login fields, game cards). The full testing matrix (journeys × U/D/C/S/N/M) is in `docs/testing-strategy.md`.
+- Known-bug flows for PR 2 (undo → add round), PR 3 (rummy with a positive pot), PR 6 (initials clash → HT2) and PR 8 (0 players in a saved result) are quarantined until their PR lands.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -297,7 +302,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Results | Done in the app. Status chips (with deselect warning), every game listed and admin-only ticks, Show results then explicit Save result (closes games, status popup), share after save, totals and table with Player IDs, banded share image, full-details PDF. `008` and `013` are live; `018_results_reuse_and_player_ids.sql` (reused flag, Player IDs) is written, not applied |
 | Security / concurrency (019) | `019_security_and_concurrency_fixes.sql` written, scratch-verified, **not applied**: role lock, owner-only contact columns + `my_profile`, per-game lock in `save_round` / `remove_seat_if_no_scores`, `PT409` conflicts. App handles both pre- and post-019 databases |
 | Performance (020) | `020_performance_rpcs_and_indexes.sql` written, scratch-verified, **not applied**: index-driven visibility RPCs, policy wrappers, bundle RPCs. App works on both pre- and post-020 databases; see `docs/performance/RESULTS.md` |
-| CI (GitHub Actions) | Done on PR 7: unit + tsc, local Supabase DB suite (migrations, rollbacks, pgTAP, concurrency), report per run. Nightly rows start once `ci.yml` is on `main`. See `docs/testing/ci.md` |
+| CI (GitHub Actions) | Done on PR 7: unit + tsc, local Supabase DB suite (migrations, rollbacks, pgTAP, concurrency), report per run. Device UI tests (PR 1, Nov 13): Maestro flows on an Android emulator against a runner-built APK, `ui-smoke` per PR and `ui-full` nightly, screenshot gallery per run. Nightly rows start once `ci.yml` is on `main`. See `docs/testing-strategy.md` |
 | Game admins | Done in the app. Players/Admins page: Add admin by Player ID (non-player, open or completed games), Game admins on Complete game and the final-scores picture |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; Clubhouse green design system (Nov 12). Appearance follows the phone by default; Profile › Appearance overrides it |
