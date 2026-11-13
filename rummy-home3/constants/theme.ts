@@ -160,6 +160,11 @@ const lightColors = {
   // Add round cells: neutral before anything is entered, white once a score is confirmed.
   cellNeutral: '#F3F3ED',
   tableHeader: '#F1F1EA',
+  /** Results game bands (V4): gray rows, a shade darker for every second band; header bands green-tinted. */
+  band: '#F1F1EB',
+  bandAlt: '#E9EAE2',
+  bandHead: '#DDEFE2',
+  bandHeadAlt: '#D2E9DA',
   tableStripe: '#F9F9F5',
   tableLatest: '#EAF7EE',
   hairline: '#E8E8E1',
@@ -227,6 +232,10 @@ const darkColors: typeof lightColors = {
   onFeltMuted: 'rgba(234, 237, 233, 0.72)',
   cellNeutral: '#1C2320',
   tableHeader: '#1F2622',
+  band: '#1B211D',
+  bandAlt: '#232A25',
+  bandHead: '#1A3A26',
+  bandHeadAlt: '#214A30',
   tableStripe: '#1B211E',
   tableLatest: '#1B3326',
   hairline: '#2A312D',

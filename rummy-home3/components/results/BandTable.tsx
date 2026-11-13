@@ -2,30 +2,27 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { BandCell, BandTable as BandTableModel, LegendEntry } from '@/utils/resultsDesign';
+import { BAND_SIZE, BandCell, BandTable as BandTableModel, LegendEntry } from '@/utils/resultsDesign';
 
 /**
  * "How you got there": players down, games across in bands of five. Player and Total sit
- * on the left; every band — the header's and each row's — is one bordered box of five
- * cells, so with seven games the same two-box shape repeats in the header and in every row.
- * Nothing scrolls sideways; the image, the PDF and the web page draw the same boxes.
+ * on the left. Every band is a filled strip (variant V4): the header's bands are tinted
+ * green with a green base line, the rows' bands are gray, every second band a shade darker.
+ * The last band is only as wide as the games it holds, so with seven games the header and
+ * every row show the same 5 + 2 shape and nothing is drawn past the seventh game. Numbers
+ * are plain weight, black for a win, red for a loss; only the total is bold. No borders.
+ * Nothing scrolls sideways; the PDF and the web page draw the same strips.
  */
 export function BandTable({ table, legend, testID = 'results-band-table' }: { table: BandTableModel; legend: LegendEntry[]; testID?: string }) {
   const { colors } = useAppTheme();
-  const border = { borderColor: colors.primary };
-  const headBorder = { borderColor: colors.primaryEdge, backgroundColor: colors.tableHeader };
-  const cellStyle = (cell: BandCell) => {
-    switch (cell.tone) {
-      case 'win': return [styles.cell, { backgroundColor: colors.winContainer }];
-      case 'blank': return [styles.cell, { backgroundColor: colors.surfaceSunken }];
-      default: return [styles.cell];
-    }
-  };
+  const bandWidth = (count: number) => ({ width: `${(count / BAND_SIZE) * 100}%` as `${number}%` });
+  const bandFill = (index: number, head: boolean) => ({
+    backgroundColor: head ? (index % 2 === 1 ? colors.bandHeadAlt : colors.bandHead) : index % 2 === 1 ? colors.bandAlt : colors.band,
+  });
   const cellText = (cell: BandCell) => {
     switch (cell.tone) {
       case 'neg': return { color: colors.negative };
       case 'dash': return { color: colors.outline };
-      case 'win': return { color: colors.onWinContainer, fontWeight: '700' as const };
       default: return { color: colors.onSurface };
     }
   };
@@ -36,9 +33,9 @@ export function BandTable({ table, legend, testID = 'results-band-table' }: { ta
         <Text variant="labelMedium" style={[styles.totalCell, styles.headText, { color: colors.onSurfaceVariant }]}>Total</Text>
         <View style={styles.boxes}>
           {table.header.map((band, bandIndex) => (
-            <View key={bandIndex} style={[styles.box, headBorder]} testID={`band-header-${bandIndex + 1}`}>
+            <View key={bandIndex} style={[styles.box, styles.headBox, bandWidth(band.length), bandFill(bandIndex, true), { borderBottomColor: colors.primary }]} testID={`band-header-${bandIndex + 1}`}>
               {band.map((label, cellIndex) => (
-                <View key={cellIndex} style={[styles.cell, styles.headCell, cellIndex > 0 && { borderLeftColor: colors.outlineVariant, borderLeftWidth: StyleSheet.hairlineWidth }]}>
+                <View key={cellIndex} style={[styles.cell, styles.headCell, cellIndex > 0 && styles.cellLine]}>
                   <Text style={[styles.headLabel, { color: colors.onSurface }]} numberOfLines={1}>{label}</Text>
                 </View>
               ))}
@@ -57,9 +54,9 @@ export function BandTable({ table, legend, testID = 'results-band-table' }: { ta
           </Text>
           <View style={styles.boxes}>
             {row.bands.map((band, bandIndex) => (
-              <View key={bandIndex} style={[styles.box, border]}>
+              <View key={bandIndex} style={[styles.box, bandWidth(band.length), bandFill(bandIndex, false)]}>
                 {band.map((cell, cellIndex) => (
-                  <View key={cellIndex} style={[...cellStyle(cell), cellIndex > 0 && { borderLeftColor: colors.outlineVariant, borderLeftWidth: StyleSheet.hairlineWidth }]}>
+                  <View key={cellIndex} style={[styles.cell, cellIndex > 0 && styles.cellLine, cell.tone === 'dash' && styles.dashCell]}>
                     <Text style={[styles.cellText, tabularNums, cellText(cell)]} numberOfLines={1}>{cell.text}</Text>
                   </View>
                 ))}
@@ -98,13 +95,13 @@ const styles = StyleSheet.create({
   totalCell: { width: TOTAL_W, textAlign: 'right', alignSelf: 'center' },
   initials: { fontWeight: '800', fontSize: 15 },
   total: { fontWeight: '800', fontSize: 15 },
-  boxes: { flex: 1, minWidth: 0, gap: 3 },
+  boxes: { flex: 1, minWidth: 0, gap: 3, alignItems: 'flex-start' },
   box: {
     flexDirection: 'row',
-    borderWidth: 2,
     borderRadius: 5,
     overflow: 'hidden',
   },
+  headBox: { borderBottomWidth: 2, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
   cell: {
     flex: 1,
     flexBasis: 0,
@@ -114,6 +111,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
+  cellLine: { borderLeftColor: '#FFFFFF', borderLeftWidth: 1 },
+  dashCell: { alignItems: 'center' },
   headCell: { alignItems: 'center' },
   headLabel: { fontWeight: '800', fontSize: 13 },
   cellText: { fontSize: 14 },

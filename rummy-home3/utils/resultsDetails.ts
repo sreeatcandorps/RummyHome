@@ -223,19 +223,24 @@ export function scoresSplitHtml(scores: RankedScores, even: string | null): stri
     + (even ? `<p class="even">${escapeHtml(even)}</p>` : '');
 }
 
-/** One bordered box of five cells; the same markup in the header and in every row. */
-function bandBoxHtml(cells: { text: string; cls: string }[], head: boolean): string {
-  return `<div class="box${head ? ' head' : ''}">${cells.map((cell) => `<div class="${cell.cls}">${escapeHtml(cell.text)}</div>`).join('')}</div>`;
+/**
+ * One filled band of up to five cells; the same markup in the header and in every row. A short
+ * band is `n<count>` wide (count/5 of the row) so its shape stops at the last game; every
+ * second band is a shade darker (`alt`) so two bands read apart without a border.
+ */
+function bandBoxHtml(cells: { text: string; cls: string }[], head: boolean, index: number): string {
+  const classes = ['box', `n${cells.length}`, head ? 'head' : '', index % 2 === 1 ? 'alt' : ''].filter(Boolean).join(' ');
+  return `<div class="${classes}">${cells.map((cell) => `<div class="${cell.cls}">${escapeHtml(cell.text)}</div>`).join('')}</div>`;
 }
 
 export function bandTableHtml(table: BandTable): string {
   const header = `<div class="brow hrow"><div class="pcell head">Player</div><div class="tcell head">Total</div><div class="boxes">`
-    + table.header.map((band) => bandBoxHtml(band.map((label) => ({ text: label, cls: label ? 'c' : 'c blank' })), true)).join('')
+    + table.header.map((band, index) => bandBoxHtml(band.map((label) => ({ text: label, cls: 'c' })), true, index)).join('')
     + '</div></div>';
   const rows = table.rows.map((row) =>
     `<div class="brow"><div class="pcell"><b>${escapeHtml(row.initials)}</b>${row.playerNo != null ? `<small>#${row.playerNo}</small>` : ''}</div>`
     + `<div class="tcell ${row.totalTone}">${escapeHtml(row.total)}</div><div class="boxes">`
-    + row.bands.map((band) => bandBoxHtml(band.map((cell) => ({ text: cell.text, cls: toneClass(cell) })), false)).join('')
+    + row.bands.map((band, index) => bandBoxHtml(band.map((cell) => ({ text: cell.text, cls: toneClass(cell) })), false, index)).join('')
     + '</div></div>').join('');
   return `<div class="bt" data-bands="${table.bandCount}">${header}${rows}</div>`;
 }
@@ -274,7 +279,7 @@ export function roundTableHtml(table: ResultsRoundTable): string {
 
 /** Shared by the PDF and public/r/index.html (kept in step by tests/results-design.test.ts). */
 export const RESULTS_DESIGN_CSS = `
-  :root { --ink: #17201B; --muted: #4E5752; --line: #DCDDD5; --green: #15803D; --edge: #0E5A2A; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; --amber: #FFE38A; --on-amber: #3F2D00; }
+  :root { --ink: #17201B; --muted: #4E5752; --line: #DCDDD5; --green: #15803D; --edge: #0E5A2A; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; --amber: #FFE38A; --on-amber: #3F2D00; --band: #F1F1EB; --band-alt: #E9EAE2; --band-head: #DDEFE2; --band-head-alt: #D2E9DA; }
   body { font-family: -apple-system, Roboto, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); margin: 0; font-size: 16px; line-height: 1.3; }
   h1 { margin: 0; font-size: 28px; font-weight: 800; }
   h2 { font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
@@ -308,16 +313,19 @@ export const RESULTS_DESIGN_CSS = `
   .pcell b { font-size: 15px; } .pcell small { color: var(--muted); font-size: 12px; }
   .tcell { width: 56px; flex: none; display: flex; align-items: center; justify-content: flex-end; font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; padding-right: 2px; }
   .pcell.head, .tcell.head { font-weight: 700; color: var(--muted); font-size: 13px; }
-  .boxes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-  .box { display: grid; grid-template-columns: repeat(5, 1fr); border: 2px solid var(--green); border-radius: 5px; overflow: hidden; }
-  .box.head { background: var(--head); border-color: var(--edge); }
-  .box .c { text-align: right; padding: 3px 5px; font-size: 14px; font-variant-numeric: tabular-nums; border-left: 1px solid var(--line); white-space: nowrap; }
+  .boxes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+  .box { display: grid; grid-template-columns: repeat(5, 1fr); width: 100%; background: var(--band); border-radius: 5px; overflow: hidden; }
+  .box.alt { background: var(--band-alt); }
+  .box.n1 { grid-template-columns: repeat(1, 1fr); width: 20%; } .box.n2 { grid-template-columns: repeat(2, 1fr); width: 40%; }
+  .box.n3 { grid-template-columns: repeat(3, 1fr); width: 60%; } .box.n4 { grid-template-columns: repeat(4, 1fr); width: 80%; }
+  .box.head { background: var(--band-head); border-bottom: 2px solid var(--green); border-radius: 5px 5px 0 0; }
+  .box.head.alt { background: var(--band-head-alt); }
+  .box .c { text-align: right; padding: 3px 5px; font-size: 14px; font-variant-numeric: tabular-nums; border-left: 1px solid #fff; white-space: nowrap; color: var(--ink); }
   .box .c:first-child { border-left: 0; }
   .box.head .c { font-weight: 800; color: var(--ink); text-align: center; }
-  .box .c.win { background: var(--win); font-weight: 700; }
+  .box .c.win { color: var(--ink); }
   .box .c.neg { color: var(--neg); }
-  .box .c.dash { color: #8A918C; }
-  .box .c.blank { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(0,0,0,0.04) 4px 8px); }
+  .box .c.dash { color: #B8BBB3; text-align: center; }
   .legend { color: var(--muted); font-size: 13px; margin-top: 8px; line-height: 1.5; }
   .legend b { color: var(--ink); } .legend small { font-size: 12px; }
   .gm { padding: 8px 0; border-bottom: 1px solid var(--line); }

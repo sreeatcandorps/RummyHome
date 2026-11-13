@@ -69,23 +69,24 @@ test('design: only positive totals are ranked; ties share a medal (two silvers, 
   assert.equal(playerSubline(undefined, { playerNo: 8 }), '#8');
 });
 
-test('design: the band table pads every band to five so the header box and each row box are the same shape', () => {
+test('design: the band table splits games five per band; the last band stops at the last game so the header and each row share the same shape', () => {
   assert.equal(BAND_SIZE, 5);
   assert.deepEqual(bandRangesOf(7), [{ start: 0, end: 5 }, { start: 5, end: 7 }]);
   assert.deepEqual(bandRangesOf(0), []);
   const seven = Array.from({ length: 7 }, (_, index) => gameOf(index + 1, { h: index % 2 ? 40 : -40, s: index % 2 ? -40 : 40 }));
   const table = buildBandTable({ games: seven, players, totals: { h: -40, s: 40 }, labels: resultInitials(players, seven), order: ['s', 'h', 'p1'] });
   assert.equal(table.bandCount, 2);
-  assert.deepEqual(table.header, [['S12', 'S13', 'S14', 'S15', 'S16'], ['S17', 'S18', '', '', '']]);
+  assert.deepEqual(table.header, [['S12', 'S13', 'S14', 'S15', 'S16'], ['S17', 'S18']]);
   assert.deepEqual(table.rows.map((row) => row.initials), ['SK', 'HG', 'PL'], 'rows follow the ranked order');
   assert.equal(table.rows[0].total, '+40');
   assert.equal(table.rows[1].totalTone, 'neg');
   table.rows.forEach((row) => {
     assert.equal(row.bands.length, 2, 'every row has as many boxes as the header');
-    row.bands.forEach((band) => assert.equal(band.length, BAND_SIZE, 'every box has five cells'));
+    assert.deepEqual(row.bands.map((band) => band.length), [BAND_SIZE, 2], 'five cells, then two — the last band stops at the seventh game (V4)');
   });
   assert.deepEqual(table.rows[0].bands[0].map((cell) => cell.tone), ['win', 'neg', 'win', 'neg', 'win']);
-  assert.deepEqual(table.rows[0].bands[1].map((cell) => cell.tone), ['neg', 'win', 'blank', 'blank', 'blank']);
+  assert.deepEqual(table.rows[0].bands[1].map((cell) => cell.tone), ['neg', 'win']);
+  assert.deepEqual(table.header.map((band) => band.length), [5, 2], 'the header has the same 5 + 2 shape');
   assert.deepEqual(table.rows[2].bands[0][0], { text: '—', tone: 'dash' }, 'not seated is a dash');
   assert.equal(legendText({ initials: 'SK', playerNo: 1, name: 'Sree Koneru' }), 'SK #1 Sree Koneru');
   assert.equal(legendText({ initials: 'PLA', playerNo: null, name: 'Player 2' }), 'PLA Player 2');
@@ -126,17 +127,21 @@ test('design: the PDF pages run Scores → How you got there → Games → Round
   assert.deepEqual(details.scores.positive.map((row) => row.medal), [1, 1], 'a tie for first is two golds');
   const html = resultsDetailsHtml(details);
   const body = html.slice(html.indexOf('<body>'));
-  const markers = ['Saved Wed, Nov 4 · 11:19 AM', '7 games · 3 players', '<h2>Scores</h2>', 'class="medal m1"', '<h2>How you got there', 'class="box head"', 'class="legend"', '<h2>Games in this result</h2>', '<span class="lab">S12</span>', '<h2>Round by round</h2>', '<table class="rb">']
+  const markers = ['Saved Wed, Nov 4 · 11:19 AM', '7 games · 3 players', '<h2>Scores</h2>', 'class="medal m1"', '<h2>How you got there', 'class="box n5 head"', 'class="legend"', '<h2>Games in this result</h2>', '<span class="lab">S12</span>', '<h2>Round by round</h2>', '<table class="rb">']
     .map((marker) => body.indexOf(marker));
   assert.ok(markers.every((index) => index >= 0), `missing markers ${markers}`);
   assert.deepEqual(markers, [...markers].sort((a, b) => a - b), 'sections run top to bottom in the asked order');
-  assert.equal((body.match(/class="box head"/g) ?? []).length, 2, 'two header boxes for seven games');
-  assert.equal((body.match(/class="box"/g) ?? []).length, 6, 'two boxes for each of the three rows — the header shape repeated');
+  assert.equal((body.match(/class="box n5 head"/g) ?? []).length, 1, 'a full header band');
+  assert.equal((body.match(/class="box n2 head alt"/g) ?? []).length, 1, 'a two-game header band, a shade darker, for games six and seven');
+  assert.equal((body.match(/class="box n5"/g) ?? []).length, 3, 'a full band on each of the three rows');
+  assert.equal((body.match(/class="box n2 alt"/g) ?? []).length, 3, 'the two-game band on each row — the header shape repeated, nothing past game seven');
   assert.equal((body.match(/<div class="page">/g) ?? []).length, 4, 'four phone pages');
   assert.doesNotMatch(body, /Top 3/);
   assert.match(body, /00ABCD/);
   assert.match(body, /ezscore\.mindweavetech\.com\/r\/00000000-0000-4000-8000-00000000abcd/);
-  assert.match(body, /class="c blank"/, 'the short band is padded, so the box keeps its shape');
+  assert.doesNotMatch(body, /class="c blank"/, 'no empty cells after the last game (V4)');
+  assert.doesNotMatch(body, /\.box \{[^}]*border: 2px/, 'bands are filled, not bordered (V4)');
+  assert.doesNotMatch(body, /\.box \.c\.win \{[^}]*(background|font-weight)/, 'a win is a plain black number; only the total is bold');
 });
 
 test('design: round tables break into blocks of five players with the game total in the head under each player', () => {

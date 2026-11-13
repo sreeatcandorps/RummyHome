@@ -7,7 +7,7 @@
   <title>EZ Score · Results</title>
   <style>
   /* ---- shared with the PDF: RESULTS_DESIGN_CSS in utils/resultsDetails.ts (tests/results-design.test.ts keeps them in step) ---- */
-  :root { --ink: #17201B; --muted: #4E5752; --line: #DCDDD5; --green: #15803D; --edge: #0E5A2A; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; --amber: #FFE38A; --on-amber: #3F2D00; }
+  :root { --ink: #17201B; --muted: #4E5752; --line: #DCDDD5; --green: #15803D; --edge: #0E5A2A; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; --amber: #FFE38A; --on-amber: #3F2D00; --band: #F1F1EB; --band-alt: #E9EAE2; --band-head: #DDEFE2; --band-head-alt: #D2E9DA; }
   body { font-family: -apple-system, Roboto, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); margin: 0; font-size: 16px; line-height: 1.3; }
   h1 { margin: 0; font-size: 28px; font-weight: 800; }
   h2 { font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
@@ -41,16 +41,19 @@
   .pcell b { font-size: 15px; } .pcell small { color: var(--muted); font-size: 12px; }
   .tcell { width: 56px; flex: none; display: flex; align-items: center; justify-content: flex-end; font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; padding-right: 2px; }
   .pcell.head, .tcell.head { font-weight: 700; color: var(--muted); font-size: 13px; }
-  .boxes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-  .box { display: grid; grid-template-columns: repeat(5, 1fr); border: 2px solid var(--green); border-radius: 5px; overflow: hidden; }
-  .box.head { background: var(--head); border-color: var(--edge); }
-  .box .c { text-align: right; padding: 3px 5px; font-size: 14px; font-variant-numeric: tabular-nums; border-left: 1px solid var(--line); white-space: nowrap; }
+  .boxes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+  .box { display: grid; grid-template-columns: repeat(5, 1fr); width: 100%; background: var(--band); border-radius: 5px; overflow: hidden; }
+  .box.alt { background: var(--band-alt); }
+  .box.n1 { grid-template-columns: repeat(1, 1fr); width: 20%; } .box.n2 { grid-template-columns: repeat(2, 1fr); width: 40%; }
+  .box.n3 { grid-template-columns: repeat(3, 1fr); width: 60%; } .box.n4 { grid-template-columns: repeat(4, 1fr); width: 80%; }
+  .box.head { background: var(--band-head); border-bottom: 2px solid var(--green); border-radius: 5px 5px 0 0; }
+  .box.head.alt { background: var(--band-head-alt); }
+  .box .c { text-align: right; padding: 3px 5px; font-size: 14px; font-variant-numeric: tabular-nums; border-left: 1px solid #fff; white-space: nowrap; color: var(--ink); }
   .box .c:first-child { border-left: 0; }
   .box.head .c { font-weight: 800; color: var(--ink); text-align: center; }
-  .box .c.win { background: var(--win); font-weight: 700; }
+  .box .c.win { color: var(--ink); }
   .box .c.neg { color: var(--neg); }
-  .box .c.dash { color: #8A918C; }
-  .box .c.blank { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(0,0,0,0.04) 4px 8px); }
+  .box .c.dash { color: #B8BBB3; text-align: center; }
   .legend { color: var(--muted); font-size: 13px; margin-top: 8px; line-height: 1.5; }
   .legend b { color: var(--ink); } .legend small { font-size: 12px; }
   .gm { padding: 8px 0; border-bottom: 1px solid var(--line); }
@@ -94,8 +97,9 @@
     /* Desktop: the bands sit side by side, so seven games read as one row, still in bordered boxes.
        Each box keeps at least 210px (42px a cell); with 30 games the six boxes wrap 4 + 2, header and rows alike. */
     main { max-width: 1100px; }
-    .boxes { flex-direction: row; flex-wrap: wrap; }
-    .box { flex: 1 1 210px; min-width: 210px; max-width: 300px; }
+    .boxes { flex-direction: row; flex-wrap: wrap; align-items: flex-start; }
+    .box { flex: none; width: 260px; }
+    .box.n1 { width: 52px; } .box.n2 { width: 104px; } .box.n3 { width: 156px; } .box.n4 { width: 208px; }
     .pcell { width: 160px; } .tcell { width: 72px; }
     .pl .n1 { font-size: 17px; } .pl .pt { font-size: 20px; }
   }
@@ -206,17 +210,17 @@
       }
       const deleted = r.deleted ? '<p class="note red">This result was deleted' + (r.deletedAt ? ' on ' + esc(when(r.deletedAt)) : '') + '. Its games are open again; the scores below are kept for reference.</p>' : '';
 
-      // How you got there: bands of five games; header and every row carry the same bordered box.
+      // How you got there: bands of five games; header and every row carry the same filled band, the last one as wide as its games.
       const bands = []; for (let i = 0; i < games.length; i += BAND) bands.push(games.slice(i, i + BAND));
-      const box = (cells, head) => '<div class="box' + (head ? ' head' : '') + '">' + cells.join('') + '</div>';
-      const headBoxes = bands.map((b) => box(b.map((g) => '<div class="c">' + esc(g.label || g.code || '') + '</div>').concat(Array(BAND - b.length).fill('<div class="c blank"></div>')), true)).join('');
+      const box = (cells, head, i) => '<div class="box n' + cells.length + (head ? ' head' : '') + (i % 2 === 1 ? ' alt' : '') + '">' + cells.join('') + '</div>';
+      const headBoxes = bands.map((b, i) => box(b.map((g) => '<div class="c">' + esc(g.label || g.code || '') + '</div>'), true, i)).join('');
       const totalFor = new Map(standings.map((s) => [s.player, s.points]));
       const bodyRows = order.map((row) => {
-        const boxes = bands.map((b) => box(b.map((g) => {
+        const boxes = bands.map((b, i) => box(b.map((g) => {
           const v = g.scores ? g.scores[String(row.pos)] : undefined;
           if (v == null) return '<div class="c dash">—</div>';
           return '<div class="c' + (v > 0 ? ' win' : v < 0 ? ' neg' : '') + '">' + esc(fmt(v)) + '</div>';
-        }).concat(Array(BAND - b.length).fill('<div class="c blank"></div>')), false)).join('');
+        }), false, i)).join('');
         const total = totalFor.get(row.pos) || 0;
         const p = players[row.pos] || {};
         return '<div class="brow"><div class="pcell"><b>' + esc(inis[row.pos] || '') + '</b>' + (p.playerNo != null ? '<small>#' + esc(p.playerNo) + '</small>' : '') + '</div>'

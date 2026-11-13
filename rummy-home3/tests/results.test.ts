@@ -206,7 +206,7 @@ test('the full details carry the scores, the band table, the legend, the games b
     saved: true,
   });
   assert.deepEqual(details.table.rows.map((row) => row.name), ['Ada', 'Bea'], 'rows follow the ranked order');
-  assert.deepEqual(details.table.header, [['G7', 'G3', '', '', '']], 'games keep their own numbers; the band is padded to five');
+  assert.deepEqual(details.table.header, [['G7', 'G3']], 'games keep their own numbers; the band is as wide as its two games');
   assert.equal(details.gameCount, 2);
   assert.equal(details.playerCount, 2, 'Ada played both games but is counted once');
   assert.equal(details.countLine, '2 games · 2 players');
@@ -235,8 +235,8 @@ test('the full details carry the scores, the band table, the legend, the games b
   assert.match(html, /class="medal m1"/);
   assert.doesNotMatch(html, /Top 3|1st/, 'the Top 3 section is gone; medals carry the rank');
   assert.match(html, /How you got there/);
-  assert.match(html, /class="box head"/);
-  assert.equal((html.match(/class="box"/g) ?? []).length, 2, 'one bordered box per player row for one band');
+  assert.match(html, /class="box n2 head"/);
+  assert.equal((html.match(/class="box n2"/g) ?? []).length, 2, 'one two-game band per player row');
   assert.match(html, /Games in this result/);
   assert.match(html, /<span class="when"><b>[^<]+<\/b> \w+day, October 28<\/span>/, 'time bold, then the date');
   assert.match(html, /<i class="gid">Game ID ALPHA<\/i>/, 'the game id is last and italic');

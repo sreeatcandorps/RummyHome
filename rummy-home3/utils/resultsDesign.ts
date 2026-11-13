@@ -120,12 +120,12 @@ export type BandTableRow = {
   playerNo?: number | null;
   total: string;
   totalTone: 'pos' | 'neg' | 'zero';
-  /** One array of BAND_SIZE cells per band, padded with blanks like the header. */
+  /** One array per band, as many cells as games in that band (the last band is shorter; its shape stops at the last game, like the header). */
   bands: BandCell[][];
 };
 
 export type BandTable = {
-  /** One array of BAND_SIZE labels per band, padded with '' so the boxes match. */
+  /** One array of labels per band; the last band holds only the games it has (no empty cells). */
   header: string[][];
   /** Start time under each label, same shape as header; '' when unknown. */
   headerTimes: string[][];
@@ -164,8 +164,9 @@ export function clockOf(iso: string | undefined): string {
 }
 
 /**
- * The combined table. Rows follow `order` (the ranked page order); every band is padded to
- * BAND_SIZE so the bordered boxes in the header and in each row are the same shape.
+ * The combined table. Rows follow `order` (the ranked page order). Bands are five games wide;
+ * the last band is as wide as the games it holds, so with seven games the header and every
+ * row show the same 5 + 2 shape and nothing is drawn past the seventh game (variant V4).
  */
 export function buildBandTable(input: {
   games: DesignGame[];
@@ -177,9 +178,8 @@ export function buildBandTable(input: {
   const byId = new Map(input.players.map((player) => [player.id, player]));
   const order = input.order ?? input.players.map((player) => player.id);
   const ranges = bandRangesOf(input.games.length);
-  const pad = <T,>(items: T[], blank: T): T[] => [...items, ...Array.from({ length: BAND_SIZE - items.length }, () => blank)];
-  const header = ranges.map(({ start, end }) => pad(input.games.slice(start, end).map((game) => sheetGameLabel({ label: game.label, name: game.name })), ''));
-  const headerTimes = ranges.map(({ start, end }) => pad(input.games.slice(start, end).map((game) => clockOf(game.date)), ''));
+  const header = ranges.map(({ start, end }) => input.games.slice(start, end).map((game) => sheetGameLabel({ label: game.label, name: game.name })));
+  const headerTimes = ranges.map(({ start, end }) => input.games.slice(start, end).map((game) => clockOf(game.date)));
   const rows: BandTableRow[] = order.map((id) => {
     const player = byId.get(id);
     const name = player?.name ?? 'Player';
@@ -191,7 +191,7 @@ export function buildBandTable(input: {
       playerNo: player?.playerNo ?? null,
       total: formatPoints(total),
       totalTone: total > 0 ? 'pos' : total < 0 ? 'neg' : 'zero',
-      bands: ranges.map(({ start, end }) => pad(input.games.slice(start, end).map((game) => cellFor(game, id)), { text: '', tone: 'blank' } as BandCell)),
+      bands: ranges.map(({ start, end }) => input.games.slice(start, end).map((game) => cellFor(game, id))),
     };
   });
   return { header, headerTimes, rows, bandCount: ranges.length, gameCount: input.games.length };

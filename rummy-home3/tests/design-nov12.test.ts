@@ -157,13 +157,17 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
   assert.match(footer, /alignItems: 'flex-end'/);
 });
 
-test('design: Results scores are near-black, negatives red, wins a tint; the band header is a tint with the edge colour', () => {
+test('design: Results scores are near-black, negatives red; band strips are filled (V4): green-tinted header with a green base line, gray rows, no win tint', () => {
   const line = src('components/results/PlayerLine.tsx');
   assert.match(line, /row\.points < 0 \? colors\.negative : colors\.onSurface/);
   const table = src('components/results/BandTable.tsx');
   assert.ok(!/brand\.felt|brand\.cream/.test(table));
-  assert.match(table, /backgroundColor: colors\.winContainer/);
-  assert.match(table, /borderColor: colors\.primaryEdge, backgroundColor: colors\.tableHeader/);
+  assert.doesNotMatch(table, /winContainer/, 'no green highlight on a win (Sree, Nov 13)');
+  assert.doesNotMatch(table, /borderColor: colors\.primary \}/, 'no bright green border');
+  assert.match(table, /colors\.bandHeadAlt : colors\.bandHead\) : index % 2 === 1 \? colors\.bandAlt : colors\.band/);
+  assert.match(table, /headBox: \{ borderBottomWidth: 2/);
+  assert.match(table, /width: `\$\{\(count \/ BAND_SIZE\) \* 100\}%`/, 'a short band is only as wide as its games');
+  assert.doesNotMatch(table, /fontWeight: '700' as const/, 'per-game numbers are plain weight; only the total is bold');
   assert.match(table, /default: return \{ color: colors\.onSurface \}/);
 });
 
