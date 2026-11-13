@@ -75,7 +75,11 @@ test('9.5 the result page: visible Delete this result for managers, consequence 
   assert.match(page, /\{result\?\.canManage \? \(\s*<View style=\{styles\.deleteBlock\}>/, 'the button block is for managers only');
   assert.match(page, /testID="result-delete"/);
   assert.match(page, /\{deleteConsequence\(gameLabels\)\}/);
-  assert.match(page, /if \(wasShared\) setDeleteOpen\(true\);\s*else confirmDelete\(\);/, 'D9.2: ask only when shared');
+  assert.match(
+    page,
+    /const shared = wasShared \|\| \(result \? await sharedResults\.was\(result\.id\)\.catch\(\(\) => false\) : false\);\s*if \(shared\) \{\s*setWasShared\(true\);\s*setDeleteOpen\(true\);\s*\} else \{\s*await confirmDelete\(\);/,
+    'D9.2: ask only when shared, re-reading the marker so a share on this visit counts',
+  );
   assert.match(page, /sharedResults\.was\(loaded\.id\)\.then\(setWasShared\)/);
   assert.match(page, /setUndoToast\(deletedToast\(gameLabels\)\)/);
   assert.match(page, /duration=\{UNDO_DELETE_MS\}[\s\S]*?action=\{\{ label: 'Undo', onPress: undoDelete/);

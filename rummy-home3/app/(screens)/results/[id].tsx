@@ -114,11 +114,19 @@ export default function DeclaredResult() {
 
   const gameLabels = result ? gameLabelsOf(sheetFor(result).games) : [];
 
-  /** Delete this result: straight away with a 10-second Undo, or after a question when it was shared from here (D9.2). */
-  const startDelete = () => {
+  /**
+   * Delete this result: straight away with a 10-second Undo, or after a question when it was shared
+   * from here (D9.2). The marker is read again here so a share made on this very visit counts.
+   */
+  const startDelete = async () => {
     setMenuOpen(false);
-    if (wasShared) setDeleteOpen(true);
-    else confirmDelete();
+    const shared = wasShared || (result ? await sharedResults.was(result.id).catch(() => false) : false);
+    if (shared) {
+      setWasShared(true);
+      setDeleteOpen(true);
+    } else {
+      await confirmDelete();
+    }
   };
 
   const confirmDelete = async () => {

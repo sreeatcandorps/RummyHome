@@ -77,12 +77,15 @@ tags: [smoke]
 - assertVisible: "Undo.*"
 - takeScreenshot: 12d-deleted-undo-toast
 - tapOn: "Undo.*"
-- extendedWaitUntil:
-    visible: "Result restored · its games are Closed again"
-    timeout: 15000
+# The "Result restored" toast lasts 3 s while the page reloads; the History row is the durable proof.
 - extendedWaitUntil:
     visible: "Scores"
     timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: ".*Result restored · .* back to Closed.*"
+    direction: DOWN
+    timeout: 15000
 - takeScreenshot: 12e-restored-by-undo
 - launchApp
 - tapOn: "Results"

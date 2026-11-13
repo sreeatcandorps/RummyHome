@@ -41,8 +41,9 @@ The games themselves are never deleted. Players' totals in other results are unt
   "Delete a shared result? This result was shared from this phone. The link will say it was
   deleted; the picture or PDF already sent stays as it is. Everyone loses it here, and you can
   restore it for 30 days." Cancel / Delete. The marker is `AsyncStorage` key `sharedResults`
-  (last 200 ids) — nothing on the server records a share, so another phone that shared it does not
-  trigger the question here.
+  (last 200 ids), read again when Delete is pressed so a share made on the same visit counts —
+  nothing on the server records a share, so another phone that shared it does not trigger the
+  question here.
 
 ## Deleted list and Restore (D9.3)
 
