@@ -88,7 +88,7 @@ After any scoring or schema change:
 | Set | When | What | Red means |
 | --- | --- | --- | --- |
 | `e2e/smoke/` | every pull request (`ui-smoke`) | sign in, Home, Scorecard (4 and 20 players, portrait and landscape), Add round (drops + rummy, save), Complete game, Results, Profile, My players, New game | the PR does not merge |
-| `e2e/full/` | nightly and `workflow_dispatch` (`ui-full`) | sign out / wrong passcode, Players · Admins, Game settings, Save result and Past results, every Help note, dark appearance | fix before the next APK |
+| `e2e/full/` | nightly and `workflow_dispatch` (`ui-full`) | sign out / wrong passcode, 20-player scorecard swiped to the last column, Players · Admins, Game settings, Save result and Past results, every Help note, dark appearance | fix before the next APK |
 | `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 2 undo→add round, PR 3 rummy with a positive pot, PR 6 initials clash → HT2, PR 8 results with 0 players) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
 
 Every flow starts from `e2e/lib/ensure-signed-in.yaml` (sign in only when the login screen is showing), uses the seeded account `sree@test.local` / `123456` (local database only), and ends with `takeScreenshot`. Landscape flows (file name contains `landscape`) rotate with Maestro's `setOrientation` once the app is up; the runner also rotates the emulator for them (`adb shell wm set-user-rotation`). Fixtures the flows rely on are in `supabase/seed-e2e.sql`: game A `GAMEA1` (4 players, 2 rounds, from `seed.sql`), E `GAMEE1` (4 players, 1 round), H `GAMEH1` (3 players, no rounds), G `GAMEG1` (completed, 6 seated, no rounds), F `GAMEF1` (20 players × 30 rounds). Which flow changes what, and in which order they must run, is in `e2e/README.md`.
@@ -118,6 +118,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | Initials | 1+2 cells, auto-advance, clash → HT2, edit, 3 at a time | partly U, known-bug | U + **S** | `known-bugs/pr6` → PR 6 |
 | | edit initials mid-game | — | U + N | — |
 | Scorecard | 4 / 20 players render, header not clipped, DEALS | U (source grep), S | **S** | `smoke/02`, `smoke/10` |
+| | 20 players: last column reachable by swiping, header in step | N | N | `full/20` (slow: 600-cell hierarchy) |
 | | portrait ↔ landscape | S | **S** | `smoke/03`, `smoke/11` |
 | | dealer rotation + divider after seat change (031) | U, D | D + N | — |
 | | footer Creator / Admin / Unique ID | U, S | N | `smoke/02` |

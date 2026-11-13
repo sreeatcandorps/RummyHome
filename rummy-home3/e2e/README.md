@@ -28,7 +28,7 @@ The database is the local Supabase on the runner: `supabase db reset` (`seed.sql
 | E | `GAMEE1` | active, 4 players, 1 round, sree seated as game admin | `full/30`, `full/60`, `known-bugs/pr2` (undo then add round) |
 | H | `GAMEH1` | active, 3 players, no rounds | `known-bugs/pr3` (rummy with a positive pot) |
 | G | `GAMEG1` | completed, 6 seated, no rounds | `known-bugs/pr8` (0 players in a saved result) |
-| F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11` |
+| F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11`, `full/20` |
 
 Order matters inside the smoke set (A gains a round, then is completed). Everything else has its own
 game so the sets stay independent of each other. `full/60` switches Appearance to Dark and back to
