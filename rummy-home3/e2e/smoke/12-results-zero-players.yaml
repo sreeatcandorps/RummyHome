@@ -1,5 +1,5 @@
 appId: com.mindweavetech.rummyhome
-tags: [smoke, pr8]
+tags: [smoke]
 # PR 8 (migration 034): a completed game with seated players but no saved rounds shows its players
 # in a saved result ("1 game · 6 players", every total 0). Before 034 the standings came from score
 # rows only and the saved result said "1 game · 0 players". Was known-bugs/pr8; blocking since PR 8.
