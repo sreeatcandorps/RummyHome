@@ -1,14 +1,13 @@
 appId: com.mindweavetech.rummyhome
 tags: [nightly]
-# Every ? on the main screens opens and closes. PR 12 (in-app Help) adds a per-screen flow and
+# Every ? on the main screens opens and closes (a sentence from each note is the check: long notes
+# open scrolled, so the "Help" title may be off-screen). PR 12 (in-app Help) adds a per-screen flow and
 # the wording checks; until then this is the smoke of the notes themselves.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Help"
 - extendedWaitUntil:
-    visible:
-      text: "Help"
-      index: 1
+    visible: ".*Three buttons: Home.*"
     timeout: 5000
 - takeScreenshot: 50-help-home
 - back
@@ -18,9 +17,7 @@ tags: [nightly]
     timeout: 15000
 - tapOn: "Help"
 - extendedWaitUntil:
-    visible:
-      text: "Help"
-      index: 1
+    visible: ".*You can run a game without sitting in it.*"
     timeout: 5000
 - takeScreenshot: 50b-help-new-game
 - back
@@ -32,9 +29,7 @@ tags: [nightly]
     timeout: 15000
 - tapOn: "Help"
 - extendedWaitUntil:
-    visible:
-      text: "Help"
-      index: 1
+    visible: ".*My players is your own list.*"
     timeout: 5000
 - takeScreenshot: 50c-help-my-players
 - back
@@ -44,9 +39,7 @@ tags: [nightly]
     timeout: 15000
 - tapOn: "Help"
 - extendedWaitUntil:
-    visible:
-      text: "Help"
-      index: 1
+    visible: ".*Your email is how you sign in.*"
     timeout: 5000
 - takeScreenshot: 50d-help-profile
 - back

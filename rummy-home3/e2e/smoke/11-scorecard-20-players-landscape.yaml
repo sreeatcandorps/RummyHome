@@ -3,6 +3,7 @@ tags: [smoke, landscape]
 # Game F turned sideways: more columns fit; header stays readable; swipe reaches the last column.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
+- setOrientation: LANDSCAPE_LEFT
 - scrollUntilVisible:
     element:
       id: "game-card-GAMEF1"
@@ -24,3 +25,4 @@ tags: [smoke, landscape]
     duration: 400
     waitToSettleTimeoutMs: 1000
 - takeScreenshot: 11b-scorecard-20p-landscape-right
+- setOrientation: PORTRAIT

@@ -1,10 +1,11 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke, landscape]
-# The runner script rotates the emulator to landscape before any flow whose name contains
-# "landscape" and back to portrait after it (Maestro has no rotate command).
+# Landscape: setOrientation inside the flow (Maestro 2.x) after the app is up; the runner script also
+# rotates the emulator for any flow whose name contains "landscape", as a belt-and-braces.
 # Item 4 of the Nov 12 phone test: initials and DEALS must stay readable when the phone is turned.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
+- setOrientation: LANDSCAPE_LEFT
 - scrollUntilVisible:
     element:
       id: "game-card-GAMEA1"
@@ -27,3 +28,4 @@ tags: [smoke, landscape]
 - takeScreenshot: 03b-add-round-landscape
 - back
 - assertVisible: "Add round"
+- setOrientation: PORTRAIT

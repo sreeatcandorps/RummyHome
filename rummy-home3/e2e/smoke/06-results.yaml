@@ -24,10 +24,9 @@ tags: [smoke]
     id: "results-save-button"
 - takeScreenshot: 06b-results-one-game
 - tapOn: "Help"
+# The results help is long and opens scrolled, so wait for a sentence from it rather than the title.
 - extendedWaitUntil:
-    visible:
-      text: "Help"
-      index: 1
+    visible: ".*Nothing is saved by looking.*"
     timeout: 5000
 - takeScreenshot: 06c-results-help
 - back

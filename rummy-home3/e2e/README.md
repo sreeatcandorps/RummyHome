@@ -14,7 +14,8 @@ journey is covered where is in `docs/testing-strategy.md`.
 | `known-bugs/` | both suites, after the sets above | no (quarantined). One flow per bug from the Nov 12 phone test, named after the PR that fixes it. That PR moves the flow into `smoke/` or `full/`, where it becomes blocking |
 
 Flows run in file-name order inside a set (`01-`, `02-`, …). Files whose name contains `landscape`
-run with the emulator turned sideways (`ci/ui/run-flows.sh` does the rotation; Maestro cannot).
+rotate: `setOrientation: LANDSCAPE_LEFT` after sign-in and back to `PORTRAIT` at the end; `ci/ui/run-flows.sh` also
+turns the emulator for them.
 
 ## Fixtures and state
 
@@ -56,7 +57,7 @@ curl -Ls "https://get.maestro.mobile.dev" | bash
 cd rummy-home3/e2e
 maestro test smoke/01-home.yaml
 maestro test smoke/            # whole set, in order
-adb shell settings put system user_rotation 1   # before a *landscape* flow; 0 to turn back
+# landscape flows rotate themselves (setOrientation); nothing to do by hand
 ```
 
 The screenshots land in the current directory. For the full CI behaviour (status files, gallery) run
