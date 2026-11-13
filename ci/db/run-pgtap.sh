@@ -31,7 +31,7 @@ for f in rummy-home3/supabase/tests/*.sql; do
     verdict=FAIL; status=1
   fi
   printf '%-40s %s  (%s ok, %s failed, %s known failures, planned %s)\n' "$name" "$verdict" "$n_ok" "$real_fail" "$n_todo" "${planned:-?}"
-  if [ "$verdict" = FAIL ]; then grep -E '^not ok|^#|ERROR|psql:' "$tap" | grep -v '# TODO' | head -20 | sed 's/^/    /'; fi
+  if [ "$verdict" = FAIL ]; then grep -E '^not ok|^#|ERROR|psql:' "$tap" | grep -v '# TODO' | grep -Ev '^psql:.*: (NOTICE|WARNING|INFO):' | head -20 | sed 's/^/    /'; fi
   total=$((total + ran)); passed=$((passed + n_ok)); failed=$((failed + real_fail)); todo=$((todo + n_todo))
 done
 echo "pgTAP: $total tests, $passed passed, $failed failed, $todo known failures (TODO)"
