@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
 import { totalAcrossGames, buildResultSheet, podiumPlaces } from '../utils/results';
 import { buildResultsDetails, resultsDetailsHtml, resultsDetailsPdf } from '../utils/resultsDetails';
-import { buildResultsShareCard, buildShareCard } from '../utils/shareCard';
+import { buildResultsShareCard, buildScoresCard } from '../utils/shareCard';
 import { buildScorecardSheet } from '../utils/scorecardSheet';
 import { buildFinalScoresSheet } from '../utils/finalScoresSheet';
 import { sectionsByLetter, mergeSearchResults, sortMyPlayers, appendPage } from '../utils/myPlayersList';
@@ -93,26 +93,24 @@ test('volume: results across 50 games × 20 players (standings, sheet, PDF, HTML
     createdAtLabel: 'Thu, Nov 12 · 4:30 PM',
     standings,
     players: sheet.players.map((p, i) => ({ ...p, playerNo: 15000 + i })),
-    games: sheet.games.map((g) => ({ ...g, when: g.date })),
+    games: sheet.games,
   }), 300);
-  assert.equal(details.rows.length, 20);
-  assert.equal(details.columns.length, 51, '50 game columns and Total');
+  assert.equal(details.table.rows.length, 20);
+  assert.equal(details.table.bandCount, 10, '50 games → 10 bands of 5');
   const html = timed('results HTML 50 × 20', () => resultsDetailsHtml(details), 300);
   assert.ok(html.length > 10_000, `HTML is ${html.length} chars`);
   const pdf = timed('results PDF 50 × 20', () => resultsDetailsPdf(details), 1500);
   assert.ok(pdf.byteLength > 10_000, `PDF is ${pdf.byteLength} bytes`);
   const image = timed('results share image 50 × 20', () => buildResultsShareCard({
-    title: 'Results', date: 'Nov 12',
-    rows: standings.map((s) => ({ id: s.id, name: s.name, points: s.points, place: s.place })),
-    games: sheet.games, players: sheet.players,
+    standings, games: sheet.games, players: sheet.players, createdAtLabel: 'Nov 12',
   }), 300);
-  assert.ok(image.lines.length > 0);
+  assert.ok(image.positive.length + image.negative.length > 0);
   timings.push(`results sizes: HTML ${(html.length / 1024).toFixed(0)} KB, PDF ${(pdf.byteLength / 1024).toFixed(0)} KB`);
-  const single = timed('game share image 20p × 500r', () => buildShareCard({
+  const single = timed('game share image 20p × 500r', () => buildScoresCard({
     title: 'Game S3', date: 'Nov 12',
-    rows: Array.from({ length: 20 }, (_, i) => ({ id: player(i), name: name(i), points: 500 - i * 37 })),
+    standings: Array.from({ length: 20 }, (_, i) => ({ id: player(i), name: name(i), points: 500 - i * 37, games: 1, place: i + 1 })),
   }), 100);
-  assert.ok(single.lines.length > 0);
+  assert.ok(single.positive.length > 0);
 });
 
 test('volume: My players with 100 / 1,000 / 10,000 rows (sections, sort, search merge, paging)', () => {

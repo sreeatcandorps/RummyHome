@@ -33,12 +33,12 @@ test('item 4: the picture and the PDF carry the same notes as the screen, and th
   const players = [{ id: 'me', name: 'Me' }, { id: 'p', name: 'Priya' }];
   const notes = resultShareNotes(resultWarningLines(games), false);
 
-  const card = buildResultsShareCard({ title: 'Results', date: 'Nov 10', rows, games: sheetGames, players, notes, footer: 'Preview · not saved' });
-  assert.deepEqual(card.notes, notes);
-  assert.equal(buildResultsShareCard({ title: 'Results', date: 'x', rows, notes: [] }).notes, undefined, 'no empty notes block');
-
   const standings = rows.map((row) => ({ ...row, games: 2 }));
-  const detailGames = sheetGames.map((g) => ({ ...g, when: '10:00 AM' }));
+  const card = buildResultsShareCard({ standings, games: sheetGames, players, createdAtLabel: 'Nov 10', notes, footer: 'Preview · not saved' });
+  assert.deepEqual(card.notes, notes);
+  assert.equal(buildResultsShareCard({ standings, games: sheetGames, createdAtLabel: 'x', notes: [] }).notes, undefined, 'no empty notes block');
+
+  const detailGames = sheetGames;
   const preview = buildResultsDetails({ createdAtLabel: 'Nov 10, 2026', standings, players, games: detailGames, notes, footer: 'Preview · not saved' });
   assert.equal(preview.dateWord, 'Created');
   assert.deepEqual(preview.notes, notes);
@@ -71,8 +71,8 @@ test('item 4: one Save button on the screen, Share allowed before saving, saved 
 
   const savedScreen = src('app/(screens)/results/[id].tsx');
   assert.match(savedScreen, /resultShareNotes\(warnings, true\)/);
-  assert.match(savedScreen, /date: `Saved \$\{formatGameDateTime\(result\.declaredAt\)\}`/);
-  assert.match(savedScreen, /<ResultsPage createdAt=\{result\.declaredAt\} saved /);
+  assert.match(savedScreen, /createdAtLabel: formatGameDateTime\(result\.declaredAt\),\s*resultId: result\.id,/, 'the card says Saved because it has a result id');
+  assert.match(savedScreen, /<ResultsPage\s+createdAt=\{result\.declaredAt\}\s+saved\s/);
   assert.match(src('components/results/ResultsPage.tsx'), /saved \? `Saved \$\{formatGameDateTime\(createdAt\)\}` : formatGameDateTime\(createdAt\)/);
   assert.match(src('components/share/ShareCardView.tsx'), /card\.notes\?\.map/);
 });

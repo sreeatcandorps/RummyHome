@@ -157,15 +157,14 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
   assert.match(footer, /alignItems: 'flex-end'/);
 });
 
-test('design: Results totals are big and near-black, wins are never green text, the grid header is a tint', () => {
-  const page = src('components/results/ResultsPage.tsx');
-  assert.match(page, /totalPoints, \{ color: colors\.onSurface \}/);
-  assert.match(page, /totalPoints, \{ color: colors\.loss \}/);
-  assert.match(page, /totalPoints: \{[\s\S]*?fontSize: 26/);
-  const grid = src('components/results/GameScoreGrid.tsx');
-  assert.ok(!/brand\.felt|brand\.cream/.test(grid));
-  assert.match(grid, /backgroundColor: colors\.primaryContainer/);
-  assert.match(grid, /return \{ color: colors\.onSurface \}/);
+test('design: Results scores are near-black, negatives red, wins a tint; the band header is a tint with the edge colour', () => {
+  const line = src('components/results/PlayerLine.tsx');
+  assert.match(line, /row\.points < 0 \? colors\.negative : colors\.onSurface/);
+  const table = src('components/results/BandTable.tsx');
+  assert.ok(!/brand\.felt|brand\.cream/.test(table));
+  assert.match(table, /backgroundColor: colors\.winContainer/);
+  assert.match(table, /borderColor: colors\.primaryEdge, backgroundColor: colors\.tableHeader/);
+  assert.match(table, /default: return \{ color: colors\.onSurface \}/);
 });
 
 test('design: Add round — selected and saved cells on white with a green ring; Save score has the edge', () => {

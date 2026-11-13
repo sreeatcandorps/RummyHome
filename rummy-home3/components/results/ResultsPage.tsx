@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
-import { GameScoreGrid } from '@/components/results/GameScoreGrid';
-import { spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { BandTable } from '@/components/results/BandTable';
+import { GamesInResult } from '@/components/results/GamesInResult';
+import { PlayerLine } from '@/components/results/PlayerLine';
+import { spacing, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime } from '@/utils/gameDisplay';
-import { initialsById } from '@/utils/playerInitials';
-import { formatPoints, placeLabel, podiumPlaces, resultsCountLine, ResultSheet, ResultStanding, splitTotals, gameClock } from '@/utils/results';
-import { totalsSubline } from '@/utils/resultsSave';
 import { removedGamesNote } from '@/utils/archive';
+import { resultsCountLine, ResultSheet, ResultStanding, resultShortId } from '@/utils/results';
+import { GameMeta } from '@/utils/resultsDesign';
+import { buildResultsDetails } from '@/utils/resultsDetails';
 
+/**
+ * The results page (Nov 13 design): title and count line, Scores in two columns with
+ * medals, "How you got there" in bands of five bordered boxes, the legend, and the games.
+ * The share image, the PDF and /r/<id> are built from the same model (utils/resultsDetails).
+ */
 export function ResultsPage({
   createdAt,
   standings,
@@ -16,6 +23,9 @@ export function ResultsPage({
   reusedNote,
   removedCount = 0,
   saved = false,
+  resultId,
+  gameMeta,
+  link,
 }: {
   createdAt: string;
   /** A saved result shows "Saved <date>"; a preview shows the date alone (the screen's banner says it is not saved). */
@@ -26,20 +36,23 @@ export function ResultsPage({
   reusedNote?: string | null;
   /** Games deleted since this result was saved (023); the totals no longer count them. */
   removedCount?: number;
+  resultId?: string | null;
+  /** Creator, admins, rounds and the reused flag per game id, when the screen has loaded them. */
+  gameMeta?: Record<string, GameMeta>;
+  /** The public link, printed under the games on a saved result. */
+  link?: string | null;
 }) {
   const removedNote = removedGamesNote(removedCount);
   const { colors } = useAppTheme();
-  const { positive, negative } = splitTotals(standings);
-  const places = podiumPlaces(standings);
-  const initials = initialsById(sheet.players.length ? sheet.players : standings);
-  const byId = new Map(sheet.players.map((player) => [player.id, player]));
-  const games = sheet.games.map((game) => ({
-    id: game.id,
-    name: game.name,
-    label: game.label,
-    when: gameClock(game.date),
-    scores: game.scores,
-  }));
+  const details = useMemo(() => buildResultsDetails({
+    createdAtLabel: formatGameDateTime(createdAt),
+    standings,
+    players: sheet.players.length ? sheet.players : standings.map((row) => ({ id: row.id, name: row.name })),
+    games: sheet.games.map((game) => ({ ...game, ...(gameMeta?.[game.id] ?? {}) })),
+    saved,
+    resultId,
+  }), [createdAt, standings, sheet, saved, resultId, gameMeta]);
+  const { scores } = details;
 
   return (
     <View style={styles.page}>
@@ -51,138 +64,66 @@ export function ResultsPage({
               <Icon source="alert-outline" size={22} color={colors.secondary} />
             </View>
           ) : null}
+          <View style={styles.grow} />
+          {resultId ? <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }} testID="result-code">{resultShortId(resultId)}</Text> : null}
         </View>
-        <Text variant="titleMedium" testID="result-date">{saved ? `Saved ${formatGameDateTime(createdAt)}` : formatGameDateTime(createdAt)}</Text>
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="result-date">
+          {saved ? `Saved ${formatGameDateTime(createdAt)}` : formatGameDateTime(createdAt)}
+        </Text>
+        <Text variant="titleMedium" testID="results-counts" style={styles.count}>
+          {resultsCountLine(sheet.games.length, details.playerCount)}
+        </Text>
         {reusedNote ? <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{reusedNote}</Text> : null}
         {removedNote ? <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="result-removed-note">{removedNote}</Text> : null}
       </View>
 
-      <View testID="results-totals" accessibilityLabel="Totals" style={styles.totals}>
-        <Text variant="titleMedium" style={styles.section}>Totals</Text>
-        <Text variant="bodyMedium" testID="results-counts" style={{ color: colors.onSurfaceVariant }}>
-          {resultsCountLine(sheet.games.length, standings.length)}
-        </Text>
+      <View testID="results-totals" accessibilityLabel="Scores" style={styles.block}>
+        <Text variant="labelLarge" style={[styles.section, { color: colors.onSurfaceVariant }]}>Scores</Text>
         <View style={styles.columns}>
           <View testID="results-positive" accessibilityLabel="Positive totals" style={styles.column}>
-            {positive.map((row) => (
-              <View key={row.id} style={styles.totalRow}>
-                <View style={styles.totalName}>
-                  <Text variant="bodyLarge" style={styles.totalNameText} numberOfLines={1}>{row.name}</Text>
-                  <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{totalsSubline(initials.get(row.id), byId.get(row.id))}</Text>
-                </View>
-                <Text variant="bodyLarge" numberOfLines={1} style={[tabularNums, styles.totalPoints, { color: colors.onSurface }]}>
-                  {formatPoints(row.points)}
-                </Text>
-              </View>
-            ))}
+            {scores.positive.length === 0 ? <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>None</Text> : null}
+            {scores.positive.map((row) => <PlayerLine key={row.id} row={row} />)}
           </View>
           <View testID="results-negative" accessibilityLabel="Negative totals" style={styles.column}>
-            {negative.map((row) => (
-              <View key={row.id} style={styles.totalRow}>
-                <View style={styles.totalName}>
-                  <Text variant="bodyLarge" style={styles.totalNameText} numberOfLines={1}>{row.name}</Text>
-                  <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{totalsSubline(initials.get(row.id), byId.get(row.id))}</Text>
-                </View>
-                <Text variant="bodyLarge" numberOfLines={1} style={[tabularNums, styles.totalPoints, { color: colors.loss }]}>
-                  {formatPoints(row.points)}
-                </Text>
-              </View>
-            ))}
+            {scores.negative.length === 0 ? <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>None</Text> : null}
+            {scores.negative.map((row) => <PlayerLine key={row.id} row={row} />)}
           </View>
         </View>
+        {details.evenLine ? <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="results-even">{details.evenLine}</Text> : null}
       </View>
 
-      <GameScoreGrid
-        players={sheet.players}
-        games={games}
-        totals={Object.fromEntries(standings.map((row) => [row.id, row.points]))}
-      />
+      {sheet.games.length > 0 ? (
+        <View style={styles.block}>
+          <Text variant="labelLarge" style={[styles.section, { color: colors.onSurfaceVariant }]}>How you got there · game by game</Text>
+          <BandTable table={details.table} legend={details.legend} />
+        </View>
+      ) : null}
 
-      <View testID="results-places" accessibilityLabel="Places" style={[styles.places, { borderTopColor: colors.outlineVariant }]}>
-        <Text variant="titleMedium" style={styles.section}>Top 3</Text>
-        {places.map((group) => {
-          const place = group[0].place;
-          const names = group.map((row) => row.name).join(', ');
-          return (
-            <View
-              key={place}
-              style={styles.placeRow}
-              accessibilityLabel={`${placeLabel(place)} place, ${names}, ${formatPoints(group[0].points)}`}
-            >
-              <Text variant="titleMedium" style={styles.placeLabel}>{placeLabel(place)}</Text>
-              <Text variant="titleMedium" style={styles.placeNames}>{names}</Text>
-              <Text variant="titleMedium" style={[tabularNums, styles.placePoints]}>{formatPoints(group[0].points)}</Text>
-            </View>
-          );
-        })}
-      </View>
+      {details.games.length > 0 ? (
+        <View style={styles.block}>
+          <Text variant="labelLarge" style={[styles.section, { color: colors.onSurfaceVariant }]}>Games in this result</Text>
+          <GamesInResult games={details.games} />
+        </View>
+      ) : null}
+
+      {link ? (
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="result-link" selectable>
+          {`Read-only copy · ${link}`}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    gap: spacing.lg,
-  },
-  title: {
-    fontWeight: '800',
-  },
+  page: { gap: spacing.lg },
+  title: { fontWeight: '800' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  grow: { flex: 1 },
   flag: { paddingTop: 4 },
-  section: {
-    fontWeight: '800',
-  },
-  totals: {
-    gap: spacing.sm,
-  },
-  columns: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  column: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 32,
-  },
-  totalName: {
-    flex: 1,
-  },
-  totalNameText: {
-    fontWeight: '600',
-  },
-  // Totals are the biggest numbers on the page and near-black, not green (Sree, Nov 12).
-  totalPoints: {
-    fontWeight: '800',
-    fontSize: 26,
-    lineHeight: 32,
-  },
-  places: {
-    gap: spacing.sm,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth * 2,
-    position: 'relative',
-    zIndex: 1,
-  },
-  placeRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    minHeight: 32,
-  },
-  placeLabel: {
-    width: 48,
-    fontWeight: '800',
-  },
-  placeNames: {
-    flex: 1,
-    fontWeight: '700',
-  },
-  placePoints: {
-    fontWeight: '800',
-  },
+  count: { fontWeight: '800', marginTop: 2 },
+  section: { fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
+  block: { gap: spacing.sm },
+  columns: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  column: { flex: 1, minWidth: 0 },
 });

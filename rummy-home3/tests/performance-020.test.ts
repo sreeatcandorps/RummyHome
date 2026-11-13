@@ -223,7 +223,8 @@ test('icons come from subpath imports and the in-app logo is the small asset; th
   // The tab bar draws MDI icons through Paper (already loaded for every screen); no second icon font.
   assert.doesNotMatch(src('app/(tabs)/_layout.tsx'), /@expo\/vector-icons/);
   assert.doesNotMatch(src('components/ui/TabBarButtons.tsx'), /@expo\/vector-icons/);
-  assert.match(src('components/share/ShareCardView.tsx'), /from '@expo\/vector-icons\/MaterialCommunityIcons'/);
+  // The share card draws its medals itself (PR 8); it loads no icon font at all.
+  assert.doesNotMatch(src('components/share/ShareCardView.tsx'), /@expo\/vector-icons/);
   for (const path of ['app/(tabs)/_layout.tsx', 'app/index.tsx', 'components/ui/AuthShell.tsx']) {
     assert.match(src(path), /assets\/icon-small\.png/, path);
     assert.doesNotMatch(src(path), /assets\/icon\.png'/, path);

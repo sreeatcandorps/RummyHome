@@ -18,9 +18,15 @@ function downloadPdf(bytes: Uint8Array, fileName: string): void {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Phone-shaped PDF pages (points): the page reads like the app at 100% on a phone instead of
+ * a sheet of A4 with small type. 390 × 780 keeps a 1:2 portrait page.
+ */
+export const PDF_PAGE = { width: 390, height: 780 } as const;
+
 async function shareNative(html: string, fileName: string): Promise<void> {
   const Print = await import('expo-print');
-  const printed = await Print.printToFileAsync({ html });
+  const printed = await Print.printToFileAsync({ html, width: PDF_PAGE.width, height: PDF_PAGE.height });
   if (!printed?.uri) throw new Error('Could not make the PDF.');
   // expo-print names the file with a random code; copy it to the readable name.
   let file = printed;

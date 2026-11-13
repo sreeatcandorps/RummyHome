@@ -18,9 +18,12 @@ import { useAppTheme } from '@/constants/theme';
 import { gamesService } from '@/services/games';
 import { resultsService } from '@/services/results';
 import { formatGameDateTime } from '@/utils/gameDisplay';
-import { buildResultsShareCard, sharePlaces } from '@/utils/shareCard';
+import { gameAdminLines } from '@/utils/gameAdmins';
+import { playersService } from '@/services/players';
+import { buildResultsShareCard } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { GameResult, RESULT_EXPENSE_ID, resultFooter, ResultSheet, gameClock } from '@/utils/results';
+import { GameMeta, resultLinkText } from '@/utils/resultsDesign';
+import { GameResult, RESULT_EXPENSE_ID, resultFooter, ResultSheet } from '@/utils/results';
 import { RESULT_NOT_AVAILABLE } from '@/utils/resultsAccess';
 import { resultReusedNote, resultShareNotes, reusedGameIds, reusedWarningLines } from '@/utils/resultsSave';
 import { ResultWarnings } from '@/components/results/ResultWarnings';
@@ -59,6 +62,22 @@ async function withRounds(result: GameResult): Promise<GameResult> {
   return { ...result, sheet: { ...sheet, games } };
 }
 
+/** Creator and admins of each game, for "Games in this result"; a game that cannot be read has none. */
+async function loadGameMeta(result: GameResult): Promise<Record<string, GameMeta>> {
+  const entries = await Promise.all(result.gameIds.map(async (gameId): Promise<[string, GameMeta] | null> => {
+    try {
+      const [game, roster] = await Promise.all([gamesService.getGame(gameId), gamesService.listGamePlayers(gameId).catch(() => [] as Player[])]);
+      if (!game) return null;
+      const lines = gameAdminLines(roster, game);
+      const creator = lines.find((line) => line.role === 'Creator')?.name ?? null;
+      return [gameId, { creatorName: creator, adminNames: lines.filter((line) => line.role === 'Admin').map((line) => line.name) }];
+    } catch {
+      return null;
+    }
+  }));
+  return Object.fromEntries(entries.filter((entry): entry is [string, GameMeta] => Boolean(entry)));
+}
+
 export default function DeclaredResult() {
   const { colors } = useAppTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -71,6 +90,8 @@ export default function DeclaredResult() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [gameMeta, setGameMeta] = useState<Record<string, GameMeta>>({});
+  const [declarerName, setDeclarerName] = useState<string | null>(null);
 
   const actorId = async () => authService.getCurrentPlayer().then((me) => me?.id ?? null).catch(() => null);
 
@@ -150,6 +171,12 @@ export default function DeclaredResult() {
       if (loaded) {
         withRounds(loaded).then(fillPlayerNos).then(setResult).catch(() => {});
         flagReuse(loaded).catch(() => {});
+        loadGameMeta(loaded).then(setGameMeta).catch(() => {});
+        if (loaded.declaredBy) {
+          const seated = sheetFor(loaded).players.find((player) => player.id === loaded.declaredBy);
+          if (seated) setDeclarerName(seated.name);
+          else playersService.getPlayer(loaded.declaredBy).then((player) => setDeclarerName(player?.name ?? null)).catch(() => {});
+        }
       }
     } catch (err) {
       setError(formatSupabaseError(err));
@@ -170,20 +197,26 @@ export default function DeclaredResult() {
     load();
   }, [load]);
 
+  // The reused flag rides with the game meta so the games block can mark the game.
+  const metaWithReuse = useMemo(() => {
+    const merged: Record<string, GameMeta> = { ...gameMeta };
+    reused.forEach((gameId) => { merged[gameId] = { ...(merged[gameId] ?? {}), reused: true }; });
+    return merged;
+  }, [gameMeta, reused]);
+
   const card = useMemo(() => {
     if (!result) return null;
     return buildResultsShareCard({
-      title: 'Results',
-      date: `Saved ${formatGameDateTime(result.declaredAt)}`,
-      rows: result.standings.map((row) => ({ id: row.id, name: row.name, points: row.points, place: row.place })),
-      places: sharePlaces(result.standings),
-      gameCount: result.gameIds.length || sheetFor(result).games.length,
-      games: sheetFor(result).games,
+      standings: result.standings,
       players: sheetFor(result).players,
+      games: sheetFor(result).games,
+      createdAtLabel: formatGameDateTime(result.declaredAt),
+      resultId: result.id,
+      generatedByName: declarerName,
       notes,
       footer: resultFooter({ resultId: result.id }),
     });
-  }, [result, notes]);
+  }, [result, notes, declarerName]);
 
   const details = useMemo(() => {
     if (!result) return null;
@@ -192,19 +225,13 @@ export default function DeclaredResult() {
       createdAtLabel: formatGameDateTime(result.declaredAt),
       standings: result.standings,
       players: sheet.players,
-      games: sheet.games.map((game) => ({
-        id: game.id,
-        name: game.name,
-        label: game.label,
-        when: gameClock(game.date),
-        scores: game.scores,
-        rounds: game.rounds,
-      })),
+      games: sheet.games.map((game) => ({ ...game, ...(metaWithReuse[game.id] ?? {}) })),
       saved: true,
+      resultId: result.id,
       notes,
       footer: resultFooter({ resultId: result.id }),
     });
-  }, [result, notes]);
+  }, [result, notes, metaWithReuse]);
 
   if (result?.deletedAt) {
     return (
@@ -255,7 +282,17 @@ export default function DeclaredResult() {
         <Text variant="bodyLarge">{RESULT_NOT_AVAILABLE}</Text>
       ) : null}
       {result ? (
-        <ResultsPage createdAt={result.declaredAt} saved standings={result.standings} sheet={sheetFor(result)} reusedNote={reusedNote} removedCount={result.removedGameIds?.length ?? 0} />
+        <ResultsPage
+          createdAt={result.declaredAt}
+          saved
+          standings={result.standings}
+          sheet={sheetFor(result)}
+          reusedNote={reusedNote}
+          removedCount={result.removedGameIds?.length ?? 0}
+          resultId={result.id}
+          gameMeta={metaWithReuse}
+          link={resultLinkText(result.id)}
+        />
       ) : null}
       <Portal>
         <Dialog visible={deleteOpen} onDismiss={() => busy || setDeleteOpen(false)} style={styles.dialog}>
