@@ -112,20 +112,7 @@ export function newPlayerDisplayName(first: string, last: string): string {
   return `${given} ${family}`;
 }
 
-/**
- * Add new players by initials. Neither initial can start with a digit: scorecard
- * initials are letters (SK, then SUK on a clash), and a digit is used there only
- * when every letter form is taken, so a name that starts with one would collide.
- */
-export function validateInitials(first: string, last: string): string | null {
-  const given = first.trim();
-  const family = last.trim();
-  if (!given || !family) return 'Type a first and a last initial.';
-  if (/^\d/.test(given)) return 'The first initial must be a letter.';
-  if (/^\d/.test(family)) return 'The last initial must be a letter. Scorecard initials are letters only.';
-  return null;
-}
-
+/** Two letters for a face chip: first + last initial, or the first two letters of one word. */
 export function chipInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';

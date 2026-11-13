@@ -61,6 +61,8 @@ update public.my_players set initials = null where owner_id = '00000000-0000-400
 alter table public.my_players enable trigger my_players_fill_defaults;
 select is((select count(*) from public.my_players where initials is null)::int, 3, 'three of harish''s rows wait for the backfill');
 \i rummy-home3/supabase/migrations/022_player_initials.sql
+-- 022 re-creates the two editors with its letters-only bodies; 039 must follow it, as on a real re-run.
+\i rummy-home3/supabase/migrations/039_initials_rules.sql
 select is((select count(*) from public.my_players where initials is null)::int, 0, 're-running 022 backfills every row');
 select is((select initials from public.my_players where owner_id = '00000000-0000-4000-8000-000000000002' and player_id = '00000000-0000-4000-8000-0000000000b3'), 'SK', 'backfill: the oldest row keeps the short form (Sunil Kohli, 10 days ago)');
 select is((select initials from public.my_players where owner_id = '00000000-0000-4000-8000-000000000002' and player_id = '00000000-0000-4000-8000-0000000000b1'), 'SUK', 'backfill: Suresh Kumar (1 day ago) gets SUK');
@@ -80,10 +82,10 @@ select tests.login('00000000-0000-4000-8000-000000000001');
 select is(public.set_my_player_initials('00000000-0000-4000-8000-0000000000b2', 'sko'), 'SKO', 'the owner types any 2–3 letters; stored upper-case');
 select throws_ok($$ select public.set_my_player_initials('00000000-0000-4000-8000-0000000000b2', 'SK') $$,
   'P0001', 'SK is already used for Suresh Kumar in your My players.', 'a clash names the other player');
-select throws_ok($$ select public.set_my_player_initials('00000000-0000-4000-8000-0000000000b2', 'S2') $$,
-  'P0001', 'Initials are 2 or 3 letters, A to Z.', 'digits are refused when typed');
+select throws_ok($$ select public.set_my_player_initials('00000000-0000-4000-8000-0000000000b2', '2S') $$,
+  'P0001', 'Initials are 2 or 3 characters: a letter, then letters or digits.', 'a leading digit is refused (039: a trailing one is fine)');
 select throws_ok($$ select public.set_my_player_initials('00000000-0000-4000-8000-0000000000b2', 'SKOR') $$,
-  'P0001', 'Initials are 2 or 3 letters, A to Z.', 'four letters are refused');
+  'P0001', 'Initials are 2 or 3 characters: a letter, then letters or digits.', 'four characters are refused');
 select throws_ok($$ select public.set_my_player_initials('00000000-0000-4000-8000-0000000000a2', 'AB') $$,
   'P0001', 'This player is not in your My players.', 'only the owner''s own rows can be edited');
 select tests.logout();

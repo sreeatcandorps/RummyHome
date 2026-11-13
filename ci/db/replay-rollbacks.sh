@@ -24,7 +24,17 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 038 (game numbers unique among active games only; rolled back first)
+# 039 (initials: any free 2–3 characters, first a letter; rolled back first)
+HAS_039=f
+if [ -f "$RB/rollback_039_initials_rules.sql" ]; then
+  HAS_039=t
+  if apply "$RB/rollback_039_initials_rules.sql"; then tap ok "rollback_039 applies"; else tap fail "rollback_039 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists create_player_by_initials)" = f ] && [ "$(fn_has set_my_player_initials '[A-Z]{2,3}')" = t ] \
+    && tap ok "after rollback_039 the editors are letters-only again (022 rule)" \
+    || tap fail "after rollback_039 create_player_by_initials should be gone and the editors letters-only"
+fi
+
+# 038 (game numbers unique among active games only)
 HAS_038=f
 if [ -f "$RB/rollback_038_game_numbers_active.sql" ]; then
   HAS_038=t
@@ -364,6 +374,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_036" = t ] && FORWARD="$FORWARD 036_event_log"
 [ "$HAS_037" = t ] && FORWARD="$FORWARD 037_rummy_negative_share"
 [ "$HAS_038" = t ] && FORWARD="$FORWARD 038_game_numbers_active"
+[ "$HAS_039" = t ] && FORWARD="$FORWARD 039_initials_rules"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -484,6 +495,10 @@ fi
 if [ "$HAS_038" = t ]; then
   [ "$(fn_has next_game_number completed)" = f ] && [ "$(fn_exists next_game_number)" = t ] \
     && tap ok "038 restored (only active games hold a number)" || tap fail "038 restored"
+fi
+if [ "$HAS_039" = t ]; then
+  [ "$(fn_exists create_player_by_initials)" = t ] && [ "$(fn_has set_my_player_initials '[A-Z][A-Z0-9]{1,2}')" = t ] \
+    && tap ok "039 restored (editors accept a trailing digit; add by initials is back)" || tap fail "039 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

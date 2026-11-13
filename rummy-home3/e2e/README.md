@@ -11,7 +11,7 @@ journey is covered where is in `docs/testing-strategy.md`.
 | `lib/` | shared pieces (`ensure-signed-in`, `sign-in`), never run on their own | — |
 | `smoke/` | every pull request, and in the nightly | yes: a failed flow fails `ui-smoke` |
 | `full/` | nightly (`schedule`) and `workflow_dispatch` | yes, in `ui-full` |
-| `known-bugs/` | both suites, after the sets above | no (quarantined). One flow per bug from the Nov 12 phone test, named after the PR that fixes it. That PR moves the flow into `smoke/` or `full/`, where it becomes blocking |
+| `known-bugs/` | both suites, after the sets above | no (quarantined). One flow per bug from the Nov 12 phone test, named after the PR that fixes it. That PR moves the flow into `smoke/` or `full/`, where it becomes blocking. Empty since PR 6 (an empty set passes with zero flows) |
 
 Flows run in file-name order inside a set (`01-`, `02-`, …). Files whose name contains `landscape`
 rotate: `setOrientation: LANDSCAPE_LEFT` after sign-in and back to `PORTRAIT` at the end; `ci/ui/run-flows.sh` also
@@ -27,7 +27,7 @@ The database is the local Supabase on the runner: `supabase db reset` (`seed.sql
 | Game | Share code | State at the start | Used by |
 | --- | --- | --- | --- |
 | A | `GAMEA1` | active, 4 players, 2 rounds (from `seed.sql`) | `smoke/01–06`: 04 adds round 3, 05 completes it, 06 shows its result, `full/40` saves the result |
-| E | `GAMEE1` | active, 4 players, 1 round, sree seated as game admin | `full/30`, `full/60`, `smoke/13` (undo then add round saves round 1 again; PR 2 / 035), `full/70` (add → edit → undo round 2, then the Log shows three rows; Logs PR / 036) |
+| E | `GAMEE1` | active, 4 players, 1 round, sree seated as game admin | `full/30`, `full/31` (Edit initials for Zed Zero → ZZ2 and back to ZZ; PR 6 / 039), `full/60`, `smoke/13` (undo then add round saves round 1 again; PR 2 / 035), `full/70` (add → edit → undo round 2, then the Log shows three rows; Logs PR / 036) |
 | H | `GAMEH1` | active, 3 players, no rounds | `smoke/14` (Rummy with a positive pot: -40 share, confirm, saves round 1; PR 3 / 037), `full/80` (count warnings; saves nothing) |
 | G | `GAMEG1` | completed, 6 seated, no rounds | `smoke/12` (seated players with no rounds make a 6-player result; saves and closes G) |
 | F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11`, `full/20`, `full/21` (font scale 1.3, with A) |

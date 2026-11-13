@@ -3,7 +3,7 @@ import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
-import { MIGRATION_007_HINT, playersService } from '@/services/players';
+import { INITIALS_FORMAT_MESSAGE, MIGRATION_007_HINT, playersService } from '@/services/players';
 import { RETIRED_ROUND_OFFSET, retiredRoundNumber } from '@/utils/editRound';
 import { isRoundConflict, toRoundConflictError } from '@/utils/roundConflict';
 import { zerosForJoiner } from '@/utils/gamePlayers';
@@ -24,7 +24,7 @@ import { localGameGuard, localRoundsGuard } from '@/utils/guardrails';
 import { BundleSeatRow, dealerIdsFrom, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
 import { nextDealer, withDealer } from '@/utils/dealerRotation';
 import { queryCache } from '@/utils/queryCache';
-import { normalizeInitials } from '@/utils/initials';
+import { INITIALS_PATTERN, normalizeInitials } from '@/utils/initials';
 
 type CreateGameInput = {
   playerIds: string[];
@@ -1102,7 +1102,7 @@ export const gamesService = {
    */
   async setSeatLabel(gameId: string, profileId: string, label: string, actorId: string): Promise<string> {
     const value = normalizeInitials(label);
-    if (!/^[A-Z]{2,3}$/.test(value)) throw new Error('Initials are 2 or 3 letters, A to Z.');
+    if (!INITIALS_PATTERN.test(value)) throw new Error(INITIALS_FORMAT_MESSAGE);
 
     if (!isSupabaseConfigured) {
       const [game, seats] = await Promise.all([this.getGame(gameId), this.listGamePlayers(gameId)]);

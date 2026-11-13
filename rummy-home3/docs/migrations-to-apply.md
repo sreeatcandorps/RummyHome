@@ -437,6 +437,18 @@ What it does: a new game's short number (S1 / P1) is the lowest one not held by 
 
 Verified on a scratch Postgres 16 loaded with 001–038 and the CI seed: pgTAP (1088 checks; 22 new in `supabase/tests/28_game_numbers_038.sql`, one message in `18_game_labels_028.sql` reworded), the rollback replay (154 checks) and the 44 race checks all pass.
 
+## 039 — Initials: any free 2–3 characters, the first a letter (PR 6, D6 as Sree decided)
+
+File: `supabase/migrations/039_initials_rules.sql`. Run after 038. Safe to re-run. Rollback: `supabase/rollback/rollback_039_initials_rules.sql` (drops `create_player_by_initials` / `pick_free_initials` and puts the 022 letters-only editors back; players already made by initials keep their rows and labels).
+
+Backward compatible with the APK on phones: the 022 check constraints already accepted `^[A-Z][A-Z0-9]{1,2}$`, `set_my_player_initials` / `set_seat_label` keep their signatures and only accept more, and the shipped Add new players screen keeps calling `create_unregistered_player`. Nothing stored changes; no backfill. **Status: ready for live** once CI is green on PR 6 (Build Bot applies; nothing applied by the agent).
+
+What it does: scorecard initials may be any free 2 or 3 characters whose FIRST character is a letter A–Z; letters or digits may follow (SK2 may be typed, not only suggested). New `create_player_by_initials(text)`: Add new players by initials makes an unregistered player whose **name is the stored initials** (D6.2); when the typed form is already someone's in the caller's My players it stores the first free digit form (SK → SK2 … SK9, then S10 …) via `pick_free_initials(text, text[])` and returns `taken_by`, the holder's name, for the sentence under the row. `set_my_player_initials` also renames a player whose name was their initials (made by that RPC, not yet given a real name) so Results and the scorecard agree; a player with a real name keeps it. The 022 default generator (`initials_candidates`) is unchanged: letter forms first, digits last.
+
+Note for a re-run of 022: it re-creates the two editors with its letters-only bodies, so 039 must be run again after it (`supabase/tests/12_player_initials_022.sql` does exactly that).
+
+Verified on a scratch Postgres 16 loaded with 001–039 and the CI seed: pgTAP (1143 checks; 55 new in `supabase/tests/29_initials_039.sql`, 13 of them driven by `supabase/tests/fixtures/initials-cases.csv`, the same table the unit test reads), the rollback replay (159 checks) and the 44 race checks all pass.
+
 ## Apply order for the Nov 10–12 batches
 
 017–020 were applied on Nov 11 (~11:25 AM PT); 021–026 were applied on Nov 12 from PR 7 head `d62d9c6`. Steps 1–6 are kept for the record (all re-runnable):
@@ -477,6 +489,10 @@ PR 3 (Nov 13), unapplied, ready for live once CI is green:
 PR 5 (Nov 13), unapplied, ready for live once CI is green:
 
 18. `supabase/migrations/038_game_numbers_active.sql`
+
+PR 6 (Nov 13), unapplied, ready for live once CI is green:
+
+19. `supabase/migrations/039_initials_rules.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

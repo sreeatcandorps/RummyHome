@@ -1,7 +1,10 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
-# New game: the picker lists recent players; Add new players by initials opens and closes.
-# No game is created here (creating one would add a live game other flows do not expect).
+# New game: the picker lists recent players; Add new players opens. PR 6: typing H + T when Harish
+# Test already holds HT saves the new player as HT2 (digit in red) with the sentence "Harish Test is
+# already HT. This new player is HT2."; cell 1 jumps to cell 2 on its own. Leaves one new player
+# (HT2) in sree's My players and in the draft; no game is created (creating one would add a live
+# game other flows do not expect).
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "New game"
@@ -13,12 +16,26 @@ tags: [smoke]
 - takeScreenshot: 09-new-game
 - tapOn: "Add players"
 - extendedWaitUntil:
-    visible: "Add New Players by Initials"
+    visible: "Add new players by initials, 3 at a time"
     timeout: 15000
 - assertVisible: "Row 1 first initial"
+- assertVisible: "Row 3 last initial"
+- assertNotVisible: "Row 4 first initial"
 - hideKeyboard
 - assertVisible: "Done adding players"
 - takeScreenshot: 09b-add-new-players
+- tapOn: "Row 1 first initial"
+- inputText: "H"
+- inputText: "T"
+- hideKeyboard
+- tapOn: "Save row 1"
+- extendedWaitUntil:
+    visible: "Saved HT2"
+    timeout: 15000
+- assertVisible: "Harish Test is already HT. This new player is HT2."
+- assertNotVisible: "HTE"
+- assertVisible: "Edit initials for HT2"
+- takeScreenshot: 09c-add-new-players-clash-ht2
 - tapOn: "Done adding players"
 - extendedWaitUntil:
     visible: "Add players"

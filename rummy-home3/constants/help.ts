@@ -119,9 +119,9 @@ export const HELP = {
     'Not in the database? Go back and use Add players.',
   ),
   addPlayers: bullets(
-    'Type a first initial and a last initial for each person. More letters are fine.',
-    'The last initial cannot be a number. Scorecard initials are letters only.',
-    'Each row saves on its own. Saved players show as Unregistered until they sign up.',
+    'Three rows at a time. Cell 1 takes one letter and jumps on; cell 2 takes one or two letters or digits. The initials are the player’s name for now.',
+    'When the letters are already someone’s in My players, the new player gets the next free form, such as SK2. Edit lets you type any free 2–3 characters; the first must be a letter.',
+    'Each row saves on its own. Saved players show as Unregistered until they sign up. There is no delete here; remove a player from the previous screen.',
     'Tap Done to go back. Nothing else closes this screen.',
   ),
   me: bullets(

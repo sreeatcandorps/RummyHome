@@ -68,7 +68,7 @@ test('My players: three actions side by side, the registered-only note lives in 
   const add = read('app/(screens)/players/add.tsx');
   assert.doesNotMatch(add, /Add a row/);
   assert.match(add, /firstInputs\.current\[rows\[0\]\?\.key\]\?\.focus\(\)/, 'cursor in the first field by default');
-  assert.match(add, /const fresh = blank\(\);/, 'a new row appears once every row is saved');
+  assert.doesNotMatch(add, /const fresh = blank\(\);/, 'PR 6: three rows per visit, no fourth row');
 });
 
 test('round scores (final batch 5): a win green, a penalty over half the Full count red text, the rest plain black; the Playing badge fits two digits', async () => {

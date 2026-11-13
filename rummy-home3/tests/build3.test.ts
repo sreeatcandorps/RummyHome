@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { HELP, SETTINGS_PRIORITY } from '../constants/help';
 import { DEFAULT_MY_PLAYERS_SORT, registrationLabel, REGISTRATION_TONE, sortMyPlayers } from '../utils/myPlayersList';
-import { newGameGrid, newGameSeats, validateInitials } from '../utils/playerIdentity';
+import { newGameGrid, newGameSeats } from '../utils/playerIdentity';
+import { initialsCellsProblem } from '../utils/initials';
 import { normalizePhone, phoneProblem } from '../utils/phone';
 import { cellTone } from '../utils/roundEntry';
 
@@ -25,14 +26,14 @@ test('build 3: every player gets one of three status labels, never a bare Pendin
   for (const label of Object.keys(REGISTRATION_TONE)) assert.notEqual(label, 'Pending');
 });
 
-test('build 3: initials cannot end in a digit (scorecard initials are letters)', () => {
-  assert.equal(validateInitials('H', 'Y'), null);
-  assert.equal(validateInitials('Sa', 'Ku'), null);
-  assert.match(validateInitials('H', '2')!, /last initial must be a letter/i);
-  assert.match(validateInitials('H', '2')!, /letters only/i);
-  assert.match(validateInitials('3', 'Y')!, /first initial must be a letter/i);
-  assert.match(validateInitials('', 'Y')!, /first and a last initial/i);
-  assert.match(validateInitials('H', '  ')!, /first and a last initial/i);
+test('build 3 → PR 6: the first initial is a letter; the rest may be letters or digits', () => {
+  assert.equal(initialsCellsProblem('H', 'Y'), null);
+  assert.equal(initialsCellsProblem('S', 'KU'), null);
+  assert.equal(initialsCellsProblem('H', '2'), null, 'a digit after the letter is allowed (HT2 is a real label)');
+  assert.match(initialsCellsProblem('3', 'Y')!, /first character must be a letter/i);
+  assert.match(initialsCellsProblem('', 'Y')!, /first character must be a letter/i);
+  assert.match(initialsCellsProblem('H', '  ')!, /one or two more/i);
+  assert.match(initialsCellsProblem('', '')!, /one letter, then one or two more/i);
 });
 
 test('build 3: New game lists the organizer like anyone else and never seats them automatically', () => {
