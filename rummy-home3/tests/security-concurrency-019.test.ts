@@ -40,7 +40,7 @@ test('a raw 23505 from a pre-019 server is a round conflict with the generic sen
   assert.equal(isRoundConflict(error), true);
   assert.equal(roundConflictMessage(error), ROUND_CONFLICT_FALLBACK_MESSAGE);
   assert.doesNotMatch(ROUND_CONFLICT_FALLBACK_MESSAGE, /23505|unique|constraint|sql|postgres/i, 'no database words reach the player');
-  assert.match(ROUND_CONFLICT_FALLBACK_MESSAGE, /just saved by someone else/);
+  assert.doesNotMatch(ROUND_CONFLICT_FALLBACK_MESSAGE, /someone else/, '035: a raw 23505 is not blamed on another admin (it was usually an undone round holding its number)');
   assert.match(ROUND_CONFLICT_FALLBACK_MESSAGE, /refreshed/);
 });
 

@@ -111,8 +111,8 @@ async function main() {
     ok(!second.ok && second.error?.code === 'PT409',
       '1. the loser gets a PT409 conflict (HTTP 409 through PostgREST), not a raw 23505 unique violation',
       { detail: `${second.error?.code}: ${second.error?.message}` });
-    ok(/just saved by someone else/i.test(second.error?.message ?? ''),
-      '1. the conflict message is the plain-English one the app shows before refreshing',
+    ok(/^Round 3 was just saved by Sree Test\. Check the scorecard before you save again\.$/.test(second.error?.message ?? ''),
+      '1. the conflict message names the admin who saved first (035; 2.4)',
       { detail: second.error?.message });
   }
 
@@ -149,8 +149,8 @@ async function main() {
     ok(edit.ok && add.ok, '3. an edit and an add on different rounds both succeed (the add waits for the edit to commit)', { detail: `${edit.error?.message ?? ''} ${add.error?.message ?? ''}`.trim() });
     const r3 = rounds.find((r) => r.round_number === 3);
     ok(r3 && r3.scores === 2 && rounds.filter((r) => r.round_number === 5).length === 1, '3. rounds 3 and 5 each exist once with their own scores');
-    const { rows } = await admin.query(`select count(*)::int as c from public.rounds where game_id = $1 and round_number > 1000 and undone_at is not null`, [GAME_A]);
-    ok(rows[0].c === 2, '3. the previous round 3 was retired to the 1000+ range (plus the seeded undone round)', { detail: `retired rows: ${rows[0].c}` });
+    const { rows } = await admin.query(`select count(*)::int as c from public.rounds where game_id = $1 and round_number > 1000 and round_number % 1000 = 3 and undone_at is not null`, [GAME_A]);
+    ok(rows[0].c === 2, '3. the previous round 3 was retired to the 1000+ range (beside the seeded 1003)', { detail: `retired rows: ${rows[0].c}` });
   }
 
   // ---------------------------------------------------------------------------------------
@@ -341,6 +341,39 @@ async function main() {
     ok(after === cap, `9. the game has exactly ${cap} seats, never ${cap + 1}`, { detail: `seats: ${after}` });
     await admin.query(`delete from public.game_players where game_id = $1 and profile_id in ($2, $3)`, [GAME_A, CD, OUTSIDER]);
     await admin.query(`update public.guardrails set value = 20 where key = 'players_per_game'`);
+  }
+
+  // ---------------------------------------------------------------------------------------
+  // 10. (035 / 2.5) Admin A is saving the next round while admin B undoes the last one
+  // ---------------------------------------------------------------------------------------
+  {
+    const live = await liveRounds(admin, GAME_A);
+    const last = live[live.length - 1].round_number;
+    await beginAs(b, COADMIN);
+    const undo = await attempt(() => b.query('select public.undo_last_round($1) as r', [GAME_A]));
+    ok(undo.ok && undo.value.rows[0].r?.roundNumber === last, `10. admin B undoes round ${last} inside an open transaction`, { detail: undo.error?.message ?? JSON.stringify(undo.value?.rows) });
+
+    await beginAs(a, SREE);
+    let saveSettled = false;
+    const saveP = attempt(() => saveRound(a, GAME_A, last + 1, [[HARISH, -10], [PRIYA, 10]])).then((r) => { saveSettled = true; return r; });
+    await pause(300);
+    const waited = !saveSettled;
+    await b.query('commit');
+    const save = await saveP;
+    await a.query(save.ok ? 'commit' : 'rollback');
+
+    const after = await liveRounds(admin, GAME_A);
+    const { rows: g } = await admin.query('select current_round from public.games where id = $1', [GAME_A]);
+    ok(waited, '10. the save waited on the per-game lock while the undo was in flight (still pending 300 ms later)');
+    ok(!save.ok && save.error?.code === 'PT409' && /A round was undone while you were scoring/.test(save.error?.message ?? ''),
+      `10. the save of round ${last + 1} is refused with PT409 and the refresh message (round ${last} is gone)`, { detail: `${save.error?.code ?? 'ok'} ${save.error?.message ?? ''}` });
+    ok(after.length === live.length - 1 && after.every((r) => r.round_number < last), `10. the live rounds are 1..${last - 1}; no round ${last + 1} was written`, { detail: JSON.stringify(after) });
+    ok(g[0].current_round === last, `10. current_round moved back to ${last}`, { detail: `current_round: ${g[0].current_round}` });
+
+    await beginAs(a, SREE);
+    const redo = await attempt(() => saveRound(a, GAME_A, last, [[HARISH, -10], [PRIYA, 10]]));
+    await a.query(redo.ok ? 'commit' : 'rollback');
+    ok(redo.ok, `10. after refreshing, admin A saves round ${last} again at the same number`, { detail: redo.error?.message });
   }
 
   await Promise.all([a.end(), b.end(), admin.end()]);

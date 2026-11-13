@@ -1,8 +1,7 @@
 appId: com.mindweavetech.rummyhome
-tags: [known-bug, pr2]
-# PR 2 (P1): after Undo, Add round must save the same round number again.
-# Today: save_round inserts round N while the undone row still holds (game_id, N) -> 23505 ->
-# "Round already saved ... by someone else". Expected to be RED until PR 2 lands.
+tags: [smoke]
+# PR 2 (035): after Undo, Add round saves the same round number again. Undone rows are no
+# longer part of the rounds unique key, and undo is one server step (undo_last_round).
 # Fixture: game E (GAMEE1), 4 players, round 1 saved; sree is creator and seated.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml

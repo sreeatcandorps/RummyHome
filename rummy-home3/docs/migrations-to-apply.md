@@ -387,6 +387,21 @@ What it does:
 
 Verified on a scratch Postgres 16 loaded with 001–034 and the CI seed: 928 pgTAP checks (48 new in `supabase/tests/24_results_design_034.sql`; two expectations in `13_hide_delete_023.sql` updated for the seated-players rule), the rollback replay (134 checks) and the 38 race checks all pass.
 
+## 035 — Undo then Add round (PR 2)
+
+File: `supabase/migrations/035_undo_round.sql`. Run after 034. Safe to re-run. Rollback: `supabase/rollback/rollback_035_undo_round.sql` (drops `undo_last_round`, moves any undone row that collides with a live number to the 1000+ range, puts the full unique key back and restores the 031 `save_round` body with its "someone else" message).
+
+Backward compatible with the APK on phones: `save_round` keeps its signature; the current app's Undo (two direct table writes) keeps working because the admin update policy on `rounds` is unchanged — it simply benefits from the relaxed key. The new app calls `undo_last_round` and falls back to the direct writes when the RPC is missing (PGRST202). **Status: ready for live** once CI is green on PR 2 (Build Bot applies; nothing applied by the agent).
+
+What it does:
+
+- **The bug.** Undo set `undone_at` and left the row on its round number N. The unique key on `rounds (game_id, round_number)` covered undone rows too, so the next Add round (which reuses N since Nov 11) failed with a 23505 that the app read as "Round N already saved … by someone else", and the game was stuck.
+- **Live rounds only in the key.** The constraint `rounds_game_id_round_number_key` is dropped and replaced by the partial unique index `rounds_live_number_uidx (game_id, round_number) where undone_at is null`. Undone rows can sit at any number. One-off (D2.2, idempotent): undone rows still below 1000 move to 1000+N (2000+N, … on collision) so they read the same as Edit round's retired rows.
+- **`undo_last_round(p_game_id uuid) returns jsonb`.** Game admins (or app admins) only, 42501 otherwise. Takes the same per-game advisory lock as `save_round`, marks the last live round undone (`undone_by`, `undo_reason 'admin undo'`), moves `games.current_round` back to that number, returns `{roundId, roundNumber}` or null when there is nothing to undo. Security invoker; `authenticated` may execute.
+- **`save_round` (031 body) with two message changes.** A different payload for a round that is already saved now names the admin who saved it from `rounds.created_by`: "Round 3 was just saved by Harish Gadupudi. Check the scorecard before you save again." (PT409). A new round whose number is more than one past the last live round (the other admin undid a round while this one was typing) is refused with PT409 "A round was undone while you were scoring. The scorecard has been refreshed; check the round number and save again." — nothing is written.
+
+Verified on a scratch Postgres 16 loaded with 001–035 and the CI seed: pgTAP (959 checks; 30 new in `supabase/tests/25_undo_035.sql`, the conflict expectation in `05_save_round_014.sql` updated to the named message, two counts in `02_games_visibility.sql` for the new seeded undone row), the rollback replay (139 checks) and the race checks (44, six new in case 10: undo in flight vs save) all pass.
+
 ## Apply order for the Nov 10–12 batches
 
 017–020 were applied on Nov 11 (~11:25 AM PT); 021–026 were applied on Nov 12 from PR 7 head `d62d9c6`. Steps 1–6 are kept for the record (all re-runnable):
@@ -411,6 +426,10 @@ Final launch batch (Nov 12), unapplied. Paste each into the Supabase SQL editor 
 PR 8 (Nov 13), unapplied, ready for live once CI is green:
 
 14. `supabase/migrations/034_results_design.sql`
+
+PR 2 (Nov 13), unapplied, ready for live once CI is green:
+
+15. `supabase/migrations/035_undo_round.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

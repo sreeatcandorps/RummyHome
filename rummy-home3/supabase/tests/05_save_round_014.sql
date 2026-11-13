@@ -57,8 +57,8 @@ select is((select count(*) from public.scores s join public.rounds r on r.id = s
 select throws_ok(
   $$ select public.save_round('10000000-0000-4000-8000-00000000000a', 3,
        '[{"playerId":"00000000-0000-4000-8000-000000000002","scoreType":"count","value":-99}]'::jsonb, false) $$,
-  'PT409', 'Round 3 was just saved by someone else. The scorecard has been refreshed; check it before you save again.',
-  'a different payload for a saved round is a PT409 conflict, not a silent no-op');
+  'PT409', 'Round 3 was just saved by Sree Test. Check the scorecard before you save again.',
+  'a different payload for a saved round is a PT409 conflict that names the saver (035), not a silent no-op');
 select is((select sum(value) from public.scores s join public.rounds r on r.id = s.round_id where r.game_id = '10000000-0000-4000-8000-00000000000a' and r.round_number = 3 and r.undone_at is null)::int, 0, 'the first payload is the one kept');
 
 -- a player who is not in the game: refused with PT409 (019), no round is created
@@ -90,7 +90,7 @@ select lives_ok(
          {"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"rummy","value":30}]'::jsonb, true) $$,
   'edit round 3 replaces it');
 select is((select count(*) from public.rounds where game_id = '10000000-0000-4000-8000-00000000000a' and round_number = 3 and undone_at is null)::int, 1, 'exactly one live round 3 after edit');
-select is((select count(*) from public.rounds where game_id = '10000000-0000-4000-8000-00000000000a' and round_number >= 1000 and undone_at is not null)::int, 2, 'the old round 3 joined the seeded undone round in the 1000+ range');
+select is((select count(*) from public.rounds where game_id = '10000000-0000-4000-8000-00000000000a' and undone_at is not null and round_number % 1000 <> 2)::int, 2, 'the old round 3 is kept as an undone row (parked at 1000+) beside the seeded 1003');
 select is((select sum(value) from public.scores s join public.rounds r on r.id = s.round_id where r.game_id = '10000000-0000-4000-8000-00000000000a' and r.round_number = 3 and r.undone_at is null)::int, 0, 'the edited round balances to 0 with the new payload');
 
 select * from finish();

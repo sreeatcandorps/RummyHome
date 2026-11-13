@@ -89,7 +89,7 @@ After any scoring or schema change:
 | --- | --- | --- | --- |
 | `e2e/smoke/` | every pull request (`ui-smoke`) | sign in, Home, Scorecard (4 and 20 players, portrait and landscape), Add round (drops + rummy, save), Complete game, Results, Profile, My players, New game | the PR does not merge |
 | `e2e/full/` | nightly and `workflow_dispatch` (`ui-full`) | sign out / wrong passcode, 20-player scorecard swiped to the last column, Players · Admins, Game settings, Save result and Past results, every Help note, dark appearance | fix before the next APK |
-| `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 2 undo→add round, PR 3 rummy with a positive pot, PR 6 initials clash → HT2; PR 8's 0-players flow moved to `smoke/12` when PR 8 landed) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
+| `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 3 rummy with a positive pot, PR 6 initials clash → HT2; PR 8's 0-players flow moved to `smoke/12` and PR 2's undo→add round flow to `smoke/13` when those PRs landed) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
 
 Every flow starts from `e2e/lib/ensure-signed-in.yaml` (sign in only when the login screen is showing), uses the seeded account `sree@test.local` / `123456` (local database only), and ends with `takeScreenshot`. Landscape flows (file name contains `landscape`) rotate with Maestro's `setOrientation` once the app is up; the runner also rotates the emulator for them (`adb shell wm set-user-rotation`). Fixtures the flows rely on are in `supabase/seed-e2e.sql`: game A `GAMEA1` (4 players, 2 rounds, from `seed.sql`), E `GAMEE1` (4 players, 1 round), H `GAMEH1` (3 players, no rounds), G `GAMEG1` (completed, 6 seated, no rounds), F `GAMEF1` (20 players × 30 rounds). Which flow changes what, and in which order they must run, is in `e2e/README.md`.
 
@@ -130,7 +130,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | over max count warning | — | U + N | — |
 | | edit a saved round (replace) | D, C | D + N | — |
 | | same round saved by two admins (true conflict) | D, C | C + N | — |
-| Undo | undo last round, undo on empty, **undo then add round** | partly D, known-bug | D + **S** | `known-bugs/pr2` → PR 2 |
+| Undo | undo last round, undo on empty, **undo then add round** | D + S | D + S | `supabase/tests/25_undo_035.sql`, `smoke/13-undo-then-add-round.yaml` (PR 2 / 035) |
 | | undo by second admin while first is typing | — | C | — |
 | Players / Admins | add new mid-game, from database, remove seat with no scores (016/017) | D, N (page opens) | D + N | `full/30` |
 | | add non-playing admin by ID | — | N | — |
@@ -192,3 +192,18 @@ Only after S + N are green, with the matrix above as the checklist. Someone who 
 - A new account’s welcome email arrives from `scores@mindweavetech.com`.
 
 Pass when Home has New game, Results, and Recent, and none of Settle, Active, History, or All players. Settle stays off. `EXPO_PUBLIC_SETTLE_ENABLED` stays unset.
+
+## PR 2 test cases (Undo then Add round, migration 035)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| U2-1 | D | `supabase/tests/25_undo_035.sql` | The full unique key on `rounds (game_id, round_number)` is gone and the partial `rounds_live_number_uidx` (`where undone_at is null`) exists; `undo_last_round` is executable by `authenticated` only and refuses seated players and outsiders with 42501 |
+| U2-2 | D | same (2.1) | Save round 3 → undo (returns `{roundNumber: 3}`, `current_round` back to 3, the undone row keeps number 3) → save round 3 again succeeds: one live round 3 with the new scores, `current_round` 4, the old row kept in the 1000+ range |
+| U2-3 | D | same (2.3) | Undo three times → `current_round` 1, a fourth undo returns null, round 1 saves again; every undone row is kept |
+| U2-4 | D | same (2.5) | Saving round 5 when the last live round is 3 is refused with PT409 "A round was undone while you were scoring …" and writes nothing |
+| U2-5 | D | `supabase/tests/05_save_round_014.sql`, `ci/db/concurrency-save-round.mjs` case 1 | A different payload for an already saved round answers "Round 3 was just saved by Sree Test. Check the scorecard before you save again." (named saver from `rounds.created_by`) |
+| U2-6 | D | `ci/db/concurrency-save-round.mjs` case 10 | Admin B undoes round 7 in an open transaction while admin A saves round 8: A waits on the per-game lock, is refused with the refresh message, `current_round` is 7, and A then saves round 7 again at the same number |
+| U2-7 | D | `ci/db/replay-rollbacks.sh` | Rollback 035 drops the RPC, parks colliding undone rows, restores the full key and the 031 "someone else" body; forward replay restores all of it and the D2.2 one-off leaves no undone row below 1000; 035 is safe to run twice |
+| U2-8 | U | `tests/undo-round-035.test.ts`, `tests/security-concurrency-019.test.ts` | Migration and rollback text pins; a raw 23505 is still a conflict but reads "The scorecard changed. It has been refreshed; try again." (never "someone else"); the server's named message reaches the dialog untouched; `undoLastRound` calls the RPC and only falls back to direct writes on PGRST202 |
+| U2-9 | S | `smoke/13-undo-then-add-round.yaml` | Game E: Undo round → Remove → header "Round 1" → Add round → four scores (balance 0) → Save round → "Round 2", no "Round already saved" dialog |
+| U2-10 | M | Scorecard › Undo round, then Add round on the emulator | Same as U2-9 with screenshots in `/opt/cursor/artifacts/pr2-undo-round/` |
