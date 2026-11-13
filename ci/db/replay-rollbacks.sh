@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–035) applied, check the function state after each, then re-apply the forward
+# has every migration (001–036) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -24,7 +24,20 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 035 (undo then add round; rolled back first)
+# 036 (event log; rolled back first)
+HAS_036=f
+if [ -f "$RB/rollback_036_event_log.sql" ]; then
+  HAS_036=t
+  if apply "$RB/rollback_036_event_log.sql"; then tap ok "rollback_036 applies"; else tap fail "rollback_036 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(q "select to_regclass('public.event_log') is null")" = t ] \
+    && [ "$(fn_exists log_event)" = f ] && [ "$(fn_exists create_game)" = f ] \
+    && [ "$(q "select has_table_privilege('authenticated', 'public.rounds', 'insert')")" = t ] \
+    && [ "$(q "select prosecdef from pg_proc where proname='save_round' and pronamespace='public'::regnamespace")" = f ] \
+    && tap ok "after rollback_036 event_log and its functions are gone, direct inserts are granted again and save_round is security invoker" \
+    || tap fail "after rollback_036 event_log / create_game / rounds grants / save_round should be the 035 state"
+fi
+
+# 035 (undo then add round)
 HAS_035=f
 if [ -f "$RB/rollback_035_undo_round.sql" ]; then
   HAS_035=t
@@ -328,6 +341,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_033" = t ] && FORWARD="$FORWARD 033_security_advisor_cleanup"
 [ "$HAS_034" = t ] && FORWARD="$FORWARD 034_results_design"
 [ "$HAS_035" = t ] && FORWARD="$FORWARD 035_undo_round"
+[ "$HAS_036" = t ] && FORWARD="$FORWARD 036_event_log"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -432,6 +446,14 @@ if [ "$HAS_035" = t ]; then
     && [ "$(fn_has save_round 'name the admin who saved it')" = t ] \
     && [ "$(q "select count(*) from public.rounds where undone_at is not null and round_number < 1000")" = 0 ] \
     && tap ok "035 restored (undo_last_round, live-rounds partial index, saver-named conflict, undone rows parked at 1000+)" || tap fail "035 restored"
+fi
+if [ "$HAS_036" = t ]; then
+  [ "$(q "select to_regclass('public.event_log') is not null")" = t ] \
+    && [ "$(fn_exists log_event)" = t ] && [ "$(fn_exists create_game)" = t ] && [ "$(fn_exists add_seated_player)" = t ] \
+    && [ "$(q "select has_table_privilege('authenticated', 'public.rounds', 'insert')")" = f ] \
+    && [ "$(q "select prosecdef from pg_proc where proname='save_round' and pronamespace='public'::regnamespace")" = t ] \
+    && [ "$(q "select count(*) from pg_trigger where tgname like 'event_log_%' and not tgisinternal")" = 10 ] \
+    && tap ok "036 restored (event_log, ten triggers, create_game / add_seated_player, no direct inserts, definer save_round)" || tap fail "036 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

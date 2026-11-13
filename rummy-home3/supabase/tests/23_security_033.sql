@@ -82,8 +82,8 @@ select is((
   where p.pronamespace = 'public'::regnamespace and p.prosecdef
     and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
     and has_function_privilege('anon', p.oid, 'execute')
-), 'answer_link_request_by_token can_see_profile is_app_admin is_game_admin is_game_member peek_link_request public_result public_scorecard unsubscribe_email',
-  'anon executes exactly the five public RPCs and the four policy helpers');
+), 'answer_link_request_by_token can_see_profile is_app_admin is_game_admin is_game_member peek_link_request public_result public_result_note public_scorecard public_scorecard_changes unsubscribe_email',
+  'anon executes exactly the seven public RPCs (036 added public_result_note and public_scorecard_changes) and the four policy helpers');
 select ok(not has_function_privilege('anon', 'public.add_my_player(uuid)', 'execute'), 'anon cannot add_my_player');
 select ok(not has_function_privilege('anon', 'public.search_players(text)', 'execute'), 'anon cannot search_players');
 select ok(not has_function_privilege('anon', 'public.peek_claim_link(text)', 'execute'), 'anon cannot peek_claim_link (the app peeks signed in)');
