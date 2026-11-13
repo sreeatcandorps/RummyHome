@@ -20,7 +20,7 @@ import { REMOVE_CONFIRM_BODY, REMOVE_CONFIRM_TITLE, REMOVED_TOAST, UNDO_REMOVE_M
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
-import { appendPage, DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, mergeSearchResults, MyPlayersCursor, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, MY_PLAYERS_PAGE_SIZE, MY_PLAYERS_SEARCH_DEBOUNCE_MS, MY_PLAYERS_SEARCH_LIMIT, nextPageCursor, playerIdBadge, registrationLabel, REGISTRATION_TONE, SEARCH_FULL_NOTE, sectionsByLetter, shouldLoadMore, SORT_CHIP, SORT_OPTIONS, sortMyPlayers, withOwnerFirst } from '@/utils/myPlayersList';
+import { appendPage, DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, mergeSearchResults, MyPlayersCursor, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, MY_PLAYERS_PAGE_SIZE, MY_PLAYERS_SEARCH_DEBOUNCE_MS, MY_PLAYERS_SEARCH_LIMIT, nextPageCursor, playerIdBadge, registrationLabel, REGISTRATION_TONE, SEARCH_FULL_NOTE, sectionsByLetter, shouldLoadMore, SORT_CHIP, SORT_OPTIONS, sortMyPlayers, visibleRegistration, withOwnerFirst } from '@/utils/myPlayersList';
 import { seatColor } from '@/constants/theme';
 import { shareInvite } from '@/utils/invite';
 import { Screen } from '@/components/ui/Screen';
@@ -37,7 +37,6 @@ import { assignInitials, initialsFitName, NAME_CHANGED_NOTE } from '@/utils/init
 type PlayerCardProps = {
   player: Player;
   status: ReturnType<typeof registrationLabel>;
-  isMe: boolean;
   index: number;
   initials?: string;
   nameChanged: boolean;
@@ -50,7 +49,7 @@ type PlayerCardProps = {
 };
 
 /** One row per player: letters, name, Player ID, status, and the unified ⋮ menu. Memoised: typing in the search box redraws only rows whose inputs changed. */
-const PlayerCard = React.memo(function PlayerCard({ player, status, isMe, index, initials, nameChanged, menu, menuOpen, onPress, onMenuOpen, onMenuDismiss, onMenuSelect }: PlayerCardProps) {
+const PlayerCard = React.memo(function PlayerCard({ player, status, index, initials, nameChanged, menu, menuOpen, onPress, onMenuOpen, onMenuDismiss, onMenuSelect }: PlayerCardProps) {
   const { colors } = useAppTheme();
   const badge = playerIdBadge(player);
   return (
@@ -71,8 +70,7 @@ const PlayerCard = React.memo(function PlayerCard({ player, status, isMe, index,
                   <Text variant="labelSmall" style={[styles.idText, { color: colors.onSurfaceVariant }]}>{badge}</Text>
                 </View>
               ) : null}
-              {isMe ? <Tag label="You" tone="info" /> : null}
-              {nameChanged ? <Tag label="Name changed" tone="results" icon="alert-outline" /> : <Tag label={status} tone={REGISTRATION_TONE[status]} wrap />}
+              {nameChanged ? <Tag label="Name changed" tone="results" icon="alert-outline" /> : visibleRegistration(status) ? <Tag label={status} tone={REGISTRATION_TONE[status]} wrap /> : null}
             </View>
           </View>
         </View>
@@ -354,7 +352,6 @@ export default function PlayersTab() {
     <PlayerCard
       player={player}
       status={statusOf(player)}
-      isMe={me?.id === player.id}
       index={index}
       initials={me?.id === player.id ? undefined : initialsOf.get(player.id)}
       nameChanged={nameChanged(player)}

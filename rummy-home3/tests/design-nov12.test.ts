@@ -105,7 +105,7 @@ test('design: tags are one 32 px size and never button green; statuses, roles an
   assert.deepEqual(Object.keys(REGISTRATION_ICON).sort(), Object.keys(REGISTRATION_TONE).sort());
 });
 
-test('design: role tags — plain players see Creator (and You); creators and admins also see Admin; never Player or View only', () => {
+test('design: role tags — plain players see Creator; creators and admins also see Admin; never Player or View only', () => {
   const game = { createdBy: 'c', adminIds: ['a'], unseatedAdminIds: ['u'], players: ['c', 'a', 'p'] };
   assert.equal(viewerManagesGame(game, 'c'), true);
   assert.equal(viewerManagesGame(game, 'a'), true);
@@ -128,7 +128,7 @@ test('design: role tags — plain players see Creator (and You); creators and ad
 
   const players = src('app/(screens)/games/players.tsx');
   assert.match(players, /visibleRoleTag\(seatRoleLabel\(seat, game\), canScore\)/);
-  assert.match(players, /<Tag label="You" tone="info" \/>/);
+  assert.doesNotMatch(players, /<Tag label="You" tone="info" \/>/, 'PR 7 (D7.2): no You tag; you stay first');
   assert.match(src('components/ui/GameListItem.tsx'), /visibleRoleTag\(access, viewerManagesGame\(game, viewerId\)\)/);
 });
 

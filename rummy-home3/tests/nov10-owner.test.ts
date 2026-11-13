@@ -42,7 +42,7 @@ test('My players pins the signed-in player first, even with an empty roster', ()
   assert.deepEqual(withOwnerFirst([owner, ...roster], owner).map((p) => p.id), ['me', 'a', 'b'], 'never duplicated');
 });
 
-test('From database lets the organiser add themselves to a new game; picker and tab mark "You"', () => {
+test('From database lets the organiser add themselves to a new game; the organiser is pinned first (no "You" tag since PR 7)', () => {
   const find = read('app/(screens)/players/new.tsx');
   assert.match(find, /isMe && !fromNewGame/, 'the "This is you" badge only replaces the button outside New game');
   assert.match(find, /\+ Add me/);
@@ -50,7 +50,7 @@ test('From database lets the organiser add themselves to a new game; picker and 
   const picker = read('app/(screens)/games/new.tsx');
   assert.match(picker, /pinOrganiser\(grid, meWatching \? null : meCandidate, selectedIds, meMatches\)/);
   assert.match(picker, /isMe=\{c\.id === me\?\.id\}/);
-  assert.match(read('components/players/PlayerPickerRow.tsx'), /label="You"/);
+  assert.doesNotMatch(read('components/players/PlayerPickerRow.tsx'), /label="You"/);
   const tab = read('app/(tabs)/players.tsx');
   assert.match(tab, /withOwnerFirst\(others, me, Boolean\(me\) && filter === 'all' && matchesMyPlayer\(me as Player, query\)\)/);
 });

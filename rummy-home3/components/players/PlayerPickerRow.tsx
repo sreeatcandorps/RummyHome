@@ -4,7 +4,7 @@ import { Text } from 'react-native-paper';
 import { BoldName } from '@/components/ui/BoldName';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
-import { playerIdBadge, registrationLabel, REGISTRATION_TONE } from '@/utils/myPlayersList';
+import { playerIdBadge, registrationLabel, REGISTRATION_TONE, visibleRegistration } from '@/utils/myPlayersList';
 import { Candidate } from '@/utils/playerIdentity';
 import { radius, seatColor, spacing, useAppTheme } from '@/constants/theme';
 
@@ -13,19 +13,20 @@ type Props = {
   /** Position in the list; picks the avatar colour the same way Players in this game does. */
   index: number;
   disabled?: boolean;
-  /** The signed-in organiser: shows a "You" tag so they can tell their account from a namesake. */
+  /** The signed-in organiser: pinned first; the spoken label says "(you)". No tag is drawn (PR 7, D7.2). */
   isMe?: boolean;
   onPress: () => void;
 };
 
 /**
  * One player per row on the picker: coloured avatar, full name with bold
- * initials, registration pill and Player ID — the same shape as a row on
- * Players in this game. Fades in when it (re)appears in the list.
+ * initials, Player ID and — only for Unregistered / Pending — a registration
+ * pill; the same shape as a row on Players in this game. Fades in when it
+ * (re)appears in the list.
  */
 export function PlayerPickerRow({ candidate, index, disabled, isMe = false, onPress }: Props) {
   const { colors } = useAppTheme();
-  const status = registrationLabel(candidate.status);
+  const status = visibleRegistration(registrationLabel(candidate.status));
   const badge = playerIdBadge(candidate);
   const enter = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -49,9 +50,8 @@ export function PlayerPickerRow({ candidate, index, disabled, isMe = false, onPr
         <View style={styles.text}>
           <BoldName name={candidate.name} variant="bodyLarge" numberOfLines={1} />
           <View style={styles.meta}>
-            {isMe ? <Tag small label="You" tone="info" /> : null}
             {badge ? <Tag small label={badge} /> : null}
-            <Tag small label={status} tone={REGISTRATION_TONE[status]} />
+            {status ? <Tag small label={status} tone={REGISTRATION_TONE[status]} /> : null}
           </View>
         </View>
         <Text style={[styles.plus, { color: colors.primary }]}>+</Text>

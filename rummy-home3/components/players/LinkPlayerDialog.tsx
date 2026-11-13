@@ -116,7 +116,7 @@ export function LinkPlayerDialog({ player, owner, pending = null, onDismiss, onR
           <View style={[styles.preview, { backgroundColor: clash ? colors.errorContainer : colors.positiveContainer }]} testID="link-preview">
             <Text variant="titleMedium" style={{ color: clash ? colors.onErrorContainer : colors.onPositiveContainer }}>{preview.target.name}</Text>
             <Text variant="bodySmall" style={{ color: clash ? colors.onErrorContainer : colors.onPositiveContainer }}>
-              {preview.target.playerNo != null ? `#${preview.target.playerNo} · ` : ''}Registered
+              {preview.target.playerNo != null ? `#${preview.target.playerNo}` : 'Player ID confirmed'}
             </Text>
             <Text variant="bodySmall" style={{ color: clash ? colors.onErrorContainer : colors.onPositiveContainer, marginTop: spacing.xs }} testID={clash ? 'link-conflict' : 'link-preview-text'}>
               {clash ?? linkPreviewMessage(player.name, preview)}
