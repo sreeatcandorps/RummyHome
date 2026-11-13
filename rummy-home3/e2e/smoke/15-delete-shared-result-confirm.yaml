@@ -1,7 +1,7 @@
 appId: com.mindweavetech.rummyhome
-tags: [nightly]
+tags: [smoke]
 # PR 9 (D9.2): a result shared from this phone asks before Delete. Open the newest past result
-# (saved by full/40 or smoke/12), share the picture (the Android share sheet opens; Back closes
+# (G's, saved and restored by smoke/12), share the picture (the Android share sheet opens; Back closes
 # it, which still counts as shared), then Delete this result shows "Delete a shared result?" with
 # Cancel / Delete. Cancel keeps the result, so nothing changes for the flows after this one.
 ---
@@ -50,7 +50,7 @@ tags: [nightly]
     timeout: 10000
 - assertVisible: "This result was shared from this phone.*"
 - assertVisible: "Delete the shared result"
-- takeScreenshot: 41-delete-shared-result-confirm
+- takeScreenshot: 15-delete-shared-result-confirm
 - tapOn: "Keep the result"
 - extendedWaitUntil:
     notVisible: "Delete a shared result?"
