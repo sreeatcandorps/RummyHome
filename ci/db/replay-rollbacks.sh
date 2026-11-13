@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–033) applied, check the function state after each, then re-apply the forward
+# has every migration (001–034) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,18 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 034 (results design; rolled back first)
+HAS_034=f
+if [ -f "$RB/rollback_034_results_design.sql" ]; then
+  HAS_034=t
+  if apply "$RB/rollback_034_results_design.sql"; then tap ok "rollback_034 applies"; else tap fail "rollback_034 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(q "select to_regclass('public.result_versions') is null")" = t ] && [ "$(fn_exists snapshot_result_version)" = f ] \
+    && [ "$(q "select exists(select 1 from pg_proc where proname='public_result' and pronamespace='public'::regnamespace and pronargs=1)")" = t ] \
+    && [ "$(fn_has declare_game_result 'tmp_declare_per_game')" = f ] \
+    && tap ok "after rollback_034 result_versions is gone, public_result takes one argument and declare_game_result is the 024 body" \
+    || tap fail "after rollback_034 result_versions / public_result / declare_game_result should be the 033 state"
+fi
 
 # 033 (security advisor cleanup; rolled back before 032)
 HAS_033=f
@@ -301,6 +313,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_031" = t ] && FORWARD="$FORWARD 031_round_robin"
 [ "$HAS_032" = t ] && FORWARD="$FORWARD 032_results_volume_fixes"
 [ "$HAS_033" = t ] && FORWARD="$FORWARD 033_security_advisor_cleanup"
+[ "$HAS_034" = t ] && FORWARD="$FORWARD 034_results_design"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -389,6 +402,14 @@ if [ "$HAS_033" = t ]; then
     && [ "$(q "select has_function_privilege('anon', 'public.add_my_player(uuid)', 'execute')")" = f ] \
     && [ "$(q "select has_function_privilege('anon', 'public.public_scorecard(text)', 'execute')")" = t ] \
     && tap ok "033 restored (security-invoker my_profile, every function has a search_path, anon only on the public RPCs)" || tap fail "033 restored"
+fi
+if [ "$HAS_034" = t ]; then
+  [ "$(q "select to_regclass('public.result_versions') is not null")" = t ] && [ "$(fn_exists snapshot_result_version)" = t ] \
+    && [ "$(q "select exists(select 1 from pg_proc where proname='public_result' and pronamespace='public'::regnamespace and pronargs=2)")" = t ] \
+    && [ "$(q "select exists(select 1 from pg_proc where proname='public_result' and pronamespace='public'::regnamespace and pronargs=1)")" = f ] \
+    && [ "$(fn_has declare_game_result 'tmp_declare_per_game')" = t ] \
+    && [ "$(q "select count(*) from public.result_versions")" != 0 ] \
+    && tap ok "034 restored (result_versions with backfilled rows, two-argument public_result, seated-first declare_game_result)" || tap fail "034 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op
