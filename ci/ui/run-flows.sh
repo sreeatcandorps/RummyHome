@@ -20,6 +20,8 @@ QUARANTINE=0
 
 mkdir -p "$OUT/screens" "$OUT/junit" "$OUT/debug"
 : > "$OUT/results.csv"
+ABS_OUT="$(cd "$OUT" && pwd)"
+ABS_SET="$(cd "$SET_DIR" && pwd)"
 
 rotate() {
   # 0 = portrait, 1 = landscape (90°). Auto-rotate is off so the setting sticks.
@@ -37,10 +39,10 @@ for f in $(ls "$SET_DIR"/*.yaml | sort); do
 
   echo "::group::flow $name"
   start=$(date +%s)
-  ( cd "$OUT/screens" && maestro test \
-      --format junit --output "../junit/$name.xml" \
-      --debug-output "../debug/$name" \
-      "$OLDPWD/$f" )
+  ( cd "$ABS_OUT/screens" && maestro test \
+      --format junit --output "$ABS_OUT/junit/$name.xml" \
+      --debug-output "$ABS_OUT/debug/$name" \
+      "$ABS_SET/$name.yaml" )
   rc=$?
   secs=$(( $(date +%s) - start ))
   echo "::endgroup::"

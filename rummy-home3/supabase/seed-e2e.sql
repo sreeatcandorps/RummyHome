@@ -14,6 +14,33 @@
 -- Placeholders Test Alpha..Test Uniform (E2EP01..E2EP19) are unregistered players managed by sree, in his My players.
 
 -- ---------------------------------------------------------------------------
+-- Make the seeded accounts usable through GoTrue (the app signs in for real on the emulator; the DB
+-- suite only impersonates). seed.sql leaves the token columns NULL, which GoTrue scans into Go
+-- strings and answers with "Database error querying schema". Identities are what the dashboard
+-- "create user" would have added.
+-- ---------------------------------------------------------------------------
+update auth.users
+   set confirmation_token = coalesce(confirmation_token, ''),
+       recovery_token = coalesce(recovery_token, ''),
+       email_change = coalesce(email_change, ''),
+       email_change_token_new = coalesce(email_change_token_new, ''),
+       email_change_token_current = coalesce(email_change_token_current, ''),
+       phone_change = coalesce(phone_change, ''),
+       phone_change_token = coalesce(phone_change_token, ''),
+       reauthentication_token = coalesce(reauthentication_token, ''),
+       is_sso_user = coalesce(is_sso_user, false),
+       is_anonymous = coalesce(is_anonymous, false)
+ where email like '%@test.local';
+
+insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+select gen_random_uuid(), u.id, u.id::text, 'email',
+       jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true, 'phone_verified', false),
+       now(), u.created_at, now()
+  from auth.users u
+ where u.email like '%@test.local'
+   and not exists (select 1 from auth.identities i where i.user_id = u.id and i.provider = 'email');
+
+-- ---------------------------------------------------------------------------
 -- Game E: undo fixture
 -- ---------------------------------------------------------------------------
 insert into public.games (id, created_by, status, game_type, settings, share_code, created_at)
