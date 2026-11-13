@@ -131,6 +131,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | edit a saved round (replace) | D, C | D + N | — |
 | | same round saved by two admins (true conflict) | D, C | C + N | — |
 | Undo | undo last round, undo on empty, **undo then add round** | D + S | D + S | `supabase/tests/25_undo_035.sql`, `smoke/13-undo-then-add-round.yaml` (PR 2 / 035) |
+| Game log | every change logged on the server, append-only, All/Important, edit rows expand, live rows; result History and "Changed after sharing" | D + U + S | D + U + N | `supabase/tests/26_event_log_036.sql`, `tests/event-log-036.test.ts`, `smoke/04` (last step), `full/70-game-log.yaml` (Logs PR / 036) |
 | | undo by second admin while first is typing | — | C | — |
 | Players / Admins | add new mid-game, from database, remove seat with no scores (016/017) | D, N (page opens) | D + N | `full/30` |
 | | add non-playing admin by ID | — | N | — |
@@ -153,7 +154,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | Offline / degraded | cached scorecard opens, save fails with a message, retry | U | N | — |
 | Help | every ? opens and closes, text fits | N | N (PR 12 adds one flow per screen) | `full/50`, `smoke/02`, `smoke/06` |
 
-**Smoke set on every PR (12 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add New Players by Initials) → Scorecard 20p → Scorecard 20p landscape → Results with no rounds (game G, 6 players, saved). Undo → Add round joins the smoke set with PR 2.
+**Smoke set on every PR (12 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4, then Log shows "Round 3 added" first) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add New Players by Initials) → Scorecard 20p → Scorecard 20p landscape → Results with no rounds (game G, 6 players, saved). Undo → Add round joins the smoke set with PR 2.
 
 **Nightly / before each APK:** the smoke set, everything marked N, dark appearance, plus C and the volume scripts monthly.
 
@@ -192,6 +193,23 @@ Only after S + N are green, with the matrix above as the checklist. Someone who 
 - A new account’s welcome email arrives from `scores@mindweavetech.com`.
 
 Pass when Home has New game, Results, and Recent, and none of Settle, Active, History, or All players. Settle stays off. `EXPO_PUBLIC_SETTLE_ENABLED` stays unset.
+
+## Logs PR test cases (Game and result logs, migration 036)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| L-1 | D | `supabase/tests/26_event_log_036.sql` | `event_log` exists with the kinds check, RLS on, realtime publication; UPDATE/DELETE on a row is refused; `log_event` is not executable by `authenticated` or `anon`; direct `insert` into `rounds`/`scores` is "permission denied" |
+| L-2 | D | same | `create_game` writes exactly one `game_created` row naming players, admins and the Game ID; `add_seated_player` writes `player_added` with the join round and the zero backfill, refuses non-admins (42501), closed games and a repeat seat |
+| L-3 | D | same | `save_round` logs `round_added` (dealer, non-zero scores) and `round_edited` (was→now per changed player, "N others unchanged"); `undo_last_round` logs `round_undone` with the removed scores; an edit's retired row is not logged as undone |
+| L-4 | D | same | Status rows: completed (with the leader), reopened, closed/unclosed (with the result code), deleted/restored; settings diff ("Middle drop -30→-50", important only once rounds exist); initials/admin/view-only rows are routine; profile rename lands in every active game |
+| L-5 | D | same | Saving a result writes `result_saved` ("Result saved with S1 · 1 game moved to Closed · 4 players"); deleting/restoring writes `result_deleted`/`result_restored`; editing or undoing a round of a closed game writes `result_changed` into the holding result (and "while this result was deleted" when it is); deleting a game in a result writes the "no longer counted" row |
+| L-6 | D | same | `list_game_log` pages newest first with `hasMore` and honours the level filter; `list_result_history` returns `result_*` rows only plus `versions` and `changedNote`; `public_result_note` / `public_scorecard_changes` work for anon with a valid id/token and return null/[] otherwise; a non-member reads no rows |
+| L-7 | D | `ci/db/replay-rollbacks.sh` | Rollback 036 drops the 10 `event_log_%` triggers, the table and type, re-grants insert/delete, restores the 035 `save_round`; forward replay rebuilds all of it; 036 is safe to run twice |
+| L-8 | U | `tests/event-log-036.test.ts` | Migration/rollback text pins; names from `details.names` come out bold; `round_edited` expands to was→now rows; day grouping (Today / Yesterday / date) keeps arrival order; dot colours by kind; default filter All while active, Important when done; the one-line "Changed after sharing: … · who · when (+N earlier)" note; History keeps `result_*` rows only |
+| L-9 | U | `tests/security-033.test.ts`, `tests/archive.test.ts` | The two new anon RPCs are granted explicitly by 036 (not by widening 033); the result ⋮ menu offers History to every viewer and Delete result to managers only |
+| L-10 | S | `smoke/04-add-round.yaml` (last step) | After Save round: Scorecard menu → Log opens and the first row reads "Round 3 added …" |
+| L-11 | N | `full/70-game-log.yaml` | Game E: add round 2 → edit it (Harish Drop→Middle drop, Priya's Rummy share follows) → undo → Log shows undone · edited · added newest first; tapping the edited row shows Was/Now; Important keeps all three |
+| L-12 | M | Result page on the emulator | History section below Games in this result; ⋮ History scrolls to it; after an edit of a closed game the amber "Changed after sharing" line appears on the page and in the share image, PDF and `/r/` page; the live scorecard page shows a Changes card |
 
 ## PR 2 test cases (Undo then Add round, migration 035)
 

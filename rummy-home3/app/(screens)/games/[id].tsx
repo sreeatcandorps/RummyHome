@@ -198,6 +198,12 @@ export default function GameScreen() {
     router.push({ pathname: '/(screens)/games/players', params: { id: game.id } });
   };
 
+  const openLog = () => {
+    if (!game) return;
+    setMenuOpen(false);
+    router.push({ pathname: '/(screens)/games/log', params: { id: game.id } });
+  };
+
   const hideGame = async () => {
     if (!game) return;
     setMenuOpen(false);
@@ -451,6 +457,7 @@ export default function GameScreen() {
                 {canScore && canReopenGame(game) ? (
                   <Menu.Item leadingIcon="lock-open-variant-outline" title="Reopen game" onPress={() => { setMenuOpen(false); setShowReopenConfirm(true); }} />
                 ) : null}
+                <Menu.Item leadingIcon="history" onPress={openLog} title="Log" testID="game-menu-log" />
                 <Menu.Item leadingIcon="share-variant" onPress={shareLive} title="Share live scorecard" />
                 {canShareResults(game.isComplete) ? (
                   <Menu.Item leadingIcon="image" onPress={shareFinalScores} title="Share final scores" />

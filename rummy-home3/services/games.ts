@@ -407,20 +407,8 @@ export const gamesService = {
       throw new Error('Failed to generate a valid game id.');
     }
 
-    const { error: gameError } = await supabase
-      .from('games')
-      .insert({
-        id: gameId,
-        created_by: input.createdBy,
-        game_type: input.gameType,
-        settings,
-        share_code: shareCode,
-      });
-
-    if (gameError) throw gameError;
-
     // Before the seats, so a player new to the creator's My players has a row (and
-    // initials) there when the seat trigger looks one up.
+    // initials) there when the seat trigger looks one up (and the log names them).
     await playersService.rememberTogether(input.createdBy, seated).catch(() => {});
 
     const memberships = seated.map((profileId, index) => ({
@@ -433,23 +421,48 @@ export const gamesService = {
     }));
     const labelled = memberships.map((row) => ({ ...row, label: input.labels?.[row.profile_id] ?? null }));
 
-    const withLabels = await supabase.from('game_players').insert(labelled);
-    // A pre-022 database has no label column; the app then derives labels from names.
-    const playersError = withLabels.error && missingColumn(withLabels.error)
-      ? (await supabase.from('game_players').insert(memberships)).error
-      : withLabels.error;
-    if (playersError) throw playersError;
+    // 036: one server call writes the game, every seat and the "Created game" log row together.
+    // A server without it (pre-036) gets the row-by-row inserts below.
+    const viaRpc = await supabase.rpc('create_game', {
+      p_game_type: input.gameType,
+      p_settings: settings,
+      p_player_ids: seated,
+      p_labels: input.labels ?? {},
+      p_share_code: shareCode,
+      p_id: gameId,
+    });
+    if (viaRpc.error && !missingRpc(viaRpc.error)) throw viaRpc.error;
 
-    if (!seated.includes(input.createdBy)) {
-      const unseated = await supabase.from('game_players').insert({
-        game_id: gameId,
-        profile_id: input.createdBy,
-        player_order: 900,
-        role: 'game_admin',
-        seated: false,
-      });
-      if (unseated.error && !missingColumn(unseated.error)) {
-        // The creator still runs the game through created_by when this row cannot be stored.
+    if (viaRpc.error) {
+      const { error: gameError } = await supabase
+        .from('games')
+        .insert({
+          id: gameId,
+          created_by: input.createdBy,
+          game_type: input.gameType,
+          settings,
+          share_code: shareCode,
+        });
+      if (gameError) throw gameError;
+
+      const withLabels = await supabase.from('game_players').insert(labelled);
+      // A pre-022 database has no label column; the app then derives labels from names.
+      const playersError = withLabels.error && missingColumn(withLabels.error)
+        ? (await supabase.from('game_players').insert(memberships)).error
+        : withLabels.error;
+      if (playersError) throw playersError;
+
+      if (!seated.includes(input.createdBy)) {
+        const unseated = await supabase.from('game_players').insert({
+          game_id: gameId,
+          profile_id: input.createdBy,
+          player_order: 900,
+          role: 'game_admin',
+          seated: false,
+        });
+        if (unseated.error && !missingColumn(unseated.error)) {
+          // The creator still runs the game through created_by when this row cannot be stored.
+        }
       }
     }
 
@@ -1058,20 +1071,27 @@ export const gamesService = {
       return updated;
     }
 
-    const { data: orders, error: orderError } = await supabase.from('game_players').select('player_order').eq('game_id', gameId);
-    if (orderError) throw orderError;
-    const next = Math.max(-1, ...(orders ?? []).map((row) => row.player_order)) + 1;
-    const seat = { game_id: gameId, profile_id: profileId, player_order: next, display_number: next + 1, role: 'player' as const };
-    // Newest shape first; each missing column (label 022, seated 006) drops one step back.
-    const attempts = [{ ...seat, seated: true, label: label ?? null }, { ...seat, seated: true }, seat];
-    let error: unknown = null;
-    for (const attempt of attempts) {
-      error = (await supabase.from('game_players').insert(attempt)).error;
-      if (!error || !missingColumn(error)) break;
-    }
-    if (error) throw error;
-    await this.backfillZeroScores(gameId, profileId);
+    // So the new player has a row (and initials) in the creator's My players before the seat is logged.
     if (game.createdBy) await playersService.rememberTogether(game.createdBy, [profileId]).catch(() => {});
+
+    // 036: the server seats the player, backfills zeros and writes the log row in one call.
+    const viaRpc = await supabase.rpc('add_seated_player', { p_game_id: gameId, p_profile_id: profileId, p_label: label ?? null });
+    if (viaRpc.error && !missingRpc(viaRpc.error)) throw viaRpc.error;
+    if (viaRpc.error) {
+      const { data: orders, error: orderError } = await supabase.from('game_players').select('player_order').eq('game_id', gameId);
+      if (orderError) throw orderError;
+      const next = Math.max(-1, ...(orders ?? []).map((row) => row.player_order)) + 1;
+      const seat = { game_id: gameId, profile_id: profileId, player_order: next, display_number: next + 1, role: 'player' as const };
+      // Newest shape first; each missing column (label 022, seated 006) drops one step back.
+      const attempts = [{ ...seat, seated: true, label: label ?? null }, { ...seat, seated: true }, seat];
+      let error: unknown = null;
+      for (const attempt of attempts) {
+        error = (await supabase.from('game_players').insert(attempt)).error;
+        if (!error || !missingColumn(error)) break;
+      }
+      if (error) throw error;
+      await this.backfillZeroScores(gameId, profileId);
+    }
     return this.getGame(gameId);
   },
 

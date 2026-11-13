@@ -14,6 +14,8 @@ type ScreenProps = {
   fullWidth?: boolean;
   /** Scroll events, e.g. to load more rows near the bottom. */
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  /** The scroller, for callers that jump to a section (e.g. the result History). */
+  scrollRef?: React.RefObject<ScrollView | null>;
 };
 
 /** The page padding every screen variant shares: gutters, top, and the gesture/nav bar. */
@@ -36,6 +38,7 @@ export function Screen({
   safeBottom = true,
   fullWidth = false,
   onScroll,
+  scrollRef,
 }: ScreenProps) {
   const theme = useAppTheme();
   const padding = useScreenPadding(safeBottom);
@@ -52,6 +55,7 @@ export function Screen({
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={[styles.root, { backgroundColor: theme.colors.background }]}
       contentContainerStyle={padding}
       refreshControl={refreshControl}

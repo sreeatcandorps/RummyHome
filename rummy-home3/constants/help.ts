@@ -158,6 +158,16 @@ export const HELP = {
     'This page updates on its own and needs no login.',
     'Anyone with the link can watch.',
   ),
+  gameLog: bullets(
+    'Every change to this game, written by the server. Nobody can edit or remove entries.',
+    'All shows everything; Important hides routine changes such as initials, admin changes and view-only players. Your choice is remembered on this phone.',
+    'Tap an edited round to see the old and new scores. New entries appear as they happen.',
+    'Hide game is personal and is not listed.',
+  ),
+  resultHistory: bullets(
+    'History lists what happened to this result after it was saved: deletions, restores, and changes to a game it counts.',
+    'When a round is edited or undone in a game that is part of this result, the result is totalled again and the line "Changed after sharing" is added to the page, the picture, the PDF and the web page.',
+  ),
 } as const;
 
 export const EMPTY_SETTLE = 'Finished games stay on Home under Recent.';

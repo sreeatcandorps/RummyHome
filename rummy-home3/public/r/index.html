@@ -167,7 +167,14 @@
         + '<div class="n2">' + esc(row.sub) + '</div></div><div class="pt ' + tone(row.points) + '">' + esc(fmt(row.points)) + '</div></div>';
     }
 
-    function render(r, requested) {
+    // 036: the one-line "Changed after sharing" note (same words as the app, the picture and the PDF).
+    function changedLine(note) {
+      if (!note || !note.summary) return '';
+      const more = note.count > 1 ? ' (+' + (note.count - 1) + ' earlier)' : '';
+      return 'Changed after sharing: ' + note.summary + (note.actorName ? ' · ' + note.actorName : '') + (note.at ? ' · ' + when(note.at) : '') + more;
+    }
+
+    function render(r, requested, changed) {
       const page = document.getElementById('page');
       const meta = document.getElementById('meta');
       const players = r.players || [];
@@ -252,6 +259,7 @@
         + '<p class="meta">' + (r.deleted ? 'Deleted · saved ' : 'Saved ') + esc(when(r.declaredAt)) + (r.declarerName ? ' · by ' + esc(r.declarerName) : '') + '</p>'
         + '<p class="count">' + esc(countLine) + '</p>'
         + notes.map((n) => '<p class="note">' + esc(n) + '</p>').join('')
+        + (changed ? '<p class="note" id="changed-note">' + esc(changed) + '</p>' : '')
         + '<div class="section"><h2>Scores</h2><div class="split"><div class="col">' + column(positive) + '</div><div class="col">' + column(negative) + '</div></div>' + evenLine + '</div></div>'
         + '<div class="card"><h2>How you got there · game by game</h2>' + table + legend + '</div>'
         + '<div class="card"><h2>Games in this result</h2>' + gameList + '</div>';
@@ -267,6 +275,21 @@
       return response.json();
     }
 
+    // 036: null before the migration or when nothing changed; the page then shows no line.
+    async function changedNote(id) {
+      try {
+        const response = await fetch(PROJECT.replace(/\/$/, '') + '/rest/v1/rpc/public_result_note', {
+          method: 'POST',
+          headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_id: id }),
+        });
+        if (!response.ok) return '';
+        return changedLine(await response.json());
+      } catch (e) {
+        return '';
+      }
+    }
+
     async function load() {
       const { id, version } = params();
       const meta = document.getElementById('meta');
@@ -276,7 +299,7 @@
       // Before migration 034 the function has no p_version argument: fall back to the plain call.
       if (version && (!result || !result.id)) result = await call(id, null);
       if (!result || !result.id) { meta.textContent = 'This results link is not valid.'; return; }
-      render(result, version);
+      render(result, version, await changedNote(id));
     }
 
     load().catch(() => { document.getElementById('meta').textContent = 'Could not load the result.'; });

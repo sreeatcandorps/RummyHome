@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Dialog, Menu, Portal, Snackbar, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,13 +10,16 @@ import { HelpButton } from '@/components/ui/HelpButton';
 import { HELP } from '@/constants/help';
 import { radius, spacing } from '@/constants/theme';
 import { DELETE_RESULT_BODY, DELETE_RESULT_TITLE, deletedBody, removedGamesNote, RESULT_DELETED_TITLE } from '@/utils/archive';
+import { ChangedAfterSharingLine, ResultHistorySection, RESULT_HISTORY_TITLE } from '@/components/results/ResultHistory';
 import { ResultsPage } from '@/components/results/ResultsPage';
 import { ResultsShare } from '@/components/results/ResultsShare';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { Screen } from '@/components/ui/Screen';
 import { useAppTheme } from '@/constants/theme';
 import { gamesService } from '@/services/games';
+import { eventLogService } from '@/services/eventLog';
 import { resultsService } from '@/services/results';
+import { changedNoteLine, ResultHistory } from '@/utils/eventLog';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { gameAdminLines } from '@/utils/gameAdmins';
 import { playersService } from '@/services/players';
@@ -92,6 +95,14 @@ export default function DeclaredResult() {
   const [note, setNote] = useState<string | null>(null);
   const [gameMeta, setGameMeta] = useState<Record<string, GameMeta>>({});
   const [declarerName, setDeclarerName] = useState<string | null>(null);
+  const [history, setHistory] = useState<ResultHistory | null>(null);
+  const scrollRef = useRef<ScrollView | null>(null);
+  const historyY = useRef(0);
+
+  const scrollToHistory = () => {
+    setMenuOpen(false);
+    scrollRef.current?.scrollTo({ y: Math.max(0, historyY.current - spacing.md), animated: true });
+  };
 
   const actorId = async () => authService.getCurrentPlayer().then((me) => me?.id ?? null).catch(() => null);
 
@@ -172,6 +183,7 @@ export default function DeclaredResult() {
         withRounds(loaded).then(fillPlayerNos).then(setResult).catch(() => {});
         flagReuse(loaded).catch(() => {});
         loadGameMeta(loaded).then(setGameMeta).catch(() => {});
+        eventLogService.listResultHistory(loaded.id).then(setHistory).catch(() => {});
         if (loaded.declaredBy) {
           const seated = sheetFor(loaded).players.find((player) => player.id === loaded.declaredBy);
           if (seated) setDeclarerName(seated.name);
@@ -190,8 +202,9 @@ export default function DeclaredResult() {
   // The saved screen's warning lines (and the removed-games note) travel with every share.
   const notes = useMemo(() => {
     const removed = removedGamesNote(result?.removedGameIds?.length ?? 0);
-    return [...resultShareNotes(warnings, true), ...(removed ? [removed] : [])];
-  }, [warnings, result?.removedGameIds?.length]);
+    const changed = changedNoteLine(history?.changedNote ?? null);
+    return [...resultShareNotes(warnings, true), ...(removed ? [removed] : []), ...(changed ? [changed] : [])];
+  }, [warnings, result?.removedGameIds?.length, history?.changedNote]);
 
   useEffect(() => {
     load();
@@ -250,19 +263,22 @@ export default function DeclaredResult() {
   }
 
   return (
-    <Screen>
+    <Screen scrollRef={scrollRef}>
       <Stack.Screen
         options={{
           headerRight: () => (
             <View style={styles.headerActions}>
               <HelpButton text={HELP.results} />
-              {result?.canManage ? (
+              {result ? (
                 <Menu
                   visible={menuOpen}
                   onDismiss={() => setMenuOpen(false)}
                   anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Result menu"> </Button>}
                 >
-                  <Menu.Item leadingIcon="delete-outline" title="Delete result" titleStyle={{ color: colors.error }} onPress={() => { setMenuOpen(false); setDeleteOpen(true); }} />
+                  <Menu.Item leadingIcon="history" title={RESULT_HISTORY_TITLE} onPress={scrollToHistory} testID="result-menu-history" />
+                  {result.canManage ? (
+                    <Menu.Item leadingIcon="delete-outline" title="Delete result" titleStyle={{ color: colors.error }} onPress={() => { setMenuOpen(false); setDeleteOpen(true); }} />
+                  ) : null}
                 </Menu>
               ) : null}
             </View>
@@ -270,6 +286,7 @@ export default function DeclaredResult() {
         }}
       />
       <ResultsShare card={card} details={details} createdAt={result?.declaredAt} />
+      <ChangedAfterSharingLine note={history?.changedNote ?? null} onPress={scrollToHistory} />
       <ResultWarnings warnings={warnings} />
       {error ? (
         <>
@@ -294,6 +311,7 @@ export default function DeclaredResult() {
           link={resultLinkText(result.id)}
         />
       ) : null}
+      {result ? <ResultHistorySection history={history} onLayout={(event) => { historyY.current = event.nativeEvent.layout.y; }} /> : null}
       <Portal>
         <Dialog visible={deleteOpen} onDismiss={() => busy || setDeleteOpen(false)} style={styles.dialog}>
           <Dialog.Title>{DELETE_RESULT_TITLE}</Dialog.Title>

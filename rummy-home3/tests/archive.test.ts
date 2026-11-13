@@ -72,7 +72,8 @@ test('scorecard menu offers Hide game to everyone and Delete game to managers on
 
 test('the result page offers Delete result only to canManage viewers and shows the deleted state', () => {
   const screenSrc = src('app/(screens)/results/[id].tsx');
-  assert.match(screenSrc, /result\?\.canManage \? \([\s\S]*?title="Delete result"/);
+  assert.match(screenSrc, /result\.canManage \? \([\s\S]*?title="Delete result"/);
+  assert.match(screenSrc, /title=\{RESULT_HISTORY_TITLE\}/, 'History in the ⋮ menu for every viewer (036)');
   assert.match(screenSrc, /RESULT_DELETED_TITLE/);
 });
 
