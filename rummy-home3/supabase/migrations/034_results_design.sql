@@ -174,9 +174,6 @@ begin
   end if;
 
   -- Everyone who sat in a game counts, scored or not (034); scores without a seat still count.
-  create temp table if not exists tmp_declare_per_game (game_id uuid, profile_id uuid, points integer) on commit drop;
-  delete from tmp_declare_per_game;
-  insert into tmp_declare_per_game (game_id, profile_id, points)
   with seated as (
     select gp.game_id, gp.profile_id
     from public.game_players gp
@@ -194,24 +191,19 @@ begin
       and s.score_type <> 'expense'
       and s.profile_id is not null
     group by s.game_id, s.profile_id
-  )
-  select st.game_id, st.profile_id, coalesce(sc.points, 0)
-  from seated st
-  left join scored sc on sc.game_id = st.game_id and sc.profile_id = st.profile_id
-  union
-  select sc.game_id, sc.profile_id, sc.points
-  from scored sc
-  where not exists (select 1 from seated st where st.game_id = sc.game_id and st.profile_id = sc.profile_id);
-
-  select count(distinct profile_id) into player_count from tmp_declare_per_game;
-
-  if player_count > 50 then
-    raise exception 'Results can include at most 50 players';
-  end if;
-
-  with per_player as (
+  ),
+  per_game as (
+    select st.game_id, st.profile_id, coalesce(sc.points, 0) as points
+    from seated st
+    left join scored sc on sc.game_id = st.game_id and sc.profile_id = st.profile_id
+    union
+    select sc.game_id, sc.profile_id, sc.points
+    from scored sc
+    where not exists (select 1 from seated st where st.game_id = sc.game_id and st.profile_id = sc.profile_id)
+  ),
+  per_player as (
     select profile_id, sum(points)::int as points, count(*)::int as games
-    from tmp_declare_per_game
+    from per_game
     group by profile_id
   ),
   named as (
@@ -239,7 +231,7 @@ begin
         'date', g.created_at,
         'scores', coalesce((
           select jsonb_object_agg(pg.profile_id::text, pg.points)
-          from tmp_declare_per_game pg
+          from per_game pg
           where pg.game_id = g.id
         ), '{}'::jsonb)
       ) order by g.created_at, g.id)
@@ -249,6 +241,11 @@ begin
   )
   into places
   from (select 1) as anchor;
+
+  player_count := jsonb_array_length(places->'standings');
+  if player_count > 50 then
+    raise exception 'Results can include at most 50 players';
+  end if;
 
   declared_ts := now();
 

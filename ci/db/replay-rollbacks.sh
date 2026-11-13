@@ -31,7 +31,7 @@ if [ -f "$RB/rollback_034_results_design.sql" ]; then
   if apply "$RB/rollback_034_results_design.sql"; then tap ok "rollback_034 applies"; else tap fail "rollback_034 applies: $(head -c 300 "$OUTERR")"; fi
   [ "$(q "select to_regclass('public.result_versions') is null")" = t ] && [ "$(fn_exists snapshot_result_version)" = f ] \
     && [ "$(q "select exists(select 1 from pg_proc where proname='public_result' and pronamespace='public'::regnamespace and pronargs=1)")" = t ] \
-    && [ "$(fn_has declare_game_result 'tmp_declare_per_game')" = f ] \
+    && [ "$(fn_has declare_game_result 'left join scored')" = f ] \
     && tap ok "after rollback_034 result_versions is gone, public_result takes one argument and declare_game_result is the 024 body" \
     || tap fail "after rollback_034 result_versions / public_result / declare_game_result should be the 033 state"
 fi
@@ -407,7 +407,7 @@ if [ "$HAS_034" = t ]; then
   [ "$(q "select to_regclass('public.result_versions') is not null")" = t ] && [ "$(fn_exists snapshot_result_version)" = t ] \
     && [ "$(q "select exists(select 1 from pg_proc where proname='public_result' and pronamespace='public'::regnamespace and pronargs=2)")" = t ] \
     && [ "$(q "select exists(select 1 from pg_proc where proname='public_result' and pronamespace='public'::regnamespace and pronargs=1)")" = f ] \
-    && [ "$(fn_has declare_game_result 'tmp_declare_per_game')" = t ] \
+    && [ "$(fn_has declare_game_result 'left join scored')" = t ] \
     && [ "$(q "select count(*) from public.result_versions")" != 0 ] \
     && tap ok "034 restored (result_versions with backfilled rows, two-argument public_result, seated-first declare_game_result)" || tap fail "034 restored"
 fi

@@ -24,7 +24,7 @@ select is((select count(*)::int from public.profiles where email_token is null),
 select is((select count(distinct email_token)::int from public.profiles), (select count(*)::int from public.profiles), 'tokens are unique');
 select has_function('public', 'queue_game_started_emails', array['uuid']);
 select has_function('public', 'queue_result_saved_emails', array['uuid']);
-select has_function('public', 'public_result', array['uuid']);
+select has_function('public', 'public_result', array['uuid', 'integer']);  -- 034 added the version argument
 select has_function('public', 'unsubscribe_email', array['text', 'text']);
 select has_function('public', 'set_email_prefs', array['boolean', 'boolean']);
 
