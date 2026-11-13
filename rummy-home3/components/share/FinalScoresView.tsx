@@ -11,12 +11,12 @@ import { RoundBlock } from '@/utils/resultsDetails';
  * the on-screen preview; the shared picture is the standings card and the rounds go in
  * the PDF, so nothing here needs to fit a 720 px image.
  */
-export function FinalScoresView({ sheet, testID = 'final-scores-rounds' }: { sheet: FinalScoresSheet; testID?: string }) {
+export function FinalScoresView({ sheet }: { sheet: FinalScoresSheet }) {
   const { colors } = useAppTheme();
   const { table } = sheet;
   const blockCount = table.blocks.length;
   return (
-    <View testID={testID} style={styles.wrap} accessibilityLabel={`Round by round, ${table.names.length} players in ${blockCount} ${blockCount === 1 ? 'block' : 'blocks'}`}>
+    <View testID="final-scores-rounds" style={styles.wrap} accessibilityLabel={`Round by round, ${table.names.length} players in ${blockCount} ${blockCount === 1 ? 'block' : 'blocks'}`}>
       {table.blocks.map((block, blockIndex) => (
         <RoundBlockView
           key={blockIndex}

@@ -38,7 +38,7 @@ tags: [smoke]
     visible: "Round by round"
     timeout: 15000
 - assertVisible:
-    id: "final-scores-block-1"
+    id: "final-scores-rounds"
 - assertVisible:
     id: "share-rounds"
 - assertVisible:
