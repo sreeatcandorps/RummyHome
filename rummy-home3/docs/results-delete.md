@@ -72,6 +72,8 @@ clears the stamp and runs `sync_closed_at` again, so the games are Closed by it 
 - pgTAP `supabase/tests/30_results_delete.sql` (9.1–9.5, who may, Logs rows, double delete).
 - Unit `tests/results-delete-pr9.test.ts` (copy, toast timer, consequence line for 0/1/2 games,
   30-day window, shared marker, the screens' wiring).
-- Maestro nightly `e2e/full/40-results-save-and-past.yaml` (Delete → Undo on the result page;
-  Delete on the row → Deleted + Restore) and `e2e/full/41-delete-shared-result-confirm.yaml`
-  (share, then Delete asks first). Smoke `12` checks the button and its line on a saved result.
+- Maestro smoke `e2e/smoke/12-results-zero-players.yaml` (the button and its line on a saved
+  result; Delete → Undo toast → Undo; Delete on the row → toast runs out → Deleted + Restore →
+  Restore) and `e2e/smoke/15-delete-shared-result-confirm.yaml` (share the picture, then Delete
+  asks first). Nightly `e2e/full/40-results-save-and-past.yaml` repeats the Delete/Undo/Restore
+  path on game A's result.

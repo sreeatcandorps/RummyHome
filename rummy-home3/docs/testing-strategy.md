@@ -145,7 +145,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | PR 8 design: ranked split + medals, bands of five games with borders, legend, Games in this result | U (model, HTML, CSS parity), S | **S** | `smoke/06`, `smoke/12` |
 | | save result (completed → closed), closed-reuse warning | U, D, N | N | `full/40` |
 | | 0 players in a saved result when the game has no rounds (034) | U, D (pgTAP 24), S | U + D + **S** | `smoke/12` |
-| | PR 9: Delete this result + Undo toast, confirm only when shared, Past results Delete / Deleted + Restore (30 days) | U, D (pgTAP 30), S (button), N | U + D + **S** + N | `smoke/12`, `full/40`, `full/41` |
+| | PR 9: Delete this result + Undo toast, confirm only when shared, Past results Delete / Deleted + Restore (30 days) | U, D (pgTAP 30), S, N | U + D + **S** + N | `smoke/12`, `smoke/15`, `full/40` |
 | | result versions after a game is deleted; `/r/` page shows the edited notice and older versions (034) | D (pgTAP 24), U (page source) | D + N (web screenshot) | — |
 | | share image (summary only, generator initials, cap 8 a side) / PDF (phone pages, 16 px) match screen | U | N (share sheet screenshot) | — |
 | | single game: Final scores card (standings) + rounds in blocks of five, Rounds PDF, web scorecard blocks | U | **S** (button visible), N | `smoke/05` |
@@ -240,8 +240,8 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | R9-7 | U | same 9.7 | `docs/results-delete.md` names D9.1–D9.3, `sync_closed_at`, `can_manage_result`, 30 days, the marker and `/r/`; Results help names the button, Undo and 30 days |
 | R9-8 | D | `supabase/tests/30_results_delete.sql` | 9.1 delete → `closed_at` cleared, status untouched, off `list_game_results_page` / `results_holding_game`, `get_game_result` deleted + canRestore, Deleted list row with counts, Logs `result_deleted` row and summary; 9.2 a game in two live results stays Closed; 9.3 player / outsider / signed-out refused, an admin of every game may delete and restore; 9.4 restore by a player refused, by the deleter reverses everything, Logs `result_restored`; 9.5 anon `public_result` deleted with the saved standings; a second delete is harmless |
 | R9-9 | S | `smoke/12-results-zero-players.yaml` | The saved result shows "Delete this result" with the consequence line (screenshot) |
-| R9-10 | N | `full/40-results-save-and-past.yaml` | Delete this result → toast with Undo (screenshot) → Undo → "Result restored…", Scores back; Past results row Delete → toast runs out → Deleted tag + Restore + 30-day note (screenshot) → Restore |
-| R9-11 | N | `full/41-delete-shared-result-confirm.yaml` | Share the picture (Back closes the sheet) → Delete this result → "Delete a shared result?" (screenshot) → Cancel keeps it |
+| R9-10 | S + N | `smoke/12-results-zero-players.yaml` (game G), `full/40-results-save-and-past.yaml` (game A) | Delete this result → toast with Undo (screenshot) → Undo → "Result restored…", Scores back; Past results row Delete → toast runs out → Deleted tag + Restore + 30-day note (screenshot) → Restore |
+| R9-11 | S | `smoke/15-delete-shared-result-confirm.yaml` | Share the picture (Back closes the sheet) → Delete this result → "Delete a shared result?" (screenshot) → Cancel keeps it |
 
 ## PR 7 test cases (Add players to this game, New game picker labels, Players · Admins; no migration)
 

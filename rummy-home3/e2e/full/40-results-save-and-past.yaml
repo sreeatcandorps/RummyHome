@@ -52,9 +52,9 @@ tags: [nightly]
 - extendedWaitUntil:
     visible: "Result deleted · .* Completed again"
     timeout: 15000
-- assertVisible: "Undo"
+- assertVisible: "Undo.*"
 - takeScreenshot: 40d-deleted-undo-toast
-- tapOn: "Undo"
+- tapOn: "Undo.*"
 - extendedWaitUntil:
     visible: "Result restored · its games are Closed again"
     timeout: 15000
@@ -75,10 +75,11 @@ tags: [nightly]
 # Delete on a Past results row → let the toast run out → Deleted + Restore → Restore.
 - scrollUntilVisible:
     element:
-      text: "Delete"
+      id: "past-result-delete-.*"
     direction: DOWN
     timeout: 10000
-- tapOn: "Delete"
+- tapOn:
+    id: "past-result-delete-.*"
 - extendedWaitUntil:
     visible: "Result deleted · its games are Completed again"
     timeout: 15000
@@ -88,17 +89,19 @@ tags: [nightly]
     timeout: 20000
 - scrollUntilVisible:
     element:
-      text: "Restore"
+      id: "deleted-result-restore-.*"
     direction: DOWN
     timeout: 10000
 - assertVisible: "Deleted"
 - assertVisible: ".*stay listed for 30 days under \"Deleted\".*"
 - takeScreenshot: 40h-past-results-deleted-restore
-- tapOn: "Restore"
+- tapOn:
+    id: "deleted-result-restore-.*"
 - extendedWaitUntil:
     visible: "Result restored · its games are Closed again"
     timeout: 15000
 - extendedWaitUntil:
-    notVisible: "Restore"
+    notVisible:
+      id: "deleted-result-restore-.*"
     timeout: 20000
 - takeScreenshot: 40i-past-results-restored
