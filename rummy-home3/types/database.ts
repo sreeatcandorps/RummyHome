@@ -187,6 +187,10 @@ export type Database = {
       };
     };
     Functions: {
+      undo_last_round: {
+        Args: { p_game_id: string };
+        Returns: Json;
+      };
       is_demo_admin: {
         Args: Record<string, never>;
         Returns: boolean;

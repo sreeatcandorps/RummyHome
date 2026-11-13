@@ -1,12 +1,14 @@
 /**
- * Two admins saving the same round at the same moment.
+ * The scorecard changed under a save.
  *
  * Since migration 019 the server serialises writers per game and answers the loser with
- * SQLSTATE `PT409` (PostgREST turns that into HTTP 409) and a plain-English message:
- * either the round was just saved by someone else with different scores, or a player in
- * the payload is no longer in the game. Before 019 the same race surfaced as a raw
- * `23505` unique violation on (game_id, round_number); that is mapped to the same
- * outcome so the app behaves the same against an older database.
+ * SQLSTATE `PT409` (PostgREST turns that into HTTP 409) and a plain-English message: the
+ * round was just saved by another admin (035 names them), a player in the payload is no
+ * longer in the game, or a round was undone while this admin was typing (035). A raw
+ * `23505` unique violation on (game_id, round_number) can still arrive from an older
+ * database or the pre-RPC fallback; it is NOT someone else's save (before 035 it was
+ * usually an undone round still holding its number), so it gets a neutral "refreshed, try
+ * again" sentence rather than blaming another admin.
  *
  * The screen's job on a conflict is: show the message, refresh the scorecard, and (for
  * Add round) clear the typed scores so they cannot land on the next round by accident.
@@ -14,7 +16,7 @@
 export const ROUND_CONFLICT_CODE = 'PT409';
 
 export const ROUND_CONFLICT_FALLBACK_MESSAGE =
-  'This round was just saved by someone else. The scorecard has been refreshed; check it before you save again.';
+  'The scorecard changed. It has been refreshed; try again.';
 
 const ROUNDS_UNIQUE_KEY = /rounds_game_id_round_number_key|duplicate key value violates unique constraint "rounds/i;
 
@@ -39,7 +41,7 @@ export function isRoundConflict(error: unknown): boolean {
   return ROUNDS_UNIQUE_KEY.test(`${err.message ?? ''} ${err.details ?? ''}`);
 }
 
-/** The server's message when it is the 019 one; the generic sentence for a raw unique violation. */
+/** The server's message when it is the PT409 one; the neutral sentence for a raw unique violation. */
 export function roundConflictMessage(error: unknown): string {
   if (error instanceof RoundConflictError) return error.message;
   const err = error as ErrorLike;

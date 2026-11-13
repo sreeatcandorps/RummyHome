@@ -848,6 +848,12 @@ export const gamesService = {
       return updatedGame;
     }
 
+    // 035: one locked server step (mark undone + move current_round back). Older databases
+    // without the RPC fall through to the two direct writes below.
+    const { error: rpcError } = await supabase.rpc('undo_last_round', { p_game_id: gameId });
+    if (!rpcError) return this.getGame(gameId);
+    if (rpcError.code !== MISSING_FUNCTION) throw rpcError;
+
     const { data: round, error: roundError } = await supabase
       .from('rounds')
       .select('*')

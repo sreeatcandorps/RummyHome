@@ -18,7 +18,7 @@
 --   cd        ...00a3  managed by sree, seated in C (closed game)
 --
 -- Games:
---   A  10000000-0000-4000-8000-00000000000a  active, 2 live rounds + 1 undone round
+--   A  10000000-0000-4000-8000-00000000000a  active, 2 live rounds + 2 undone rounds (one at 1003, one still at 2)
 --   B  ...00b  completed, declared in result R1
 --   C  ...00c  completed and closed (closed_at set), not in a result
 -- Result:
@@ -182,6 +182,16 @@ values ('30000000-0000-4000-8000-0000000000a3', '10000000-0000-4000-8000-0000000
 insert into public.scores (round_id, game_id, profile_id, score_type, value) values
   ('30000000-0000-4000-8000-0000000000a3', '10000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000008', 'count', -50),
   ('30000000-0000-4000-8000-0000000000a3', '10000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000002', 'rummy', 50);
+
+-- An undone round 2 that still holds number 2 (Undo, then round 2 was played again): since 035
+-- only live rounds are unique per number, so this row and the live round 2 coexist.
+insert into public.rounds (id, game_id, round_number, dealer_profile_id, created_by, undone_at, undone_by, undo_reason)
+values ('30000000-0000-4000-8000-0000000000a4', '10000000-0000-4000-8000-00000000000a', 2,
+        '00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000001', now() - interval '90 minutes',
+        '00000000-0000-4000-8000-000000000001', 'admin undo');
+insert into public.scores (round_id, game_id, profile_id, score_type, value) values
+  ('30000000-0000-4000-8000-0000000000a4', '10000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000002', 'count', -20),
+  ('30000000-0000-4000-8000-0000000000a4', '10000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-000000000003', 'rummy', 20);
 
 update public.games set current_round = 3 where id = '10000000-0000-4000-8000-00000000000a';
 

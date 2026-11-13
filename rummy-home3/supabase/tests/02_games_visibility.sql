@@ -18,7 +18,7 @@ select throws_like(
 select tests.login('00000000-0000-4000-8000-000000000003');
 select ok(exists (select 1 from public.games where id = '10000000-0000-4000-8000-00000000000a'), 'seated player sees game A');
 select ok('10000000-0000-4000-8000-00000000000a' in (select * from public.list_visible_game_ids()), 'seated player: A in list_visible_game_ids');
-select is((select count(*) from public.rounds where game_id = '10000000-0000-4000-8000-00000000000a')::int, 3, 'seated player reads all three round rows (2 live + 1 undone)');
+select is((select count(*) from public.rounds where game_id = '10000000-0000-4000-8000-00000000000a')::int, 4, 'seated player reads all four round rows (2 live + 2 undone)');
 select throws_like(
   $$ insert into public.rounds (game_id, round_number, created_by) values ('10000000-0000-4000-8000-00000000000a', 9, auth.uid()) $$,
   '%row-level security%', 'seated player cannot insert a round');
@@ -29,7 +29,7 @@ select ok(not exists (select 1 from public.games where id = '10000000-0000-4000-
 -- viewer (spectator): sees, cannot score
 select tests.login('00000000-0000-4000-8000-000000000004');
 select ok(exists (select 1 from public.games where id = '10000000-0000-4000-8000-00000000000a'), 'viewer sees game A');
-select is((select count(*) from public.scores where game_id = '10000000-0000-4000-8000-00000000000a')::int, 10, 'viewer reads the scores');
+select is((select count(*) from public.scores where game_id = '10000000-0000-4000-8000-00000000000a')::int, 12, 'viewer reads the scores');
 select throws_like(
   $$ insert into public.rounds (game_id, round_number, created_by) values ('10000000-0000-4000-8000-00000000000a', 9, auth.uid()) $$,
   '%row-level security%', 'viewer cannot insert a round');

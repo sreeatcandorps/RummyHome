@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–034) applied, check the function state after each, then re-apply the forward
+# has every migration (001–035) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -24,7 +24,20 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 034 (results design; rolled back first)
+# 035 (undo then add round; rolled back first)
+HAS_035=f
+if [ -f "$RB/rollback_035_undo_round.sql" ]; then
+  HAS_035=t
+  if apply "$RB/rollback_035_undo_round.sql"; then tap ok "rollback_035 applies"; else tap fail "rollback_035 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists undo_last_round)" = f ] \
+    && [ "$(q "select exists(select 1 from pg_constraint where conname='rounds_game_id_round_number_key')")" = t ] \
+    && [ "$(q "select to_regclass('public.rounds_live_number_uidx') is null")" = t ] \
+    && [ "$(fn_has save_round 'just saved by someone else')" = t ] \
+    && tap ok "after rollback_035 undo_last_round is gone, the full unique key is back and save_round says someone else" \
+    || tap fail "after rollback_035 undo_last_round / unique key / save_round should be the 031 state"
+fi
+
+# 034 (results design)
 HAS_034=f
 if [ -f "$RB/rollback_034_results_design.sql" ]; then
   HAS_034=t
@@ -314,6 +327,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_032" = t ] && FORWARD="$FORWARD 032_results_volume_fixes"
 [ "$HAS_033" = t ] && FORWARD="$FORWARD 033_security_advisor_cleanup"
 [ "$HAS_034" = t ] && FORWARD="$FORWARD 034_results_design"
+[ "$HAS_035" = t ] && FORWARD="$FORWARD 035_undo_round"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -410,6 +424,14 @@ if [ "$HAS_034" = t ]; then
     && [ "$(fn_has declare_game_result 'left join scored')" = t ] \
     && [ "$(q "select count(*) from public.result_versions")" != 0 ] \
     && tap ok "034 restored (result_versions with backfilled rows, two-argument public_result, seated-first declare_game_result)" || tap fail "034 restored"
+fi
+if [ "$HAS_035" = t ]; then
+  [ "$(fn_exists undo_last_round)" = t ] \
+    && [ "$(q "select exists(select 1 from pg_constraint where conname='rounds_game_id_round_number_key')")" = f ] \
+    && [ "$(q "select to_regclass('public.rounds_live_number_uidx') is not null")" = t ] \
+    && [ "$(fn_has save_round 'name the admin who saved it')" = t ] \
+    && [ "$(q "select count(*) from public.rounds where undone_at is not null and round_number < 1000")" = 0 ] \
+    && tap ok "035 restored (undo_last_round, live-rounds partial index, saver-named conflict, undone rows parked at 1000+)" || tap fail "035 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op
