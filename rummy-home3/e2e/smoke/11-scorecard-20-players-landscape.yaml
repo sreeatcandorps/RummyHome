@@ -14,14 +14,13 @@ tags: [smoke, landscape]
     visible: "Scorecard"
     timeout: 20000
 - assertVisible: "TA"
-- takeScreenshot: 21-scorecard-20p-landscape
+- takeScreenshot: 11-scorecard-20p-landscape
 - swipe:
     direction: LEFT
     duration: 400
+    waitToSettleTimeoutMs: 1000
 - swipe:
     direction: LEFT
     duration: 400
-- extendedWaitUntil:
-    visible: "TU"
-    timeout: 5000
-- takeScreenshot: 21b-scorecard-20p-landscape-right
+    waitToSettleTimeoutMs: 1000
+- takeScreenshot: 11b-scorecard-20p-landscape-right

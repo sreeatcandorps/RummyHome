@@ -11,9 +11,9 @@ tags: [smoke]
 - assertVisible: "Change passcode"
 - takeScreenshot: 07-profile
 - scrollUntilVisible:
-    element: "Log out"
+    element:
+      text: "App version.*"
     direction: DOWN
     timeout: 10000
-- assertVisible:
-    text: "EZ Score v.*"
+- assertVisible: "Log out"
 - takeScreenshot: 07b-profile-bottom

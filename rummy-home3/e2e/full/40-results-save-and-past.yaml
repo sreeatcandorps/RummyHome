@@ -1,13 +1,21 @@
 appId: com.mindweavetech.rummyhome
 tags: [nightly]
-# Save a result for game A (completed by smoke/05): the "Result saved" dialog lists the status
-# change, the saved result opens, and it appears under Past results.
+# Save a result for game A only (completed by smoke/05): the "Result saved" dialog lists the status
+# change, the saved result opens, and it appears under Past results. Game G (completed, seeded) is
+# unticked so it stays available for known-bugs/pr8, which runs after the full set.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Results"
 - extendedWaitUntil:
     visible: "Show results"
     timeout: 15000
+- runFlow:
+    when:
+      visible:
+        id: "game-card-GAMEG1"
+    commands:
+      - tapOn:
+          id: "game-card-GAMEG1"
 - tapOn: "Show results"
 - extendedWaitUntil:
     visible: "Totals"

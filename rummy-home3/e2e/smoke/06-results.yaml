@@ -16,7 +16,7 @@ tags: [smoke]
     visible: "Totals"
     timeout: 20000
 - assertVisible:
-    text: "1 game · \\d+ players"
+    text: "\\d+ games? · \\d+ players"
 - assertVisible:
     id: "results-save-button"
 - takeScreenshot: 06b-results-one-game

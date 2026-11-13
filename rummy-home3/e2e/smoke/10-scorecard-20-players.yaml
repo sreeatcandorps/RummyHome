@@ -16,29 +16,35 @@ tags: [smoke]
     timeout: 20000
 - assertVisible: "Round 31"
 - assertVisible: "TA"
-- takeScreenshot: 20-scorecard-20p
+- takeScreenshot: 10-scorecard-20p
 - swipe:
     direction: LEFT
     duration: 400
+    waitToSettleTimeoutMs: 1000
 - swipe:
     direction: LEFT
     duration: 400
+    waitToSettleTimeoutMs: 1000
 - swipe:
     direction: LEFT
     duration: 400
+    waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
     visible: "TU"
     timeout: 5000
-- takeScreenshot: 20b-scorecard-20p-scrolled-right
+- takeScreenshot: 10b-scorecard-20p-scrolled-right
 - swipe:
     direction: RIGHT
     duration: 400
+    waitToSettleTimeoutMs: 1000
 - swipe:
     direction: RIGHT
     duration: 400
+    waitToSettleTimeoutMs: 1000
 - swipe:
     direction: RIGHT
     duration: 400
+    waitToSettleTimeoutMs: 1000
 - assertVisible: "TA"
 - scroll
-- takeScreenshot: 20c-scorecard-20p-scrolled-down
+- takeScreenshot: 10c-scorecard-20p-scrolled-down

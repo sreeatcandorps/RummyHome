@@ -39,12 +39,19 @@ for f in $(ls "$SET_DIR"/*.yaml | sort); do
 
   echo "::group::flow $name"
   start=$(date +%s)
-  ( cd "$ABS_OUT/screens" && maestro test \
+  # Maestro 2.x writes takeScreenshot/ (the flow's screenshots), logs/ (per-command timings) and
+  # its own failure capture into the test output dir; the flow's screenshots are copied to screens/.
+  maestro test \
       --format junit --output "$ABS_OUT/junit/$name.xml" \
-      --debug-output "$ABS_OUT/debug/$name" \
-      "$ABS_SET/$name.yaml" )
+      --test-output-dir "$ABS_OUT/debug/$name" \
+      "$ABS_SET/$name.yaml"
   rc=$?
   secs=$(( $(date +%s) - start ))
+  if [ -d "$ABS_OUT/debug/$name/takeScreenshot" ]; then
+    cp "$ABS_OUT/debug/$name/takeScreenshot/"*.png "$ABS_OUT/screens/" 2>/dev/null || true
+  fi
+  # Older layout (or no bundle): takeScreenshot writes next to the current directory.
+  find . -maxdepth 1 -name '*.png' -newer "$ABS_OUT/results.csv" -exec mv {} "$ABS_OUT/screens/" \; 2>/dev/null || true
   echo "::endgroup::"
 
   if [ "$rc" -eq 0 ]; then
