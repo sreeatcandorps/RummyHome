@@ -1,0 +1,44 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# PR 3: typing past the Full count (80) asks once for that cell ("Over the Full count" · Change /
+# Keep -120); typing 40 shows the soft half-count line without a dialog. Nothing is saved: the
+# flow leaves the screen. Fixture: game H (GAMEH1), Full count -80.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    id: "game-card-GAMEH1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- tapOn: "Sree Test, no score"
+- tapOn: "1"
+- tapOn: "2"
+- assertNotVisible: "Over the Full count"
+- tapOn: "0"
+- extendedWaitUntil:
+    visible: "Over the Full count"
+    timeout: 5000
+- assertVisible:
+    text: "The Full count for this game is 80. Keep -120 for this round?"
+- takeScreenshot: 80-over-max-confirm
+- tapOn: "Keep -120"
+- assertVisible: "Sree Test, typing -120"
+- assertVisible:
+    id: "count-warning"
+- tapOn: "Save score"
+- assertVisible: "Sree Test, score -120"
+- takeScreenshot: 80b-over-max-kept
+# the soft warning at half the Full count, no dialog
+- tapOn: "Harish Test, no score"
+- tapOn: "4"
+- tapOn: "0"
+- assertVisible:
+    id: "count-warning"
+- assertVisible: "40 is half the Full count (80)."
+- assertNotVisible: "Over the Full count"
+- takeScreenshot: 80c-half-count-warning
+- back

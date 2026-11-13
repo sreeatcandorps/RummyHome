@@ -6,7 +6,7 @@ import { nameSegments } from '../utils/boldName';
 import { filterMyPlayers, matchesPlayerFilter, SORT_CHIP, SORT_OPTIONS } from '../utils/myPlayersList';
 import { orderCandidates } from '../utils/playerIdentity';
 import { addDraftPick, removeDraftPick, newGameDraft } from '../utils/newGameDraft';
-import { actionFill, CELL_FILL, cellTone, PRESET_FLASH_FILL, PRESET_FLASH_MS } from '../utils/roundEntry';
+import { actionFill, CELL_FILL, cellFill, cellTone, PRESET_FLASH_FILL, PRESET_FLASH_MS } from '../utils/roundEntry';
 import { editableRounds, entryFromRound, playedRounds, retiredRoundNumber } from '../utils/editRound';
 import {
   DEFAULT_RESULTS_FILTER,
@@ -87,12 +87,16 @@ test('build 4: the new-game draft is shared with Add New Players and edits flow 
   assert.deepEqual(newGameDraft.get(), []);
 });
 
-test('Add round palette (Clubhouse) — selected and confirmed cells on white, soft-green active sign, blue Rummy, green preset flash', () => {
+test('Add round palette (PR 3) — selected cell and active sign yellow, saved plus light green, saved minus white, blue Rummy, green preset flash', () => {
   assert.equal(CELL_FILL[cellTone('empty')], 'cellNeutral');
-  assert.equal(CELL_FILL[cellTone('selected')], 'surface');
-  assert.equal(CELL_FILL[cellTone('pending')], 'surface');
+  assert.equal(CELL_FILL[cellTone('selected')], 'secondaryContainer');
+  assert.equal(CELL_FILL[cellTone('pending')], 'secondaryContainer');
   assert.equal(CELL_FILL[cellTone('confirmed')], 'surface');
-  assert.equal(actionFill('sign', true), 'primaryContainer');
+  assert.equal(cellFill('confirmed', 40), 'positiveContainer');
+  assert.equal(cellFill('confirmed', -80), 'surface');
+  assert.equal(cellFill('confirmed', 0), 'surface');
+  assert.equal(cellFill('selected', 40), 'secondaryContainer');
+  assert.equal(actionFill('sign', true), 'secondaryContainer');
   assert.equal(actionFill('sign', false), 'surface');
   assert.equal(actionFill('rummy'), 'tertiaryContainer');
   assert.equal(actionFill('preset'), 'surface');

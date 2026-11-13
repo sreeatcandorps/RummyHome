@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { CELL_FILL, CellStatus, cellTone } from '@/utils/roundEntry';
+import { CELL_FILL, cellFill, CellStatus, cellTone } from '@/utils/roundEntry';
 import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
 
 type ScoreCellProps = {
@@ -48,6 +48,7 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
   const tone = cellTone(status);
   const hasValue = value !== undefined;
   const canClear = hasValue || isPending;
+  const isWin = isConfirmed && hasValue && (value ?? 0) > 0;
 
   const fill = useRef(new Animated.Value(isConfirmed ? 1 : 0)).current;
   const scale = useRef(new Animated.Value(1)).current;
@@ -76,20 +77,22 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
   const pressOut = () =>
     Animated.spring(scale, { toValue: 1, speed: 24, bounciness: 6, useNativeDriver: false }).start();
 
+  // Beige → white for a saved minus, beige → light green for a saved plus (PR 3).
   const animatedBackground = fill.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors[CELL_FILL.neutral], colors[CELL_FILL.confirmed]],
+    outputRange: [colors[CELL_FILL.neutral], colors[cellFill('confirmed', value)]],
   });
-  const backgroundColor = tone === 'selected' ? colors[CELL_FILL.selected] : animatedBackground;
+  // The cell being worked on is marigold yellow (PR 3), the same as the active sign key.
+  const backgroundColor = tone === 'selected' ? colors[cellFill('selected', value)] : animatedBackground;
 
-  // The selection ring is the button green (the cell is what you are tapping into); saved cells keep a quiet border.
-  const ringColor = tone === 'selected' ? colors.primary : tone === 'confirmed' ? colors.outline : colors.outlineVariant;
+  // The selection ring is the deep yellow text colour; a saved win has a green ring; other saved cells keep a quiet border.
+  const ringColor = tone === 'selected' ? colors.onSecondaryContainer : isWin ? colors.win : tone === 'confirmed' ? colors.outline : colors.outlineVariant;
   // The scorecard standard: a win green, a penalty over half the Full count red text, the rest plain.
   const saved = isConfirmed ? scoreTextStyle(scoreTone(value ?? 0, fullCount)) : null;
-  const valueColor = isPending
-    ? colors.onSurface
+  const valueColor = isSelected
+    ? colors.onSecondaryContainer
     : saved
-      ? saved.colorKey === 'positive' ? colors.onPositiveContainer : colors[saved.colorKey]
+      ? saved.colorKey === 'positive' ? colors.win : colors[saved.colorKey]
       : colors.onSurface;
   const valueWeight = saved?.fontWeight ?? '800';
 
@@ -124,7 +127,7 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
           numberOfLines={1}
           style={[
             styles.name,
-            { fontSize: nameFontSize(name, compact), color: isConfirmed ? colors.onPositiveContainer : colors.onSurface },
+            { fontSize: nameFontSize(name, compact), color: isSelected ? colors.onSecondaryContainer : isConfirmed ? colors.onPositiveContainer : colors.onSurface },
           ]}
         >
           {name}

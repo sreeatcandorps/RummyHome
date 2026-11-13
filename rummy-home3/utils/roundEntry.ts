@@ -276,25 +276,67 @@ export function cellTone(status: CellStatus): CellTone {
 }
 
 /**
- * The Add round palette, as theme colour names so the screen and the tests
- * agree (docs/design/02-design-system.md, Add round). A cell you are working on or have saved sits
- * on white, with a green ring while it is selected; empty cells rest on the sunken beige.
+ * The Add round palette, as theme colour names so the screen and the tests agree (PR 3, Nov 13):
+ * the cell you are working on is marigold yellow (`secondaryContainer`), a saved plus sits on
+ * light green (`positiveContainer`) with green "+40" text, a saved minus or 0 sits on white, and
+ * empty cells rest on the sunken beige. The layout itself is unchanged.
  */
 export type EntryFill = 'cellNeutral' | 'primaryContainer' | 'secondaryContainer' | 'positiveContainer' | 'tertiaryContainer' | 'surface';
 
 export const CELL_FILL: Record<CellTone, EntryFill> = {
   neutral: 'cellNeutral',
-  selected: 'surface',
+  selected: 'secondaryContainer',
   confirmed: 'surface',
 };
 
+/** The fill of a cell given its tone and the score it holds: a saved plus is the light green. */
+export function cellFill(tone: CellTone, value: number | undefined): EntryFill {
+  if (tone === 'confirmed' && value !== undefined && value > 0) return 'positiveContainer';
+  return CELL_FILL[tone];
+}
+
 export type ActionKind = 'sign' | 'preset' | 'rummy';
 
-/** Fill of a key on the action row. The active sign is the soft green; Rummy is always blue; presets rest on surface and flash green when tapped. */
+/** Fill of a key on the action row. The active sign is the same yellow as the selected cell; Rummy is always blue; presets rest on surface and flash green when tapped. */
 export function actionFill(kind: ActionKind, active = false): EntryFill {
-  if (kind === 'sign') return active ? 'primaryContainer' : 'surface';
+  if (kind === 'sign') return active ? 'secondaryContainer' : 'surface';
   if (kind === 'rummy') return 'tertiaryContainer';
   return 'surface';
+}
+
+export type CountWarning = 'none' | 'half' | 'full';
+
+/**
+ * How far a typed number is from the game's Full count (PR 3, Sree): at or past half of it
+ * ("40 of 80") the screen shows a soft warning, at or past the Full count itself a strong one.
+ * Sign does not matter: a typed +120 is as unusual as -120. Without a Full count there is no
+ * warning. Presets are exactly the settings values, so Drop / Middle drop never warn and the
+ * Full count key reads as 'full' — the screen only confirms a number typed PAST it.
+ */
+export function countWarning(value: number | undefined, fullCount: number | null | undefined): CountWarning {
+  if (value === undefined) return 'none';
+  const full = Math.abs(Number(fullCount) || 0);
+  if (full === 0) return 'none';
+  const size = Math.abs(value);
+  if (size >= full) return 'full';
+  if (size >= Math.ceil(full / 2)) return 'half';
+  return 'none';
+}
+
+/** True when a typed number is beyond the Full count (the once-per-cell confirm, D3.1). */
+export function exceedsMaxCount(value: number | undefined, fullCount: number | null | undefined): boolean {
+  if (value === undefined) return false;
+  const full = Math.abs(Number(fullCount) || 0);
+  return full > 0 && Math.abs(value) > full;
+}
+
+/** The warning line under the grid for the number being typed. */
+export function countWarningText(value: number, fullCount: number | null | undefined, warning: CountWarning): string | null {
+  const full = Math.abs(Number(fullCount) || 0);
+  const size = Math.abs(value);
+  if (warning === 'half') return `${size} is ${size === Math.ceil(full / 2) ? 'half' : 'more than half'} the Full count (${full}).`;
+  if (warning === 'full') return size === full ? `${size} is the Full count.` : `${size} is more than the Full count (${full}).`;
+  return null;
 }
 
 /** How long a tapped preset glows green before settling. */

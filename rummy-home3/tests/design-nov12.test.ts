@@ -171,9 +171,10 @@ test('design: Results scores are near-black, negatives red; band strips are fill
   assert.match(table, /default: return \{ color: colors\.onSurface \}/);
 });
 
-test('design: Add round — selected and saved cells on white with a green ring; Save score has the edge', () => {
+test('design: Add round — selected cell yellow, saved win light green with a green ring (PR 3); Save score has the edge', () => {
   const cell = src('components/game/ScoreCell.tsx');
-  assert.match(cell, /tone === 'selected' \? colors\.primary : tone === 'confirmed' \? colors\.outline : colors\.outlineVariant/);
+  assert.match(cell, /tone === 'selected' \? colors\.onSecondaryContainer : isWin \? colors\.win : tone === 'confirmed' \? colors\.outline : colors\.outlineVariant/);
+  assert.match(cell, /colors\[cellFill\('confirmed', value\)\]/, 'a saved plus is the light green');
   const keypad = src('components/game/ScoreKeypad.tsx');
   assert.match(keypad, /borderBottomColor: canSave \? colors\.primaryEdge/);
   assert.match(keypad, /saveEdge: \{\s*borderBottomWidth: BUTTON_EDGE/);
