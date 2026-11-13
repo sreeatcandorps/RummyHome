@@ -40,6 +40,12 @@ tags: [smoke]
 - assertNotVisible: "HTE"
 - assertVisible: "Edit initials for HT2"
 - takeScreenshot: 09c-add-new-players-clash-ht2
+# After Save the next row's cell takes focus, so the keyboard may cover Done.
+- hideKeyboard
+- scrollUntilVisible:
+    element: "Done adding players"
+    direction: DOWN
+    timeout: 10000
 - tapOn: "Done adding players"
 - extendedWaitUntil:
     visible: "Add new players"
