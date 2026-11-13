@@ -20,8 +20,28 @@ alter default privileges in schema public grant all on tables to anon, authentic
 alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 
-create extension if not exists pgcrypto;
+-- Supabase installs pgcrypto in the `extensions` schema (not on the default
+-- search_path), so a function that calls gen_random_bytes() must say
+-- `set search_path = public, extensions`. Mirror that here so the local suite
+-- fails the same way CI does when a migration forgets it.
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+do $$
+begin
+  if exists (select 1 from pg_extension where extname = 'pgcrypto')
+     and (select n.nspname from pg_extension e join pg_namespace n on n.oid = e.extnamespace where e.extname = 'pgcrypto') <> 'extensions' then
+    alter extension pgcrypto set schema extensions;
+  end if;
+end $$;
+create extension if not exists pgcrypto schema extensions;
 create extension if not exists pgtap;
+-- Supabase's database default search_path includes extensions, so top-level migration SQL
+-- finds gen_random_bytes(); only functions with their own `set search_path` lose it.
+do $$
+begin
+  execute format('alter database %I set search_path = "$user", public, extensions', current_database());
+end $$;
+set search_path = "$user", public, extensions;
 
 create schema if not exists auth;
 grant usage on schema auth to anon, authenticated, service_role;

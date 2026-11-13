@@ -594,7 +594,7 @@ create or replace function public.create_game(p_game_type text, p_settings jsonb
 returns uuid
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = public, extensions, pg_temp
 as $$
 declare
   v_id uuid := coalesce(p_id, gen_random_uuid());
