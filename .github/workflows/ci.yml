@@ -161,6 +161,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+          github-token: ${{ github.token }}
 
       - name: Start a throw-away local Supabase (Postgres only, no Studio/mail/edge)
         working-directory: rummy-home3
@@ -355,6 +356,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+          github-token: ${{ github.token }}
 
       # ---- database: the same local stack the db job uses, plus the UI fixtures ------------------
       - name: Start a throw-away local Supabase
