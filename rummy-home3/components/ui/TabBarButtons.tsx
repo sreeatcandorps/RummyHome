@@ -11,7 +11,7 @@ export type TabPillItem =
   | { kind: 'avatar'; name: string; label: string };
 
 type Props = BottomTabBarProps & {
-  /** What each route shows, by route name. Routes missing here fall back to a circle with their title as the spoken label. */
+  /** What each route shows, by route name. A route with no entry is not drawn (it stays reachable by navigation). */
   items: Record<string, TabPillItem | undefined>;
   /** Shorter buttons on short phones in landscape. */
   compact?: boolean;
@@ -23,11 +23,11 @@ export const TAB_ICON_SIZE = 26;
 export const TAB_ICON_SIZE_COMPACT = 22;
 
 /**
- * Bottom bar (final launch batch, design item 10): three buttons of the same size, icons only.
- * Each is a pill button like every other button in the app — the current one filled button
- * green with its pressable edge, the others outlined — so they read as tappable at a glance.
- * The profile button holds the account's initials as a plain circle (no ring, no badge).
- * Labels are spoken, not drawn: the header title names the page.
+ * Bottom bar (PR 5): two buttons of the same size, Home and Profile, icons only. Each is a pill
+ * button like every other button in the app — the current one filled button green with its
+ * pressable edge, the other outlined — so they read as tappable at a glance. The profile button
+ * holds the account's initials as a plain circle (no ring, no badge). Labels are spoken, not
+ * drawn: the header title names the page. My players left the bar for a Home button.
  */
 export function PillTabBar({ state, descriptors, navigation, insets, items, compact = false }: Props) {
   const { colors, dark } = useAppTheme();
@@ -50,9 +50,10 @@ export function PillTabBar({ state, descriptors, navigation, insets, items, comp
       accessibilityRole="tablist"
     >
       {state.routes.map((route, index) => {
+        const item = items[route.name];
+        if (!item) return null;
         const { options } = descriptors[route.key];
         const focused = state.index === index;
-        const item: TabPillItem = items[route.name] ?? { kind: 'icon', icon: 'circle-outline', label: options.title ?? route.name };
         const fg = focused ? colors.onPrimary : colors.primary;
 
         const onPress = () => {

@@ -16,7 +16,8 @@ journey is covered where is in `docs/testing-strategy.md`.
 Flows run in file-name order inside a set (`01-`, `02-`, …). Files whose name contains `landscape`
 rotate: `setOrientation: LANDSCAPE_LEFT` after sign-in and back to `PORTRAIT` at the end; `ci/ui/run-flows.sh` also
 turns the emulator for them. Files whose name contains `font-scale` run with the phone font at 1.3×
-(`adb shell settings put system font_scale 1.3`, set by `ci/ui/run-flows.sh`, back to 1.0 after).
+(`adb shell settings put system font_scale 1.3`, set by `ci/ui/run-flows.sh`, back to 1.0 after); files whose
+name contains `night-phone` run with the phone in dark mode (`adb shell cmd uimode night yes`, off after).
 
 ## Fixtures and state
 

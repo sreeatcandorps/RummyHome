@@ -24,7 +24,17 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 037 (rummy share may be negative; rolled back first)
+# 038 (game numbers unique among active games only; rolled back first)
+HAS_038=f
+if [ -f "$RB/rollback_038_game_numbers_active.sql" ]; then
+  HAS_038=t
+  if apply "$RB/rollback_038_game_numbers_active.sql"; then tap ok "rollback_038 applies"; else tap fail "rollback_038 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_has next_game_number completed)" = t ] \
+    && tap ok "after rollback_038 a Completed game holds its number again (028 rule)" \
+    || tap fail "after rollback_038 next_game_number should block on completed games"
+fi
+
+# 037 (rummy share may be negative)
 HAS_037=f
 if [ -f "$RB/rollback_037_rummy_negative_share.sql" ]; then
   HAS_037=t
@@ -353,6 +363,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_035" = t ] && FORWARD="$FORWARD 035_undo_round"
 [ "$HAS_036" = t ] && FORWARD="$FORWARD 036_event_log"
 [ "$HAS_037" = t ] && FORWARD="$FORWARD 037_rummy_negative_share"
+[ "$HAS_038" = t ] && FORWARD="$FORWARD 038_game_numbers_active"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -469,6 +480,10 @@ fi
 if [ "$HAS_037" = t ]; then
   [ "$(q "select pg_get_constraintdef(oid) not like '%value >= 0%' and convalidated from pg_constraint where conname='scores_check' and conrelid='public.scores'::regclass")" = t ] \
     && tap ok "037 restored (rummy share may be negative; constraint validated)" || tap fail "037 restored"
+fi
+if [ "$HAS_038" = t ]; then
+  [ "$(fn_has next_game_number completed)" = f ] && [ "$(fn_exists next_game_number)" = t ] \
+    && tap ok "038 restored (only active games hold a number)" || tap fail "038 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

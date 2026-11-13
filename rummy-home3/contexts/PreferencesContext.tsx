@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Appearance, appearanceFromSettings, resolveDarkMode } from '@/utils/appearance';
+import { Appearance, appearanceFromSettings, DEFAULT_APPEARANCE, resolveDarkMode } from '@/utils/appearance';
 
 /** Same key the Settings screen has always written its preferences to. */
 export const SETTINGS_KEY = 'rummy_settings';
@@ -18,7 +18,7 @@ type PreferencesContextValue = {
 };
 
 const PreferencesContext = createContext<PreferencesContextValue>({
-  appearance: 'system',
+  appearance: DEFAULT_APPEARANCE,
   darkMode: false,
   ready: false,
   setAppearance: () => {},
@@ -26,7 +26,7 @@ const PreferencesContext = createContext<PreferencesContextValue>({
 });
 
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
-  const [appearance, setAppearanceState] = useState<Appearance>('system');
+  const [appearance, setAppearanceState] = useState<Appearance>(DEFAULT_APPEARANCE);
   const [ready, setReady] = useState(false);
   const scheme = useColorScheme();
 

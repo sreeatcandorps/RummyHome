@@ -427,6 +427,16 @@ What it does: `scores_check` becomes `(score_type in ('drop','middle_drop','coun
 
 Verified on a scratch Postgres 16 loaded with 001–037 and the CI seed: pgTAP (1066 checks; 9 new in `supabase/tests/27_rummy_negative_037.sql`), the rollback replay (149 checks) and the 44 race checks all pass.
 
+## 038 — Game numbers reused among active games (PR 5, D5.1 as Sree decided)
+
+File: `supabase/migrations/038_game_numbers_active.sql`. Run after 037. Safe to re-run. Rollback: `supabase/rollback/rollback_038_game_numbers_active.sql` (puts the 028 body of `next_game_number` back: Completed games hold their number again).
+
+Backward compatible with the APK on phones: `next_game_number` keeps its signature and is only called by the 028 insert trigger; the shipped app shows whatever label the server stored. No labels change (D5.2: the old S10s stay as they are). **Status: ready for live** once CI is green on PR 5 (Build Bot applies; nothing applied by the agent).
+
+What it does: a new game's short number (S1 / P1) is the lowest one not held by an **active** game in the creator's circle (creator + My players list, created by or seated). 028 also blocked on Completed games; now a game frees its number the moment it leaves Active (Completed, Closed or Deleted), so a new day starts at S1 again. Another circle can hold the same number at the same time; the share code and the uuid stay unique forever. Flagged: a Reopened game keeps its own label even when a newer active game has taken the number, so two live games in one circle can briefly share a label (each has its own code and date).
+
+Verified on a scratch Postgres 16 loaded with 001–038 and the CI seed: pgTAP (1088 checks; 22 new in `supabase/tests/28_game_numbers_038.sql`, one message in `18_game_labels_028.sql` reworded), the rollback replay (154 checks) and the 44 race checks all pass.
+
 ## Apply order for the Nov 10–12 batches
 
 017–020 were applied on Nov 11 (~11:25 AM PT); 021–026 were applied on Nov 12 from PR 7 head `d62d9c6`. Steps 1–6 are kept for the record (all re-runnable):
@@ -463,6 +473,10 @@ Logs PR (Nov 13), unapplied, ready for live once CI is green:
 PR 3 (Nov 13), unapplied, ready for live once CI is green:
 
 17. `supabase/migrations/037_rummy_negative_share.sql`
+
+PR 5 (Nov 13), unapplied, ready for live once CI is green:
+
+18. `supabase/migrations/038_game_numbers_active.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

@@ -1,0 +1,16 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# PR 5: the app opens Light even on a phone in dark mode (ci/ui/run-flows.sh turns night mode on for any
+# flow named *night-phone* and off again after). clearState wipes the saved appearance and the session,
+# so this is a first launch; ensure-signed-in signs back in.
+---
+- launchApp:
+    clearState: true
+- runFlow: ../lib/ensure-signed-in.yaml
+- assertVisible: "New game"
+- takeScreenshot: 61-home-first-launch-night-phone
+- tapOn: "Your profile"
+- extendedWaitUntil:
+    visible: "Appearance"
+    timeout: 15000
+- takeScreenshot: 61b-profile-first-launch-night-phone

@@ -22,7 +22,7 @@ test('028: S for Points games, P for Pool games; the server label wins over the 
   assert.equal(gameLabelList([]), '');
 });
 
-test('028: local games follow the same rule as next_game_number (lowest free, per prefix, closed and deleted do not count)', () => {
+test('028 / 038: local games follow the same rule as next_game_number (lowest free, per prefix, only active games count)', () => {
   const games = [
     { gameLabel: 'S1', gameType: 'stake' as const, createdBy: 'me', players: [] },
     { gameLabel: 'S2', gameType: 'stake' as const, createdBy: 'me', players: [], closedAt: '2026-11-10' },
@@ -32,6 +32,13 @@ test('028: local games follow the same rule as next_game_number (lowest free, pe
   ];
   assert.equal(nextLocalGameLabel(games, 'me', 'stake'), 'S2', 'S1 mine, S2 closed (free), S3 I sit in, S4 not mine');
   assert.equal(nextLocalGameLabel(games, 'me', 'pool'), 'P1', 'the deleted P1 frees its number');
+  // 038 (D5.1, Sree): a Completed game frees its number too, so a new day starts at S1 again.
+  const yesterday = [
+    { gameLabel: 'S1', gameType: 'stake' as const, createdBy: 'me', players: [], isComplete: true },
+    { gameLabel: 'S2', gameType: 'stake' as const, createdBy: 'me', players: [], isComplete: true },
+  ];
+  assert.equal(nextLocalGameLabel(yesterday, 'me', 'stake'), 'S1', 'completed games do not hold their numbers');
+  assert.equal(nextLocalGameLabel([...yesterday, { gameLabel: 'S1', gameType: 'stake' as const, createdBy: 'me', players: [] }], 'me', 'stake'), 'S2', 'a live S1 does');
   assert.equal(nextLocalGameLabel([], 'me', 'stake'), 'S1');
   assert.equal(nextLocalGameLabel([{ gameNumber: 1, gameType: 'stake' as const, createdBy: 'me' }], 'me', 'stake'), 'S2', 'a pre-028 local row counts through its number');
 });

@@ -26,9 +26,10 @@ test('build 4: Home help is Statuses, Results, My players, with coloured chips',
   assert.ok(bullets[2].startsWith('[Closed]'));
   assert.ok(bullets[3].startsWith('[Results] show the consolidated winners from one or more games.'));
   assert.match(bullets[3], /move from \[Completed\] to \[Closed\]/);
-  assert.equal(bullets[4], 'My players is a list of players you regularly play with.');
+  assert.equal(bullets[4], 'My players is a list of players you regularly play with. The number on the button is how many are in it.');
   assert.doesNotMatch(bullets[4], /database|register|link/i);
-  assert.match(bullets[5], /^Three buttons: Home .*My players .*your initials/);
+  // PR 5: two bottom buttons; My players is a Home button with its count badge.
+  assert.match(bullets[5], /^Two buttons: Home .*your initials/);
   const parts = splitHelpLine('From [Completed] to [Closed].');
   assert.deepEqual(parts, [
     { kind: 'text', text: 'From ' },
