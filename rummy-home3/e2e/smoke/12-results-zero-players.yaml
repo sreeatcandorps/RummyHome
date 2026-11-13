@@ -27,9 +27,18 @@ tags: [smoke]
 - assertVisible: "1 game · 6 players"
 - assertVisible:
     id: "results-band-table"
-- assertVisible: "Games in this result"
 - assertVisible: "Even: .*"
 - takeScreenshot: 12-results-preview-no-rounds
+- scrollUntilVisible:
+    element:
+      text: "Games in this result"
+    direction: DOWN
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "results-save-button"
+    direction: UP
+    timeout: 15000
 - tapOn:
     id: "results-save-button"
 - extendedWaitUntil:
@@ -43,4 +52,8 @@ tags: [smoke]
 - assertVisible: "1 game · 6 players"
 - assertVisible:
     id: "results-band-table"
-- assertVisible: "Games in this result"
+- scrollUntilVisible:
+    element:
+      text: "Games in this result"
+    direction: DOWN
+    timeout: 15000
