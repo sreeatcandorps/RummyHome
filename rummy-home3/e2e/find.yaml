@@ -1,8 +1,0 @@
-appId: com.rummyhome.app
----
-- launchApp
-- tapOn: "My players"
-- tapOn: "Find player in database"
-- tapOn: "Find player in database"
-- inputText: "Player"
-- assertNotVisible: "@"

@@ -9,6 +9,8 @@ type PasscodeFieldProps = {
   disabled?: boolean;
   label?: string;
   autoFocus?: boolean;
+  /** Hook for device UI tests (Maestro `id:` selector); never shown. */
+  testID?: string;
 };
 
 /** A blinking bar in the cell about to be typed into, so the field visibly has the cursor. */
@@ -32,7 +34,7 @@ function Caret({ color }: { color: string }) {
  * the OS opens the keyboard on the first tap. (Focusing a hidden input from a Pressable needed a
  * second tap on Android.)
  */
-export function PasscodeField({ value, onChangeText, disabled, label = '6-digit passcode', autoFocus }: PasscodeFieldProps) {
+export function PasscodeField({ value, onChangeText, disabled, label = '6-digit passcode', autoFocus, testID }: PasscodeFieldProps) {
   const { colors } = useAppTheme();
   const [revealed, setRevealed] = useState(true);
   const [focused, setFocused] = useState(false);
@@ -110,6 +112,7 @@ export function PasscodeField({ value, onChangeText, disabled, label = '6-digit 
           style={styles.overlay}
           accessibilityLabel={label}
           accessibilityHint="Six digits"
+          testID={testID}
         />
       </View>
     </View>

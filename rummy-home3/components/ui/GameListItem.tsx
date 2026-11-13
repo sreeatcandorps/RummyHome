@@ -47,6 +47,7 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
         style={styles.ripple}
         accessibilityRole={pickable ? 'checkbox' : 'button'}
         accessibilityState={pickable ? { checked: Boolean(on), disabled: locked } : undefined}
+        testID={`game-card-${game.shareCode ?? game.id}`}
         accessibilityLabel={`${gameTypeLabel(game.gameType)} game${gNumber ? ` ${gNumber}` : ''}, ${dateLabel}, ${status.toLowerCase()}${access ? `, ${access.toLowerCase()}` : ''}${locked ? ', not an admin' : ''}`}
       >
         <View style={styles.row}>
