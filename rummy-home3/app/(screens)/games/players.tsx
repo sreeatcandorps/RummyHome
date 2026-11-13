@@ -18,7 +18,8 @@ import { parsePlayerNo, PendingLink } from '@/utils/playerIdentity';
 import { seatRemovalProblem } from '@/utils/seatRemoval';
 import { playerIdBadge, registrationLabel, seatMenu, SeatMenuItem, seatRoleLabel } from '@/utils/gamePlayers';
 import { ACCESS_ICON, ACCESS_TONE, visibleRoleTag } from '@/utils/gameAccess';
-import { REGISTRATION_ICON, REGISTRATION_TONE } from '@/utils/myPlayersList';
+import { REGISTRATION_ICON, REGISTRATION_TONE, visibleRegistration } from '@/utils/myPlayersList';
+import { NON_PLAYING_ADMIN_BUTTON, NON_PLAYING_ADMIN_NOTE } from '@/utils/addPlayers';
 import { LinkRequestOutcome } from '@/utils/linkPlayer';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -146,7 +147,7 @@ export default function GamePlayersScreen() {
     const menu = seatMenu(seat, game, viewer?.id, canScore);
     const roleTag = visibleRoleTag(seatRoleLabel(seat, game), canScore);
     const linkRequest = linkRequests.find((l) => l.playerId === seat.id) ?? null;
-    const registration = registrationLabel(invited.has(seat.id) && seat.status === 'unregistered' ? { status: 'pending' } : seat, Boolean(linkRequest));
+    const registration = visibleRegistration(registrationLabel(invited.has(seat.id) && seat.status === 'unregistered' ? { status: 'pending' } : seat, Boolean(linkRequest)));
     const badge = playerIdBadge(seat);
     return (
       <View key={seat.id} style={[styles.row, { borderBottomColor: colors.hairline }]}>
@@ -155,9 +156,8 @@ export default function GamePlayersScreen() {
           <Text variant="bodyLarge" style={styles.name} numberOfLines={1}>{seat.name}</Text>
           <View style={styles.tags}>
             {badge ? <Tag small label={badge} /> : null}
-            {seat.id === viewer?.id ? <Tag label="You" tone="info" /> : null}
             {roleTag ? <Tag label={roleTag} tone={ACCESS_TONE[roleTag]} icon={ACCESS_ICON[roleTag]} /> : null}
-            <Tag label={registration} tone={REGISTRATION_TONE[registration]} icon={REGISTRATION_ICON[registration]} />
+            {registration ? <Tag label={registration} tone={REGISTRATION_TONE[registration]} icon={REGISTRATION_ICON[registration]} /> : null}
           </View>
         </View>
         {canScore && canReorder && seat.seatRole !== 'spectator' && seat.seated !== false ? (
@@ -212,16 +212,19 @@ export default function GamePlayersScreen() {
           <View style={styles.adminAdd}>
             <Button
               mode="outlined"
-              icon="shield-plus-outline"
+              icon="plus"
               onPress={() => setSheet({ kind: 'add_admin' })}
               disabled={busy || Boolean(addAdminBlocked)}
               accessibilityLabel="Add admin by Player ID"
               testID="add-admin"
+              contentStyle={styles.adminAddContent}
+              labelStyle={styles.adminAddLabel}
+              style={styles.adminAddButton}
             >
-              Add admin
+              {NON_PLAYING_ADMIN_BUTTON}
             </Button>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, flex: 1 }}>
-              {addAdminBlocked ?? 'Type a Player ID to let someone score and manage this game without playing in it.'}
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, textAlign: 'center' }}>
+              {addAdminBlocked ?? NON_PLAYING_ADMIN_NOTE}
             </Text>
           </View>
         ) : null}
@@ -372,7 +375,7 @@ function AddAdminDialog({ game, busy, onDismiss, onConfirm }: {
 
   return (
     <Dialog visible onDismiss={onDismiss} style={[styles.dialog, { backgroundColor: colors.surface }]}>
-      <Dialog.Title>Add admin</Dialog.Title>
+      <Dialog.Title>{NON_PLAYING_ADMIN_BUTTON}</Dialog.Title>
       <Dialog.Content style={styles.gap}>
         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
           Type the Player ID of a registered player. They can score and manage this game but are not a player in it.
@@ -394,7 +397,7 @@ function AddAdminDialog({ game, busy, onDismiss, onConfirm }: {
         {target ? (
           <View style={[styles.preview, { backgroundColor: colors.positiveContainer }]}>
             <Text variant="titleMedium" style={{ color: colors.onPositiveContainer }}>{target.name}</Text>
-            <Text variant="bodySmall" style={{ color: colors.onPositiveContainer }}>{playerIdBadge(target)} · Registered</Text>
+            <Text variant="bodySmall" style={{ color: colors.onPositiveContainer }}>{playerIdBadge(target)}</Text>
             <Text variant="bodySmall" style={{ color: colors.onPositiveContainer, marginTop: spacing.xs }}>{addAdminPreview(target)}</Text>
           </View>
         ) : null}
@@ -422,6 +425,9 @@ const styles = StyleSheet.create({
   gap: { gap: spacing.sm },
   preview: { borderRadius: radius.md, padding: spacing.md, gap: spacing.xxs },
   lookupRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  adminAdd: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  adminAdd: { alignItems: 'stretch', gap: spacing.xs, marginTop: spacing.sm },
+  adminAddButton: { borderWidth: 2, borderRadius: radius.full },
+  adminAddContent: { minHeight: 56 },
+  adminAddLabel: { fontSize: 17, fontWeight: '800' },
   flex: { flex: 1 },
 });

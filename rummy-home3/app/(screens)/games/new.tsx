@@ -36,6 +36,7 @@ import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
 import { CoAdminNudge, coAdminCandidates } from '@/components/game/CoAdminNudge';
 import { emailsService } from '@/services/emails';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FROM_DATABASE_ACCESSIBILITY, returnButtonLabel, SEARCH_PLACEHOLDER, totalLabel } from '@/utils/addPlayers';
 
 type Pick = DraftPick;
 
@@ -53,7 +54,7 @@ const animateMove = () => LayoutAnimation.configureNext(LayoutAnimation.create(2
  * "Playing · N". The number sits in a big yellow badge with a soft green halo
  * that keeps breathing while anyone is seated, and it pops each time N changes.
  */
-function PlayingCount({ count, hint, label = 'Playing' }: { count: number; hint: string; label?: string }) {
+function PlayingCount({ count, hint }: { count: number; hint: string }) {
   const { colors } = useAppTheme();
   const pop = useRef(new Animated.Value(0)).current;
   const halo = useRef(new Animated.Value(0)).current;
@@ -85,8 +86,8 @@ function PlayingCount({ count, hint, label = 'Playing' }: { count: number; hint:
   const seated = count > 0;
 
   return (
-    <View style={styles.playingRow} accessibilityLiveRegion="polite" accessibilityLabel={`${label}, ${count} ${count === 1 ? 'player' : 'players'}`}>
-      <Text variant="titleLarge" style={{ color: colors.onSurface, fontWeight: '800' }}>{label}</Text>
+    <View style={styles.playingRow} accessibilityLiveRegion="polite" accessibilityLabel={`Playing, ${count} ${count === 1 ? 'player' : 'players'}`}>
+      <Text variant="titleLarge" style={{ color: colors.onSurface, fontWeight: '800' }}>Playing</Text>
       <View style={styles.countWrap}>
         {seated ? <Animated.View pointerEvents="none" style={[styles.countHalo, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} /> : null}
         <Animated.View style={[styles.countBubble, { backgroundColor: seated ? fill : colors.surfaceVariant, borderColor: seated ? colors.primary : colors.outlineVariant, transform: [{ scale }] }]}>
@@ -99,7 +100,28 @@ function PlayingCount({ count, hint, label = 'Playing' }: { count: number; hint:
 }
 
 /**
- * New game, and — with `?gameId=` — "Add players to game": the same picker in
+ * Add mode (PR 7): a big yellow "N / TOTAL" circle — seated players only (D7.1), the number
+ * the scorecard's players chip shows — beside "Playing in this game" and "Added now: N".
+ */
+function TotalCircle({ total, added }: { total: number; added: number }) {
+  const { colors } = useAppTheme();
+  const label = totalLabel(total);
+  return (
+    <View style={styles.totalRow} accessibilityLiveRegion="polite">
+      <View style={[styles.totalCircle, { backgroundColor: colors.leaderContainer, borderColor: colors.leader }]} accessibilityLabel={label.spoken} accessible>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.totalNumber, { color: colors.onLeaderContainer }]}>{label.number}</Text>
+        <Text style={[styles.totalCaption, { color: colors.onLeaderContainer }]}>{label.caption}</Text>
+      </View>
+      <View style={styles.flex}>
+        <Text variant="titleLarge" style={{ color: colors.onSurface, fontWeight: '800' }}>Playing in this game</Text>
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="added-now">{addedNowLine(added)}</Text>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * New game, and — with `?gameId=` — "Add players to this game": the same picker in
  * add mode, where the seats already in the game sit in the strip, newly picked
  * people are staged until Return to game, and × on a saved seat removes them
  * only while every one of their round scores is 0.
@@ -423,15 +445,31 @@ export default function NewGame() {
   }
 
   const newCount = staged.filter((p) => !savedIds.has(p.id)).length;
-  const hint = addMode
-    ? (newCount === 0 ? `${saved.length} in the game. Tap a player below to add them; they get 0 for every round already played.` : `new · ${saved.length} already in the game · tap Return to game to seat them`)
-    : (seatedCount === 0 ? 'Nobody yet. Tap players below; tap yourself if you are playing.' : seatedCount === 1 ? 'player · pick one more to start' : 'players');
+  const hint = seatedCount === 0 ? 'Nobody yet. Tap players below; tap yourself if you are playing.' : seatedCount === 1 ? 'player · pick one more to start' : 'players';
+
+  const tiles = (
+    <View style={styles.addRow}>
+      <Button mode="contained-tonal" icon="account-plus-outline" style={styles.flex} contentStyle={styles.toolContent} labelStyle={styles.toolLabel}
+        onPress={() => router.push({ pathname: '/(screens)/players/add', params: { from: 'new-game' } })} accessibilityLabel={ADD_NEW_PLAYERS}>
+        {ADD_NEW_PLAYERS}
+      </Button>
+      <Button mode="contained-tonal" icon="database-search" style={styles.flex} contentStyle={styles.toolContent} labelStyle={styles.toolLabel}
+        onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game', seated: selectedIds.join(',') } })} accessibilityLabel={FROM_DATABASE_ACCESSIBILITY}>
+        From database
+      </Button>
+    </View>
+  );
+  const returnButton = (
+    <Button mode="contained" onPress={returnToGame} loading={creating} disabled={creating || Boolean(removing)} icon="arrow-left" contentStyle={styles.startContent} labelStyle={styles.startLabel} accessibilityLabel="Return to game">
+      {returnButtonLabel()}
+    </Button>
+  );
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          title: addMode ? 'Add players to game' : 'New game',
+          title: addMode ? ADD_PLAYERS_TITLE : 'New game',
           headerRight: () => (
             <View style={styles.headerActions}>
               <HelpButton text={addMode ? HELP.addPlayersToGame : HELP.newGame} />
@@ -447,12 +485,15 @@ export default function NewGame() {
       />
 
       <Screen contentStyle={styles.content} safeBottom={false}>
-        <PlayingCount count={addMode ? newCount : seatedCount} hint={hint} label={addMode ? 'Added' : 'Playing'} />
+        {addMode ? <TotalCircle total={seatedCount} added={newCount} /> : <PlayingCount count={seatedCount} hint={hint} />}
         <SelectedPlayersStrip picks={selected} meId={me?.id} onRemove={unpick} onReturn={unpick} savedIds={addMode ? savedIds : undefined} busyId={removing} />
         {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
+        {/* Add mode: Return to game and the two ways in sit right under the strip (PR 7 mockup); New game keeps them in the bottom bar. */}
+        {addMode ? returnButton : null}
+        {addMode ? tiles : null}
 
         <View style={styles.searchRow}>
-          <Searchbar placeholder="Search name, initials, or ID" value={query} onChangeText={setQuery} style={[styles.search, styles.flex]} inputStyle={styles.searchInput} />
+          <Searchbar placeholder={SEARCH_PLACEHOLDER} value={query} onChangeText={setQuery} style={[styles.search, styles.flex, { backgroundColor: colors.leaderContainer }]} inputStyle={styles.searchInput} iconColor={colors.onLeaderContainer} placeholderTextColor={colors.onLeaderContainer} testID="picker-search" />
           <SegmentedButtons
             value={sort}
             onValueChange={(value) => setSort(value as CandidateSort)}
@@ -482,27 +523,14 @@ export default function NewGame() {
         ) : null}
       </Screen>
 
-      <BottomBar style={styles.bottom}>
-        <View style={styles.addRow}>
-          <Button mode="contained-tonal" icon="account-plus-outline" style={styles.flex} contentStyle={styles.toolContent} labelStyle={styles.toolLabel}
-            onPress={() => router.push({ pathname: '/(screens)/players/add', params: { from: 'new-game' } })} accessibilityLabel="Add players">
-            Add players
-          </Button>
-          <Button mode="contained-tonal" icon="database-search" style={styles.flex} contentStyle={styles.toolContent} labelStyle={styles.toolLabel}
-            onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game', seated: selectedIds.join(',') } })} accessibilityLabel="Add player from database">
-            From database
-          </Button>
-        </View>
-        {addMode ? (
-          <Button mode="contained" onPress={returnToGame} loading={creating} disabled={creating || Boolean(removing)} icon="arrow-left" contentStyle={styles.startContent} labelStyle={styles.startLabel} accessibilityLabel="Return to game">
-            {newCount === 0 ? 'Return to game' : `Return to game · add ${newCount}`}
-          </Button>
-        ) : (
+      {addMode ? null : (
+        <BottomBar style={styles.bottom}>
+          {tiles}
           <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} contentStyle={styles.startContent} labelStyle={styles.startLabel} accessibilityLabel="Start game">
             {seatedCount < 2 ? (seatedCount === 0 ? 'Pick at least two players' : 'Pick at least one more player') : `Start game · ${seatedCount} players`}
           </Button>
-        )}
-      </BottomBar>
+        </BottomBar>
+      )}
 
       <GameSettingsDialog visible={settingsOpen} rules={rules} onDismiss={() => setSettingsOpen(false)} onSave={(r) => setRules(r)} />
       <CoAdminNudge visible={Boolean(nudge)} candidates={coAdminPicks} busy={creating}
@@ -531,6 +559,10 @@ const styles = StyleSheet.create({
   countHalo: { position: 'absolute', width: PLAYING_BADGE, height: PLAYING_BADGE, borderRadius: PLAYING_BADGE / 2 },
   countBubble: { width: PLAYING_BADGE, height: PLAYING_BADGE, paddingHorizontal: 6, borderRadius: PLAYING_BADGE / 2, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
   countText: { fontSize: 30, fontWeight: '900', lineHeight: 36, textAlign: 'center', minWidth: 44 },
+  totalRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 60 },
+  totalCircle: { width: 92, height: 92, borderRadius: 46, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  totalNumber: { fontSize: 34, fontWeight: '900', lineHeight: 38, textAlign: 'center', minWidth: 44 },
+  totalCaption: { fontSize: 12, fontWeight: '800', letterSpacing: 1, lineHeight: 14 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   search: { marginVertical: 2 },
   searchInput: { fontSize: 15, minHeight: 0 },

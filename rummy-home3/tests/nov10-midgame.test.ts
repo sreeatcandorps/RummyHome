@@ -43,8 +43,8 @@ test('mid-game add: "Add new player" button, "Added N" counter, whole list, yell
   assert.doesNotMatch(players, />\s*Add a player\s*</);
 
   const picker = read('app/(screens)/games/new.tsx');
-  assert.match(picker, /label=\{addMode \? 'Added' : 'Playing'\}/);
-  assert.match(picker, /count=\{addMode \? newCount : seatedCount\}/);
+  // PR 7: add mode shows the big "Total" circle (seated only) with "Added now: N"; New game keeps the Playing count.
+  assert.match(picker, /<TotalCircle total=\{seatedCount\} added=\{newCount\} \/> : <PlayingCount count=\{seatedCount\} hint=\{hint\} \/>/);
   assert.match(picker, /newGameGrid\(orderCandidates\(pool, sort\), selectedIds, PICKER_PREFETCH\)/);
   assert.doesNotMatch(picker, /PICKER_PAGE\b/);
 

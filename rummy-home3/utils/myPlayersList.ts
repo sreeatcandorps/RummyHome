@@ -56,6 +56,16 @@ export function registrationLabel(status?: string | null, linkPending = false): 
   return 'Registered';
 }
 
+/**
+ * What a row actually shows (PR 7): registration is the normal case, so it carries no tag
+ * or text anywhere — only Unregistered, Pending registration and Link pending are drawn.
+ * Every tag or text site goes through this one rule.
+ */
+export type VisibleRegistration = Exclude<RegistrationLabel, 'Registered'>;
+export function visibleRegistration(label: RegistrationLabel): VisibleRegistration | null {
+  return label === 'Registered' ? null : label;
+}
+
 /** Tag tone per status: Registered info blue, Pending marigold, Unregistered grey. Never button green. */
 export const REGISTRATION_TONE: Record<RegistrationLabel, 'info' | 'results' | 'neutral'> = {
   Registered: 'info',

@@ -7,13 +7,13 @@ tags: [nightly]
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Help"
 - extendedWaitUntil:
-    visible: ".*Three buttons: Home.*"
+    visible: ".*Two buttons: Home.*"
     timeout: 5000
 - takeScreenshot: 50-help-home
 - back
 - tapOn: "New game"
 - extendedWaitUntil:
-    visible: "Add players"
+    visible: "Add new players"
     timeout: 15000
 - tapOn: "Help"
 - extendedWaitUntil:

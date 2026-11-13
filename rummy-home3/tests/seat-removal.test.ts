@@ -86,7 +86,7 @@ test('the picker is one player per row with avatar, name, status and Player ID, 
 test('mid-game add reuses the picker in add mode with Return to game; the old popup is gone', () => {
   const screen = read('app/(screens)/games/new.tsx');
   assert.match(screen, /useLocalSearchParams<\{ gameId\?: string \}>/);
-  assert.match(screen, /'Add players to game' : 'New game'/);
+  assert.match(screen, /ADD_PLAYERS_TITLE : 'New game'/);
   assert.match(screen, /accessibilityLabel="Return to game"/);
   assert.match(screen, /gamesService\.addSeatedPlayer\(game\.id, pickRow\.id, labels\.get\(pickRow\.id\)\)/, 'reuses the mid-game add path (zeros for rounds played), with the seat label (022)');
   assert.match(screen, /gamesService\.removeSeatIfNoScores\(game\.id, id\)/);

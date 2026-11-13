@@ -1,6 +1,7 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
-# New game: the picker lists recent players; Add new players opens. PR 6: typing H + T when Harish
+# New game: the picker lists recent players (you first, no "You" tag and no "Registered" tag — PR 7,
+# D7.2); Add new players opens. PR 6: typing H + T when Harish
 # Test already holds HT saves the new player as HT2 (digit in red) with the sentence "Harish Test is
 # already HT. This new player is HT2."; cell 1 jumps to cell 2 on its own. Leaves one new player
 # (HT2) in sree's My players and in the draft; no game is created (creating one would add a live
@@ -9,12 +10,15 @@ tags: [smoke]
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "New game"
 - extendedWaitUntil:
-    visible: "Add players"
+    visible: "Add new players"
     timeout: 15000
-- assertVisible: "Add player from database"
+- assertVisible: "Add players to this game from the EZ Score database"
+- assertVisible: "Add Sree Test (you)"
 - assertVisible: "Harish Test"
+- assertNotVisible: "You"
+- assertNotVisible: "Registered"
 - takeScreenshot: 09-new-game
-- tapOn: "Add players"
+- tapOn: "Add new players"
 - extendedWaitUntil:
     visible: "Add new players by initials, 3 at a time"
     timeout: 15000
@@ -44,5 +48,5 @@ tags: [smoke]
     timeout: 10000
 - tapOn: "Done adding players"
 - extendedWaitUntil:
-    visible: "Add players"
+    visible: "Add new players"
     timeout: 15000

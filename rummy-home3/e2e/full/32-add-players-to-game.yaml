@@ -1,0 +1,110 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# PR 7: from Players/Admins of game H (3 players, round 1 from smoke/14), Add new player opens the
+# picker as "Add players to this game": the big yellow circle reads Total 3 (seated only, D7.1),
+# "Added now: 0"; tapping R K and C D makes it Total 5 / "Added now: 2 (yellow ring)"; Return to
+# game lands on the scorecard with RK and CD columns. Then Add non-playing admin #5 (Otto
+# Outsider) lists him under "Admins not playing" with no column. Cleanup: R K and C D are removed
+# again (their only scores are 0) so full/80 sees the 3-column game it expects; Otto stays an
+# admin, which changes no column and no total.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    id: "game-card-GAMEH1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- assertNotVisible: "RK"
+- tapOn: "Scorecard menu"
+- extendedWaitUntil:
+    visible: "Players/Admins"
+    timeout: 5000
+- tapOn: "Players/Admins"
+- extendedWaitUntil:
+    visible: "Add admin by Player ID"
+    timeout: 15000
+- assertVisible: "Add non-playing admin"
+- assertNotVisible: "You"
+- assertNotVisible: "Registered"
+- takeScreenshot: 32-players-admins-button
+- tapOn: "Add new player"
+- extendedWaitUntil:
+    visible: "Add players to this game"
+    timeout: 15000
+- assertVisible: "Total, 3 players"
+- assertVisible: "Added now: 0 · tap a player below to add them"
+- assertVisible: "Return to game"
+- assertVisible: "Add new players"
+- assertVisible: "Add players to this game from the EZ Score database"
+- takeScreenshot: 32b-add-players-total-3
+- tapOn: "Add R K"
+- tapOn: "Add C D"
+- extendedWaitUntil:
+    visible: "Total, 5 players"
+    timeout: 5000
+- assertVisible: "Added now: 2 (yellow ring)"
+- takeScreenshot: 32c-add-players-total-5
+- tapOn: "Return to game"
+- extendedWaitUntil:
+    visible: "Add round"
+    timeout: 15000
+- assertVisible: "RK"
+- assertVisible: "CD"
+- takeScreenshot: 32d-scorecard-5-columns
+- tapOn: "Scorecard menu"
+- extendedWaitUntil:
+    visible: "Players/Admins"
+    timeout: 5000
+- tapOn: "Players/Admins"
+- extendedWaitUntil:
+    visible: "Add admin by Player ID"
+    timeout: 15000
+- tapOn: "Add admin by Player ID"
+- extendedWaitUntil:
+    visible: "Player ID to make admin"
+    timeout: 5000
+- tapOn: "Player ID to make admin"
+- inputText: "5"
+- hideKeyboard
+- tapOn: "Look up Player ID"
+- extendedWaitUntil:
+    visible: "Otto Outsider"
+    timeout: 15000
+- takeScreenshot: 32e-non-playing-admin-preview
+- tapOn: "Confirm add admin"
+- extendedWaitUntil:
+    visible: "Admins not playing"
+    timeout: 15000
+- assertVisible: "Otto Outsider"
+- takeScreenshot: 32f-admins-not-playing
+# Cleanup: remove the two added players (scores all 0) so the game H fixture is 3 columns again.
+- tapOn: "Options for R K"
+- extendedWaitUntil:
+    visible: "Remove from game"
+    timeout: 5000
+- tapOn: "Remove from game"
+- extendedWaitUntil:
+    visible: "Confirm remove R K"
+    timeout: 5000
+- tapOn: "Confirm remove R K"
+- extendedWaitUntil:
+    notVisible: "Confirm remove R K"
+    timeout: 15000
+- tapOn: "Options for C D"
+- extendedWaitUntil:
+    visible: "Remove from game"
+    timeout: 5000
+- tapOn: "Remove from game"
+- extendedWaitUntil:
+    visible: "Confirm remove C D"
+    timeout: 5000
+- tapOn: "Confirm remove C D"
+- extendedWaitUntil:
+    notVisible: "Confirm remove C D"
+    timeout: 15000
+- tapOn: "Back to scorecard"
+- extendedWaitUntil:
+    visible: "Add round"
+    timeout: 15000
+- assertNotVisible: "RK"
+- assertNotVisible: "Otto Outsider"

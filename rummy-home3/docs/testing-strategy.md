@@ -111,7 +111,8 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | Home | live + recent list, S/P labels, role tags | U, S | **S** (light), N (dark) | `smoke/01`, `full/60` |
 | | empty state, pull to refresh, cached/offline | U (degrade) | N (airplane mode) | — |
 | | My Players button count, tab bar | S | **S** | `smoke/01`, `smoke/08` |
-| New game | pick recent players, search, from database, new by initials | U, S (screens open) | **S** | `smoke/09` |
+| New game | pick recent players, search, from database, new by initials; you first, no You / Registered tags (PR 7) | U, S (screens open) | **S** | `smoke/09` |
+| | Add players to this game: Total circle (seated only), Added now, Return to game, non-playing admin by Player ID | U, N | U + **N** | `full/32` |
 | | I'm playing on/off, settings (type, drop, middle, full) | U | N | — |
 | | co-admin add / skip | — | N | — |
 | | guardrails: 20th seat, player limits (029) | U, D | D + N | — |
@@ -224,6 +225,20 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-9 | D | `ci/db/replay-rollbacks.sh`, `supabase/tests/12_player_initials_022.sql` | Rollback 039 removes the RPCs and restores the letters-only editors; forward replay restores 039; safe to run twice; a re-run of 022 followed by 039 keeps the wider rule |
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
+
+## PR 7 test cases (Add players to this game, New game picker labels, Players · Admins; no migration)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| P7-1 | U | `tests/add-players-pr7.test.ts` 7.1 | Total = saved seated + staged (D7.1: spectators and non-playing admins never count); "Added now: 0 · tap a player below to add them" / "Added now: 2 (yellow ring)"; the button reads "Return to game" with no count; title "Add players to this game"; Return to game and the two tiles sit under the strip |
+| P7-2 | U | same 7.2 | Tiles "Add new players" and "From database" (spoken "Add players to this game from the EZ Score database"); the search box is pale yellow with "Search name, initials or #ID" on both the picker and Find player; "Registered players only." gone from the screen (help keeps it) |
+| P7-3 | U | same 7.3 | Players · Admins: a big outlined "Add non-playing admin" button (same spoken label "Add admin by Player ID" the flows use) with the one-line note; the dialog title matches |
+| P7-4 | U | same 7.4, `tests/nov10-owner.test.ts`, `tests/design-nov12.test.ts` | D7.2: no "You" tag on the picker, Players · Admins or My players; the organiser is still pinned first and spoken "(you)" |
+| P7-5 | U | same 7.5 (table) | One rule for the registration tag over both label helpers: Registered / unknown / merged → no tag; unregistered → Unregistered; pending → Pending registration; link pending → Link pending |
+| P7-6 | U | same 7.6, `tests/home-and-players.test.ts`, `tests/build3.test.ts` | The three tag sites call `visibleRegistration`; the four text sites (Players · Admins preview, Link dialog, Find player hint, help) print no "Registered"; help stays ≤ 7 short bullets per screen |
+| P7-7 | S | `smoke/09-new-game.yaml` | New game: "Add new players" and the database tile, "Add Sree Test (you)" first, no "You" and no "Registered" text on the screen |
+| P7-8 | N | `full/32-add-players-to-game.yaml` | Game H Players/Admins → Add new player: "Total, 3 players", "Added now: 0…"; add R K and C D → "Total, 5 players", "Added now: 2 (yellow ring)" (screenshots); Return to game → RK and CD columns; Add admin by Player ID 5 → Otto Outsider under "Admins not playing", no column; cleanup removes R K and C D so `full/80` sees 3 columns |
+| P7-9 | N | `full/50-help-notes.yaml` | Help opens from New game by its new tile name; Home help says "Two buttons" (the flow pinned PR 4's "Three buttons" until now — fixed here) |
 
 ## PR 5 test cases (Home bottom buttons, My players badge, Light default, game numbers 038)
 

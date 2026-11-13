@@ -20,6 +20,7 @@ import { BoldName } from '@/components/ui/BoldName';
 import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { assignInitials, defaultInitials } from '@/utils/initials';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { FROM_DATABASE_ACCESSIBILITY } from '@/utils/addPlayers';
 
 /**
  * Two jobs, one screen. From My players it adds people to your list.
@@ -47,7 +48,7 @@ export default function FindPlayersScreen() {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      title: fromNewGame ? 'Add player to new game' : 'Find player in database',
+      title: fromNewGame ? 'From the EZ Score database' : 'Find player in database',
       headerRight: () => <HelpButton text={fromNewGame ? HELP.addToGame : HELP.find} />,
     });
   }, [navigation, fromNewGame]);
@@ -153,8 +154,10 @@ export default function FindPlayersScreen() {
         placeholder="Name or player ID"
         value={query}
         onChangeText={setQuery}
-        style={styles.search}
-        accessibilityLabel={fromNewGame ? 'Add player to new game' : 'Find player in database'}
+        style={[styles.search, { backgroundColor: colors.leaderContainer }]}
+        iconColor={colors.onLeaderContainer}
+        placeholderTextColor={colors.onLeaderContainer}
+        accessibilityLabel={fromNewGame ? FROM_DATABASE_ACCESSIBILITY : 'Find player in database'}
         autoFocus
       />
       {error ? <Text variant="bodyMedium" style={{ color: colors.error }}>{error}</Text> : null}
@@ -212,7 +215,7 @@ export default function FindPlayersScreen() {
       ) : null}
       {!nothing && results.length === 0 ? (
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          Registered players only. Type at least two letters of a name, or a player ID such as 42.
+          {fromNewGame ? `${FROM_DATABASE_ACCESSIBILITY}. ` : ''}Type at least two letters of a name, or a player ID such as 42.
         </Text>
       ) : null}
       <Portal>

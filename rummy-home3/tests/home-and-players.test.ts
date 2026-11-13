@@ -107,6 +107,6 @@ test('help copy matches the new Home, My players, and Find screens', () => {
   assert.doesNotMatch(HELP.players, /− and \+/);
   assert.match(HELP.find, /In your player list/);
   assert.match(HELP.addToGame, /\+ Add/);
-  assert.match(HELP.newGame, /Add player from database/);
+  assert.match(HELP.newGame, /From database/);
   assert.doesNotMatch(HELP.newGame, /− and \+/);
 });
