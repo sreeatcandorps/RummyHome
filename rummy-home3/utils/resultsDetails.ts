@@ -92,7 +92,7 @@ export type ResultsDetails = {
   footer?: string;
 };
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -261,7 +261,7 @@ export function roundBlockHtml(block: RoundBlock): string {
   return `<table class="rb"><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }
 
-function roundTableHtml(table: ResultsRoundTable): string {
+export function roundTableHtml(table: ResultsRoundTable): string {
   const heading = `<h3><span class="lab">${escapeHtml(table.label)}</span> <span class="when"><b>${escapeHtml(table.start.time)}</b> ${escapeHtml(table.start.date)}</span> <i class="gid">Game ID ${escapeHtml(table.code)}</i></h3>`;
   if (table.initials.length === 0) return `<section class="game">${heading}<p class="mute">No players were seated.</p></section>`;
   if (table.totalsOnly) {
@@ -387,6 +387,32 @@ ${details.roundTables.length > 0 ? `<div class="page">
   ${details.roundTables.map(roundTableHtml).join('')}
   ${footer}
 </div>` : ''}
+</body>
+</html>`;
+}
+
+/** One game's rounds as phone pages (the "Share rounds" PDF from the final-scores screen). */
+export function roundsPdfHtml(input: { heading: string; lines: string[]; table: ResultsRoundTable; footer: string }): string {
+  const lines = input.lines.map((line) => `<p class="meta">${escapeHtml(line)}</p>`).join('');
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(input.heading)}</title>
+<style>${RESULTS_DESIGN_CSS}
+  @page { margin: 0; }
+  .page { padding: 20px 16px 28px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="brand">EZ Score: Rummy</p>
+  <h1>${escapeHtml(input.heading)}</h1>
+  ${lines}
+  <div class="section"><h2>Round by round</h2>${roundTableHtml(input.table)}</div>
+  <p class="footer">${escapeHtml(input.footer)}</p>
+</div>
 </body>
 </html>`;
 }

@@ -1,5 +1,6 @@
 import { Platform, Share } from 'react-native';
-import { resultsDetailsHtml, resultsDetailsPdf, ResultsDetails } from '@/utils/resultsDetails';
+import { resultsDetailsHtml, resultsDetailsPdf, ResultsDetails, roundsPdfHtml } from '@/utils/resultsDetails';
+import { FinalScoresSheet } from '@/utils/finalScoresSheet';
 import { resultsPdfFileName } from '@/utils/results';
 
 export const PDF_READY = 'PDF ready.';
@@ -65,5 +66,35 @@ export async function shareResultsPdf(details: ResultsDetails, createdAt?: strin
     const message = error instanceof Error ? error.message : '';
     if (/cancel|abort|dismiss/i.test(message)) return PDF_READY;
     throw error instanceof Error ? error : new Error('Could not make the PDF.');
+  }
+}
+
+export const ROUNDS_PDF_FILE = 'ez-score-rounds.pdf';
+
+/** One game's rounds, five players to a block, as a phone-page PDF. The web build prints the page instead. */
+export async function shareFinalScoresPdf(sheet: FinalScoresSheet): Promise<string> {
+  const html = roundsPdfHtml({
+    heading: sheet.heading,
+    lines: [sheet.startedLine, sheet.completedLine, ...sheet.adminLines, sheet.generatedLine],
+    table: sheet.table,
+    footer: sheet.footer,
+  });
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined') throw new Error('Could not make the PDF.');
+      const popup = window.open('', '_blank');
+      if (!popup) throw new Error('Allow pop-ups to print the rounds.');
+      popup.document.write(html);
+      popup.document.close();
+      popup.focus();
+      popup.print();
+      return PDF_READY;
+    }
+    await shareNative(html, ROUNDS_PDF_FILE);
+    return PDF_READY;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (/cancel|dismiss/i.test(message)) return 'Share cancelled.';
+    throw new Error(message || 'Could not make the PDF.');
   }
 }
