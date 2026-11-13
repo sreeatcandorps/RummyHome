@@ -37,6 +37,7 @@ import { editableRounds } from '@/utils/editRound';
 import { Tag } from '@/components/ui/Tag';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
+import { playersChipLabel } from '@/utils/scorecardLayout';
 import { rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame } from '@/utils/gameStatus';
 
@@ -358,7 +359,9 @@ export default function GameScreen() {
     <Tag label={`Round ${maxRounds + 1}`} tone="primary" icon="cards-outline" />
   );
 
-  const idFooter = <GameIdFooter game={game} members={members} />;
+  // Under the table card, outside the scrollers: creator, admins, unique game id (PR 4).
+  const idFooter = <GameIdFooter game={game} members={members} compact={isShort} />;
+  const playersTag = <Tag label={playersChipLabel(players.length)} icon="account-group-outline" />;
 
   const table = (
     <ScoreTable
@@ -378,7 +381,6 @@ export default function GameScreen() {
       compact={isShort}
       fullCount={game.settings?.maxCount}
       emptyMessage={game.isComplete ? 'This game was closed with no rounds.' : 'No rounds yet. Tap Add round to score the first hand.'}
-      footer={idFooter}
     />
   );
 
@@ -476,6 +478,7 @@ export default function GameScreen() {
         <View style={styles.metaRow}>
           {numberBadge}
           {typeTag}
+          {playersTag}
           {statusTag}
           {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
         </View>
@@ -491,7 +494,10 @@ export default function GameScreen() {
             { paddingLeft: gutterLeft, paddingRight: gutterRight },
           ]}
         >
-          <View style={styles.flex}>{table}</View>
+          <View style={styles.flex}>
+            {table}
+            {idFooter}
+          </View>
         </View>
       ) : (
         <View
@@ -502,6 +508,7 @@ export default function GameScreen() {
           ]}
         >
           {table}
+          {idFooter}
         </View>
       )}
       {!game.isComplete && canScore ? (

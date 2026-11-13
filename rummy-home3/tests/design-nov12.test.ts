@@ -133,10 +133,9 @@ test('design: role tags — plain players see Creator (and You); creators and ad
 
 test('design: scorecard — G badge, tinted dealer column, signed near-black totals, owners inside the table card', () => {
   const table = src('components/game/ScoreTable.tsx');
-  assert.match(table, /footer\?: React\.ReactNode/);
-  assert.match(table, /contentContainerStyle=\{styles\.grow\}/);
-  assert.match(table, /footer: \{\s*marginTop: 'auto',\s*\}/, 'pinned to the bottom on short games, after the last row on long ones');
-  assert.match(table, /dealsNext && \{ backgroundColor: colors\.primaryContainer, borderBottomWidth: 4/);
+  // PR 4: the owner lines sit under the table card (outside the scrollers) instead of inside it.
+  assert.doesNotMatch(table, /footer\?: React\.ReactNode/);
+  assert.match(table, /dealsNext && \{ backgroundColor: colors\.primaryContainer, borderBottomWidth: DEALER_BAR/);
   assert.ok(!/dealsNext && \{ backgroundColor: colors\.primary \}/.test(table), 'the dealer column is no longer filled button green');
   assert.match(table, /\{signed\(total\)\}/);
   assert.match(table, /color: dealsNext \? colors\.onPrimaryContainer : total < 0 \? colors\.loss : colors\.onSurface/);
@@ -147,14 +146,14 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
   assert.match(table, /color: colors\[text\.colorKey\], fontWeight: text\.fontWeight/);
 
   const scorecard = src('app/(screens)/games/[id].tsx');
-  assert.match(scorecard, /footer=\{idFooter\}/);
+  assert.match(scorecard, /\{table\}\s+\{idFooter\}/, 'the footer is drawn right under the table');
   assert.match(scorecard, /\{gameLabel\}<\/Text>/, 'the badge is the S/P label (028), not a G-number');
   assert.doesNotMatch(scorecard, /`G\$\{game\.gameNumber\}`/);
   const footer = src('components/game/GameIdFooter.tsx');
-  // Item 7: "Game S3", Creator and Admin each on their own line (one Text per line).
-  assert.match(footer, /gameOwnersLines\(/);
+  // Item 7 / PR 4: Creator and each Admin on their own line (one Text per line), left-aligned under the card.
+  assert.match(footer, /scorecardFooterLines\(/);
   assert.match(footer, /lines\.map\(\(line, index\) =>/);
-  assert.match(footer, /alignItems: 'flex-end'/);
+  assert.match(footer, /alignItems: 'flex-start'/);
 });
 
 test('design: Results scores are near-black, negatives red; band strips are filled (V4): green-tinted header with a green base line, gray rows, no win tint', () => {

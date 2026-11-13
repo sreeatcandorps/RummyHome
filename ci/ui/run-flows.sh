@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Run every Maestro flow in one e2e set, in file-name order, against the app already installed on the
 # connected emulator. One JUnit file and one debug folder per flow; the screenshots a flow takes land
-# in <out>/screens. Flows whose file name contains "landscape" run with the emulator turned sideways.
+# in <out>/screens. Flows whose file name contains "landscape" run with the emulator turned sideways;
+# flows whose file name contains "font-scale" run with the phone font at 1.3x (PR 4: nothing may clip).
 #
 #   ci/ui/run-flows.sh <set-dir> <out-dir> [--quarantine]
 #
@@ -33,12 +34,19 @@ rotate() {
   echo "rotation now: $(adb shell dumpsys window displays 2>/dev/null | grep -m1 -oE 'mCurrentRotation=[^ ,]+|rotation=[0-9]' || echo unknown)"
 }
 
+font_scale() {
+  adb shell settings put system font_scale "$1" >/dev/null 2>&1 || true
+  sleep 2
+  echo "font scale now: $(adb shell settings get system font_scale 2>/dev/null || echo unknown)"
+}
+
 failed=0
 total=0
 for f in $(ls "$SET_DIR"/*.yaml | sort); do
   name="$(basename "$f" .yaml)"
   total=$((total + 1))
   case "$name" in *landscape*) rotate 1 ;; *) rotate 0 ;; esac
+  case "$name" in *font-scale*) font_scale 1.3 ;; *) font_scale 1.0 ;; esac
 
   echo "::group::flow $name"
   start=$(date +%s)
@@ -69,6 +77,7 @@ for f in $(ls "$SET_DIR"/*.yaml | sort); do
   fi
 done
 rotate 0
+font_scale 1.0
 
 echo "$SET_DIR: $((total - failed))/$total flows passed"
 if [ "$failed" -gt 0 ] && [ "$QUARANTINE" -eq 0 ]; then

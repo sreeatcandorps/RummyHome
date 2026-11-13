@@ -209,6 +209,21 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | A3-8 | S | `smoke/14-rummy-positive-pot.yaml` | Game H: +50 typed (yellow cell screenshot, light green saved cell), Drop, Rummy → "Priya Test, score -40", Balance 0, Save on → "Rummy share is not a win" confirm → Yes, save → Round 2 |
 | A3-9 | N | `full/80-add-round-count-warnings.yaml` | Typing 1-2 shows no dialog, 1-2-0 shows "Over the Full count … Keep -120" once; Keep leaves -120 typed with the warning line; 40 shows "40 is half the Full count (80)." with no dialog |
 
+## PR 4 test cases (Scorecard header, one scroller, players chip, footer lines; no migration)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| A4-1 | U | `tests/scorecard-pr4.test.ts` A4-1 | Header height = initials + total + DEALS line heights + 4 dp bar + padding (about 68 at font scale 1 on 5 columns); font scale 1.3 is capped at 1.2 and grows the box instead of clipping; landscape loses 2 dp of padding, never a line |
+| A4-2 | U | same A4-2 | 10 and 20 players on 390 dp: 38 dp columns, 12/12/8 pt type, the DEALS word gives way to the cards icon below 44 dp; landscape 844 dp with 10 players keeps full-size type with no sideways scroll |
+| A4-3 | U | same A4-3 | Rows keep 48 / 42 / 34 at font scale 1 and grow (capped at 1.2) with the phone font |
+| A4-4 | U | same A4-4 | Strip chip "10 players" / "1 player" from the seated players, not from who has scored |
+| A4-5 | U | same A4-5 | Footer lines for 0 / 1 / 3 admins: `Creator:`, one `Admin:` per admin, `Unique game ID:` = share code upper-cased (D4.1); no "Game S16" (it is in the strip); landscape joins them with " · " |
+| A4-6 | U | same A4-6 | One horizontal scroller holds header + rows (native sticky header), the round column follows through a native-driver translate, `createScrollSync` is gone (D4.2), no fixed header/row heights, `maxFontSizeMultiplier` on every table text, the footer sits under the card |
+| A4-7 | S | `smoke/02-scorecard.yaml`, `smoke/03-scorecard-landscape.yaml` | Game A portrait and landscape: `HT` and `DEALS` visible, "4 players" chip, `Creator:` line and `Unique game ID: GAMEA1` (landscape: one line) |
+| A4-8 | S | `smoke/10-…`, `smoke/11-…-landscape.yaml` | Game F (20 players): "20 players" chip, header renders at 38 dp columns portrait and landscape, two swipes right |
+| A4-9 | N | `full/20-scorecard-20-players-swipe.yaml` | Three swipes reach header `TU` (index 1) with its scores under it in the same scroller; the frozen `RND` column stays |
+| A4-10 | N | `full/21-scorecard-font-scale.yaml` | `ci/ui/run-flows.sh` sets the phone font to 1.3 for any flow named `*font-scale*`: Game A header shows `HT`, `DEALS`, the chip and the footer whole; Game F renders at 20 columns |
+
 ## Logs PR test cases (Game and result logs, migration 036)
 
 | # | Kind | Where | What it proves |

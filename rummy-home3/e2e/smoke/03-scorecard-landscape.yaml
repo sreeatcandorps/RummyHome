@@ -18,6 +18,10 @@ tags: [smoke, landscape]
     timeout: 15000
 - assertVisible: "Add round"
 - assertVisible: "DEALS"
+- assertVisible: "HT"
+# PR 4: the header keeps its full height sideways; the footer is one line under the card.
+- assertVisible:
+    text: "Creator:.*Unique game ID: GAMEA1"
 - takeScreenshot: 03-scorecard-4p-landscape
 - tapOn: "Add round"
 - extendedWaitUntil:

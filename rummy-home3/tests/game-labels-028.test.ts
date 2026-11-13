@@ -38,8 +38,8 @@ test('028: local games follow the same rule as next_game_number (lowest free, pe
 
 test('028: the long id left every screen; the label is shown everywhere the G badge was', () => {
   const footer = src('components/game/GameIdFooter.tsx');
-  assert.doesNotMatch(footer, /game\.id|Clipboard/, 'no id, no copy');
-  assert.match(footer, /gameOwnersLines/);
+  assert.doesNotMatch(footer, /game\.id\b|Clipboard/, 'no UUID, no copy (PR 4 shows the 6-character share code instead)');
+  assert.match(footer, /scorecardFooterLines/);
   const scorecard = src('app/(screens)/games/[id].tsx');
   assert.match(scorecard, /title: gameTitle\(game, 'Scorecard'\)/, 'the scorecard header says "Game S3"');
   for (const rel of ['utils/gameDisplay.ts', 'utils/gameOwners.ts', 'utils/results.ts', 'utils/resultsSave.ts', 'utils/finalScoresSheet.ts', 'utils/scorecardSheet.ts', 'utils/linkPlayer.ts', 'app/(screens)/hidden-deleted.tsx']) {

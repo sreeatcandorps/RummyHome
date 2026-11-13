@@ -34,4 +34,7 @@ tags: [nightly]
       text: "TU"
       index: 1
     timeout: 120000
+# PR 4: one horizontal scroller holds the header and the rows, so when the last header (TU) is on
+# screen the last column's scores are under it. The frozen RND column keeps the round numbers.
+- assertVisible: "RND"
 - takeScreenshot: 20-scorecard-20p-last-column

@@ -20,8 +20,14 @@ tags: [smoke]
 - assertVisible: "Undo round"
 - assertVisible: "Complete game"
 - assertVisible: "DEALS"
+# PR 4: initials and DEALS fit in the header; the strip counts the seats; the footer names the creator
+# on its own line and shows the 6-character Unique game ID (the share code).
+- assertVisible: "HT"
+- assertVisible: "4 players"
 - assertVisible:
-    text: "Creator.*"
+    text: "Creator:.*"
+- assertVisible:
+    text: "Unique game ID: GAMEA1"
 - takeScreenshot: 02-scorecard-4p
 - tapOn: "Help"
 - extendedWaitUntil:
