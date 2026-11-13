@@ -89,7 +89,7 @@ After any scoring or schema change:
 | --- | --- | --- | --- |
 | `e2e/smoke/` | every pull request (`ui-smoke`) | sign in, Home, Scorecard (4 and 20 players, portrait and landscape), Add round (drops + rummy, save), Complete game, Results, Profile, My players, New game | the PR does not merge |
 | `e2e/full/` | nightly and `workflow_dispatch` (`ui-full`) | sign out / wrong passcode, 20-player scorecard swiped to the last column, Players · Admins, Game settings, Save result and Past results, every Help note, dark appearance | fix before the next APK |
-| `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 3 rummy with a positive pot, PR 6 initials clash → HT2; PR 8's 0-players flow moved to `smoke/12` and PR 2's undo→add round flow to `smoke/13` when those PRs landed) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
+| `e2e/known-bugs/` | with both suites, quarantined | one flow per bug from the Nov 12 phone test, named after the PR that fixes it (PR 6 initials clash → HT2; PR 8's 0-players flow moved to `smoke/12`, PR 2's undo→add round flow to `smoke/13` and PR 3's positive-pot Rummy flow to `smoke/14` when those PRs landed) | expected until that PR lands; the PR moves the flow into `smoke/` and it turns blocking |
 
 Every flow starts from `e2e/lib/ensure-signed-in.yaml` (sign in only when the login screen is showing), uses the seeded account `sree@test.local` / `123456` (local database only), and ends with `takeScreenshot`. Landscape flows (file name contains `landscape`) rotate with Maestro's `setOrientation` once the app is up; the runner also rotates the emulator for them (`adb shell wm set-user-rotation`). Fixtures the flows rely on are in `supabase/seed-e2e.sql`: game A `GAMEA1` (4 players, 2 rounds, from `seed.sql`), E `GAMEE1` (4 players, 1 round), H `GAMEH1` (3 players, no rounds), G `GAMEG1` (completed, 6 seated, no rounds), F `GAMEF1` (20 players × 30 rounds). Which flow changes what, and in which order they must run, is in `e2e/README.md`.
 
@@ -126,7 +126,8 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | 200 / 500 rounds (029 message) | volume script | N (monthly) | — |
 | | realtime refresh when another admin saves | C | C + N | — |
 | Add round | select, keypad, ±, drops, Save score, Balance pill | U, S | **S** | `smoke/04` |
-| | Rummy balance (positive others, two winners, negative share) | U, known-bug | U + **S** | `known-bugs/pr3` → PR 3 |
+| | Rummy balance (positive others, two winners, negative share) | U + D + S | U + D + S | `tests/add-round-pr3.test.ts`, `supabase/tests/27_rummy_negative_037.sql`, `smoke/14-rummy-positive-pot.yaml` (PR 3 / 037) |
+| | Count warnings (half / Full count line, over-max confirm once per cell) | U + N | U + N | `tests/add-round-pr3.test.ts`, `full/80-add-round-count-warnings.yaml` (PR 3) |
 | | over max count warning | — | U + N | — |
 | | edit a saved round (replace) | D, C | D + N | — |
 | | same round saved by two admins (true conflict) | D, C | C + N | — |
@@ -154,7 +155,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | Offline / degraded | cached scorecard opens, save fails with a message, retry | U | N | — |
 | Help | every ? opens and closes, text fits | N | N (PR 12 adds one flow per screen) | `full/50`, `smoke/02`, `smoke/06` |
 
-**Smoke set on every PR (12 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4, then Log shows "Round 3 added" first) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add New Players by Initials) → Scorecard 20p → Scorecard 20p landscape → Results with no rounds (game G, 6 players, saved). Undo → Add round joins the smoke set with PR 2.
+**Smoke set on every PR (12 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4, then Log shows "Round 3 added" first) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add New Players by Initials) → Scorecard 20p → Scorecard 20p landscape → Results with no rounds (game G, 6 players, saved). Undo → Add round joins the smoke set with PR 2; Rummy with a positive pot (negative share, confirm, save) with PR 3.
 
 **Nightly / before each APK:** the smoke set, everything marked N, dark appearance, plus C and the volume scripts monthly.
 
@@ -193,6 +194,20 @@ Only after S + N are green, with the matrix above as the checklist. Someone who 
 - A new account’s welcome email arrives from `scores@mindweavetech.com`.
 
 Pass when Home has New game, Results, and Recent, and none of Settle, Active, History, or All players. Settle stays off. `EXPO_PUBLIC_SETTLE_ENABLED` stays unset.
+
+## PR 3 test cases (Add round colours, count warnings, Rummy negative share, migration 037)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| A3-1 | U | `tests/add-round-pr3.test.ts` 3.1 | Four at -10 and a Rummy → +30/+40 share, Balance 0, Save round on, no confirm |
+| A3-2 | U | same 3.2 | +100 / -20 / -30 and a Rummy → share -50, Save on, `rummyShareNeedsConfirm` true, validator accepts, confirm text names the winner and the others' total |
+| A3-3 | U | same 3.3 / 3.4 | Two winners: -45 → +23/+22; +31 → -16/-15 (first tapped takes the larger piece, D3.3), confirm text lists both |
+| A3-4 | U | same | D3.2: a share of exactly 0 asks, any positive share does not; `exceedsMaxCount` at 80 (no) / 81 / -120 / 120 (yes) / no Full count (never); `countWarning` none < half, half from 40 of 80, full from 80; warning and confirm wording |
+| A3-5 | U | same, `tests/build4.test.ts`, `tests/design-nov12.test.ts` | Palette: selected cell and active sign `secondaryContainer` (yellow), saved plus `positiveContainer` with `win` text and ring, saved minus/0 white; the screen has no 00 / tick / Clear keys; digits go through the once-per-cell confirm; Save round asks about a non-winning Rummy once |
+| A3-6 | D | `supabase/tests/27_rummy_negative_037.sql` | `scores_check` no longer requires rummy ≥ 0 (validated); a round with a -40 Rummy share saves and totals 0; two negative shares save; a positive drop is still refused (23514) and writes nothing |
+| A3-7 | D | `ci/db/replay-rollbacks.sh` | Rollback 037 restores the ≥ 0 rule NOT VALID (saved rounds stay); forward replay validates the relaxed constraint; 037 is safe to run twice |
+| A3-8 | S | `smoke/14-rummy-positive-pot.yaml` | Game H: +50 typed (yellow cell screenshot, light green saved cell), Drop, Rummy → "Priya Test, score -40", Balance 0, Save on → "Rummy share is not a win" confirm → Yes, save → Round 2 |
+| A3-9 | N | `full/80-add-round-count-warnings.yaml` | Typing 1-2 shows no dialog, 1-2-0 shows "Over the Full count … Keep -120" once; Keep leaves -120 typed with the warning line; 40 shows "40 is half the Full count (80)." with no dialog |
 
 ## Logs PR test cases (Game and result logs, migration 036)
 

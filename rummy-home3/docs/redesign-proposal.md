@@ -801,3 +801,11 @@ No calendar estimate. This is the sequence, smallest confusing piece first, so a
 7. **Maestro pack and a phone pass** on the APK that contains 1–6, before that APK is handed to Sree.
 
 Slices 1–3 are the Friday-night confusion. Slice 4 is Results. Slice 5 is cleanup. Slice 6 is the help icon and its copy. Slice 7 is the gate.
+
+## 10. Parked design ideas
+
+Ideas that were drawn, reviewed and set aside; not scheduled, kept here so they are not re-invented.
+
+### Calculator-style Add round (PR 3 packet, Nov 13 — parked by Sree)
+
+The PR 3 approval packet proposed a full calculator layout for Add round: compact two-line cells (`HG · #4` over the score), a `Balance … +40` pill between the grid and the keys, a 4 × 5 key block (−, +, Drop, Mid / 7 8 9 Full / 4 5 6 Rummy / 1 2 3 ⌫ / 0, 00, ✓, Clear) and a full-width Save round bar. Mockup: `/opt/cursor/artifacts/approval-packets/pr3-add-round-yellow-green.png`. Sree's decision: keep the existing Add round layout, player name sizes and Balance position exactly as they are; take only the colour tokens (yellow selected cell and active sign key, light green for a saved plus with green "+40"), the half / Full count warnings, and the Rummy negative-share fix. No `00`, `✓` or `Clear` keys. Revisit only if the current layout proves too slow for 10+ players.

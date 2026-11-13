@@ -24,7 +24,17 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 036 (event log; rolled back first)
+# 037 (rummy share may be negative; rolled back first)
+HAS_037=f
+if [ -f "$RB/rollback_037_rummy_negative_share.sql" ]; then
+  HAS_037=t
+  if apply "$RB/rollback_037_rummy_negative_share.sql"; then tap ok "rollback_037 applies"; else tap fail "rollback_037 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(q "select pg_get_constraintdef(oid) like '%rummy%value >= 0%' from pg_constraint where conname='scores_check' and conrelid='public.scores'::regclass")" = t ] \
+    && tap ok "after rollback_037 a rummy score must be >= 0 again (not valid, so saved rounds stay)" \
+    || tap fail "after rollback_037 scores_check should refuse a negative rummy share"
+fi
+
+# 036 (event log)
 HAS_036=f
 if [ -f "$RB/rollback_036_event_log.sql" ]; then
   HAS_036=t
@@ -342,6 +352,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_034" = t ] && FORWARD="$FORWARD 034_results_design"
 [ "$HAS_035" = t ] && FORWARD="$FORWARD 035_undo_round"
 [ "$HAS_036" = t ] && FORWARD="$FORWARD 036_event_log"
+[ "$HAS_037" = t ] && FORWARD="$FORWARD 037_rummy_negative_share"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -454,6 +465,10 @@ if [ "$HAS_036" = t ]; then
     && [ "$(q "select prosecdef from pg_proc where proname='save_round' and pronamespace='public'::regnamespace")" = t ] \
     && [ "$(q "select count(*) from pg_trigger where tgname like 'event_log_%' and not tgisinternal")" = 10 ] \
     && tap ok "036 restored (event_log, ten triggers, create_game / add_seated_player, no direct inserts, definer save_round)" || tap fail "036 restored"
+fi
+if [ "$HAS_037" = t ]; then
+  [ "$(q "select pg_get_constraintdef(oid) not like '%value >= 0%' and convalidated from pg_constraint where conname='scores_check' and conrelid='public.scores'::regclass")" = t ] \
+    && tap ok "037 restored (rummy share may be negative; constraint validated)" || tap fail "037 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

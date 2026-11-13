@@ -34,8 +34,10 @@ test('no winners means nothing is distributed', () => {
   assert.deepEqual(distributeRummyWinnings(-40, []), {});
 });
 
-test('a positive entries total leaves winners at zero', () => {
-  assert.deepEqual(distributeRummyWinnings(10, ['a']), { a: 0 });
+test('PR 3: a positive entries total gives the winner a negative share, so the round still balances', () => {
+  assert.deepEqual(distributeRummyWinnings(10, ['a']), { a: -10 });
+  assert.deepEqual(distributeRummyWinnings(0, ['a']), { a: 0 });
+  assert.equal(Object.is(distributeRummyWinnings(0, ['a']).a, -0), false, 'never -0');
 });
 
 test('distributed rounds pass round validation', () => {

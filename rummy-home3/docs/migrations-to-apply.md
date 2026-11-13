@@ -417,6 +417,16 @@ What it does:
 
 Verified on a scratch Postgres 16 loaded with 001–036 and the CI seed: pgTAP (1057 checks; 98 new in `supabase/tests/26_event_log_036.sql`; `02_games_visibility.sql` negatives now expect "permission denied" and its positives go through `save_round`; `23_security_033.sql` anon list gains the two public readers), the rollback replay (144 checks) and the 44 race checks all pass.
 
+## 037 — Rummy share may be negative (PR 3)
+
+File: `supabase/migrations/037_rummy_negative_share.sql`. Run after 036. Safe to re-run. Rollback: `supabase/rollback/rollback_037_rummy_negative_share.sql` (puts the "rummy ≥ 0" rule back **NOT VALID**, so rounds already saved with a negative share stay and only new rows are checked).
+
+Backward compatible with the APK on phones: the shipped app never produces a negative Rummy row (it clamps the pot at 0 and cannot save such a round), so nothing changes for it. The new app's Rummy share is minus the others' total when that total is positive; the scorecard, results and public pages already show any sign. **Status: ready for live** once CI is green on PR 3 (Build Bot applies; nothing applied by the agent).
+
+What it does: `scores_check` becomes `(score_type in ('drop','middle_drop','count','expense') and value <= 0) or score_type = 'rummy'`. The sum-to-0 rule is unchanged (app validator; `save_round` stores what balances).
+
+Verified on a scratch Postgres 16 loaded with 001–037 and the CI seed: pgTAP (1066 checks; 9 new in `supabase/tests/27_rummy_negative_037.sql`), the rollback replay (149 checks) and the 44 race checks all pass.
+
 ## Apply order for the Nov 10–12 batches
 
 017–020 were applied on Nov 11 (~11:25 AM PT); 021–026 were applied on Nov 12 from PR 7 head `d62d9c6`. Steps 1–6 are kept for the record (all re-runnable):
@@ -449,6 +459,10 @@ PR 2 (Nov 13), unapplied, ready for live once CI is green:
 Logs PR (Nov 13), unapplied, ready for live once CI is green:
 
 16. `supabase/migrations/036_event_log.sql`
+
+PR 3 (Nov 13), unapplied, ready for live once CI is green:
+
+17. `supabase/migrations/037_rummy_negative_share.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

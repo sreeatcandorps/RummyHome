@@ -21,12 +21,18 @@ import {
   cellView,
   clearPlayer,
   commitPending,
+  countWarning,
+  countWarningText,
+  draftValue,
+  emptyDraft,
+  exceedsMaxCount,
   hasPendingEntry,
   initialRoundEntryState,
   PresetKind,
   PresetValues,
   pressDigit,
   RoundEntryState,
+  rummyShares,
   saveScore,
   setNegative,
   tapPlayer,
@@ -49,6 +55,8 @@ import { scorecardUrl } from '../../utils/shareLink';
 import { shareLiveScorecard } from '../../utils/shareImage';
 import { formatSupabaseError } from '../../utils/supabaseErrors';
 import { isRoundConflict, roundConflictMessage } from '../../utils/roundConflict';
+import { rummyShareNeedsConfirm } from '../../utils/rummyDistribution';
+import { overMaxConfirm, rummyShareConfirm } from '../../utils/roundConfirms';
 
 type Participant = {
   id: string;
@@ -88,6 +96,11 @@ export default function ScoreEntryScreen() {
   const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  // PR 3 confirms, each shown once: a number typed past the Full count (per cell) and a Rummy share at or below 0 (per round).
+  const [overMax, setOverMax] = useState<{ value: number; ids: string[] } | null>(null);
+  const warnedCells = useRef(new Set<string>());
+  const [rummyConfirm, setRummyConfirm] = useState<string | null>(null);
+  const rummyConfirmed = useRef(false);
 
   const [entry, setEntry] = useState<RoundEntryState>(seeded && seededGame && editRound ? entryFromRound(seededGame, editRound) : initialRoundEntryState);
   // The fresh copy must not wipe cells the person has already filled from the seeded round.
@@ -186,11 +199,38 @@ export default function ScoreEntryScreen() {
     setEntry((prev) => reduce(prev));
   }, []);
 
+  const fullCount = game?.settings.maxCount;
+
+  // A digit that first takes the number past the Full count asks once for that cell (D3.1).
+  const typeDigit = (digit: string) => {
+    const next = pressDigit(entry, digit);
+    const value = draftValue(next.draft);
+    const fresh = next.selectedIds.filter((id) => !warnedCells.current.has(id));
+    if (value !== undefined && exceedsMaxCount(value, fullCount) && fresh.length > 0 && !exceedsMaxCount(draftValue(entry.draft), fullCount)) {
+      next.selectedIds.forEach((id) => warnedCells.current.add(id));
+      setOverMax({ value, ids: next.selectedIds });
+    }
+    setEntry(next);
+  };
+
+  const changeOverMax = () => {
+    setOverMax(null);
+    // Back to an empty number for the same selection; the sign is kept.
+    update((state) => ({ ...state, draft: { ...emptyDraft(), negative: state.draft.negative } }));
+  };
+
   const handleSaveRound = async () => {
     if (!game || !saveReady || isSubmitting) return;
 
     // Whatever is still being typed counts; show it landing before we leave.
     const finalState = commitPending(entry);
+
+    // A Rummy share at or below 0 (the others added up to a plus) is confirmed once per round (D3.2).
+    const shares = rummyShares(finalState);
+    if (!rummyConfirmed.current && rummyShareNeedsConfirm(shares)) {
+      setRummyConfirm(rummyShareConfirm(finalState, shares, participants));
+      return;
+    }
     if (finalState !== entry) {
       setEntry(finalState);
       await wait(SAVE_FLASH_MS);
@@ -327,7 +367,7 @@ export default function ScoreEntryScreen() {
           leadingIcon="eraser-variant"
           title={editRound ? 'Undo my changes' : 'Clear this round'}
           disabled={!hasAnything}
-          onPress={() => { setMenuOpen(false); setEntry(editRound && game ? entryFromRound(game, editRound) : initialRoundEntryState()); }}
+          onPress={() => { setMenuOpen(false); rummyConfirmed.current = false; warnedCells.current.clear(); setEntry(editRound && game ? entryFromRound(game, editRound) : initialRoundEntryState()); }}
         />
         <Menu.Item
           leadingIcon="help-circle-outline"
@@ -338,6 +378,22 @@ export default function ScoreEntryScreen() {
       </Menu>
     </View>
   );
+
+  // The number being typed, measured against the Full count: soft at half, strong at the count.
+  const pendingValue = draftValue(entry.draft);
+  const pendingWarning = entry.draft.edited && entry.selectedIds.length > 0 ? countWarning(pendingValue, fullCount) : 'none';
+  const warningLine = pendingValue !== undefined && pendingWarning !== 'none' ? (
+    <View
+      style={[styles.warning, { backgroundColor: pendingWarning === 'full' ? colors.errorContainer : colors.secondaryContainer }]}
+      accessibilityRole="alert"
+      testID="count-warning"
+    >
+      <Icon source="alert-outline" size={18} color={pendingWarning === 'full' ? colors.onErrorContainer : colors.onSecondaryContainer} />
+      <Text variant="bodySmall" style={{ color: pendingWarning === 'full' ? colors.onErrorContainer : colors.onSecondaryContainer, flex: 1 }}>
+        {countWarningText(pendingValue, fullCount, pendingWarning)}
+      </Text>
+    </View>
+  ) : null;
 
   const grid = (
     <ScrollView
@@ -370,6 +426,7 @@ export default function ScoreEntryScreen() {
           })
           : null}
       </View>
+      {warningLine}
     </ScrollView>
   );
 
@@ -412,8 +469,8 @@ export default function ScoreEntryScreen() {
         const background = isSign || isRummy
           ? restFill
           : flashFor(key.id).interpolate({ inputRange: [0, 1], outputRange: [restFill, colors[PRESET_FLASH_FILL]] });
-        const border = signOn ? colors.primary : isRummy ? colors.tertiary : colors.outlineVariant;
-        const foreground = signOn ? colors.onPrimaryContainer : isRummy ? colors.onTertiaryContainer : colors.onSurface;
+        const border = signOn ? colors.onSecondaryContainer : isRummy ? colors.tertiary : colors.outlineVariant;
+        const foreground = signOn ? colors.onSecondaryContainer : isRummy ? colors.onTertiaryContainer : colors.onSurface;
         const accessibilityLabel = isSign
           ? key.label
           : isRummy
@@ -462,7 +519,7 @@ export default function ScoreEntryScreen() {
       enabled={hasSelection}
       canSave={hasPendingEntry(entry)}
       compact={isShort}
-      onDigit={(digit) => update((state) => pressDigit(state, digit))}
+      onDigit={typeDigit}
       onSave={() => update(saveScore)}
     />
   );
@@ -541,6 +598,40 @@ export default function ScoreEntryScreen() {
       </View>
 
       <Portal>
+        <Dialog visible={!!overMax} onDismiss={changeOverMax} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+          <Dialog.Icon icon="alert-outline" />
+          <Dialog.Title style={styles.dialogTitle}>Over the Full count</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]} testID="over-max-body">
+              {overMax ? overMaxConfirm(overMax.value, fullCount) : ''}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button onPress={changeOverMax}>Change</Button>
+            <Button mode="contained" onPress={() => setOverMax(null)} contentStyle={styles.dialogButtonContent}>
+              {overMax ? `Keep ${signed(overMax.value)}` : 'Keep'}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog visible={!!rummyConfirm} onDismiss={() => setRummyConfirm(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+          <Dialog.Icon icon="cards-playing-outline" />
+          <Dialog.Title style={styles.dialogTitle}>Rummy share is not a win</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]} testID="rummy-share-body">
+              {rummyConfirm ?? ''}
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions style={styles.dialogActions}>
+            <Button onPress={() => setRummyConfirm(null)}>Change</Button>
+            <Button
+              mode="contained"
+              contentStyle={styles.dialogButtonContent}
+              onPress={() => { rummyConfirmed.current = true; setRummyConfirm(null); void handleSaveRound(); }}
+            >
+              Yes, save
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
         <Dialog visible={!!notice} onDismiss={dismissNotice} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Icon icon={notice?.icon ?? 'information-outline'} />
           <Dialog.Title style={styles.dialogTitle}>{notice?.title}</Dialog.Title>
@@ -577,6 +668,15 @@ export default function ScoreEntryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  warning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.md,
+    marginTop: spacing.sm,
   },
   flex: {
     flex: 1,

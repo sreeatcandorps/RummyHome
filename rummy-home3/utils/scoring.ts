@@ -73,11 +73,8 @@ export const validateRoundScores = (scores: RoundScoreInput[]) => {
     return { valid: false, error: 'Drop, middle drop, and count scores must be zero or negative.' };
   }
 
-  const invalidRummy = rummyScores.find((score) => score.value < 0);
-  if (invalidRummy) {
-    return { valid: false, error: 'Rummy scores must be zero or positive.' };
-  }
-
+  // 037: a Rummy share may be negative when the other players add up to a plus; the
+  // sum-to-0 rule above is what keeps the round honest.
   return { valid: true, error: null };
 };
 

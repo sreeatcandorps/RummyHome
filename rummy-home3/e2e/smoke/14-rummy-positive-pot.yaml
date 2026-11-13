@@ -1,0 +1,47 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# PR 3 (037): Rummy always balances the round to 0, even when the other players' total is positive.
+# Sree types +50, Harish drops -10, Priya takes the Rummy: her share is -40, Balance 0, Save round
+# is on. Saving asks once ("Rummy share is not a win"), then round 1 is saved. The selected cell
+# is yellow and the saved +50 is light green (screenshots). Fixture: game H (GAMEH1), 3 players.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    id: "game-card-GAMEH1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- tapOn: "Sree Test, no score"
+- takeScreenshot: pr3-selected-cell-yellow
+- tapOn: "Plus"
+- tapOn: "5"
+- tapOn: "0"
+- tapOn: "Save score"
+- assertVisible: "Sree Test, score +50"
+- tapOn: "Harish Test, no score"
+- tapOn: "Drop -10"
+- tapOn: "Priya Test, no score"
+- tapOn: "Rummy"
+- takeScreenshot: pr3-rummy-with-positive-pot
+- assertVisible: "Priya Test, score -40"
+- assertVisible: "Balance 0"
+- assertVisible:
+    text: "Save round"
+    enabled: true
+- tapOn: "Save round"
+- extendedWaitUntil:
+    visible: "Rummy share is not a win"
+    timeout: 5000
+- assertVisible:
+    text: ".*Priya's Rummy share is -40.*"
+- takeScreenshot: pr3-rummy-negative-share-confirm
+- tapOn: "Yes, save"
+- extendedWaitUntil:
+    visible: "Round 2"
+    timeout: 20000
+- assertVisible: "Add round"
+- takeScreenshot: pr3-round-saved-with-negative-rummy
