@@ -95,7 +95,7 @@ export function ResultsPage({
       {sheet.games.length > 0 ? (
         <View style={styles.block}>
           <Text variant="labelLarge" style={[styles.section, { color: colors.onSurfaceVariant }]}>How you got there · game by game</Text>
-          <BandTable table={details.table} legend={details.legend} />
+          <BandTable table={details.table} legend={details.legend} testID="results-band-table" />
         </View>
       ) : null}
 
