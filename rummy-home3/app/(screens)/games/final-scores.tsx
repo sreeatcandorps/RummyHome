@@ -15,6 +15,7 @@ import { buildFinalScoresSheet, totalsLine } from '@/utils/finalScoresSheet';
 import { gameAdminLines, gameAdminTextLines } from '@/utils/gameAdmins';
 import { IMAGE_READY, shareFinalScoresImage } from '@/utils/shareImage';
 import { PDF_READY, shareFinalScoresPdf } from '@/utils/shareResultsPdf';
+import { isPoolGame, poolLimitOf } from '@/utils/pool';
 
 /**
  * One game's final scores (PR 8 design, PR 10b words and colour). The shared picture is the
@@ -33,7 +34,17 @@ export default function FinalScoresScreen() {
   const [note, setNote] = useState<string | null>(null);
 
   const sheet = useMemo(
-    () => (game ? buildFinalScoresSheet({ game, players, scores: game.scores, admins: gameAdminTextLines(gameAdminLines(roster, game)) }) : null),
+    () => (game
+      ? buildFinalScoresSheet({
+          game,
+          players,
+          scores: game.scores,
+          admins: gameAdminTextLines(gameAdminLines(roster, game)),
+          pool: isPoolGame(game)
+            ? { limit: poolLimitOf(game.settings), fullCount: Math.abs(game.settings.maxCount || 0), seats: game.poolSeats ?? {}, awards: game.awardedAt ? game.prizeShares : null }
+            : undefined,
+        })
+      : null),
     [game, players, roster],
   );
 
@@ -87,8 +98,8 @@ export default function FinalScoresScreen() {
             <FinalScoresView sheet={sheet} />
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="final-scores-totals">
               {sheet.roundCount === 1 ? '1 round' : `${sheet.roundCount} rounds`} ·{' '}
-              <Text variant="bodySmall" style={sheet.totalSum === 0 ? { color: colors.onSurfaceVariant } : [styles.bold, { color: colors.negative }]}>
-                {totalsLine(sheet.totalSum)}
+              <Text variant="bodySmall" style={sheet.poolLine || sheet.totalSum === 0 ? { color: colors.onSurfaceVariant } : [styles.bold, { color: colors.negative }]}>
+                {sheet.poolLine ?? totalsLine(sheet.totalSum)}
               </Text>
             </Text>
             {note ? <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="final-scores-note">{note}</Text> : null}

@@ -39,3 +39,27 @@ tags: [smoke]
     timeout: 10000
 - assertVisible: "Log out"
 - takeScreenshot: 07b-profile-bottom
+# PR 13: Settings holds "New game starts as", the Points defaults and the Pool defaults (limit chips,
+# 25 / 50 / 130, Re-entry). Nothing is saved.
+- scrollUntilVisible:
+    element: "User settings: game type, Drop, Middle drop, Full count"
+    direction: UP
+    timeout: 10000
+- tapOn: "User settings: game type, Drop, Middle drop, Full count"
+- extendedWaitUntil:
+    visible: "New game starts as"
+    timeout: 15000
+- assertVisible: "Points defaults"
+- takeScreenshot: 07d-settings-points-defaults
+- scrollUntilVisible:
+    element: "Pool defaults"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "settings-pool-limit-101"
+- assertVisible:
+    id: "settings-pool-limit-custom"
+- assertVisible:
+    id: "settings-pool-reentry"
+- takeScreenshot: 07e-settings-pool-defaults
+- back

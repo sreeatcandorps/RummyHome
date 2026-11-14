@@ -1,0 +1,180 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# PR 13 Pool, end to end on the seed: New game is two screens (Players → Next → Game type: Pool,
+# settings prefilled 101 / 25 / 50 / 130 / Re-entry on → Start); the pool scorecard (Standings
+# card, OUT column, Re-enter); Add round in a pool (plus points, Rummy = 0, "Are you sure?" past the
+# Full count, the after-save sheet naming who is out); Complete → Give awards (presets, Custom,
+# Save anyway) → the Completed scorecard with the Awards block. Runs last in the smoke set and deletes
+# the pool at the end, so no other flow (smoke or full) sees an extra game; no result is saved.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "New game"
+- extendedWaitUntil:
+    visible: "Add new players"
+    timeout: 15000
+- tapOn: "Add Sree Test (you)"
+- tapOn: "Add Harish Test"
+- tapOn: "Add Priya Test"
+- tapOn: "Add Zed Zero"
+- assertVisible: "Next · 4 players"
+- takeScreenshot: 16-new-game-players-next
+- tapOn:
+    id: "new-game-next"
+- extendedWaitUntil:
+    visible: "Game type"
+    timeout: 15000
+- takeScreenshot: 16b-game-type-points
+- tapOn:
+    id: "game-type-pool"
+- assertVisible: "Re-entry"
+- assertVisible: "You can also set these defaults in Settings."
+- assertVisible: "Sree Test"
+- assertVisible: "Zed Zero"
+- takeScreenshot: 16c-game-type-pool
+- tapOn:
+    id: "start-game"
+# Harish and Priya are registered, so the co-admin nudge asks once; Skip starts without one.
+- extendedWaitUntil:
+    visible: "Skip"
+    timeout: 15000
+- tapOn: "Skip"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 20000
+- assertVisible: "Pool"
+- assertVisible:
+    id: "pool-standings"
+- assertVisible: "Limit 101 · 100 in, 101 out"
+- takeScreenshot: 16d-pool-scorecard-empty
+
+# Round 1: Sree wins (Rummy = 0), Harish drops 25, Priya middle-drops 50, Zed types 135 (> Full count 130 → "Are you sure?").
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- assertNotVisible: "Minus"
+- assertNotVisible: "Plus"
+- assertVisible: "Drop 25"
+- assertVisible: "Middle drop 50"
+- assertVisible: "Full count 130"
+- takeScreenshot: 16e-pool-add-round-empty
+- tapOn: "Sree Test, no score"
+- tapOn: "Rummy"
+- tapOn: "Harish Test, no score"
+- tapOn: "Drop 25"
+- tapOn: "Priya Test, no score"
+- tapOn: "Middle drop 50"
+- tapOn: "Zed Zero, no score"
+- tapOn: "1"
+- tapOn: "3"
+- tapOn: "5"
+- extendedWaitUntil:
+    visible: "Are you sure?"
+    timeout: 5000
+- assertVisible: "135 is more than the Full count (130). Keep 135 for this round?"
+- takeScreenshot: 16f-pool-are-you-sure
+- tapOn: "Keep 135"
+- tapOn: "Save score"
+- assertVisible: "Zed Zero, score 135, then 135, out"
+- takeScreenshot: 16g-pool-round-ready
+- tapOn: "Save round"
+- extendedWaitUntil:
+    visible: "Round saved"
+    timeout: 20000
+- assertVisible: "Zed Zero is out at 135 (limit 101)."
+- assertVisible: "Re-enter Zed"
+- takeScreenshot: 16h-pool-after-save-out
+- tapOn:
+    id: "after-done"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- assertVisible: "OUT R1"
+- takeScreenshot: 16i-pool-scorecard-out
+
+# Re-enter Zed from Standings: he comes back at 50 (the highest score still in) and reads blue.
+- tapOn:
+    id: "reenter-00000000-0000-4000-8000-000000000008"
+- extendedWaitUntil:
+    notVisible: "OUT R1"
+    timeout: 15000
+- assertVisible: "ZZ Zed Zero, 50, 51 left, 3 drops, re-entered"
+- takeScreenshot: 16j-pool-reentered
+
+# Complete the pool (early split) → Give awards.
+- tapOn: "Complete game"
+- extendedWaitUntil:
+    visible: "Game admins"
+    timeout: 15000
+- assertVisible: "1 round · 4 players in, 0 out. The pool usually ends when one player is left."
+- takeScreenshot: 16k-pool-complete-page
+- tapOn: "Complete game"
+- extendedWaitUntil:
+    visible: "Complete this pool?"
+    timeout: 5000
+- tapOn: "Confirm complete game"
+- extendedWaitUntil:
+    visible: "Give awards"
+    timeout: 20000
+- assertVisible: "Give awards first"
+- takeScreenshot: 16l-pool-completed-give-awards
+- tapOn:
+    id: "complete-give-awards"
+- extendedWaitUntil:
+    visible: "Winner takes all"
+    timeout: 15000
+- assertVisible: "Awards pending"
+- assertVisible: "5 entries (a re-entry counts twice) · pool 500 points"
+- assertVisible: "Pool 500 · all given out"
+- takeScreenshot: 16m-awards-winner-takes-all
+- tapOn:
+    id: "award-preset-left"
+- assertVisible: "Pool 500 · all given out"
+- takeScreenshot: 16n-awards-by-points-left
+- tapOn:
+    id: "award-preset-drops"
+- takeScreenshot: 16o-awards-entry-per-drop
+# Custom starts from the numbers on screen: back to Winner takes all first so Sree holds 500, then type 400.
+- tapOn:
+    id: "award-preset-winner"
+- tapOn:
+    id: "award-preset-custom"
+- tapOn:
+    id: "award-gets-00000000-0000-4000-8000-000000000001"
+- eraseText
+- inputText: "400"
+- hideKeyboard
+- assertVisible: "Pool 500 · 400 given out · 100 not given out"
+- takeScreenshot: 16p-awards-custom-not-all-given-out
+- tapOn:
+    id: "award-save"
+- extendedWaitUntil:
+    visible: "100 points weren't given out. Save awards anyway?"
+    timeout: 5000
+- takeScreenshot: 16q-awards-save-anyway
+- tapOn:
+    id: "award-save-anyway-yes"
+- extendedWaitUntil:
+    visible: "Change awards"
+    timeout: 20000
+- assertVisible: "Add to Results"
+- takeScreenshot: 16r-pool-awarded-complete-page
+- tapOn: "Back to scorecard"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- assertVisible: "Awarded"
+- assertVisible:
+    id: "pool-awards"
+- assertVisible: "Custom · entry 100 · pool 500 · 400 given out"
+- takeScreenshot: 16s-pool-scorecard-awarded
+# Clean up: the creator deletes the pool so the Results picker and Home stay as the other flows expect.
+- tapOn: "Scorecard menu"
+- tapOn: "Delete game"
+- extendedWaitUntil:
+    visible: "Delete this game?"
+    timeout: 5000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000

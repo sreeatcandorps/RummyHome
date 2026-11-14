@@ -53,13 +53,22 @@ test('e2e: every id: a flow taps or asserts exists as a testID in the app', () =
     for (const m of read(f).matchAll(/^\s+id: "([^"]+)"\s*$/gm)) ids.add(m[1]);
   }
   assert.ok(ids.size >= 6, `flows reference testIDs (${ids.size})`);
+  // PR 13: a form used on several screens builds its ids from a prefix prop (`${testIDPrefix}-limit-${limit}`);
+  // such a template matches an id when the id ends with the template's literal tail (segments for the holes).
+  const prefixed = [...sources.matchAll(/testID=\{`\$\{[A-Za-z]+\}-([^`]+)`\}/g)].map((m) => new RegExp(
+    '-' + m[1].replace(/[.*+?^()|[\]\\]/g, '\\$&').replace(/\$\{[^}]+\}/g, '[^-]+') + '$',
+  ));
   for (const id of ids) {
     // Flows may name a row by its game code, a uuid, a 1-based index, or `-.*` when the id is only
     // known at run time; any run of such segments at the end maps back to the template's literal prefix.
     const prefix = id.replace(/(-(GAME[A-Z0-9]+|[0-9a-f-]{36}|\.\*|\d+))+$/, '-');
-    const literal = sources.includes(`testID="${id}"`);
+    // A SegmentedButtons entry carries its id as `testID: 'x'` in the buttons array.
+    const literal = sources.includes(`testID="${id}"`) || sources.includes(`testID: '${id}'`);
     const templated = prefix !== id && sources.includes(`testID={\`${prefix}\${`);
-    assert.ok(literal || templated, `no testID for ${id} in app/ or components/`);
+    // PR 13: a word segment may also be the hole (`award-preset-${p.key}` ↔ award-preset-left).
+    const wordHole = [...id.matchAll(/-/g)].some((m) => sources.includes(`testID={\`${id.slice(0, m.index! + 1)}\${`));
+    const viaPrefixProp = prefixed.some((re) => re.test(id));
+    assert.ok(literal || templated || wordHole || viaPrefixProp, `no testID for ${id} in app/ or components/`);
   }
 });
 

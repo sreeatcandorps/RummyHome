@@ -2,6 +2,8 @@ import { gameLabelOf, gameTitle, LabelledGame } from '@/utils/gameLabel';
 import { formatPoints } from '@/utils/results';
 import { buildRoundTable, ResultsRoundTable } from '@/utils/resultsDetails';
 import { buildScoresCard, ShareCard } from '@/utils/shareCard';
+import { PoolSeat } from '@/types/game';
+import { EMPTY_SEAT, isOut, poolTotal } from '@/utils/pool';
 
 /** "Mon, Jul 27 · 6:27 PM" — same shape as the scorecard header. Pure copy so this module runs under node. */
 export function formatWhen(value: string): string {
@@ -55,6 +57,17 @@ export type FinalScoresSheet = {
   table: ResultsRoundTable;
   /** PR 8: the shared picture is the standings only (same card as a saved result); rounds go in the PDF. */
   card: ShareCard;
+  /** Pool (PR 13): "4 in · 2 out · limit 101", and whether the card shows awards. */
+  poolLine?: string;
+  showsAwards?: boolean;
+};
+
+/** Pool (PR 13) inputs: seats for totals, the limit, and the awards once given. */
+export type FinalScoresPool = {
+  limit: number;
+  fullCount: number;
+  seats: Record<string, PoolSeat | undefined>;
+  awards?: Record<string, number> | null;
 };
 
 export function chunk<T>(items: T[], size: number): T[][] {
@@ -90,23 +103,44 @@ export function buildFinalScoresSheet(input: {
   /** "Name · #39" per admin, creator first. */
   admins?: string[];
   now?: Date;
+  pool?: FinalScoresPool;
 }): FinalScoresSheet {
   const now = input.now ?? new Date();
   const roundCount = input.players.reduce((max, player) => Math.max(max, input.scores[player.id]?.length ?? 0), 0);
+  const pool = input.pool;
 
   const players: FinalScoresPlayer[] = input.players.map((player) => {
     const column = input.scores[player.id] ?? [];
+    const seat = pool?.seats[player.id] ?? EMPTY_SEAT;
     const cells: FinalScoreCell[] = Array.from({ length: roundCount }, (_, index) => {
       const value = Number(column[index] ?? 0) || 0;
+      if (pool) {
+        // Pool: 0 is the win, a hand at or past the Full count reads as a big loss, the rest plain.
+        const gone = (seat.outRound && index + 1 > seat.outRound) || (seat.reenteredRound && index + 1 < seat.reenteredRound && column[index] === undefined);
+        return { round: index + 1, text: gone ? '·' : String(value), sign: gone ? 'zero' : value === 0 ? 'pos' : pool.fullCount && value >= pool.fullCount ? 'neg' : 'zero' };
+      }
       return { round: index + 1, text: formatPoints(value), sign: value > 0 ? 'pos' : value < 0 ? 'neg' : 'zero' };
     });
-    const total = column.reduce((sum, value) => sum + (Number(value) || 0), 0);
-    return { id: player.id, name: player.name, total, totalText: formatPoints(total), rows: chunk(cells, CELLS_PER_ROW) };
+    const total = pool ? poolTotal(column, seat) : column.reduce((sum, value) => sum + (Number(value) || 0), 0);
+    const totalText = pool ? `${total}${isOut(seat) ? ' · OUT' : ''}` : formatPoints(total);
+    return { id: player.id, name: player.name, total, totalText, rows: chunk(cells, CELLS_PER_ROW) };
   });
 
+  // Points: highest first. Pool: players still in, lowest first, then the outs; with awards, by award.
+  const awards = pool?.awards ?? null;
   const summary = [...players]
-    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
-    .map(({ id, name, total, totalText }) => ({ id, name, total, totalText }));
+    .sort((a, b) => {
+      if (awards) return (awards[b.id] ?? 0) - (awards[a.id] ?? 0) || a.name.localeCompare(b.name);
+      if (pool) {
+        const ao = isOut(pool.seats[a.id]), bo = isOut(pool.seats[b.id]);
+        if (ao !== bo) return ao ? 1 : -1;
+        return a.total - b.total || a.name.localeCompare(b.name);
+      }
+      return b.total - a.total || a.name.localeCompare(b.name);
+    })
+    .map(({ id, name, total, totalText }) => (awards
+      ? { id, name, total: awards[id] ?? 0, totalText: `${formatPoints(awards[id] ?? 0)} · ${totalText}` }
+      : { id, name, total, totalText }));
 
   const completedLine = input.game.completedAt
     ? `Completed ${formatWhen(input.game.completedAt)}`
@@ -116,19 +150,21 @@ export function buildFinalScoresSheet(input: {
 
   const label = gameLabelOf(input.game) ?? '';
   const totals = Object.fromEntries(players.map((player) => [player.id, player.total]));
+  const inCount = pool ? players.filter((p) => !isOut(pool.seats[p.id])).length : 0;
+  const poolLine = pool ? `${inCount} in · ${players.length - inCount} out · limit ${pool.limit}${awards ? ' · awards given' : ''}` : undefined;
   const table = buildRoundTable(
     { id: input.game.id, name: input.game.shareCode ?? label, label, date: input.game.date, scores: totals, rounds: input.scores, roundCount },
     0,
     input.players,
   );
   const card = buildScoresCard({
-    title: finalScoresHeading(input.game),
+    title: awards ? `Awards · ${finalScoresHeading(input.game).replace(/^Final scores · /, '')}` : finalScoresHeading(input.game),
     tone: 'game',
     date: formatWhen(input.game.date),
-    summary: `${players.length} ${players.length === 1 ? 'player' : 'players'} · ${roundCount === 1 ? '1 round' : `${roundCount} rounds`}`,
+    summary: `${players.length} ${players.length === 1 ? 'player' : 'players'} · ${roundCount === 1 ? '1 round' : `${roundCount} rounds`}${poolLine ? ` · ${poolLine}` : ''}`,
     standings: summary.map((row, index) => ({ id: row.id, name: row.name, points: row.total, games: 1, place: index + 1 })),
     players: input.players,
-    games: [{ scores: totals }],
+    games: [{ scores: awards ? Object.fromEntries(players.map((p) => [p.id, awards[p.id] ?? 0])) : totals }],
     footer: finalScoresFooter(input.game),
   });
 
@@ -146,5 +182,7 @@ export function buildFinalScoresSheet(input: {
     adminLines: input.admins && input.admins.length > 0 ? [`Game admins: ${input.admins.join(', ')}`] : [],
     table,
     card,
+    poolLine,
+    showsAwards: Boolean(awards),
   };
 }
