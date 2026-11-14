@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
-import { Checkbox, Icon, Text, TextInput, TouchableRipple } from 'react-native-paper';
+import { Checkbox, Icon, IconButton, Portal, Text, TextInput, TouchableRipple } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
@@ -12,6 +12,9 @@ import { isAdminEmail } from '@/utils/adminAccess';
 import { sharePlayerId } from '@/utils/invite';
 import { normalizePhone, phoneProblem } from '@/utils/phone';
 import { playerIdBadge } from '@/utils/myPlayersList';
+import { playersService } from '@/services/players';
+import { assignInitials, defaultInitials } from '@/utils/initials';
+import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { clearDemoData, loadDemoData } from '@/services/demoSeed';
 import { DEFAULT_EMAIL_PREFS, EmailPrefs, emailsService } from '@/services/emails';
 import { ChangePasscodeDialog } from '@/components/auth/ChangePasscodeDialog';
@@ -52,6 +55,11 @@ export default function MeScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [emailPrefs, setEmailPrefs] = useState<EmailPrefs>(DEFAULT_EMAIL_PREFS);
   const [emailError, setEmailError] = useState<string | null>(null);
+  // Your initials (040, Q10.5): the letters you are on every scorecard you create.
+  const [editingInitials, setEditingInitials] = useState(false);
+  const [savingInitials, setSavingInitials] = useState(false);
+  const [initialsError, setInitialsError] = useState<string | null>(null);
+  const [takenInitials, setTakenInitials] = useState<Map<string, string>>(new Map());
 
   const load = useCallback(async () => {
     setError(null);
@@ -73,6 +81,10 @@ export default function MeScreen() {
       }
       setShowDemo(isAdminEmail(email));
       setEmailPrefs(await emailsService.getPrefs());
+      playersService.listMyPlayers(current.id).then((mine) => {
+        const labels = assignInitials(mine.map((player) => ({ id: player.id, name: player.name, initials: player.initials, addedAt: player.addedAt })));
+        setTakenInitials(new Map(mine.map((player) => [labels.get(player.id) ?? '', player.name] as const).filter(([label]) => label)));
+      }).catch(() => {});
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
@@ -88,9 +100,31 @@ export default function MeScreen() {
     navigation.setOptions({ title: 'Profile' });
   }, [navigation]);
 
+  const saveInitials = async (value: string) => {
+    if (!player) return;
+    setSavingInitials(true);
+    setInitialsError(null);
+    try {
+      let stored: string | null = value;
+      if (isSupabaseConfigured) {
+        stored = await authService.setMyInitials(value);
+      } else {
+        const players = await storage.getPlayers();
+        await storage.savePlayers(players.map((item) => (item.id === player.id ? { ...item, initials: value } : item)));
+      }
+      setPlayer((current) => (current ? { ...current, initials: stored ?? undefined } : current));
+      setEditingInitials(false);
+    } catch (err) {
+      setInitialsError(formatSupabaseError(err));
+    } finally {
+      setSavingInitials(false);
+    }
+  };
+
   const saveName = async () => {
     if (!player) return;
-    const trimmed = name.trim();
+    // Doubled spaces collapse on save (Sree, Nov 14: "Srikanth  Koneru" broke the winner line).
+    const trimmed = name.trim().replace(/\s+/g, ' ');
     if (!trimmed) return;
     setSaving(true);
     try {
@@ -221,19 +255,28 @@ export default function MeScreen() {
           <SeatAvatar name={player.name} size={56} />
           <View style={styles.identityText}>
             {editing ? (
-              <TextInput
-                mode="outlined"
-                dense
-                label="Name"
-                value={name}
-                onChangeText={setName}
-                autoFocus
-                returnKeyType="done"
-                onSubmitEditing={saveName}
-                accessibilityLabel="Name"
-              />
+              <View style={styles.gap}>
+                <TextInput
+                  mode="outlined"
+                  dense
+                  label="Name"
+                  value={name}
+                  onChangeText={setName}
+                  autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={saveName}
+                  accessibilityLabel="Name"
+                />
+                <View style={styles.inlineActions}>
+                  <Button mode="contained" compact icon="check" onPress={saveName} loading={saving} disabled={saving || !name.trim()} accessibilityLabel="Save name">Save</Button>
+                  <Button mode="outlined" compact onPress={() => { setEditing(false); setName(player.name); }} accessibilityLabel="Cancel name edit">Cancel</Button>
+                </View>
+              </View>
             ) : (
-              <Text variant="headlineSmall" numberOfLines={1}>{player.name}</Text>
+              <View style={styles.valueRow}>
+                <Text variant="headlineSmall" numberOfLines={2} style={styles.flex}>{player.name}</Text>
+                <IconButton icon="pencil-outline" size={20} onPress={() => setEditing(true)} accessibilityLabel="Edit name" style={styles.pencil} />
+              </View>
             )}
             {player.email ? <Text variant="bodySmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{player.email}</Text> : null}
           </View>
@@ -243,27 +286,19 @@ export default function MeScreen() {
           <Text variant="titleMedium" style={[styles.idText, { color: colors.onTertiaryContainer }]}>{badge ?? 'Player ID pending'}</Text>
           <Text variant="labelSmall" style={{ color: colors.onTertiaryContainer }}>Share it so friends can find you</Text>
         </View>
-        <View style={styles.identityActions}>
-          {editing ? (
-            <>
-              <Button mode="contained" icon="check" onPress={saveName} loading={saving} disabled={saving} style={styles.half} contentStyle={styles.action} accessibilityLabel="Save name">
-                Save name
-              </Button>
-              <Button mode="outlined" onPress={() => { setEditing(false); setName(player.name); }} style={styles.half} contentStyle={styles.action} accessibilityLabel="Cancel name edit">
-                Cancel
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button mode="contained-tonal" icon="share-variant" onPress={() => player.playerCode && sharePlayerId(player.playerCode).catch(() => {})} disabled={!player.playerCode} style={styles.half} contentStyle={styles.action} accessibilityLabel="Share your Player ID">
-                Share
-              </Button>
-              <Button mode="outlined" icon="pencil-outline" onPress={() => setEditing(true)} style={styles.half} contentStyle={styles.action} accessibilityLabel="Edit name">
-                Edit name
-              </Button>
-            </>
-          )}
+        <View style={[styles.initialsRow, { borderColor: colors.outlineVariant, backgroundColor: colors.surfaceVariant }]}>
+          <View style={styles.flex}>
+            <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>Your initials on scorecards</Text>
+            <Text variant="titleLarge" style={styles.initialsText} accessibilityLabel={`Your initials ${player.initials ?? defaultInitials(player.name)}${player.initials ? '' : ', from your name'}`}>
+              {player.initials ?? defaultInitials(player.name)}
+              {player.initials ? '' : <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>  from your name</Text>}
+            </Text>
+          </View>
+          <IconButton icon="pencil-outline" size={20} onPress={() => { setInitialsError(null); setEditingInitials(true); }} accessibilityLabel="Change your initials" style={styles.pencil} testID="me-edit-initials" />
         </View>
+        <Button mode="contained-tonal" icon="share-variant" onPress={() => player.playerCode && sharePlayerId(player.playerCode).catch(() => {})} disabled={!player.playerCode} contentStyle={styles.action} accessibilityLabel="Share your Player ID">
+          Share your Player ID
+        </Button>
       </View>
 
       <Button mode="outlined" icon="lock-reset" onPress={changePasscode} contentStyle={styles.action} accessibilityLabel="Change passcode">
@@ -318,11 +353,11 @@ export default function MeScreen() {
             {phoneState.kind === 'error' ? (
               <Text variant="labelMedium" style={{ color: colors.error }}>{phoneState.message}</Text>
             ) : null}
-            <View style={styles.identityActions}>
-              <Button mode="contained" icon="check" onPress={savePhone} loading={savingPhone} disabled={savingPhone || !phoneDirty} style={styles.half} contentStyle={styles.action} accessibilityLabel="Save phone">
-                Save phone
+            <View style={styles.inlineActions}>
+              <Button mode="contained" compact icon="check" onPress={savePhone} loading={savingPhone} disabled={savingPhone || !phoneDirty} accessibilityLabel="Save phone">
+                Save
               </Button>
-              <Button mode="outlined" onPress={() => { setEditingPhone(false); setPhone(savedPhone); setPhoneState({ kind: 'idle' }); }} style={styles.half} contentStyle={styles.action} accessibilityLabel="Cancel phone edit">
+              <Button mode="outlined" compact onPress={() => { setEditingPhone(false); setPhone(savedPhone); setPhoneState({ kind: 'idle' }); }} accessibilityLabel="Cancel phone edit">
                 Cancel
               </Button>
             </View>
@@ -340,9 +375,7 @@ export default function MeScreen() {
                 </View>
               ) : null}
             </View>
-            <Button mode="outlined" icon="pencil-outline" onPress={() => { setEditingPhone(true); setPhoneState({ kind: 'idle' }); }} contentStyle={styles.action} accessibilityLabel={savedPhone ? 'Edit phone' : 'Add phone'}>
-              {savedPhone ? 'Edit' : 'Add'}
-            </Button>
+            <IconButton icon={savedPhone ? 'pencil-outline' : 'plus'} size={20} onPress={() => { setEditingPhone(true); setPhoneState({ kind: 'idle' }); }} accessibilityLabel={savedPhone ? 'Edit phone' : 'Add phone'} style={styles.pencil} />
           </View>
         )}
       </SectionCard>
@@ -386,6 +419,21 @@ export default function MeScreen() {
           </View>
         </TouchableRipple>
       </SectionCard>
+
+      <Portal>
+        {editingInitials ? (
+          <InitialsDialog
+            name={player.name}
+            current={player.initials}
+            taken={takenInitials}
+            scope="my-players"
+            busy={savingInitials}
+            error={initialsError}
+            onDismiss={() => setEditingInitials(false)}
+            onSave={saveInitials}
+          />
+        ) : null}
+      </Portal>
 
       <ChangePasscodeDialog
         visible={passcodeOpen}
@@ -458,8 +506,10 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  identityActions: { flexDirection: 'row', gap: spacing.sm },
-  half: { flex: 1 },
+  inlineActions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end' },
+  pencil: { margin: 0 },
+  initialsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.md, paddingVertical: spacing.xs, paddingLeft: spacing.md, paddingRight: spacing.xs },
+  initialsText: { fontWeight: '800', letterSpacing: 2 },
   action: { height: 44 },
   row: {
     flexDirection: 'row',

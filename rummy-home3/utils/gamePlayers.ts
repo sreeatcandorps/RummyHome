@@ -53,7 +53,7 @@ export function isSeatAdmin(seat: SeatLike, game: GameLike): boolean {
   return seat.seatRole === 'game_admin' || Boolean(game.adminIds?.includes(seat.id)) || Boolean(game.unseatedAdminIds?.includes(seat.id));
 }
 
-export type SeatMenuItem = 'invite' | 'link_id' | 'edit_initials' | 'edit_name' | 'make_admin' | 'remove_admin' | 'remove_player' | 'remove_from_list';
+export type SeatMenuItem = 'invite' | 'link_id' | 'edit_initials' | 'edit_name' | 'make_admin' | 'remove_admin' | 'remove_player' | 'remove_from_list' | 'my_initials';
 
 export type SeatMenu = { item: SeatMenuItem; enabled: boolean; reason?: string }[];
 
@@ -61,6 +61,7 @@ export const SEAT_MENU_ICON: Record<SeatMenuItem, string> = {
   invite: 'send-outline',
   link_id: 'link-variant',
   edit_initials: 'format-letter-case',
+  my_initials: 'format-letter-case',
   edit_name: 'pencil-outline',
   make_admin: 'shield-plus-outline',
   remove_admin: 'shield-off-outline',
@@ -72,6 +73,7 @@ export const SEAT_MENU_LABEL: Record<SeatMenuItem, string> = {
   invite: 'Invite to register',
   link_id: 'Link to Player ID',
   edit_initials: 'Edit initials',
+  my_initials: 'Change initials',
   edit_name: 'Edit name',
   make_admin: 'Make admin',
   remove_admin: 'Remove admin',
@@ -120,7 +122,9 @@ export function seatMenu(seat: SeatLike, game: GameLike, viewerId: string | null
  * for my unregistered players, then Remove from My players. The owner's own row has no menu.
  */
 export function myPlayerMenu(player: Pick<SeatLike, 'id' | 'status' | 'managedBy'>, viewerId: string | null | undefined): SeatMenu {
-  if (!viewerId || player.id === viewerId) return [];
+  if (!viewerId) return [];
+  // Your own row (PR 10b, Q10.5): only Change initials — you cannot invite, rename here or remove yourself.
+  if (player.id === viewerId) return [{ item: 'my_initials', enabled: true }];
   const unregistered = isUnregistered(player.status);
   const mine = player.managedBy === viewerId;
   const items: SeatMenu = [];

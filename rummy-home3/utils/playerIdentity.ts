@@ -105,9 +105,12 @@ export const sameEmail = (a?: string | null, b?: string | null) =>
 // ---------- names ----------
 
 /** Both names are required. The stored name keeps what was typed; the app shows two initials. */
+/** Doubled spaces inside a name collapse (PR 10b): "Srikanth  Koneru" broke the winner line. */
+export const collapseSpaces = (value: string) => value.trim().replace(/\s+/g, ' ');
+
 export function newPlayerDisplayName(first: string, last: string): string {
-  const given = first.trim();
-  const family = last.trim();
+  const given = collapseSpaces(first);
+  const family = collapseSpaces(last);
   if (!given || !family) return '';
   return `${given} ${family}`;
 }

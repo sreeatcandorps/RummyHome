@@ -15,6 +15,7 @@ import { ActionTile } from '@/components/ui/ActionTile';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
+import { isSupabaseConfigured } from '@/services/supabase';
 import { PagedPlayer, playersService } from '@/services/players';
 import { REMOVE_CONFIRM_BODY, REMOVE_CONFIRM_TITLE, REMOVED_TOAST, UNDO_REMOVE_MS } from '@/utils/removeMyPlayer';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
@@ -39,6 +40,8 @@ type PlayerCardProps = {
   status: ReturnType<typeof registrationLabel>;
   index: number;
   initials?: string;
+  /** Your own row: a small "You" tag (PR 10b, Q10.6 — only here, never in pickers or game lists). */
+  isMe?: boolean;
   nameChanged: boolean;
   menu: SeatMenu;
   menuOpen: boolean;
@@ -49,7 +52,7 @@ type PlayerCardProps = {
 };
 
 /** One row per player: letters, name, Player ID, status, and the unified ⋮ menu. Memoised: typing in the search box redraws only rows whose inputs changed. */
-const PlayerCard = React.memo(function PlayerCard({ player, status, index, initials, nameChanged, menu, menuOpen, onPress, onMenuOpen, onMenuDismiss, onMenuSelect }: PlayerCardProps) {
+const PlayerCard = React.memo(function PlayerCard({ player, status, index, initials, isMe, nameChanged, menu, menuOpen, onPress, onMenuOpen, onMenuDismiss, onMenuSelect }: PlayerCardProps) {
   const { colors } = useAppTheme();
   const badge = playerIdBadge(player);
   return (
@@ -70,6 +73,7 @@ const PlayerCard = React.memo(function PlayerCard({ player, status, index, initi
                   <Text variant="labelSmall" style={[styles.idText, { color: colors.onSurfaceVariant }]}>{badge}</Text>
                 </View>
               ) : null}
+              {isMe ? <Tag label="You" tone="neutral" /> : null}
               {nameChanged ? <Tag label="Name changed" tone="results" icon="alert-outline" /> : visibleRegistration(status) ? <Tag label={status} tone={REGISTRATION_TONE[status]} wrap /> : null}
             </View>
           </View>
@@ -297,7 +301,27 @@ export default function PlayersTab() {
     else if (item === 'link_id') setSheet({ kind: 'link', player: full });
     else if (item === 'edit_name') setSheet({ kind: 'edit_name', player: full });
     else if (item === 'edit_initials') { setInitialsError(null); setSelected(player); setEditingInitials(true); }
+    else if (item === 'my_initials') { setMyInitialsError(null); setEditingMyInitials(true); }
     else if (item === 'remove_from_list') confirmRemove(player);
+  };
+
+  // Your own initials (040): saved on the profile, used on every scorecard you create.
+  const [editingMyInitials, setEditingMyInitials] = useState(false);
+  const [savingMyInitials, setSavingMyInitials] = useState(false);
+  const [myInitialsError, setMyInitialsError] = useState<string | null>(null);
+  const saveMyInitials = async (value: string) => {
+    if (!me) return;
+    setSavingMyInitials(true);
+    setMyInitialsError(null);
+    try {
+      const stored = isSupabaseConfigured ? await authService.setMyInitials(value) : value;
+      setMe((current) => (current ? { ...current, initials: stored ?? undefined } : current));
+      setEditingMyInitials(false);
+    } catch (err) {
+      setMyInitialsError(err instanceof Error ? err.message : formatSupabaseError(err));
+    } finally {
+      setSavingMyInitials(false);
+    }
   };
 
   const saveName = async (first: string, last: string) => {
@@ -353,7 +377,8 @@ export default function PlayersTab() {
       player={player}
       status={statusOf(player)}
       index={index}
-      initials={me?.id === player.id ? undefined : initialsOf.get(player.id)}
+      initials={me?.id === player.id ? me.initials : initialsOf.get(player.id)}
+      isMe={me?.id === player.id}
       nameChanged={nameChanged(player)}
       menu={menuFor_(player)}
       menuOpen={menuFor === player.id}
@@ -546,6 +571,18 @@ export default function PlayersTab() {
             busy={savingInitials}
             onDismiss={() => setEditingInitials(false)}
             onSave={saveInitials}
+          />
+        ) : null}
+        {me && editingMyInitials ? (
+          <InitialsDialog
+            name={me.name}
+            current={me.initials}
+            taken={takenFor(me)}
+            scope="my-players"
+            busy={savingMyInitials}
+            error={myInitialsError}
+            onDismiss={() => setEditingMyInitials(false)}
+            onSave={saveMyInitials}
           />
         ) : null}
         <Snackbar

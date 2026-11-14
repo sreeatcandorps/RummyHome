@@ -28,7 +28,7 @@ function Caret({ color }: { color: string }) {
 }
 
 /**
- * Six large cells, digits visible by default, with an eye toggle to hide them and a clear button.
+ * Six large cells, digits hidden by default (PR 10b, Sree Nov 14), with an eye toggle to show them and a clear button.
  * The cell waiting for the next digit shows a blinking caret while the field is focused.
  * The real TextInput sits invisibly on top of the cells, so a tap lands on the input itself and
  * the OS opens the keyboard on the first tap. (Focusing a hidden input from a Pressable needed a
@@ -36,7 +36,7 @@ function Caret({ color }: { color: string }) {
  */
 export function PasscodeField({ value, onChangeText, disabled, label = '6-digit passcode', autoFocus, testID }: PasscodeFieldProps) {
   const { colors } = useAppTheme();
-  const [revealed, setRevealed] = useState(true);
+  const [revealed, setRevealed] = useState(false);
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<NativeInput>(null);
   const digits = value.replace(/\D/g, '').slice(0, 6);

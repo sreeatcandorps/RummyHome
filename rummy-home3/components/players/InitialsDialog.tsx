@@ -21,7 +21,7 @@ import {
  * fine); the chips suggest letter forms first and a digit form only when letters ran out.
  * The dialog sits inside a KeyboardAvoidingView so Save stays above the keyboard.
  */
-export function InitialsDialog({ name, current, taken, scope, busy, onDismiss, onSave, onDelete, deleteConfirm }: {
+export function InitialsDialog({ name, current, taken, scope, busy, onDismiss, onSave, onDelete, deleteConfirm, error }: {
   name: string;
   current: string | null | undefined;
   taken: Map<string, string>;
@@ -33,6 +33,8 @@ export function InitialsDialog({ name, current, taken, scope, busy, onDismiss, o
   /** Add new players (PR 10b, Q10.8): a Delete action with a one-line confirm before it runs. */
   onDelete?: () => void;
   deleteConfirm?: string;
+  /** A server refusal to show under the hint (the caller keeps the dialog open). */
+  error?: string | null;
 }) {
   const { colors } = useAppTheme();
   const [text, setText] = useState(current ?? defaultInitials(name));
@@ -77,6 +79,7 @@ export function InitialsDialog({ name, current, taken, scope, busy, onDismiss, o
           <Text variant="labelSmall" style={{ color: showProblem ? colors.error : colors.onSurfaceVariant }} accessibilityLabel={`Initials hint: ${hint}`}>
             {hint}
           </Text>
+          {error ? <Text variant="labelSmall" style={{ color: colors.error }} accessibilityRole="alert">{error}</Text> : null}
           <View style={styles.chips}>
             {chips.map((label) => (
               <Chip

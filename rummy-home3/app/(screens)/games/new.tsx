@@ -285,17 +285,19 @@ export default function NewGame() {
    * The seats as initials rows: a seat already in the game keeps its column letters, a
    * new one brings the organiser's stored initials for that player (and when they were
    * added, so the earlier player keeps the short form). The organiser is never in their
-   * own My players, so their letters come from their name.
+   * own My players: their letters are the profile initials (040, PR 10b) when set, else
+   * derived from their name.
    */
   const initialsRows = (): InitialsRow[] => {
     const mine = new Map(myPlayers.map((player) => [player.id, player]));
     return selected.map((pickRow, index) => {
       const known = mine.get(pickRow.id);
       const seatLabel = savedLabels[pickRow.id];
+      const own = me && pickRow.id === me.id ? me.initials ?? null : null;
       return {
         id: pickRow.id,
         name: pickRow.name,
-        initials: seatLabel ?? known?.initials ?? null,
+        initials: seatLabel ?? known?.initials ?? own,
         // Saved seats sort first so the game's existing columns never change.
         addedAt: seatLabel ? `0:${String(index).padStart(4, '0')}` : known?.addedAt ? `1:${known.addedAt}` : `2:${String(index).padStart(4, '0')}`,
       };

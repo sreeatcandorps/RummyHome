@@ -38,7 +38,7 @@ test('per-player menu (unified, item 5): Invite · Link · Edit initials · Edit
   // The same menu on My players: no game roles; Remove from My players at the end.
   assert.deepEqual(myPlayerMenu({ id: 'u', status: 'unregistered', managedBy: 'me' }, 'me').map((m) => m.item), ['invite', 'link_id', 'edit_initials', 'edit_name', 'remove_from_list']);
   assert.deepEqual(myPlayerMenu({ id: 'a', status: 'registered' }, 'me').map((m) => m.item), ['edit_initials', 'remove_from_list']);
-  assert.deepEqual(myPlayerMenu({ id: 'me', status: 'registered' }, 'me'), [], 'the owner has no menu on their own row');
+  assert.deepEqual(myPlayerMenu({ id: 'me', status: 'registered' }, 'me').map((m) => m.item), ['my_initials'], 'PR 10b: the owner\'s own row offers only Change initials');
 });
 
 test('link target checks: unknown, same, unregistered, already seated, ok', () => {

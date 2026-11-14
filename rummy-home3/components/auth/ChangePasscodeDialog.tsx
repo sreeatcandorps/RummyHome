@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { Dialog, HelperText, Portal, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { OtpField } from '@/components/ui/OtpField';
@@ -60,6 +60,7 @@ export function ChangePasscodeDialog({ visible, email, onDismiss, onChanged }: P
 
   return (
     <Portal>
+      <KeyboardAvoidingView style={StyleSheet.absoluteFill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} pointerEvents="box-none">
       <Dialog visible={visible} onDismiss={busy ? undefined : onDismiss} style={styles.dialog}>
         <Dialog.Title>Change passcode</Dialog.Title>
         <Dialog.ScrollArea style={styles.area}>
@@ -71,12 +72,13 @@ export function ChangePasscodeDialog({ visible, email, onDismiss, onChanged }: P
               </>
             ) : (
               <>
-                <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+                {/* Fields first, the sentence after (PR 10b): the keyboard no longer covers the cells on small phones. */}
+                <PasscodeField value={current} onChangeText={setCurrent} disabled={busy} label="Current passcode" testID="passcode-current" />
+                <PasscodeField value={next} onChangeText={setNext} disabled={busy} label="New 6-digit passcode" testID="passcode-next" />
+                <PasscodeField value={confirm} onChangeText={setConfirm} disabled={busy} label="Type it again" testID="passcode-confirm" />
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
                   Your passcode is the 6 digits you sign in with. Nothing changes until the new one is saved.
                 </Text>
-                <PasscodeField value={current} onChangeText={setCurrent} disabled={busy} label="Current passcode" />
-                <PasscodeField value={next} onChangeText={setNext} disabled={busy} label="New 6-digit passcode" />
-                <PasscodeField value={confirm} onChangeText={setConfirm} disabled={busy} label="Type it again" />
               </>
             )}
             <HelperText type="error" visible={Boolean(error)}>{error}</HelperText>
@@ -89,12 +91,14 @@ export function ChangePasscodeDialog({ visible, email, onDismiss, onChanged }: P
           </Button>
         </Dialog.Actions>
       </Dialog>
+      </KeyboardAvoidingView>
     </Portal>
   );
 }
 
 const styles = StyleSheet.create({
-  dialog: { maxHeight: '90%' },
+  // Anchored near the top so three rows of cells stay above the keyboard.
+  dialog: { maxHeight: '90%', marginTop: spacing.xl, alignSelf: 'center', width: '92%', maxWidth: 520, top: 0, position: 'absolute' },
   area: { paddingHorizontal: 0 },
   body: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
 });

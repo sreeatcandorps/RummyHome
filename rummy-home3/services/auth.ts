@@ -13,6 +13,15 @@ import { queryCache } from '@/utils/queryCache';
 import { sessionNeedsRefresh } from '@/utils/sessionFreshness';
 import { EmailInUseError, isEmailInUseError, isRepeatedSignUp } from '@/utils/signUpOutcome';
 import { DeleteAccountSummary, SUPPORT_EMAIL } from '@/utils/accountDeletion';
+import { NOT_READY_MESSAGE } from '@/utils/notReady';
+
+/** set_my_initials (040) is not on this database yet. */
+export const OWN_INITIALS_NOT_READY = NOT_READY_MESSAGE;
+const missingRpc = (error: unknown) => {
+  const code = (error as { code?: string })?.code;
+  const message = ((error as { message?: string })?.message ?? '').toLowerCase();
+  return code === 'PGRST202' || message.includes('could not find the function') || message.includes('schema cache');
+};
 
 export type Profile = {
   id: string;
@@ -25,6 +34,8 @@ export type Profile = {
   playerNo?: number;
   defaultSettings: ProfileDefaults;
   role: 'app_admin' | 'player';
+  /** Your own scorecard initials (040, PR 10b); undefined = derived from the name. */
+  initials?: string;
 };
 
 export const profileToPlayer = (profile: Profile): Player => ({
@@ -35,6 +46,7 @@ export const profileToPlayer = (profile: Profile): Player => ({
   email: profile.email,
   phone: profile.phone,
   role: profile.role === 'app_admin' ? 'admin' : 'player',
+  initials: profile.initials,
 });
 
 export const toProfile = (row: any): Profile => ({
@@ -48,6 +60,7 @@ export const toProfile = (row: any): Profile => ({
   playerNo: row.public_player_no ?? undefined,
   defaultSettings: row.default_settings ?? DEFAULT_PROFILE_SETTINGS,
   role: row.role ?? 'player',
+  initials: row.initials ?? undefined,
 });
 
 /** PostgREST: the relation is not in the schema cache (migration 019's view not applied yet). */
@@ -355,6 +368,23 @@ export const authService = {
    * be clobbered, and null really clears the number. A zero-row update (RLS or a
    * missing profile row) is reported instead of silently "succeeding".
    */
+  /**
+   * Your own initials (040, Q10.5): the letters you are on every scorecard you create.
+   * Empty clears them (back to the derived letters). Before 040 the RPC is missing and
+   * the message says so without naming files.
+   */
+  async setMyInitials(initials: string): Promise<string | null> {
+    const userId = await this.getCurrentUserId();
+    if (!userId) throw new Error('You must be signed in to update your profile.');
+    const { data, error } = await supabase.rpc('set_my_initials', { p_initials: initials });
+    if (error) {
+      if (missingRpc(error)) throw new Error(OWN_INITIALS_NOT_READY);
+      throw error;
+    }
+    forgetProfile();
+    return (data as string | null) ?? null;
+  },
+
   async updatePhone(phone: string | null): Promise<string | null> {
     const userId = await this.getCurrentUserId();
     if (!userId) throw new Error('You must be signed in to update your profile.');

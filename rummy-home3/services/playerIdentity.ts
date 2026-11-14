@@ -23,6 +23,7 @@ import {
   isUnregistered,
   issueClaimLink,
   isWellFormedToken,
+  collapseSpaces,
   newPlayerDisplayName,
   nextPlayerNo,
   nextStatus,
@@ -224,7 +225,7 @@ export const playerIdentityService = {
     const name = newPlayerDisplayName(firstName, lastName);
     if (!name) throw new Error('Type a first and last name.');
     if (isSupabaseConfigured) {
-      const player = serverPlayer(first(await rpc<any>('update_unregistered_player', { p_player_id: playerId, p_first: firstName.trim(), p_last: lastName.trim() })));
+      const player = serverPlayer(first(await rpc<any>('update_unregistered_player', { p_player_id: playerId, p_first: collapseSpaces(firstName), p_last: collapseSpaces(lastName) })));
       await playersService.addMyPlayer(ownerId, player).catch(() => {});
       return player;
     }
