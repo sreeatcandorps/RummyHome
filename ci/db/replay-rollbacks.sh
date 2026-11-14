@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–036) applied, check the function state after each, then re-apply the forward
+# has every migration (001–041) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -24,7 +24,17 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 040 (own initials + round-gap repair; rolled back first)
+# 041 (pool; rolled back first)
+HAS_041=f
+if [ -f "$RB/rollback_041_pool.sql" ]; then
+  HAS_041=t
+  if apply "$RB/rollback_041_pool.sql"; then tap ok "rollback_041 applies"; else tap fail "rollback_041 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists reenter_player)" = f ] && [ "$(fn_exists set_pool_awards)" = f ] && [ "$(fn_has save_round 'pool_recompute')" = f ] \
+    && tap ok "after rollback_041 the pool functions are gone and save_round is the 036 body" \
+    || tap fail "after rollback_041 reenter_player/set_pool_awards should be gone and save_round back to 036"
+fi
+
+# 040 (own initials + round-gap repair)
 HAS_040=f
 if [ -f "$RB/rollback_040_own_initials_and_round_gaps.sql" ]; then
   HAS_040=t
@@ -386,6 +396,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_038" = t ] && FORWARD="$FORWARD 038_game_numbers_active"
 [ "$HAS_039" = t ] && FORWARD="$FORWARD 039_initials_rules"
 [ "$HAS_040" = t ] && FORWARD="$FORWARD 040_own_initials_and_round_gaps"
+[ "$HAS_041" = t ] && FORWARD="$FORWARD 041_pool"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -499,7 +510,11 @@ if [ "$HAS_036" = t ]; then
     && [ "$(q "select count(*) from pg_trigger where tgname like 'event_log_%' and not tgisinternal")" = 10 ] \
     && tap ok "036 restored (event_log, ten triggers, create_game / add_seated_player, no direct inserts, definer save_round)" || tap fail "036 restored"
 fi
-if [ "$HAS_037" = t ]; then
+if [ "$HAS_037" = t ] && [ "$HAS_041" = t ]; then
+  # 041 moves the sign rule into the scores_pool_sign trigger (a constraint cannot see the game type).
+  [ "$(q "select not exists(select 1 from pg_constraint where conname='scores_check' and conrelid='public.scores'::regclass) and exists(select 1 from pg_trigger where tgname='scores_pool_sign')")" = t ] \
+    && tap ok "037 restored as the 041 trigger (rummy share may be negative; pool rows are plus)" || tap fail "037 restored (041 trigger)"
+elif [ "$HAS_037" = t ]; then
   [ "$(q "select pg_get_constraintdef(oid) not like '%value >= 0%' and convalidated from pg_constraint where conname='scores_check' and conrelid='public.scores'::regclass")" = t ] \
     && tap ok "037 restored (rummy share may be negative; constraint validated)" || tap fail "037 restored"
 fi
@@ -514,6 +529,10 @@ fi
 if [ "$HAS_040" = t ]; then
   [ "$(fn_exists set_my_initials)" = t ] && [ "$(fn_exists repair_round_gaps)" = t ] && [ "$(fn_has seat_default_label 'p.initials')" = t ] \
     && tap ok "040 restored (set_my_initials, repair_round_gaps, own-seat initials)" || tap fail "040 restored"
+fi
+if [ "$HAS_041" = t ]; then
+  [ "$(fn_exists reenter_player)" = t ] && [ "$(fn_exists set_pool_awards)" = t ] && [ "$(fn_has save_round 'pool_recompute')" = t ] && [ "$(fn_has declare_game_result 'Give awards first')" = t ] \
+    && tap ok "041 restored (reenter_player, set_pool_awards, pool save_round, awards-first results)" || tap fail "041 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

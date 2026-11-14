@@ -8,11 +8,17 @@ select plan(9);
 \set SREE '''00000000-0000-4000-8000-000000000001'''
 
 -- ---------- shape ----------
-select ok((select pg_get_constraintdef(oid) not like '%value >= 0%' from pg_constraint where conname = 'scores_check' and conrelid = 'public.scores'::regclass),
+-- 041 moved the sign rule from the scores_check constraint into the scores_pool_sign trigger
+-- (a constraint cannot see the game type). Either form must hold the 037 rule.
+select ok(coalesce((select pg_get_constraintdef(oid) not like '%value >= 0%' from pg_constraint where conname = 'scores_check' and conrelid = 'public.scores'::regclass),
+             exists (select 1 from pg_trigger where tgname = 'scores_pool_sign' and tgrelid = 'public.scores'::regclass)),
   'scores_check no longer insists a rummy row be >= 0');
-select ok((select pg_get_constraintdef(oid) like '%value <= 0%' from pg_constraint where conname = 'scores_check' and conrelid = 'public.scores'::regclass),
+select ok(coalesce((select pg_get_constraintdef(oid) like '%value <= 0%' from pg_constraint where conname = 'scores_check' and conrelid = 'public.scores'::regclass),
+             (select prosrc like '%value > 0%' from pg_proc where proname = 'scores_pool_sign' and pronamespace = 'public'::regnamespace)),
   'drop / middle drop / count / expense are still <= 0');
-select ok((select convalidated from pg_constraint where conname = 'scores_check' and conrelid = 'public.scores'::regclass), 'the constraint is validated');
+select ok(coalesce((select convalidated from pg_constraint where conname = 'scores_check' and conrelid = 'public.scores'::regclass),
+             exists (select 1 from pg_trigger where tgname = 'scores_pool_sign' and tgenabled <> 'D')),
+  'the constraint is validated (or the 041 trigger is enabled)');
 
 -- ---------- 3.2 a positive pot: +50 typed, one drop, the Rummy share is -40 ----------
 select tests.login(:SREE);
