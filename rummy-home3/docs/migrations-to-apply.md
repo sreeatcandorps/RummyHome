@@ -449,6 +449,19 @@ Note for a re-run of 022: it re-creates the two editors with its letters-only bo
 
 Verified on a scratch Postgres 16 loaded with 001–039 and the CI seed: pgTAP (1143 checks; 55 new in `supabase/tests/29_initials_039.sql`, 13 of them driven by `supabase/tests/fixtures/initials-cases.csv`, the same table the unit test reads), the rollback replay (159 checks) and the 44 race checks all pass.
 
+## 040 — Own initials on the profile, one-off round-gap repair (PR 10b; **written, not applied**)
+
+File: `supabase/migrations/040_own_initials_and_round_gaps.sql`. Run after 039. Safe to re-run. Rollback: `supabase/rollback/rollback_040_own_initials_and_round_gaps.sql` (drops `set_my_initials` and `repair_round_gaps`, restores the 022 `seat_default_label`; the `profiles.initials` column and the repaired round numbers stay — both are harmless to the older app).
+
+Backward compatible with APK 9/10 on phones: a new nullable column, a new RPC the old app never calls, and `seat_default_label` keeps its signature (it only prefers the creator's own initials when they set some). **Status: waiting for Sree's OK** — the agent does not apply; Build Bot applies after CI on PR 10b.
+
+What it does.
+A. **Own initials** (Q10.4): `profiles.initials` (`^[A-Z][A-Z0-9]{1,2}$` or null) and `set_my_initials(text)` — normalises, empty clears, refuses a label one of your My players rows already holds (same wording as 039). `seat_default_label` uses the creator's own initials for the creator's seat when set and free in that game, else the 022 candidates. `my_profile` is re-created with its 033 shape (`security_invoker` over `my_profile_rows()`) so the rollback replay's 033 check still holds.
+B. **Round-gap repair** (Q10.18, Sree's S10 "round 3 all dashes"): `repair_round_gaps(p_game_id uuid default null)` renumbers the live rounds of every game with a hole (1,2,4,5 → 1,2,3,4), moves `current_round` to follow, under an advisory lock; revoked from `authenticated` (service role only); the migration runs it once for all games. **Side effect to know**: dealer-rotation labels for the renumbered rounds shift by one in the Log and on the scorecard of those pre-Nov-11 games.
+C. **Names**: a one-off `update` collapses doubled spaces in `profiles` display names ("Srikanth  Koneru").
+
+Verified on a scratch Postgres 16 loaded with 001–040 and the CI seed: pgTAP 1230 checks (34 new in `supabase/tests/31_own_initials_040.sql`), the rollback replay (164 checks, 040 rolled back first and "040 restored" after the forward run) and the 44 race checks all pass.
+
 ## Apply order for the Nov 10–12 batches
 
 017–020 were applied on Nov 11 (~11:25 AM PT); 021–026 were applied on Nov 12 from PR 7 head `d62d9c6`. Steps 1–6 are kept for the record (all re-runnable):
@@ -493,6 +506,10 @@ PR 5 (Nov 13), unapplied, ready for live once CI is green:
 PR 6 (Nov 13), unapplied, ready for live once CI is green:
 
 19. `supabase/migrations/039_initials_rules.sql`
+
+PR 10b (Nov 14), unapplied, **waiting for Sree's OK**:
+
+20. `supabase/migrations/040_own_initials_and_round_gaps.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

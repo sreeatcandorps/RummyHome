@@ -9,7 +9,29 @@ tags: [smoke]
     timeout: 15000
 - assertVisible: "Sree Test"
 - assertVisible: "Change passcode"
+# PR 10b: pencils instead of the big Edit buttons; your initials row; passcode dialog with the
+# fields first and the keyboard open — all three fields must stay on screen.
+- assertVisible: "Edit name"
+- assertVisible: "Your initials on scorecards"
+- assertVisible:
+    id: "me-edit-initials"
 - takeScreenshot: 07-profile
+- tapOn: "Change passcode"
+- extendedWaitUntil:
+    visible:
+      id: "passcode-current"
+    timeout: 15000
+- tapOn:
+    id: "passcode-current"
+- assertVisible:
+    id: "passcode-current"
+- assertVisible:
+    id: "passcode-next"
+- assertVisible:
+    id: "passcode-confirm"
+- takeScreenshot: 07c-change-passcode-keyboard-open
+- hideKeyboard
+- back
 - scrollUntilVisible:
     element:
       text: "App version.*"

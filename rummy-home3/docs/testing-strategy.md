@@ -108,7 +108,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | register, duplicate email, forgot/reset passcode | U, D (021) | N | — |
 | | claim / link a player (request, accept, pending) | U, D (025) | N | — |
 | | sign out, delete account (026) | U, D, N (sign out) | N | `full/10` |
-| Home | live + recent list, S/P labels, role tags | U, S | **S** (light), N (dark) | `smoke/01`, `full/60` |
+| Home | live + recent list, S/P labels, role tags; Recent plain title on grey, Show more paging (PR 10b) | U, S | **S** (light), N (dark) | `smoke/01`, `full/60` |
 | | empty state, pull to refresh, cached/offline | U (degrade) | N (airplane mode) | — |
 | | My Players button count, tab bar | S | **S** | `smoke/01`, `smoke/08` |
 | New game | pick recent players, search, from database, new by initials; you first, no You / Registered tags (PR 7) | U, S (screens open) | **S** | `smoke/09` |
@@ -126,7 +126,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | view-only (player / spectator) | D (RLS), U | N | — |
 | | 200 / 500 rounds (029 message) | volume script | N (monthly) | — |
 | | realtime refresh when another admin saves | C | C + N | — |
-| Add round | select, keypad, ±, drops, Save score, Balance pill | U, S | **S** | `smoke/04` |
+| Add round | select, keypad, ±, drops, Save score, Balance pill; saved cells green, 3 columns ≥ 13 players, "N more ▾" cue (PR 10b) | U, S | **S** | `smoke/04`, `smoke/10` |
 | | Rummy balance (positive others, two winners, negative share) | U + D + S | U + D + S | `tests/add-round-pr3.test.ts`, `supabase/tests/27_rummy_negative_037.sql`, `smoke/14-rummy-positive-pot.yaml` (PR 3 / 037) |
 | | Count warnings (half / Full count line, over-max confirm once per cell) | U + N | U + N | `tests/add-round-pr3.test.ts`, `full/80-add-round-count-warnings.yaml` (PR 3) |
 | | over max count warning | — | U + N | — |
@@ -152,7 +152,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | past results list, result detail, "Games in this result" | U, N (list) | N | `full/40` |
 | | delete result (PR 9) | D (023) | U + D + N | — |
 | | public `/r/` page, result emails (024) | D | D | — |
-| Profile | name, player ID, passcode change, appearance, phone, email prefs, version | U, S | N | `smoke/07`, `full/60` |
+| Profile | name, player ID, passcode change, appearance, phone, email prefs, version; pencils, own initials, passcode fields above the keyboard (PR 10b) | U, S | N | `smoke/07`, `full/60` |
 | Security | RLS matrix, anon revocations (033), search_path | D | D | — |
 | Offline / degraded | cached scorecard opens, save fails with a message, retry | U | N | — |
 | Help | every ? opens and closes, text fits | N | N (PR 12 adds one flow per screen) | `full/50`, `smoke/02`, `smoke/06` |
@@ -227,20 +227,41 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
 
+## PR 10b test cases (APK 9 fixes: Home, My players / own initials, Add players, Profile, Add round, Results, share image, PDFs; migration 040 written, not applied)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| B10-1 | U | `tests/pr10b-apk9-fixes.test.ts` 10.1 | `RECENT_PAGE = 20`; `recentPaging` reveals from the loaded bundle before it fetches (`.range()` on the existing games query); Recent title has no count and sits on `surfaceVariant`; `home-recent-show-more`; no `onEndReached` |
+| B10-2 | U | same 10.6 | Every saved cell `positiveContainer` (minus and 0 too); selected stays marigold; `gridColumns` 3 from 13 players portrait, 2 landscape; `hiddenCells` counts the cells below the fold for the "N more ▾" pill; a tick on saved cells |
+| B10-3 | U | same 10.4 | Add players heading "Add new players by initials", F / L placeholders, Done summary "2 of 3 players saved. 1 row has letters you have not saved.", Backspace walks back, `add-players-unsaved` dialog, Delete for rows saved this visit, no "· Unregistered"; create path: `rememberMyPlayer` only (no second RPC); `collapseSpaces` |
+| B10-4 | U | same 10.3 / 10.5 | "You" tag on your own My players row with only "Change initials" in its menu; Profile pencils, `me-edit-initials`, `setMyInitials`; `PasscodeField` hidden by default; passcode dialog fields first inside `KeyboardAvoidingView` |
+| B10-5 | U | same 10.7 / 10.8, `tests/results-delete-pr9.test.ts` 9.1 / 9.6 | "Game by game" everywhere (page, PDF, text PDF, `/r/`), "Unique result ID · X" at the foot with tap-to-copy, no raw URL, Copy link in ⋮, no "Player" header, names shrink then wrap; delete note "S14 goes back to Completed (from Closed). Everyone loses this result. You can restore it for 30 days from Settings › Hidden & deleted."; Past results rows carry no Delete; non-admins see a "Make a result" fold |
+| B10-6 | U | `tests/results-design.test.ts`, `tests/results.test.ts`, same 10.9 | `SHARE_SPLIT_LIMIT = 10`: positives left / negatives right until a side would pass ten, then the one ranked order half and half; 30 players all on the card; no "and N more", no link, no code, no "Saved …" at the top; render 540 dp → capture 1080 px off-screen on both the dialog and Final scores; web canvas 1080 px |
+| B10-7 | U | same 10.11 | Colour rule: `GAME_SHARE_COLORS` and `designCss('game')` contain no `#15803D`; results keep it; Final scores card `tone: 'game'`, title "Final scores · Game S10", never cut (14 players balanced); game PDF: captions "Players 1–5 of 14", `rb n4` width, IDs in the legend not the heads, Game ID once at the foot, no `.game { page-break-inside }`; `totalsLine` |
+| B10-8 | U | same 10.10 / 10.12, `tests/results-design.test.ts` | Results PDF flows (no `.page` boxes, no code at the top, `page-break-inside: avoid` on tables / band rows), Unique result ID + link once at the end, "Players a–b of N" captions, legend IDs, short blocks at the five-player width; file names `EZScore-Results-<ID>-YYYY-MM-DD.pdf` / `EZScore-Game-S10-….pdf`; icon data URI beside the brand |
+| B10-9 | D | `supabase/tests/31_own_initials_040.sql` (34 checks) | `profiles.initials` with its check, `my_profile` keeps the 033 shape, `set_my_initials` (normalises, clears on empty, refuses a label held by a My players row, 23514 on a bad form), `seat_default_label` prefers the creator's own initials and falls back on a clash, `repair_round_gaps` renumbers 1,2,4,5 → 1..4 and moves `current_round`, idempotent, untouched games unchanged; rollback replay restores the 022 `seat_default_label` |
+| B10-10 | S | `smoke/01-home.yaml` | Recent titled plainly (no "· N"), grey card and pills in the screenshot |
+| B10-11 | S | `smoke/07-profile.yaml` | Pencils, "Your initials on scorecards", Change passcode with the keyboard open: all three fields visible (screenshot) |
+| B10-12 | S | `smoke/09-new-game.yaml` | Heading "Add new players by initials", F / L subline, no "Unregistered" after a save |
+| B10-13 | S | `smoke/10-scorecard-20-players.yaml` | Add round for 20 players: three columns (screenshot); when the "N more ▾" pill shows, tapping it scrolls the rest into view (screenshot); Back saves nothing |
+| B10-14 | S | `smoke/05-complete-game.yaml` | Final scores: title "Final scores · Game …", Share full details + Share final scores, no Back button |
+| B10-15 | S + N | `smoke/12-results-zero-players.yaml`, `full/40-results-save-and-past.yaml` | No Delete chip on the rows; the result foot shows "Unique result ID · …" (screenshot); Delete from the page → toast runs out → Deleted + Restore |
+| B10-16 | N | `full/41-share-images.yaml` | Game G Final scores card (marigold) and the results share dialog (green) side by side; no "Full details · …" line and no "and N more" on the card. The 1080 px file size is pinned by B10-6, not by Maestro |
+
 ## PR 9 test cases (Delete result visible + Undo, confirm when shared, Deleted + Restore; no migration)
 
 | # | Kind | Where | What it proves |
 | --- | --- | --- | --- |
-| R9-1 | U | `tests/results-delete-pr9.test.ts` 9.1 | Consequence line for 0 / 1 / 2 / 3 games ("S14 and S15 go back to Completed and can go into a new result. Everyone loses this result; you can restore it for 30 days."); game numbers win over short codes |
+| R9-1 | U | `tests/results-delete-pr9.test.ts` 9.1 | Consequence line for 0 / 1 / 2 / 3 games (PR 10b words: "S14 and S15 go back to Completed (from Closed). Everyone loses this result. You can restore it for 30 days from Settings › Hidden & deleted."); game numbers win over short codes |
 | R9-2 | U | same 9.2 | `UNDO_DELETE_MS = 10000`; toast "Result deleted · S14, S15 are Completed again" (1 game "is", none "its games"); restored toast; shared-confirm title and body; row chip spoken label |
 | R9-3 | U | same 9.3 | 30-day window inclusive of the 30th day, bad dates out, newest deletion first; the section note |
 | R9-4 | U | same 9.4 | Shared marker: id to the front, cap 200 |
 | R9-5 | U | same 9.5 | Result page: Delete block for managers only, consequence line, confirm only when `wasShared`, Undo toast backed by `restore_result`, back to the list when the toast closes untouched, ⋮ item routes to the same, picture and PDF shares mark the result |
-| R9-6 | U | same 9.6 | Past results: `can_manage_result` per row for the Delete chip, Deleted section from `list_hidden_and_deleted` filtered to 30 days, Restore chip, Undo toast, shared confirm |
+| R9-6 | U | same 9.6 | Past results (PR 10b): no Delete chip on the rows — Delete, the shared confirm and Undo live on the result page; Deleted section from `list_hidden_and_deleted` filtered to 30 days, Restore chip; "Make a result" fold for non-admins |
 | R9-7 | U | same 9.7 | `docs/results-delete.md` names D9.1–D9.3, `sync_closed_at`, `can_manage_result`, 30 days, the marker and `/r/`; Results help names the button, Undo and 30 days |
 | R9-8 | D | `supabase/tests/30_results_delete.sql` | 9.1 delete → `closed_at` cleared, status untouched, off `list_game_results_page` / `results_holding_game`, `get_game_result` deleted + canRestore, Deleted list row with counts, Logs `result_deleted` row and summary; 9.2 a game in two live results stays Closed; 9.3 player / outsider / signed-out refused, an admin of every game may delete and restore; 9.4 restore by a player refused, by the deleter reverses everything, Logs `result_restored`; 9.5 anon `public_result` deleted with the saved standings; a second delete is harmless |
 | R9-9 | S | `smoke/12-results-zero-players.yaml` | The saved result shows "Delete this result" with the consequence line (screenshot) |
-| R9-10 | S + N | `smoke/12-results-zero-players.yaml` (game G), `full/40-results-save-and-past.yaml` (game A) | Delete this result → toast with Undo (screenshot) → Undo → "Result restored…", Scores back; Past results row Delete → toast runs out → Deleted tag + Restore + 30-day note (screenshot) → Restore |
+| R9-10 | S + N | `smoke/12-results-zero-players.yaml` (game G), `full/40-results-save-and-past.yaml` (game A) | Delete this result → toast with Undo (screenshot) → Undo → "Result restored…", Scores back; open the row again → Delete on the page → toast runs out → Deleted tag + Restore + 30-day note (screenshot) → Restore (PR 10b: the rows have no Delete) |
 | R9-11 | S | `smoke/15-delete-shared-result-confirm.yaml` | Share the picture (Back closes the sheet) → Delete this result → "Delete a shared result?" (screenshot) → Cancel keeps it |
 
 ## PR 7 test cases (Add players to this game, New game picker labels, Players · Admins; no migration)

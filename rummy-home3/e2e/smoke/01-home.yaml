@@ -15,6 +15,12 @@ tags: [smoke]
     text: "Live.*"
 - assertVisible: "Home"
 - assertVisible: "Your profile"
+# PR 10b layout gate: Recent is titled plainly (no "· N") and sits on the grey card; Results and
+# My players are pills. The screenshot is the visual check for the shapes and the grey.
+- assertVisible:
+    text: "Recent"
+- assertNotVisible:
+    text: "Recent · .*"
 - takeScreenshot: 01-home
 - scrollUntilVisible:
     element:

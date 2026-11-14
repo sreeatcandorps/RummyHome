@@ -20,8 +20,10 @@ tags: [smoke]
 - takeScreenshot: 09-new-game
 - tapOn: "Add new players"
 - extendedWaitUntil:
-    visible: "Add new players by initials, 3 at a time"
+    visible: "Add new players by initials"
     timeout: 15000
+# PR 10b: the heading lost ", 3 at a time"; the cells read F / L; no "· Unregistered" after a save.
+- assertVisible: "First-name initial · Last-name initial"
 - assertVisible: "Row 1 first initial"
 - assertVisible: "Row 3 last initial"
 - assertNotVisible: "Row 4 first initial"
@@ -39,6 +41,7 @@ tags: [smoke]
 - assertVisible: "Harish Test is already HT. This new player is HT2."
 - assertNotVisible: "HTE"
 - assertVisible: "Edit initials for HT2"
+- assertNotVisible: ".*Unregistered.*"
 - takeScreenshot: 09c-add-new-players-clash-ht2
 # After Save the next row's cell takes focus, so the keyboard may cover Done.
 - hideKeyboard

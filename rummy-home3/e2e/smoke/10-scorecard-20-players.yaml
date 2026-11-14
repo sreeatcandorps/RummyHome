@@ -27,3 +27,24 @@ tags: [smoke]
 - takeScreenshot: 10-scorecard-20p
 - scroll
 - takeScreenshot: 10c-scorecard-20p-scrolled-down
+# PR 10b (Q10.12): Add round with 20 players draws three columns in portrait; whatever does not fit
+# is announced by the "N more ▾" pill, which scrolls the rest into view. Nothing is saved.
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 20000
+- takeScreenshot: 10d-add-round-20p-three-columns
+- runFlow:
+    when:
+      visible:
+        id: "add-round-more"
+    commands:
+      - assertVisible:
+          text: ".* more ▾"
+      - tapOn:
+          id: "add-round-more"
+      - takeScreenshot: 10e-add-round-20p-after-more
+- back
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
