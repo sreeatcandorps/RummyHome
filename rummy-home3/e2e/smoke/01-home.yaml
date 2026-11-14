@@ -15,16 +15,21 @@ tags: [smoke]
     text: "Live.*"
 - assertVisible: "Home"
 - assertVisible: "Your profile"
-# PR 10b layout gate: Recent is titled plainly (no "· N") and sits on the grey card; Results and
-# My players are pills. The screenshot is the visual check for the shapes and the grey.
-- assertVisible:
-    text: "Recent"
+# PR 10b layout gate: Results and My players are pills (the screenshot is the visual check); Recent is
+# titled plainly (no "· N") on the grey card. With four live games Recent starts below the fold, so
+# scroll to it before the check.
+- takeScreenshot: 01-home
+- scrollUntilVisible:
+    element:
+      text: "Recent"
+    direction: DOWN
+    timeout: 15000
 - assertNotVisible:
     text: "Recent · .*"
-- takeScreenshot: 01-home
+- takeScreenshot: 01b-home-recent
 - scrollUntilVisible:
     element:
       id: "game-card-GAMEA1"
     direction: DOWN
     timeout: 15000
-- takeScreenshot: 01b-home-scrolled
+- takeScreenshot: 01c-home-scrolled

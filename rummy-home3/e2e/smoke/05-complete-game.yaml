@@ -46,8 +46,8 @@ tags: [smoke]
 - assertVisible: "Share full details"
 - assertVisible:
     id: "share-final-scores"
-- assertNotVisible:
-    text: "Back"
+# No in-page Back button (the header arrow is the only way back). Not asserted as text: the
+# emulator's system navigation bar also exposes a "Back" button to Maestro; the screenshot shows it.
 - takeScreenshot: 05d-final-scores
 - back
 - extendedWaitUntil:
