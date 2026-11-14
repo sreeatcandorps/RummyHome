@@ -45,22 +45,17 @@ import {
   resultReusedNote,
   selectedCountLine,
   winnerInitials,
+  MAKE_RESULT_FOLD_NOTE,
 } from '@/utils/resultsSave';
 import {
   DELETED_SECTION_NOTE,
   DELETED_SECTION_TITLE,
   DELETED_TAG,
-  deletedToast,
-  deleteRowLabel,
   listedDeleted,
   RESTORE_RESULT_BUTTON,
   RESTORED_TOAST,
   restoreRowLabel,
-  SHARED_CONFIRM_BODY,
-  SHARED_CONFIRM_TITLE,
-  UNDO_DELETE_MS,
 } from '@/utils/resultsDelete';
-import { sharedResults } from '@/utils/sharedResults';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
@@ -68,12 +63,11 @@ function newestFirst(a: Game, b: Game): number {
   return new Date(b.date).getTime() - new Date(a.date).getTime();
 }
 
-/** One saved result: the winner's initials under a crown, then 1st/2nd/3rd on their own rows; Delete on the row for its admins (PR 9). */
-function PastResult({ item, canDelete, onDelete }: { item: GameResultSummary; canDelete: boolean; onDelete: () => void }) {
+/** One saved result: the winner's initials under a crown, then 1st/2nd/3rd on their own rows. Delete lives on the result page (PR 10b: the row chip is gone). */
+function PastResult({ item }: { item: GameResultSummary }) {
   const { colors } = useAppTheme();
   const rows = pastResultRows(item.top);
   const reused = resultReusedNote(item.reusedCount);
-  const when = formatGameDateTime(item.declaredAt);
   return (
     <View style={[styles.past, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderLeftColor: colors.secondary }]}>
       <TouchableRipple
@@ -107,21 +101,7 @@ function PastResult({ item, canDelete, onDelete }: { item: GameResultSummary; ca
               ))
             )}
           </View>
-          {canDelete ? (
-            <Chip
-              compact
-              mode="flat"
-              onPress={onDelete}
-              style={{ backgroundColor: colors.errorContainer }}
-              textStyle={{ color: colors.onErrorContainer, fontWeight: '700' }}
-              accessibilityLabel={deleteRowLabel(when)}
-              testID={`past-result-delete-${item.id}`}
-            >
-              Delete
-            </Chip>
-          ) : (
-            <Icon source="chevron-right" size={24} color={colors.onSurfaceVariant} />
-          )}
+          <Icon source="chevron-right" size={24} color={colors.onSurfaceVariant} />
         </View>
       </TouchableRipple>
     </View>
@@ -174,14 +154,12 @@ export default function ResultsScreen() {
   const [pendingSwitch, setPendingSwitch] = useState<FilterSwitch<Game> | null>(null);
   const [notAdmin, setNotAdmin] = useState<Game | null>(null);
   const loadingMore = useRef(false);
-  /** PR 9: which listed results the viewer may delete, the deleted ones still inside 30 days, and the Undo toast. */
-  const [manageable, setManageable] = useState<Set<string>>(new Set());
+  /** PR 9: the deleted results still inside 30 days (Restore); PR 10b moved Delete itself to the result page. */
   const [deletedRows, setDeletedRows] = useState<DeletedResultRow[]>([]);
-  const [undoRow, setUndoRow] = useState<GameResultSummary | null>(null);
-  const undone = useRef(false);
-  const [sharedConfirm, setSharedConfirm] = useState<GameResultSummary | null>(null);
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // Q10.13: someone who runs no listed game opens on Past results; the picker folds under "Make a result".
+  const [pickerOpen, setPickerOpen] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -201,7 +179,6 @@ export default function ResultsScreen() {
       const first = await resultsService.list(0, RESULTS_PAGE_SIZE);
       setSaved(first);
       setHasMore(first.length === RESULTS_PAGE_SIZE);
-      archiveService.manageableResults(first.map((row) => row.id), id).then(setManageable).catch(() => {});
       archiveService.list(id).then((lists) => setDeletedRows(listedDeleted(lists.deletedResults))).catch(() => {});
       setChecked((current) => (touched.current
         ? current.filter((gameId) => listedGames.some((game) => game.id === gameId && canPickForResults(game, id)))
@@ -243,40 +220,12 @@ export default function ResultsScreen() {
       const next = await resultsService.list(saved.length, RESULTS_PAGE_SIZE);
       setSaved((current) => [...current, ...next.filter((row) => !current.some((item) => item.id === row.id))]);
       setHasMore(next.length === RESULTS_PAGE_SIZE);
-      archiveService.manageableResults(next.map((row) => row.id), userId)
-        .then((more) => setManageable((current) => new Set([...current, ...more])))
-        .catch(() => {});
     } catch (err) {
       setError(formatSupabaseError(err));
     } finally {
       loadingMore.current = false;
     }
   }, [hasMore, saved.length, userId]);
-
-  /** Delete on a Past results row: at once with Undo, or after a question when it was shared from here (D9.2). */
-  const askDelete = async (item: GameResultSummary) => {
-    if (await sharedResults.was(item.id).catch(() => false)) setSharedConfirm(item);
-    else deleteRow(item);
-  };
-
-  const deleteRow = async (item: GameResultSummary) => {
-    setSharedConfirm(null);
-    setRowBusy(item.id);
-    try {
-      await archiveService.deleteResult(item.id, userId);
-      undone.current = false;
-      setSaved((current) => current.filter((row) => row.id !== item.id));
-      setDeletedRows((current) => listedDeleted([
-        { id: item.id, declaredAt: item.declaredAt, deletedAt: new Date().toISOString(), deletedByMe: true, deletedByName: '', gameCount: item.gameCount, playerCount: item.playerCount },
-        ...current.filter((row) => row.id !== item.id),
-      ]));
-      setUndoRow(item);
-    } catch (err) {
-      setError(formatSupabaseError(err));
-    } finally {
-      setRowBusy(null);
-    }
-  };
 
   const restoreRow = async (id: string) => {
     setRowBusy(id);
@@ -290,14 +239,6 @@ export default function ResultsScreen() {
     } finally {
       setRowBusy(null);
     }
-  };
-
-  const undoDelete = () => {
-    if (!undoRow) return;
-    undone.current = true;
-    const id = undoRow.id;
-    setUndoRow(null);
-    restoreRow(id);
   };
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -332,8 +273,11 @@ export default function ResultsScreen() {
     });
   };
 
-  return (
-    <Screen onScroll={onScroll}>
+  const runsAGame = useMemo(() => games.some((game) => canPickForResults(game, userId)), [games, userId]);
+  const showPicker = pickerOpen ?? (loading || runsAGame);
+
+  const picker = (
+    <>
       <Text variant="titleMedium" accessibilityRole="header">{resultsPickerHeading(filter)}</Text>
       <View style={styles.filterRow}>
         {RESULTS_STATUSES.map((option) => {
@@ -392,13 +336,40 @@ export default function ResultsScreen() {
       >
         Show results
       </Button>
+    </>
+  );
+
+  // Non-admins (Q10.13): a one-line "Make a result ▾" header folds the picker away; a tap opens it.
+  const makeResultHeader = !loading && !runsAGame ? (
+    <TouchableRipple
+      onPress={() => setPickerOpen((cur) => !(cur ?? false))}
+      borderless
+      style={[styles.foldRow, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: showPicker }}
+      accessibilityLabel={showPicker ? 'Hide make a result' : 'Make a result'}
+      testID="results-make-fold"
+    >
+      <View style={styles.foldInner}>
+        <Icon source="plus-box-outline" size={20} color={colors.onSurfaceVariant} />
+        <Text variant="titleSmall" style={styles.flex}>Make a result</Text>
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{MAKE_RESULT_FOLD_NOTE}</Text>
+        <Icon source={showPicker ? 'chevron-up' : 'chevron-down'} size={22} color={colors.onSurfaceVariant} />
+      </View>
+    </TouchableRipple>
+  ) : null;
+
+  return (
+    <Screen onScroll={onScroll}>
+      {makeResultHeader}
+      {showPicker ? picker : null}
       <SectionCard title="Past results" icon="podium" supportingText="Tap one to open it, share it, or save the PDF.">
         {saved.length === 0 ? (
           <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>None yet.</Text>
         ) : (
           <View style={styles.list}>
             {saved.map((item) => (
-              <PastResult key={item.id} item={item} canDelete={manageable.has(item.id) && rowBusy !== item.id} onDelete={() => askDelete(item)} />
+              <PastResult key={item.id} item={item} />
             ))}
           </View>
         )}
@@ -415,15 +386,6 @@ export default function ResultsScreen() {
           </View>
         ) : null}
       </SectionCard>
-      <Snackbar
-        visible={Boolean(undoRow)}
-        onDismiss={() => setUndoRow(null)}
-        duration={UNDO_DELETE_MS}
-        action={{ label: 'Undo', onPress: undoDelete, accessibilityLabel: 'Undo delete result' }}
-        testID="past-result-delete-undo"
-      >
-        {undoRow ? deletedToast([]) : ''}
-      </Snackbar>
       <Snackbar visible={Boolean(note)} onDismiss={() => setNote(null)} duration={3000}>{note ?? ''}</Snackbar>
 
       <Portal>
@@ -434,15 +396,6 @@ export default function ResultsScreen() {
           <Dialog.Actions>
             <Button onPress={() => setPendingSwitch(null)} accessibilityLabel="Keep the selection">Cancel</Button>
             <Button mode="contained" onPress={() => pendingSwitch && applySwitch(pendingSwitch)} accessibilityLabel="Deselect and switch">OK</Button>
-          </Dialog.Actions>
-        </Dialog>
-        <Dialog visible={Boolean(sharedConfirm)} onDismiss={() => setSharedConfirm(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
-          <Dialog.Icon icon="share-variant" />
-          <Dialog.Title>{SHARED_CONFIRM_TITLE}</Dialog.Title>
-          <Dialog.Content><Text variant="bodyMedium">{SHARED_CONFIRM_BODY}</Text></Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setSharedConfirm(null)} accessibilityLabel="Keep the result">Cancel</Button>
-            <Button mode="contained" buttonColor={colors.error} textColor={colors.onError} onPress={() => sharedConfirm && deleteRow(sharedConfirm)} accessibilityLabel="Delete the shared result">Delete</Button>
           </Dialog.Actions>
         </Dialog>
         <Dialog visible={Boolean(notAdmin)} onDismiss={() => setNotAdmin(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
@@ -463,6 +416,9 @@ const styles = StyleSheet.create({
   meta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   filterRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' },
   filterChip: { borderRadius: radius.full },
+  flex: { flex: 1 },
+  foldRow: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth * 2 },
+  foldInner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
   past: {
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth * 2,

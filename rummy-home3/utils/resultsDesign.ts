@@ -276,6 +276,11 @@ export function gamesInResult(games: (DesignGame & GameMeta)[], now: Date = new 
 }
 
 /** Public, read-only copy of a saved result. */
+/** The one title for the players-down / games-across table everywhere (page, PDF, web) — PR 10b. */
+export const GAME_BY_GAME_TITLE = 'Game by game';
+/** The foot of the result page and PDF: "Unique result ID · B3ADDD" (PR 10b). */
+export const UNIQUE_RESULT_ID_LABEL = 'Unique result ID';
+
 export function resultPageUrl(resultId: string): string {
   return `${SITE_BASE_URL}/r/${resultId}`;
 }

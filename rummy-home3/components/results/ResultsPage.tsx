@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Icon, Text } from 'react-native-paper';
 import { BandTable } from '@/components/results/BandTable';
 import { GamesInResult } from '@/components/results/GamesInResult';
@@ -8,12 +9,13 @@ import { spacing, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { removedGamesNote } from '@/utils/archive';
 import { resultsCountLine, ResultSheet, ResultStanding, resultShortId } from '@/utils/results';
-import { GameMeta } from '@/utils/resultsDesign';
+import { GAME_BY_GAME_TITLE, GameMeta, UNIQUE_RESULT_ID_LABEL } from '@/utils/resultsDesign';
 import { buildResultsDetails } from '@/utils/resultsDetails';
 
 /**
- * The results page (Nov 13 design): title and count line, Scores in two columns with
- * medals, "How you got there" in bands of five bordered boxes, the legend, and the games.
+ * The results page (Nov 13 design, PR 10b words): title and count line, Scores in two columns
+ * with medals, "Game by game" in bands of five, the legend, the games, and the Unique result ID
+ * at the foot (tap to copy). The raw link is gone from the page; Share and the ⋮ menu carry it.
  * The share image, the PDF and /r/<id> are built from the same model (utils/resultsDetails).
  */
 export function ResultsPage({
@@ -25,7 +27,6 @@ export function ResultsPage({
   saved = false,
   resultId,
   gameMeta,
-  link,
 }: {
   createdAt: string;
   /** A saved result shows "Saved <date>"; a preview shows the date alone (the screen's banner says it is not saved). */
@@ -39,10 +40,9 @@ export function ResultsPage({
   resultId?: string | null;
   /** Creator, admins, rounds and the reused flag per game id, when the screen has loaded them. */
   gameMeta?: Record<string, GameMeta>;
-  /** The public link, printed under the games on a saved result. */
-  link?: string | null;
 }) {
   const removedNote = removedGamesNote(removedCount);
+  const [copied, setCopied] = useState(false);
   const { colors } = useAppTheme();
   const details = useMemo(() => buildResultsDetails({
     createdAtLabel: formatGameDateTime(createdAt),
@@ -65,7 +65,6 @@ export function ResultsPage({
             </View>
           ) : null}
           <View style={styles.grow} />
-          {resultId ? <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }} testID="result-code">{resultShortId(resultId)}</Text> : null}
         </View>
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="result-date">
           {saved ? `Saved ${formatGameDateTime(createdAt)}` : formatGameDateTime(createdAt)}
@@ -94,7 +93,7 @@ export function ResultsPage({
 
       {sheet.games.length > 0 ? (
         <View style={styles.block}>
-          <Text variant="labelLarge" style={[styles.section, { color: colors.onSurfaceVariant }]}>How you got there · game by game</Text>
+          <Text variant="labelLarge" style={[styles.section, { color: colors.onSurfaceVariant }]}>{GAME_BY_GAME_TITLE}</Text>
           <BandTable table={details.table} legend={details.legend} testID="results-band-table" />
         </View>
       ) : null}
@@ -106,10 +105,18 @@ export function ResultsPage({
         </View>
       ) : null}
 
-      {link ? (
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="result-link" selectable>
-          {`Read-only copy · ${link}`}
-        </Text>
+      {resultId ? (
+        <Pressable
+          onPress={() => { Clipboard.setStringAsync(resultShortId(resultId)).catch(() => {}); setCopied(true); }}
+          accessibilityRole="button"
+          accessibilityLabel={`${UNIQUE_RESULT_ID_LABEL} ${resultShortId(resultId)}, tap to copy`}
+          style={styles.footId}
+          testID="result-code"
+        >
+          <Icon source="pound" size={16} color={colors.onSurfaceVariant} />
+          <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }}>{`${UNIQUE_RESULT_ID_LABEL} · ${resultShortId(resultId)}`}</Text>
+          <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>{copied ? 'Copied' : 'Tap to copy'}</Text>
+        </Pressable>
       ) : null}
     </View>
   );
@@ -117,6 +124,7 @@ export function ResultsPage({
 
 const styles = StyleSheet.create({
   page: { gap: spacing.lg },
+  footId: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', paddingVertical: spacing.xs },
   title: { fontWeight: '800' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   grow: { flex: 1 },

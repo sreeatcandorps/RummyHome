@@ -35,10 +35,11 @@ export function gameLabelsOf(games: { label?: string | null; name: string }[]): 
 
 /** The one line under the Delete button: what reopens, who loses it, how long Restore lasts. */
 export function deleteConsequence(labels: string[]): string {
-  const tail = `Everyone loses this result; you can restore it for ${DELETED_RETENTION_DAYS} days.`;
-  if (labels.length === 0) return tail;
+  // PR 10b wording (Sree, Nov 14): where the games go, who loses it, where to restore it — no "can go into a new result".
+  const tail = `Everyone loses this result. You can restore it for ${DELETED_RETENTION_DAYS} days from Settings › Hidden & deleted.`;
+  if (labels.length === 0) return `Its games go back to Completed (from Closed). ${tail}`;
   const verb = labels.length === 1 ? 'goes' : 'go';
-  return `${joinLabels(labels)} ${verb} back to Completed and can go into a new result. ${tail}`;
+  return `${joinLabels(labels)} ${verb} back to Completed (from Closed). ${tail}`;
 }
 
 /** The Undo toast: "Result deleted · S14, S15 are Completed again". */

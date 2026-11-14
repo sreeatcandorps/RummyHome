@@ -29,7 +29,7 @@ export function BandTable({ table, legend, testID = 'results-band-table' }: { ta
   return (
     <View testID={testID} accessibilityLabel={`Game by game, ${table.gameCount} games in ${table.bandCount} ${table.bandCount === 1 ? 'band' : 'bands'}`}>
       <View style={[styles.row, styles.headRow, { borderBottomColor: colors.primaryEdge }]} testID="band-table-header">
-        <Text variant="labelMedium" style={[styles.playerCell, styles.headText, { color: colors.onSurfaceVariant }]}>Player</Text>
+        <View style={styles.playerCell} accessibilityLabel="Player" />
         <Text variant="labelMedium" style={[styles.totalCell, styles.headText, { color: colors.onSurfaceVariant }]}>Total</Text>
         <View style={styles.boxes}>
           {table.header.map((band, bandIndex) => (

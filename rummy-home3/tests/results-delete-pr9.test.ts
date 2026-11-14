@@ -23,10 +23,13 @@ const read = (relative: string) => readFileSync(path.join(__dirname, '..', relat
 
 test('9.1 the consequence line names what reopens for 0, 1 and 2 games and how long Restore lasts', () => {
   assert.equal(DELETED_RETENTION_DAYS, 30);
-  assert.equal(deleteConsequence([]), 'Everyone loses this result; you can restore it for 30 days.');
-  assert.equal(deleteConsequence(['S14']), 'S14 goes back to Completed and can go into a new result. Everyone loses this result; you can restore it for 30 days.');
-  assert.equal(deleteConsequence(['S14', 'S15']), 'S14 and S15 go back to Completed and can go into a new result. Everyone loses this result; you can restore it for 30 days.');
-  assert.equal(deleteConsequence(['S1', 'S2', 'P1']), 'S1, S2 and P1 go back to Completed and can go into a new result. Everyone loses this result; you can restore it for 30 days.');
+  // PR 10b wording (Sree, Nov 14): no "can go into a new result"; says where Restore lives.
+  const tail = 'Everyone loses this result. You can restore it for 30 days from Settings › Hidden & deleted.';
+  assert.equal(deleteConsequence([]), `Its games go back to Completed (from Closed). ${tail}`);
+  assert.equal(deleteConsequence(['S14']), `S14 goes back to Completed (from Closed). ${tail}`);
+  assert.equal(deleteConsequence(['S14', 'S15']), `S14 and S15 go back to Completed (from Closed). ${tail}`);
+  assert.equal(deleteConsequence(['S1', 'S2', 'P1']), `S1, S2 and P1 go back to Completed (from Closed). ${tail}`);
+  assert.doesNotMatch(deleteConsequence(['S14']), /new result/);
   assert.deepEqual(gameLabelsOf([{ label: 'S14', name: 'ABCDEF' }, { name: '7F3A2C' }, { label: null, name: 'XY' }]), ['S14', '7F3A2C', 'XY'], 'the game number wins, the short code stands in');
 });
 

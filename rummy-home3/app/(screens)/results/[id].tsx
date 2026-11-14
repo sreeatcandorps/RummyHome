@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Dialog, Menu, Portal, Snackbar, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -27,7 +28,7 @@ import { gameAdminLines } from '@/utils/gameAdmins';
 import { playersService } from '@/services/players';
 import { buildResultsShareCard } from '@/utils/shareCard';
 import { buildResultsDetails } from '@/utils/resultsDetails';
-import { GameMeta, resultLinkText } from '@/utils/resultsDesign';
+import { GameMeta, resultPageUrl } from '@/utils/resultsDesign';
 import { GameResult, RESULT_EXPENSE_ID, resultFooter, ResultSheet } from '@/utils/results';
 import { RESULT_NOT_AVAILABLE } from '@/utils/resultsAccess';
 import { resultReusedNote, resultShareNotes, reusedGameIds, reusedWarningLines } from '@/utils/resultsSave';
@@ -118,6 +119,13 @@ export default function DeclaredResult() {
    * Delete this result: straight away with a 10-second Undo, or after a question when it was shared
    * from here (D9.2). The marker is read again here so a share made on this very visit counts.
    */
+  // Q10.14: the raw URL left the page; the read-only link is one tap away here (Share still sends it).
+  const copyLink = () => {
+    setMenuOpen(false);
+    if (!result) return;
+    Clipboard.setStringAsync(resultPageUrl(result.id)).then(() => setNote('Link copied')).catch(() => setNote('Couldn’t copy the link'));
+  };
+
   const startDelete = async () => {
     setMenuOpen(false);
     const shared = wasShared || (result ? await sharedResults.was(result.id).catch(() => false) : false);
@@ -325,6 +333,7 @@ export default function DeclaredResult() {
                   anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Result menu"> </Button>}
                 >
                   <Menu.Item leadingIcon="history" title={RESULT_HISTORY_TITLE} onPress={scrollToHistory} testID="result-menu-history" />
+                  <Menu.Item leadingIcon="link-variant" title="Copy link" onPress={copyLink} testID="result-menu-copy-link" />
                   {result.canManage ? (
                     <Menu.Item leadingIcon="delete-outline" title="Delete result" titleStyle={{ color: colors.error }} onPress={startDelete} />
                   ) : null}
@@ -357,7 +366,6 @@ export default function DeclaredResult() {
           removedCount={result.removedGameIds?.length ?? 0}
           resultId={result.id}
           gameMeta={metaWithReuse}
-          link={resultLinkText(result.id)}
         />
       ) : null}
       {result ? <ResultHistorySection history={history} onLayout={(event) => { historyY.current = event.nativeEvent.layout.y; }} /> : null}

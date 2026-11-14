@@ -26,7 +26,8 @@ export function MedalBadge({ medal, size = 20 }: { medal: Medal; size?: number }
 
 /**
  * One player in the scores columns: name with the medal, "#8 · RK" under it, the total on
- * the right. Negative totals read red; everything else is near-black.
+ * the right. Negative totals read red; everything else is near-black. Nothing truncates
+ * (PR 10b): a long name shrinks one step, then wraps to a second line — never "Harish Gadupu…".
  */
 export function PlayerLine({ row, large = false, testID }: { row: RankedRow; large?: boolean; testID?: string }) {
   const { colors } = useAppTheme();
@@ -35,7 +36,15 @@ export function PlayerLine({ row, large = false, testID }: { row: RankedRow; lar
       <View style={styles.nameBlock}>
         <View style={styles.nameRow}>
           {row.medal ? <MedalBadge medal={row.medal} /> : null}
-          <Text variant={large ? 'titleMedium' : 'bodyLarge'} style={[styles.name, { color: colors.onSurface }]} numberOfLines={1}>{row.name}</Text>
+          <Text
+            variant={large ? 'titleMedium' : 'bodyLarge'}
+            style={[styles.name, { color: colors.onSurface }]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            {row.name}
+          </Text>
         </View>
         {row.sub ? <Text variant="labelSmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{row.sub}</Text> : null}
       </View>

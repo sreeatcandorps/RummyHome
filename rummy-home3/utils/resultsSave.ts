@@ -20,6 +20,8 @@ type PickableGame = {
 };
 
 export const NON_ADMIN_PICK_MESSAGE = "You're part of this game but not an admin. Ask the creator for admin privileges for this game.";
+/** Under the folded "Make a result" header for someone who runs none of the listed games (PR 10b, Q10.13). */
+export const MAKE_RESULT_FOLD_NOTE = 'Only admins make results';
 
 /** Only a creator or admin of the game may put it in a result. */
 export function canPickForResults(game: { createdBy?: string | null; adminIds?: string[] | null }, userId: string | null | undefined): boolean {
