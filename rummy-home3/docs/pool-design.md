@@ -1,7 +1,8 @@
-# Pool game — spec for sign-off (PR 10, migration 040). Nothing built.
+# Pool game — spec for sign-off (PR 13; migration number assigned when built). Nothing built.
 
-Resumed Nov 13 after PRs 2–9 landed in the stack. This turns the mockup README (`/opt/cursor/artifacts/design-pool/`,
-30 PNGs P01–P30) into a buildable spec against the schema as it stands after 039. Sree's open questions are at the
+**Mockups:** all 30 PNGs are in [`docs/pool-mockups/`](pool-mockups/) (P01–P30) and embedded below in section 3.
+
+Resumed Nov 13 after PRs 2–9 landed in the stack. This turns the 30 mockups (P01–P30, now committed under `docs/pool-mockups/`) into a buildable spec against the schema as it stands after 039. Sree's open questions are at the
 end with the recommended answers; the build starts only after those are answered.
 
 ## 1. The rules in one paragraph
@@ -33,32 +34,62 @@ Results, where S and P games mix.
   101 · 201 · 250 · 251 · Custom above the same three fields (Drop / Middle drop / Full count, shown positive for a
   pool). Default 101 with 20/40/80; choosing 201/250/251 suggests 25/50/80 (editable). Custom: 51–999 and > Full
   count. Button reads **Start pool**. Everything else (picker, admins, initials fix) is the Points form.
+  ![P01-new-game-pool-selected](pool-mockups/P01-new-game-pool-selected.png)
+  ![P02-new-game-points-for-comparison](pool-mockups/P02-new-game-points-for-comparison.png)
+  ![P03-new-game-pool-custom-limit](pool-mockups/P03-new-game-pool-custom-limit.png)
 - **Game defaults (P04).** Profile › Game defaults shows two blocks, Points and Pool, plus "New game starts as".
+  ![P04-profile-defaults-points-and-pool](pool-mockups/P04-profile-defaults-points-and-pool.png)
 - **Scorecard (P05–P07).** Same table. Header per player: initials · #no · big score · "49 left" (green ≥ 2 drops,
   amber 1, red 0) · "2 drops". OUT column greyed, struck through, "OUT · R5"; ↺ badge when re-entered; red ✕ on the
   round that put someone out; thin blue "re-entry ↺ 86" row; Standings card under the table sorted lowest first, OUT
   last. Landscape identical. Formulas: points left = `limit − score`; drops left = `floor((limit − 1 − score) ÷ drop)`.
+  ![P05-pool-scorecard-portrait](pool-mockups/P05-pool-scorecard-portrait.png)
+  ![P06-header-states-and-formulas](pool-mockups/P06-header-states-and-formulas.png)
+  ![P07-pool-scorecard-landscape](pool-mockups/P07-pool-scorecard-landscape.png)
 - **Add round (P08–P11).** Same grid + keypad (PR 3 colours: yellow selected, green saved). Keys: Drop 20 · Middle 40 ·
   Full 80 · Rummy · 0 · digits. Each cell previews "81 → 101 · OUT". Validation: exactly one Rummy (0); a counted hand
   above Full count is capped with a message. Save shows an amber line naming who goes out. Crossing-limit dialog offers
   **Re-enter at <highest score still in>** or **Out**. Re-entry sheet also from tapping an OUT column.
+  ![P08-add-round-pool](pool-mockups/P08-add-round-pool.png)
+  ![P09-add-round-validation](pool-mockups/P09-add-round-validation.png)
+  ![P10-crossing-limit-dialog](pool-mockups/P10-crossing-limit-dialog.png)
+  ![P11-re-entry-sheet](pool-mockups/P11-re-entry-sheet.png)
 - **Complete (P12–P14).** After the save that leaves one player: "Last player standing — Complete pool?" (Undo still
   possible). Complete early at any time (split). Completed state shows **Award pending** until awards are saved.
+  ![P12-last-player-standing](pool-mockups/P12-last-player-standing.png)
+  ![P13-complete-early-split](pool-mockups/P13-complete-early-split.png)
+  ![P14-completed-award-pending](pool-mockups/P14-completed-award-pending.png)
 - **Award points (P15–P18).** Entry per player (default 100 points, editable here only), entries (re-entries count
   twice), pool total. Presets Winner takes all · Top 2 70/30 · Top 3 50/30/20 · Custom · All 0. Table: Player · Pool
   score (grey) · Put in · Gets · Points (= Gets − Put in). Green "adds up to 0 ✓" enables Save; red "−40 not given
   out" disables it. Second mode **Type points** (no entry; type each player's points, must sum to 0).
+  ![P15-award-points-winner-takes-all](pool-mockups/P15-award-points-winner-takes-all.png)
+  ![P16-award-points-top3](pool-mockups/P16-award-points-top3.png)
+  ![P17-award-points-custom-unbalanced](pool-mockups/P17-award-points-custom-unbalanced.png)
+  ![P18-award-points-type-mode](pool-mockups/P18-award-points-type-mode.png)
 - **After awards (P19, P30).** "Points awarded" block (same player lines as results, medal for the winner) above the
   final pool scores. **Edit awards** until the game is Closed (in a result); then delete the result first (PR 9 makes
   that one tap + Undo).
+  ![P19-completed-awarded](pool-mockups/P19-completed-awarded.png)
+  ![P30-awards-locked-when-closed](pool-mockups/P30-awards-locked-when-closed.png)
 - **Home + Results (P20–P22).** P avatar marigold, S green. Pool cards show limit, out count, Award pending. Results
   picker greys out an unawarded pool: "Award points first". Results table: P column header marigold, legend line "pool:
   the awarded points count".
+  ![P20-home-game-cards-P-vs-S](pool-mockups/P20-home-game-cards-P-vs-S.png)
+  ![P21-results-pick-mixed](pool-mockups/P21-results-pick-mixed.png)
+  ![P22-results-table-mixed-S-and-P](pool-mockups/P22-results-table-mixed-S-and-P.png)
 - **Share + web (P23–P25).** Live image = standings with the three numbers; final image = awarded points headline,
   pool scores one small line; `/g/` live page = same table.
+  ![P23-share-image-live-pool](pool-mockups/P23-share-image-live-pool.png)
+  ![P24-share-image-final-pool-awards](pool-mockups/P24-share-image-final-pool-awards.png)
+  ![P25-live-link-pool](pool-mockups/P25-live-link-pool.png)
 - **Settings / help / wording / log (P26–P29).** Limit and the three values lock once round 1 is saved (same as
   Points). Help in the PR 12 format. Store-safe words only: pool, pool limit, entry (points), pool total, points
   awarded — never prize, money, $, bet, stake, pot, payout, coins, winnings (a unit test greps every pool string).
+  ![P26-game-settings-locked-mid-game](pool-mockups/P26-game-settings-locked-mid-game.png)
+  ![P27-help-pool-scorecard](pool-mockups/P27-help-pool-scorecard.png)
+  ![P28-wording-store-safe](pool-mockups/P28-wording-store-safe.png)
+  ![P29-game-log-pool-events](pool-mockups/P29-game-log-pool-events.png)
 
 ## 4. Data and RPCs — migration `040_pool.sql` (+ rollback)
 
@@ -149,6 +180,7 @@ image/PDF/`public/scorecard.html` + `public/r/index.html`, `constants/help.ts`, 
 
 ## 8. Place in the sequence
 
-PR 10, after PR 9. Its own migration **040** (next free after 039), rollback, pgTAP `31_pool_040.sql`, unit tests,
-smoke 10.13–10.14 and nightly 10.15–10.24, one PR. Multiplier (PR 11) does not touch pools. Build starts after the
+**PR 13**, after PR 10 (APK 9 fixes), PR 11 (Help) and PR 12 (Tutorial) — renumbered Nov 14 from "PR 10". Its own
+migration (the next free number when the build starts; 040 may go to PR 10's own-initials column), rollback, pgTAP,
+unit tests, smoke 10.13–10.14 and nightly 10.15–10.24, one PR. Multiplier (PR 14) does not touch pools. Build starts after the
 answers above; the spec is then copied into the PR body as the contract.
