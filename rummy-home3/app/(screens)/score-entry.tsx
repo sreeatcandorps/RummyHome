@@ -29,6 +29,7 @@ import {
   emptyDraft,
   exceedsMaxCount,
   hasPendingEntry,
+  initialPoolEntryState,
   initialRoundEntryState,
   PresetKind,
   PresetValues,
@@ -58,7 +59,8 @@ import { shareLiveScorecard } from '../../utils/shareImage';
 import { formatSupabaseError } from '../../utils/supabaseErrors';
 import { isRoundConflict, roundConflictMessage } from '../../utils/roundConflict';
 import { rummyShareNeedsConfirm } from '../../utils/rummyDistribution';
-import { overMaxConfirm, rummyShareConfirm } from '../../utils/roundConfirms';
+import { overMaxConfirm, poolOverFullConfirm, rummyShareConfirm } from '../../utils/roundConfirms';
+import { afterRound, AfterRound, isPoolGame, overFullCount, playersIn, poolTotal, seatOf } from '../../utils/pool';
 
 type Participant = {
   id: string;
@@ -75,9 +77,16 @@ const GRID_GAP = spacing.sm;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-const participantsFrom = (seats: Player[]): Participant[] => seats
-  .filter((player) => player.seatRole !== 'spectator' && player.seated !== false)
-  .map((player) => ({ id: player.id, name: player.name }));
+const participantsFrom = (seats: Player[], game?: Game | null): Participant[] => {
+  // Pool (D4): players who are out are not on the sheet.
+  const inIds = game && isPoolGame(game) ? new Set(playersIn(game)) : null;
+  return seats
+    .filter((player) => player.seatRole !== 'spectator' && player.seated !== false)
+    .filter((player) => !inIds || inIds.has(player.id))
+    .map((player) => ({ id: player.id, name: player.name }));
+};
+
+const freshEntry = (game: Game | null | undefined) => (game && isPoolGame(game) ? initialPoolEntryState() : initialRoundEntryState());
 
 export default function ScoreEntryScreen() {
   const { colors } = useAppTheme();
@@ -91,7 +100,13 @@ export default function ScoreEntryScreen() {
   const seededSeats = useRef(gameCache.peekSeats(gameId ? String(gameId) : null)).current;
   const seeded = Boolean(seededGame && seededSeats);
   const [game, setGame] = useState<Game | null>(seeded ? seededGame : null);
-  const [participants, setParticipants] = useState<Participant[]>(seeded ? participantsFrom(seededSeats ?? []) : []);
+  const [participants, setParticipants] = useState<Participant[]>(seeded ? participantsFrom(seededSeats ?? [], seededGame) : []);
+  /** Every seated player, including those out of a pool, for names in the after-save sheet. */
+  const [seatNames, setSeatNames] = useState<Record<string, string>>(() => Object.fromEntries((seededSeats ?? []).map((p) => [p.id, p.name])));
+  const nameOf = (id: string) => seatNames[id] ?? participants.find((p) => p.id === id)?.name ?? 'a player';
+  /** Pool: shown once after a save — who went out, who may re-enter (D4). */
+  const [afterSave, setAfterSave] = useState<AfterRound | null>(null);
+  const [reentering, setReentering] = useState<string | null>(null);
   const [scorerName, setScorerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(!seeded);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,7 +119,7 @@ export default function ScoreEntryScreen() {
   const [rummyConfirm, setRummyConfirm] = useState<string | null>(null);
   const rummyConfirmed = useRef(false);
 
-  const [entry, setEntry] = useState<RoundEntryState>(seeded && seededGame && editRound ? entryFromRound(seededGame, editRound) : initialRoundEntryState);
+  const [entry, setEntry] = useState<RoundEntryState>(seeded && seededGame && editRound ? entryFromRound(seededGame, editRound) : freshEntry(seededGame));
   // The fresh copy must not wipe cells the person has already filled from the seeded round.
   const entrySeeded = useRef(seeded && Boolean(editRound));
   const [flashKeys, setFlashKeys] = useState<Record<string, number>>({});
@@ -159,9 +174,11 @@ export default function ScoreEntryScreen() {
 
       setGame(currentGame);
       if (editRound && !entrySeeded.current) setEntry(entryFromRound(currentGame, editRound));
+      else if (!editRound && !seeded && isPoolGame(currentGame)) setEntry((current) => (current.pool ? current : initialPoolEntryState()));
       entrySeeded.current = false;
 
-      setParticipants(participantsFrom(gamePlayers));
+      setParticipants(participantsFrom(gamePlayers, currentGame));
+      setSeatNames(Object.fromEntries(gamePlayers.map((p) => [p.id, p.name])));
       setScorerName(scorer?.name ?? null);
     } catch (error) {
       setNotice({ title: 'Could not load game', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
@@ -171,12 +188,16 @@ export default function ScoreEntryScreen() {
   };
 
   const presets: PresetValues = useMemo(
-    () => ({
-      drop: game?.settings.dropAmount ?? -10,
-      middle_drop: game?.settings.mdAmount ?? -30,
-      count: game?.settings.maxCount ?? -80,
-    }),
-    [game?.settings.dropAmount, game?.settings.mdAmount, game?.settings.maxCount],
+    () => {
+      const sign = game?.gameType === 'pool' ? 1 : -1;
+      const abs = (v: number | undefined, fallback: number) => (typeof v === 'number' ? Math.abs(v) : fallback) * sign;
+      return {
+        drop: abs(game?.settings.dropAmount, game?.gameType === 'pool' ? 25 : 10),
+        middle_drop: abs(game?.settings.mdAmount, game?.gameType === 'pool' ? 50 : 30),
+        count: abs(game?.settings.maxCount, game?.gameType === 'pool' ? 130 : 80),
+      };
+    },
+    [game?.gameType, game?.settings.dropAmount, game?.settings.mdAmount, game?.settings.maxCount],
   );
 
   // Every write lands in lastSavedIds; flash those cells once.
@@ -191,8 +212,9 @@ export default function ScoreEntryScreen() {
     });
   }, [entry.lastSavedIds]);
 
+  const pool = isPoolGame(game);
   const balance = roundBalance(commitPending(entry));
-  const saveReady = canSaveRound(entry);
+  const saveReady = canSaveRound(entry, pool ? participants.map((p) => p.id) : undefined);
   const hasSelection = entry.selectedIds.length > 0;
   const hasAnything = Object.keys(entry.entries).length > 0 || entry.rummyIds.length > 0 || hasSelection;
 
@@ -209,11 +231,13 @@ export default function ScoreEntryScreen() {
   const fullCount = game?.settings.maxCount;
 
   // A digit that first takes the number past the Full count asks once for that cell (D3.1).
+  // Pool (D6/D7): the same one confirm, "Are you sure?", and no other warnings.
   const typeDigit = (digit: string) => {
     const next = pressDigit(entry, digit);
     const value = draftValue(next.draft);
     const fresh = next.selectedIds.filter((id) => !warnedCells.current.has(id));
-    if (value !== undefined && exceedsMaxCount(value, fullCount) && fresh.length > 0 && !exceedsMaxCount(draftValue(entry.draft), fullCount)) {
+    const over = (v: number | undefined) => (pool ? overFullCount(v, fullCount) : exceedsMaxCount(v, fullCount));
+    if (value !== undefined && over(value) && fresh.length > 0 && !over(draftValue(entry.draft))) {
       next.selectedIds.forEach((id) => warnedCells.current.add(id));
       setOverMax({ value, ids: next.selectedIds });
     }
@@ -223,7 +247,7 @@ export default function ScoreEntryScreen() {
   const changeOverMax = () => {
     setOverMax(null);
     // Back to an empty number for the same selection; the sign is kept.
-    update((state) => ({ ...state, draft: { ...emptyDraft(), negative: state.draft.negative } }));
+    update((state) => ({ ...state, draft: { ...emptyDraft(!state.pool), negative: state.pool ? false : state.draft.negative } }));
   };
 
   const handleSaveRound = async () => {
@@ -232,9 +256,9 @@ export default function ScoreEntryScreen() {
     // Whatever is still being typed counts; show it landing before we leave.
     const finalState = commitPending(entry);
 
-    // A Rummy share at or below 0 (the others added up to a plus) is confirmed once per round (D3.2).
+    // A Rummy share at or below 0 (the others added up to a plus) is confirmed once per round (D3.2). Not for a pool: the winner is 0.
     const shares = rummyShares(finalState);
-    if (!rummyConfirmed.current && rummyShareNeedsConfirm(shares)) {
+    if (!pool && !rummyConfirmed.current && rummyShareNeedsConfirm(shares)) {
       setRummyConfirm(rummyShareConfirm(finalState, shares, participants));
       return;
     }
@@ -251,14 +275,24 @@ export default function ScoreEntryScreen() {
       if (!createdBy) throw new Error('You must be signed in to save a round.');
 
       if (editRound) {
-        await gamesService.replaceRound({ gameId: game.id, roundNumber: editRound, scores: toRoundScores(finalState), createdBy });
+        await gamesService.replaceRound({ gameId: game.id, roundNumber: editRound, scores: toRoundScores(finalState), createdBy, pool });
       } else {
-        await gamesService.addRound({
+        const saved = await gamesService.addRound({
           gameId: game.id,
           roundNumber: nextRoundNumber(game),
           scores: toRoundScores(finalState),
           createdBy,
+          pool,
         });
+        // Pool (D4): after every round, who is out and who may re-enter, before going back.
+        if (pool && saved) {
+          const summary = afterRound(game, saved);
+          if (summary.newlyOut.length || summary.eligible.length || summary.lastStanding) {
+            setGame(saved);
+            setAfterSave(summary);
+            return;
+          }
+        }
       }
       router.back();
     } catch (error) {
@@ -267,7 +301,7 @@ export default function ScoreEntryScreen() {
         // said and drop the typed scores so they cannot land on the next round by accident.
         // Add mode then returns to the scorecard (it reloads on focus) instead of staying here
         // numbered for the next round. Edit mode reloads the round as it is now.
-        if (!editRound) setEntry(initialRoundEntryState);
+        if (!editRound) setEntry(freshEntry(game));
         else await loadGameData();
         setNotice({
           title: 'Round already saved',
@@ -378,12 +412,12 @@ export default function ScoreEntryScreen() {
           leadingIcon="eraser-variant"
           title={editRound ? 'Undo my changes' : 'Clear this round'}
           disabled={!hasAnything}
-          onPress={() => { setMenuOpen(false); rummyConfirmed.current = false; warnedCells.current.clear(); setEntry(editRound && game ? entryFromRound(game, editRound) : initialRoundEntryState()); }}
+          onPress={() => { setMenuOpen(false); rummyConfirmed.current = false; warnedCells.current.clear(); setEntry(editRound && game ? entryFromRound(game, editRound) : freshEntry(game)); }}
         />
         <Menu.Item
           leadingIcon="help-circle-outline"
           title="Help"
-          onPress={() => { setMenuOpen(false); setNotice({ title: 'Add round', body: HELP.scoreEntry, icon: 'help-circle-outline' }); }}
+          onPress={() => { setMenuOpen(false); setNotice({ title: 'Add round', body: pool ? HELP.scoreEntryPool : HELP.scoreEntry, icon: 'help-circle-outline' }); }}
         />
         <Menu.Item leadingIcon="arrow-left" title="Back to scorecard" onPress={() => { setMenuOpen(false); closeScreen(); }} />
       </Menu>
@@ -392,7 +426,8 @@ export default function ScoreEntryScreen() {
 
   // The number being typed, measured against the Full count: soft at half, strong at the count.
   const pendingValue = draftValue(entry.draft);
-  const pendingWarning = entry.draft.edited && entry.selectedIds.length > 0 ? countWarning(pendingValue, fullCount) : 'none';
+  // Pool: no half / full warnings (D7); the one confirm past the Full count is the dialog.
+  const pendingWarning = !pool && entry.draft.edited && entry.selectedIds.length > 0 ? countWarning(pendingValue, fullCount) : 'none';
   const warningLine = pendingValue !== undefined && pendingWarning !== 'none' ? (
     <View
       style={[styles.warning, { backgroundColor: pendingWarning === 'full' ? colors.errorContainer : colors.secondaryContainer }]}
@@ -425,6 +460,13 @@ export default function ScoreEntryScreen() {
         {cellWidth > 0
           ? participants.map((participant) => {
             const view = cellView(entry, participant.id);
+            // Pool: the cell shows the total after this round and OUT when it puts the player out.
+            const after = pool && game && view.value !== undefined && !editRound
+              ? (() => {
+                  const total = poolTotal(game.scores[participant.id], seatOf(game, participant.id)) + view.value;
+                  return { total, out: total >= (game.settings.poolLimit ?? 101) };
+                })()
+              : null;
             return (
               <ScoreCell
                 key={participant.id}
@@ -433,6 +475,8 @@ export default function ScoreEntryScreen() {
                 value={view.value}
                 width={cellWidth}
                 compact={isShort}
+                pool={pool}
+                after={after}
                 fullCount={game?.settings.maxCount}
                 flashKey={flashKeys[participant.id] ?? 0}
                 onPress={() => update((state) => tapPlayer(state, participant.id))}
@@ -463,9 +507,9 @@ export default function ScoreEntryScreen() {
 
   type ActionKey = { id: 'plus' | 'minus' | 'rummy' | PresetKind; label: string; icon?: string };
 
+  // Pool: no sign keys (plus points only); the presets read as plain numbers.
   const actionKeys: ActionKey[] = [
-    { id: 'plus', label: 'Plus', icon: 'plus' },
-    { id: 'minus', label: 'Minus', icon: 'minus' },
+    ...(pool ? [] : [{ id: 'plus', label: 'Plus', icon: 'plus' } as ActionKey, { id: 'minus', label: 'Minus', icon: 'minus' } as ActionKey]),
     { id: 'drop', label: `${presets.drop}` },
     { id: 'middle_drop', label: `${presets.middle_drop}` },
     { id: 'count', label: `${presets.count}` },
@@ -555,7 +599,9 @@ export default function ScoreEntryScreen() {
     />
   );
 
-  const balanced = balance === 0;
+  // Pool: the pill counts scored players instead of a balance ("5 of 6 scored", green when complete).
+  const scoredCount = participants.filter((p) => cellView(commitPending(entry), p.id).value !== undefined).length;
+  const balanced = pool ? saveReady : balance === 0;
   const balanceBackground = balanced ? colors.positiveContainer : colors.errorContainer;
   const balanceForeground = balanced ? colors.onPositiveContainer : colors.onErrorContainer;
 
@@ -563,13 +609,14 @@ export default function ScoreEntryScreen() {
     <Animated.View
       style={[styles.balance, { backgroundColor: balanceBackground, transform: [{ scale: balancePulse }] }]}
       accessible
-      accessibilityLabel={`Balance ${signed(balance)}`}
+      accessibilityLabel={pool ? `${scoredCount} of ${participants.length} scored${saveReady ? '' : scoredCount === participants.length ? ', no winner at 0 yet' : ''}` : `Balance ${signed(balance)}`}
+      testID="balance-pill"
     >
       <Text variant="labelMedium" style={[styles.balanceLabel, { color: balanceForeground }]}>
-        Balance
+        {pool ? 'Scored' : 'Balance'}
       </Text>
       <Text style={[styles.balanceValue, tabularNums, { color: balanceForeground }]}>
-        {balanced ? '0' : signed(balance)}
+        {pool ? `${scoredCount}/${participants.length}` : balanced ? '0' : signed(balance)}
       </Text>
     </Animated.View>
   );
@@ -631,16 +678,71 @@ export default function ScoreEntryScreen() {
       <Portal>
         <Dialog visible={!!overMax} onDismiss={changeOverMax} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Icon icon="alert-outline" />
-          <Dialog.Title style={styles.dialogTitle}>Over the Full count</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>{pool ? 'Are you sure?' : 'Over the Full count'}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]} testID="over-max-body">
-              {overMax ? overMaxConfirm(overMax.value, fullCount) : ''}
+              {overMax ? (pool ? poolOverFullConfirm(overMax.value, fullCount) : overMaxConfirm(overMax.value, fullCount)) : ''}
             </Text>
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
             <Button onPress={changeOverMax}>Change</Button>
             <Button mode="contained" onPress={() => setOverMax(null)} contentStyle={styles.dialogButtonContent}>
-              {overMax ? `Keep ${signed(overMax.value)}` : 'Keep'}
+              {overMax ? `Keep ${pool ? overMax.value : signed(overMax.value)}` : 'Keep'}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog visible={!!afterSave} dismissable={false} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+          <Dialog.Icon icon={afterSave?.lastStanding ? 'flag-checkered' : afterSave?.newlyOut.length ? 'account-off-outline' : 'restore'} />
+          <Dialog.Title style={styles.dialogTitle}>Round saved</Dialog.Title>
+          <Dialog.Content style={{ gap: spacing.sm }}>
+            {afterSave?.newlyOut.map((o) => (
+              <Text key={o.playerId} variant="bodyMedium" style={{ color: colors.loss, fontWeight: '700' }} testID="after-out">
+                {`${nameOf(o.playerId)} is out at ${o.total} (limit ${game.settings.poolLimit ?? 101}).`}
+              </Text>
+            ))}
+            {afterSave?.lastStanding ? (
+              <Text variant="bodyMedium" style={{ color: colors.onSurface }}>
+                One player is left in the pool. Complete the pool, or re-enter someone to keep playing.
+              </Text>
+            ) : null}
+            {afterSave?.eligible.length ? (
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="after-eligible">
+                {`May re-enter at ${afterSave.reentryAt}: ${afterSave.eligible.map(nameOf).join(', ')}`}
+              </Text>
+            ) : null}
+          </Dialog.Content>
+          <Dialog.Actions style={[styles.dialogActions, { flexWrap: 'wrap' }]}>
+            {afterSave?.eligible.map((id) => (
+              <Button
+                key={id}
+                mode="outlined"
+                icon="restore"
+                loading={reentering === id}
+                disabled={Boolean(reentering)}
+                onPress={async () => {
+                  setReentering(id);
+                  try {
+                    await gamesService.reenterPlayer(game.id, id);
+                    router.back();
+                  } catch (error) {
+                    setAfterSave(null);
+                    setNotice({ title: 'Could not re-enter', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
+                  } finally {
+                    setReentering(null);
+                  }
+                }}
+                testID={`after-reenter-${id}`}
+              >
+                {`Re-enter ${nameOf(id).split(/\s+/)[0]}`}
+              </Button>
+            ))}
+            {afterSave?.lastStanding ? (
+              <Button mode="outlined" icon="flag-checkered" disabled={Boolean(reentering)} onPress={() => { setAfterSave(null); router.replace({ pathname: '/(screens)/games/complete', params: { id: game.id } }); }}>
+                Complete
+              </Button>
+            ) : null}
+            <Button mode="contained" disabled={Boolean(reentering)} onPress={() => { setAfterSave(null); router.back(); }} contentStyle={styles.dialogButtonContent} testID="after-done">
+              Done
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -685,7 +787,8 @@ export default function ScoreEntryScreen() {
 
       <GameSettingsDialog
         visible={settingsOpen}
-        rules={rulesFromGame(game.settings)}
+        rules={rulesFromGame(game.settings, game.gameType)}
+        lockValues={pool && nextRoundNumber(game) > 1}
         onDismiss={() => setSettingsOpen(false)}
         onSave={async (rules) => {
           const updated = await gamesService.updateGameRules(game.id, rules);

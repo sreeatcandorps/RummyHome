@@ -35,18 +35,21 @@ export const retiredRoundNumber = (roundNumber: number, attempt = 0) => RETIRED_
  * The saved scores of one round, loaded into the Add round sheet so every
  * cell starts green with its number and can be tapped to change.
  */
-export function entryFromRound(game: Pick<Game, 'players' | 'scores'>, roundNumber: number): RoundEntryState {
+export function entryFromRound(game: Pick<Game, 'players' | 'scores'> & Partial<Pick<Game, 'gameType'>>, roundNumber: number): RoundEntryState {
   const index = roundNumber - 1;
+  const pool = game.gameType === 'pool';
   const entries: RoundEntryState['entries'] = {};
   for (const playerId of game.players) {
     const value = game.scores?.[playerId]?.[index];
-    if (typeof value === 'number') entries[playerId] = { value, scoreType: value > 0 ? 'rummy' : 'count' };
+    // Pool: every stored hand is a count (a 0 is the winner). Points: a plus is the Rummy share.
+    if (typeof value === 'number') entries[playerId] = { value, scoreType: !pool && value > 0 ? 'rummy' : 'count' };
   }
   return {
     entries,
     rummyIds: [],
     selectedIds: [],
-    draft: { digits: '', negative: true, typed: false, edited: false },
+    draft: { digits: '', negative: !pool, typed: false, edited: false },
     lastSavedIds: [],
+    ...(pool ? { pool: true } : {}),
   };
 }

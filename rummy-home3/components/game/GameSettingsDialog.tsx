@@ -3,20 +3,24 @@ import { Keyboard } from 'react-native';
 import { Dialog, Portal, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router } from 'expo-router';
-import { parseRuleInput, PointsRules, validateRules } from '@/utils/gameSettings';
-import { draftFromRules, RulesDraft, RulesForm } from '@/components/game/RulesForm';
+import { PointsRules } from '@/utils/gameSettings';
+import { draftFromRules, RulesDraft, RulesForm, rulesFromDraft } from '@/components/game/RulesForm';
 import { useAppTheme } from '@/constants/theme';
 
 export const MORE_SETTINGS_NOTE = 'If you want more settings go to your user settings.';
 
-/** Game settings only. Change them when you create the game or any time during it. */
-export function GameSettingsDialog({ visible, rules, title = 'Game settings', onDismiss, onSave, readOnly }: {
+/**
+ * Game settings only. Points: change them any time. Pool: the limit and the three values are
+ * locked once a round is saved (13.5, `lockValues`); Re-entry can still be switched.
+ */
+export function GameSettingsDialog({ visible, rules, title = 'Game settings', onDismiss, onSave, readOnly, lockValues = false }: {
   visible: boolean;
   rules: PointsRules;
   title?: string;
   onDismiss: () => void;
   onSave: (rules: PointsRules) => Promise<void> | void;
   readOnly?: boolean;
+  lockValues?: boolean;
 }) {
   const { colors } = useAppTheme();
   const [draft, setDraft] = useState<RulesDraft>(draftFromRules(rules));
@@ -26,15 +30,10 @@ export function GameSettingsDialog({ visible, rules, title = 'Game settings', on
 
   const save = async () => {
     Keyboard.dismiss();
-    const drop = parseRuleInput(draft.drop);
-    const middleDrop = parseRuleInput(draft.middleDrop);
-    const fullCount = parseRuleInput(draft.fullCount);
-    if (drop == null || middleDrop == null || fullCount == null) { setError('Type a number for Drop, Middle drop, and Full count.'); return; }
-    const next: PointsRules = { gameKind: 'points', drop, middleDrop, fullCount };
-    const problem = validateRules(next);
-    if (problem) { setError(problem); return; }
+    const parsed = rulesFromDraft(draft);
+    if (!parsed.rules) { setError(parsed.error); return; }
     setSaving(true);
-    try { await onSave(next); onDismiss(); } catch (e) { setError(e instanceof Error ? e.message : 'Couldn’t save.'); } finally { setSaving(false); }
+    try { await onSave(parsed.rules); onDismiss(); } catch (e) { setError(e instanceof Error ? e.message : 'Couldn’t save.'); } finally { setSaving(false); }
   };
 
   return (
@@ -42,8 +41,8 @@ export function GameSettingsDialog({ visible, rules, title = 'Game settings', on
       <Dialog visible={visible} onDismiss={onDismiss}>
         <Dialog.Title>{title}</Dialog.Title>
         <Dialog.Content>
-          <Text variant="bodyMedium" style={{ marginBottom: 8 }}>Points game</Text>
-          <RulesForm draft={draft} onChange={setDraft} disabled={readOnly} />
+          <Text variant="bodyMedium" style={{ marginBottom: 8 }}>{rules.gameKind === 'pool' ? 'Pool game' : 'Points game'}</Text>
+          <RulesForm draft={draft} onChange={setDraft} disabled={readOnly} lockValues={lockValues} testIDPrefix="game-settings" />
           {readOnly ? (
             <Text style={{ color: colors.onSurfaceVariant, marginTop: 8 }} accessibilityLabel="Only a game admin can save changes">
               You can see this game’s settings, but only a game admin (the organizer or someone they made admin) can save changes. They apply to this game only and win over your User settings.

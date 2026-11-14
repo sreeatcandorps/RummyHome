@@ -40,6 +40,9 @@ import { GameIdFooter } from '@/components/game/GameIdFooter';
 import { playersChipLabel } from '@/utils/scorecardLayout';
 import { rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame } from '@/utils/gameStatus';
+import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
+import { PoolAwardsCard } from '@/components/game/PoolAwardsCard';
+import { isPoolGame, lastPlayerStanding, playersIn, poolLimitOf, poolStandings, poolStatusLabel, poolTotal, reentryBlock, REENTRY_BLOCK_TEXT, seatOf } from '@/utils/pool';
 
 export default function GameScreen() {
   const { id } = useLocalSearchParams();
@@ -69,6 +72,7 @@ export default function GameScreen() {
   const [editRoundOpen, setEditRoundOpen] = useState(false);
   const [linkNote, setLinkNote] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [reentering, setReentering] = useState<string | null>(null);
 
   // Mount is covered by useFocusEffect below (it fires on focus, which includes the first mount): one load, not two.
   useEffect(() => {
@@ -117,9 +121,26 @@ export default function GameScreen() {
     }
   };
 
+  const pool = isPoolGame(game);
+
   const getPlayerTotal = (playerId: string): number => {
     if (!game?.scores) return 0;
+    // Pool: a re-entered player's total starts again at their re-entry score (D4).
+    if (pool) return poolTotal(game.scores[playerId], seatOf(game, playerId));
     return Object.values(game.scores[playerId] || []).reduce((sum, score) => sum + score, 0);
+  };
+
+  const reenter = async (playerId: string) => {
+    if (!game) return;
+    setReentering(playerId);
+    try {
+      const next = await gamesService.reenterPlayer(game.id, playerId);
+      if (next) setGame(next);
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    } finally {
+      setReentering(null);
+    }
   };
 
   const getRoundTotal = (roundIndex: number): number => {
@@ -326,19 +347,43 @@ export default function GameScreen() {
 
   const colorFor = (playerId: string) => seatColor(seats.findIndex((seat) => seat.id === playerId));
 
+  // Points: the highest total leads. Pool: the lowest total among players still in.
+  const inIds = pool ? new Set(playersIn(game)) : null;
   const standings = [...players]
+    .filter((player) => !inIds || inIds.has(player.id))
     .map((player) => ({ player, total: getPlayerTotal(player.id) }))
-    .sort((a, b) => b.total - a.total);
+    .sort((a, b) => (pool ? a.total - b.total : b.total - a.total));
 
   const bestTotal = standings[0]?.total;
   const hasLeader = maxRounds > 0 && standings.length > 0;
   const leaderIds = hasLeader ? standings.filter((entry) => entry.total === bestTotal).map((entry) => entry.player.id) : [];
 
-  const columns: ScoreColumn[] = players.map((player) => ({
-    id: player.id,
-    label: initialsFor(player.id),
-    color: colorFor(player.id),
-  }));
+  const columns: ScoreColumn[] = players.map((player) => {
+    const seat = pool ? seatOf(game, player.id) : null;
+    return {
+      id: player.id,
+      label: initialsFor(player.id),
+      color: colorFor(player.id),
+      // Pool header (D5): player number, initials, score; OUT and re-entry marks.
+      ...(seat ? { number: player.playerNo ?? null, outRound: seat.outRound, reenteredRound: seat.reenteredRound, reentryScore: seat.reentryScore } : {}),
+    };
+  });
+
+  const poolRows: PoolStandingRow[] = pool
+    ? poolStandings(game).map((row) => {
+        const player = players.find((p) => p.id === row.playerId);
+        const block = reentryBlock(game, row.playerId);
+        return {
+          ...row,
+          name: player?.name ?? '?',
+          label: initialsFor(row.playerId),
+          number: player?.playerNo ?? null,
+          canReenter: block === null && canScore,
+          reentryHint: block && block !== 'in' ? REENTRY_BLOCK_TEXT[block] : null,
+        };
+      })
+    : [];
+  const poolOver = pool && maxRounds > 0 && !game.isComplete && lastPlayerStanding(game);
 
   const totals = Object.fromEntries(players.map((player) => [player.id, getPlayerTotal(player.id)]));
   const roundTotals = Array.from({ length: maxRounds }, (_, roundIndex) => getRoundTotal(roundIndex));
@@ -352,8 +397,9 @@ export default function GameScreen() {
     </View>
   ) : null;
   const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : settleEnabled ? 'cash-multiple' : 'numeric'} />;
+  const awardsLabel = poolStatusLabel(game);
   const statusTag = game.isComplete ? (
-    <Tag label="Completed" tone="info" icon="flag-checkered" />
+    <Tag label={awardsLabel ?? 'Completed'} tone={awardsLabel === 'Awards pending' ? 'warning' : 'info'} icon={awardsLabel === 'Awarded' ? 'trophy-outline' : 'flag-checkered'} testID="status-tag" />
   ) : (
     // Who deals is shown once, as the DEALS badge on that player's column header.
     <Tag label={`Round ${maxRounds + 1}`} tone="primary" icon="cards-outline" />
@@ -380,9 +426,26 @@ export default function GameScreen() {
       leaderIds={leaderIds}
       compact={isShort}
       fullCount={game.settings?.maxCount}
+      pool={pool}
       emptyMessage={game.isComplete ? 'This game was closed with no rounds.' : 'No rounds yet. Tap Add round to score the first hand.'}
     />
   );
+
+  // Pool (D5): Standings under the grid; on a completed pool the awards block (P19/P30) too.
+  const poolBelow = pool ? (
+    <>
+      {game.isComplete ? (
+        <PoolAwardsCard
+          game={game}
+          names={Object.fromEntries(players.map((p) => [p.id, p.name]))}
+          canManage={canManage}
+          compact={isShort}
+          onGiveAwards={() => router.push({ pathname: '/(screens)/games/award', params: { id: game.id } })}
+        />
+      ) : null}
+      <PoolStandings rows={poolRows} limit={poolLimitOf(game.settings)} compact={isShort} onReenter={game.isComplete ? undefined : reenter} busyId={reentering} />
+    </>
+  ) : null;
 
   const openScoreEntry = () =>
     router.push({
@@ -412,6 +475,8 @@ export default function GameScreen() {
       onPress={openComplete}
       height={barHeight}
       style={styles.completeAction}
+      filled={poolOver}
+      emphasis={poolOver}
       accessibilityLabel="Complete game"
     />
   );
@@ -483,7 +548,13 @@ export default function GameScreen() {
           {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
         </View>
         {game.isComplete ? (
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Completed.</Text>
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+            {pool ? (game.awardedAt ? 'Completed and awarded.' : 'Completed. Give awards to add this pool to a result.') : 'Completed.'}
+          </Text>
+        ) : poolOver ? (
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="pool-over-hint">
+            One player is left in. Complete the pool, or re-enter someone below.
+          </Text>
         ) : null}
       </View>
 
@@ -496,6 +567,7 @@ export default function GameScreen() {
         >
           <View style={styles.flex}>
             {table}
+            {poolBelow}
             {idFooter}
           </View>
         </View>
@@ -508,6 +580,7 @@ export default function GameScreen() {
           ]}
         >
           {table}
+          {poolBelow}
           {idFooter}
         </View>
       )}
@@ -616,8 +689,9 @@ export default function GameScreen() {
       </Portal>
       <GameSettingsDialog
         visible={gameSettingsOpen}
-        rules={rulesFromGame(game.settings)}
+        rules={rulesFromGame(game.settings, game.gameType)}
         readOnly={!canScore}
+        lockValues={pool && maxRounds > 0}
         onDismiss={() => setGameSettingsOpen(false)}
         onSave={async (rules) => {
           const updated = await gamesService.updateGameRules(game.id, rules);

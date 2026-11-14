@@ -3,7 +3,7 @@ import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { Icon, IconButton, Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { CELL_FILL, cellFill, CellStatus, cellTone } from '@/utils/roundEntry';
-import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
+import { poolScoreTone, scoreTextStyle, scoreTone } from '@/utils/scoreTone';
 
 type ScoreCellProps = {
   name: string;
@@ -16,6 +16,10 @@ type ScoreCellProps = {
   /** Measured by the grid so two (or three) columns fit exactly. */
   width: number;
   compact?: boolean;
+  /** Pool (PR 13): plus points, 0 is the win; a hand at or past the Full count is red. */
+  pool?: boolean;
+  /** Pool: the player's total after this round and whether it puts them out ("→ 109 · OUT"). */
+  after?: { total: number; out: boolean } | null;
   onPress: () => void;
   onClear: () => void;
 };
@@ -39,7 +43,7 @@ const nameFontSize = (name: string, compact?: boolean) => {
  * Beige while nothing is entered, light yellow while selected (or while a
  * number is being typed), light green once a score is confirmed for the round.
  */
-export function ScoreCell({ name, status, value, flashKey, width, compact, fullCount, onPress, onClear }: ScoreCellProps) {
+export function ScoreCell({ name, status, value, flashKey, width, compact, fullCount, pool = false, after, onPress, onClear }: ScoreCellProps) {
   const { colors } = useAppTheme();
 
   const isConfirmed = status === 'confirmed';
@@ -48,7 +52,8 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
   const tone = cellTone(status);
   const hasValue = value !== undefined;
   const canClear = hasValue || isPending;
-  const isWin = isConfirmed && hasValue && (value ?? 0) > 0;
+  const isWin = isConfirmed && hasValue && (pool ? value === 0 : (value ?? 0) > 0);
+  const show = (v: number) => (pool ? `${v}` : signed(v));
 
   const fill = useRef(new Animated.Value(isConfirmed ? 1 : 0)).current;
   const scale = useRef(new Animated.Value(1)).current;
@@ -88,7 +93,7 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
   // The selection ring is the deep yellow text colour; a saved win has a green ring; other saved cells keep a quiet border.
   const ringColor = tone === 'selected' ? colors.onSecondaryContainer : isWin ? colors.win : tone === 'confirmed' ? colors.outline : colors.outlineVariant;
   // The scorecard standard: a win green, a penalty over half the Full count red text, the rest plain.
-  const saved = isConfirmed ? scoreTextStyle(scoreTone(value ?? 0, fullCount)) : null;
+  const saved = isConfirmed ? scoreTextStyle(pool ? poolScoreTone(value ?? 0, fullCount) : scoreTone(value ?? 0, fullCount)) : null;
   const valueColor = isSelected
     ? colors.onSecondaryContainer
     : saved
@@ -97,9 +102,9 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
   const valueWeight = saved?.fontWeight ?? '800';
 
   const statusLabel = isPending
-    ? `typing ${signed(value ?? 0)}`
+    ? `typing ${show(value ?? 0)}`
     : hasValue
-      ? `score ${signed(value ?? 0)}`
+      ? `score ${show(value ?? 0)}${after ? `, then ${after.total}${after.out ? ', out' : ''}` : ''}`
       : 'no score';
 
   return (
@@ -132,12 +137,23 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
         >
           {name}
         </Text>
-        <Text
-          style={[styles.value, compact && styles.valueCompact, tabularNums, { color: valueColor, fontWeight: valueWeight }]}
-          numberOfLines={1}
-        >
-          {hasValue ? signed(value) : ''}
-        </Text>
+        <View style={styles.valueRow}>
+          <Text
+            style={[styles.value, compact && styles.valueCompact, tabularNums, { color: valueColor, fontWeight: valueWeight }]}
+            numberOfLines={1}
+          >
+            {hasValue ? show(value) : ''}
+          </Text>
+          {pool && after && hasValue ? (
+            <Text
+              numberOfLines={1}
+              style={[styles.after, tabularNums, { color: after.out ? colors.loss : isSelected ? colors.onSecondaryContainer : colors.onSurfaceVariant }]}
+              testID="cell-after"
+            >
+              {`→ ${after.total}${after.out ? ' · OUT' : ''}`}
+            </Text>
+          ) : null}
+        </View>
       </Pressable>
       {isConfirmed && !isSelected ? (
         <View pointerEvents="none" style={styles.check} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -191,8 +207,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 22,
   },
+  valueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginRight: CLEAR_WIDTH },
+  after: { fontSize: 12, fontWeight: '700', flexShrink: 1 },
   value: {
-    marginRight: CLEAR_WIDTH,
     // Reserve the line so an empty cell is the same height as a scored one.
     minHeight: 32,
     fontSize: 26,

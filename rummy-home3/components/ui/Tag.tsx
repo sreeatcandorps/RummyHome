@@ -3,7 +3,7 @@ import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
-export type TagTone = 'neutral' | 'primary' | 'positive' | 'leader' | 'danger' | 'stake' | 'pool' | 'info' | 'results';
+export type TagTone = 'neutral' | 'primary' | 'positive' | 'leader' | 'danger' | 'stake' | 'pool' | 'info' | 'results' | 'warning';
 
 type TagProps = {
   label: string;
@@ -14,10 +14,11 @@ type TagProps = {
   wrap?: boolean;
   /** Kept for callers; tags are one size now (docs/design/02-design-system.md §5.2). */
   small?: boolean;
+  testID?: string;
 };
 
 /** Rounded 32 px label for game type, status and metadata: tinted fill, never button green. */
-export function Tag({ label, tone = 'neutral', icon, style, wrap = false }: TagProps) {
+export function Tag({ label, tone = 'neutral', icon, style, wrap = false, testID }: TagProps) {
   const theme = useAppTheme();
   const { colors, gameTypes } = theme;
 
@@ -29,13 +30,15 @@ export function Tag({ label, tone = 'neutral', icon, style, wrap = false }: TagP
     danger: { bg: colors.errorContainer, fg: colors.onErrorContainer },
     info: { bg: colors.tertiaryContainer, fg: colors.onTertiaryContainer },
     results: { bg: colors.secondaryContainer, fg: colors.onSecondaryContainer },
+    // Something still to do ("Awards pending"): the marigold of a selected cell, not an error red.
+    warning: { bg: colors.secondaryContainer, fg: colors.onSecondaryContainer },
     stake: { bg: gameTypes.stake.container, fg: gameTypes.stake.on },
     pool: { bg: gameTypes.pool.container, fg: gameTypes.pool.on },
   };
   const { bg, fg } = palette[tone];
 
   return (
-    <View style={[styles.tag, { backgroundColor: bg }, style]}>
+    <View style={[styles.tag, { backgroundColor: bg }, style]} testID={testID}>
       {icon ? <Icon source={icon} size={16} color={fg} /> : null}
       <Text variant="labelMedium" numberOfLines={wrap ? 2 : 1} style={[styles.label, wrap && styles.wrapLabel, { color: fg }]}>
         {label}

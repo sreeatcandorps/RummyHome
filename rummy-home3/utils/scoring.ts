@@ -47,6 +47,16 @@ export const getMiddleDropValue = (gameType: GameType, settings: ProfileDefaults
 export const getRoundTotal = (scores: RoundScoreInput[]) =>
   scores.reduce((total, score) => total + score.value, 0);
 
+/** Pool (041): plus points, at least one 0 (the winner), someone who lost. The server checks who is in. */
+export const validatePoolRoundScores = (scores: RoundScoreInput[]) => {
+  if (scores.length === 0) return { valid: false, error: 'At least one score is required.' };
+  if (scores.some((score) => score.scoreType === 'expense' || !score.playerId)) return { valid: false, error: 'Every score belongs to a player.' };
+  if (scores.some((score) => score.value < 0)) return { valid: false, error: 'Pool scores are plus points. Type the hand as a positive number; the winner is 0.' };
+  if (!scores.some((score) => score.value === 0)) return { valid: false, error: 'Every round has a winner at 0. Tap the winner, then Rummy.' };
+  if (!scores.some((score) => score.value > 0)) return { valid: false, error: 'Nobody lost this round. Type the hands before saving.' };
+  return { valid: true, error: null };
+};
+
 export const validateRoundScores = (scores: RoundScoreInput[]) => {
   if (scores.length === 0) {
     return { valid: false, error: 'At least one score is required.' };

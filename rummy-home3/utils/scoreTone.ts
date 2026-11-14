@@ -37,3 +37,13 @@ export function scoreTextStyle(tone: ScoreTone): ScoreTextStyle {
   if (tone === 'bigNegative') return { colorKey: 'negative', fontWeight: '600', highlight: false };
   return { colorKey: 'onSurface', fontWeight: '600', highlight: false };
 }
+
+/**
+ * Pool (PR 13): the sheet is upside down. 0 is the win (green highlight), a hand at or past the
+ * Full count is red text, every other hand is plain.
+ */
+export function poolScoreTone(score: number, fullCount?: number | null): ScoreTone {
+  if (score === 0) return 'positive';
+  const full = Math.abs(Number(fullCount) || 0);
+  return full > 0 && score >= full ? 'bigNegative' : 'negative';
+}

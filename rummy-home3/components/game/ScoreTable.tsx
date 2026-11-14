@@ -20,6 +20,13 @@ export type ScoreColumn = {
   label: string;
   color: string;
   isExpense?: boolean;
+  /** Pool (PR 13): the player's public number, shown above the initials (D5). */
+  number?: number | null;
+  /** Pool: the round that put the player out; the header is struck through and reads OUT R<n>. */
+  outRound?: number | null;
+  /** Pool: the player re-entered (blue header, D5) before this round; the cell there shows the restart score. */
+  reenteredRound?: number | null;
+  reentryScore?: number | null;
 };
 
 type ScoreTableProps = {
@@ -39,6 +46,11 @@ type ScoreTableProps = {
   /** Full count of the game; losses of half this or more are shown in red. */
   fullCount?: number | null;
   emptyMessage: string;
+  /**
+   * Pool (PR 13): scores are plus points, 0 is the win, the corner sum and the off-by markers do not
+   * apply (F13.10), totals are shown without a sign and the header carries number / initials / score.
+   */
+  pool?: boolean;
 };
 
 /** Totals and the header read a size up from the cells; every number carries its sign. */
@@ -59,10 +71,12 @@ type ScoreRowProps = {
   fontSize: number;
   fullCount?: number | null;
   colors: ReturnType<typeof useAppTheme>['colors'];
+  pool?: boolean;
 };
 
 const sameColumns = (a: ScoreColumn[], b: ScoreColumn[]) =>
-  a.length === b.length && a.every((column, i) => column.id === b[i].id && column.label === b[i].label && column.color === b[i].color && column.isExpense === b[i].isExpense);
+  a.length === b.length && a.every((column, i) => column.id === b[i].id && column.label === b[i].label && column.color === b[i].color && column.isExpense === b[i].isExpense
+    && column.number === b[i].number && column.outRound === b[i].outRound && column.reenteredRound === b[i].reenteredRound && column.reentryScore === b[i].reentryScore);
 const sameCells = (a: (number | undefined)[], b: (number | undefined)[]) => a.length === b.length && a.every((value, i) => value === b[i]);
 
 /**
@@ -70,7 +84,7 @@ const sameCells = (a: (number | undefined)[], b: (number | undefined)[]) => a.le
  * scores objects on every render), so a reload, a menu or a realtime echo
  * redraws only the rows whose numbers changed, usually just the newest one.
  */
-const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isLatest, stripe, rotationStart, columnWidth, rowHeight, fontSize, fullCount, colors }: ScoreRowProps) {
+const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isLatest, stripe, rotationStart, columnWidth, rowHeight, fontSize, fullCount, colors, pool }: ScoreRowProps) {
   return (
     <View
       style={[
@@ -90,6 +104,40 @@ const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isL
         // A saved 0 is a real score; a missing cell (player not in that round) shows a dash.
         const hasScore = typeof stored === 'number';
         const score = hasScore ? stored : 0;
+        if (pool) {
+          // Pool: 0 is the win (green pill), a hand at or past the Full count is red, the rest plain.
+          // The re-entry round shows the restart score; the round that put a player out carries ✕.
+          const full = Math.abs(Number(fullCount) || 0);
+          const win = hasScore && score === 0;
+          const big = hasScore && full > 0 && score >= full;
+          const reentryHere = column.reenteredRound === roundNumber && typeof column.reentryScore === 'number';
+          const outHere = column.outRound === roundNumber;
+          return (
+            <View
+              key={column.id}
+              testID={`score-cell-${index + 1}-${roundNumber}`}
+              style={[styles.cell, { width: columnWidth, height: rowHeight, borderRightColor: colors.hairline }]}
+            >
+              <View style={[styles.scorePill, win && { backgroundColor: colors.winContainer }]}>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
+                  style={[
+                    styles.scoreText,
+                    tabularNums,
+                    { fontSize: reentryHere ? Math.max(10, fontSize - 3) : fontSize },
+                    win ? { color: colors.onWinContainer, fontWeight: '800' } : big ? { color: colors.loss, fontWeight: '700' } : { color: colors.onSurface },
+                    outHere && { textDecorationLine: 'line-through' },
+                  ]}
+                  accessibilityLabel={!hasScore ? undefined : reentryHere ? `Re-entered at ${column.reentryScore}, then ${score}` : outHere ? `${score}, out` : undefined}
+                >
+                  {!hasScore ? '–' : reentryHere ? `↺${column.reentryScore}+${score}` : `${score}${outHere ? ' ✕' : ''}`}
+                </Text>
+              </View>
+            </View>
+          );
+        }
         const tone = scoreTone(score, fullCount);
         const positive = tone === 'positive';
         const text = scoreTextStyle(tone);
@@ -136,6 +184,7 @@ const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isL
   && prev.rowHeight === next.rowHeight
   && prev.fontSize === next.fontSize
   && prev.fullCount === next.fullCount
+  && prev.pool === next.pool
   && prev.colors === next.colors
   && sameColumns(prev.columns, next.columns)
   && sameCells(prev.cells, next.cells));
@@ -165,6 +214,7 @@ export function ScoreTable({
   compact = false,
   fullCount,
   emptyMessage,
+  pool = false,
 }: ScoreTableProps) {
   const rotationStartSet = useMemo(() => new Set(rotationStarts ?? []), [rotationStarts]);
   const theme = useAppTheme();
@@ -208,23 +258,43 @@ export function ScoreTable({
   const headerCells = columns.map((column, index) => {
     const dealsNext = column.id === nextDealerId;
     const leader = isLeader(column.id);
-    const seatText = column.isExpense ? colors.onSurfaceVariant : onDark ? seatColor(index, { onDark: true }) : column.color;
+    const out = pool && Boolean(column.outRound);
+    const reentered = pool && Boolean(column.reenteredRound) && !out;
+    // Pool (D5): a re-entered player's header is blue; a player who is out is struck through and grey.
+    const seatText = column.isExpense ? colors.onSurfaceVariant
+      : out ? colors.onSurfaceVariant
+      : reentered ? colors.reentry
+      : onDark ? seatColor(index, { onDark: true }) : column.color;
     const total = totals[column.id] ?? 0;
+    const totalColor = dealsNext ? colors.onPrimaryContainer
+      : pool ? (out ? colors.onSurfaceVariant : reentered ? colors.reentry : colors.onSurface)
+      : total < 0 ? colors.loss : colors.onSurface;
     return (
       <View
         key={column.id}
         testID={`score-header-${index + 1}`}
+        accessibilityLabel={pool ? `${column.number != null ? `Player ${column.number}, ` : ''}${column.label}, ${total}${out ? `, out in round ${column.outRound}` : reentered ? ', re-entered' : ''}` : undefined}
         style={[
           styles.cell,
           styles.headerCell,
           { width: columnWidth, height: headerH, paddingVertical: headerPadding(compact), borderRightColor: colors.hairline },
           dealsNext && { backgroundColor: colors.primaryContainer, borderBottomWidth: DEALER_BAR, borderBottomColor: colors.onPrimaryContainer },
+          out && { backgroundColor: colors.surfaceVariant },
         ]}
       >
+        {pool ? (
+          <Text
+            numberOfLines={1}
+            maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
+            style={[styles.headerNumber, { fontSize: type.deals.fontSize, lineHeight: type.deals.lineHeight, color: out ? colors.onSurfaceVariant : colors.onSurfaceVariant }]}
+          >
+            {column.number != null ? `#${column.number}` : ' '}
+          </Text>
+        ) : null}
         <Text
           numberOfLines={1}
           maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
-          style={[styles.headerText, { fontSize: type.initials.fontSize, lineHeight: type.initials.lineHeight, color: seatText }]}
+          style={[styles.headerText, { fontSize: type.initials.fontSize, lineHeight: type.initials.lineHeight, color: seatText }, out && styles.struck]}
         >
           {column.label}
         </Text>
@@ -239,14 +309,24 @@ export function ScoreTable({
               fontSize: type.total.fontSize,
               lineHeight: type.total.lineHeight,
               // Totals are near-black, never green; a losing total is the loss red.
-              color: dealsNext ? colors.onPrimaryContainer : total < 0 ? colors.loss : colors.onSurface,
+              color: totalColor,
             },
+            out && styles.struck,
           ]}
         >
-          {signed(total)}
+          {pool ? String(total) : signed(total)}
         </Text>
         <View style={[styles.headerLabelRow, { height: type.deals.lineHeight }]}>
-          {dealsNext ? (
+          {out ? (
+            <Text
+              numberOfLines={1}
+              maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
+              style={[styles.dealsText, { fontSize: type.deals.fontSize, lineHeight: type.deals.lineHeight, color: colors.loss }]}
+              accessibilityLabel={`Out in round ${column.outRound}`}
+            >
+              {`OUT R${column.outRound}`}
+            </Text>
+          ) : dealsNext ? (
             <>
               {leader ? <Icon source="crown" size={type.deals.fontSize + 1} color={colors.leader} /> : null}
               {dealsBadge(columnWidth) === 'text' ? (
@@ -282,7 +362,7 @@ export function ScoreTable({
       ]}
     >
       <Text style={[styles.cornerText, { color: colors.onSurfaceVariant }]} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>RND</Text>
-      {grandTotal !== 0 ? (
+      {!pool && grandTotal !== 0 ? (
         <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>
           {grandTotal > 0 ? `+${grandTotal}` : grandTotal}
         </Text>
@@ -315,7 +395,7 @@ export function ScoreTable({
         <Text style={[styles.roundText, tabularNums, { fontSize: fontSize - 1, color: colors.onSurface }]} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>
           {roundIndex + 1}
         </Text>
-        {offBy !== 0 ? (
+        {!pool && offBy !== 0 ? (
           <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1} accessibilityLabel={`Round does not add up, off by ${offBy}`}>
             {offBy > 0 ? `+${offBy}` : offBy}
           </Text>
@@ -383,6 +463,7 @@ export function ScoreTable({
                       fontSize={fontSize}
                       fullCount={fullCount}
                       colors={colors}
+                      pool={pool}
                     />
                   ))}
                 </View>
@@ -460,6 +541,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
     includeFontPadding: false,
+  },
+  headerNumber: {
+    fontWeight: '700',
+    textAlign: 'center',
+    includeFontPadding: false,
+    letterSpacing: 0.2,
+  },
+  struck: {
+    textDecorationLine: 'line-through',
   },
   dealsText: {
     fontWeight: '800',

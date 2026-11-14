@@ -73,6 +73,9 @@ export type Database = {
           view_token: string;
           prize: number | null;
           prize_shares: Json | null;
+          awarded_at?: string | null;
+          awarded_by?: string | null;
+          award_note?: Json | null;
         };
         Insert: {
           id?: string;
@@ -103,6 +106,10 @@ export type Database = {
           role: GameMemberRole;
           is_active: boolean;
           seated?: boolean;
+          out_round?: number | null;
+          reentered_round?: number | null;
+          reentry_score?: number | null;
+          entries?: number;
         };
         Insert: {
           id?: string;
@@ -189,6 +196,14 @@ export type Database = {
     Functions: {
       undo_last_round: {
         Args: { p_game_id: string };
+        Returns: Json;
+      };
+      reenter_player: {
+        Args: { p_game_id: string; p_profile_id: string };
+        Returns: Json;
+      };
+      set_pool_awards: {
+        Args: { p_game_id: string; p_awards: Json; p_note?: Json };
         Returns: Json;
       };
       create_game: {

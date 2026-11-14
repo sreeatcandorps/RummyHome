@@ -49,11 +49,19 @@ export type RoundEntryState = {
   draft: Draft;
   /** Players whose score was just written; the screen flashes these cells. */
   lastSavedIds: string[];
+  /**
+   * Pool (PR 13): hands are plus points, Rummy means 0 (no split), there is no sign and no
+   * balance; Save needs every player still in scored and at least one 0.
+   */
+  pool?: boolean;
 };
 
 export const MAX_DIGITS = 4;
 
-export const emptyDraft = (): Draft => ({ digits: '', negative: true, typed: false, edited: false });
+export const emptyDraft = (negative = true): Draft => ({ digits: '', negative, typed: false, edited: false });
+
+/** A fresh draft for this state's kind: minus by default for Points, plus for a pool. */
+const blank = (state: Pick<RoundEntryState, 'pool'>): Draft => emptyDraft(!state.pool);
 
 export const initialRoundEntryState = (): RoundEntryState => ({
   entries: {},
@@ -61,6 +69,12 @@ export const initialRoundEntryState = (): RoundEntryState => ({
   selectedIds: [],
   draft: emptyDraft(),
   lastSavedIds: [],
+});
+
+export const initialPoolEntryState = (): RoundEntryState => ({
+  ...initialRoundEntryState(),
+  draft: emptyDraft(false),
+  pool: true,
 });
 
 /** True when the typed number would be written if the user moved on. */
@@ -79,6 +93,8 @@ export function draftValue(draft: Draft): number | undefined {
 
 /** Rummy points per player for the current confirmed entries. */
 export function rummyShares(state: RoundEntryState): Record<string, number> {
+  // Pool: the winner scores 0; nothing is split.
+  if (state.pool) return Object.fromEntries(state.rummyIds.map((id) => [id, 0]));
   const total = Object.values(state.entries).reduce((sum, entry) => sum + entry.value, 0);
   return distributeRummyWinnings(total, state.rummyIds);
 }
@@ -101,8 +117,16 @@ export function balance(state: RoundEntryState): number {
  * Save round is allowed only when the round is balanced and someone has lost
  * points. A sheet of nothing but zeros is not a round.
  */
-export function canSaveRound(state: RoundEntryState): boolean {
+export function canSaveRound(state: RoundEntryState, requiredIds?: string[]): boolean {
   const effective = commitPending(state);
+  if (state.pool) {
+    const values = { ...Object.fromEntries(Object.entries(effective.entries).map(([id, e]) => [id, e.value])), ...rummyShares(effective) };
+    const scored = Object.keys(values);
+    const everyone = (requiredIds ?? scored).every((id) => id in values);
+    const hasWinner = Object.values(values).some((v) => v === 0);
+    const someoneLost = Object.values(values).some((v) => v > 0);
+    return everyone && scored.length > 0 && hasWinner && someoneLost;
+  }
   const someoneLost = Object.values(effective.entries).some((entry) => entry.value < 0);
   return balance(effective) === 0 && someoneLost;
 }
@@ -143,7 +167,7 @@ function writeEntries(state: RoundEntryState, ids: string[], entry: ConfirmedEnt
     entries,
     rummyIds: state.rummyIds.filter((id) => !ids.includes(id)),
     selectedIds: [],
-    draft: emptyDraft(),
+    draft: blank(state),
     lastSavedIds: ids,
   };
 }
@@ -152,9 +176,9 @@ function writeEntries(state: RoundEntryState, ids: string[], entry: ConfirmedEnt
 export function saveScore(state: RoundEntryState): RoundEntryState {
   const value = draftValue(state.draft);
   if (value === undefined || state.selectedIds.length === 0) return state;
-  // A typed positive number is a hand-entered win; everything else is a loss.
-  const scoreType: ScoreType = value > 0 ? 'rummy' : 'count';
-  return writeEntries(state, state.selectedIds, { value, scoreType });
+  // Points: a typed positive number is a hand-entered win; everything else is a loss. Pool: every typed hand is a count.
+  const scoreType: ScoreType = !state.pool && value > 0 ? 'rummy' : 'count';
+  return writeEntries(state, state.selectedIds, { value: state.pool ? Math.abs(value) : value, scoreType });
 }
 
 /** Auto-save: writes a typed number the user never confirmed with Save score. */
@@ -180,7 +204,7 @@ export function applyRummy(state: RoundEntryState): RoundEntryState {
     entries: withoutIds(state.entries, state.selectedIds),
     rummyIds: [...state.rummyIds, ...added],
     selectedIds: [],
-    draft: emptyDraft(),
+    draft: blank(state),
     lastSavedIds: state.selectedIds,
   };
 }
@@ -193,15 +217,15 @@ export function clearPlayer(state: RoundEntryState, playerId: string): RoundEntr
     entries: withoutIds(state.entries, [playerId]),
     rummyIds: state.rummyIds.filter((id) => id !== playerId),
     selectedIds: stillSelected,
-    draft: stillSelected.length === 0 ? emptyDraft() : state.draft,
+    draft: stillSelected.length === 0 ? blank(state) : state.draft,
     lastSavedIds: [],
   };
 }
 
 /** Opens one filled cell for editing with its value prefilled. */
-function prefilledDraft(value: number | undefined, negative: boolean): Draft {
+function prefilledDraft(value: number | undefined, negative: boolean, pool = false): Draft {
   if (value === undefined) return { ...emptyDraft(), negative };
-  return { digits: String(Math.abs(value)), negative: value <= 0, typed: false, edited: false };
+  return { digits: String(Math.abs(value)), negative: pool ? false : value <= 0, typed: false, edited: false };
 }
 
 /**
@@ -222,7 +246,7 @@ export function tapPlayer(state: RoundEntryState, playerId: string): RoundEntryS
     return {
       ...saved,
       selectedIds: [playerId],
-      draft: prefilledDraft(confirmedValue(saved, playerId), true),
+      draft: prefilledDraft(confirmedValue(saved, playerId), !state.pool, state.pool),
     };
   }
 
@@ -233,7 +257,7 @@ export function tapPlayer(state: RoundEntryState, playerId: string): RoundEntryS
 
   // The sign chosen before tapping anyone is kept, so "+ then 41" works too.
   const draft = selectedIds.length === 1
-    ? prefilledDraft(confirmedValue(state, selectedIds[0]), state.draft.negative)
+    ? prefilledDraft(confirmedValue(state, selectedIds[0]), state.draft.negative, state.pool)
     : { ...emptyDraft(), negative: state.draft.negative };
 
   return { ...state, selectedIds, draft, lastSavedIds: [] };
@@ -256,6 +280,7 @@ export function pressDigit(state: RoundEntryState, digit: string): RoundEntrySta
 
 /** The +/- toggle. Flipping the sign on a prefilled value counts as an edit. */
 export function setNegative(state: RoundEntryState, negative: boolean): RoundEntryState {
+  if (state.pool) return state;
   if (state.draft.negative === negative) return state;
   return { ...state, draft: { ...state.draft, negative, edited: true } };
 }

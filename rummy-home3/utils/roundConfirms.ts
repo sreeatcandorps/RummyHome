@@ -12,6 +12,12 @@ export function overMaxConfirm(value: number, fullCount: number | null | undefin
   return `The Full count for this game is ${full}. Keep ${signed(value)} for this round?`;
 }
 
+/** Pool (D6/D7): the one confirm kept — a hand past the Full count. */
+export function poolOverFullConfirm(value: number, fullCount: number | null | undefined): string {
+  const full = Math.abs(Number(fullCount) || 0);
+  return `${value} is more than the Full count (${full}). Keep ${value} for this round?`;
+}
+
 /**
  * "The others add up to +40, so Zed's Rummy share is -40 to keep the round at 0. Is that right?"
  * Two winners: "… so Priya and R K share -31 (-16 and -15) …".

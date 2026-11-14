@@ -42,13 +42,17 @@ export const tabularNums = { fontVariant: ['tabular-nums' as const] };
 
 type GameTint = { container: string; on: string; accent: string };
 
+/**
+ * PR 13 (D11): every game, Points or Pool, is yellow — the game number badge, the list tint and
+ * the column heads in a result. Green is for results only. Blue is kept for a re-entered pool player.
+ */
 const lightGameTypes: Record<'stake' | 'pool', GameTint> = {
-  stake: { container: '#DCE8FF', on: '#0F2B63', accent: '#2B5FBF' },
+  stake: { container: '#FFE38A', on: '#3F2D00', accent: '#8A5A00' },
   pool: { container: '#FFE38A', on: '#3F2D00', accent: '#8A5A00' },
 };
 
 const darkGameTypes: Record<'stake' | 'pool', GameTint> = {
-  stake: { container: '#22406E', on: '#DCE8FF', accent: '#9DBCFF' },
+  stake: { container: '#5C4300', on: '#FFE8AE', accent: '#FFD45E' },
   pool: { container: '#5C4300', on: '#FFE8AE', accent: '#FFD45E' },
 };
 
@@ -168,6 +172,9 @@ const lightColors = {
   tableStripe: '#F9F9F5',
   tableLatest: '#EAF7EE',
   hairline: '#E8E8E1',
+  /** Pool: a re-entered player's header and standings row (D5). */
+  reentry: '#2B5FBF',
+  reentryContainer: '#DCE8FF',
 };
 
 const darkColors: typeof lightColors = {
@@ -239,6 +246,8 @@ const darkColors: typeof lightColors = {
   tableStripe: '#1B211E',
   tableLatest: '#1B3326',
   hairline: '#2A312D',
+  reentry: '#9DBCFF',
+  reentryContainer: '#22406E',
 };
 
 /**

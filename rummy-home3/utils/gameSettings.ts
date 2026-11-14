@@ -1,20 +1,27 @@
 import { GameSettings } from '@/types/game';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
+import { DEFAULT_POOL_LIMIT, DEFAULT_POOL_REENTRY, DEFAULT_POOL_VALUES, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN } from '@/utils/pool';
 
 /**
- * Points rules a user or a game can change. Pool is kept in the data model
- * (gameType 'pool') but is not offered when creating a game yet.
+ * The rules a user or a game can change. Points games store penalties negative (a drop is -10);
+ * a pool is scored upside down and stores plus points (a drop is 25). `PointsRules` keeps its name
+ * for the many callers; `gameKind` says which set the numbers belong to.
  */
 export type GameKind = 'points' | 'pool';
-export const OFFERED_GAME_KINDS: GameKind[] = ['points'];
+/** Both kinds are offered from PR 13 on. */
+export const OFFERED_GAME_KINDS: GameKind[] = ['points', 'pool'];
 
 export type PointsRules = {
   gameKind: GameKind;
-  /** Points for a drop. Stored negative like every other penalty. */
+  /** Points for a drop. Negative for Points, positive for a pool. */
   drop: number;
   middleDrop: number;
-  /** Full count. Stored negative. Default -80. */
+  /** Full count. Negative for Points (default -80), positive for a pool (default 130). */
   fullCount: number;
+  /** Pool only: the score that puts a player out (100 in, 101 out). */
+  poolLimit?: number;
+  /** Pool only: whether a player who is out may re-enter once. */
+  reentry?: boolean;
 };
 
 export const DEFAULT_POINTS_RULES: PointsRules = {
@@ -24,19 +31,38 @@ export const DEFAULT_POINTS_RULES: PointsRules = {
   fullCount: DEFAULT_PROFILE_SETTINGS.maxCount,
 };
 
-/** The app's internal game type for a kind. Points games are stored as 'stake' for older rows. */
-export const gameTypeForKind = (kind: GameKind) => (kind === 'pool' ? 'pool' : 'stake') as 'stake' | 'pool';
+export const DEFAULT_POOL_RULES: PointsRules = {
+  gameKind: 'pool',
+  drop: DEFAULT_POOL_VALUES.drop,
+  middleDrop: DEFAULT_POOL_VALUES.middleDrop,
+  fullCount: DEFAULT_POOL_VALUES.fullCount,
+  poolLimit: DEFAULT_POOL_LIMIT,
+  reentry: DEFAULT_POOL_REENTRY,
+};
 
-/** Users type a positive number; the score sheet stores it negative. */
-export function parseRuleInput(text: string): number | null {
+export const defaultRulesFor = (kind: GameKind): PointsRules => (kind === 'pool' ? DEFAULT_POOL_RULES : DEFAULT_POINTS_RULES);
+
+/** Points games are stored as 'stake' for older rows. */
+export const gameTypeForKind = (kind: GameKind) => (kind === 'pool' ? 'pool' : 'stake') as 'stake' | 'pool';
+export const kindForGameType = (gameType: 'stake' | 'pool' | null | undefined): GameKind => (gameType === 'pool' ? 'pool' : 'points');
+
+/** Users type a positive number; a Points sheet stores it negative, a pool stores it as typed. */
+export function parseRuleInput(text: string, kind: GameKind = 'points'): number | null {
   const digits = text.replace(/[^0-9]/g, '');
   if (!digits) return null;
   const n = parseInt(digits, 10);
   if (n <= 0 || n > 500) return null;
-  return -n;
+  return kind === 'pool' ? n : -n;
 }
 
 export function validateRules(rules: PointsRules): string | null {
+  if (rules.gameKind === 'pool') {
+    if (rules.drop <= 0 || rules.middleDrop <= 0 || rules.fullCount <= 0) return 'Drop, Middle drop, and Full count must be more than 0.';
+    if (rules.middleDrop < rules.drop) return 'Middle drop is usually bigger than Drop.';
+    const limit = rules.poolLimit ?? DEFAULT_POOL_LIMIT;
+    if (!Number.isInteger(limit) || limit < POOL_CUSTOM_MIN || limit > POOL_CUSTOM_MAX) return `The pool limit is a whole number from ${POOL_CUSTOM_MIN} to ${POOL_CUSTOM_MAX}.`;
+    return null;
+  }
   if (rules.drop >= 0 || rules.middleDrop >= 0 || rules.fullCount >= 0) {
     return 'Drop, Middle drop, and Full count must be less than 0.';
   }
@@ -44,27 +70,68 @@ export function validateRules(rules: PointsRules): string | null {
   return null;
 }
 
-export function rulesFromProfileDefaults(defaults: Record<string, unknown> | null | undefined): PointsRules {
+const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
+
+/** The saved defaults for one kind. Pool keys are poolLimit / poolDrop / poolMiddleDrop / poolFullCount / poolReentry. */
+export function rulesFromProfileDefaults(defaults: Record<string, unknown> | null | undefined, kind?: GameKind): PointsRules {
   const d = defaults ?? {};
-  const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
+  const wanted: GameKind = kind ?? (d.gameKind === 'pool' ? 'pool' : 'points');
+  if (wanted === 'pool') {
+    return {
+      gameKind: 'pool',
+      drop: Math.abs(num(d.poolDrop, DEFAULT_POOL_RULES.drop)),
+      middleDrop: Math.abs(num(d.poolMiddleDrop, DEFAULT_POOL_RULES.middleDrop)),
+      fullCount: Math.abs(num(d.poolFullCount, DEFAULT_POOL_RULES.fullCount)),
+      poolLimit: num(d.poolLimit, DEFAULT_POOL_LIMIT),
+      reentry: typeof d.poolReentry === 'boolean' ? d.poolReentry : DEFAULT_POOL_REENTRY,
+    };
+  }
   return {
-    gameKind: d.gameKind === 'pool' ? 'pool' : 'points',
+    gameKind: 'points',
     drop: num(d.pointsDrop ?? d.stakeDrop, DEFAULT_POINTS_RULES.drop),
     middleDrop: num(d.pointsMiddleDrop ?? d.stakeMiddleDrop, DEFAULT_POINTS_RULES.middleDrop),
     fullCount: num(d.maxCount ?? d.fullCount, DEFAULT_POINTS_RULES.fullCount),
   };
 }
 
-export function rulesToProfileDefaults(rules: PointsRules) {
+/** Both kinds' defaults from one saved object (Settings shows both blocks). */
+export function allRulesFromProfileDefaults(defaults: Record<string, unknown> | null | undefined): { startsAs: GameKind; points: PointsRules; pool: PointsRules } {
   return {
-    gameKind: rules.gameKind,
+    startsAs: defaults?.gameKind === 'pool' ? 'pool' : 'points',
+    points: rulesFromProfileDefaults(defaults, 'points'),
+    pool: rulesFromProfileDefaults(defaults, 'pool'),
+  };
+}
+
+/** The keys one kind's rules write into the saved defaults; the other kind's keys are left alone. */
+export function rulesToProfileDefaults(rules: PointsRules): Record<string, unknown> {
+  if (rules.gameKind === 'pool') {
+    return {
+      poolLimit: rules.poolLimit ?? DEFAULT_POOL_LIMIT,
+      poolDrop: rules.drop,
+      poolMiddleDrop: rules.middleDrop,
+      poolFullCount: rules.fullCount,
+      poolReentry: rules.reentry ?? DEFAULT_POOL_REENTRY,
+    };
+  }
+  return {
     stakeDrop: rules.drop,
     stakeMiddleDrop: rules.middleDrop,
     maxCount: rules.fullCount,
   };
 }
 
-export function rulesFromGame(settings: GameSettings): PointsRules {
+export function rulesFromGame(settings: GameSettings, gameType: 'stake' | 'pool' = 'stake'): PointsRules {
+  if (gameType === 'pool') {
+    return {
+      gameKind: 'pool',
+      drop: Math.abs(settings.dropAmount),
+      middleDrop: Math.abs(settings.mdAmount),
+      fullCount: Math.abs(settings.maxCount),
+      poolLimit: settings.poolLimit ?? DEFAULT_POOL_LIMIT,
+      reentry: settings.reentry !== false,
+    };
+  }
   return {
     gameKind: 'points',
     drop: settings.dropAmount,
@@ -73,7 +140,7 @@ export function rulesFromGame(settings: GameSettings): PointsRules {
   };
 }
 
-/** Applies the drop rules saved on a server game (either key style) over the defaults. */
+/** Applies the rules saved on a server game (either key style) over the defaults. */
 export function withStoredPointsRules(base: GameSettings, stored: any): GameSettings {
   if (!stored) return base;
   const drop = stored.dropAmount ?? stored.stakeDrop;
@@ -84,5 +151,7 @@ export function withStoredPointsRules(base: GameSettings, stored: any): GameSett
     dropAmount: typeof drop === 'number' ? drop : base.dropAmount,
     mdAmount: typeof md === 'number' ? md : base.mdAmount,
     maxCount: typeof fullCount === 'number' ? fullCount : base.maxCount,
+    poolLimit: typeof stored.poolLimit === 'number' ? stored.poolLimit : base.poolLimit,
+    reentry: typeof stored.reentry === 'boolean' ? stored.reentry : base.reentry,
   };
 }

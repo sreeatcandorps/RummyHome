@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
-import { Dialog, IconButton, Menu, Portal, Searchbar, SegmentedButtons, Text } from 'react-native-paper';
+import { Animated, BackHandler, Easing, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
+import { Dialog, Portal, Searchbar, SegmentedButtons, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Player } from '@/types/player';
@@ -9,7 +9,7 @@ import { gamesService } from '@/services/games';
 import { authService } from '@/services/auth';
 import { playerIdentityService } from '@/services/playerIdentity';
 import { playersService } from '@/services/players';
-import { userSettingsService } from '@/services/userSettings';
+import { UserDefaults, userSettingsService } from '@/services/userSettings';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
@@ -17,7 +17,7 @@ import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { mergeSearchResults, MY_PLAYERS_SEARCH_DEBOUNCE_MS } from '@/utils/myPlayersList';
 import { takePlayersToCheck } from '@/utils/pendingPlayer';
-import { DEFAULT_POINTS_RULES, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
+import { DEFAULT_POINTS_RULES, DEFAULT_POOL_RULES, GameKind, gameTypeForKind, PointsRules } from '@/utils/gameSettings';
 import { Candidate, CandidateSort, newGameGrid, newGameSeats, orderCandidates, PICKER_PREFETCH, pinOrganiser } from '@/utils/playerIdentity';
 import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
 import { seatRemovalProblem } from '@/utils/seatRemoval';
@@ -32,7 +32,7 @@ import { Screen } from '@/components/ui/Screen';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { HelpButton } from '@/components/ui/HelpButton';
-import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
+import { GameTypeStep } from '@/components/game/GameTypeStep';
 import { CoAdminNudge, coAdminCandidates } from '@/components/game/CoAdminNudge';
 import { emailsService } from '@/services/emails';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
@@ -149,8 +149,12 @@ export default function NewGame() {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<CandidateSort>('frequent');
   const [rules, setRules] = useState<PointsRules>(DEFAULT_POINTS_RULES);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  /** The user's saved defaults for both kinds; the Game type step prefills from them (D1). */
+  const [defaults, setDefaults] = useState<UserDefaults>({ startsAs: 'points', points: DEFAULT_POINTS_RULES, pool: DEFAULT_POOL_RULES });
+  /** New game is two screens (D1): pick players (Next), then the game type and its settings (Back / Start). */
+  const [step, setStep] = useState<'players' | 'type'>('players');
+  /** Column letters resolved on Next (Fix initials runs there), used by Start. */
+  const [typeLabels, setTypeLabels] = useState<Map<string, string> | null>(null);
   const [creating, setCreating] = useState(false);
   /** Start game paused on the co-admin nudge; holds the resolved column letters. */
   const [nudge, setNudge] = useState<{ labels: Map<string, string> } | null>(null);
@@ -178,14 +182,16 @@ export default function NewGame() {
         setError(addMode ? 'You must be signed in to add players.' : 'You must be signed in to create a game.');
         return;
       }
-      const [list, defaults, , mine] = await Promise.all([
+      const [list, saved, , mine] = await Promise.all([
         playerIdentityService.listCandidates(current.id),
-        userSettingsService.get(current.id),
+        userSettingsService.getAll(current.id),
         gameId ? loadGame(gameId) : Promise.resolve(),
         playersService.listMyPlayers(current.id).catch(() => [] as Player[]),
       ]);
       setCandidates(list);
-      setRules(defaults);
+      setDefaults(saved);
+      // Only before the type step: coming back from Settings must not undo edits made for this game.
+      setRules((current) => (step === 'type' ? current : saved.startsAs === 'pool' ? saved.pool : saved.points));
       setMyPlayers(mine);
       // Seats edited on the screens above us (Add New Players, Add player from database) come back through the draft.
       const pending = takePlayersToCheck();
@@ -209,6 +215,13 @@ export default function NewGame() {
 
   // Leaving without starting (or returning) forgets the draft.
   useEffect(() => () => newGameDraft.clear(), []);
+
+  // The hardware back on the Game type step returns to the players, not out of New game.
+  useEffect(() => {
+    if (step !== 'type') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { setStep('players'); return true; });
+    return () => sub.remove();
+  }, [step]);
 
   // The picker holds the recent-first page (100). Typing asks the server for anyone else in My players who matches.
   useEffect(() => {
@@ -304,16 +317,16 @@ export default function NewGame() {
     });
   };
 
-  const createGame = async (labels: Map<string, string>, coAdminId: string | null) => {
+  const createGame = async (labels: Map<string, string>, coAdminId: string | null, chosen: PointsRules = rules) => {
     if (!me) return;
     const playerIds = newGameSeats(selectedIds);
     setCreating(true);
     try {
       const created = await gamesService.createGame({
         playerIds,
-        gameType: gameTypeForKind(rules.gameKind),
+        gameType: gameTypeForKind(chosen.gameKind),
         createdBy: me.id,
-        rules,
+        rules: chosen,
         labels: Object.fromEntries(labels),
       });
       if (coAdminId) await gamesService.setSeatRole(created.id, coAdminId, 'game_admin').catch(() => {});
@@ -338,10 +351,20 @@ export default function NewGame() {
     return coAdminCandidates(selected.map((p) => ({ ...p, status: byId.get(p.id)?.status ?? null })), me?.id);
   }, [candidates, selected, me?.id]);
 
+  /** Next (step 1 done): the letters are settled; the Game type step follows. */
   const createWithLabels = async (labels: Map<string, string>) => {
     setFix(null);
-    if (coAdminPicks.length) { setNudge({ labels }); return; }
-    await createGame(labels, null);
+    setTypeLabels(labels);
+    setError(null);
+    setStep('type');
+  };
+
+  /** Start (step 2): the co-admin nudge, then the game. */
+  const startWithRules = async (chosen: PointsRules) => {
+    if (!typeLabels) return;
+    setRules(chosen);
+    if (coAdminPicks.length) { setNudge({ labels: typeLabels }); return; }
+    await createGame(typeLabels, null, chosen);
   };
 
   const startGame = async () => {
@@ -446,6 +469,28 @@ export default function NewGame() {
     );
   }
 
+  if (step === 'type' && typeLabels) {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Game type', headerRight: () => <HelpButton text={HELP.gameType} /> }} />
+        <GameTypeStep
+          kind={rules.gameKind}
+          rules={rules}
+          defaultsFor={(kind: GameKind) => (kind === 'pool' ? defaults.pool : defaults.points)}
+          picks={selected.map((p) => ({ id: p.id, name: p.name, label: typeLabels.get(p.id) }))}
+          onKindChange={(_kind, next) => setRules(next)}
+          onBack={() => setStep('players')}
+          onStart={startWithRules}
+          creating={creating}
+          error={error}
+        />
+        <CoAdminNudge visible={Boolean(nudge)} candidates={coAdminPicks} busy={creating}
+          onSkip={() => { if (nudge) createGame(nudge.labels, null); }}
+          onPick={(id) => { if (nudge) createGame(nudge.labels, id); }} />
+      </>
+    );
+  }
+
   const newCount = staged.filter((p) => !savedIds.has(p.id)).length;
   const hint = seatedCount === 0 ? 'Nobody yet. Tap players below; tap yourself if you are playing.' : seatedCount === 1 ? 'player · pick one more to start' : 'players';
 
@@ -475,12 +520,6 @@ export default function NewGame() {
           headerRight: () => (
             <View style={styles.headerActions}>
               <HelpButton text={addMode ? HELP.addPlayersToGame : HELP.newGame} />
-              {addMode ? null : (
-                <Menu visible={menuOpen} onDismiss={() => setMenuOpen(false)}
-                  anchor={<IconButton icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="New game menu" />}>
-                  <Menu.Item leadingIcon="cog-outline" title="Game settings" onPress={() => { setMenuOpen(false); setSettingsOpen(true); }} />
-                </Menu>
-              )}
             </View>
           ),
         }}
@@ -528,16 +567,11 @@ export default function NewGame() {
       {addMode ? null : (
         <BottomBar style={styles.bottom}>
           {tiles}
-          <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} contentStyle={styles.startContent} labelStyle={styles.startLabel} accessibilityLabel="Start game">
-            {seatedCount < 2 ? (seatedCount === 0 ? 'Pick at least two players' : 'Pick at least one more player') : `Start game · ${seatedCount} players`}
+          <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} icon="arrow-right" contentStyle={[styles.startContent, styles.nextContent]} labelStyle={styles.startLabel} accessibilityLabel="Next: game type" testID="new-game-next">
+            {seatedCount < 2 ? (seatedCount === 0 ? 'Pick at least two players' : 'Pick at least one more player') : `Next · ${seatedCount} players`}
           </Button>
         </BottomBar>
       )}
-
-      <GameSettingsDialog visible={settingsOpen} rules={rules} onDismiss={() => setSettingsOpen(false)} onSave={(r) => setRules(r)} />
-      <CoAdminNudge visible={Boolean(nudge)} candidates={coAdminPicks} busy={creating}
-        onSkip={() => { if (nudge) createGame(nudge.labels, null); }}
-        onPick={(id) => { if (nudge) createGame(nudge.labels, id); }} />
 
       <Portal>
         <Dialog visible={Boolean(blocked)} onDismiss={() => setBlocked(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
@@ -576,6 +610,7 @@ const styles = StyleSheet.create({
   toolContent: { minHeight: 44 },
   toolLabel: { fontSize: 14 },
   startContent: { minHeight: 52 },
+  nextContent: { flexDirection: 'row-reverse' },
   startLabel: { fontSize: 16, fontWeight: '800' },
   dialog: { borderRadius: radius.xl, maxWidth: 520, width: '94%', alignSelf: 'center' },
   flex: { flex: 1 },

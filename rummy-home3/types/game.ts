@@ -5,6 +5,30 @@ export type GameSettings = {
   mdAmount: number;
   maxCount: number;
   poolAmount?: number;
+  /** Pool (041): the score that puts a player out (100 in, 101 out). */
+  poolLimit?: number;
+  /** Pool (041): whether a player who is out may come back once, at the highest score still in. */
+  reentry?: boolean;
+};
+
+/** Pool (041) seat state, from game_players. Absent for Points games and pre-041 servers. */
+export type PoolSeat = {
+  /** The live round whose save put the player at or over the limit; null = still in. */
+  outRound: number | null;
+  /** The round they came back for (re-entry or late join); their total restarts at reentryScore from there. */
+  reenteredRound: number | null;
+  reentryScore: number | null;
+  /** 1 for a first entry, 2 after a re-entry. Counts in the awards. */
+  entries: number;
+};
+
+/** Pool (041): what the awards were based on, saved beside them. */
+export type AwardNote = {
+  preset?: 'winner' | 'left' | 'split' | 'drops' | 'custom';
+  presetLabel?: string;
+  entry?: number;
+  poolTotal?: number;
+  givenOut?: number;
 };
 
 export type Game = {
@@ -20,10 +44,15 @@ export type Game = {
   /** Unguessable token for the public live scorecard. */
   viewToken?: string;
   createdBy?: string;
-  /** Pool prize in coins. Stake games leave this empty and use points. */
+  /** Legacy column (pre-041); never shown. */
   prize?: number | null;
-  /** Coins confirmed when the game was completed. */
+  /** Pool (041): awards per player, saved on the Awards screen once the pool is Completed. Null = awards pending. */
   prizeShares?: Record<string, number> | null;
+  /** Pool (041): when awards were last saved. Null = awards pending; such a pool cannot join a result. */
+  awardedAt?: string | null;
+  awardNote?: AwardNote | null;
+  /** Pool (041): per-seat out / re-entry state. */
+  poolSeats?: Record<string, PoolSeat>;
   spectators?: string[];
   adminIds?: string[];
   /** Game admins with no score column. */

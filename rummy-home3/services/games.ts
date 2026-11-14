@@ -15,7 +15,7 @@ import { canEnterScores, gameVisibleToUser, SeatRole } from '@/utils/gameAccess'
 import { gameCache } from '@/utils/gameCache';
 import { canReopenGame, REOPEN_BLOCKED_MESSAGE } from '@/utils/gameStatus';
 import { createViewToken } from '@/utils/shareLink';
-import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validateRoundScores } from '@/utils/scoring';
+import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validatePoolRoundScores, validateRoundScores } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
 import { createUuid, isUuid } from '@/utils/uuid';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
@@ -46,6 +46,8 @@ type AddRoundInput = {
   roundNumber: number;
   scores: RoundScoreInput[];
   createdBy: string;
+  /** Pool (041): plus points, winner at 0; the sum-to-0 rule does not apply. The server checks the rest. */
+  pool?: boolean;
 };
 
 type CompleteGameInput = {
@@ -130,6 +132,16 @@ export const legacyGameFromServer = (
     createdBy: game.created_by ?? undefined,
     prize: game.prize ?? null,
     prizeShares: (game.prize_shares as Record<string, number> | null) ?? null,
+    awardedAt: game.awarded_at ?? null,
+    awardNote: (game.award_note as Game['awardNote']) ?? null,
+    poolSeats: game.game_type === 'pool'
+      ? Object.fromEntries(seated.map((m) => [m.profile_id, {
+          outRound: m.out_round ?? null,
+          reenteredRound: m.reentered_round ?? null,
+          reentryScore: m.reentry_score ?? null,
+          entries: typeof m.entries === 'number' ? m.entries : 1,
+        }]))
+      : undefined,
     spectators: memberships.filter((membership) => membership.role === 'spectator').map((membership) => membership.profile_id),
     adminIds: memberships.filter((membership) => membership.role === 'game_admin').map((membership) => membership.profile_id),
     unseatedAdminIds: memberships
@@ -368,6 +380,8 @@ export const gamesService = {
         dropAmount: input.rules.drop,
         mdAmount: input.rules.middleDrop,
         maxCount: input.rules.fullCount,
+        // 041: a pool's limit and re-entry switch live beside its (plus) values.
+        ...(input.rules.gameKind === 'pool' ? { poolLimit: input.rules.poolLimit ?? 101, reentry: input.rules.reentry !== false } : {}),
       } : {}),
     };
 
@@ -608,14 +622,18 @@ export const gamesService = {
     }
   },
 
-  /** Game settings: change Drop, Middle drop, and Full count any time, even mid-game. */
+  /**
+   * Game settings: Points games change Drop, Middle drop, and Full count any time. A pool's limit
+   * and values are locked by the server once a round is saved (041); Re-entry can still change.
+   */
   async updateGameRules(gameId: string, rules: PointsRules): Promise<Game | null> {
+    const poolKeys = rules.gameKind === 'pool' ? { poolLimit: rules.poolLimit ?? 101, reentry: rules.reentry !== false } : {};
     if (!isSupabaseConfigured) {
       const game = await this.getGame(gameId);
       if (!game) return null;
       const next = {
         ...game,
-        settings: { ...game.settings, dropAmount: rules.drop, mdAmount: rules.middleDrop, maxCount: rules.fullCount, expense: false },
+        settings: { ...game.settings, dropAmount: rules.drop, mdAmount: rules.middleDrop, maxCount: rules.fullCount, expense: false, ...poolKeys },
       };
       await storage.updateGame(next);
       return next;
@@ -634,9 +652,44 @@ export const gamesService = {
           dropAmount: rules.drop,
           mdAmount: rules.middleDrop,
           maxCount: rules.fullCount,
+          ...poolKeys,
         } as any,
       })
       .eq('id', gameId);
+    if (error) throw error;
+    return this.getGame(gameId);
+  },
+
+  /** Pool (041): a player who is out comes back once, at the highest score still in. */
+  async reenterPlayer(gameId: string, profileId: string): Promise<Game | null> {
+    if (!isSupabaseConfigured) {
+      const game = await this.getGame(gameId);
+      if (!game) return null;
+      const seat = game.poolSeats?.[profileId];
+      if (!seat?.outRound) throw new Error('They are still in the pool.');
+      if (seat.entries > 1) throw new Error('They have already re-entered once.');
+      const inIds = game.players.filter((id) => !game.poolSeats?.[id]?.outRound);
+      const high = Math.max(0, ...inIds.map((id) => (game.scores[id] ?? []).reduce((a, b) => a + b, 0)));
+      const rounds = Math.max(0, ...game.players.map((id) => game.scores[id]?.length ?? 0));
+      const next = { ...game, poolSeats: { ...game.poolSeats, [profileId]: { outRound: null, reenteredRound: rounds + 1, reentryScore: high, entries: seat.entries + 1 } } };
+      await storage.updateGame(next);
+      return next;
+    }
+    const { error } = await supabase.rpc('reenter_player', { p_game_id: gameId, p_profile_id: profileId });
+    if (error) throw error;
+    return this.getGame(gameId);
+  },
+
+  /** Pool (041): awards per player for a Completed pool ({profile id: award}); any sum (D9). */
+  async setPoolAwards(gameId: string, awards: Record<string, number>, note: Record<string, unknown>): Promise<Game | null> {
+    if (!isSupabaseConfigured) {
+      const game = await this.getGame(gameId);
+      if (!game) return null;
+      const next = { ...game, prizeShares: awards, awardedAt: new Date().toISOString(), awardNote: note as Game['awardNote'] };
+      await storage.updateGame(next);
+      return next;
+    }
+    const { error } = await supabase.rpc('set_pool_awards', { p_game_id: gameId, p_awards: awards, p_note: note });
     if (error) throw error;
     return this.getGame(gameId);
   },
@@ -765,7 +818,7 @@ export const gamesService = {
   },
 
   async addRound(input: AddRoundInput) {
-    const validation = validateRoundScores(input.scores);
+    const validation = input.pool ? validatePoolRoundScores(input.scores) : validateRoundScores(input.scores);
     if (!validation.valid) throw new Error(validation.error ?? 'Invalid round scores.');
 
     if (!isSupabaseConfigured) {
@@ -809,7 +862,7 @@ export const gamesService = {
    * the corrected scores takes its place. Every reader already skips undone rounds.
    */
   async replaceRound(input: AddRoundInput) {
-    const validation = validateRoundScores(input.scores);
+    const validation = input.pool ? validatePoolRoundScores(input.scores) : validateRoundScores(input.scores);
     if (!validation.valid) throw new Error(validation.error ?? 'Invalid round scores.');
 
     if (!isSupabaseConfigured) {
