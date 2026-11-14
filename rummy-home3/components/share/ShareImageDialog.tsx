@@ -1,7 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
+import { OffscreenShareCard, useShareCapture } from '@/components/share/OffscreenShareCard';
 import { ShareCardView } from '@/components/share/ShareCardView';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { ShareCard } from '@/utils/shareCard';
@@ -31,14 +32,14 @@ export function ShareImageDialog({
   detailsBusy?: boolean;
 }) {
   const { colors } = useAppTheme();
-  const cardRef = useRef<View>(null);
+  const capture = useShareCapture();
   const [busy, setBusy] = useState(false);
 
   const share = async () => {
     if (!card || busy) return;
     setBusy(true);
     try {
-      onShared(await shareCardImage(cardRef.current, card));
+      onShared(await shareCardImage(capture.ref.current, card, capture.size));
     } catch (error) {
       onFail(error instanceof Error ? error.message : 'Could not make the image.');
     } finally {
@@ -50,13 +51,14 @@ export function ShareImageDialog({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={[styles.backdrop, { backgroundColor: colors.backdrop }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onDismiss} accessibilityLabel="Close share results" />
+        {card ? <OffscreenShareCard card={card} cardRef={capture.ref} onHeight={capture.onHeight} /> : null}
         <View style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <View style={styles.header}>
             <Text variant="headlineSmall" accessibilityRole="header" style={styles.title}>{title}</Text>
             <IconButton icon="close" size={22} onPress={onDismiss} disabled={busy || detailsBusy} accessibilityLabel="Close" />
           </View>
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-            {card ? <ShareCardView card={card} cardRef={cardRef} /> : null}
+            {card ? <ShareCardView card={card} /> : null}
             {notice ? <Text variant="bodyMedium" style={styles.notice}>{notice}</Text> : null}
           </ScrollView>
           <View style={styles.actions}>

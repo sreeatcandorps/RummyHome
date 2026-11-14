@@ -15,6 +15,7 @@ import {
   legendText,
   RankedRow,
   RankedScores,
+  GAME_BY_GAME_TITLE,
   rankScores,
   resultInitials,
   resultLinkText,
@@ -42,10 +43,17 @@ export type ResultsDetailGame = {
 export const ROUND_BLOCK_SIZE = 5;
 
 export type RoundBlock = {
-  /** Column heads: initials, Player ID and game total, one per player in the block. */
+  /** Column heads: initials and game total, one per player in the block (the Player ID lives in the legend — PR 10b). */
   heads: { initials: string; playerNo?: number | null; total: string }[];
   rows: { round: number; cells: string[] }[];
 };
+
+/** "Players 1–5 of 14" over every block when a game needs more than one (PR 10b, from Final scores). */
+export function blockCaption(blockIndex: number, blockSize: number, total: number, perBlock = ROUND_BLOCK_SIZE): string | null {
+  if (total <= perBlock) return null;
+  const first = blockIndex * perBlock + 1;
+  return `Players ${first}–${first + blockSize - 1} of ${total}`;
+}
 
 export type ResultsRoundTable = {
   /** "S7" */
@@ -58,6 +66,8 @@ export type ResultsRoundTable = {
   initials: string[];
   /** Full names in the same order, for the legend. */
   names: string[];
+  /** Player IDs in the same order, for the legend ("HG Harish · #40"). */
+  playerNos: (number | null)[];
   rows: { round: number; cells: string[] }[];
   totals: string[];
   /** Blocks of ROUND_BLOCK_SIZE players, totals in the head under each player (Part B). */
@@ -88,7 +98,7 @@ export type ResultsDetails = {
   roundTables: ResultsRoundTable[];
   /** "ezscore.mindweavetech.com/r/<id>" on a saved result. */
   link?: string | null;
-  /** "Result ID · ABC123" — the same stable id as on the image. */
+  /** "Unique result ID · ABC123" — the same stable id as on the image; printed once, at the end. */
   footer?: string;
 };
 
@@ -119,6 +129,7 @@ export function buildRoundTable(
 ): ResultsRoundTable {
   const seated = playersByFirstName(players.filter((player) => Object.prototype.hasOwnProperty.call(game.scores, player.id)));
   const names = seated.map((player) => player.name);
+  const playerNos = seated.map((player) => player.playerNo ?? null);
   const initials = seated.map((player) => labels.get(player.id) ?? '?');
   const rounds = game.rounds;
   const roundCount = rounds ? seated.reduce((max, player) => Math.max(max, rounds[player.id]?.length ?? 0), 0) : 0;
@@ -144,6 +155,7 @@ export function buildRoundTable(
     code: game.name,
     initials,
     names,
+    playerNos,
     rows,
     totals,
     blocks,
@@ -259,27 +271,44 @@ export function gameInfoHtml(info: GameInfo): string {
     + '</div>';
 }
 
-export function roundBlockHtml(block: RoundBlock): string {
+/**
+ * One block of up to five players. The table is `n<count>` wide — the five-player column width,
+ * so a short last block is left-aligned instead of stretched (PR 10b) — and never splits
+ * across a page break; its caption stays with it.
+ */
+export function roundBlockHtml(block: RoundBlock, caption: string | null = null): string {
   const head = `<tr><th class="rn">Rnd</th>${block.heads.map((head) => `<th><span class="ini">${escapeHtml(head.initials)}</span>`
-    + `${head.playerNo != null ? `<small>#${head.playerNo}</small>` : ''}<span class="tot ${pointsClass(head.total)}">${escapeHtml(head.total)}</span></th>`).join('')}</tr>`;
+    + `<span class="tot ${pointsClass(head.total)}">${escapeHtml(head.total)}</span></th>`).join('')}</tr>`;
   const body = block.rows.map((row) => `<tr><td class="rn">${row.round}</td>${row.cells.map((cell) => `<td class="${pointsClass(cell)}">${escapeHtml(cell)}</td>`).join('')}</tr>`).join('');
-  return `<table class="rb"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+  return `${caption ? `<p class="cap">${escapeHtml(caption)}</p>` : ''}<table class="rb n${block.heads.length}"><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }
 
-export function roundTableHtml(table: ResultsRoundTable): string {
-  const heading = `<h3><span class="lab">${escapeHtml(table.label)}</span> <span class="when"><b>${escapeHtml(table.start.time)}</b> ${escapeHtml(table.start.date)}</span> <i class="gid">Game ID ${escapeHtml(table.code)}</i></h3>`;
+/** "HG Harish Gadupudi · #40" per seated player, under the blocks. */
+export function roundLegendHtml(table: ResultsRoundTable): string {
+  return `<p class="legend">${table.initials.map((label, index) => `<span><b>${escapeHtml(label)}</b> ${escapeHtml(table.names[index])}`
+    + `${table.playerNos[index] != null ? ` <small>· #${table.playerNos[index]}</small>` : ''}</span>`).join(' · ')}</p>`;
+}
+
+/**
+ * One game's rounds. The results PDF names the game's ID in the heading; the single-game PDF
+ * prints it once at its foot instead (`gameIdInHeading: false`). Content flows: the heading
+ * keeps with the first block, each block keeps whole, nothing pins the whole game together.
+ */
+export function roundTableHtml(table: ResultsRoundTable, options: { gameIdInHeading?: boolean } = {}): string {
+  const gameId = options.gameIdInHeading === false ? '' : ` <i class="gid">Game ID ${escapeHtml(table.code)}</i>`;
+  const heading = `<h3><span class="lab">${escapeHtml(table.label)}</span> <span class="when"><b>${escapeHtml(table.start.time)}</b> ${escapeHtml(table.start.date)}</span>${gameId}</h3>`;
   if (table.initials.length === 0) return `<section class="game">${heading}<p class="mute">No players were seated.</p></section>`;
   if (table.totalsOnly) {
     const totals = table.initials.map((label, index) => `<span><b>${escapeHtml(label)}</b> ${escapeHtml(table.totals[index])}</span>`).join(' · ');
     return `<section class="game">${heading}<p class="legend">${totals}</p><p class="mute">Round scores were not saved with this result; game totals only.</p></section>`;
   }
-  const legend = table.initials.map((label, index) => `<span><b>${escapeHtml(label)}</b> ${escapeHtml(table.names[index])}</span>`).join(' · ');
-  return `<section class="game">${heading}${table.blocks.map(roundBlockHtml).join('')}<p class="legend">${legend}</p></section>`;
+  const blocks = table.blocks.map((block, index) => roundBlockHtml(block, blockCaption(index, block.heads.length, table.initials.length))).join('');
+  return `<section class="game">${heading}${blocks}${roundLegendHtml(table)}</section>`;
 }
 
 /** Shared by the PDF and public/r/index.html (kept in step by tests/results-design.test.ts). */
 export const RESULTS_DESIGN_CSS = `
-  :root { --ink: #17201B; --muted: #4E5752; --line: #DCDDD5; --green: #15803D; --edge: #0E5A2A; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; --amber: #FFE38A; --on-amber: #3F2D00; --band: #F1F1EB; --band-alt: #E9EAE2; --band-head: #DDEFE2; --band-head-alt: #D2E9DA; }
+  :root { --ink: #17201B; --muted: #4E5752; --line: #DCDDD5; --green: #15803D; --on-lab: #fff; --edge: #0E5A2A; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; --amber: #FFE38A; --on-amber: #3F2D00; --band: #F1F1EB; --band-alt: #E9EAE2; --band-head: #DDEFE2; --band-head-alt: #D2E9DA; }
   body { font-family: -apple-system, Roboto, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); margin: 0; font-size: 16px; line-height: 1.3; }
   h1 { margin: 0; font-size: 28px; font-weight: 800; }
   h2 { font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
@@ -330,14 +359,19 @@ export const RESULTS_DESIGN_CSS = `
   .legend b { color: var(--ink); } .legend small { font-size: 12px; }
   .gm { padding: 8px 0; border-bottom: 1px solid var(--line); }
   .g1 { display: flex; align-items: baseline; gap: 8px; }
-  .lab { display: inline-block; background: var(--green); color: #fff; font-weight: 800; font-size: 13px; padding: 1px 7px; border-radius: 6px; }
+  .lab { display: inline-block; background: var(--green); color: var(--on-lab); font-weight: 800; font-size: 13px; padding: 1px 7px; border-radius: 6px; }
   .when { font-size: 15px; } .when b { font-weight: 800; }
   .g2 { color: var(--muted); font-size: 14px; margin-top: 2px; }
   .gid { font-style: italic; font-weight: 400; }
   .g2.warn { color: var(--on-amber); }
-  .game { margin-top: 14px; page-break-inside: avoid; }
+  .game { margin-top: 14px; }
+  .game h3 { page-break-after: avoid; break-after: avoid; }
   .game h3 .when { font-weight: 400; }
-  table.rb { border-collapse: collapse; width: 100%; margin-top: 6px; table-layout: fixed; }
+  .cap { color: var(--muted); font-size: 12px; font-weight: 700; margin: 8px 0 0; page-break-after: avoid; break-after: avoid; }
+  table.rb { border-collapse: collapse; width: 100%; margin-top: 6px; table-layout: fixed; page-break-inside: avoid; break-inside: avoid; }
+  table.rb.n1 { width: calc(38px + (100% - 38px) * 1 / 5); } table.rb.n2 { width: calc(38px + (100% - 38px) * 2 / 5); }
+  table.rb.n3 { width: calc(38px + (100% - 38px) * 3 / 5); } table.rb.n4 { width: calc(38px + (100% - 38px) * 4 / 5); }
+  .brow, .gm, .pl { page-break-inside: avoid; break-inside: avoid; }
   table.rb th, table.rb td { border: 1px solid var(--line); padding: 3px 5px; font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; }
   table.rb th { background: var(--head); text-align: center; vertical-align: bottom; }
   table.rb th .ini { display: block; font-weight: 800; } table.rb th small { display: block; color: var(--muted); font-weight: 500; font-size: 11px; }
@@ -348,59 +382,91 @@ export const RESULTS_DESIGN_CSS = `
   .link { color: var(--green); font-weight: 700; word-break: break-all; }
 `;
 
-/**
- * Phone-width pages at 16 px: Scores · How you got there · Games in this result · one block
- * of rounds per game. expo-print sets the page size (see shareResultsPdf); the CSS only breaks.
- */
-export function resultsDetailsHtml(details: ResultsDetails): string {
-  const notes = (details.notes ?? []).map((note) => `<p class="note">${escapeHtml(note)}</p>`).join('');
-  const footer = `<p class="footer">${details.footer ? escapeHtml(details.footer) : ''}${details.link ? ` · <span class="link">${escapeHtml(details.link)}</span>` : ''}</p>`;
-  const pageCss = `
+/** A single game's PDF is marigold where a result's is green (PR 10b colour rule). */
+export const GAME_PDF_VARS: Record<string, string> = {
+  '--green': '#B57F00',
+  '--on-lab': '#FFFFFF',
+  '--edge': '#8A5A00',
+  '--band-head': '#FFF3C4',
+  '--band-head-alt': '#FFE9A3',
+};
+
+export type PdfTone = 'results' | 'game';
+
+/** The design CSS in the tone's colours: results keep the green; a game's PDF carries no results green at all. */
+export function designCss(tone: PdfTone): string {
+  if (tone === 'results') return RESULTS_DESIGN_CSS;
+  return Object.entries(GAME_PDF_VARS).reduce(
+    (css, [name, value]) => css.replace(new RegExp(`${name}: #[0-9A-Fa-f]{3,6}`), `${name}: ${value}`),
+    RESULTS_DESIGN_CSS,
+  );
+}
+
+/** "EZ Score: Rummy" with the app icon beside it when the caller could embed one (phone PDFs). */
+export function brandHtml(iconDataUri?: string | null): string {
+  return `<p class="brand">${iconDataUri ? `<img class="brand-icon" src="${iconDataUri}" alt="" />` : ''}EZ Score: Rummy</p>`;
+}
+
+const PDF_PAGE_CSS = `
   @page { margin: 0; }
-  .page { padding: 20px 16px 28px; page-break-after: always; }
-  .page:last-child { page-break-after: auto; }
+  .doc { padding: 20px 16px 28px; }
   .hdr { display: flex; justify-content: space-between; align-items: baseline; }
-  `;
+  .brand { display: flex; align-items: center; gap: 6px; }
+  .brand-icon { width: 24px; height: 24px; border-radius: 6px; }
+  h2 { page-break-after: avoid; break-after: avoid; }
+  .footer { page-break-inside: avoid; break-inside: avoid; }
+`;
+
+/**
+ * Phone-width pages at 16 px: Scores · Game by game · Games in this result · Round by round,
+ * one flowing document (PR 10b): no fixed page boxes, so nothing is clipped; each table,
+ * band row and game line keeps whole across a page break; the date sits once in the title
+ * block and the Unique result ID with the web link once, at the very end. expo-print sets
+ * the page size (see shareResultsPdf). `iconDataUri` puts the app icon beside the brand.
+ */
+export function resultsDetailsHtml(details: ResultsDetails, options: { iconDataUri?: string | null } = {}): string {
+  const notes = (details.notes ?? []).map((note) => `<p class="note">${escapeHtml(note)}</p>`).join('');
+  const footer = details.footer || details.link
+    ? `<p class="footer">${details.footer ? escapeHtml(details.footer) : ''}${details.link ? `${details.footer ? ' · ' : ''}<span class="link">${escapeHtml(details.link)}</span>` : ''}</p>`
+    : '';
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>EZ Score: Rummy results</title>
-<style>${RESULTS_DESIGN_CSS}${pageCss}</style>
+<style>${designCss('results')}${PDF_PAGE_CSS}</style>
 </head>
 <body>
-<div class="page">
-  <p class="brand">EZ Score: Rummy</p>
-  <div class="hdr"><h1>${escapeHtml(details.title)}</h1>${details.code ? `<span class="code">${escapeHtml(details.code)}</span>` : ''}</div>
+<div class="doc">
+  ${brandHtml(options.iconDataUri)}
+  <div class="hdr"><h1>${escapeHtml(details.title)}</h1></div>
   <p class="meta">${details.dateWord} ${escapeHtml(details.createdAtLabel)}</p>
   <p class="count">${escapeHtml(details.countLine)}</p>
   ${notes}
   <div class="section"><h2>Scores</h2>${scoresSplitHtml(details.scores, details.evenLine)}</div>
-  ${footer}
-</div>
-<div class="page">
-  <h2>How you got there · game by game</h2>
+  <div class="section"><h2>${GAME_BY_GAME_TITLE}</h2>
   ${bandTableHtml(details.table)}
-  ${legendHtml(details.legend)}
+  ${legendHtml(details.legend)}</div>
+  <div class="section"><h2>Games in this result</h2>
+  ${details.games.map(gameInfoHtml).join('')}</div>
+${details.roundTables.length > 0 ? `  <div class="section"><h2>Round by round</h2>
+  ${details.roundTables.map((table) => roundTableHtml(table)).join('')}</div>` : ''}
   ${footer}
 </div>
-<div class="page">
-  <h2>Games in this result</h2>
-  ${details.games.map(gameInfoHtml).join('')}
-  ${footer}
-</div>
-${details.roundTables.length > 0 ? `<div class="page">
-  <h2>Round by round</h2>
-  ${details.roundTables.map(roundTableHtml).join('')}
-  ${footer}
-</div>` : ''}
 </body>
 </html>`;
 }
 
-/** One game's rounds as phone pages (the "Share rounds" PDF from the final-scores screen). */
-export function roundsPdfHtml(input: { heading: string; lines: string[]; table: ResultsRoundTable; footer: string }): string {
+/** "Unique game ID · EJMEYV" for the foot of a single game's PDF. */
+export const UNIQUE_GAME_ID_LABEL = 'Unique game ID';
+
+/**
+ * One game's rounds as a flowing phone-page PDF (the "Share full details" PDF from the
+ * final-scores screen), in the game's marigold tone. The Game ID is printed once, at the
+ * foot, with the short label ("Game S10 · Unique game ID · EJMEYV").
+ */
+export function roundsPdfHtml(input: { heading: string; lines: string[]; table: ResultsRoundTable; footer: string; iconDataUri?: string | null }): string {
   const lines = input.lines.map((line) => `<p class="meta">${escapeHtml(line)}</p>`).join('');
   return `<!DOCTYPE html>
 <html>
@@ -408,18 +474,15 @@ export function roundsPdfHtml(input: { heading: string; lines: string[]; table: 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(input.heading)}</title>
-<style>${RESULTS_DESIGN_CSS}
-  @page { margin: 0; }
-  .page { padding: 20px 16px 28px; }
-</style>
+<style>${designCss('game')}${PDF_PAGE_CSS}</style>
 </head>
 <body>
-<div class="page">
-  <p class="brand">EZ Score: Rummy</p>
+<div class="doc">
+  ${brandHtml(input.iconDataUri)}
   <h1>${escapeHtml(input.heading)}</h1>
   ${lines}
-  <div class="section"><h2>Round by round</h2>${roundTableHtml(input.table)}</div>
-  <p class="footer">${escapeHtml(input.footer)}</p>
+  <div class="section"><h2>Round by round</h2>${roundTableHtml(input.table, { gameIdInHeading: false })}</div>
+  <p class="footer">${escapeHtml(input.footer)} · ${UNIQUE_GAME_ID_LABEL} · ${escapeHtml(input.table.code)}</p>
 </div>
 </body>
 </html>`;
@@ -450,7 +513,7 @@ export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
   const scoreLine = (row: RankedRow) => padRight(`${row.medal ? `${row.medal}. ` : ''}${row.name}`, nameWidth) + padLeft(row.text, 7) + (row.sub ? `  ${row.sub}` : '');
   const lines: string[] = [
     'EZ Score: Rummy',
-    `${details.title}${details.code ? `  ${details.code}` : ''}`,
+    details.title,
     `${details.dateWord} ${details.createdAtLabel}`,
     details.countLine,
     ...(details.notes ?? []),
@@ -460,7 +523,7 @@ export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
     ...(details.evenLine ? [details.evenLine] : []),
     ...details.scores.negative.map(scoreLine),
     '',
-    'How you got there - game by game',
+    GAME_BY_GAME_TITLE,
   ];
   details.table.header.forEach((band, bandIndex) => {
     if (bandIndex > 0) lines.push('');
@@ -490,7 +553,7 @@ export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
         ));
       });
     }
-    lines.push(table.initials.map((label, index) => `${label} ${table.names[index]}`).join('  '));
+    lines.push(table.initials.map((label, index) => `${label} ${table.names[index]}${table.playerNos[index] != null ? ` #${table.playerNos[index]}` : ''}`).join('  '));
   });
   if (details.footer || details.link) lines.push('', [details.footer, details.link].filter(Boolean).join('  '));
   const pageSize = 42;

@@ -64,14 +64,20 @@ export function chunk<T>(items: T[], size: number): T[][] {
   return rows;
 }
 
+/** "Final scores · Game S10" (PR 10b title). */
 export function finalScoresHeading(game: LabelledGame): string {
   const label = gameLabelOf(game);
-  return label ? `Game ${label} Final Scores` : 'Final Scores';
+  return label ? `Final scores · Game ${label}` : 'Final scores';
 }
 
 /** "Game S3": the visible number only; the long id never appears on a shared sheet. */
 export function finalScoresFooter(game: LabelledGame & { id: string; shareCode?: string }): string {
   return gameTitle(game, 'EZ Score game');
+}
+
+/** "Totals add to 0", or "Totals add to +40" — the screen paints the non-zero case red (PR 10b). */
+export function totalsLine(sum: number): string {
+  return sum === 0 ? 'Totals add to 0' : `Totals add to ${formatPoints(sum)}`;
 }
 
 /** Share sheet file name and title: never "results". */
@@ -117,6 +123,7 @@ export function buildFinalScoresSheet(input: {
   );
   const card = buildScoresCard({
     title: finalScoresHeading(input.game),
+    tone: 'game',
     date: formatWhen(input.game.date),
     summary: `${players.length} ${players.length === 1 ? 'player' : 'players'} · ${roundCount === 1 ? '1 round' : `${roundCount} rounds`}`,
     standings: summary.map((row, index) => ({ id: row.id, name: row.name, points: row.total, games: 1, place: index + 1 })),

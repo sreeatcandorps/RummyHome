@@ -59,10 +59,11 @@ test('7.3 Players · Admins: a big outlined "Add non-playing admin" button with 
   assert.match(players, /<Dialog\.Title>\{NON_PLAYING_ADMIN_BUTTON\}<\/Dialog\.Title>/);
 });
 
-test('7.4 D7.2: no "You" tag on New game, Players · Admins or My players (you stay first)', () => {
-  for (const file of ['components/players/PlayerPickerRow.tsx', 'app/(screens)/games/players.tsx', 'app/(tabs)/players.tsx']) {
+test('7.4 D7.2: no "You" tag on New game or Players · Admins (you stay first); PR 10b puts one "You" tag on your own My players row', () => {
+  for (const file of ['components/players/PlayerPickerRow.tsx', 'app/(screens)/games/players.tsx']) {
     assert.doesNotMatch(read(file), /label="You"/, `${file} draws no You tag`);
   }
+  assert.match(read('app/(tabs)/players.tsx'), /isMe \? <Tag label="You" tone="neutral" \/> : null/, 'My players marks your own row (Q10.6)');
   const picker = read('app/(screens)/games/new.tsx');
   assert.match(picker, /pinOrganiser\(grid, meWatching \? null : meCandidate, selectedIds, meMatches\)/, 'the organiser is still pinned first');
   assert.match(read('components/players/PlayerPickerRow.tsx'), /`Add \$\{candidate\.name\} \(you\)`/, 'the spoken label still tells you from a namesake');

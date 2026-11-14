@@ -69,7 +69,7 @@ function PastResult({ item }: { item: GameResultSummary }) {
   const rows = pastResultRows(item.top);
   const reused = resultReusedNote(item.reusedCount);
   return (
-    <View style={[styles.past, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderLeftColor: colors.secondary }]}>
+    <View style={[styles.past, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderLeftColor: colors.secondary }]} testID={`past-result-${item.id}`}>
       <TouchableRipple
         onPress={() => router.push(`/(screens)/results/${item.id}`)}
         borderless

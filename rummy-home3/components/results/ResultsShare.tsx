@@ -54,7 +54,7 @@ export function ResultsShare({ card, details, createdAt, resultId }: Props) {
     if (!details || pdfBusy) return;
     setPdfBusy(true);
     try {
-      setNotice(await shareResultsPdf(details, createdAt));
+      setNotice(await shareResultsPdf(details, createdAt, resultId));
       if (resultId) sharedResults.mark(resultId).catch(() => {});
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Could not make the PDF.');

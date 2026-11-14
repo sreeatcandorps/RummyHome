@@ -1,7 +1,7 @@
 import { Platform, Share } from 'react-native';
 import { resultsDetailsHtml, resultsDetailsPdf, ResultsDetails, roundsPdfHtml } from '@/utils/resultsDetails';
 import { FinalScoresSheet } from '@/utils/finalScoresSheet';
-import { resultsPdfFileName } from '@/utils/results';
+import { gamePdfFileName, resultsPdfFileName } from '@/utils/results';
 
 export const PDF_READY = 'PDF ready.';
 
@@ -52,15 +52,34 @@ async function shareNative(html: string, fileName: string): Promise<void> {
   await Share.share({ url: file.uri, title: 'EZ Score: Rummy' });
 }
 
+/**
+ * The app icon as a data URI for the phone PDFs (Q10.17). Null on the web (its PDF is plain
+ * text) or when the asset cannot be read — the PDF then prints without it.
+ */
+export async function pdfIconDataUri(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
+  try {
+    const { Asset } = await import('expo-asset');
+    const asset = Asset.fromModule(require('../assets/icon-small.png'));
+    await asset.downloadAsync();
+    if (!asset.localUri) return null;
+    const FileSystem = await import('expo-file-system/legacy');
+    const base64 = await FileSystem.readAsStringAsync(asset.localUri, { encoding: 'base64' });
+    return `data:image/png;base64,${base64}`;
+  } catch {
+    return null;
+  }
+}
+
 /** A PDF of the full results. Phones print the HTML with expo-print and open the share sheet. */
-export async function shareResultsPdf(details: ResultsDetails, createdAt?: string): Promise<string> {
-  const fileName = resultsPdfFileName(createdAt ?? new Date());
+export async function shareResultsPdf(details: ResultsDetails, createdAt?: string, resultId?: string | null): Promise<string> {
+  const fileName = resultsPdfFileName(resultId, createdAt ?? new Date());
   try {
     if (Platform.OS === 'web') {
       downloadPdf(resultsDetailsPdf(details), fileName);
       return PDF_READY;
     }
-    await shareNative(resultsDetailsHtml(details), fileName);
+    await shareNative(resultsDetailsHtml(details, { iconDataUri: await pdfIconDataUri() }), fileName);
     return PDF_READY;
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
@@ -69,15 +88,14 @@ export async function shareResultsPdf(details: ResultsDetails, createdAt?: strin
   }
 }
 
-export const ROUNDS_PDF_FILE = 'ez-score-rounds.pdf';
-
-/** One game's rounds, five players to a block, as a phone-page PDF. The web build prints the page instead. */
+/** One game's full details (rounds, five players to a block) as a phone-page PDF. The web build prints the page instead. */
 export async function shareFinalScoresPdf(sheet: FinalScoresSheet): Promise<string> {
   const html = roundsPdfHtml({
     heading: sheet.heading,
     lines: [sheet.startedLine, sheet.completedLine, ...sheet.adminLines, sheet.generatedLine],
     table: sheet.table,
     footer: sheet.footer,
+    iconDataUri: await pdfIconDataUri(),
   });
   try {
     if (Platform.OS === 'web') {
@@ -90,7 +108,7 @@ export async function shareFinalScoresPdf(sheet: FinalScoresSheet): Promise<stri
       popup.print();
       return PDF_READY;
     }
-    await shareNative(html, ROUNDS_PDF_FILE);
+    await shareNative(html, gamePdfFileName(sheet.table.label));
     return PDF_READY;
   } catch (error) {
     const message = error instanceof Error ? error.message : '';

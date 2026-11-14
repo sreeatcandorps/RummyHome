@@ -95,18 +95,20 @@ test('9.5 the result page: visible Delete this result for managers, consequence 
   assert.equal((share.match(/sharedResults\.mark\(resultId\)/g) ?? []).length, 2, 'picture and PDF both mark');
 });
 
-test('9.6 Past results: Delete chip per manageable row, a Deleted section with Restore inside 30 days, Undo toast, confirm when shared', () => {
+test('9.6 Past results: no Delete chip on the rows (PR 10b — Delete lives on the result page); a Deleted section with Restore inside 30 days', () => {
   const list = read('app/(screens)/results/index.tsx');
-  assert.match(list, /archiveService\.manageableResults\(first\.map\(\(row\) => row\.id\), id\)\.then\(setManageable\)/);
-  assert.match(list, /canDelete=\{manageable\.has\(item\.id\) && rowBusy !== item\.id\} onDelete=\{\(\) => askDelete\(item\)\}/);
-  assert.match(list, /testID=\{`past-result-delete-\$\{item\.id\}`\}/);
+  assert.doesNotMatch(list, /past-result-delete-/, 'the row chip is gone (10.7)');
+  assert.doesNotMatch(list, /manageableResults|askDelete|undoDelete|setSharedConfirm/, 'and so is its plumbing');
   assert.match(list, /setDeletedRows\(listedDeleted\(lists\.deletedResults\)\)/, 'the 30-day window is applied on the phone');
   assert.match(list, /testID="deleted-results"/);
   assert.match(list, /testID=\{`deleted-result-restore-\$\{row\.id\}`\}/);
   assert.match(list, /<Tag label=\{DELETED_TAG\} tone="neutral" \/>/);
-  assert.match(list, /if \(await sharedResults\.was\(item\.id\)\.catch\(\(\) => false\)\) setSharedConfirm\(item\);\s*else deleteRow\(item\);/);
-  assert.match(list, /duration=\{UNDO_DELETE_MS\}[\s\S]*?action=\{\{ label: 'Undo', onPress: undoDelete/);
   assert.match(list, /\{DELETED_SECTION_NOTE\}/);
+  assert.match(list, /testID="results-make-fold"/, 'non-admins open the picker from a "Make a result" fold (Q10.13)');
+  assert.match(list, /const showPicker = pickerOpen \?\? \(loading \|\| runsAGame\);/);
+  const page = read('app/(screens)/results/[id].tsx');
+  assert.match(page, /sharedResults\.was\(result\.id\)\.catch\(\(\) => false\)/, 'the shared-result confirm stays on the result page');
+  assert.match(page, /duration=\{UNDO_DELETE_MS\}/, 'Undo toast on the result page');
   const archive = read('services/archive.ts');
   assert.match(archive, /supabase\.rpc\('can_manage_result', \{ p_result_id: id \}\)/, 'the 023 function already granted to authenticated');
 });
@@ -115,5 +117,5 @@ test('9.7 docs and help: results-delete.md exists with the decisions; the Result
   const doc = read('docs/results-delete.md');
   for (const needle of ['D9.1', 'D9.2', 'D9.3', 'sync_closed_at', 'can_manage_result', '30 days', 'sharedResults', '/r/']) assert.match(doc, new RegExp(needle.replace(/[/.]/g, '\\$&')), needle);
   const help = read('constants/help.ts');
-  assert.match(help, /Delete this result \(at the foot of a result, or Delete on its Past results row\) reopens its games to Completed\. Undo for 10 seconds; its admins see it under Deleted with Restore for 30 days\./);
+  assert.match(help, /Delete this result \(at the foot of a result, below History\) sends its games back to Completed \(from Closed\)\. Undo for 10 seconds; admins can restore it for 30 days from Settings › Hidden & deleted\./);
 });

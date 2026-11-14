@@ -7,19 +7,18 @@ import {
   BAND_SIZE,
   bandRangesOf,
   buildBandTable,
-  capSplit,
   evenLine,
   gamesInResult,
   gamesLine,
   generatedByLine,
   legendText,
   medalsFor,
-  moreLine,
   playerSubline,
   rankScores,
   resultInitials,
   resultLinkText,
-  SHARE_SIDE_CAP,
+  shareColumns,
+  SHARE_SPLIT_LIMIT,
   startParts,
 } from '../utils/resultsDesign';
 import { presentResults } from '../utils/results';
@@ -115,19 +114,19 @@ test('design: "Games in this result" leads with the start time, then the date; t
   assert.ok(block.indexOf('class="when"') < block.indexOf('class="gid"'), 'time and date before the id');
 });
 
-test('design: the PDF pages run Scores → How you got there → Games → Round by round; seven games draw two boxes per row', () => {
+test('design: the PDF flows Scores → Game by game → Games → Round by round → ID and link once at the end; seven games draw two boxes per row', () => {
   const seven = Array.from({ length: 7 }, (_, index) => ({ ...gameOf(index + 1, { h: 10, s: 10, p1: -20 }), rounds: { h: [10], s: [10], p1: [-20] } }));
   const sevenStandings = [
     { id: 's', name: 'Sree Koneru', points: 70, place: 1, games: 7 },
     { id: 'h', name: 'Harish Gadupudi', points: 70, place: 1, games: 7 },
     { id: 'p1', name: 'Player 1', points: -140, place: 3, games: 7 },
   ];
-  const details = buildResultsDetails({ createdAtLabel: 'Wed, Nov 4 · 11:19 AM', standings: sevenStandings, players, games: seven, saved: true, resultId: '00000000-0000-4000-8000-00000000abcd', footer: 'Result ID · 00ABCD' });
+  const details = buildResultsDetails({ createdAtLabel: 'Wed, Nov 4 · 11:19 AM', standings: sevenStandings, players, games: seven, saved: true, resultId: '00000000-0000-4000-8000-00000000abcd', footer: 'Unique result ID · 00ABCD' });
   assert.equal(details.table.bandCount, 2);
   assert.deepEqual(details.scores.positive.map((row) => row.medal), [1, 1], 'a tie for first is two golds');
   const html = resultsDetailsHtml(details);
   const body = html.slice(html.indexOf('<body>'));
-  const markers = ['Saved Wed, Nov 4 · 11:19 AM', '7 games · 3 players', '<h2>Scores</h2>', 'class="medal m1"', '<h2>How you got there', 'class="box n5 head"', 'class="legend"', '<h2>Games in this result</h2>', '<span class="lab">S12</span>', '<h2>Round by round</h2>', '<table class="rb">']
+  const markers = ['Saved Wed, Nov 4 · 11:19 AM', '7 games · 3 players', '<h2>Scores</h2>', 'class="medal m1"', '<h2>Game by game</h2>', 'class="box n5 head"', 'class="legend"', '<h2>Games in this result</h2>', '<span class="lab">S12</span>', '<h2>Round by round</h2>', '<table class="rb n3">', 'class="footer"']
     .map((marker) => body.indexOf(marker));
   assert.ok(markers.every((index) => index >= 0), `missing markers ${markers}`);
   assert.deepEqual(markers, [...markers].sort((a, b) => a - b), 'sections run top to bottom in the asked order');
@@ -135,10 +134,16 @@ test('design: the PDF pages run Scores → How you got there → Games → Round
   assert.equal((body.match(/class="box n2 head alt"/g) ?? []).length, 1, 'a two-game header band, a shade darker, for games six and seven');
   assert.equal((body.match(/class="box n5"/g) ?? []).length, 3, 'a full band on each of the three rows');
   assert.equal((body.match(/class="box n2 alt"/g) ?? []).length, 3, 'the two-game band on each row — the header shape repeated, nothing past game seven');
-  assert.equal((body.match(/<div class="page">/g) ?? []).length, 4, 'four phone pages');
+  assert.doesNotMatch(body, /<div class="page">/, 'no fixed page boxes: content flows and nothing is clipped (10.10)');
+  assert.doesNotMatch(body, /class="code"/, 'the result code is not at the top of the PDF');
+  assert.doesNotMatch(body, /How you got there/);
   assert.doesNotMatch(body, /Top 3/);
-  assert.match(body, /00ABCD/);
-  assert.match(body, /ezscore\.mindweavetech\.com\/r\/00000000-0000-4000-8000-00000000abcd/);
+  assert.equal((body.match(/00ABCD/g) ?? []).length, 1, 'the Unique result ID once, at the end');
+  assert.equal((body.match(/ezscore\.mindweavetech\.com\/r\/00000000-0000-4000-8000-00000000abcd/g) ?? []).length, 1, 'the link once, beside it');
+  assert.ok(body.lastIndexOf('class="footer"') > body.lastIndexOf('<table class="rb'), 'the footer is the last thing printed');
+  assert.match(html, /table\.rb \{[^}]*page-break-inside: avoid/, 'a round table never splits across pages');
+  assert.doesNotMatch(html, /\.game \{[^}]*page-break-inside/, 'but a whole game is not pinned together (10.12 gap fix)');
+  assert.match(html, /table\.rb\.n3 \{ width: calc\(38px \+ \(100% - 38px\) \* 3 \/ 5\); \}/, 'a short block keeps the five-player column width');
   assert.doesNotMatch(body, /class="c blank"/, 'no empty cells after the last game (V4)');
   assert.doesNotMatch(body, /\.box \{[^}]*border: 2px/, 'bands are filled, not bordered (V4)');
   assert.doesNotMatch(body, /\.box \.c\.win \{[^}]*(background|font-weight)/, 'a win is a plain black number; only the total is bold');
@@ -158,33 +163,54 @@ test('design: round tables break into blocks of five players with the game total
   const saved = buildRoundTable({ ...game, rounds: undefined }, 0, twelve);
   assert.equal(saved.totalsOnly, true, 'results saved before rounds were kept fall back to totals');
   assert.deepEqual(saved.rows, []);
+  assert.deepEqual(table.playerNos.slice(0, 2), [100, 101], 'Player IDs travel with the table for the legend');
   const html = resultsDetailsHtml(buildResultsDetails({ createdAtLabel: 'x', standings: twelve.map((p, i) => ({ id: p.id, name: p.name, points: i - 6, games: 1, place: 1 })), players: twelve, games: [game] }));
-  assert.equal((html.match(/<table class="rb">/g) ?? []).length, 3);
+  assert.equal((html.match(/<table class="rb n\d">/g) ?? []).length, 3);
+  assert.deepEqual(html.match(/<table class="rb (n\d)">/g)?.map((tag) => tag.slice(-4, -2)), ['n5', 'n5', 'n2']);
   const heads = html.match(/<thead>.*?<\/thead>/g) ?? [];
   assert.equal(heads.length, 3);
   heads.forEach((head) => assert.ok((head.match(/<th>/g) ?? []).length <= ROUND_BLOCK_SIZE, 'no block is wider than five players'));
+  heads.forEach((head) => assert.doesNotMatch(head, /<small>#/, 'no Player ID in the heads (10.10)'));
+  assert.match(html, /<p class="cap">Players 1–5 of 12<\/p>/);
+  assert.match(html, /<p class="cap">Players 11–12 of 12<\/p>/);
+  assert.match(html, /<b>[^<]+<\/b> Q00 Name <small>· #100<\/small>/, 'the Player ID sits in the legend');
 });
 
-test('design: the share image is summary only — eight a side, "and N more", games line, generator initials, link', () => {
-  assert.equal(SHARE_SIDE_CAP, 8);
+test('design: the share image keeps every player — positives left / negatives right up to ten a side, then half and half; no "and N more", no link', () => {
+  assert.equal(SHARE_SPLIT_LIMIT, 10);
   const many = Array.from({ length: 30 }, (_, index) => ({ id: `m${index}`, name: `M${index} Name`, points: index < 15 ? 500 - index * 10 : -(index - 14) * 10, games: 1, place: index + 1 }));
   const ranked = rankScores(many, many.map((row) => ({ id: row.id, name: row.name })), new Map());
-  const capped = capSplit(ranked);
-  assert.equal(capped.positive.length, 8);
-  assert.equal(capped.negative.length, 8);
-  assert.equal(capped.moreCount, 14);
-  assert.equal(moreLine(14, true), 'and 14 more · full list in the link below');
-  assert.equal(moreLine(14, false), 'and 14 more');
-  assert.equal(moreLine(0, true), null);
+  const balanced = shareColumns(ranked);
+  assert.equal(balanced.layout, 'balanced', '15 positives pass the limit');
+  assert.equal(balanced.left.length, 15);
+  assert.equal(balanced.right.length, 15);
+  assert.equal(balanced.left[0].points, 500);
+  assert.equal(balanced.left[14].points, 360, 'the one ranked order runs down the left…');
+  assert.equal(balanced.right[0].points, -10, '…and continues on the right, closest to zero first');
+  assert.equal(balanced.right[14].points, -150);
+
+  const twenty = Array.from({ length: 20 }, (_, index) => ({ id: `t${index}`, name: `T${index}`, points: index < 3 ? 300 - index * 50 : -(index - 2) * 10, games: 1, place: index + 1 }));
+  const lopsided = shareColumns(rankScores(twenty, twenty.map((row) => ({ id: row.id, name: row.name })), new Map()));
+  assert.equal(lopsided.layout, 'balanced', '3 winners and 17 others would make the right column 17 rows, so it balances');
+  assert.deepEqual([lopsided.left.length, lopsided.right.length], [10, 10]);
+
+  const ten = Array.from({ length: 20 }, (_, index) => ({ id: `s${index}`, name: `S${index}`, points: index < 10 ? 100 - index : -(index - 9), games: 1, place: index + 1 }));
+  const split = shareColumns(rankScores(ten, ten.map((row) => ({ id: row.id, name: row.name })), new Map()));
+  assert.equal(split.layout, 'split', 'ten a side is the most the split layout holds');
+  assert.ok(split.left.every((row) => row.points > 0) && split.right.every((row) => row.points < 0));
+
   assert.equal(gamesLine(['S12', 'S13'], 'saved', 'Fri, Nov 13 · 9:58 PM'), 'Games S12, S13 · saved Fri, Nov 13 · 9:58 PM');
   assert.equal(gamesLine(['S12'], 'shown', 'x'), 'Game S12 · shown x');
   assert.equal(generatedByLine('Sree Koneru'), 'Generated by SK');
   assert.equal(generatedByLine('  '), null);
   assert.equal(resultLinkText('abc'), 'ezscore.mindweavetech.com/r/abc');
   const card = buildResultsShareCard({ standings: many, games: twoGames, createdAtLabel: 'Fri, Nov 13 · 9:58 PM', resultId: '11111111-0000-4000-8000-000000000000', generatedByName: 'Sree Koneru' });
-  assert.equal(card.positive.length, 8);
-  assert.equal(card.negative[0].points, '-10', 'closest to zero first on the image too');
-  assert.equal(card.moreLine, 'and 14 more · full list in the link below');
+  assert.equal(card.positive.length + card.negative.length, 30, 'every player is on the picture');
+  assert.equal(card.layout, 'balanced');
+  assert.equal(card.negative[0].points, '-10', 'the right column starts where the left left off: closest to zero first');
+  assert.ok(!JSON.stringify(card).includes(' more'), 'no "and N more" anywhere');
+  assert.ok(!JSON.stringify(card).includes('ezscore.mindweavetech.com'), 'the link is not on the picture');
+  assert.ok(!JSON.stringify(card).includes('Saved '), 'no "Saved …" at the top; the games line carries the date');
   assert.ok(!('breakdown' in card), 'no per-game grid on the image');
   assert.ok(!JSON.stringify(card).includes('Sree Koneru'), 'the generator appears by initials only');
 });

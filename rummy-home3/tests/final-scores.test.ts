@@ -18,9 +18,9 @@ const scores = {
   c: [10, -10, 20, 0, 30, -90, 10],
 };
 
-test('heading and footer: "Game S3 Final Scores", "Game S3" footer, never the id, never the word Results', () => {
-  assert.equal(finalScoresHeading(game), 'Game S3 Final Scores');
-  assert.equal(finalScoresHeading({ gameNumber: null }), 'Final Scores');
+test('heading and footer: "Final scores · Game S3", "Game S3" footer, never the id, never the word Results', () => {
+  assert.equal(finalScoresHeading(game), 'Final scores · Game S3');
+  assert.equal(finalScoresHeading({ gameNumber: null }), 'Final scores');
   assert.equal(finalScoresFooter(game), 'Game S3');
   assert.equal(finalScoresFooter({ ...game, gameLabel: 'P3', gameType: 'pool' }), 'Game P3');
   assert.doesNotMatch(finalScoresFooter(game), new RegExp(game.id.slice(-6), 'i'), 'the id and the short code left the sheet');
@@ -72,23 +72,28 @@ test('completion check: balanced rounds pass, an unbalanced round names itself, 
   assert.equal(empty.roundCount, 0);
 });
 
-test('single-game share never says Results; the scorecard menu says Share final scores; the rounds go out as a separate file (PR 8)', () => {
+test('single-game share never says Results; the scorecard menu says Share final scores; the full details go out as a PDF (PR 8, PR 10b buttons)', () => {
   const scorecard = readFileSync(path.join(process.cwd(), 'app/(screens)/games/[id].tsx'), 'utf8');
   assert.match(scorecard, /title="Share final scores"/);
   assert.doesNotMatch(scorecard, /title="Share results"/);
   const page = readFileSync(path.join(process.cwd(), 'app/(screens)/games/final-scores.tsx'), 'utf8');
   assert.doesNotMatch(page, />\s*Share results\s*</i);
-  assert.doesNotMatch(page, /Share full details/i, 'the single game never borrows the results PDF wording');
   assert.match(page, /accessibilityLabel="Share final scores"/, 'the image button keeps its name (Maestro 05 waits for it)');
-  assert.match(page, /shareFinalScoresPdf\(sheet\)/, 'the rounds PDF is a second, smaller button');
-  assert.match(page, /<ShareCardView card=\{sheet\.card\} cardRef=\{shot\} \/>/, 'the picture captured is the standings card');
+  assert.match(page, /accessibilityLabel="Share full details"/, 'the PDF button is "Share full details" (10.11)');
+  assert.doesNotMatch(page, />Back<\/Button>/, 'the header arrow is the only Back');
+  assert.match(page, /shareFinalScoresPdf\(sheet\)/);
+  assert.match(page, /<ShareCardView card=\{sheet\.card\} \/>/, 'the standings card is previewed on screen');
+  assert.match(page, /<OffscreenShareCard card=\{sheet\.card\} cardRef=\{capture\.ref\} onHeight=\{capture\.onHeight\} \/>/, 'and captured from the fixed-width off-screen copy');
+  assert.match(page, /title: sheet \? sheet\.heading : 'Final scores'/, 'the screen title is "Final scores · Game S10"');
+  assert.match(page, /\[styles\.bold, \{ color: colors\.negative \}\]/, 'a non-zero totals line reads red');
 });
 
 test('PR 8 part B: the single-game picture is the standings card; the rounds come in blocks of five players with the total on top', () => {
   const many = Array.from({ length: 7 }, (_, index) => ({ id: `p${index}`, name: `Player ${index + 1}`, playerNo: index + 1 }));
   const manyScores = Object.fromEntries(many.map((player, index) => [player.id, [index === 0 ? 60 : -10, index === 6 ? 60 : -10]]));
   const sheet = buildFinalScoresSheet({ game, players: many, scores: manyScores });
-  assert.equal(sheet.card.title, 'Game S3 Final Scores');
+  assert.equal(sheet.card.title, 'Final scores · Game S3');
+  assert.equal(sheet.card.tone, 'game', 'a game share is marigold, never the results green');
   assert.equal(sheet.card.positive.length, 2, 'two players finished up');
   assert.equal(sheet.card.positive[0].medal, 1, 'gold medal on the top total');
   assert.equal(sheet.card.negative.length, 5);

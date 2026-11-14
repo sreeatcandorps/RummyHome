@@ -57,9 +57,9 @@ tags: [smoke]
       text: "Games in this result"
     direction: DOWN
     timeout: 15000
-# PR 9: the saved result shows Delete this result at its foot (sree saved it) with the one-line
-# consequence under it. Delete → Undo toast → Undo, then Delete on the Past results row → toast
-# runs out → Deleted + Restore → Restore. G's result is back (G Closed) when this flow ends.
+# PR 9 (words PR 10b): the saved result shows Delete this result at its foot (sree saved it) with
+# the one-line consequence under it. Delete → Undo toast → Undo, then Delete again from the result
+# page → toast runs out → Deleted + Restore → Restore. G's result is back (G Closed) when this ends.
 - scrollUntilVisible:
     element:
       id: "result-delete"
@@ -67,7 +67,7 @@ tags: [smoke]
     timeout: 15000
 - assertVisible: "Delete this result"
 - assertVisible:
-    text: ".*back to Completed and can go into a new result. Everyone loses this result; you can restore it for 30 days."
+    text: ".*back to Completed \\(from Closed\\). Everyone loses this result. You can restore it for 30 days from Settings › Hidden & deleted."
 - takeScreenshot: 12c-delete-this-result-button
 - tapOn:
     id: "result-delete"
@@ -88,21 +88,45 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "Past results"
     timeout: 15000
+# PR 10b: the Past results rows carry no Delete chip; Delete lives on the result page only. Open
+# the row, Delete there, let the 10-second toast run out, then Results → Deleted + Restore.
 - scrollUntilVisible:
     element:
-      id: "past-result-delete-.*"
+      id: "past-result-.*"
     direction: DOWN
     timeout: 10000
-- takeScreenshot: 12f-past-results-delete-chip
+- takeScreenshot: 12f-past-results-no-row-delete
 - tapOn:
-    id: "past-result-delete-.*"
+    id: "past-result-.*"
 - extendedWaitUntil:
-    visible: "Result deleted · its games are Completed again"
-    timeout: 15000
-- takeScreenshot: 12g-row-deleted-toast
-- extendedWaitUntil:
-    notVisible: "Result deleted · its games are Completed again"
+    visible: "Scores"
     timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "result-code"
+    direction: DOWN
+    timeout: 15000
+- assertVisible: "Unique result ID · .*"
+- takeScreenshot: 12f2-result-foot-unique-id
+- scrollUntilVisible:
+    element:
+      id: "result-delete"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "result-delete"
+- extendedWaitUntil:
+    visible: "Result deleted · .* Completed again"
+    timeout: 15000
+- takeScreenshot: 12g-deleted-toast-runs-out
+- extendedWaitUntil:
+    notVisible: "Result deleted · .* Completed again"
+    timeout: 20000
+- launchApp
+- tapOn: "Results"
+- extendedWaitUntil:
+    visible: "Past results"
+    timeout: 15000
 - scrollUntilVisible:
     element:
       id: "deleted-result-restore-.*"

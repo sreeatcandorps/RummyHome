@@ -7,9 +7,11 @@ import { RoundBlock } from '@/utils/resultsDetails';
 
 /**
  * One game's rounds, five players to a block, with the game total in each column head
- * (PR 8 design, the same shape as the "Round by round" pages of the results PDF). This is
- * the on-screen preview; the shared picture is the standings card and the rounds go in
- * the PDF, so nothing here needs to fit a 720 px image.
+ * (PR 8 design, the same shape as the "Round by round" pages of the results PDF). PR 10b:
+ * every block uses the five-player column width, so a short last block is left-aligned
+ * instead of stretched, and Player IDs live in the legend ("HG Harish · #40"), not in the
+ * heads. This is the on-screen preview; the shared picture is the standings card and the
+ * rounds go in the PDF.
  */
 export function FinalScoresView({ sheet }: { sheet: FinalScoresSheet }) {
   const { colors } = useAppTheme();
@@ -31,6 +33,7 @@ export function FinalScoresView({ sheet }: { sheet: FinalScoresSheet }) {
             {index > 0 ? '  ·  ' : ''}
             <Text variant="bodySmall" style={[styles.legendInitials, { color: colors.onSurface }]}>{initials}</Text>
             {' '}{table.names[index]}
+            {table.playerNos?.[index] != null ? ` · #${table.playerNos[index]}` : ''}
           </Text>
         ))}
       </Text>
@@ -51,7 +54,6 @@ function RoundBlockView({ block, title, testID }: { block: RoundBlock; title: st
         {block.heads.map((head, index) => (
           <View key={index} style={[styles.cell, styles.headCell, index > 0 && [styles.leftLine, line]]}>
             <Text style={[styles.initials, { color: colors.onSurface }]} numberOfLines={1}>{head.initials}</Text>
-            {head.playerNo != null ? <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>{`#${head.playerNo}`}</Text> : null}
             <Text style={[styles.total, tabularNums, { color: head.total.startsWith('-') ? colors.negative : colors.onSurface }]} numberOfLines={1}>{head.total}</Text>
           </View>
         ))}
@@ -87,7 +89,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: StyleSheet.hairlineWidth },
   headRow: { borderBottomWidth: 2 },
   roundCell: { width: 40, paddingHorizontal: 6, alignSelf: 'center' },
-  cell: { flex: 1, flexBasis: 0, minWidth: 0, paddingVertical: 4, paddingHorizontal: 4, alignItems: 'flex-end', justifyContent: 'center' },
+  cell: { width: `${100 / ROUND_BLOCK}%` as `${number}%`, minWidth: 0, paddingVertical: 4, paddingHorizontal: 4, alignItems: 'flex-end', justifyContent: 'center' },
   headCell: { alignItems: 'center', paddingVertical: 6 },
   leftLine: { borderLeftWidth: StyleSheet.hairlineWidth },
   initials: { fontWeight: '800', fontSize: 14 },

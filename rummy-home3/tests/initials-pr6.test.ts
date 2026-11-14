@@ -67,13 +67,14 @@ test('6.1: the two cells — one letter, then one or two letters or digits', () 
   assert.match(initialsCellsProblem('', '')!, /one letter, then one or two more/);
 });
 
-test('row cap: three rows per visit, title and heading, no delete on the screen', () => {
+test('row cap: three rows per visit, title and heading; Delete only for rows saved this visit (PR 10b)', () => {
   assert.equal(NEW_PLAYER_ROWS_MAX, 3);
   const screen = read('app/(screens)/players/add.tsx');
-  assert.match(screen, /Add new players by initials, \$\{NEW_PLAYER_ROWS_MAX\} at a time/);
+  assert.match(screen, /export const ADD_PLAYERS_HEADING = 'Add new players by initials';/, 'PR 10b heading (Q10.7)');
   assert.match(screen, /Array\.from\(\{ length: NEW_PLAYER_ROWS_MAX \}, blank\)/);
   assert.doesNotMatch(screen, /blank\(\)\]/, 'no fourth row is ever appended');
-  assert.doesNotMatch(screen, /delete-outline|deleteNewPlayer/, 'no delete on this screen');
+  assert.doesNotMatch(screen, /deleteNewPlayer/, 'no per-row delete icon in the grid');
+  assert.match(screen, /onDelete=\{deleteRow\}/, 'the editor dialog offers Delete for a row saved this visit (Q10.8)');
   assert.match(screen, /createPlayerByInitials\(ownerId, row\.first \+ row\.last\)/, 'the initials are cell 1 + cell 2');
   assert.match(screen, /maxLength=\{1\}/, 'cell 1 holds one character');
   assert.match(screen, /maxLength=\{2\}/, 'cell 2 holds up to two');

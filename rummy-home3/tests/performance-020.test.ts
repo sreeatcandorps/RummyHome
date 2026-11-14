@@ -194,16 +194,16 @@ test('round entry seeds its grid from the cached game and seats', () => {
 
 // ---------- screens (M5, M6, Q6) ----------
 
-test('Home draws the Recent rows with a FlatList and still shows every live game, with no paging and no new filter', () => {
+test('Home draws the Recent rows with a FlatList and still shows every live game; Recent pages by a Show more row (PR 10b), never by scroll', () => {
   const screen = src('app/(tabs)/index.tsx');
   assert.match(screen, /<ScreenList\s/);
-  assert.match(screen, /data=\{finished\}/);
+  assert.match(screen, /data=\{shownFinished\}/);
   assert.match(screen, /live\.map\(\(game\) => <HomeGameRow/);
-  assert.doesNotMatch(screen, /Show more/);
-  assert.doesNotMatch(screen, /onEndReached/);
+  assert.match(screen, /testID="home-recent-show-more"/);
+  assert.doesNotMatch(screen, /onEndReached/, 'no infinite scroll; the person asks for more');
   assert.doesNotMatch(screen, /Chip/);
   assert.match(screen, /part="top"/);
-  assert.match(screen, /<SectionCardEnd \/>/);
+  assert.match(screen, /<SectionCardEnd style=\{recentStyle\} \/>/);
 });
 
 test('the split Recent card adds up to the whole card: head open at the bottom, rows with the gap, closing edge with the padding', () => {

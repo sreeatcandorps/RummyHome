@@ -242,10 +242,22 @@ function pad2(value: number): string {
 }
 
 /** Readable PDF name: EZScore-Rummy-Results-YYYY-MM-DD-HHmm.pdf (local time). */
-export function resultsPdfFileName(value: string | Date = new Date()): string {
+/** "2026-11-13" for file names. */
+export function fileDate(value: string | Date = new Date()): string {
   const date = value instanceof Date ? value : new Date(value);
   const safe = Number.isNaN(date.getTime()) ? new Date() : date;
-  return `EZScore-Rummy-Results-${safe.getFullYear()}-${pad2(safe.getMonth() + 1)}-${pad2(safe.getDate())}-${pad2(safe.getHours())}${pad2(safe.getMinutes())}.pdf`;
+  return `${safe.getFullYear()}-${pad2(safe.getMonth() + 1)}-${pad2(safe.getDate())}`;
+}
+
+/** "EZScore-Results-B3ADDD-2026-11-13.pdf" (PR 10b); a preview, with no ID yet, says "preview". */
+export function resultsPdfFileName(resultId: string | null | undefined, value: string | Date = new Date()): string {
+  return `EZScore-Results-${resultId ? resultShortId(resultId) : 'preview'}-${fileDate(value)}.pdf`;
+}
+
+/** "EZScore-Game-S10-2026-11-13.pdf" for a single game's PDF. */
+export function gamePdfFileName(label: string | null | undefined, value: string | Date = new Date()): string {
+  const safe = (label ?? '').replace(/[^A-Za-z0-9]+/g, '');
+  return `EZScore-Game-${safe || 'rounds'}-${fileDate(value)}.pdf`;
 }
 
 /** "3 games · 6 players" */
@@ -353,7 +365,7 @@ export function resultShortId(resultId: string): string {
 
 /** The last line on every consolidated share: image, PDF, preview. */
 export function resultFooter(input: { resultId?: string | null; preview?: boolean }): string {
-  if (input.resultId) return `Result ID · ${resultShortId(input.resultId)}`;
+  if (input.resultId) return `Unique result ID · ${resultShortId(input.resultId)}`;
   return input.preview ? 'Preview · not saved' : 'Results';
 }
 

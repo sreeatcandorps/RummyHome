@@ -2,19 +2,18 @@ import { Platform, Share, View } from 'react-native';
 import { ShareCard, ShareLine } from '@/utils/shareCard';
 import { placeLine, ScorecardSheet } from '@/utils/scorecardSheet';
 import { FINAL_SCORES_FILE, FinalScoresSheet } from '@/utils/finalScoresSheet';
+import { SHARE_IMAGE_WIDTH, sharePalette } from '@/components/share/ShareCardView';
 
 export const IMAGE_READY = 'Image ready.';
 
+/** The web canvas is laid out in 720 px units and scaled to SHARE_IMAGE_WIDTH, like the phone capture. */
 const CARD_W = 720;
 const CARD_PAD = 24;
 const INNER_PAD = 28;
-const FRAME = '#15803D';
-const ON_FRAME = '#FFFFFF';
 const INK = '#17201B';
 const MUTED = '#4E5752';
 const LINE = '#DCDDD5';
 const NEG = '#A8201A';
-const NOTE_BG = '#FFE38A';
 const ON_NOTE = '#3F2D00';
 const MEDAL: Record<1 | 2 | 3, { bg: string; fg: string }> = {
   1: { bg: '#F6C84C', fg: '#3F2D00' },
@@ -44,23 +43,24 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
   return lines;
 }
 
-/** Height of one scores line: two name lines at most, plus the sub line. */
-function lineHeight(ctx: CanvasRenderingContext2D, line: ShareLine, nameWidth: number): number {
-  ctx.font = '700 22px sans-serif';
-  const names = wrapText(ctx, line.name, nameWidth, 2).length;
-  return 12 + names * 26 + (line.sub ? 18 : 0);
+/** Height of one scores line: one name line (ellipsis past the width), plus the sub line. */
+function lineHeight(line: ShareLine): number {
+  return 12 + 26 + (line.sub ? 18 : 0);
 }
 
 /**
- * Web twin of ShareCardView: green frame, white card, the scores in two columns with
- * drawn medals, the games line, who generated it, and the link in the frame's foot.
+ * Web twin of ShareCardView: the tone's frame (green results, marigold game), white card,
+ * every player in two columns with drawn medals, the games line, who generated it, and
+ * the ID line in the frame's foot. Drawn at 720 units, output SHARE_IMAGE_WIDTH px wide.
  */
 export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   if (typeof document === 'undefined') throw new Error('Could not make the image.');
+  const palette = sharePalette(card.tone);
+  const scale = SHARE_IMAGE_WIDTH / CARD_W;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not make the image.');
-  canvas.width = CARD_W;
+  canvas.width = SHARE_IMAGE_WIDTH;
 
   const cardX = CARD_PAD;
   const cardW = CARD_W - CARD_PAD * 2;
@@ -72,16 +72,18 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   ctx.font = '600 14px sans-serif';
   const noteLines = (card.notes ?? []).map((note) => wrapText(ctx, note, cardW - INNER_PAD * 2 - 20, 3));
   const notesH = noteLines.reduce((sum, lines) => sum + lines.length * 18 + 16, 0);
-  const colH = (lines: ShareLine[]) => (lines.length === 0 ? 34 : lines.reduce((sum, line) => sum + lineHeight(ctx, line, nameWidth), 0));
+  const colH = (lines: ShareLine[]) => (lines.length === 0 ? 34 : lines.reduce((sum, line) => sum + lineHeight(line), 0));
   const columnsH = Math.max(colH(card.positive), colH(card.negative));
   ctx.font = '600 16px sans-serif';
   const gamesLines = card.gamesLine ? wrapText(ctx, card.gamesLine, cardW - INNER_PAD * 2, 3) : [];
-  const tailH = (card.evenLine ? 24 : 0) + (card.moreLine ? 24 : 0) + (gamesLines.length ? gamesLines.length * 22 + 10 : 0) + (card.generatedBy ? 22 : 0);
+  const tailH = (card.evenLine ? 24 : 0) + (gamesLines.length ? gamesLines.length * 22 + 10 : 0) + (card.generatedBy ? 22 : 0);
   const headH = 56;
   const cardTop = headH;
   const cardH = INNER_PAD + 40 + (card.summary ? 30 : 0) + notesH + 12 + columnsH + 12 + tailH + INNER_PAD;
-  const footH = card.footer || card.link ? 44 : 20;
-  canvas.height = Math.max(360, cardTop + cardH + footH + CARD_PAD);
+  const footH = card.footer ? 44 : 20;
+  const totalH = Math.max(360, cardTop + cardH + footH + CARD_PAD);
+  canvas.height = Math.round(totalH * scale);
+  ctx.scale(scale, scale);
 
   const paint = (text: string, x: number, y: number, color: string, font: string, align: CanvasTextAlign = 'left') => {
     ctx.fillStyle = color;
@@ -104,20 +106,20 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   };
 
   // Frame and header.
-  ctx.fillStyle = FRAME;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  paint(card.brand, CARD_PAD + 6, 36, ON_FRAME, '800 24px sans-serif');
-  ctx.font = '600 16px sans-serif';
-  const dateText = ctx.measureText(card.date).width > cardW / 2 ? wrapText(ctx, card.date, cardW / 2, 1)[0] : card.date;
-  paint(dateText, CARD_W - CARD_PAD - 6, 36, 'rgba(255,255,255,0.85)', '600 16px sans-serif', 'right');
+  ctx.fillStyle = palette.frame;
+  ctx.fillRect(0, 0, CARD_W, totalH);
+  paint(card.brand, CARD_PAD + 6, 36, palette.onFrame, '800 24px sans-serif');
+  if (card.date) {
+    ctx.font = '600 16px sans-serif';
+    const dateText = ctx.measureText(card.date).width > cardW / 2 ? wrapText(ctx, card.date, cardW / 2, 1)[0] : card.date;
+    paint(dateText, CARD_W - CARD_PAD - 6, 36, palette.onFrameMuted, '600 16px sans-serif', 'right');
+  }
 
   // Card.
   roundRect(cardX, cardTop, cardW, cardH, 18, '#FFFFFF');
   let y = cardTop + INNER_PAD + 30;
   const left = cardX + INNER_PAD;
-  const right = cardX + cardW - INNER_PAD;
   paint(card.title, left, y, INK, '800 34px sans-serif');
-  if (card.code) paint(card.code, right, y, MUTED, '600 18px sans-serif', 'right');
   y += 10;
   if (card.summary) {
     y += 26;
@@ -127,7 +129,7 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   noteLines.forEach((lines) => {
     y += 8;
     const h = lines.length * 18 + 8;
-    roundRect(left, y, cardW - INNER_PAD * 2, h, 8, NOTE_BG);
+    roundRect(left, y, cardW - INNER_PAD * 2, h, 8, palette.note);
     lines.forEach((line, index) => paint(line, left + 10, y + 18 + index * 18, ON_NOTE, '600 14px sans-serif'));
     y += h;
   });
@@ -140,9 +142,9 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
       return;
     }
     lines.forEach((line) => {
-      const h = lineHeight(ctx, line, nameWidth);
+      const h = lineHeight(line);
       ctx.font = '700 22px sans-serif';
-      const names = wrapText(ctx, line.name, nameWidth, 2);
+      const names = wrapText(ctx, line.name, nameWidth - (line.medal ? 30 : 0), 1);
       let nameX = x;
       let textY = cy + 26;
       if (line.medal) {
@@ -169,7 +171,6 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
 
   const centre = cardX + cardW / 2;
   if (card.evenLine) { y += 18; paint(card.evenLine, left, y, MUTED, '600 15px sans-serif'); y += 6; }
-  if (card.moreLine) { y += 18; paint(card.moreLine, centre, y, MUTED, '600 15px sans-serif', 'center'); y += 6; }
   if (gamesLines.length) {
     y += 10;
     gamesLines.forEach((line) => { y += 20; paint(line, centre, y, MUTED, '600 16px sans-serif', 'center'); });
@@ -177,8 +178,7 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   }
   if (card.generatedBy) { y += 20; paint(card.generatedBy, centre, y, MUTED, '600 15px sans-serif', 'center'); }
 
-  const foot = [card.footer, card.link ? `Full details · ${card.link}` : null].filter(Boolean).join('   ');
-  if (foot) paint(foot, centre, cardTop + cardH + 30, ON_FRAME, '700 16px sans-serif', 'center');
+  if (card.footer) paint(card.footer, centre, cardTop + cardH + 30, palette.onFrame, '700 16px sans-serif', 'center');
   return canvas;
 }
 
@@ -208,10 +208,13 @@ async function shareWeb(card: ShareCard): Promise<string> {
   return IMAGE_READY;
 }
 
-async function shareNative(view: View | null, card: ShareCard): Promise<string> {
+/** Pixel size of the capture: fixed SHARE_IMAGE_WIDTH wide so every phone sends the same picture. */
+export type CaptureSize = { width: number; height: number };
+
+async function shareNative(view: View | null, card: ShareCard, size?: CaptureSize): Promise<string> {
   if (!view) throw new Error('Could not make the image.');
   const { captureRef } = await import('react-native-view-shot');
-  const uri = await captureRef(view, { format: 'png', quality: 1, result: 'tmpfile' });
+  const uri = await captureRef(view, { format: 'png', quality: 1, result: 'tmpfile', ...(size ?? {}) });
   const Sharing = await import('expo-sharing');
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: card.brand, UTI: 'public.png' });
@@ -369,11 +372,11 @@ export async function shareScorecardImage(sheet: ScorecardSheet, view: View | nu
   }
 }
 
-/** A picture for WhatsApp or a text. Web draws the card. The phone captures the same card. */
-export async function shareCardImage(view: View | null, card: ShareCard): Promise<string> {
+/** A picture for WhatsApp or a text. Web draws the card. The phone captures the off-screen fixed-width card. */
+export async function shareCardImage(view: View | null, card: ShareCard, size?: CaptureSize): Promise<string> {
   try {
     if (Platform.OS === 'web') return await shareWeb(card);
-    return await shareNative(view, card);
+    return await shareNative(view, card, size);
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     if (/cancel|abort|dismiss/i.test(message)) return IMAGE_READY;
@@ -381,13 +384,13 @@ export async function shareCardImage(view: View | null, card: ShareCard): Promis
   }
 }
 
-/** The "Final scores" picture of one game: standings only (PR 8). Web draws the card; the phone captures the ShareCardView. */
-export async function shareFinalScoresImage(sheet: FinalScoresSheet, view: View | null): Promise<string> {
+/** The "Final scores" picture of one game: standings only (PR 8). Web draws the card; the phone captures the off-screen ShareCardView. */
+export async function shareFinalScoresImage(sheet: FinalScoresSheet, view: View | null, size?: CaptureSize): Promise<string> {
   try {
     if (Platform.OS === 'web') return await shareDrawnImage(drawShareCard(sheet.card).toDataURL('image/png'), FINAL_SCORES_FILE, sheet.heading);
     if (!view) throw new Error('Could not make the image.');
     const { captureRef } = await import('react-native-view-shot');
-    const uri = await captureRef(view, { format: 'png', quality: 1, result: 'tmpfile' });
+    const uri = await captureRef(view, { format: 'png', quality: 1, result: 'tmpfile', ...(size ?? {}) });
     const Sharing = await import('expo-sharing');
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: sheet.heading, UTI: 'public.png' });

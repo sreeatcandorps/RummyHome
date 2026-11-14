@@ -44,7 +44,7 @@ test('H5-3 Home: Results and My players side by side where Results was; cards, l
   assert.match(home, /playersService\.listMyPlayers\(home\.player\.id\)/, 'then the fresh one');
   // Sree (Nov 13): only the buttons change. The cards, the Live / Recent headers and the New game button stay.
   assert.match(home, /title=\{live\.length \? `Live · \$\{live\.length\}` : 'Live'\}/);
-  assert.match(home, /const recentTitle = finished\.length \? `Recent · \$\{finished\.length\}` : 'Recent';/);
+  assert.match(home, /const recentTitle = 'Recent';/, 'PR 10b: no count in the Recent title (Q10.1)');
   assert.match(home, /const recentSupporting = 'Completed and Closed games, newest first\.';/);
   assert.match(home, /<GameListItem game=\{game\} viewerId=\{viewerId\} onPress=\{\(\) => openGame\(game\.id\)\} \/>/);
   assert.match(home, /style=\{styles\.newGame\}/);
