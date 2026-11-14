@@ -28,9 +28,15 @@ tags: [smoke]
     id: "game-type-pool"
 - assertVisible: "Re-entry"
 - assertVisible: "You can also set these defaults in Settings."
-- assertVisible: "Sree Test"
-- assertVisible: "Zed Zero"
 - takeScreenshot: 16c-game-type-pool
+# The picked players sit under the settings card, below the fold on a phone.
+- scrollUntilVisible:
+    element:
+      text: "Zed Zero"
+    direction: DOWN
+    timeout: 15000
+- assertVisible: "Sree Test"
+- takeScreenshot: 16d-game-type-pool-players
 - tapOn:
     id: "start-game"
 # Harish and Priya are registered, so the co-admin nudge asks once; Skip starts without one.
