@@ -71,19 +71,19 @@ export function SectionCard({
 }
 
 /** One row's worth of a split card: the side edges around the content. */
-export function SectionCardRows({ children }: { children?: React.ReactNode }) {
+export function SectionCardRows({ children, style }: { children?: React.ReactNode; style?: ViewStyle }) {
   const theme = useAppTheme();
   return (
-    <View style={[styles.rows, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
+    <View style={[styles.rows, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }, style]}>
       {children}
     </View>
   );
 }
 
 /** The closing edge of a split card. */
-export function SectionCardEnd() {
+export function SectionCardEnd({ style }: { style?: ViewStyle }) {
   const theme = useAppTheme();
-  return <View style={[styles.end, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]} />;
+  return <View style={[styles.end, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }, style]} />;
 }
 
 const BORDER = StyleSheet.hairlineWidth * 2;

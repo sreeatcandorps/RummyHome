@@ -11,7 +11,8 @@ import { playersService } from '@/services/players';
 import { myPlayersAccessibilityLabel, myPlayersBadge } from '@/utils/homeButtons';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { settleEnabled } from '@/constants/features';
-import { splitHomeGames } from '@/utils/homeGames';
+import { HOME_GAME_LIMIT } from '@/services/home';
+import { RECENT_PAGE, recentPaging, splitHomeGames } from '@/utils/homeGames';
 import { LINK_COMPLETE_TITLE, LinkOutcome, linkCompleteMessage, LinkRequestForMe } from '@/utils/linkPlayer';
 import { PendingLink } from '@/utils/playerIdentity';
 import { Screen, ScreenList } from '@/components/ui/Screen';
@@ -42,6 +43,10 @@ export default function Dashboard() {
   const { isWide } = useLayout();
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [recentGames, setRecentGames] = useState<Game[]>([]);
+  // PR 10b (Q10.4): Recent draws RECENT_PAGE games, then more per "Show more" tap; a short page from the server ends it.
+  const [recentShown, setRecentShown] = useState(RECENT_PAGE);
+  const [mayHaveMore, setMayHaveMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [claimRequests, setClaimRequests] = useState<PendingLink[] | null>(null);
   const [linkRequests, setLinkRequests] = useState<LinkRequestForMe[] | null>(null);
   // The My players button's badge (PR 5, D5.3): cached count at once, then the fresh one.
@@ -66,6 +71,7 @@ export default function Dashboard() {
       }
       setCurrentPlayer(home.player);
       setRecentGames(home.games);
+      setMayHaveMore(home.games.length >= HOME_GAME_LIMIT);
       playersService.readMyPlayers(home.player.id)
         .then((cached) => { if (cached.length > 0) setPlayerCount(cached.length); })
         .then(() => playersService.listMyPlayers(home.player.id))
@@ -92,13 +98,38 @@ export default function Dashboard() {
   }, [loadData]));
 
   const { live, recent: finished } = useMemo(() => splitHomeGames(recentGames), [recentGames]);
+  const paging = recentPaging(finished.length, recentShown, mayHaveMore);
+  const shownFinished = useMemo(() => finished.slice(0, paging.visible), [finished, paging.visible]);
+  const showMore = useCallback(async () => {
+    if (paging.action === 'reveal') {
+      setRecentShown((cur) => Math.max(cur, paging.visible) + RECENT_PAGE);
+      return;
+    }
+    if (paging.action !== 'fetch' || !currentPlayer || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const more = await homeService.loadMore(currentPlayer, recentGames.length);
+      setMayHaveMore(more.length >= HOME_GAME_LIMIT);
+      if (more.length) {
+        setRecentGames((cur) => {
+          const seen = new Set(cur.map((game) => game.id));
+          return [...cur, ...more.filter((game) => !seen.has(game.id))];
+        });
+        setRecentShown((cur) => Math.max(cur, paging.visible) + RECENT_PAGE);
+      }
+    } catch (error) {
+      addNotice(formatSupabaseError(error));
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [paging.action, paging.visible, currentPlayer, loadingMore, recentGames.length, addNotice]);
   const firstName = currentPlayer?.name?.split(' ')[0] || 'there';
   const viewerId = currentPlayer?.id;
   const renderRecent = useCallback(({ item }: { item: Game }) => (
-    <SectionCardRows>
+    <SectionCardRows style={{ backgroundColor: colors.surfaceVariant }}>
       <HomeGameRow game={item} viewerId={viewerId} />
     </SectionCardRows>
-  ), [viewerId]);
+  ), [viewerId, colors.surfaceVariant]);
 
   // PR 5: Results and My players side by side where Results was; the bottom bar is Home and Profile.
   const badge = myPlayersBadge(playerCount);
@@ -160,15 +191,32 @@ export default function Dashboard() {
     </SectionCard>
   );
 
-  const recentTitle = finished.length ? `Recent · ${finished.length}` : 'Recent';
+  // Sree (Nov 14): no count in the Recent title; the card sits on a grey surface so Live reads as the thing to tap.
+  const recentTitle = 'Recent';
   const recentSupporting = 'Completed and Closed games, newest first.';
+  const recentStyle = { backgroundColor: colors.surfaceVariant };
   const noFinished = <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>No finished games yet.</Text>;
+  const showMoreRow = paging.action === 'none' ? null : (
+    <Button
+      mode="text"
+      icon="chevron-down"
+      loading={loadingMore}
+      disabled={loadingMore}
+      onPress={showMore}
+      style={styles.showMore}
+      accessibilityLabel={paging.action === 'reveal' ? `Show ${Math.min(RECENT_PAGE, paging.hidden)} more games` : 'Show more games'}
+      testID="home-recent-show-more"
+    >
+      {paging.action === 'reveal' ? `Show ${Math.min(RECENT_PAGE, paging.hidden)} more` : 'Show more'}
+    </Button>
+  );
 
   const recent = (
-    <SectionCard title={recentTitle} icon="history" supportingText={recentSupporting}>
+    <SectionCard title={recentTitle} icon="history" supportingText={recentSupporting} style={recentStyle}>
       {finished.length === 0 ? noFinished : (
-        finished.map((game) => <HomeGameRow key={game.id} game={game} viewerId={viewerId} />)
+        shownFinished.map((game) => <HomeGameRow key={game.id} game={game} viewerId={viewerId} />)
       )}
+      {showMoreRow}
     </SectionCard>
   );
 
@@ -250,7 +298,7 @@ export default function Dashboard() {
   // Recent card is split into its head (header), rows, and closing edge (footer).
   return (
     <ScreenList
-      data={finished}
+      data={shownFinished}
       keyExtractor={(game) => game.id}
       renderItem={renderRecent}
       extraData={viewerId}
@@ -265,14 +313,16 @@ export default function Dashboard() {
             {settleButton}
             {liveCard}
             <View style={styles.sectionGap} />
-            <SectionCard title={recentTitle} icon="history" supportingText={recentSupporting} part="top" />
+            <SectionCard title={recentTitle} icon="history" supportingText={recentSupporting} part="top" style={recentStyle} />
           </View>
         </>
       )}
       footer={(
         <>
-          {finished.length === 0 ? <SectionCardRows>{noFinished}</SectionCardRows> : null}
-          <SectionCardEnd />
+          {finished.length === 0 ? <SectionCardRows style={recentStyle}>{noFinished}</SectionCardRows> : null}
+          {showMoreRow ? <SectionCardRows style={recentStyle}>{showMoreRow}</SectionCardRows> : null}
+          <SectionCardEnd style={recentStyle} />
+          <View style={styles.listTail} />
         </>
       )}
     />
@@ -303,7 +353,6 @@ const styles = StyleSheet.create({
   results: {
     flex: 1,
     marginBottom: spacing.lg,
-    borderRadius: 16,
   },
   badge: {
     position: 'absolute',
@@ -337,6 +386,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   sectionGap: { height: spacing.md },
+  showMore: { alignSelf: 'center' },
+  // The last Recent row clears the bottom bar (Sree, Nov 14: the list's last line was clipped).
+  listTail: { height: spacing.xl },
   columns: {
     flexDirection: 'row',
     gap: spacing.lg,

@@ -42,3 +42,30 @@ export function isWithinLastDays(value: string, days: number, now = new Date()):
   if (Number.isNaN(date.getTime())) return false;
   return date.getTime() >= now.getTime() - days * 24 * 60 * 60 * 1000;
 }
+
+/** Recent shows this many games at first and reveals this many more per "Show more" tap (PR 10b, Q10.4). */
+export const RECENT_PAGE = 20;
+
+export type RecentPaging = {
+  /** How many Recent rows to draw. */
+  visible: number;
+  /**
+   * What the Show more control does: `reveal` draws more of the games already loaded,
+   * `fetch` asks the server for the next page, `none` hides the control (every game is shown).
+   */
+  action: 'reveal' | 'fetch' | 'none';
+  /** Games not yet drawn, counting only the ones already loaded. */
+  hidden: number;
+};
+
+/**
+ * Pure paging rule: reveal from what Home already has (one round-trip on open), and only
+ * when that runs out ask for the next page — unless the last page was short, which means
+ * the server has nothing more.
+ */
+export function recentPaging(finishedCount: number, shown: number, mayHaveMore: boolean): RecentPaging {
+  const visible = Math.min(Math.max(shown, RECENT_PAGE), finishedCount);
+  const hidden = finishedCount - visible;
+  if (hidden > 0) return { visible, action: 'reveal', hidden };
+  return { visible, action: mayHaveMore ? 'fetch' : 'none', hidden: 0 };
+}

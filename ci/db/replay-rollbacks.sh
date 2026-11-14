@@ -24,7 +24,17 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 039 (initials: any free 2–3 characters, first a letter; rolled back first)
+# 040 (own initials + round-gap repair; rolled back first)
+HAS_040=f
+if [ -f "$RB/rollback_040_own_initials_and_round_gaps.sql" ]; then
+  HAS_040=t
+  if apply "$RB/rollback_040_own_initials_and_round_gaps.sql"; then tap ok "rollback_040 applies"; else tap fail "rollback_040 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists set_my_initials)" = f ] && [ "$(fn_has seat_default_label 'p.initials')" = f ] \
+    && tap ok "after rollback_040 set_my_initials is gone and the creator's seat derives from the name (022 rule)" \
+    || tap fail "after rollback_040 set_my_initials should be gone and seat_default_label back to 022"
+fi
+
+# 039 (initials: any free 2–3 characters, first a letter)
 HAS_039=f
 if [ -f "$RB/rollback_039_initials_rules.sql" ]; then
   HAS_039=t
@@ -375,6 +385,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_037" = t ] && FORWARD="$FORWARD 037_rummy_negative_share"
 [ "$HAS_038" = t ] && FORWARD="$FORWARD 038_game_numbers_active"
 [ "$HAS_039" = t ] && FORWARD="$FORWARD 039_initials_rules"
+[ "$HAS_040" = t ] && FORWARD="$FORWARD 040_own_initials_and_round_gaps"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -499,6 +510,10 @@ fi
 if [ "$HAS_039" = t ]; then
   [ "$(fn_exists create_player_by_initials)" = t ] && [ "$(fn_has set_my_player_initials '[A-Z][A-Z0-9]{1,2}')" = t ] \
     && tap ok "039 restored (editors accept a trailing digit; add by initials is back)" || tap fail "039 restored"
+fi
+if [ "$HAS_040" = t ]; then
+  [ "$(fn_exists set_my_initials)" = t ] && [ "$(fn_exists repair_round_gaps)" = t ] && [ "$(fn_has seat_default_label 'p.initials')" = t ] \
+    && tap ok "040 restored (set_my_initials, repair_round_gaps, own-seat initials)" || tap fail "040 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

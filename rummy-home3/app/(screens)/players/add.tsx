@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, TextInput as NativeTextInput, View } from 'react-native';
-import { Portal, Text, TextInput } from 'react-native-paper';
+import { NativeSyntheticEvent, Platform, ScrollView, StyleSheet, TextInput as NativeTextInput, TextInputKeyPressEventData, View } from 'react-native';
+import { Dialog, Portal, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
@@ -46,9 +46,16 @@ type Row = {
 
 export const DEFAULT_NEW_PLAYER_ROWS = NEW_PLAYER_ROWS_MAX;
 export const ADD_PLAYERS_TITLE = 'Add new players';
-export const ADD_PLAYERS_HEADING = `Add new players by initials, ${NEW_PLAYER_ROWS_MAX} at a time`;
-export const CELL_HINT = 'Cell 1: one letter, jumps on. Cell 2: one or two letters.';
-export const NO_DELETE_NOTE = 'No delete here — remove a player from the previous screen. Edit lets you type any free 2–3 characters; the first must be a letter.';
+// PR 10b (Q10.7): the heading no longer counts rows; the cells carry F / L placeholders instead of a sentence.
+export const ADD_PLAYERS_HEADING = 'Add new players by initials';
+export const ADD_PLAYERS_SUBLINE = 'First-name initial · Last-name initial';
+export const FIRST_PLACEHOLDER = 'F';
+export const LAST_PLACEHOLDER = 'L';
+export const EDIT_NOTE = 'Edit lets you type any free 2–3 characters; the first must be a letter. Delete removes a player you added here from My players.';
+/** Done with letters still unsaved (Q10.9): "2 of 3 players saved. 1 row has letters you have not saved." */
+export function unsavedSummary(saved: number, unsaved: number): string {
+  return `${saved} of ${NEW_PLAYER_ROWS_MAX} players saved. ${unsaved} ${unsaved === 1 ? 'row has' : 'rows have'} letters you have not saved.`;
+}
 
 let rowSeq = 0;
 const blank = (): Row => ({ key: `row-${Date.now()}-${rowSeq++}`, first: '', last: '', busy: false });
@@ -73,6 +80,7 @@ export default function AddPlayersScreen() {
   const [mine, setMine] = useState<Player[]>([]);
   const [editRow, setEditRow] = useState<Row | null>(null);
   const [savingInitials, setSavingInitials] = useState(false);
+  const [unsavedOpen, setUnsavedOpen] = useState(false);
 
   // The New game behind us owns the seats; we show and edit the same list.
   useEffect(() => {
@@ -154,7 +162,8 @@ export default function AddPlayersScreen() {
     try {
       const made = await playerIdentityService.createPlayerByInitials(ownerId, row.first + row.last);
       if (fromNewGame) newGameDraft.add({ id: made.player.id, name: made.player.name, playerCode: made.player.playerCode });
-      refreshMine(ownerId).catch(() => {});
+      // One round-trip per Save (PR 10b): the new row joins the local list; the server list is read once, on Done.
+      setMine((cur) => (cur.some((player) => player.id === made.player.id) ? cur : [...cur, { ...made.player, initials: made.initials }]));
       // Keep typing: the cursor moves to the next open row; there is no fourth row (3 at a time).
       setRows((all) => {
         const next = all.map((item) => (item.key === row.key ? { ...item, player: made.player, initials: made.initials, takenBy: made.takenBy, busy: false } : item));
@@ -167,13 +176,56 @@ export default function AddPlayersScreen() {
     }
   };
 
-  const done = () => {
+  const leave = () => {
     leaving.current = true;
+    if (ownerId) playersService.listMyPlayers(ownerId, { fresh: true }).catch(() => {});
     router.back();
   };
-
   const savedRows = rows.filter((row) => row.player);
   const savedCount = savedRows.length;
+  const unsavedRows = rows.filter((row) => !row.player && (row.first || row.last));
+  const anyBusy = rows.some((row) => row.busy);
+  // Done with typed-but-unsaved letters asks first (Q10.9); all saved or all empty leaves at once.
+  const done = () => {
+    if (unsavedRows.length > 0) {
+      setUnsavedOpen(true);
+      return;
+    }
+    leave();
+  };
+
+  // Backspace in an empty cell walks back: cell 2 → cell 1 (cleared); row n cell 1 → row n−1 cell 2.
+  const backspaceFrom = (row: Row, cell: 'first' | 'last', index: number) => (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+    if (event.nativeEvent.key !== 'Backspace') return;
+    if (cell === 'last') {
+      if (row.last) return;
+      patch(row.key, { first: '', error: undefined });
+      firstInputs.current[row.key]?.focus();
+      return;
+    }
+    if (row.first || index === 0) return;
+    const above = rows[index - 1];
+    if (above && !above.player && !above.busy) lastInputs.current[above.key]?.focus();
+  };
+
+  // Delete (Q10.8): only rows created on this visit are here, so every saved row may be removed from My players.
+  const deleteRow = async () => {
+    if (!editRow?.player || !ownerId) return;
+    const { player } = editRow;
+    setSavingInitials(true);
+    try {
+      await playersService.removeMyPlayer(ownerId, player.id);
+      if (fromNewGame) newGameDraft.remove(player.id);
+      setMine((cur) => cur.filter((item) => item.id !== player.id));
+      setRows((all) => all.map((item) => (item.key === editRow.key ? { ...blank(), key: item.key } : item)));
+      setEditRow(null);
+    } catch (err) {
+      patch(editRow.key, { error: err instanceof Error ? err.message : formatSupabaseError(err) });
+      setEditRow(null);
+    } finally {
+      setSavingInitials(false);
+    }
+  };
   const initialsOf = assignInitials(mine.map((player) => ({ id: player.id, name: player.name, initials: player.initials, addedAt: player.addedAt })));
   const takenFor = (except: Player) => new Map(mine.filter((player) => player.id !== except.id).map((player) => [initialsOf.get(player.id) ?? '', player.name] as const).filter(([label]) => label));
 
@@ -203,6 +255,7 @@ export default function AddPlayersScreen() {
         contentContainerStyle={[styles.content, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}
       >
         <Text variant="titleMedium" style={styles.heading} accessibilityRole="header">{ADD_PLAYERS_HEADING}</Text>
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{ADD_PLAYERS_SUBLINE}</Text>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
           {rows.map((row, index) => {
@@ -219,6 +272,9 @@ export default function AddPlayersScreen() {
                     value={row.first}
                     disabled={saved || row.busy}
                     onChangeText={(text) => typedFirst(row, text)}
+                    onKeyPress={backspaceFrom(row, 'first', index)}
+                    placeholder={saved ? undefined : FIRST_PLACEHOLDER}
+                    placeholderTextColor={colors.outline}
                     style={[styles.cell, !saved && { backgroundColor: colors.leaderContainer }]}
                     outlineStyle={{ borderColor: cellBorder, borderWidth: saved ? 1 : 2 }}
                     contentStyle={styles.cellText}
@@ -237,6 +293,9 @@ export default function AddPlayersScreen() {
                     value={row.last}
                     disabled={saved || row.busy}
                     onChangeText={(text) => typedLast(row, text)}
+                    onKeyPress={backspaceFrom(row, 'last', index)}
+                    placeholder={saved ? undefined : LAST_PLACEHOLDER}
+                    placeholderTextColor={colors.outline}
                     style={[styles.cell, styles.cellWide, !saved && { backgroundColor: colors.leaderContainer }]}
                     outlineStyle={{ borderColor: cellBorder, borderWidth: saved ? 1 : 2 }}
                     contentStyle={styles.cellText}
@@ -258,11 +317,9 @@ export default function AddPlayersScreen() {
                         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
                           {row.takenBy ? clashSentence(row.first + row.last, row.takenBy, row.initials!) : 'Saved'}
                         </Text>
-                        {badge ? <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>{badge} · Unregistered</Text> : null}
+                        {badge ? <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>{badge}</Text> : null}
                       </View>
-                    ) : (
-                      <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{CELL_HINT}</Text>
-                    )}
+                    ) : null}
                   </View>
                   {saved ? (
                     <Button mode="outlined" compact onPress={() => setEditRow(row)} style={styles.rowButton} accessibilityLabel={`Edit initials for ${row.player!.name}`}>
@@ -292,7 +349,7 @@ export default function AddPlayersScreen() {
           })}
         </View>
 
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{NO_DELETE_NOTE}</Text>
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{EDIT_NOTE}</Text>
       </ScrollView>
 
       <Portal>
@@ -305,8 +362,20 @@ export default function AddPlayersScreen() {
             busy={savingInitials}
             onDismiss={() => setEditRow(null)}
             onSave={saveInitials}
+            onDelete={deleteRow}
+            deleteConfirm={`Remove ${editRow.initials ?? editRow.player.name} from My players?`}
           />
         ) : null}
+        <Dialog visible={unsavedOpen} onDismiss={() => setUnsavedOpen(false)} style={{ backgroundColor: colors.surface }}>
+          <Dialog.Title>Unsaved letters</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" testID="add-players-unsaved">{unsavedSummary(savedCount, unsavedRows.length)}</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setUnsavedOpen(false)} accessibilityLabel="Go back to the rows">Go back</Button>
+            <Button mode="contained" onPress={() => { setUnsavedOpen(false); leave(); }} accessibilityLabel="Discard unsaved letters">Discard</Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
 
       <BottomBar>
@@ -323,6 +392,7 @@ export default function AddPlayersScreen() {
           <Button
             mode="contained"
             onPress={done}
+            disabled={anyBusy}
             style={styles.done}
             contentStyle={styles.doneContent}
             labelStyle={styles.doneLabel}

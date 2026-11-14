@@ -405,6 +405,27 @@ export const playersService = {
     queryCache.invalidate('myPlayers:');
   },
 
+  /**
+   * The local half of addMyPlayer: the roster copy on this phone learns a row the server
+   * already holds (create_player_by_initials inserts it itself), so no second request goes out.
+   */
+  async rememberMyPlayer(ownerId: string, player: Pick<Player, 'id' | 'name' | 'playerCode'> & { initials?: string }): Promise<void> {
+    const rows = await readRoster();
+    const existing = rows.find((row) => row.ownerId === ownerId && row.playerId === player.id);
+    const without = rows.filter((row) => !(row.ownerId === ownerId && row.playerId === player.id));
+    const next: RosterRow = restoredRow({
+      ownerId,
+      playerId: player.id,
+      gamesTogether: existing?.gamesTogether ?? 0,
+      createdAt: existing?.createdAt ?? new Date().toISOString(),
+      name: player.name,
+      playerCode: player.playerCode,
+      initials: player.initials ?? existing?.initials,
+    }, without);
+    await writeRoster([next, ...without]);
+    this.forgetMyPlayers();
+  },
+
   async addMyPlayer(ownerId: string, player: Pick<Player, 'id' | 'name' | 'playerCode'>): Promise<void> {
     const rows = await readRoster();
     const existing = rows.find((row) => row.ownerId === ownerId && row.playerId === player.id);

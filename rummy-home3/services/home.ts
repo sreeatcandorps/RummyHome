@@ -86,4 +86,20 @@ export const homeService = {
     const notices = await playerIdentityService.takeNotices(player.id).catch(() => [] as CreatorNotice[]);
     return { player, games, notices, claimRequests: null, linkRequests: null };
   },
+
+  /**
+   * The next page of games for Home's Recent "Show more" (PR 10b, Q10.4): the HOME_GAME_LIMIT
+   * games after the `offset` newest, hidden ones left out. Same order as the bundle (newest
+   * created first), so appending keeps the list whole. A short page means there is no more.
+   */
+  async loadMore(player: Player, offset: number): Promise<Game[]> {
+    const hidden = isSupabaseConfigured ? await archiveService.hiddenGameIds(player.id).catch(() => new Set<string>()) : new Set<string>();
+    const games = await gamesService.listGamesForCurrentUser(player.id, {
+      limit: HOME_GAME_LIMIT,
+      offset,
+      includeScores: false,
+      email: player.email,
+    });
+    return games.filter((game) => !hidden.has(game.id));
+  },
 };

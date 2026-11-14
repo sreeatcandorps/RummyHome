@@ -184,7 +184,8 @@ export const playerIdentityService = {
       const row = first(await rpc<any>('create_player_by_initials', { p_initials: value }));
       if (!row) throw new Error(INITIALS_NOT_READY);
       const player = serverPlayer(row);
-      await playersService.addMyPlayer(ownerId, player).catch(() => {});
+      // create_player_by_initials already inserted the My players row (039); only the local copy needs it (PR 10b).
+      await playersService.rememberMyPlayer(ownerId, { ...player, initials: row.initials ?? value }).catch(() => {});
       return { player, typed: value, initials: row.initials ?? value, takenBy: row.taken_by ?? null };
     }
     const mine = await playersService.readMyPlayers(ownerId);

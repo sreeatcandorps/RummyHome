@@ -485,8 +485,10 @@ export const gamesService = {
     return created;
   },
 
-  async listGamesForCurrentUser(currentUserId: string, options: { limit?: number; includeScores?: boolean; email?: string | null } = {}): Promise<Game[]> {
+  async listGamesForCurrentUser(currentUserId: string, options: { limit?: number; offset?: number; includeScores?: boolean; email?: string | null } = {}): Promise<Game[]> {
     const limit = options.limit ?? 50;
+    // Newest first, so `offset` is "skip the N newest" — Home's Show more (PR 10b) pages that way.
+    const offset = Math.max(0, options.offset ?? 0);
     const includeScores = options.includeScores ?? false;
 
     if (!isSupabaseConfigured) {
@@ -495,7 +497,7 @@ export const gamesService = {
         .map(withoutLegacyColumn)
         .filter((game) => gameVisibleToUser(game, { id: currentUserId, email: options.email }))
         .sort((a, b) => b.date.localeCompare(a.date))
-        .slice(0, limit);
+        .slice(offset, offset + limit);
     }
 
     const gameIds = await this.visibleGameIds(currentUserId);
@@ -506,7 +508,7 @@ export const gamesService = {
       .select('*, game_players(profile_id, player_order, role, seated)')
       .in('id', gameIds)
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .range(offset, offset + limit - 1);
 
     let { data: games, error } = await withTimeout(gamesQuery(), REQUEST_TIMEOUT_MS, 'Couldn’t load your games.');
     if (error && missingColumn(error)) {
@@ -515,7 +517,7 @@ export const gamesService = {
         .select('*, game_players(profile_id, player_order, role)')
         .in('id', gameIds)
         .order('created_at', { ascending: false })
-        .limit(limit));
+        .range(offset, offset + limit - 1));
     }
     if (error) throw error;
     const rows = games ?? [];

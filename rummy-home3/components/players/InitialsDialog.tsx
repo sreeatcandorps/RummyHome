@@ -21,7 +21,7 @@ import {
  * fine); the chips suggest letter forms first and a digit form only when letters ran out.
  * The dialog sits inside a KeyboardAvoidingView so Save stays above the keyboard.
  */
-export function InitialsDialog({ name, current, taken, scope, busy, onDismiss, onSave }: {
+export function InitialsDialog({ name, current, taken, scope, busy, onDismiss, onSave, onDelete, deleteConfirm }: {
   name: string;
   current: string | null | undefined;
   taken: Map<string, string>;
@@ -30,9 +30,13 @@ export function InitialsDialog({ name, current, taken, scope, busy, onDismiss, o
   busy: boolean;
   onDismiss: () => void;
   onSave: (initials: string) => void;
+  /** Add new players (PR 10b, Q10.8): a Delete action with a one-line confirm before it runs. */
+  onDelete?: () => void;
+  deleteConfirm?: string;
 }) {
   const { colors } = useAppTheme();
   const [text, setText] = useState(current ?? defaultInitials(name));
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const value = normalizeInitials(text);
   const problem = initialsProblem(text, taken);
   const fallback = defaultInitials(name);
@@ -90,7 +94,20 @@ export function InitialsDialog({ name, current, taken, scope, busy, onDismiss, o
             ))}
           </View>
         </Dialog.Content>
+        {confirmingDelete && onDelete ? (
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.error }} testID="initials-delete-confirm">{deleteConfirm ?? `Remove ${name} from My players?`}</Text>
+          </Dialog.Content>
+        ) : null}
         <Dialog.Actions>
+          {onDelete ? (
+            confirmingDelete ? (
+              <Button textColor={colors.error} onPress={onDelete} loading={busy} disabled={busy} accessibilityLabel={`Confirm remove ${name}`}>Remove</Button>
+            ) : (
+              <Button textColor={colors.error} onPress={() => setConfirmingDelete(true)} disabled={busy} accessibilityLabel={`Delete ${name}`}>Delete</Button>
+            )
+          ) : null}
+          <View style={styles.spacer} />
           <Button onPress={onDismiss} disabled={busy}>Cancel</Button>
           <Button
             mode="contained"
@@ -113,4 +130,5 @@ const styles = StyleSheet.create({
   inputText: { fontSize: 22, fontWeight: '800', letterSpacing: 2 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { borderRadius: radius.full },
+  spacer: { flex: 1 },
 });
