@@ -94,16 +94,24 @@ test('A4-5 footer lines: creator, one Admin line per admin, Unique game ID = sha
   for (const line of three) assert.doesNotMatch(line.value, /^Game /, 'the game label lives in the strip, not the footer');
 });
 
-test('A4-6 one horizontal scroller holds the header and the rows; no JS scroll sync, no fixed heights', () => {
+test('A4-6 / PR 10a: header pinned above one vertical scroller, rows in one sideways scroller at an explicit width; no JS scroll sync, no fixed heights', () => {
   const table = src('components/game/ScoreTable.tsx');
   assert.doesNotMatch(table, /scrollSync|createScrollSync/, 'the two-ScrollView JS sync is gone (D4.2)');
   assert.doesNotMatch(table, /headerHeight = compact \? 58 : 68|rowHeight = compact \? 34/, 'no fixed header or row height');
   assert.match(table, /headerHeight\(columnWidth, compact, fontScale\)/);
-  assert.match(table, /stickyHeaderIndices=\{\[0\]\}/, 'the header is pinned by the native sticky header, inside the single horizontal scroller');
-  assert.match(table, /useNativeDriver: true/, 'the frozen round column follows the rows on the UI thread');
+  // PR 10a: the PR 4 nesting (vertical scroller with a sticky header inside the sideways scroller) collapsed
+  // the header into one column on Android once the columns were wider than the screen.
+  assert.doesNotMatch(table, /stickyHeaderIndices/, 'no sticky-header trick: the header row sits above the vertical scroller');
+  assert.match(table, /<Animated\.View style=\{\[styles\.row, \{ width: contentWidth \}, followColumns\]\} testID="score-table-header">/, 'the header carries contentWidth and follows the rows sideways');
+  assert.match(table, /contentOffset: \{ x: scrollX \} \} \}\], \{ useNativeDriver: true \}/, 'the header follows the sideways offset on the UI thread');
+  assert.match(table, /<View style=\{\{ width: contentWidth \}\}>\s*\{Array\.from\(\{ length: roundCount \}/, 'the rows sit in a wrapper of contentWidth');
+  assert.match(table, /width: columnWidth \* columns\.length,\s*height: rowHeight,/, 'every row carries its own width');
+  assert.match(table, /<ScrollView\s+ref=\{verticalRef\}[\s\S]*?<Animated\.ScrollView\s+horizontal/, 'the sideways scroller is inside the vertical one, as in PR 3');
+  assert.match(table, /testID=\{`score-header-\$\{index \+ 1\}`\}/, 'header cells are addressable by column');
+  assert.match(table, /testID=\{`score-cell-\$\{index \+ 1\}-\$\{roundNumber\}`\}/, 'score cells are addressable by column and round');
   assert.match(table, /maxFontSizeMultiplier=\{TABLE_MAX_FONT_SCALE\}/);
   assert.match(table, /directionalLockEnabled/);
-  assert.equal((table.match(/<ScrollView\s|<Animated\.ScrollView\s/g) ?? []).length, 2, 'exactly two scroll views: one horizontal, one vertical');
+  assert.equal((table.match(/<ScrollView\s|<Animated\.ScrollView\s/g) ?? []).length, 2, 'exactly two scroll views: one vertical, one sideways');
   assert.match(table, /dealsBadge\(columnWidth\) === 'text'/, 'DEALS shrinks or becomes the cards icon');
   const footer = src('components/game/GameIdFooter.tsx');
   assert.match(footer, /scorecardFooterLines\(game, members, creatorName\)/);

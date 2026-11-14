@@ -46,6 +46,8 @@ export const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
 type ScoreRowProps = {
   columns: ScoreColumn[];
+  /** 1-based; part of each cell's testID so a flow can prove a column's scores sit under its header. */
+  roundNumber: number;
   /** The stored value per column for this round; undefined where the player had no score. */
   cells: (number | undefined)[];
   isLatest: boolean;
@@ -68,12 +70,13 @@ const sameCells = (a: (number | undefined)[], b: (number | undefined)[]) => a.le
  * scores objects on every render), so a reload, a menu or a realtime echo
  * redraws only the rows whose numbers changed, usually just the newest one.
  */
-const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe, rotationStart, columnWidth, rowHeight, fontSize, fullCount, colors }: ScoreRowProps) {
+const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isLatest, stripe, rotationStart, columnWidth, rowHeight, fontSize, fullCount, colors }: ScoreRowProps) {
   return (
     <View
       style={[
         styles.row,
         {
+          width: columnWidth * columns.length,
           height: rowHeight,
           borderBottomColor: colors.hairline,
           borderBottomWidth: StyleSheet.hairlineWidth,
@@ -93,6 +96,7 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
         return (
           <View
             key={column.id}
+            testID={`score-cell-${index + 1}-${roundNumber}`}
             style={[styles.cell, { width: columnWidth, height: rowHeight, borderRightColor: colors.hairline }]}
           >
             <View
@@ -124,7 +128,8 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
     </View>
   );
 }, (prev, next) =>
-  prev.isLatest === next.isLatest
+  prev.roundNumber === next.roundNumber
+  && prev.isLatest === next.isLatest
   && prev.stripe === next.stripe
   && prev.rotationStart === next.rotationStart
   && prev.columnWidth === next.columnWidth
@@ -136,10 +141,15 @@ const ScoreRow = React.memo(function ScoreRow({ columns, cells, isLatest, stripe
   && sameCells(prev.cells, next.cells));
 
 /**
- * The scorecard grid. One horizontal scroller holds the header and every row, so they can
- * never drift apart; the header is pinned by the vertical scroller's native sticky header; the
- * round column sits beside the scroller, frozen, and follows the rows through a native-driver
- * translate. Nothing runs on the JS thread while the finger moves.
+ * The scorecard grid (PR 10a). The header row sits above one vertical scroller, so it is pinned
+ * without a sticky-header trick; inside the vertical scroller the frozen round column stands
+ * beside one sideways scroller that holds every score row at an explicit `contentWidth`. The header
+ * cells follow that sideways offset through a native-driver translate, so header and rows cannot
+ * drift apart and nothing runs on the JS thread while the finger moves.
+ *
+ * PR 4 nested the vertical scroller inside the sideways one and relied on the rows inheriting their
+ * width; on Android, once the columns were wider than the screen, the header laid out one column
+ * wide and its cells wrapped into a stack. Rows and header now carry `contentWidth` themselves.
  */
 export function ScoreTable({
   columns,
@@ -161,10 +171,9 @@ export function ScoreTable({
   const { colors } = theme;
   const { fontScale } = useWindowDimensions();
   const [tableWidth, setTableWidth] = useState(0);
-  const [bodyHeight, setBodyHeight] = useState(0);
   const verticalRef = useRef<ScrollView>(null);
   const shownRounds = useRef(0);
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   const { roundColumnWidth, columnWidth, contentWidth, scrollsSideways } = columnLayout(tableWidth, columns.length, compact);
 
@@ -174,23 +183,16 @@ export function ScoreTable({
   const type = headerType(columnWidth);
   const onDark = theme.dark;
 
-  const onVerticalScroll = useMemo(
-    () => Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }),
-    [scrollY],
+  const onSidewaysScroll = useMemo(
+    () => Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true }),
+    [scrollX],
   );
-  const followRows = useMemo(() => ({ transform: [{ translateY: Animated.multiply(scrollY, -1) }] }), [scrollY]);
+  const followColumns = useMemo(() => ({ transform: [{ translateX: Animated.multiply(scrollX, -1) }] }), [scrollX]);
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const width = Math.floor(event.nativeEvent.layout.width);
     if (width !== tableWidth) setTableWidth(width);
   };
-  // The vertical scroller sits inside the horizontal one, so it is given the measured height
-  // of the grid area instead of relying on the horizontal content stretching to fill it.
-  const handleBodyLayout = (event: LayoutChangeEvent) => {
-    const height = Math.floor(event.nativeEvent.layout.height);
-    if (height !== bodyHeight) setBodyHeight(height);
-  };
-  const gridHeight = roundCount > 0 ? bodyHeight : headerH;
 
   // Follow the newest round so the latest hand is always on screen.
   const handleContentSizeChange = () => {
@@ -211,6 +213,7 @@ export function ScoreTable({
     return (
       <View
         key={column.id}
+        testID={`score-header-${index + 1}`}
         style={[
           styles.cell,
           styles.headerCell,
@@ -332,56 +335,60 @@ export function ScoreTable({
     >
       {tableWidth > 0 ? (
         <>
-          <View style={[styles.row, roundCount > 0 ? styles.flex : { height: headerH }]} onLayout={handleBodyLayout}>
-            {/* Frozen round column: the corner stays put; the round numbers follow the rows on the UI thread. */}
-            <View style={{ width: roundColumnWidth }}>
-              {cornerCell}
-              <View style={[styles.flex, styles.clip]}>
-                <Animated.View style={followRows}>{roundCells}</Animated.View>
-              </View>
+          {/* Pinned header: the corner stays put; the header cells follow the rows' sideways offset on the UI thread. */}
+          <View style={[styles.row, styles.headerRow, { backgroundColor: colors.tableHeader, borderBottomColor: colors.outlineVariant }]}>
+            {cornerCell}
+            <View style={[styles.flex, styles.clip]}>
+              <Animated.View style={[styles.row, { width: contentWidth }, followColumns]} testID="score-table-header">
+                {headerCells}
+              </Animated.View>
             </View>
-
-            <ScrollView
-              horizontal
-              style={styles.flex}
-              scrollEnabled={scrollsSideways}
-              showsHorizontalScrollIndicator={scrollsSideways}
-              directionalLockEnabled
-              bounces={false}
-              testID="score-table-scroller"
-            >
-              <Animated.ScrollView
-                ref={verticalRef}
-                style={{ width: contentWidth, height: gridHeight > 0 ? gridHeight : undefined }}
-                stickyHeaderIndices={[0]}
-                onScroll={onVerticalScroll}
-                scrollEventThrottle={16}
-                onContentSizeChange={handleContentSizeChange}
-                showsVerticalScrollIndicator={roundCount > 0}
-                scrollEnabled={roundCount > 0}
-                nestedScrollEnabled
-              >
-                <View style={[styles.row, styles.headerRow, { backgroundColor: colors.tableHeader, borderBottomColor: colors.outlineVariant }]}>
-                  {headerCells}
-                </View>
-                {Array.from({ length: roundCount }, (_, roundIndex) => (
-                  <ScoreRow
-                    key={roundIndex}
-                    columns={columns}
-                    cells={columns.map((column) => scores[column.id]?.[roundIndex])}
-                    isLatest={roundIndex === roundCount - 1}
-                    stripe={roundIndex % 2 === 1}
-                    rotationStart={rotationStartSet.has(roundIndex)}
-                    columnWidth={columnWidth}
-                    rowHeight={rowHeight}
-                    fontSize={fontSize}
-                    fullCount={fullCount}
-                    colors={colors}
-                  />
-                ))}
-              </Animated.ScrollView>
-            </ScrollView>
           </View>
+
+          <ScrollView
+            ref={verticalRef}
+            style={roundCount > 0 ? styles.flex : styles.none}
+            onContentSizeChange={handleContentSizeChange}
+            showsVerticalScrollIndicator={roundCount > 0}
+            scrollEnabled={roundCount > 0}
+          >
+            <View style={styles.row}>
+              {/* Frozen round column: scrolls with the rows, never sideways. */}
+              <View style={{ width: roundColumnWidth }}>{roundCells}</View>
+
+              <Animated.ScrollView
+                horizontal
+                style={styles.flex}
+                scrollEnabled={scrollsSideways}
+                showsHorizontalScrollIndicator={scrollsSideways}
+                onScroll={onSidewaysScroll}
+                scrollEventThrottle={16}
+                directionalLockEnabled
+                bounces={false}
+                nestedScrollEnabled
+                testID="score-table-scroller"
+              >
+                <View style={{ width: contentWidth }}>
+                  {Array.from({ length: roundCount }, (_, roundIndex) => (
+                    <ScoreRow
+                      key={roundIndex}
+                      columns={columns}
+                      roundNumber={roundIndex + 1}
+                      cells={columns.map((column) => scores[column.id]?.[roundIndex])}
+                      isLatest={roundIndex === roundCount - 1}
+                      stripe={roundIndex % 2 === 1}
+                      rotationStart={rotationStartSet.has(roundIndex)}
+                      columnWidth={columnWidth}
+                      rowHeight={rowHeight}
+                      fontSize={fontSize}
+                      fullCount={fullCount}
+                      colors={colors}
+                    />
+                  ))}
+                </View>
+              </Animated.ScrollView>
+            </View>
+          </ScrollView>
 
           {roundCount === 0 ? (
             <View style={styles.emptyTable}>
@@ -406,6 +413,9 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  none: {
+    flexGrow: 0,
   },
   clip: {
     overflow: 'hidden',

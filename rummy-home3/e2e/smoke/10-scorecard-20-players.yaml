@@ -18,6 +18,12 @@ tags: [smoke]
 - assertVisible: "Round 31"
 - assertVisible: "20 players"
 - assertVisible: "TA"
+# PR 10a layout gate: the second column's header AND one of its score cells are on screen together.
+# When the header collapsed into a stack (APK 9), the cells were pushed below the fold, so this fails.
+- assertVisible:
+    id: "score-header-2"
+- assertVisible:
+    id: "score-cell-2-.*"
 - takeScreenshot: 10-scorecard-20p
 - scroll
 - takeScreenshot: 10c-scorecard-20p-scrolled-down

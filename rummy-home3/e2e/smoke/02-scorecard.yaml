@@ -28,6 +28,11 @@ tags: [smoke]
     text: "Creator:.*"
 - assertVisible:
     text: "Unique game ID: GAMEA1"
+# PR 10a layout gate on the fitting case too: column 2's header and a score cell under it.
+- assertVisible:
+    id: "score-header-2"
+- assertVisible:
+    id: "score-cell-2-.*"
 - takeScreenshot: 02-scorecard-4p
 - tapOn: "Help"
 - extendedWaitUntil:

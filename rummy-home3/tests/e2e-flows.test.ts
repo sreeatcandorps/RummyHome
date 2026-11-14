@@ -54,8 +54,9 @@ test('e2e: every id: a flow taps or asserts exists as a testID in the app', () =
   }
   assert.ok(ids.size >= 6, `flows reference testIDs (${ids.size})`);
   for (const id of ids) {
-    // Flows may name a row by its game code, a uuid, or `-.*` when the id is only known at run time.
-    const prefix = id.replace(/-(GAME[A-Z0-9]+|[0-9a-f-]{36}|\.\*)$/, '-');
+    // Flows may name a row by its game code, a uuid, a 1-based index, or `-.*` when the id is only
+    // known at run time; any run of such segments at the end maps back to the template's literal prefix.
+    const prefix = id.replace(/(-(GAME[A-Z0-9]+|[0-9a-f-]{36}|\.\*|\d+))+$/, '-');
     const literal = sources.includes(`testID="${id}"`);
     const templated = prefix !== id && sources.includes(`testID={\`${prefix}\${`);
     assert.ok(literal || templated, `no testID for ${id} in app/ or components/`);
