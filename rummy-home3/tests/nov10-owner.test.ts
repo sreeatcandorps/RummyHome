@@ -78,7 +78,7 @@ test('round scores (final batch 5): a win green, a penalty over half the Full co
   assert.deepEqual(scoreTextStyle(scoreTone(-80, 80)), { colorKey: 'negative', fontWeight: '600', highlight: false }, 'a big loss is red text, no background');
   assert.deepEqual(scoreTextStyle(scoreTone(0, 80)), { colorKey: 'onSurface', fontWeight: '600', highlight: false }, 'a saved 0 is plain black too');
   const cell = read('components/game/ScoreCell.tsx');
-  assert.match(cell, /scoreTextStyle\(scoreTone\(value \?\? 0, fullCount\)\)/, 'round entry / edit round apply the same rule with the game\'s Full count');
+  assert.match(cell, /scoreTextStyle\(pool \? poolScoreTone\(value \?\? 0, fullCount\) : scoreTone\(value \?\? 0, fullCount\)\)/, 'round entry / edit round apply the same rule with the game\'s Full count');
   assert.match(read('app/(screens)/score-entry.tsx'), /fullCount=\{game\?\.settings\.maxCount\}/);
   assert.doesNotMatch(cell, /\(value \?\? 0\) > 0 \? colors\.positive : colors\.onPositiveContainer/, 'the dark-green-for-everything rule is gone');
   const table = read('components/game/ScoreTable.tsx');

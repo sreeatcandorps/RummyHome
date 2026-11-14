@@ -61,6 +61,12 @@ export const KIND_LABELS: Record<string, string> = {
   result_deleted: 'Deleted',
   result_restored: 'Restored',
   result_changed: 'Changed',
+  // Pool (PR 13)
+  player_out: 'Out',
+  player_reentered: 'Re-entered',
+  reentry_undone: 'Re-entry undone',
+  awards_set: 'Awards given',
+  awards_changed: 'Awards changed',
 };
 
 export function kindLabel(kind: string): string {
@@ -78,6 +84,8 @@ export function dotTone(entry: Pick<LogEntry, 'kind' | 'level'>): DotTone {
   switch (entry.kind) {
     case 'player_removed':
     case 'round_undone':
+    case 'reentry_undone':
+    case 'player_out':
     case 'deleted':
     case 'result_deleted':
     case 'unclosed':
@@ -85,8 +93,10 @@ export function dotTone(entry: Pick<LogEntry, 'kind' | 'level'>): DotTone {
     case 'round_edited':
     case 'settings_changed':
     case 'result_changed':
+    case 'awards_changed':
       return 'amber';
     case 'player_added':
+    case 'player_reentered':
     case 'admin_added':
     case 'admin_removed':
     case 'viewer_added':

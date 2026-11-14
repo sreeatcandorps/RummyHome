@@ -17,6 +17,8 @@ type PickableGame = {
   gameNumber?: number | null;
   createdBy?: string | null;
   adminIds?: string[] | null;
+  gameType?: 'stake' | 'pool' | null;
+  awardedAt?: string | null;
 };
 
 export const NON_ADMIN_PICK_MESSAGE = "You're part of this game but not an admin. Ask the creator for admin privileges for this game.";
@@ -75,7 +77,7 @@ export function applyFilterSwitch(checked: string[], hidden: { id: string }[]): 
 }
 
 /** One line per game that needs a flag on the results page, Active first then Closed. */
-export type ResultLine = { kind: 'active' | 'closed'; gameId: string; text: string };
+export type ResultLine = { kind: 'active' | 'closed' | 'pool'; gameId: string; text: string };
 
 /** Shown on screen and in every share of a result that is not saved yet. */
 export const RESULT_UNSAVED_BANNER = 'Not saved yet. This result may change.';
@@ -92,7 +94,11 @@ export function resultWarningLines(games: PickableGame[]): ResultLine[] {
   const closed: ResultLine[] = games
     .filter((game) => game.isComplete && Boolean(game.closedAt))
     .map((game) => ({ kind: 'closed', gameId: game.id, text: `${gName(game)} is already part of a previous result. Its points count again here.` }));
-  return [...active, ...closed];
+  // Pool (D10): the awards count, not the pool scores.
+  const pools: ResultLine[] = games
+    .filter((game) => game.gameType === 'pool')
+    .map((game) => ({ kind: 'pool', gameId: game.id, text: game.awardedAt ? `${gName(game)} is a pool: its awards count here, not the pool scores.` : `${gName(game)} is a pool without awards yet. Give awards first; it adds nothing until then.` }));
+  return [...active, ...closed, ...pools];
 }
 
 /** Why Save result is off, or null when it can go ahead. */
@@ -103,6 +109,8 @@ export function saveBlockedReason(games: PickableGame[], userId: string | null |
     return `${listNames(active)} ${active.length === 1 ? 'is' : 'are'} still active. Go back and deselect ${active.length === 1 ? 'it' : 'them'} to save.`;
   }
   if (!games.every((game) => canPickForResults(game, userId))) return 'Only an admin of every selected game can save this result.';
+  const unawarded = games.filter((game) => game.gameType === 'pool' && !game.awardedAt);
+  if (unawarded.length > 0) return `Give awards first: ${listNames(unawarded)}.`;
   return null;
 }
 

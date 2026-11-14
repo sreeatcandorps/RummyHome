@@ -17,6 +17,7 @@ import {
   winnerLineFromNames,
   gameLabelFor,
 } from '@/utils/results';
+import { resultScoresOf } from '@/utils/pool';
 
 const LOCAL_KEY = 'gameResults';
 
@@ -312,7 +313,7 @@ export const resultsService = {
       label: gameLabelFor(game),
       date: game.date,
       players: game.players,
-      scores: game.scores,
+      scores: resultScoresOf(game),
       names: input.names,
     })));
 

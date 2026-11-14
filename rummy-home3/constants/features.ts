@@ -7,7 +7,7 @@
  */
 export const settleEnabled = process.env.EXPO_PUBLIC_SETTLE_ENABLED === 'true';
 
-/** What a points game is called on screen. Stake is the held feature's word. */
-export function pointsGameLabel(): 'Stake' | 'Points' {
-  return settleEnabled ? 'Stake' : 'Points';
+/** What a points game is called on screen: always "Points" (PR 13 D12: the held feature's old word is gone from the UI). */
+export function pointsGameLabel(): 'Points' {
+  return 'Points';
 }

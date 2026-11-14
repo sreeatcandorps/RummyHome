@@ -57,3 +57,19 @@ export function sortFinalScores<T extends { total: number }>(rows: T[]): T[] {
     .sort((a, b) => b.row.total - a.row.total || a.index - b.index)
     .map(({ row }) => row);
 }
+
+/**
+ * Pool (PR 13): rounds need not add to 0. The check reports who is still in; a pool may be
+ * completed at any time, but the page says so when more than one player is in.
+ */
+export function poolCompletionCheck(roundCount: number, inCount: number, outCount: number): CompletionCheck {
+  const rounds = roundCount === 1 ? '1 round' : `${roundCount} rounds`;
+  if (roundCount === 0) {
+    return { ok: false, roundCount, unbalancedRounds: [], totalSum: 0, line: 'No rounds yet. The pool will be completed with no scores.', problem: null };
+  }
+  const who = `${inCount} ${inCount === 1 ? 'player' : 'players'} in, ${outCount} out`;
+  if (inCount > 1) {
+    return { ok: false, roundCount, unbalancedRounds: [], totalSum: 0, line: `${rounds} · ${who}. The pool usually ends when one player is left.`, problem: null };
+  }
+  return { ok: true, roundCount, unbalancedRounds: [], totalSum: 0, line: `${rounds} · ${who}.`, problem: null };
+}

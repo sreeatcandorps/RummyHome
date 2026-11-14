@@ -83,7 +83,7 @@ test('design: bottom-bar and tab pills — outlined by default, the one main act
   assert.match(undo, /label="Undo"/);
   assert.ok(!/\bfilled\b/.test(undo), 'Undo is outlined');
   assert.match(complete, /icon="flag-checkered"[\s\S]*?label="Complete"/, 'Complete carries the flag');
-  assert.ok(!/\bfilled\b/.test(complete), 'Complete is outlined');
+  assert.ok(!/\bfilled\b(?!=\{poolOver\})/.test(complete), 'Complete is outlined (filled only when a pool is down to one player, PR 13)');
   assert.match(addRound, /label="Add round"[\s\S]*?\bfilled\b/, 'Add round is the filled button');
 
   const tabs = src('components/ui/TabBarButtons.tsx');
@@ -138,8 +138,8 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
   assert.doesNotMatch(table, /footer\?: React\.ReactNode/);
   assert.match(table, /dealsNext && \{ backgroundColor: colors\.primaryContainer, borderBottomWidth: DEALER_BAR/);
   assert.ok(!/dealsNext && \{ backgroundColor: colors\.primary \}/.test(table), 'the dealer column is no longer filled button green');
-  assert.match(table, /\{signed\(total\)\}/);
-  assert.match(table, /color: dealsNext \? colors\.onPrimaryContainer : total < 0 \? colors\.loss : colors\.onSurface/);
+  assert.match(table, /\{pool \? String\(total\) : signed\(total\)\}/);
+  assert.match(table, /const totalColor = dealsNext \? colors\.onPrimaryContainer\n\s+: pool \? \(out \? colors\.onSurfaceVariant : reentered \? colors\.reentry : colors\.onSurface\)\n\s+: total < 0 \? colors\.loss : colors\.onSurface/, 'Points totals: red when negative, near-black otherwise; a pool total is plain, grey when out, blue when re-entered (PR 13)');
   // Final batch item 5 in the green palette: only a win gets a background (the Clubhouse win tint); no red pill.
   assert.match(table, /text\.highlight && \{ backgroundColor: colors\.winContainer \}/);
   assert.doesNotMatch(table, /lossContainer/, 'no red background on a score cell');
@@ -147,7 +147,7 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
   assert.match(table, /color: colors\[text\.colorKey\], fontWeight: text\.fontWeight/);
 
   const scorecard = src('app/(screens)/games/[id].tsx');
-  assert.match(scorecard, /\{table\}\s+\{idFooter\}/, 'the footer is drawn right under the table');
+  assert.match(scorecard, /\{table\}\s+\{poolBelow\}\s+\{idFooter\}/, 'the footer is drawn right under the table (a pool puts its Standings between, PR 13)');
   assert.match(scorecard, /\{gameLabel\}<\/Text>/, 'the badge is the S/P label (028), not a G-number');
   assert.doesNotMatch(scorecard, /`G\$\{game\.gameNumber\}`/);
   const footer = src('components/game/GameIdFooter.tsx');

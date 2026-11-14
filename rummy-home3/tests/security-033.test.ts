@@ -60,7 +60,7 @@ test('033: every RPC a signed-out web page calls stays executable by anon', () =
       assert.match(migration, new RegExp(`grant execute on function public\\.${name}\\([^)]*\\) to anon`), `${name} is granted to anon explicitly`);
     }
   }
-  assert.deepEqual([...later.keys()].sort(), ['public_result', 'public_result_note', 'public_scorecard_changes'], 'anon RPCs after 033: public_result re-created by 034 and the two 036 log readers');
+  assert.deepEqual([...later.keys()].sort(), ['public_result', 'public_result_note', 'public_scorecard', 'public_scorecard_changes'], 'anon RPCs after 033: public_result re-created by 034 (and 041), the two 036 log readers, public_scorecard re-created by 041');
   assert.deepEqual(pages.get('public/link.html'), ['answer_link_request_by_token', 'peek_link_request']);
   assert.deepEqual(pages.get('public/r/index.html'), ['public_result', 'public_result_note']);
   assert.deepEqual(pages.get('public/scorecard.html'), ['public_scorecard', 'public_scorecard_changes']);

@@ -27,6 +27,7 @@ import { gameLabelFor, gameResultName, presentResults, resultFooter, ResultSheet
 import { RESULT_UNSAVED_BANNER, resultShareNotes, resultWarningLines, saveBlockedReason, saveStatusChanges, StatusChange } from '@/utils/resultsSave';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { resultScoresOf } from '@/utils/pool';
 
 function param(value: string | string[] | undefined): string {
   if (Array.isArray(value)) return value[0] ?? '';
@@ -105,7 +106,7 @@ export default function ShownResults() {
         label: gameLabelFor(game),
         date: game.date,
         players: game.players,
-        scores: game.scores,
+        scores: resultScoresOf(game),
         names: found.names,
       }));
       if (!withinResultsPlayerLimit(shaped)) {

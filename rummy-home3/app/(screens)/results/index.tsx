@@ -47,6 +47,7 @@ import {
   winnerInitials,
   MAKE_RESULT_FOLD_NOTE,
 } from '@/utils/resultsSave';
+import { GIVE_AWARDS_FIRST, poolNeedsAwards } from '@/utils/pool';
 import {
   DELETED_SECTION_NOTE,
   DELETED_SECTION_TITLE,
@@ -153,6 +154,8 @@ export default function ResultsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pendingSwitch, setPendingSwitch] = useState<FilterSwitch<Game> | null>(null);
   const [notAdmin, setNotAdmin] = useState<Game | null>(null);
+  /** Pool (D10): a Completed pool without awards is listed but cannot be ticked. */
+  const [needsAwards, setNeedsAwards] = useState<Game | null>(null);
   const loadingMore = useRef(false);
   /** PR 9: the deleted results still inside 30 days (Restore); PR 10b moved Delete itself to the result page. */
   const [deletedRows, setDeletedRows] = useState<DeletedResultRow[]>([]);
@@ -260,6 +263,10 @@ export default function ResultsScreen() {
       setNotAdmin(game);
       return;
     }
+    if (poolNeedsAwards(game)) {
+      setNeedsAwards(game);
+      return;
+    }
     touched.current = true;
     setChecked((current) => (current.includes(game.id) ? current.filter((item) => item !== game.id) : [...current, game.id]));
   };
@@ -321,7 +328,8 @@ export default function ResultsScreen() {
             game={game}
             viewerId={userId}
             checked={checked.includes(game.id)}
-            locked={!canPickForResults(game, userId)}
+            locked={!canPickForResults(game, userId) || poolNeedsAwards(game)}
+            lockedNote={canPickForResults(game, userId) && poolNeedsAwards(game) ? GIVE_AWARDS_FIRST : undefined}
             onPress={() => toggle(game)}
           />
         ))}
@@ -396,6 +404,15 @@ export default function ResultsScreen() {
           <Dialog.Actions>
             <Button onPress={() => setPendingSwitch(null)} accessibilityLabel="Keep the selection">Cancel</Button>
             <Button mode="contained" onPress={() => pendingSwitch && applySwitch(pendingSwitch)} accessibilityLabel="Deselect and switch">OK</Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog visible={Boolean(needsAwards)} onDismiss={() => setNeedsAwards(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+          <Dialog.Icon icon="trophy-outline" />
+          <Dialog.Title>{GIVE_AWARDS_FIRST}</Dialog.Title>
+          <Dialog.Content><Text variant="bodyMedium">A pool joins a result through its awards. Open the pool, give the awards, then pick it here.</Text></Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setNeedsAwards(null)}>Not now</Button>
+            <Button mode="contained" onPress={() => { const g = needsAwards; setNeedsAwards(null); if (g) router.push({ pathname: '/(screens)/games/award', params: { id: g.id } }); }}>Give awards</Button>
           </Dialog.Actions>
         </Dialog>
         <Dialog visible={Boolean(notAdmin)} onDismiss={() => setNotAdmin(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>

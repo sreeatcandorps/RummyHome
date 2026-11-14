@@ -22,7 +22,7 @@ test('co-admin nudge: registered seated players other than the organiser, in sea
 
 test('new game: the nudge sits between the initials check and createGame, is skippable, and emails go out after creation', () => {
   const s = src('app/(screens)/games/new.tsx');
-  assert.match(s, /if \(coAdminPicks\.length\) \{ setNudge\(\{ labels \}\); return; \}/, 'Start game pauses on the nudge only when someone can be picked');
+  assert.match(s, /if \(coAdminPicks\.length\) \{ setNudge\(\{ labels: typeLabels \}\); return; \}/, 'Start game pauses on the nudge only when someone can be picked');
   assert.match(s, /onSkip=\{\(\) => \{ if \(nudge\) createGame\(nudge\.labels, null\); \}\}/, 'Skip starts the game without a co-admin');
   assert.match(s, /onPick=\{\(id\) => \{ if \(nudge\) createGame\(nudge\.labels, id\); \}\}/);
   assert.match(s, /setSeatRole\(created\.id, coAdminId, 'game_admin'\)/, 'the pick becomes a game admin right after creation');

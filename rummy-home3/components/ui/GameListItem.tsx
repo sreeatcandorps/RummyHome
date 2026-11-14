@@ -6,6 +6,7 @@ import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, gameTypeTint, GAME_STATUS_ICON, GAME_STATUS_TONE } from '@/utils/gameDisplay';
 import { Tag } from '@/components/ui/Tag';
 import { ACCESS_ICON, ACCESS_TONE, gameAccessLabel, viewerManagesGame, visibleRoleTag } from '@/utils/gameAccess';
+import { poolStatusLabel } from '@/utils/pool';
 
 type GameListItemProps = {
   game: Game;
@@ -17,9 +18,11 @@ type GameListItemProps = {
   checked?: boolean;
   /** Results picker: listed but not pickable (the person is not an admin). Tapping still fires onPress so the screen can explain. */
   locked?: boolean;
+  /** Why it is locked when it is not about being an admin ("Give awards first"). */
+  lockedNote?: string;
 };
 
-export function GameListItem({ game, onPress, selected = false, viewerId, checked, locked = false }: GameListItemProps) {
+export function GameListItem({ game, onPress, selected = false, viewerId, checked, locked = false, lockedNote }: GameListItemProps) {
   const theme = useAppTheme();
   const tint = gameTypeTint(game.gameType, theme.gameTypes);
   const dateLabel = formatGameDateTime(game.date);
@@ -32,6 +35,8 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
   const roleTag = visibleRoleTag(access, viewerManagesGame(game, viewerId));
   const pickable = checked !== undefined;
   const on = pickable && checked && !locked;
+  // Pool (D10): the award state rides with the status; "Awards pending" is the thing to do next.
+  const awards = poolStatusLabel(game);
 
   return (
     <View
@@ -48,7 +53,7 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
         accessibilityRole={pickable ? 'checkbox' : 'button'}
         accessibilityState={pickable ? { checked: Boolean(on), disabled: locked } : undefined}
         testID={`game-card-${game.shareCode ?? game.id}`}
-        accessibilityLabel={`${gameTypeLabel(game.gameType)} game${gNumber ? ` ${gNumber}` : ''}, ${dateLabel}, ${status.toLowerCase()}${access ? `, ${access.toLowerCase()}` : ''}${locked ? ', not an admin' : ''}`}
+        accessibilityLabel={`${gameTypeLabel(game.gameType)} game${gNumber ? ` ${gNumber}` : ''}, ${dateLabel}, ${status.toLowerCase()}${awards ? `, ${awards.toLowerCase()}` : ''}${access ? `, ${access.toLowerCase()}` : ''}${locked ? (lockedNote ? `, ${lockedNote.toLowerCase()}` : ', not an admin') : ''}`}
       >
         <View style={styles.row}>
           {gNumber ? (
@@ -78,6 +83,7 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
                 icon={statusIcon}
                 style={styles.statusTag}
               />
+              {awards && !game.closedAt ? <Tag label={awards} tone={awards === 'Awarded' ? 'positive' : 'warning'} icon="trophy-outline" style={styles.statusTag} /> : null}
               {roleTag ? <Tag label={roleTag} tone={ACCESS_TONE[roleTag]} icon={ACCESS_ICON[roleTag]} /> : null}
               <Text
                 variant="bodySmall"
@@ -95,7 +101,12 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
             </View>
           </View>
 
-          {locked ? (
+          {locked && lockedNote ? (
+            <View style={styles.lockedNote}>
+              <Icon source="trophy-outline" size={18} color={theme.colors.onSurfaceVariant} />
+              <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }} numberOfLines={2}>{lockedNote}</Text>
+            </View>
+          ) : locked ? (
             <Icon source="lock-outline" size={22} color={theme.colors.onSurfaceVariant} />
           ) : pickable ? (
             <Icon source={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={on ? theme.colors.primary : theme.colors.onSurfaceVariant} />
@@ -115,6 +126,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   locked: { opacity: 0.6 },
+  lockedNote: { width: 64, alignItems: 'center', gap: 2 },
   ripple: {
     borderRadius: radius.lg,
   },

@@ -125,7 +125,8 @@ test('Add round screen: typed digits go through the once-per-cell confirm; Save 
   const screen = src('app/(screens)/score-entry.tsx');
   assert.match(screen, /onDigit=\{typeDigit\}/);
   assert.match(screen, /warnedCells\.current\.has\(id\)/, 'once per cell');
-  assert.match(screen, /!exceedsMaxCount\(draftValue\(entry\.draft\), fullCount\)/, 'only when the number first goes past the count, not every keystroke');
+  assert.match(screen, /!over\(draftValue\(entry\.draft\)\)/, 'only when the number first goes past the count, not every keystroke');
+  assert.match(screen, /pool \? overFullCount\(v, fullCount\) : exceedsMaxCount\(v, fullCount\)/, 'a pool uses the same once-per-cell confirm past its Full count (PR 13)');
   assert.match(screen, /rummyConfirmed\.current && rummyShareNeedsConfirm\(shares\)/);
   assert.match(screen, /testID="count-warning"/);
   assert.doesNotMatch(screen, /label: '00'|'Clear'|check-bold/, 'no 00, tick or Clear keys (Sree): the layout is unchanged');

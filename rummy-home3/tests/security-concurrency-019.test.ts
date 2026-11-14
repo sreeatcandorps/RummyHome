@@ -70,7 +70,7 @@ test('Add round shows the conflict, clears the typed scores and returns to the s
   const screen = read('app/(screens)/score-entry.tsx');
   assert.match(screen, /import \{ isRoundConflict, roundConflictMessage \} from '\.\.\/\.\.\/utils\/roundConflict'/);
   assert.match(screen, /if \(isRoundConflict\(error\)\) \{/);
-  assert.match(screen, /if \(!editRound\) setEntry\(initialRoundEntryState\);/, 'typed scores are dropped so they cannot land on the next round');
+  assert.match(screen, /if \(!editRound\) setEntry\(freshEntry\(game\)\);/, 'typed scores are dropped so they cannot land on the next round');
   assert.match(screen, /else await loadGameData\(\);/, 'Edit mode reloads the round as it is now');
   assert.match(screen, /title: 'Round already saved',\s+body: roundConflictMessage\(error\)/);
   assert.match(screen, /onClose: editRound \? undefined : closeScreen/, 'Add mode goes back to the scorecard instead of staying on the next round');

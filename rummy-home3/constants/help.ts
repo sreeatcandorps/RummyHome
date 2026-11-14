@@ -56,18 +56,18 @@ export const HELP = {
   ),
   gameType: bullets(
     'Points: every round adds up to 0; the winner takes what the others lost. Scores are minus by default.',
-    'Pool: the round’s winner scores 0 and everyone else adds their hand. Reach the limit (100 in, 101 out) and you are out. With Re-entry on, a player who is out may come back once, at the highest score still in.',
+    'Pool: the winner scores 0, everyone else adds their hand. Reach the limit (100 in, 101 out) and you are out.',
+    'Re-entry on: a player who is out may come back once, at the highest score still in.',
     'The settings here are for this game only and start from your Settings defaults. A pool’s limit and values lock once a round is saved; Re-entry can change any time.',
     'When a pool is Completed, an admin gives awards (who gets what from the pool); the awards are what the pool adds to Results.',
   ),
   scorecard: bullets(
     'View only means you can watch but not change scores.',
     'Totals sit in the header next to each name.',
-    'Pool: the header shows the player number, initials and pool score; a player who is out is struck through and a re-entered player is blue. Standings under the table show points left and drops left. After a round, the sheet names who is out and who may re-enter.',
+    'Pool: header shows player number, initials and pool score; out is struck through, re-entered is blue. Standings below show points and drops left.',
     'Undo asks before removing the last round.',
-    'Complete opens a page with the final totals and asks once more before locking the scores. A Points game can then be picked for Results; a pool first needs its awards (Complete → Award → Result).',
-    'A Completed game can be reopened from the ⋮ menu until it is added to Results.',
-    'The ⋮ menu changes this game’s Drop, Middle drop, and Full count, opens Players · Admins, shares the live link, and hides or deletes the game.',
+    'Complete opens a page with the final totals and asks once more before locking. A Points game can then be picked for Results; a pool first needs awards.',
+    'The ⋮ menu changes this game’s Drop, Middle drop, and Full count, opens Players · Admins, shares the live link, reopens a Completed game, and hides or deletes it.',
     'Under the table: the game number with its creator and admins, and the full game ID. Tap the ID to copy it when you report a problem.',
   ),
   playersSheet: bullets(
@@ -166,8 +166,7 @@ export const HELP = {
   ),
   results: bullets(
     'The Completed, Closed, and Active chips choose which games are listed; any mix can be on. Completed games you run start ticked. If a chip would hide a ticked game, the app asks first.',
-    'Every game you are in is listed, but only games where you are the creator or an admin can be ticked. Ask the creator for admin privileges for the rest.',
-    'A pool counts its awards, not its pool scores. A completed pool without awards is greyed with “Give awards first”.',
+    'Every game you are in is listed, but only games you create or admin can be ticked. A pool counts its awards, not its scores; without awards it is greyed: “Give awards first”.',
     'Pick one or more games and tap Show results. The highest total is the winner; 1st, 2nd, and 3rd place are named. Nothing is saved by looking.',
     'Save result (the button at the top) moves the games to Closed and lists what changed. It is off while an Active game is selected: go back and deselect it.',
     'A Closed game can be picked again, but the app warns you: its points were already counted once, and the saved result carries a small warning icon. Best to first delete the old result that closed it.',

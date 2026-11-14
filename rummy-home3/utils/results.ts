@@ -127,13 +127,15 @@ export function filterResultGames<T extends FilterableGame>(games: T[], filter: 
  * Completed games start ticked so Show results is one tap. Closed and Active games
  * never start ticked: each one carries a warning and has to be a deliberate choice.
  */
-export function defaultResultSelection<T extends FilterableGame & { id: string; createdBy?: string | null; adminIds?: string[] | null }>(
+export function defaultResultSelection<T extends FilterableGame & { id: string; createdBy?: string | null; adminIds?: string[] | null; gameType?: string; awardedAt?: string | null }>(
   games: T[],
   filter: ResultsFilter,
   userId?: string | null,
 ): string[] {
   return filterResultGames(games, filter)
     .filter((game) => resultsStatusOf(game) === 'completed')
+    // Pool (D10): a completed pool joins a result only once its awards are given.
+    .filter((game) => !(game.gameType === 'pool' && !game.awardedAt))
     // Games the person does not run are listed but never ticked (they cannot be saved).
     .filter((game) => userId === undefined || userAdminsGame(game, userId))
     .map((game) => game.id);

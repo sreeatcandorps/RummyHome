@@ -3,9 +3,9 @@ import { StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
-export type WarningLine = { kind: 'active' | 'reused' | 'closed'; text: string; gameId?: string };
+export type WarningLine = { kind: 'active' | 'reused' | 'closed' | 'pool'; text: string; gameId?: string };
 
-const ICON: Record<WarningLine['kind'], string> = { active: 'progress-clock', reused: 'repeat-variant', closed: 'repeat-variant' };
+const ICON: Record<WarningLine['kind'], string> = { active: 'progress-clock', reused: 'repeat-variant', closed: 'repeat-variant', pool: 'trophy-outline' };
 
 /** Yellow flags for a result, one line per game: still Active, or already part of an earlier result. */
 export function ResultWarnings({ warnings }: { warnings: WarningLine[] }) {

@@ -199,3 +199,14 @@ export function parsePoolLimit(text: string): number | null {
 
 /** "100 is in, 101 is out" for the limit picker. */
 export const limitHint = (limit: number) => `${limit - 1} is in, ${limit} is out.`;
+
+/**
+ * What a game puts into a result (D10): a Points game its rounds, an awarded pool its awards as
+ * one line per player (the pool scores themselves never count). An unawarded pool contributes
+ * nothing; the picker keeps it out.
+ */
+export function resultScoresOf(game: Pick<Game, 'gameType' | 'players' | 'scores' | 'awardedAt' | 'prizeShares'>): Record<string, number[]> {
+  if (!isPoolGame(game)) return game.scores;
+  if (!game.awardedAt) return Object.fromEntries(game.players.map((id) => [id, []]));
+  return Object.fromEntries(game.players.map((id) => [id, [game.prizeShares?.[id] ?? 0]]));
+}

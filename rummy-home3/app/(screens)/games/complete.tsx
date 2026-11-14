@@ -16,8 +16,9 @@ import { Tag } from '@/components/ui/Tag';
 import { formatGameDateTime, gameNumberLabel } from '@/utils/gameDisplay';
 import { formatPoints } from '@/utils/results';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-import { completionCheck, sortFinalScores } from '@/utils/completeGame';
+import { completionCheck, poolCompletionCheck, sortFinalScores } from '@/utils/completeGame';
 import { gameAdminLines } from '@/utils/gameAdmins';
+import { GIVE_AWARDS_FIRST, isOut, isPoolGame, playersIn, playersOut, poolTotal, seatOf } from '@/utils/pool';
 
 /**
  * Complete game as its own page: final totals, a balance check, one filled
@@ -34,16 +35,28 @@ export default function CompleteGameScreen() {
   const [completing, setCompleting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
-  // Highest total first (seat colours stay with the person); ties keep seat order.
-  const totals = useMemo(
-    () => sortFinalScores(players.map((player, index) => ({
+  const pool = isPoolGame(game);
+  // Points: highest total first. Pool: players still in, lowest first, then the outs (seat colours stay with the person).
+  const totals = useMemo(() => {
+    const rows = players.map((player, index) => ({
       player,
       color: seatColor(index),
-      total: (game?.scores[player.id] ?? []).reduce((sum, value) => sum + (Number(value) || 0), 0),
-    }))),
-    [game, players],
-  );
-  const check = useMemo(() => (game ? completionCheck(game.scores, players.map((p) => p.id)) : null), [game, players]);
+      out: pool ? isOut(seatOf(game, player.id)) : false,
+      total: pool
+        ? poolTotal(game?.scores[player.id], seatOf(game, player.id))
+        : (game?.scores[player.id] ?? []).reduce((sum, value) => sum + (Number(value) || 0), 0),
+    }));
+    if (!pool) return sortFinalScores(rows);
+    return rows.sort((a, b) => Number(a.out) - Number(b.out) || a.total - b.total);
+  }, [game, players, pool]);
+  const check = useMemo(() => {
+    if (!game) return null;
+    if (pool) {
+      const roundCount = Math.max(0, ...players.map((p) => (game.scores[p.id] ?? []).length));
+      return poolCompletionCheck(roundCount, playersIn(game).length, playersOut(game).length);
+    }
+    return completionCheck(game.scores, players.map((p) => p.id));
+  }, [game, players, pool]);
   const admins = useMemo(() => (game ? gameAdminLines(roster, game) : []), [game, roster]);
 
   const complete = async () => {
@@ -96,16 +109,19 @@ export default function CompleteGameScreen() {
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
           {done
             ? `Completed${game.completedAt ? ` ${formatGameDateTime(game.completedAt)}` : ''}. Scores are locked. Reopen from the scorecard menu if this was a mistake.`
-            : 'Completing locks the scores. The game can then be picked for Results. Nothing is deleted.'}
+            : pool
+              ? 'Completing locks the scores. Then give the awards; the pool can be picked for Results once awarded. Nothing is deleted.'
+              : 'Completing locks the scores. The game can then be picked for Results. Nothing is deleted.'}
         </Text>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
-          {totals.map(({ player, color, total }) => (
+          {totals.map(({ player, color, total, out }) => (
             <View key={player.id} style={[styles.row, { borderBottomColor: colors.hairline }]}>
               <SeatAvatar name={player.name} color={color} size={32} />
-              <Text variant="bodyLarge" style={styles.name} numberOfLines={1}>{player.name}</Text>
-              <Text variant="titleMedium" style={[tabularNums, { color: total > 0 ? colors.positive : total < 0 ? colors.negative : colors.onSurfaceVariant, fontWeight: '800' }]}>
-                {formatPoints(total)}
+              <Text variant="bodyLarge" style={[styles.name, out && styles.struck]} numberOfLines={1}>{player.name}</Text>
+              {pool && out ? <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>OUT</Text> : null}
+              <Text variant="titleMedium" style={[tabularNums, { color: pool ? (out ? colors.onSurfaceVariant : colors.onSurface) : total > 0 ? colors.positive : total < 0 ? colors.negative : colors.onSurfaceVariant, fontWeight: '800' }]}>
+                {pool ? String(total) : formatPoints(total)}
               </Text>
             </View>
           ))}
@@ -134,7 +150,24 @@ export default function CompleteGameScreen() {
           <Text variant="bodyMedium" style={{ color: colors.error }}>{blocked}</Text>
         ) : null}
 
-        {done ? (
+        {done && pool ? (
+          <View style={styles.next}>
+            {canScore ? (
+              <Button mode="contained" icon="trophy-outline" onPress={() => router.push({ pathname: '/(screens)/games/award', params: { id: game.id } })} accessibilityLabel={game.awardedAt ? 'Change awards' : 'Give awards'} testID="complete-give-awards">
+                {game.awardedAt ? 'Change awards' : 'Give awards'}
+              </Button>
+            ) : null}
+            <Button mode="contained-tonal" icon="share-variant" onPress={() => router.push({ pathname: '/(screens)/games/final-scores', params: { id: game.id } })} accessibilityLabel="Share final scores">
+              Share final scores
+            </Button>
+            <Button mode="outlined" icon="format-list-numbered" disabled={!game.awardedAt} onPress={() => router.push('/(screens)/results')} accessibilityLabel="Go to Results">
+              {game.awardedAt ? 'Add to Results' : GIVE_AWARDS_FIRST}
+            </Button>
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+              Complete, then Award, then Result: the pool joins a result once its awards are given.
+            </Text>
+          </View>
+        ) : done ? (
           <View style={styles.next}>
             <Button mode="contained" icon="share-variant" onPress={() => router.push({ pathname: '/(screens)/games/final-scores', params: { id: game.id } })} accessibilityLabel="Share final scores">
               Share final scores
@@ -169,10 +202,10 @@ export default function CompleteGameScreen() {
 
       <Portal>
         <Dialog visible={confirmOpen} onDismiss={() => completing || setConfirmOpen(false)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
-          <Dialog.Title>Complete this game?</Dialog.Title>
+          <Dialog.Title>{pool ? 'Complete this pool?' : 'Complete this game?'}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-              {`${check.roundCount === 1 ? '1 round' : `${check.roundCount} rounds`} will be locked. You can reopen the game later from the scorecard menu until it is added to Results.`}
+              {`${check.roundCount === 1 ? '1 round' : `${check.roundCount} rounds`} will be locked. ${pool ? 'Next you give the awards. ' : ''}You can reopen the ${pool ? 'pool' : 'game'} later from the scorecard menu until it is added to Results.`}
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
@@ -204,6 +237,7 @@ const styles = StyleSheet.create({
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingTop: spacing.xs },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
   name: { flex: 1 },
+  struck: { textDecorationLine: 'line-through', opacity: 0.7 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   next: { gap: spacing.sm, marginTop: spacing.sm },
   dialog: { borderRadius: radius.xl },
