@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, Easing, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Dialog, Icon, IconButton, Menu, Portal, Text, TouchableRipple } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -19,6 +19,8 @@ import {
   balance as roundBalance,
   canSaveRound,
   cellView,
+  gridColumns,
+  hiddenCells,
   clearPlayer,
   commitPending,
   countWarning,
@@ -79,7 +81,7 @@ const participantsFrom = (seats: Player[]): Participant[] => seats
 
 export default function ScoreEntryScreen() {
   const { colors } = useAppTheme();
-  const { isShort, insets, gutterLeft, gutterRight } = useLayout();
+  const { isShort, isLandscape, insets, gutterLeft, gutterRight } = useLayout();
   const { gameId, round } = useLocalSearchParams<{ gameId?: string; round?: string }>();
   // Edit mode: `round=N` opens a finished round with its scores already in the cells.
   const editRound = round && /^\d+$/.test(String(round)) ? Number(round) : null;
@@ -107,6 +109,11 @@ export default function ScoreEntryScreen() {
   const entrySeeded = useRef(seeded && Boolean(editRound));
   const [flashKeys, setFlashKeys] = useState<Record<string, number>>({});
   const [gridWidth, setGridWidth] = useState(0);
+  // The "N more ▾" cue (PR 10b, Sree: 12 of 14 visible with no hint): grid height, viewport and scroll offset.
+  const [gridHeight, setGridHeight] = useState(0);
+  const [gridViewport, setGridViewport] = useState(0);
+  const [gridScrollY, setGridScrollY] = useState(0);
+  const gridRef = useRef<ScrollView>(null);
 
   const balancePulse = useRef(new Animated.Value(1)).current;
   const presetFlash = useRef<Record<string, Animated.Value>>({}).current;
@@ -316,8 +323,12 @@ export default function ScoreEntryScreen() {
     );
   }
 
-  const columns = 2;
+  const columns = gridColumns(participants.length, isLandscape);
   const cellWidth = gridWidth > 0 ? Math.floor((gridWidth - GRID_GAP * (columns - 1)) / columns) : 0;
+  const gridRows = Math.ceil(participants.length / columns);
+  const rowPitch = gridRows > 0 && gridHeight > 0 ? (gridHeight + GRID_GAP) / gridRows : 0;
+  const belowFold = hiddenCells(participants.length, columns, rowPitch, gridScrollY, gridViewport, spacing.xs);
+  const onGridScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => setGridScrollY(event.nativeEvent.contentOffset.y);
 
   const header = (
     <View
@@ -396,15 +407,20 @@ export default function ScoreEntryScreen() {
   ) : null;
 
   const grid = (
+    <View style={styles.flex}>
     <ScrollView
+      ref={gridRef}
       style={styles.flex}
       contentContainerStyle={[styles.gridContent, isShort && styles.gridContentCompact]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator
+      onLayout={(event) => setGridViewport(Math.round(event.nativeEvent.layout.height))}
+      onScroll={onGridScroll}
+      scrollEventThrottle={32}
     >
       <View
         style={styles.grid}
-        onLayout={(event) => setGridWidth(Math.round(event.nativeEvent.layout.width))}
+        onLayout={(event) => { setGridWidth(Math.round(event.nativeEvent.layout.width)); setGridHeight(Math.round(event.nativeEvent.layout.height)); }}
       >
         {cellWidth > 0
           ? participants.map((participant) => {
@@ -428,6 +444,21 @@ export default function ScoreEntryScreen() {
       </View>
       {warningLine}
     </ScrollView>
+      {belowFold > 0 ? (
+        <View pointerEvents="box-none" style={styles.moreWrap}>
+          <View pointerEvents="none" style={[styles.fade, { backgroundColor: colors.background }]} />
+          <Pressable
+            onPress={() => gridRef.current?.scrollToEnd({ animated: true })}
+            style={[styles.morePill, { backgroundColor: colors.inverseSurface }]}
+            accessibilityRole="button"
+            accessibilityLabel={`${belowFold} more ${belowFold === 1 ? 'player' : 'players'} below, scroll down`}
+            testID="add-round-more"
+          >
+            <Text variant="labelLarge" style={{ color: colors.inverseOnSurface }}>{`${belowFold} more ▾`}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
   );
 
   type ActionKey = { id: 'plus' | 'minus' | 'rummy' | PresetKind; label: string; icon?: string };
@@ -737,6 +768,9 @@ const styles = StyleSheet.create({
     gap: GRID_GAP,
     alignContent: 'flex-start',
   },
+  moreWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'flex-end' },
+  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 28, opacity: 0.85 },
+  morePill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, marginBottom: 4 },
   landscapeBody: {
     flex: 1,
     flexDirection: 'row',

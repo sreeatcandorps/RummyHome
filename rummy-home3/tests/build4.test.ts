@@ -92,10 +92,11 @@ test('Add round palette (PR 3) — selected cell and active sign yellow, saved p
   assert.equal(CELL_FILL[cellTone('empty')], 'cellNeutral');
   assert.equal(CELL_FILL[cellTone('selected')], 'secondaryContainer');
   assert.equal(CELL_FILL[cellTone('pending')], 'secondaryContainer');
-  assert.equal(CELL_FILL[cellTone('confirmed')], 'surface');
+  // PR 10b (Q10.11): every saved cell is light green — "green = done"; the number keeps its own colour.
+  assert.equal(CELL_FILL[cellTone('confirmed')], 'positiveContainer');
   assert.equal(cellFill('confirmed', 40), 'positiveContainer');
-  assert.equal(cellFill('confirmed', -80), 'surface');
-  assert.equal(cellFill('confirmed', 0), 'surface');
+  assert.equal(cellFill('confirmed', -80), 'positiveContainer');
+  assert.equal(cellFill('confirmed', 0), 'positiveContainer');
   assert.equal(cellFill('selected', 40), 'secondaryContainer');
   assert.equal(actionFill('sign', true), 'secondaryContainer');
   assert.equal(actionFill('sign', false), 'surface');

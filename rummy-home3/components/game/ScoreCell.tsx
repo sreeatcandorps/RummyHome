@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
-import { IconButton, Text } from 'react-native-paper';
+import { Icon, IconButton, Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { CELL_FILL, cellFill, CellStatus, cellTone } from '@/utils/roundEntry';
 import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
@@ -77,7 +77,7 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
   const pressOut = () =>
     Animated.spring(scale, { toValue: 1, speed: 24, bounciness: 6, useNativeDriver: false }).start();
 
-  // Beige → white for a saved minus, beige → light green for a saved plus (PR 3).
+  // Beige → light green once saved, whatever the score (PR 10b: "green = done").
   const animatedBackground = fill.interpolate({
     inputRange: [0, 1],
     outputRange: [colors[CELL_FILL.neutral], colors[cellFill('confirmed', value)]],
@@ -139,6 +139,11 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
           {hasValue ? signed(value) : ''}
         </Text>
       </Pressable>
+      {isConfirmed && !isSelected ? (
+        <View pointerEvents="none" style={styles.check} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Icon source="check" size={compact ? 12 : 14} color={colors.onPositiveContainer} />
+        </View>
+      ) : null}
       {/* A sibling, not a child, of the cell button: nested buttons are invalid on web. */}
       <IconButton
         icon="close"
@@ -162,6 +167,8 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
 }
 
 const styles = StyleSheet.create({
+  // A small tick for colour-blind users: saved cells are green AND ticked.
+  check: { position: 'absolute', top: 4, left: 6 },
   cell: {
     borderRadius: radius.lg,
     // Constant width so a selection ring never nudges the grid.

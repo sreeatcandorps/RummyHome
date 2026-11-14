@@ -277,22 +277,44 @@ export function cellTone(status: CellStatus): CellTone {
 
 /**
  * The Add round palette, as theme colour names so the screen and the tests agree (PR 3, Nov 13):
- * the cell you are working on is marigold yellow (`secondaryContainer`), a saved plus sits on
- * light green (`positiveContainer`) with green "+40" text, a saved minus or 0 sits on white, and
- * empty cells rest on the sunken beige. The layout itself is unchanged.
+ * the cell you are working on is marigold yellow (`secondaryContainer`), every saved cell sits on
+ * light green (`positiveContainer`) — "green = done" (PR 10b, Q10.11; a saved minus or 0 used to
+ * stay white, which read as still editing) — the number keeps its own colour (green win, red big
+ * loss, plain otherwise), and empty cells rest on the sunken beige. The layout itself is unchanged.
  */
 export type EntryFill = 'cellNeutral' | 'primaryContainer' | 'secondaryContainer' | 'positiveContainer' | 'tertiaryContainer' | 'surface';
 
 export const CELL_FILL: Record<CellTone, EntryFill> = {
   neutral: 'cellNeutral',
   selected: 'secondaryContainer',
-  confirmed: 'surface',
+  confirmed: 'positiveContainer',
 };
 
-/** The fill of a cell given its tone and the score it holds: a saved plus is the light green. */
-export function cellFill(tone: CellTone, value: number | undefined): EntryFill {
-  if (tone === 'confirmed' && value !== undefined && value > 0) return 'positiveContainer';
+/** The fill of a cell given its tone: every saved cell is the light green, whatever the score. */
+export function cellFill(tone: CellTone, _value: number | undefined): EntryFill {
   return CELL_FILL[tone];
+}
+
+/** Add round grid columns (PR 10b, Q10.12): three in portrait from 13 players so 14 fit without scrolling. */
+export const THREE_COLUMN_PLAYERS = 13;
+export function gridColumns(players: number, landscape: boolean): number {
+  if (landscape) return 2;
+  return players >= THREE_COLUMN_PLAYERS ? 3 : 2;
+}
+
+/**
+ * How many cells sit below the fold of a scrolling grid, for the "N more ▾" cue. Rows are
+ * `pitch` tall (cell + gap); a cell counts as hidden when its bottom edge is past the viewport.
+ */
+export function hiddenCells(total: number, columns: number, pitch: number, scrollY: number, viewportHeight: number, paddingTop = 0): number {
+  if (total <= 0 || columns <= 0 || pitch <= 0 || viewportHeight <= 0) return 0;
+  const bottom = scrollY + viewportHeight - paddingTop;
+  let hidden = 0;
+  for (let index = 0; index < total; index += 1) {
+    const row = Math.floor(index / columns);
+    if ((row + 1) * pitch - 4 > bottom) hidden += 1;
+  }
+  return hidden;
 }
 
 export type ActionKind = 'sign' | 'preset' | 'rummy';
