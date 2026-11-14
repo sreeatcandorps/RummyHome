@@ -111,14 +111,14 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | Home | live + recent list, S/P labels, role tags; Recent plain title on grey, Show more paging (PR 10b) | U, S | **S** (light), N (dark) | `smoke/01`, `full/60` |
 | | empty state, pull to refresh, cached/offline | U (degrade) | N (airplane mode) | — |
 | | My Players button count, tab bar | S | **S** | `smoke/01`, `smoke/08` |
-| New game | pick recent players, search, from database, new by initials; you first, no You / Registered tags (PR 7) | U, S (screens open) | **S** | `smoke/09` |
+| New game | pick recent players, search, from database, new by initials; you first, no You / Registered tags (PR 7); Next → Game type (Points / Pool, this game's settings, players at the bottom, Back, Start) (PR 13) | U, S (screens open) | **S** | `smoke/09`, `smoke/16` |
 | | Add players to this game: Total circle (seated only), Added now, Return to game, non-playing admin by Player ID | U, N | U + **N** | `full/32` |
 | | I'm playing on/off, settings (type, drop, middle, full) | U | N | — |
 | | co-admin add / skip | — | N | — |
 | | guardrails: 20th seat, player limits (029) | U, D | D + N | — |
 | Initials | 1+2 cells, auto-advance, clash → HT2, edit, 3 at a time | U, D, S | U + D + **S** | `smoke/09` (was `known-bugs/pr6`) |
 | | edit initials mid-game (digit allowed, Save above the keyboard) | U, N | U + N | `full/31` |
-| Scorecard | 4 / 20 players render, header not clipped, DEALS; header and score cells of one column on screen together (PR 10a) | U (source grep), S | **S** | `smoke/02`, `smoke/10`, `smoke/11` |
+| Scorecard | 4 / 20 players render, header not clipped, DEALS; header and score cells of one column on screen together (PR 10a); pool header number / initials / score, OUT, re-entered blue, Standings and Awards cards (PR 13) | U (source grep), S | **S** | `smoke/02`, `smoke/10`, `smoke/11`, `smoke/16` |
 | | 20 players: last column reachable by swiping, header in step | N | N | `full/20` (slow: 600-cell hierarchy) |
 | | portrait ↔ landscape | S | **S** | `smoke/03`, `smoke/11` |
 | | dealer rotation + divider after seat change (031) | U, D | D + N | — |
@@ -126,7 +126,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | view-only (player / spectator) | D (RLS), U | N | — |
 | | 200 / 500 rounds (029 message) | volume script | N (monthly) | — |
 | | realtime refresh when another admin saves | C | C + N | — |
-| Add round | select, keypad, ±, drops, Save score, Balance pill; saved cells green, 3 columns ≥ 13 players, "N more ▾" cue (PR 10b) | U, S | **S** | `smoke/04`, `smoke/10` |
+| Add round | select, keypad, ±, drops, Save score, Balance pill; saved cells green, 3 columns ≥ 13 players, "N more ▾" cue (PR 10b); pool: plus only, "Are you sure?" over the Full count, "Round saved" sheet with outs and re-entry (PR 13) | U, S | **S** | `smoke/04`, `smoke/10`, `smoke/16` |
 | | Rummy balance (positive others, two winners, negative share) | U + D + S | U + D + S | `tests/add-round-pr3.test.ts`, `supabase/tests/27_rummy_negative_037.sql`, `smoke/14-rummy-positive-pot.yaml` (PR 3 / 037) |
 | | Count warnings (half / Full count line, over-max confirm once per cell) | U + N | U + N | `tests/add-round-pr3.test.ts`, `full/80-add-round-count-warnings.yaml` (PR 3) |
 | | over max count warning | — | U + N | — |
@@ -140,7 +140,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | tags: Creator / Admin only; Unregistered / Pending only | U | N | — |
 | My Players | A–Z sections, search, paging to 1,000, remove + undo toast | U, D (027/030), S (search) | N | `smoke/08` |
 | Complete game | confirm, points only, status to Completed | U, S | **S** | `smoke/05` |
-| Results | picker chips, tick rules, non-admin message | U, S (picker) | N | `smoke/06` |
+| Results | picker chips, tick rules, non-admin message; pool rows pick only once awarded, "Give awards first" (PR 13) | U, S (picker) | N | `smoke/06`, `smoke/16` |
 | | show results 1 game / 5 games / 30 × 20 | U, volume, S (1 game) | **S** (1 game), N (30 × 20) | `smoke/06` |
 | | PR 8 design: ranked split + medals, bands of five games with borders, legend, Games in this result | U (model, HTML, CSS parity), S | **S** | `smoke/06`, `smoke/12` |
 | | save result (completed → closed), closed-reuse warning | U, D, N | N | `full/40` |
@@ -152,12 +152,12 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | past results list, result detail, "Games in this result" | U, N (list) | N | `full/40` |
 | | delete result (PR 9) | D (023) | U + D + N | — |
 | | public `/r/` page, result emails (024) | D | D | — |
-| Profile | name, player ID, passcode change, appearance, phone, email prefs, version; pencils, own initials, passcode fields above the keyboard (PR 10b) | U, S | N | `smoke/07`, `full/60` |
+| Profile | name, player ID, passcode change, appearance, phone, email prefs, version; pencils, own initials, passcode fields above the keyboard (PR 10b); Settings: New game starts as, Points and Pool defaults, Re-entry (PR 13) | U, S | N | `smoke/07`, `full/60` |
 | Security | RLS matrix, anon revocations (033), search_path | D | D | — |
 | Offline / degraded | cached scorecard opens, save fails with a message, retry | U | N | — |
 | Help | every ? opens and closes, text fits | N | N (PR 12 adds one flow per screen) | `full/50`, `smoke/02`, `smoke/06` |
 
-**Smoke set on every PR (12 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4, then Log shows "Round 3 added" first) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add new players: H + T → HT2 with PR 6) → Scorecard 20p → Scorecard 20p landscape → Results with no rounds (game G, 6 players, saved). Undo → Add round joins the smoke set with PR 2; Rummy with a positive pot (negative share, confirm, save) with PR 3.
+**Smoke set on every PR (12 flows):** sign in → Home → Scorecard 4p (+ Help) → Scorecard landscape + Add round landscape → Add round (3 drops + rummy, save, Round 4, then Log shows "Round 3 added" first) → Complete game → Results (1 game) → Profile → My players (search) → New game (picker, Add new players: H + T → HT2 with PR 6) → Scorecard 20p → Scorecard 20p landscape → Results with no rounds (game G, 6 players, saved). Undo → Add round joins the smoke set with PR 2; Rummy with a positive pot (negative share, confirm, save) with PR 3; the Pool game end to end (`smoke/16`, deletes its game at the end) with PR 13.
 
 **Nightly / before each APK:** the smoke set, everything marked N, dark appearance, plus C and the volume scripts monthly.
 
@@ -226,6 +226,26 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-9 | D | `ci/db/replay-rollbacks.sh`, `supabase/tests/12_player_initials_022.sql` | Rollback 039 removes the RPCs and restores the letters-only editors; forward replay restores 039; safe to run twice; a re-run of 022 followed by 039 keeps the wider rule |
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
+
+## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migration 041 written, not applied)
+
+Spec: `docs/pool-design.md` (Sree's 14 decisions of Nov 14), mockups in `docs/pool-mockups/`.
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| P13-1 | U | `tests/pool-pr13.test.ts` 13.1–13.2 | Pool totals (a re-entry restarts at the re-entry score, an out keeps the score they went out at); Standings order (in lowest first, outs by round); points left and drops left (`ceil`) |
+| P13-2 | U | same 13.3 | Round validation: plus points only, at least one 0 (two are fine, D6), every player still in scored, nobody out scored, someone lost; `overFullCount` is the one confirm |
+| P13-3 | U | same 13.4–13.4b | Re-entry once per player, only while out, Re-entry on, pool not completed; re-entry score = highest still in; `afterRound` names who went out, who may re-enter, last player standing |
+| P13-4 | U | same 13.5–13.5b | Award presets on the P12 table (winner takes all / by points left / 50-50 / entry per drop left / custom), rounding remainders to the winner, given-out line and "X points weren't given out. Save awards anyway?", payload and reopen; no money / stake / prize words |
+| P13-5 | U | same 13.6–13.7b | Limits 101 / 201 / 251 / Custom 51–999, defaults 25 / 50 / 130, Re-entry on; profile defaults hold both kinds and "New game starts as"; `RulesDraft` parsing; Settings blocks; New game is a step (`new-game-next`) then `GameTypeStep` |
+| P13-6 | U | same 13.8–13.8c | Pool round entry: plus draft, no sign key, Rummy = 0, Save gate; Edit round reopens hands as counts; `poolScoreTone`; the Add round screen drops Plus / Minus, Balance and the Rummy-share confirm and keeps "Are you sure?" |
+| P13-7 | U | same 13.9–13.9b | Scorecard header number / initials / score, OUT struck, re-entered blue (`reentry` colour), Standings and Awards cards, settings lock after a round, leader = lowest in; every game yellow (light and dark), results green |
+| P13-8 | U | same 13.10–13.12 | Awards pending / Awarded, `poolNeedsAwards`, `resultScoresOf` (awards as the pool's one line), picker never ticks an unawarded pool, Save blocked "Give awards first", result note; log labels; help bullets; no "stake" / "prize" UI string (greps every string literal) |
+| P13-9 | D | `supabase/tests/32_pool_041.sql` (75) | Game P: `save_round` pool branch (negatives / rummy ≠ 0 / no zero / out player / missing in player refused; dealer skips outs; `player_out` logged), `pool_recompute`, `reenter_player` (once, on/off, score), `undo_last_round` undoes a re-entry first, `set_pool_awards` (Active / Closed refused, unbalanced saved, `awards_set` → `awards_changed`), `declare_game_result` "Give awards first" and awards as the contribution, `public_scorecard` seat fields, settings lock PT423, `scores_pool_sign` trigger |
+| P13-10 | D | `ci/db/replay-rollbacks.sh`, `supabase/tests/27_rummy_negative_037.sql` | Rollback 041 drops the trigger / functions / columns and restores 036 `save_round`, 035 undo, 034 declare, 031 `public_scorecard`, 022 `seat_rows_json` and the 037 `scores_check`; forward replay restores 041; 027 accepts the constraint or the 041 trigger |
+| P13-11 | S | `smoke/16-pool-game.yaml` | New game: pick four → "Next · 4 players" → Game type (Points first, then Pool: Re-entry, Settings link, players at the bottom) → Start → Skip the co-admin nudge → pool scorecard (Pool tag, Standings "Limit 101 · 100 in, 101 out") → Add round (no Plus / Minus; Drop 25 / Middle drop 50 / Full count 130; Rummy; 135 → "Are you sure?" → Keep 135 → cell "then 135, out") → Save → "Round saved" sheet (Zed out at 135, Re-enter Zed) → scorecard OUT R1 → Re-enter from Standings (blue, 50) → Complete (pool line) → Confirm → "Give awards" / "Give awards first" → Awards (Winner takes all all given out, By points left, Entry per drop left, Custom 400 → "100 not given out") → Save → "Save awards anyway?" → Complete page "Change awards" + "Add to Results" → scorecard Awarded + Awards card → Delete game (screenshots 16–16s) |
+| P13-12 | S | `smoke/07-profile.yaml` | Settings: "New game starts as", Points defaults, Pool defaults with the limit chips, Custom and Re-entry (screenshots 07d, 07e) |
+| P13-13 | M | emulator | Every changed screen in the PR body gallery (CI artifact `ui-screenshots-<slug>-smoke`) |
 
 ## PR 10b test cases (APK 9 fixes: Home, My players / own initials, Add players, Profile, Add round, Results, share image, PDFs; migration 040 written, not applied)
 

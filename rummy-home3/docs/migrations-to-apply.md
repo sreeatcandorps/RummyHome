@@ -462,6 +462,21 @@ C. **Names**: a one-off `update` collapses doubled spaces in `profiles` display 
 
 Verified on a scratch Postgres 16 loaded with 001–040 and the CI seed: pgTAP 1230 checks (34 new in `supabase/tests/31_own_initials_040.sql`), the rollback replay (164 checks, 040 rolled back first and "040 restored" after the forward run) and the 44 race checks all pass.
 
+## 041 — Pool games (PR 13; **written, not applied**)
+
+File: `supabase/migrations/041_pool.sql`. Run after 040. Safe to re-run. Rollback: `supabase/rollback/rollback_041_pool.sql` (drops the two triggers, `reenter_player`, `set_pool_awards`, `pool_recompute` and the helpers, the pool columns on `games` / `game_players`, and restores the 036 `save_round`, 035 `undo_last_round`, 034 `declare_game_result` / `public_result`, 031 `public_scorecard`, 022 `seat_rows_json` / `add_seated_player` and the 037 `scores_check`; stored pool rounds stay as rows the older app would read as positive points).
+
+Backward compatible with APK 9/10: new nullable columns and new RPCs; every existing RPC keeps its signature and its points-game branch unchanged. **Status: waiting for Sree's OK** — the agent does not apply; Build Bot applies after CI on PR 13.
+
+What it does.
+A. **Pool settings and state** (D1, D2, D4): the pool limit and Re-entry switch travel in `games.settings` (`poolLimit`, `reentry`) and the user's defaults in the existing profile defaults JSON — no new settings columns. New columns: `games.awarded_at`, `awarded_by`, `award_note`; `game_players.out_round`, `reentered_round`, `reentry_score`, `entries` (derived by `pool_recompute`). `games_pool_settings_lock` refuses a change to the pool limit, Drop, Middle drop or Full count once a round exists (PT423).
+B. **Pool scores stored positive** (D5/D6): `scores_pool_sign` trigger replaces the 037 `scores_check` for pool games (0 or more, no cap); points games keep the old rule. `save_round` pool branch: every seated in-player scored, nobody out scored, at least one 0 and one positive, Rummy = 0; it recomputes seats (`pool_recompute`: `total`, `out_round`, `reentered_round`, `reentry_score`, `entries`), skips outs in the dealer rotation and logs `player_out`.
+C. **Re-entry** (D4): `reenter_player(game, player)` once per player, only while out, only while the game is Active and Re-entry is on; the re-entry score is the highest total still in; logs `player_reentered`. `undo_last_round` undoes a re-entry made after the last round first (`pool_undo_reentry`, logs `reentry_undone`).
+D. **Awards** (D8/D9): `set_pool_awards(game, awards jsonb, note jsonb)` for admins on a Completed (not Closed) pool, stores `prize_shares` (the column name is internal; the UI says awards), `award_note` {preset, entry, poolTotal, givenOut} and `awarded_at`; may be unbalanced; logs `awards_set` then `awards_changed`.
+E. **Results** (D10): `declare_game_result` refuses an unawarded pool ("Give awards first") and uses the awards as the pool's one line per player; `public_result` carries them. `public_scorecard` (anon) gains `gameType`, `poolLimit`, `dropAmount`, `awarded` and per player `outRound`, `reenteredRound`, `reentryScore`, `entries` for the live page.
+
+Verified on a scratch Postgres 16 loaded with 001–041 and the CI seed: pgTAP (75 new in `supabase/tests/32_pool_041.sql`; `27_rummy_negative_037.sql` now accepts the constraint or the 041 trigger), the rollback replay (041 rolled back first, "041 restored" after the forward run) and the race checks all pass (`ci/db/local-run.sh`, four statuses 0).
+
 ## Apply order for the Nov 10–12 batches
 
 017–020 were applied on Nov 11 (~11:25 AM PT); 021–026 were applied on Nov 12 from PR 7 head `d62d9c6`. Steps 1–6 are kept for the record (all re-runnable):
@@ -510,6 +525,10 @@ PR 6 (Nov 13), unapplied, ready for live once CI is green:
 PR 10b (Nov 14), unapplied, **waiting for Sree's OK**:
 
 20. `supabase/migrations/040_own_initials_and_round_gaps.sql`
+
+PR 13 (Nov 14), unapplied, **waiting for Sree's OK**:
+
+21. `supabase/migrations/041_pool.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 
