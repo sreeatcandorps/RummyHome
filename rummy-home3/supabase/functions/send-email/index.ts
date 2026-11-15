@@ -105,9 +105,9 @@ function render(row: OutboxRow): { subject: string; html: string; text: string }
     const subject = `${p.requesterName ?? 'A player'} asked to restore ${g}`;
     const html = `<p>Hi ${escapeHtml(p.adminName ?? 'there')},</p>
 <p><strong>${escapeHtml(p.requesterName ?? 'A player')}</strong> asked to restore <strong>${escapeHtml(g)}</strong>${p.deletedByName ? `, deleted by ${escapeHtml(p.deletedByName)}${p.deletedAt ? ` on ${escapeHtml(when(p.deletedAt))}` : ''}` : ''}.</p>
-<p>Open EZ Score › Home › Deleted games and tap <strong>Restore game</strong> if it should come back.${p.purgeAt ? ` After ${escapeHtml(when(p.purgeAt))} it is gone for good.` : ''}</p>
+<p>Open EZ Score › Home › Deleted games and tap <strong>Restore game</strong> if it should come back.${p.purgeAt ? ` After ${escapeHtml(when(p.purgeAt))} it is hidden for good (nothing is erased; support can still find it).` : ''}</p>
 <p style="color:#666;font-size:12px;margin-top:24px">You get this because you created or admin this game. <a href="${SITE}/privacy">Privacy</a></p>`;
-    const text = `Hi ${p.adminName ?? 'there'},\n\n${p.requesterName ?? 'A player'} asked to restore ${g}${p.deletedByName ? `, deleted by ${p.deletedByName}` : ''}.\n\nOpen EZ Score > Home > Deleted games and tap Restore game if it should come back.${p.purgeAt ? ` After ${when(p.purgeAt)} it is gone for good.` : ''}`;
+    const text = `Hi ${p.adminName ?? 'there'},\n\n${p.requesterName ?? 'A player'} asked to restore ${g}${p.deletedByName ? `, deleted by ${p.deletedByName}` : ''}.\n\nOpen EZ Score > Home > Deleted games and tap Restore game if it should come back.${p.purgeAt ? ` After ${when(p.purgeAt)} it is hidden for good (nothing is erased; support can still find it).` : ''}`;
     return { subject, html, text };
   }
 

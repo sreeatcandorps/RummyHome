@@ -166,7 +166,7 @@ export const HELP = {
     'Restore brings a deleted game back. It is not added back to results it was removed from; save a new result if it should count.',
     'Delete result (result ⋮, for whoever saved it or an admin of its games) removes the result for everyone. Its games are no longer Closed.',
     'Only the person who deleted something, or an admin of it, can restore it. Players who scored in a deleted game see it on Home under Deleted games and can ask an admin to restore it.',
-    'A deleted game is kept 30 days, then erased for good. No admin left? Email support@ezscore.app with the Unique game ID from the scorecard foot.',
+    'A deleted game stays under Deleted games for 30 days, then is hidden for good — nothing is ever erased. No admin left? Email support@ezscore.app with the Unique game ID from the scorecard foot.',
   ),
   results: bullets(
     'The Completed, Closed, and Active chips choose which games are listed; any mix can be on. Completed games you run start ticked. If a chip would hide a ticked game, the app asks first.',

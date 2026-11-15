@@ -39,7 +39,7 @@ tags: [roles]
     direction: DOWN
     timeout: 20000
 - assertVisible: "Deleted games.*"
-- assertVisible: "Deleted by Arun Admin.*gone for good on .*"
+- assertVisible: "Deleted by Arun Admin.*hidden for good on .*"
 - assertVisible: "Ask an admin to restore"
 - takeScreenshot: r05-home-deleted-games-player
 - tapOn:

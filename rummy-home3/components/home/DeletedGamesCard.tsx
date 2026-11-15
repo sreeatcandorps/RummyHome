@@ -19,7 +19,7 @@ type Props = {
 
 /**
  * Home › Deleted games (G03, migration 045): games deleted in the last 30 days that this person scored
- * in, greyed, with "Deleted by Harish · 2 days ago · gone for good on Dec 14". A player gets "Ask an
+ * in, greyed, with "Deleted by Harish · 2 days ago · hidden for good on Dec 14". A player gets "Ask an
  * admin to restore" (then "Asked · Nov 10"); the creator and admins get "Restore game". Tapping a card
  * opens the scorecard read-only. Hidden entirely when there is nothing to show.
  */

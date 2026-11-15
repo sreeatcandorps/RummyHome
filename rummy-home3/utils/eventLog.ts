@@ -70,9 +70,11 @@ export const KIND_LABELS: Record<string, string> = {
   awards_changed: 'Awards changed',
   // Seating order (PR 21)
   seating_changed: 'Seating',
-  // Going rogue (PR 20): a scored player asked for a deleted game back; the purge erased it after 30 days
+  // Going rogue (PR 20): a scored player asked for a deleted game back. 046 (PR 22): after 30 days the game is
+  // hidden for good, never erased; game_purged is 045's kind, kept for any row written before 046.
   restore_requested: 'Asked to restore',
   game_purged: 'Erased',
+  game_archived: 'Hidden for good',
 };
 
 export function kindLabel(kind: string): string {
@@ -103,6 +105,7 @@ export function dotTone(entry: Pick<LogEntry, 'kind' | 'level'>): DotTone {
     case 'restore_requested':
       return 'amber';
     case 'game_purged':
+    case 'game_archived':
       return 'red';
     case 'player_added':
     case 'player_reentered':

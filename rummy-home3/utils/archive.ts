@@ -3,8 +3,8 @@
 export const HIDE_GAME_NOTE = 'Hidden from your Home. It still counts in results and stats. Unhide from Settings > Hidden & deleted.';
 
 export const DELETE_GAME_TITLE = 'Delete this game?';
-/** G02 (PR 20, Q20.1): honest about who still sees a deleted game and when it is gone for good. */
-export const DELETE_GAME_BODY = 'Nothing is lost for 30 days. Everyone who scored in it still finds it under Deleted games and can ask an admin to bring it back; the creator and any admin can restore it there or from Settings › Hidden & deleted. After 30 days it is gone for good.';
+/** G02 (PR 20, Q20.1; 046): honest about who still sees a deleted game and when it is hidden for good. */
+export const DELETE_GAME_BODY = 'Nothing is lost for 30 days. Everyone who scored in it still finds it under Deleted games and can ask an admin to bring it back; the creator and any admin can restore it there or from Settings › Hidden & deleted. After 30 days it is hidden for good — nothing is erased, and support can still find it.';
 
 export const DELETE_RESULT_TITLE = 'Delete this result?';
 export const DELETE_RESULT_BODY = 'It disappears for everyone. Its games are no longer Closed and can go into a new result. You can restore it from Settings > Hidden & deleted.';

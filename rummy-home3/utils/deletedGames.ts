@@ -6,13 +6,18 @@ import { formatWhenDay } from '@/utils/formatWhen';
  * played in them can still see. Pure, so the unit tests pin the wording and the date math.
  */
 
-/** How long a deleted game is kept before the nightly purge erases it (045 deleted_game_retention). */
+/**
+ * How long a deleted game stays under Deleted games (045 deleted_game_retention). After that the nightly
+ * step (046) hides it for good — second-layer soft delete: off every user's screens, not restorable in
+ * the app, kept in the database for support. Nothing is ever erased. `purge*` names below are the
+ * 045 field names the server still sends (purge_at); they mean "hidden for good on".
+ */
 export const DELETED_GAME_RETENTION_DAYS = 30;
 
 export const SUPPORT_EMAIL = 'support@ezscore.app';
 
 export const DELETED_GAMES_TITLE = 'Deleted games';
-export const DELETED_GAMES_SUPPORTING = `Games you scored in that an admin deleted. Read-only; gone for good after ${DELETED_GAME_RETENTION_DAYS} days.`;
+export const DELETED_GAMES_SUPPORTING = `Games you scored in that an admin deleted. Read-only; hidden for good after ${DELETED_GAME_RETENTION_DAYS} days — nothing is erased.`;
 
 export const ASK_RESTORE_LABEL = 'Ask an admin to restore';
 export const RESTORE_GAME_LABEL = 'Restore game';
@@ -21,7 +26,7 @@ export const ASKED_TOAST = 'Asked. The creator and the admins have been told.';
 /** The Settings › Hidden & deleted support card (G07, Q20.7). */
 export const SUPPORT_CARD_TITLE = 'Can’t find a game?';
 export const SUPPORT_CARD_BODY =
-  `If the person who deleted it is gone and no admin is left, email ${SUPPORT_EMAIL} with the Unique game ID (at the foot of every scorecard). Within the ${DELETED_GAME_RETENTION_DAYS} days an app admin can restore it; after that it no longer exists.`;
+  `If the person who deleted it is gone and no admin is left, email ${SUPPORT_EMAIL} with the Unique game ID (at the foot of every scorecard). Nothing is ever erased: after the ${DELETED_GAME_RETENTION_DAYS} days the game is hidden from everyone, and support can still find it.`;
 
 /** deletedAt + 30 days, as an ISO string; null when the stamp is unreadable. */
 export function purgeDate(deletedAt: string | null | undefined, days: number = DELETED_GAME_RETENTION_DAYS): string | null {
@@ -49,18 +54,18 @@ export function agoLabel(value: string, now: Date = new Date()): string {
   return `${days} days ago`;
 }
 
-/** "gone for good on Dec 14" / "gone for good today" for the last day. */
-export function goneForGoodLabel(purgeAt: string | null | undefined, now: Date = new Date()): string {
+/** "hidden for good on Dec 14" / "hidden for good today" for the last day. */
+export function hiddenForGoodLabel(purgeAt: string | null | undefined, now: Date = new Date()): string {
   const days = daysUntilPurge(purgeAt, now);
   if (days === null) return '';
-  if (days === 0) return 'gone for good today';
-  return `gone for good on ${formatWhenDay(purgeAt as string, now)}`;
+  if (days === 0) return 'hidden for good today';
+  return `hidden for good on ${formatWhenDay(purgeAt as string, now)}`;
 }
 
-/** The grey card's second line (G03): "Deleted by Harish · 2 days ago · gone for good on Dec 14". */
+/** The grey card's second line (G03): "Deleted by Harish · 2 days ago · hidden for good on Dec 14". */
 export function deletedCardLine(deletion: Pick<GameDeletion, 'deletedAt' | 'deletedByName' | 'deletedByMe' | 'purgeAt'>, now: Date = new Date()): string {
   const who = deletion.deletedByMe ? 'you' : deletion.deletedByName;
-  const parts = [`Deleted by ${who}`, agoLabel(deletion.deletedAt, now), goneForGoodLabel(deletion.purgeAt, now)].filter(Boolean);
+  const parts = [`Deleted by ${who}`, agoLabel(deletion.deletedAt, now), hiddenForGoodLabel(deletion.purgeAt, now)].filter(Boolean);
   return parts.join(' · ');
 }
 
@@ -82,9 +87,9 @@ export function askedLine(requests: RestoreRequest[] | undefined, viewerId?: str
   return `${joinNames([first, ...others])} asked to restore it`;
 }
 
-/** The red banner's first line for a deleted game: who and when, with the purge date. */
+/** The red banner's first line for a deleted game: who and when, and the day it is hidden for good. */
 export function deletedBannerLine(deletion: Pick<GameDeletion, 'deletedAt' | 'deletedByName' | 'deletedByMe' | 'purgeAt'>, now: Date = new Date()): string {
-  return `This game was deleted by ${deletion.deletedByMe ? 'you' : deletion.deletedByName} ${agoLabel(deletion.deletedAt, now)} · ${goneForGoodLabel(deletion.purgeAt, now)}`;
+  return `This game was deleted by ${deletion.deletedByMe ? 'you' : deletion.deletedByName} ${agoLabel(deletion.deletedAt, now)} · ${hiddenForGoodLabel(deletion.purgeAt, now)}`;
 }
 
 /** The 045 `deletion` object of a bundle (snake_case) as the app's GameDeletion. */

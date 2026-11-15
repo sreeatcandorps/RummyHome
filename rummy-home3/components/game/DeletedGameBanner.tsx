@@ -18,7 +18,7 @@ type Props = {
 /**
  * The red banner over a deleted game's read-only scorecard (G04, migration 045). A player gets one
  * button, "Ask an admin to restore" (then "Asked · Nov 10"); the creator, admins and the deleter get
- * "Restore game". Everyone sees who deleted it, when it is gone for good, and who asked.
+ * "Restore game". Everyone sees who deleted it, when it is hidden for good, and who asked.
  */
 export function DeletedGameBanner({ deletion, viewerId, busy = false, onAsk, onRestore }: Props) {
   const { colors } = useAppTheme();
