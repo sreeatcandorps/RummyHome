@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–041) applied, check the function state after each, then re-apply the forward
+# has every migration (001–043) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -24,7 +24,17 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 042 (re-entries setting, limit-only lock; rolled back first)
+# 043 (multiplier: results × multiplier as bigint, live-page key, Log label; rolled back first)
+HAS_043=f
+if [ -f "$RB/rollback_043_multiplier.sql" ]; then
+  HAS_043=t
+  if apply "$RB/rollback_043_multiplier.sql"; then tap ok "rollback_043 applies"; else tap fail "rollback_043 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists game_multiplier)" = f ] && [ "$(fn_has declare_game_result game_multiplier)" = f ] && [ "$(fn_has event_log_games 'Multiplier')" = f ] \
+    && tap ok "after rollback_043 results sum entered points again (041) and the Log has no Multiplier label (042)" \
+    || tap fail "after rollback_043 game_multiplier should be gone and declare_game_result / event_log_games back to 041 / 042"
+fi
+
+# 042 (re-entries setting, limit-only lock)
 HAS_042=f
 if [ -f "$RB/rollback_042_pool_reentries_and_limit_lock.sql" ]; then
   HAS_042=t
@@ -408,6 +418,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_040" = t ] && FORWARD="$FORWARD 040_own_initials_and_round_gaps"
 [ "$HAS_041" = t ] && FORWARD="$FORWARD 041_pool"
 [ "$HAS_042" = t ] && FORWARD="$FORWARD 042_pool_reentries_and_limit_lock"
+[ "$HAS_043" = t ] && FORWARD="$FORWARD 043_multiplier"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -548,6 +559,11 @@ fi
 if [ "$HAS_042" = t ]; then
   [ "$(fn_exists pool_reentry_limit)" = t ] && [ "$(fn_has reenter_player 'pool_reentry_limit')" = t ] && [ "$(fn_has games_pool_settings_lock 'dropAmount')" = f ] && [ "$(fn_has event_log_games 'Re-entries')" = t ] \
     && tap ok "042 restored (re-entry limit, limit-only lock, labelled settings log)" || tap fail "042 restored"
+fi
+if [ "$HAS_043" = t ]; then
+  [ "$(fn_exists game_multiplier)" = t ] && [ "$(fn_has declare_game_result game_multiplier)" = t ] && [ "$(fn_has public_scorecard game_multiplier)" = t ] \
+    && [ "$(fn_has event_log_games 'Multiplier')" = t ] && [ "$(q "select exists(select 1 from pg_trigger where tgname='games_multiplier_check')")" = t ] \
+    && tap ok "043 restored (game_multiplier, results × multiplier, live-page key, Log label, range check)" || tap fail "043 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op
