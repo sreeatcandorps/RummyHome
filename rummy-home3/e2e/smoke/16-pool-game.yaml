@@ -28,9 +28,13 @@ tags: [smoke]
     id: "game-type-pool"
 - assertVisible: "Re-entries"
 - assertVisible: "Unlimited"
-- assertVisible: "You can also set these defaults in Settings."
 - takeScreenshot: 16c-game-type-pool
-# The picked players sit under the settings card, below the fold on a phone.
+# With the Re-entries block the Settings link and the picked players sit below the fold on a phone.
+- scrollUntilVisible:
+    element:
+      text: "You can also set these defaults in Settings."
+    direction: DOWN
+    timeout: 15000
 - scrollUntilVisible:
     element:
       text: "Zed Zero"
