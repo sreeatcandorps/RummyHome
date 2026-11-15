@@ -537,7 +537,11 @@ jobs:
           export SUPABASE_ANON_KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
           echo "::add-mask::$SUPABASE_ANON_KEY"
           mkdir -p ../ci/out/ui/two-device
-          if node scripts/realtime-probe.mjs 2>&1 | tee ../ci/out/ui/two-device/realtime-probe.txt; then
+          # The ui job installs no node_modules (it only runs the APK), so the probe gets its one dependency here.
+          # ESM ignores NODE_PATH, so the script runs from a folder that owns the dependency.
+          mkdir -p /tmp/probe && cp scripts/realtime-probe.mjs /tmp/probe/ \
+            && (cd /tmp/probe && npm init -y >/dev/null && npm i --no-audit --no-fund --silent @supabase/supabase-js@2)
+          if node /tmp/probe/realtime-probe.mjs 2>&1 | tee ../ci/out/ui/two-device/realtime-probe.txt; then
             echo "realtime probe green"
           else
             echo "::warning title=Realtime probe red::the local Realtime did not deliver a games change to a subscribed client — T1 will say nothing about the app"

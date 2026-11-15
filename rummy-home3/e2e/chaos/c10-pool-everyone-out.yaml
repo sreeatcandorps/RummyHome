@@ -15,8 +15,9 @@ tags: [chaos]
 - takeScreenshot: c10-pool-19-out
 - tapOn: "Complete game"
 - extendedWaitUntil:
-    visible: "Game admins"
+    visible: "Final scores so far"
     timeout: 15000
+- assertVisible: "OUT"
 - takeScreenshot: c10-pool-complete-page
 - tapOn: "Complete game"
 - extendedWaitUntil:

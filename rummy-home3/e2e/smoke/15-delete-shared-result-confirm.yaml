@@ -43,6 +43,9 @@ tags: [smoke]
       id: "result-delete"
     direction: DOWN
     timeout: 15000
+    # Centre it: edge-to-edge draws the last button under the translucent 3-button bar, and a tap
+    # at the bottom edge lands on the system Home button instead of the app (run 4).
+    centerElement: true
 - tapOn:
     id: "result-delete"
 - extendedWaitUntil:

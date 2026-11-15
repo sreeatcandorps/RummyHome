@@ -82,6 +82,14 @@ tags: [chaos]
 - inputText: "9"
 - inputText: "9"
 - inputText: "9"
+# The field keeps three digits, so 99999 becomes 999 (a valid limit) — it must not become 99999.
+- assertVisible:
+    id: "new-game-limit-input"
+    text: "999"
+- assertNotVisible: "99999"
+- takeScreenshot: c03-limit-99999-capped-to-999
+- eraseText: 6
+- inputText: "50"
 - hideKeyboard
 - tapOn:
     id: "start-game"
@@ -91,7 +99,7 @@ tags: [chaos]
     direction: DOWN
     timeout: 8000
 - assertVisible: "Game type"
-- takeScreenshot: c03-limit-99999-refused
+- takeScreenshot: c03-limit-50-refused
 - back
 - extendedWaitUntil:
     visible: "Add new players"
