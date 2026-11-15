@@ -2,8 +2,9 @@
 -- Home (X20-1); an unscored seat, a viewer and an outsider do not; the public /s/ page still says deleted.
 -- request_restore: one ask per person per game, the Log row, notices + emails to the creator and every
 -- admin, refused for outsiders, for live games and for people who can restore themselves (X20-2).
--- purge_deleted_games: a 31-day-old game with no live result is erased and its Log rows survive as
--- purged_game_id + one game_purged row; a 29-day-old game and one held by a live result survive (X20-3).
+-- The 30-day step (X20-3, rewritten by 046): a 31-day-old game with no live result is hidden for good
+-- (archived_at) and keeps every row; a 29-day-old game and one held by a live result are left alone.
+-- 045's hard delete is gone — see 37_no_permanent_delete_046.sql for the archive semantics in full.
 -- Game D: sree (creator, admin), harish (admin, seated), priya (player, scored), zero (seated, never
 -- scored); 004 is a viewer; 005 is an outsider.
 begin;
@@ -116,9 +117,9 @@ select is((public.restore_game(:D))->>'restored', 'true', 'harish restores');
 select is((select count(*)::int from public.restore_requests where game_id = :D), 0, 'restoring clears the asks');
 select is(public.get_game_bundle(:D)->>'deleted', null, 'the bundle is a live one again');
 
--- ---------- X20-3: the purge ----------
+-- ---------- X20-3: the 30-day step (046: hide for good, delete nothing) ----------
 select tests.logout();
--- OLD: deleted 31 days ago, nobody holds it → erased
+-- OLD: deleted 31 days ago, nobody holds it → hidden for good
 insert into public.games (id, created_by, status, game_type, settings, share_code, deleted_at, deleted_by)
 values (:OLD, :SREE, 'completed', 'stake', '{"gameType":"stake"}', 'ROGUE2', now() - interval '31 days', :SREE);
 insert into public.game_players (game_id, profile_id, player_order, display_number, role, seated, label) values (:OLD, :SREE, 0, 1, 'game_admin', true, 'SK'), (:OLD, :PRIYA, 1, 2, 'player', true, 'PT');
@@ -132,16 +133,16 @@ insert into public.game_results (id, declared_by, declared_at, places) values ('
 insert into public.game_result_games (result_id, game_id) values ('20000000-0000-4000-8000-0000000000fd', :HELD);
 
 select is((select count(*)::int from public.event_log where game_id = :OLD), 4, 'the old game has its Log lines (created, two seats, deleted)');
-select is(public.purge_deleted_games(), 1, 'X20-3 the purge erases exactly one game');
-select is((select count(*)::int from public.games where id in (:OLD, :FRESH, :HELD)), 2, 'X20-3 the 29-day-old game and the result-held game survive');
-select ok(not exists (select 1 from public.games where id = :OLD), 'X20-3 the 31-day-old game is gone');
-select is((select count(*)::int from public.event_log where purged_game_id = :OLD and game_id is null and kind <> 'game_purged'), 4, 'X20-3 its Log rows survive, re-anchored on purged_game_id');
-select is((select count(*)::int from public.event_log where purged_game_id = :OLD and kind = 'game_purged'), 1, 'X20-3 one game_purged line');
-select ok((select summary like 'Game % was erased 30 days after it was deleted' and actor_name = 'System' from public.event_log where purged_game_id = :OLD and kind = 'game_purged'), 'X20-3 … says so');
-select is(public.purge_deleted_games(), 0, 'X20-3 running it again erases nothing');
+select is(public.purge_deleted_games(), 1, 'X20-3 the nightly step touches exactly one game (046: purge_deleted_games = archive_deleted_games)');
+select is((select count(*)::int from public.games where id in (:OLD, :FRESH, :HELD)), 3, 'X20-3 (046) nothing is deleted: all three games are still in the database');
+select ok((select archived_at is not null from public.games where id = :OLD), 'X20-3 (046) the 31-day-old game is hidden for good');
+select is((select count(*)::int from public.event_log where game_id = :OLD and kind <> 'game_archived'), 4, 'X20-3 (046) its Log rows keep their game_id');
+select is((select count(*)::int from public.event_log where game_id = :OLD and kind = 'game_archived'), 1, 'X20-3 (046) one game_archived line');
+select ok((select summary like 'Game % was hidden for good 30 days after it was deleted' and actor_name = 'System' from public.event_log where game_id = :OLD and kind = 'game_archived'), 'X20-3 … says so');
+select is(public.purge_deleted_games(), 0, 'X20-3 running it again touches nothing');
 
--- the Log is still immutable outside the purge (even for the owner)
-select throws_like($$ update public.event_log set game_id = null where game_id = '10000000-0000-4000-8000-0000000000fa' $$, '%cannot be changed%', 'outside the purge the Log refuses changes');
+-- the Log is still immutable (even for the owner)
+select throws_like($$ update public.event_log set game_id = null where game_id = '10000000-0000-4000-8000-0000000000fa' $$, '%cannot be changed%', 'the Log refuses changes');
 
 select * from finish();
 rollback;
