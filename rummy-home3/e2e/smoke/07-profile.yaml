@@ -51,12 +51,13 @@ tags: [smoke]
     timeout: 15000
 - assertVisible: "Points defaults"
 - takeScreenshot: 07d-settings-points-defaults
+# PR 14: the Points card grew a Multiplier block, so the pool chips sit a screen lower; scroll to the chip itself.
 - scrollUntilVisible:
-    element: "Pool defaults"
+    element:
+      id: "settings-pool-limit-101"
     direction: DOWN
-    timeout: 10000
-- assertVisible:
-    id: "settings-pool-limit-101"
+    timeout: 15000
+- assertVisible: "Pool defaults"
 - assertVisible:
     id: "settings-pool-limit-custom"
 - scrollUntilVisible:
