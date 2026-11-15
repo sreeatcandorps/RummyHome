@@ -26,6 +26,7 @@ import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/co
 import { localGameGuard, localRoundsGuard } from '@/utils/guardrails';
 import { BundleSeatRow, dealerIdsFrom, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
 import { nextDealer, withDealer } from '@/utils/dealerRotation';
+import { deletionFromRow } from '@/utils/deletedGames';
 import { queryCache } from '@/utils/queryCache';
 import { INITIALS_PATTERN, normalizeInitials } from '@/utils/initials';
 
@@ -156,6 +157,7 @@ export const legacyGameFromServer = (
     closedAt: game.closed_at ?? null,
     completedAt: game.completed_at ?? null,
     deletedAt: game.deleted_at ?? null,
+    deletedBy: game.deleted_by ?? null,
   };
 };
 
@@ -231,12 +233,16 @@ async function loadGameBundle(gameId: string): Promise<{ game: Game; seats: Play
       throw error;
     }
     if (!data) return null;
-    if ((data as { deleted?: boolean }).deleted === true && (data as { game?: Record<string, any> }).game?.id) {
+    // 023 shape: a deleted game answered with its id, number and stamp only (a database before 045).
+    if ((data as { deleted?: boolean }).deleted === true && !isGameBundle(data) && (data as { game?: Record<string, any> }).game?.id) {
       const game = gameCache.putGame(deletedGameFromServer((data as { game: Record<string, any> }).game)) as Game;
       return { game, seats: gameCache.putSeats(gameId, []) };
     }
     if (!isGameBundle(data)) return undefined;
-    const game = gameCache.putGame(gameFromBundle(data)) as Game;
+    // 045 shape: a deleted game the caller may read comes as the full bundle plus deleted:true and `deletion`.
+    const deletion = data.deleted === true ? deletionFromRow(data.deletion) : undefined;
+    const mapped = gameFromBundle(data);
+    const game = gameCache.putGame(deletion ? { ...mapped, deletedAt: deletion.deletedAt, deletedBy: deletion.deletedBy, canRestore: deletion.canRestore, deletion } : mapped) as Game;
     const seats = gameCache.putSeats(gameId, seatsFromBundle(data.game_players));
     return { game, seats };
   });

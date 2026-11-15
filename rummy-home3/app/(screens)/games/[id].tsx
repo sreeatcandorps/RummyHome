@@ -14,6 +14,8 @@ import { gamesService } from '@/services/games';
 import { archiveService, HoldingResult } from '@/services/archive';
 import { authService } from '@/services/auth';
 import { DELETE_GAME_BODY, DELETE_GAME_TITLE, deleteGameWarning, deletedBody, GAME_DELETED_TITLE, HIDE_GAME_NOTE, restoreGameNote } from '@/utils/archive';
+import { ASKED_TOAST } from '@/utils/deletedGames';
+import { DeletedGameBanner } from '@/components/game/DeletedGameBanner';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
 import { storage } from '@/utils/storage';
@@ -103,7 +105,7 @@ export default function GameScreen() {
   // PR 21 (§3.2): the pop-up opens the first time the scorecard shows an admin a fresh game (≥ 2 seats, no rounds,
   // settings.seatingPrompted false). Answered once per game: Done / Keep this order flip the flag on the game.
   useEffect(() => {
-    if (loading || seating || seatingAnswered.current) return;
+    if (loading || seating || seatingAnswered.current || game?.deletedAt) return;
     const roundCount = Math.max(0, ...Object.values(game?.scores ?? {}).map((column) => column?.length ?? 0));
     if (shouldPromptSeating({ game, canScore, seatCount: players.length, roundCount })) setSeating('popup');
   }, [loading, game, canScore, players.length, seating]);
@@ -306,6 +308,21 @@ export default function GameScreen() {
     }
   };
 
+  // 045: a scored player asks the creator and the admins to bring the game back (one ask per person per game).
+  const askRestore = async () => {
+    if (!game) return;
+    setArchiving(true);
+    try {
+      await archiveService.requestRestore(game.id);
+      setLinkNote(ASKED_TOAST);
+      await loadGameData();
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    } finally {
+      setArchiving(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
@@ -317,7 +334,9 @@ export default function GameScreen() {
     );
   }
 
-  if (game?.deletedAt) {
+  // A deleted game from a database before 045 (or one this person may not read in full): the stamp only.
+  // Since 045 the creator, admins and scored players get the whole scorecard read-only, drawn below.
+  if (game?.deletedAt && !(game.deletion && players.length > 0)) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <Stack.Screen options={{ headerShown: true, title: screenTitle('Scorecard', game) }} />
@@ -358,6 +377,10 @@ export default function GameScreen() {
   }
 
   const maxRounds = getMaxRounds();
+  // 045: a deleted game is read-only for everyone — the banner carries the one action (Ask / Restore game).
+  const deleted = Boolean(game.deletedAt && game.deletion);
+  const canScoreNow = canScore && !deleted;
+  const canManageNow = canManage && !deleted;
 
   // Stored seat labels (022) first; a seat without one gets a letter form nobody else in this game has.
   const labelById = seatLabels(players);
@@ -403,7 +426,7 @@ export default function GameScreen() {
           name: player?.name ?? '?',
           label: initialsFor(row.playerId),
           number: player?.playerNo ?? null,
-          canReenter: block === null && canScore,
+          canReenter: block === null && canScoreNow,
           reentryHint: block && block !== 'in' ? REENTRY_BLOCK_TEXT[block] : null,
         };
       })
@@ -433,7 +456,9 @@ export default function GameScreen() {
   ) : null;
   const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : settleEnabled ? 'cash-multiple' : 'numeric'} />;
   const awardsLabel = poolStatusLabel(game);
-  const statusTag = game.isComplete ? (
+  const statusTag = deleted ? (
+    <Tag label="Deleted" tone="danger" icon="delete-outline" testID="status-tag" />
+  ) : game.isComplete ? (
     <Tag label={awardsLabel ?? 'Completed'} tone={awardsLabel === 'Awards pending' ? 'warning' : 'info'} icon={awardsLabel === 'Awarded' ? 'trophy-outline' : 'flag-checkered'} testID="status-tag" />
   ) : (
     // Who deals is shown once, as the DEALS badge on that player's column header.
@@ -477,7 +502,7 @@ export default function GameScreen() {
           game={game}
           names={Object.fromEntries(players.map((p) => [p.id, p.name]))}
           labels={Object.fromEntries(players.map((p) => [p.id, initialsFor(p.id)]))}
-          canManage={canManage}
+          canManage={canManageNow}
           compact={isShort}
           onGiveAwards={() => router.push({ pathname: '/(screens)/games/award', params: { id: game.id } })}
         />
@@ -486,7 +511,7 @@ export default function GameScreen() {
         rows={poolRows}
         limit={poolLimitOf(game.settings)}
         compact={isShort}
-        onReenter={game.isComplete ? undefined : reenter}
+        onReenter={game.isComplete || deleted ? undefined : reenter}
         busyId={reentering}
         // F6: never more than this share of the screen, so the grid above keeps room at 20 players.
         maxHeight={Math.round(windowHeight * (isShort ? 0.45 : 0.38))}
@@ -555,7 +580,7 @@ export default function GameScreen() {
           headerStyle: { backgroundColor: colors.background },
           headerRight: () => (
             <View style={styles.headerActions}>
-              <IconButton icon="share-variant" size={22} onPress={() => setShareOpen(true)} accessibilityLabel="Share" testID="scorecard-share-icon" />
+              {deleted ? null : <IconButton icon="share-variant" size={22} onPress={() => setShareOpen(true)} accessibilityLabel="Share" testID="scorecard-share-icon" />}
               <HelpButton text={HELP.scorecard} />
               <Menu
                 key={menuKey}
@@ -564,19 +589,19 @@ export default function GameScreen() {
                 anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu"> </Button>}
               >
                 <Menu.Item leadingIcon={pool && maxRounds > 0 ? 'lock-outline' : 'cog-outline'} onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title={gameSettingsMenuTitle(pool, maxRounds)} testID="game-menu-settings" />
-                <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title={PLAYERS_ADMINS_TITLE} />
-                {canChangeSeating(game, canScore) ? (
+                {deleted ? null : <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title={PLAYERS_ADMINS_TITLE} />}
+                {canChangeSeating(game, canScoreNow) ? (
                   <Menu.Item leadingIcon="seat-outline" title={SEATING_MENU_ITEM} onPress={() => { setMenuOpen(false); setSeating('menu'); }} testID="game-menu-seating" />
                 ) : null}
-                {canScore && !game.isComplete ? (
+                {canScoreNow && !game.isComplete ? (
                   <Menu.Item leadingIcon="pencil-outline" title="Edit round" disabled={maxRounds === 0} onPress={() => { setMenuOpen(false); setEditRoundOpen(true); }} />
                 ) : null}
-                {canScore && canReopenGame(game) ? (
+                {canScoreNow && canReopenGame(game) ? (
                   <Menu.Item leadingIcon="lock-open-variant-outline" title="Reopen game" onPress={() => { setMenuOpen(false); setShowReopenConfirm(true); }} />
                 ) : null}
                 <Menu.Item leadingIcon="history" onPress={openLog} title="Log" testID="game-menu-log" />
-                <Menu.Item leadingIcon="eye-off-outline" onPress={hideGame} title="Hide game" />
-                {canManage ? (
+                {deleted ? null : <Menu.Item leadingIcon="eye-off-outline" onPress={hideGame} title="Hide game" />}
+                {canManageNow ? (
                   <Menu.Item leadingIcon="delete-outline" onPress={openDelete} title="Delete game" titleStyle={{ color: colors.error }} />
                 ) : null}
               </Menu>
@@ -586,16 +611,19 @@ export default function GameScreen() {
       />
 
       <View style={[styles.infoStrip, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
+        {deleted && game.deletion ? (
+          <DeletedGameBanner deletion={game.deletion} viewerId={userId} busy={archiving} onAsk={askRestore} onRestore={restoreGame} />
+        ) : null}
         <View style={styles.metaRow}>
           {numberBadge}
           {typeTag}
           {playersTag}
           {statusTag}
           <MultiplierChip multiplier={multiplier} onPress={() => setExactOpen(true)} testID="multiplier-chip" />
-          {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
+          {!canScoreNow && !game.isComplete && !deleted ? <Tag label="View only" icon="eye-outline" /> : null}
         </View>
         <ActualToggle multiplier={multiplier} on={showActual} onChange={setShowActual} />
-        {game.isComplete ? (
+        {game.isComplete && !deleted ? (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
             {pool ? (game.awardedAt ? 'Completed and awarded.' : 'Completed. Give awards to add this pool to a result.') : 'Completed.'}
           </Text>
@@ -624,7 +652,7 @@ export default function GameScreen() {
           style={[
             styles.portraitTable,
             { paddingLeft: insets.left + spacing.sm, paddingRight: insets.right + spacing.sm },
-            (game.isComplete || !canScore) && { paddingBottom: insets.bottom + spacing.md },
+            (game.isComplete || !canScoreNow) && { paddingBottom: insets.bottom + spacing.md },
           ]}
         >
           {table}
@@ -632,7 +660,7 @@ export default function GameScreen() {
           {idFooter}
         </View>
       )}
-      {!game.isComplete && canScore ? (
+      {!game.isComplete && canScoreNow ? (
         <BottomBar fullWidth>
           {undoButton}
           {addRoundButton}
@@ -777,10 +805,10 @@ export default function GameScreen() {
       <GameSettingsDialog
         visible={gameSettingsOpen}
         rules={rulesFromGame(game.settings, game.gameType)}
-        readOnly={!canScore}
+        readOnly={!canScoreNow}
         lockValues={pool && maxRounds > 0}
         roundCount={maxRounds}
-        onStartNewGame={canScore && !pool ? startNewGameWith : undefined}
+        onStartNewGame={canScoreNow && !pool ? startNewGameWith : undefined}
         onDismiss={() => setGameSettingsOpen(false)}
         onSave={async (rules) => {
           const updated = await gamesService.updateGameRules(game.id, rules);

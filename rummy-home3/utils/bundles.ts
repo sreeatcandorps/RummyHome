@@ -24,6 +24,9 @@ export type GameBundle = {
   scores: BundleScoreRow[];
   /** 031: round number -> dealer profile id for every live round (absent on a database before 031). */
   dealers?: Record<string, string | null>;
+  /** 045: a deleted game the caller may still read (creator, admin, scored player) comes with both. */
+  deleted?: boolean;
+  deletion?: Record<string, any> | null;
 };
 
 /** `Game.dealerIds` (by round index) from a 031 bundle's dealers or legacy `rounds(dealer_profile_id)` score rows. */
@@ -64,6 +67,8 @@ export type HomeBundle = {
   claim_requests: Record<string, any>[];
   /** 025: link requests waiting for this account (absent on a database before 025). */
   link_requests?: Record<string, any>[];
+  /** 045: games deleted in the last 30 days that this person may still read (absent before 045). */
+  deleted_games?: Record<string, any>[];
   my_players: {
     id: string; display_name: string; player_code: string | null; games_together: number;
     initials?: string | null; added_at?: string | null;

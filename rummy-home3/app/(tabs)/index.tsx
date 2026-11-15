@@ -26,6 +26,11 @@ import { JoinRequestsDialog } from '@/components/players/JoinRequestsDialog';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
 import { LinkRequestsCard } from '@/components/players/LinkRequestsCard';
 import { NoticeDialog } from '@/components/ui/NoticeDialog';
+import { Toast } from '@/components/ui/Toast';
+import { DeletedGamesCard } from '@/components/home/DeletedGamesCard';
+import { archiveService } from '@/services/archive';
+import { restoreGameNote } from '@/utils/archive';
+import { ASKED_TOAST, DeletedHomeGame } from '@/utils/deletedGames';
 
 const openGame = (id: string) => router.push(`/(screens)/games/${id}`);
 
@@ -59,6 +64,10 @@ export default function Dashboard() {
   /** True only when the server said there is no session — not when the server could not be reached. */
   const [signedOut, setSignedOut] = useState(false);
   const [notices, setNotices] = useState<string[]>([]);
+  // 045: games deleted in the last 30 days that this person scored in (or runs); Ask / Restore from the card.
+  const [deletedGames, setDeletedGames] = useState<DeletedHomeGame[]>([]);
+  const [deletedBusy, setDeletedBusy] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const addNotice = useCallback((text: string) => setNotices((cur) => (cur.includes(text) ? cur : [...cur, text])), []);
 
   const loadData = useCallback(async (isRefresh = false) => {
@@ -83,6 +92,7 @@ export default function Dashboard() {
         .catch(() => {});
       setClaimRequests(home.claimRequests);
       setLinkRequests(home.linkRequests);
+      setDeletedGames(home.deletedGames);
       const linked = home.notices.filter((n) => n.kind === 'linked').map((n) => n.text);
       const plain = home.notices.filter((n) => n.kind !== 'linked').map((n) => n.text);
       if (linked.length) setPopups((cur) => [...cur, ...linked]);
@@ -127,6 +137,32 @@ export default function Dashboard() {
       setLoadingMore(false);
     }
   }, [paging.action, paging.visible, currentPlayer, loadingMore, recentGames.length, addNotice]);
+  const askRestore = useCallback(async (game: DeletedHomeGame) => {
+    setDeletedBusy(game.id);
+    try {
+      await archiveService.requestRestore(game.id);
+      setToast(ASKED_TOAST);
+      await loadData(true);
+    } catch (error) {
+      addNotice(formatSupabaseError(error));
+    } finally {
+      setDeletedBusy(null);
+    }
+  }, [loadData, addNotice]);
+
+  const restoreDeleted = useCallback(async (game: DeletedHomeGame) => {
+    setDeletedBusy(game.id);
+    try {
+      const { removedFromResults } = await archiveService.restoreGame(game.id, currentPlayer?.id ?? null);
+      setToast(restoreGameNote(removedFromResults.length));
+      await loadData(true);
+    } catch (error) {
+      addNotice(formatSupabaseError(error));
+    } finally {
+      setDeletedBusy(null);
+    }
+  }, [loadData, addNotice, currentPlayer?.id]);
+
   const firstName = currentPlayer?.name?.split(' ')[0] || 'there';
   const viewerId = currentPlayer?.id;
   const renderRecent = useCallback(({ item }: { item: Game }) => (
@@ -224,6 +260,15 @@ export default function Dashboard() {
     </SectionCard>
   );
 
+  // 045 (G03): under Recent; absent when nothing was deleted in the last 30 days.
+  const deletedCard = deletedGames.length ? (
+    <>
+      <View style={styles.sectionGap} />
+      <DeletedGamesCard games={deletedGames} viewerId={viewerId} busyId={deletedBusy} onOpen={openGame} onAsk={askRestore} onRestore={restoreDeleted} />
+    </>
+  ) : null;
+
+
   if (!currentPlayer && !loading) {
     // F2 (chaos c11): a first load that failed because the phone is offline is not a sign-out — the
     // session is still on the phone and works once the network is back. Say so and offer a retry.
@@ -262,6 +307,7 @@ export default function Dashboard() {
       {currentPlayer ? <LinkRequestsCard me={currentPlayer} preloaded={linkRequests} onAnswered={(outcome: LinkOutcome | null) => { if (outcome) setPopups((cur) => [...cur, linkCompleteMessage(outcome)]); loadData(true); }} /> : null}
       <Portal>
         {popups.length ? <NoticeDialog title={LINK_COMPLETE_TITLE} icon="link-variant" message={popups[0]} onDismiss={() => setPopups((cur) => cur.slice(1))} testID="linked-popup" /> : null}
+        <Toast message={toast} onDismiss={() => setToast(null)} aboveBar />
       </Portal>
       {notices.map((text, i) => (
         <SectionCard key={i} title="Player update" icon="account-alert-outline" supportingText={text}>
@@ -307,7 +353,7 @@ export default function Dashboard() {
             {settleButton}
             {liveCard}
           </View>
-          <View style={styles.column}>{recent}</View>
+          <View style={styles.column}>{recent}{deletedCard}</View>
         </View>
       </Screen>
     );
@@ -341,6 +387,7 @@ export default function Dashboard() {
           {finished.length === 0 ? <SectionCardRows style={recentStyle}>{noFinished}</SectionCardRows> : null}
           {showMoreRow ? <SectionCardRows style={recentStyle}>{showMoreRow}</SectionCardRows> : null}
           <SectionCardEnd style={recentStyle} />
+          {deletedCard}
           <View style={styles.listTail} />
         </>
       )}

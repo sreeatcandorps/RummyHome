@@ -13,6 +13,7 @@ import { LoadingRows } from '@/components/ui/LoadingRows';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { formatGameDateTime } from '@/utils/gameDisplay';
 import { restoreGameNote } from '@/utils/archive';
+import { goneForGoodLabel, purgeDate, SUPPORT_CARD_BODY, SUPPORT_CARD_TITLE } from '@/utils/deletedGames';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
 const gameTitle = (row: { gameNumber: number | null; gameLabel?: string | null; creatorName: string }) =>
@@ -77,6 +78,9 @@ export default function HiddenAndDeletedScreen() {
     [
       `${formatGameDateTime(g.createdAt)} · ${g.playerCount} players`,
       `Deleted ${formatGameDateTime(g.deletedAt)} by ${g.deletedByMe ? 'you' : g.deletedByName}`,
+      // 045 (Q20.1): the day the nightly purge erases it; the server's date, or 30 days from the stamp on an older server.
+      ...(goneForGoodLabel(g.purgeAt ?? purgeDate(g.deletedAt)) ? [`${goneForGoodLabel(g.purgeAt ?? purgeDate(g.deletedAt)).replace(/^gone/, 'Gone')}.`] : []),
+      ...((g.requestCount ?? 0) > 0 ? [g.requestCount === 1 ? '1 player asked to restore it.' : `${g.requestCount} players asked to restore it.`] : []),
       ...(g.removedFromResults > 0 ? [g.removedFromResults === 1 ? 'Removed from 1 saved result; restoring does not add it back.' : `Removed from ${g.removedFromResults} saved results; restoring does not add it back.`] : []),
     ],
     { label: 'Restore', onPress: () => run(`g-${g.id}`, async () => { const r = await archiveService.restoreGame(g.id, userId); return restoreGameNote(r.removedFromResults.length); }) },
@@ -109,11 +113,14 @@ export default function HiddenAndDeletedScreen() {
           <SectionCard title={`Games I hid · ${data.hidden.length}`} icon="eye-off-outline" supportingText="Off your Home only. They still count in results and stats.">
             {data.hidden.length ? data.hidden.map(hiddenRow) : empty('No hidden games.')}
           </SectionCard>
-          <SectionCard title={`Deleted games · ${data.deletedGames.length}`} icon="delete-outline" supportingText="Gone for every player until restored. A game removed from a saved result is not added back.">
+          <SectionCard title={`Deleted games · ${data.deletedGames.length}`} icon="delete-outline" supportingText="Off everyone's Home until restored; players who scored in it can still open it read-only. Erased 30 days after the delete. A game removed from a saved result is not added back.">
             {data.deletedGames.length ? data.deletedGames.map(deletedGameRow) : empty('No deleted games.')}
           </SectionCard>
           <SectionCard title={`Deleted results · ${data.deletedResults.length}`} icon="podium" supportingText="Their games are not Closed while deleted and can go into a new result.">
             {data.deletedResults.length ? data.deletedResults.map(deletedResultRow) : empty('No deleted results.')}
+          </SectionCard>
+          <SectionCard title={SUPPORT_CARD_TITLE} icon="lifebuoy" mode="outlined">
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="support-card">{SUPPORT_CARD_BODY}</Text>
           </SectionCard>
         </>
       ) : null}

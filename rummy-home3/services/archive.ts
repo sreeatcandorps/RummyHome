@@ -25,6 +25,8 @@ export type HiddenGameRow = {
 export type DeletedGameRow = {
   id: string; gameNumber: number | null; gameLabel?: string | null; createdAt: string; status: string; creatorName: string; deletedAt: string;
   deletedByMe: boolean; deletedByName: string; playerCount: number; removedFromResults: number;
+  /** 045: when the purge erases it, and how many players asked for it back. Absent before 045. */
+  purgeAt?: string | null; requestCount?: number;
 };
 export type DeletedResultRow = {
   id: string; declaredAt: string; deletedAt: string; deletedByMe: boolean; deletedByName: string; gameCount: number; playerCount: number;
@@ -173,6 +175,17 @@ export const archiveService = {
     await storage.saveGames(syncClosed(restored, results));
     gameCache.forget(gameId);
     return { removedFromResults: removedFrom };
+  },
+
+  /**
+   * 045: a scored player asks the creator and every admin to restore a deleted game. One ask per person
+   * per game; the server tells the admins (in-app notice + email). Returns when this person asked.
+   */
+  async requestRestore(gameId: string): Promise<{ already: boolean; requestedAt: string }> {
+    if (!isSupabaseConfigured) throw new Error(NOT_READY_MESSAGE);
+    const data = await rpc<{ already?: boolean; requestedAt?: string } | null>('request_restore', { p_game_id: gameId });
+    forget(gameId);
+    return { already: data?.already === true, requestedAt: data?.requestedAt ?? new Date().toISOString() };
   },
 
   /** Soft-deletes a saved result. Its games become uncounted again (not Closed) and can go into a new result. */

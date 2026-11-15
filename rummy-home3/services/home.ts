@@ -9,6 +9,7 @@ import { Player } from '@/types/player';
 import { isHomeBundle } from '@/utils/bundles';
 import { LinkRequestForMe } from '@/utils/linkPlayer';
 import { CreatorNotice, PendingLink } from '@/utils/playerIdentity';
+import { DeletedHomeGame, deletedHomeGamesFrom } from '@/utils/deletedGames';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 
 export type HomeData = {
@@ -20,6 +21,8 @@ export type HomeData = {
   claimRequests: PendingLink[] | null;
   /** Link requests waiting for this account's Yes/No (025); `null` when the card must load its own. */
   linkRequests: LinkRequestForMe[] | null;
+  /** Games deleted in the last 30 days that this person may still open read-only (045). Empty before 045. */
+  deletedGames: DeletedHomeGame[];
 };
 
 export const HOME_GAME_LIMIT = 50;
@@ -59,6 +62,7 @@ async function loadHomeBundle(): Promise<HomeData | null | undefined> {
     notices: (data.notices ?? []).map((row) => playerIdentityService.noticeFromRow(player.id, row)),
     claimRequests: (data.claim_requests ?? []).map(linkFromRow),
     linkRequests: Array.isArray(data.link_requests) ? data.link_requests.map(linkRequestForMeFromRow) : null,
+    deletedGames: deletedHomeGamesFrom(data.deleted_games),
   };
 }
 
@@ -84,7 +88,7 @@ export const homeService = {
       email: player.email,
     })).filter((game) => !hidden.has(game.id));
     const notices = await playerIdentityService.takeNotices(player.id).catch(() => [] as CreatorNotice[]);
-    return { player, games, notices, claimRequests: null, linkRequests: null };
+    return { player, games, notices, claimRequests: null, linkRequests: null, deletedGames: [] };
   },
 
   /**

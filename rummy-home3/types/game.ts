@@ -75,11 +75,30 @@ export type Game = {
   labels?: Record<string, string>;
   /** Who dealt each saved round, by round index (031). Missing before 031; the seat-order rule fills in. */
   dealerIds?: (string | null | undefined)[];
-  /** Soft delete (023). A deleted game is gone for everyone until restored; only the id, number and this stamp are readable. */
+  /** Soft delete (023). A deleted game is gone for everyone until restored. Since 045 the creator, admins and scored players still read it (read-only). */
   deletedAt?: string | null;
   deletedBy?: string | null;
   /** Whether the viewer may restore a deleted game (the deleter, or a creator/admin). */
   canRestore?: boolean;
+  /** 045: what the deleted-game banner says. Absent on a live game and on a pre-045 server. */
+  deletion?: GameDeletion;
+};
+
+/** One "Ask an admin to restore" (045). */
+export type RestoreRequest = { profileId: string; name: string; requestedAt: string };
+
+/** The 045 `deletion` block of a deleted game's bundle. */
+export type GameDeletion = {
+  deletedAt: string;
+  deletedBy: string | null;
+  deletedByName: string;
+  deletedByMe: boolean;
+  /** When the nightly purge erases it for good (deletedAt + 30 days). */
+  purgeAt: string | null;
+  canRestore: boolean;
+  /** When the viewer asked, or null. */
+  myRequestAt: string | null;
+  requests: RestoreRequest[];
 };
 
 export interface Round {
