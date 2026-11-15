@@ -19,17 +19,20 @@ tags: [smoke]
     visible: "Scorecard"
     timeout: 20000
 - assertVisible: "20 players"
+# A completed pool shows the Awards card and Standings first; the round grid sits below them.
 - assertVisible:
-    id: "score-header-initials-2"
+    id: "pool-standings"
+- assertVisible: "WWW"
+- assertVisible: "MMM"
+- takeScreenshot: 17-pool-wide-initials-standings
+- scrollUntilVisible:
+    element:
+      id: "score-header-initials-2"
+    direction: DOWN
+    timeout: 15000
 - assertVisible: "WWW"
 - assertVisible: "MMM"
 - takeScreenshot: 17-pool-wide-initials-header
-- scrollUntilVisible:
-    element:
-      id: "pool-standings"
-    direction: DOWN
-    timeout: 10000
-- takeScreenshot: 17-pool-wide-initials-standings
 - scrollUntilVisible:
     element:
       id: "give-awards"
