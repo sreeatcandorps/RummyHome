@@ -11,7 +11,7 @@ export const MORE_SETTINGS_NOTE = 'If you want more settings go to your user set
 
 /**
  * Game settings only. Points: change them any time. Pool: the limit and the three values are
- * locked once a round is saved (13.5, `lockValues`); Re-entry can still be switched.
+ * limit locked once a round is saved (13.5 / Q14.23, `lockValues`); the values and Re-entries can still change.
  */
 export function GameSettingsDialog({ visible, rules, title = 'Game settings', onDismiss, onSave, readOnly, lockValues = false }: {
   visible: boolean;

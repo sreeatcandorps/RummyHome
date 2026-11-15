@@ -6,6 +6,9 @@ import { Game } from '../types/game';
 import {
   afterRound,
   DEFAULT_POOL_LIMIT,
+  REENTRY_BLOCK_TEXT,
+  reentryLimitLabel,
+  reentryLimitOf,
   dropsLeft,
   eligibleForReentry,
   GIVE_AWARDS_FIRST,
@@ -127,15 +130,27 @@ test('13.3 round validation: plus points, at least one 0 (more than one is fine)
   assert.equal(overFullCount(200, null), false, 'no Full count, no confirm');
 });
 
-test('13.4 re-entry: once per player, only while out, only with Re-entry on, at the highest score still in', () => {
+test('13.4 re-entry: within the Re-entries limit (042: Unlimited by default), only while out, at the highest score still in', () => {
   const g = game();
   assert.equal(reentryBlock(g, D), null, 'D may re-enter');
   assert.equal(reentryBlock(g, F), null);
   assert.equal(reentryBlock(g, A), 'in');
-  assert.equal(reentryBlock({ ...g, settings: { ...settings, reentry: false } }, D), 'off');
+  assert.equal(reentryBlock({ ...g, settings: { ...settings, reentry: false } }, D), 'off', '041 reentry:false reads as none');
+  assert.equal(reentryBlock({ ...g, settings: { ...settings, reentryLimit: 0 } }, D), 'off', 'Limited 0 = none');
   assert.equal(reentryBlock({ ...g, isComplete: true }, D), 'completed');
   const eUsed = { ...g, poolSeats: { ...g.poolSeats, [E]: { outRound: 7, reenteredRound: 5, reentryScore: 95, entries: 2 } } } as Game;
-  assert.equal(reentryBlock(eUsed, E), 'used');
+  assert.equal(reentryBlock(eUsed, E), null, 'Unlimited: a second re-entry is fine');
+  assert.equal(reentryBlock({ ...eUsed, settings: { ...settings, reentryLimit: 1 } }, E), 'used', 'Limited 1: once per player');
+  assert.equal(reentryBlock({ ...eUsed, settings: { ...settings, reentryLimit: 2 } }, E), null, 'Limited 2: one left');
+  assert.equal(reentryBlock({ ...eUsed, settings: { ...settings, reentry: true } }, E), null, '041 reentry:true reads as Unlimited');
+  assert.equal(reentryLimitOf(settings), null);
+  assert.equal(reentryLimitOf({ ...settings, reentryLimit: -4 }), 0, 'a negative reads as none');
+  assert.equal(reentryLimitOf({ ...settings, reentryLimit: 2.7 }), 2);
+  assert.equal(reentryLimitLabel(null), 'Unlimited');
+  assert.equal(reentryLimitLabel(0), 'None');
+  assert.equal(reentryLimitLabel(1), '1 re-entry');
+  assert.equal(reentryLimitLabel(3), '3 re-entries');
+  assert.equal(REENTRY_BLOCK_TEXT.used, 'Used every re-entry this pool allows.');
   assert.deepEqual(eligibleForReentry(g), [D, F]);
   assert.equal(reentryScore(g), 105, 'the highest total among players still in');
   assert.equal(lastPlayerStanding(g), false);
@@ -294,22 +309,27 @@ test('13.6 pool limits 101 / 201 / 251 / Custom (51–999); 100 in, 101 out; def
   assert.equal(parsePoolLimit('50'), null);
   assert.equal(parsePoolLimit('1000'), null);
   assert.equal(parsePoolLimit(''), null);
-  assert.deepEqual(DEFAULT_POOL_RULES, { gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentry: true });
+  assert.deepEqual(DEFAULT_POOL_RULES, { gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: null }, 'Re-entries default Unlimited (042)');
   assert.equal(parseRuleInput('25', 'pool'), 25, 'pool values are stored positive');
   assert.equal(parseRuleInput('25', 'points'), -25);
-  assert.equal(validateRules({ gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentry: true }), null);
-  assert.match(validateRules({ gameKind: 'pool', drop: 50, middleDrop: 25, fullCount: 130, poolLimit: 101, reentry: true })!, /Middle drop/);
+  assert.equal(validateRules({ gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: null }), null);
+  assert.equal(validateRules({ gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: 0 }), null);
+  assert.match(validateRules({ gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: 100 })!, /0 to 99/);
+  assert.match(validateRules({ gameKind: 'pool', drop: 50, middleDrop: 25, fullCount: 130, poolLimit: 101, reentryLimit: null })!, /Middle drop/);
 });
 
 test('13.6b profile defaults hold both kinds and which one a new game starts as', () => {
-  const all = allRulesFromProfileDefaults({ stakeDrop: -10, stakeMiddleDrop: -30, maxCount: -80, poolLimit: 201, poolDrop: 20, poolMiddleDrop: 40, poolFullCount: 100, poolReentry: false, gameKind: 'pool' });
+  const all = allRulesFromProfileDefaults({ stakeDrop: -10, stakeMiddleDrop: -30, maxCount: -80, poolLimit: 201, poolDrop: 20, poolMiddleDrop: 40, poolFullCount: 100, poolReentryLimit: 2, gameKind: 'pool' });
   assert.equal(all.startsAs, 'pool');
   assert.deepEqual(all.points, { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80 });
-  assert.deepEqual(all.pool, { gameKind: 'pool', drop: 20, middleDrop: 40, fullCount: 100, poolLimit: 201, reentry: false });
+  assert.deepEqual(all.pool, { gameKind: 'pool', drop: 20, middleDrop: 40, fullCount: 100, poolLimit: 201, reentryLimit: 2 });
+  assert.equal(rulesFromProfileDefaults({ poolReentry: false }, 'pool').reentryLimit, 0, 'an old saved switch off reads as none');
+  assert.equal(rulesFromProfileDefaults({ poolReentry: true }, 'pool').reentryLimit, null, 'an old saved switch on reads as Unlimited');
   assert.deepEqual(rulesFromProfileDefaults(null), { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80 }, 'no defaults: Points, as before');
   assert.deepEqual(rulesFromProfileDefaults(null, 'pool'), DEFAULT_POOL_RULES);
-  assert.deepEqual(rulesToProfileDefaults(DEFAULT_POOL_RULES), { poolLimit: 101, poolDrop: 25, poolMiddleDrop: 50, poolFullCount: 130, poolReentry: true });
-  assert.deepEqual(rulesFromGame(settings, 'pool'), { gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentry: true });
+  assert.deepEqual(rulesToProfileDefaults(DEFAULT_POOL_RULES), { poolLimit: 101, poolDrop: 25, poolMiddleDrop: 50, poolFullCount: 130, poolReentryLimit: null });
+  assert.deepEqual(rulesFromGame(settings, 'pool'), { gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: null });
+  assert.equal(rulesFromGame({ ...settings, reentryLimit: 1 }, 'pool').reentryLimit, 1);
   assert.equal(rulesFromGame({ ...settings, dropAmount: -10, mdAmount: -30, maxCount: -80 }).gameKind, 'points');
 });
 
@@ -318,20 +338,30 @@ test('13.7 RulesForm draft: chips for the three limits, Custom for anything else
   assert.equal(draft.poolLimit, '101');
   assert.equal(draft.customLimit, false);
   assert.equal(draftFromRules({ ...DEFAULT_POOL_RULES, poolLimit: 150 }).customLimit, true);
-  const ok = rulesFromDraft({ ...draft, poolLimit: '201', reentry: false });
+  assert.equal(draft.reentryMode, 'unlimited');
+  const ok = rulesFromDraft({ ...draft, poolLimit: '201', reentryMode: 'limited', reentryCount: '2' });
   assert.equal(ok.error, null);
   assert.equal(ok.rules!.poolLimit, 201);
-  assert.equal(ok.rules!.reentry, false);
+  assert.equal(ok.rules!.reentryLimit, 2);
+  assert.equal(rulesFromDraft({ ...draft, reentryMode: 'limited', reentryCount: '0' }).rules!.reentryLimit, 0, 'Limited 0 = none');
+  assert.match(rulesFromDraft({ ...draft, reentryMode: 'limited', reentryCount: '' }).error!, /0 to 99, or Unlimited/);
+  assert.equal(rulesFromDraft({ ...draft, reentryMode: 'unlimited', reentryCount: '' }).rules!.reentryLimit, null, 'Unlimited ignores the count field');
+  assert.deepEqual(draftFromRules({ ...DEFAULT_POOL_RULES, reentryLimit: 3 }), { ...draft, reentryMode: 'limited', reentryCount: '3' });
   const bad = rulesFromDraft({ ...draft, poolLimit: '12' });
   assert.match(bad.error!, /51 to 999/);
-  const points = rulesFromDraft({ gameKind: 'points', drop: '-10', middleDrop: '-30', fullCount: '-80', poolLimit: '101', customLimit: false, reentry: true });
+  const points = rulesFromDraft({ gameKind: 'points', drop: '-10', middleDrop: '-30', fullCount: '-80', poolLimit: '101', customLimit: false, reentryMode: 'unlimited', reentryCount: '1' });
   assert.deepEqual(points.rules, { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80 });
 
   const form = src('components/game/RulesForm.tsx');
   assert.match(form, /POOL_LIMITS\.map\(/, 'one chip per limit');
   assert.match(form, /testID=\{`\$\{testIDPrefix\}-limit-\$\{limit\}`\}/);
   assert.match(form, /-limit-custom/);
-  assert.match(form, /-reentry/, 'the Re-entry switch');
+  assert.match(form, /-reentries-unlimited/, 'Re-entries: Unlimited radio');
+  assert.match(form, /-reentries-limited/, 'Re-entries: Limited radio');
+  assert.match(form, /-reentries-count/, 'the Limited count field');
+  assert.match(form, /draft\.reentryMode === 'limited' \? \(/, 'the count field shows only for Limited');
+  assert.match(form, /const limitDisabled = disabled \|\| lockValues;\s+const numbersDisabled = disabled;/, 'Q14.23: lockValues greys only the pool limit');
+  assert.match(form, /POOL_LOCK_NOTE = 'Rounds have been saved, so the pool limit is locked/);
   const settingsScreen = src('app/(screens)/settings.tsx');
   assert.match(settingsScreen, /settings-starts-points/);
   assert.match(settingsScreen, /settings-starts-pool/);
@@ -544,7 +574,7 @@ test('13.12 log labels for the pool kinds; help explains Complete → Award → 
   assert.equal(dotTone({ kind: 'awards_changed', level: 'important' }), 'amber');
   assert.equal(dotTone({ kind: 'awards_set', level: 'important' }), 'green');
   assert.match(HELP.gameType, /Pool: the winner scores 0/);
-  assert.match(HELP.gameType, /Re-entry on/);
+  assert.match(HELP.gameType, /Re-entries: .*Unlimited, or Limited/);
   assert.match(HELP.scoreEntryPool, /0/);
   assert.match(HELP.awards, /award/i);
   assert.match(HELP.complete, /award/i);
