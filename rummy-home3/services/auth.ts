@@ -180,12 +180,20 @@ export const authService = {
     if (error) throw error;
   },
 
+  /**
+   * Logging out can never fail (F1, found by chaos c12). The global sign-out needs a live server
+   * session; after a long sleep, a sign-out elsewhere or a revoked session it answers "Auth session
+   * missing" — the phone must still forget its tokens and show the login screen. So: try the
+   * server, then always clear this device, and never throw.
+   */
   async signOut() {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut().catch((err: unknown) => ({ error: err }));
+    if (error) {
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    }
     await storage.setCurrentPlayer(null);
     gameCache.clear();
     queryCache.clear();
-    if (error) throw error;
   },
 
   /**

@@ -3,8 +3,9 @@ tags: [chaos]
 # C16-7 Log out with a dead session: the runner deletes c1's server-side sessions right after the first
 # screenshot (file name hook "--revoke-session"); the phone still holds its tokens, as after a long sleep
 # or a sign-out elsewhere. Log out must still land on the login screen — logging out can never fail.
-# Finding on 2026-11-15 (two-device run): the app shows "Couldn't log out — Auth session missing!" and
-# stays on Profile (app/(tabs)/me.tsx logout → authService.signOut throws before router.replace).
+# Finding on 2026-11-15 (F1, confirmed in run 4): the app showed "Couldn't log out — Auth session
+# missing!" and stayed on Profile. Fixed in PR 19: authService.signOut falls back to a local sign-out
+# and never throws, so Log out always lands on the login screen.
 ---
 - runFlow:
     file: ../lib/sign-in-as.yaml

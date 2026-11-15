@@ -94,13 +94,16 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
           </View>
         </SectionCard>
 
-        {problem || error ? (
-          <View style={[styles.problem, { backgroundColor: colors.errorContainer }]}>
-            <Icon source="alert-circle-outline" size={20} color={colors.onErrorContainer} />
-            <Text variant="bodyMedium" style={{ color: colors.onErrorContainer, flex: 1 }}>{problem ?? error}</Text>
-          </View>
-        ) : null}
       </Screen>
+
+      {/* F3 (chaos c03): pinned above the Start bar, outside the scroller, so a refused limit is never
+          below the fold — on a Pixel 6 it used to render under the players card and Start looked dead. */}
+      {problem || error ? (
+        <View style={[styles.problem, { backgroundColor: colors.errorContainer }]} testID="new-game-problem" accessibilityLiveRegion="polite">
+          <Icon source="alert-circle-outline" size={20} color={colors.onErrorContainer} />
+          <Text variant="bodyMedium" style={{ color: colors.onErrorContainer, flex: 1 }}>{problem ?? error}</Text>
+        </View>
+      ) : null}
 
       <BottomBar style={styles.bottom}>
         <Button mode="outlined" onPress={onBack} disabled={creating} icon="arrow-left" contentStyle={styles.barContent} style={styles.back} accessibilityLabel="Back to players">
@@ -120,7 +123,7 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.md, maxWidth: '100%' },
   chipInitials: { fontWeight: '800', letterSpacing: 0.3 },
-  problem: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.md },
+  problem: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, marginHorizontal: spacing.md, borderRadius: radius.md },
   bottom: { flexDirection: 'row', gap: spacing.sm },
   barContent: { minHeight: 52 },
   back: { flex: 0.8 },

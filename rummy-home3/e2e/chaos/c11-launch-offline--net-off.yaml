@@ -3,8 +3,8 @@ tags: [chaos]
 # C16-4b Launch offline: sign in online, then the runner drops the network after the first screenshot
 # and the app is relaunched with its cached session. It must not crash and must land on something that
 # explains itself — Home or a network message — within 30 s (no blank splash).
-# Finding on 2026-11-15: it shows "You're signed out — Network error…" although the session is cached;
-# the wording is misleading (the user is not signed out) but the app survives, so this flow passes.
+# Finding on 2026-11-15 (F2): it showed "You're signed out — Network error…" although the session was
+# cached. Fixed in PR 19: Home says "Couldn't reach the server · You're still signed in" with Try again.
 ---
 - runFlow:
     file: ../lib/sign-in-as.yaml
@@ -19,6 +19,7 @@ tags: [chaos]
 - launchApp
 - extendedWaitUntil:
     visible:
-      text: ".*(New game|Network error|offline|Offline|No connection).*"
+      text: ".*(New game|Couldn't reach the server).*"
     timeout: 30000
+- assertNotVisible: "You're signed out"
 - takeScreenshot: c11-launched-offline

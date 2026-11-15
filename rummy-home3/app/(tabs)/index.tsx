@@ -56,6 +56,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** True only when the server said there is no session — not when the server could not be reached. */
+  const [signedOut, setSignedOut] = useState(false);
   const [notices, setNotices] = useState<string[]>([]);
   const addNotice = useCallback((text: string) => setNotices((cur) => (cur.includes(text) ? cur : [...cur, text])), []);
 
@@ -66,9 +68,11 @@ export default function Dashboard() {
       const home = await homeService.load();
       if (!home) {
         setCurrentPlayer(null);
+        setSignedOut(true);
         setLoadError('Not signed in. Please log in again.');
         return;
       }
+      setSignedOut(false);
       setCurrentPlayer(home.player);
       setRecentGames(home.games);
       setMayHaveMore(home.games.length >= HOME_GAME_LIMIT);
@@ -221,12 +225,27 @@ export default function Dashboard() {
   );
 
   if (!currentPlayer && !loading) {
+    // F2 (chaos c11): a first load that failed because the phone is offline is not a sign-out — the
+    // session is still on the phone and works once the network is back. Say so and offer a retry.
+    if (!signedOut && loadError) {
+      return (
+        <Screen>
+          <EmptyState
+            icon="wifi-off"
+            title="Couldn't reach the server"
+            message={`You're still signed in. ${loadError}`}
+            actionLabel="Try again"
+            onAction={() => loadData(true)}
+          />
+        </Screen>
+      );
+    }
     return (
       <Screen>
         <EmptyState
           icon="account-alert-outline"
           title="You're signed out"
-          message={loadError ?? 'Sign in to see your games.'}
+          message="Sign in to see your games."
           actionLabel="Go to login"
           onAction={() => router.replace('/(auth)/login')}
         />

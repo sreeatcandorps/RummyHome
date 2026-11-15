@@ -60,8 +60,10 @@ export const AREA_FLOWS = [
     flows: { full: ['60-dark-mode', '61-first-launch-light-night-phone', '21-scorecard-font-scale'] } },
   { area: 'log', match: [/eventLog/, /games\/log\.tsx$/, /migrations\/.*event_log/],
     flows: { full: ['70-game-log'] } },
-  { area: 'auth', match: [/\(auth\)\//, /services\/auth/, /utils\/authErrors/, /login/i],
-    flows: { full: ['10-sign-out-bad-passcode'] }, roles: true },
+  { area: 'auth', match: [/\(auth\)\//, /services\/auth/, /utils\/authErrors/, /login/i, /\(tabs\)\/(index|me)\.tsx$/, /utils\/supabaseErrors/],
+    flows: { full: ['10-sign-out-bad-passcode'], chaos: ['c11-launch-offline--net-off', 'c12-logout-dead-session--revoke-session'] }, roles: true },
+  { area: 'new-game', match: [/games\/new\.tsx$/, /components\/game\/(GameTypeStep|RulesForm)/, /utils\/rulesDraft/, /utils\/gameSettings/],
+    flows: { chaos: ['c03-bad-input'] } },
   { area: 'rls', match: [/migrations\/.*(policy|rls|grant)/i],
     flows: {}, roles: true },
 ];

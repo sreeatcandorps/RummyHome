@@ -230,6 +230,18 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
 
+## PR 19 test cases (First fixes from the break-the-app suite: F1 log out with a dead session, F2 offline relaunch wording, F3 refused pool limit pinned on screen; no migration)
+
+| Code | Type | Where | What |
+| --- | --- | --- | --- |
+| T19-1 | U | `tests/test-findings-pr19.test.ts` | F1: `authService.signOut` catches a rejected global sign-out, falls back to `signOut({ scope: 'local' })`, clears the device and never throws; `me.tsx` Log out always ends in `router.replace('/(auth)/login')` |
+| T19-2 | U | `tests/test-findings-pr19.test.ts` | F2: `isNetworkError` tells "Network request failed" / "Failed to fetch" from "Auth session missing"; Home sets `signedOut` only when the server said there is no session, otherwise shows "Couldn't reach the server · You're still signed in" with Try again; the signed-out screen no longer carries the network text |
+| T19-3 | U | `tests/pool-pr13.test.ts` (F3) | the problem box of the Game type step sits between the scroller and the bottom bar (`testID new-game-problem`), the custom limit field turns red while the number is out of range |
+| T19-4 | N | `e2e/chaos/c12--revoke-session` | Log out after the runner deleted `auth.sessions` lands on `login-email`, "Couldn't log out" never shown (was red in runs 4–5) |
+| T19-5 | N | `e2e/chaos/c11--net-off` | relaunch offline with a cached session shows Home or "Couldn't reach the server"; "You're signed out" must not appear |
+| T19-6 | N | `e2e/chaos/c03` | `abc`, `0`, `50` in the custom limit: `new-game-problem` with the 51–999 line is on screen with no scroll after Start |
+| T19-7 | CI | `ci/select-tests.mjs`, `tests/test-selection-pr17.test.ts` | new areas: `auth` now also matches `(tabs)/index.tsx`, `(tabs)/me.tsx`, `utils/supabaseErrors` and adds c11 + c12; `new-game` (`games/new.tsx`, `GameTypeStep`, `RulesForm`, `rulesDraft`, `gameSettings`) adds c03 |
+
 ## PR 17 test cases (Test infrastructure: roster seed, chaos / roles / two-device / monkey suites, device matrix, dashboard, bug filing; no migration)
 
 | # | Kind | Where | What it proves |
@@ -250,7 +262,7 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | T17-14 | I | `ci/ui/build-dashboard.mjs`, gh-pages | one orphan commit per run (branch never grows), last 15 runs with screenshots, failure / chaos videos, crash lines, a Live panel polling the public Actions API every 60 s with links to running job logs |
 | T17-15 | I | `ci/report/file-bugs.mjs` | one issue per failing flow or crash outside `known-bugs`, labels `bug` + `found-by-tests` (label created if missing), de-duplicated by title (comment on repeat, reopen if closed), project-board add attempted and skipped with a note when the token cannot; dry run unless `FILE_BUGS=true` (nightly, pre-release, `[file-bugs]`) |
 | T17-16 | I | `.github/workflows/nightly.yml` | the one file main needs: at 09:00 UTC it asks CI to run the nightly tier on the top of the stack via `workflow_dispatch` (GITHUB_TOKEN may start that event) |
-| T17-17 | N | `e2e/chaos/c11--net-off`, `c12--revoke-session` | relaunch offline with a cached session: no crash, a screen that explains itself within 30 s (today: "You're signed out — Network error…", misleading wording, see findings); Log out after the server session was revoked (runner deletes `auth.sessions` via psql) must still land on the login screen — fails today ("Couldn't log out — Auth session missing!", finding F1) |
+| T17-17 | N | `e2e/chaos/c11--net-off`, `c12--revoke-session` | relaunch offline with a cached session: no crash, a screen that explains itself within 30 s (finding F2, fixed in PR 19); Log out after the server session was revoked (runner deletes `auth.sessions` via psql) must still land on the login screen (finding F1, fixed in PR 19) |
 | T17-18 | I | `scripts/realtime-probe.mjs` (two-device job, before the emulators) | subscribes like the app (postgres_changes on `games`, one id) and nudges the row through psql; green probe + red T1 = the app, red probe = the local stack (Realtime container log attached) |
 
 ## PR 11 test cases (Help redesign — spec only, `docs/help-design.md`; codes reserved)

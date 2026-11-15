@@ -354,6 +354,16 @@ test('13.7b New game is two screens: Players (Next) then Game type (Points / Poo
   assert.match(step, /Back/);
 });
 
+test('F3 (chaos c03): a refused limit is pinned above the Start bar, not scrolled off the page', () => {
+  const step = src('components/game/GameTypeStep.tsx');
+  const screenEnd = step.indexOf('</Screen>');
+  const problem = step.indexOf('testID="new-game-problem"');
+  const bar = step.indexOf('<BottomBar');
+  assert.ok(screenEnd > 0 && problem > screenEnd && problem < bar, 'the problem box sits between the scroller and the bottom bar');
+  const form = src('components/game/RulesForm.tsx');
+  assert.match(form, /error=\{draft\.poolLimit !== '' && limitNumber === null\}/, 'the custom limit field turns red while the number is out of range');
+});
+
 // ---------- Add round in a pool (13.8) ----------
 
 test('13.8 pool round entry: plus points, no sign key, Rummy is 0, Save needs every player in scored and a 0', () => {

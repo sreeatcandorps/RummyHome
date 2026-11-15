@@ -44,11 +44,10 @@ tags: [chaos]
 - hideKeyboard
 - tapOn:
     id: "start-game"
-- scrollUntilVisible:
-    element:
-      text: ".*whole number from 51 to 999.*"
-    direction: DOWN
-    timeout: 8000
+# F3 fixed (PR 19): the message is pinned above the Start bar, so it must be on screen with no scroll.
+- assertVisible:
+    id: "new-game-problem"
+- assertVisible: ".*whole number from 51 to 999.*"
 - assertVisible: "Game type"
 - takeScreenshot: c03-limit-letters-refused
 - scrollUntilVisible:
@@ -63,11 +62,10 @@ tags: [chaos]
 - hideKeyboard
 - tapOn:
     id: "start-game"
-- scrollUntilVisible:
-    element:
-      text: ".*whole number from 51 to 999.*"
-    direction: DOWN
-    timeout: 8000
+# F3 fixed (PR 19): the message is pinned above the Start bar, so it must be on screen with no scroll.
+- assertVisible:
+    id: "new-game-problem"
+- assertVisible: ".*whole number from 51 to 999.*"
 - assertVisible: "Game type"
 - scrollUntilVisible:
     element:
@@ -93,11 +91,10 @@ tags: [chaos]
 - hideKeyboard
 - tapOn:
     id: "start-game"
-- scrollUntilVisible:
-    element:
-      text: ".*whole number from 51 to 999.*"
-    direction: DOWN
-    timeout: 8000
+# F3 fixed (PR 19): the message is pinned above the Start bar, so it must be on screen with no scroll.
+- assertVisible:
+    id: "new-game-problem"
+- assertVisible: ".*whole number from 51 to 999.*"
 - assertVisible: "Game type"
 - takeScreenshot: c03-limit-50-refused
 - back

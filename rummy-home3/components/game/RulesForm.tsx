@@ -79,6 +79,7 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
               disabled={numbersDisabled}
               value={draft.poolLimit}
               onChangeText={(t) => onChange({ ...draft, poolLimit: t.replace(/[^0-9]/g, '').slice(0, 3) })}
+              error={draft.poolLimit !== '' && limitNumber === null}
               style={styles.limitInput}
               testID={`${testIDPrefix}-limit-input`}
             />

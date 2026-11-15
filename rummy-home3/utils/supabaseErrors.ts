@@ -21,7 +21,7 @@ export function formatSupabaseError(error: unknown): string {
     return 'Something went wrong creating the game ID. Please update the app and try again.';
   }
 
-  if (/Failed to fetch|Network request failed|network/i.test(message)) {
+  if (isNetworkError(error)) {
     return 'Network error — check Wi‑Fi and that the Supabase project is not paused.';
   }
 
@@ -32,4 +32,11 @@ export function formatSupabaseError(error: unknown): string {
 export function isClockSkewError(error: unknown): boolean {
   const err = error as { message?: string; code?: string };
   return err?.code === 'PGRST303' || /JWT issued at future/i.test(err?.message ?? '');
+}
+
+
+/** The request never reached the server (offline, DNS, paused project): nothing is wrong with the account. */
+export function isNetworkError(error: unknown): boolean {
+  const message = (error as { message?: string })?.message ?? (error ? String(error) : '');
+  return /Failed to fetch|Network request failed|network/i.test(message);
 }
