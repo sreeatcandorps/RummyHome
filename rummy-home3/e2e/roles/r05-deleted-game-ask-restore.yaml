@@ -32,15 +32,18 @@ tags: [roles]
     file: ../lib/sign-in-as.yaml
     env:
       EMAIL: p01@test.local
+# scroll to the Ask button at the foot of the card so the whole card is on screen, not just its title
 - scrollUntilVisible:
     element:
-      text: "Deleted games.*"
+      id: "deleted-game-ask-00000000-0000-4000-8000-00000000b001"
     direction: DOWN
     timeout: 20000
+- assertVisible: "Deleted games.*"
 - assertVisible: "Deleted by Arun Admin.*gone for good on .*"
 - assertVisible: "Ask an admin to restore"
 - takeScreenshot: r05-home-deleted-games-player
-- tapOn: "Deleted game .*"
+- tapOn:
+    id: "deleted-game-00000000-0000-4000-8000-00000000b001"
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 20000
@@ -65,13 +68,13 @@ tags: [roles]
       EMAIL: c1@test.local
 - scrollUntilVisible:
     element:
-      text: "Deleted games.*"
+      id: "deleted-game-restore-00000000-0000-4000-8000-00000000b001"
     direction: DOWN
     timeout: 20000
 - assertVisible: "Player One asked to restore it"
-- assertVisible: "Restore game"
 - takeScreenshot: r05-home-deleted-games-admin
-- tapOn: "Restore game"
+- tapOn:
+    id: "deleted-game-restore-00000000-0000-4000-8000-00000000b001"
 - extendedWaitUntil:
     visible: "Game restored.*"
     timeout: 15000
