@@ -414,8 +414,18 @@ jobs:
         name: Read the local anon key (never printed)
         working-directory: rummy-home3
         run: |
-          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1 || true
-          grep -viE 'key|secret|token' /tmp/supabase-start.log | tail -3 || true
+          # Same three-attempt start as the device jobs: a runner has had host port 54322 taken (Nov 15, PR 17
+          # pull_request run), and one failed start here leaves every device job unbuilt.
+          show_log() { sed -E 's/((key|secret|token)[^:=]*[:=] *)[^ ]+/\1[masked]/I' /tmp/supabase-start.log | tail -5; }
+          started=0
+          for attempt in 1 2 3; do
+            if supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1; then
+              started=1; break
+            fi
+            echo "::warning::supabase start failed (attempt $attempt)"; show_log
+            supabase stop --no-backup || true; sleep 10
+          done
+          [ "$started" -eq 1 ] || { echo "::error::supabase start failed three times"; show_log; exit 1; }
           eval "$(supabase status -o env | grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=')"
           KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
           [ -n "$KEY" ] || { echo "no anon key from supabase status"; exit 1; }
