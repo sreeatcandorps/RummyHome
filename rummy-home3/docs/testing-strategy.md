@@ -244,16 +244,17 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 
 | # | Kind | Where | What it proves |
 | --- | --- | --- | --- |
-| X14-1 | U | `tests/multiplier.test.ts` (to write) | `shortNumber`: K from 10,000 / compact from 1,000; 3 / 2 significant digits; half away from zero; no ".0"; sign kept; 0 → "0"; CSV cases |
-| X14-2 | U | same | actual = entered × multiplier everywhere; exact sums add to 0; the red total rule ignores display rounding |
-| X14-3 | U | same | parsing 1–10,000, digits only, empty/0 → 1, over the cap → red text; absent key → 1; Pool ignores it |
+| X14-1 | U | `tests/multiplier.test.ts` (to write) | `shortNumber`: one rule — K from 10,000, M from 1,000,000; 3 significant digits; half away from zero; no ".0"; sign kept; 0 → "0"; CSV cases |
+| X14-2 | U | same | actual = entered × that round's multiplier everywhere; mixed-rate games (×10 rounds 1–6, ×5 from 7) sum right; exact sums add to 0; the red total rule ignores display rounding |
+| X14-3 | U | same | parsing 1–10,000, digits only, empty/0 → 1, over the cap → red text; absent key → 1; precedence game › user default › 1; Pool ignores it |
 | X14-4 | U | same | Final scores / share: two columns to 7 digits, one from 8, never short; PDF blocks 5 / 4 / 3 from the widest value |
 | X14-5 | U | same | Results: per-game multiplied contributions, `×N` header only when > 1, Winners exact, table K/M (mixed fixture) |
 | X14-6 | U | same | Toggle default ON, per phone, hidden at ×1, banner when OFF; saved / shared data unchanged |
-| X14-7 | D | `supabase/tests/33_multiplier_042.sql` (to write) | 042: result sums as bigint (2,280,000,000 saves), multiplier applied in SQL, PT423 lock after round 1, rollback replay |
+| X14-7 | D | `supabase/tests/33_multiplier_042.sql` (to write) | 042: result sums as bigint (2,280,000,000 saves), multiplier applied in SQL per round, `rounds.multiplier` backfill 1, `set_game_multiplier` from-round / all-rounds / admin-only / refused on Completed / Log line, Pool lock keeps the limit and frees the three values (Q14.23), rollback replay |
 | X14-8 | S | `smoke/17-multiplier.yaml` (to write) | ×100 game end to end: chip, toggle, "= −3,000" lines, Exact sheet, Final scores exact, Results `×100` |
-| X14-9 | N | `full/50-multiplier-20p.yaml` (to write) | 20 players at ×10,000 portrait + landscape (no clipping), share one column, PDF 4-column blocks |
-| X14-10 | M | emulator | every M-screen of the spec |
+| X14-9 | N | `full/50-multiplier-20p.yaml` (to write) | 20 players at ×10,000 portrait + landscape (K/M text shrinks, no clipping — the Q14.24 gate), share one column, PDF 4-column blocks |
+| X14-10 | N | `full/51-multiplier-change.yaml` (to write) | Change multiplier ×10 → ×5 from round 7: `×10` marks on rounds 1–6, footer spans, Exact sheet both rates, Log line; All rounds variant; second phone sees it within 10 s |
+| X14-11 | M | emulator | every M-screen of the spec (M01–M22) |
 
 ## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migration 041 written, not applied)
 
