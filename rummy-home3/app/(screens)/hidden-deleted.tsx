@@ -1,7 +1,8 @@
 import { gameLabelOf } from '@/utils/gameLabel';
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Icon, Snackbar, Text } from 'react-native-paper';
+import { Icon, Text } from 'react-native-paper';
+import { Toast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect } from 'expo-router';
 import { archiveService, DeletedGameRow, DeletedResultRow, HiddenAndDeleted, HiddenGameRow } from '@/services/archive';
@@ -116,7 +117,7 @@ export default function HiddenAndDeletedScreen() {
           </SectionCard>
         </>
       ) : null}
-      <Snackbar visible={Boolean(note)} onDismiss={() => setNote(null)} duration={4000}>{note ?? ''}</Snackbar>
+      <Toast message={note} onDismiss={() => setNote(null)} />
     </Screen>
   );
 }

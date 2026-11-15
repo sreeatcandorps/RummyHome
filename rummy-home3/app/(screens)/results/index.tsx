@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { NativeScrollEvent, NativeSyntheticEvent, StyleSheet, View } from 'react-native';
-import { Chip, Dialog, Icon, Portal, Snackbar, Text, TouchableRipple } from 'react-native-paper';
+import { Chip, Dialog, Icon, Portal, Text, TouchableRipple } from 'react-native-paper';
+import { Toast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect } from 'expo-router';
 import { GameListItem } from '@/components/ui/GameListItem';
@@ -8,6 +9,7 @@ import { LoadingRows } from '@/components/ui/LoadingRows';
 import { Screen } from '@/components/ui/Screen';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Tag } from '@/components/ui/Tag';
 import { RESULTS_PLAYER_LIMIT } from '@/constants/limits';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
@@ -123,18 +125,17 @@ function DeletedResult({ row, busy, onRestore }: { row: DeletedResultRow; busy: 
             <Tag label={DELETED_TAG} tone="neutral" />
           </View>
         </View>
-        <Chip
+        <Button
           compact
-          mode="flat"
+          mode="outlined"
+          icon="restore"
           onPress={onRestore}
           disabled={busy}
-          style={{ backgroundColor: colors.positiveContainer }}
-          textStyle={{ color: colors.onPositiveContainer, fontWeight: '700' }}
           accessibilityLabel={restoreRowLabel(when)}
           testID={`deleted-result-restore-${row.id}`}
         >
           {RESTORE_RESULT_BUTTON}
-        </Chip>
+        </Button>
       </View>
     </View>
   );
@@ -373,7 +374,7 @@ export default function ResultsScreen() {
       {showPicker ? picker : null}
       <SectionCard title="Past results" icon="podium" supportingText="Tap one to open it, share it, or save the PDF.">
         {saved.length === 0 ? (
-          <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>None yet.</Text>
+          <EmptyState icon="podium" title="No results yet" message="Pick completed games above and make a result; it will be listed here." />
         ) : (
           <View style={styles.list}>
             {saved.map((item) => (
@@ -394,7 +395,7 @@ export default function ResultsScreen() {
           </View>
         ) : null}
       </SectionCard>
-      <Snackbar visible={Boolean(note)} onDismiss={() => setNote(null)} duration={3000}>{note ?? ''}</Snackbar>
+      <Toast message={note} onDismiss={() => setNote(null)} aboveBar />
 
       <Portal>
         <Dialog visible={Boolean(pendingSwitch)} onDismiss={() => setPendingSwitch(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>

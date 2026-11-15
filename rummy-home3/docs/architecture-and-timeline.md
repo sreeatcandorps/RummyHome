@@ -423,6 +423,14 @@ More detail: `docs/play-store-setup.md`, `docs/release-checklist.md`.
   the header arrow is the way back (Add round gained one). Flows match `"Scorecard( · .*)?"`; `tests/design-audit-pr15a.test.ts`
   pins it. 15b (share sheet, SearchField, dialogs, Tag/Chip, Toast, tokens test) follows as its own stacked PR.
 
+### 2026-11-15 — Design audit 15b built (stacked PR; no migration)
+- The mechanical half: one `ShareSheet` from the header share icon (A04), one `SearchField` (A07), `ConfirmDialog` +
+  `NoticeDialog` and no `Alert.alert` (A09), `Tag` for status / `Chip` only for filters (A12), one `Toast` with 3 s / 4 s
+  (A13), every radius a token (A15), Complete's strip (A16), two button weights — `contained-tonal` removed from
+  `AppButton`'s type (A17), `EmptyState` everywhere (A19), header order share · help · menu (A20), "Add by initials" /
+  "Find in database" labels (A21). `tests/design-tokens.test.ts` is the DC15-1 drift guard. Q13.25 (50 / 50 is a
+  deliberate exception) is written into the Pool doc and pinned by a test.
+
 ---
 
 ## Maintenance rule for agents

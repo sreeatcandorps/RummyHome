@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { placeLine, ScorecardSheet } from '@/utils/scorecardSheet';
+import { radius } from '@/constants/theme';
 
 /** The layout captured on the phone. Web draws the same sheet on a canvas. */
 export function ScorecardImageView({ sheet, viewRef }: { sheet: ScorecardSheet; viewRef?: React.Ref<View> }) {
@@ -49,7 +50,7 @@ const styles = StyleSheet.create({
   brand: { color: '#E3B341', fontWeight: '700', letterSpacing: 1 },
   heading: { color: '#FBF1E1', fontSize: 36, fontWeight: '800', marginTop: 8 },
   when: { color: '#FBF1E1', marginTop: 4 },
-  table: { margin: 16, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden' },
+  table: { margin: 16, backgroundColor: '#fff', borderRadius: radius.md, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#E7E0D4' },
   col: { flex: 1, alignItems: 'center', paddingVertical: 6 },
   cell: { flex: 1, textAlign: 'center', paddingVertical: 8, fontVariant: ['tabular-nums'] },

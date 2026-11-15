@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   bars: { width: 40, alignItems: 'flex-start' },
-  bar: { height: 10, borderRadius: 5 },
+  bar: { height: 10, borderRadius: radius.full },
   rank: { width: 12, textAlign: 'center' },
   text: { flex: 1 },
 });

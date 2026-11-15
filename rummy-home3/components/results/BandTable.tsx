@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import { spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { BAND_SIZE, BandCell, BandTable as BandTableModel, LegendEntry } from '@/utils/resultsDesign';
 
 /**
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   boxes: { flex: 1, minWidth: 0, gap: 3, alignItems: 'flex-start' },
   box: {
     flexDirection: 'row',
-    borderRadius: 5,
+    borderRadius: radius.xs,
     overflow: 'hidden',
   },
   headBox: { borderBottomWidth: 2, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },

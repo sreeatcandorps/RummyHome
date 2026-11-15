@@ -73,12 +73,12 @@ export default function ScreensLayout() {
       <Stack.Screen name="players/index" options={{ title: 'Players' }} />
       <Stack.Screen
         name="players/new"
-        options={{ title: 'Find player in database', headerRight: () => <HelpButton text={HELP.find} /> }}
+        options={{ title: 'Find in database', headerRight: () => <HelpButton text={HELP.find} /> }}
       />
       <Stack.Screen
         name="players/add"
         options={{
-          title: 'Add new players',
+          title: 'Add by initials',
           headerBackVisible: false,
           headerRight: () => <HelpButton text={HELP.addPlayers} />,
         }}

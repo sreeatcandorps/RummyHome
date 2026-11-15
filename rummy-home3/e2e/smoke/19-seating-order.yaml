@@ -11,7 +11,7 @@ tags: [smoke]
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "New game"
 - extendedWaitUntil:
-    visible: "Add new players"
+    visible: "Add by initials"
     timeout: 15000
 - tapOn: "Add Sree Test (you)"
 - tapOn: "Add Harish Test"

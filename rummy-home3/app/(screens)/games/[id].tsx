@@ -2,7 +2,9 @@ import { gameLabelOf, screenTitle } from '@/utils/gameLabel';
 import { dealerForRound, nextDealer, rotationStarts } from '@/utils/dealerRotation';
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Text, Dialog, Menu, Portal, Snackbar } from 'react-native-paper';
+import { Text, Dialog, IconButton, Menu, Portal } from 'react-native-paper';
+import { ShareSheet } from '@/components/share/ShareSheet';
+import { Toast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/AppButton';
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
@@ -75,6 +77,8 @@ export default function GameScreen() {
   const [holding, setHolding] = useState<HoldingResult[] | null>(null);
   const [archiving, setArchiving] = useState(false);
   const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
+  // A04: one share sheet from the header icon (live link · final scores); the ⋮ keeps the game actions.
+  const [shareOpen, setShareOpen] = useState(false);
   const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
   const [editRoundOpen, setEditRoundOpen] = useState(false);
   const [linkNote, setLinkNote] = useState<string | null>(null);
@@ -330,7 +334,7 @@ export default function GameScreen() {
             <Dialog.Content><Text variant="bodyMedium" style={styles.dialogBody}>{actionError}</Text></Dialog.Content>
             <Dialog.Actions style={styles.dialogActions}><Button mode="contained" onPress={() => setActionError(null)}>OK</Button></Dialog.Actions>
           </Dialog>
-          <Snackbar visible={Boolean(linkNote)} onDismiss={() => setLinkNote(null)} duration={4000}>{linkNote ?? ''}</Snackbar>
+          <Toast message={linkNote} onDismiss={() => setLinkNote(null)} />
         </Portal>
       </View>
     );
@@ -551,6 +555,7 @@ export default function GameScreen() {
           headerStyle: { backgroundColor: colors.background },
           headerRight: () => (
             <View style={styles.headerActions}>
+              <IconButton icon="share-variant" size={22} onPress={() => setShareOpen(true)} accessibilityLabel="Share" testID="scorecard-share-icon" />
               <HelpButton text={HELP.scorecard} />
               <Menu
                 key={menuKey}
@@ -570,10 +575,6 @@ export default function GameScreen() {
                   <Menu.Item leadingIcon="lock-open-variant-outline" title="Reopen game" onPress={() => { setMenuOpen(false); setShowReopenConfirm(true); }} />
                 ) : null}
                 <Menu.Item leadingIcon="history" onPress={openLog} title="Log" testID="game-menu-log" />
-                <Menu.Item leadingIcon="share-variant" onPress={shareLive} title="Share live scorecard" />
-                {canShareResults(game.isComplete) ? (
-                  <Menu.Item leadingIcon="image" onPress={shareFinalScores} title="Share final scores" />
-                ) : null}
                 <Menu.Item leadingIcon="eye-off-outline" onPress={hideGame} title="Hide game" />
                 {canManage ? (
                   <Menu.Item leadingIcon="delete-outline" onPress={openDelete} title="Delete game" titleStyle={{ color: colors.error }} />
@@ -650,7 +651,7 @@ export default function GameScreen() {
               {editableRounds(game.scores).map((n) => (
                 <Button
                   key={n}
-                  mode={n === maxRounds ? 'contained-tonal' : 'outlined'}
+                  mode={n === maxRounds ? 'contained' : 'outlined'}
                   compact
                   onPress={() => openEditRound(n)}
                   style={styles.roundChip}
@@ -732,7 +733,17 @@ export default function GameScreen() {
           </Dialog.Actions>
         </Dialog>
 
-        <Snackbar visible={Boolean(linkNote)} onDismiss={() => setLinkNote(null)} duration={2500}>{linkNote ?? ''}</Snackbar>
+        <Toast message={linkNote} onDismiss={() => setLinkNote(null)} aboveBar />
+        <ShareSheet
+          visible={shareOpen}
+          onDismiss={() => setShareOpen(false)}
+          options={[
+            { key: 'live', icon: 'link-variant', label: 'Live scorecard link', detail: 'Anyone with the link watches the scores update.', onPress: shareLive, testID: 'share-live-link' },
+            ...(canShareResults(game.isComplete)
+              ? [{ key: 'final', icon: 'image', label: 'Share final scores', detail: 'The standings picture, or the full details as a PDF.', onPress: shareFinalScores, testID: 'share-final-scores-option' }]
+              : []),
+          ]}
+        />
       </Portal>
       <ExactPointsSheet
         visible={exactOpen}

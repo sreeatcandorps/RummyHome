@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import { spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { FinalScoresSheet } from '@/utils/finalScoresSheet';
 import { RoundBlock } from '@/utils/resultsDetails';
 
@@ -84,7 +84,7 @@ function RoundBlockView({ block, title, testID }: { block: RoundBlock; title: st
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
-  block: { borderWidth: 2, borderRadius: 8, overflow: 'hidden' },
+  block: { borderWidth: 2, borderRadius: radius.sm, overflow: 'hidden' },
   blockTitle: { paddingHorizontal: 8, paddingTop: 6, fontWeight: '700' },
   row: { flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: StyleSheet.hairlineWidth },
   headRow: { borderBottomWidth: 2 },

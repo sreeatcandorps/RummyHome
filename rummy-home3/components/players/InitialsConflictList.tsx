@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Chip, Icon, Text, TextInput } from 'react-native-paper';
+import { Tag } from '@/components/ui/Tag';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { InitialsConflict, initialsProblem, normalizeInitials } from '@/utils/initials';
 
@@ -80,7 +81,7 @@ export function InitialsConflictList({ conflicts, choices, onChoose, taken, youI
                     </Chip>
                   ))}
                   {custom && !isEditing ? (
-                    <Chip compact selected showSelectedCheck={false} mode="flat" style={[styles.chip, { backgroundColor: colors.secondaryContainer }]}>{chosen}</Chip>
+                    <Tag label={chosen} tone="warning" style={styles.chip} />
                   ) : null}
                   <Chip
                     compact

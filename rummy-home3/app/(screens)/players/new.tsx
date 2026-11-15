@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Icon, Portal, Searchbar, Text } from 'react-native-paper';
+import { Icon, Portal, Text } from 'react-native-paper';
+import { SearchField } from '@/components/ui/SearchField';
 import { Button } from '@/components/ui/AppButton';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
@@ -20,7 +21,7 @@ import { BoldName } from '@/components/ui/BoldName';
 import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { assignInitials, defaultInitials } from '@/utils/initials';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
-import { FROM_DATABASE_ACCESSIBILITY } from '@/utils/addPlayers';
+import { ADD_NEW_PLAYERS, FIND_IN_DATABASE, FROM_DATABASE_ACCESSIBILITY } from '@/utils/addPlayers';
 
 /**
  * Two jobs, one screen. From My players it adds people to your list.
@@ -48,7 +49,7 @@ export default function FindPlayersScreen() {
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
-      title: fromNewGame ? 'From the EZ Score database' : 'Find player in database',
+      title: FIND_IN_DATABASE,
       headerRight: () => <HelpButton text={fromNewGame ? HELP.addToGame : HELP.find} />,
     });
   }, [navigation, fromNewGame]);
@@ -150,15 +151,13 @@ export default function FindPlayersScreen() {
 
   return (
     <Screen>
-      <Searchbar
-        placeholder="Name or player ID"
+      <SearchField
         value={query}
         onChangeText={setQuery}
-        style={[styles.search, { backgroundColor: colors.leaderContainer }]}
-        iconColor={colors.onLeaderContainer}
-        placeholderTextColor={colors.onLeaderContainer}
-        accessibilityLabel={fromNewGame ? FROM_DATABASE_ACCESSIBILITY : 'Find player in database'}
+        style={styles.search}
+        accessibilityLabel={fromNewGame ? FROM_DATABASE_ACCESSIBILITY : FIND_IN_DATABASE}
         autoFocus
+        testID="find-search"
       />
       {error ? <Text variant="bodyMedium" style={{ color: colors.error }}>{error}</Text> : null}
       <View style={styles.list}>
@@ -210,7 +209,7 @@ export default function FindPlayersScreen() {
       </View>
       {nothing ? (
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          No registered player matches that. Not in the database? Go back and use {fromNewGame ? 'Add players' : 'Add new players'}.
+          No registered player matches that. Not in the database? Go back and use {ADD_NEW_PLAYERS}.
         </Text>
       ) : null}
       {!nothing && results.length === 0 ? (
@@ -232,7 +231,7 @@ export default function FindPlayersScreen() {
         ) : null}
       </Portal>
       {fromNewGame ? (
-        <Button mode="contained-tonal" icon="arrow-left" onPress={() => router.back()} style={styles.back}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => router.back()} style={styles.back}>
           Back to new game
         </Button>
       ) : (

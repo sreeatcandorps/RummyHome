@@ -20,7 +20,7 @@ import { SectionCard, SectionCardEnd, SectionCardRows } from '@/components/ui/Se
 import { EmptyState } from '@/components/ui/EmptyState';
 import { GameListItem } from '@/components/ui/GameListItem';
 import { LoadingRows } from '@/components/ui/LoadingRows';
-import { spacing, useAppTheme } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import { JoinRequestsDialog } from '@/components/players/JoinRequestsDialog';
 import { ClaimRequestsCard } from '@/components/players/ClaimRequestsCard';
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     minWidth: 26,
     height: 26,
     paddingHorizontal: 6,
-    borderRadius: 13,
+    borderRadius: radius.full,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

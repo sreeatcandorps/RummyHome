@@ -879,7 +879,7 @@ const styles = StyleSheet.create({
   },
   moreWrap: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'flex-end' },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 28, opacity: 0.85 },
-  morePill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, marginBottom: 4 },
+  morePill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: radius.full, marginBottom: 4 },
   landscapeBody: {
     flex: 1,
     flexDirection: 'row',

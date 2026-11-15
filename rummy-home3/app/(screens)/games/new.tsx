@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, BackHandler, Easing, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
-import { Dialog, Portal, Searchbar, SegmentedButtons, Text } from 'react-native-paper';
+import { Dialog, Portal, SegmentedButtons, Text } from 'react-native-paper';
+import { SearchField } from '@/components/ui/SearchField';
 import { Button } from '@/components/ui/AppButton';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Player } from '@/types/player';
@@ -36,7 +37,7 @@ import { GameTypeStep } from '@/components/game/GameTypeStep';
 import { CoAdminNudge, coAdminCandidates } from '@/components/game/CoAdminNudge';
 import { emailsService } from '@/services/emails';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
-import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FROM_DATABASE_ACCESSIBILITY, nextLabel, returnButtonLabel, SEARCH_PLACEHOLDER, totalLabel } from '@/utils/addPlayers';
+import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FIND_IN_DATABASE, FROM_DATABASE_ACCESSIBILITY, nextLabel, returnButtonLabel, totalLabel } from '@/utils/addPlayers';
 
 type Pick = DraftPick;
 
@@ -498,13 +499,13 @@ export default function NewGame() {
 
   const tiles = (
     <View style={styles.addRow}>
-      <Button mode="contained-tonal" icon="account-plus-outline" style={styles.flex} contentStyle={styles.toolContent} labelStyle={styles.toolLabel}
+      <Button mode="outlined" icon="account-plus-outline" style={styles.flex} contentStyle={styles.toolContent} labelStyle={styles.toolLabel}
         onPress={() => router.push({ pathname: '/(screens)/players/add', params: { from: 'new-game' } })} accessibilityLabel={ADD_NEW_PLAYERS}>
         {ADD_NEW_PLAYERS}
       </Button>
-      <Button mode="contained-tonal" icon="database-search" style={styles.flex} contentStyle={styles.toolContent} labelStyle={styles.toolLabel}
+      <Button mode="outlined" icon="database-search" style={styles.flex} contentStyle={styles.toolContent} labelStyle={styles.toolLabel}
         onPress={() => router.push({ pathname: '/(screens)/players/new', params: { from: 'new-game', seated: selectedIds.join(',') } })} accessibilityLabel={FROM_DATABASE_ACCESSIBILITY}>
-        From database
+        {FIND_IN_DATABASE}
       </Button>
     </View>
   );
@@ -536,7 +537,7 @@ export default function NewGame() {
         {addMode ? tiles : null}
 
         <View style={styles.searchRow}>
-          <Searchbar placeholder={SEARCH_PLACEHOLDER} value={query} onChangeText={setQuery} style={[styles.search, styles.flex, { backgroundColor: colors.leaderContainer }]} inputStyle={styles.searchInput} iconColor={colors.onLeaderContainer} placeholderTextColor={colors.onLeaderContainer} testID="picker-search" />
+          <SearchField value={query} onChangeText={setQuery} style={[styles.search, styles.flex]} testID="picker-search" />
           <SegmentedButtons
             value={sort}
             onValueChange={(value) => setSort(value as CandidateSort)}
@@ -598,12 +599,11 @@ const styles = StyleSheet.create({
   countBubble: { width: PLAYING_BADGE, height: PLAYING_BADGE, paddingHorizontal: 6, borderRadius: PLAYING_BADGE / 2, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
   countText: { fontSize: 30, fontWeight: '900', lineHeight: 36, textAlign: 'center', minWidth: 44 },
   totalRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 60 },
-  totalCircle: { width: 92, height: 92, borderRadius: 46, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  totalCircle: { width: 92, height: 92, borderRadius: radius.full, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
   totalNumber: { fontSize: 34, fontWeight: '900', lineHeight: 38, textAlign: 'center', minWidth: 44 },
   totalCaption: { fontSize: 12, fontWeight: '800', letterSpacing: 1, lineHeight: 14 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   search: { marginVertical: 2 },
-  searchInput: { fontSize: 15, minHeight: 0 },
   sortControl: { width: 104 },
   sortButton: { minWidth: 0 },
   list: { gap: 6 },

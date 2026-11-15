@@ -19,8 +19,12 @@ tags: [full]
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 20000
-- tapOn: "Scorecard menu"
-- tapOn: "Share final scores"
+# A04: the header share icon opens the one share sheet; Final scores is an entry on it.
+- tapOn:
+    id: "scorecard-share-icon"
+- assertVisible: "Live scorecard link"
+- tapOn:
+    id: "share-final-scores-option"
 - extendedWaitUntil:
     visible: "Final scores · .*"
     timeout: 20000

@@ -2,14 +2,13 @@ import { actual, pointsGameMultiplier } from '@/utils/multiplier';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { Dialog, Menu, Portal, Snackbar, Text } from 'react-native-paper';
+import { Dialog, Menu, Portal, Text } from 'react-native-paper';
+import { Toast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/AppButton';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { archiveService } from '@/services/archive';
 import { authService } from '@/services/auth';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { HelpButton } from '@/components/ui/HelpButton';
-import { HELP } from '@/constants/help';
 import { radius, spacing } from '@/constants/theme';
 import { deletedBody, removedGamesNote, RESULT_DELETED_TITLE } from '@/utils/archive';
 import { DELETE_RESULT_BUTTON, deleteConsequence, deletedToast, gameLabelsOf, RESTORED_TOAST, SHARED_CONFIRM_BODY, SHARED_CONFIRM_TITLE, UNDO_DELETE_MS } from '@/utils/resultsDelete';
@@ -317,36 +316,32 @@ export default function DeclaredResult() {
           onAction={result.canRestore && !busy ? restore : undefined}
         />
         {error ? <Text style={{ color: colors.error }}>{error}</Text> : null}
-        <Snackbar visible={Boolean(note)} onDismiss={() => setNote(null)} duration={3000}>{note ?? ''}</Snackbar>
+        <Toast message={note} onDismiss={() => setNote(null)} />
       </Screen>
     );
   }
 
   return (
     <Screen scrollRef={scrollRef}>
-      <Stack.Screen
-        options={{
-          headerRight: () => (
-            <View style={styles.headerActions}>
-              <HelpButton text={HELP.results} />
-              {result ? (
-                <Menu
-                  visible={menuOpen}
-                  onDismiss={() => setMenuOpen(false)}
-                  anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Result menu"> </Button>}
-                >
-                  <Menu.Item leadingIcon="history" title={RESULT_HISTORY_TITLE} onPress={scrollToHistory} testID="result-menu-history" />
-                  <Menu.Item leadingIcon="link-variant" title="Copy link" onPress={copyLink} testID="result-menu-copy-link" />
-                  {result.canManage ? (
-                    <Menu.Item leadingIcon="delete-outline" title="Delete result" titleStyle={{ color: colors.error }} onPress={startDelete} />
-                  ) : null}
-                </Menu>
-              ) : null}
-            </View>
-          ),
-        }}
+      <ResultsShare
+        card={card}
+        details={details}
+        createdAt={result?.declaredAt}
+        resultId={result?.id}
+        menu={result ? (
+          <Menu
+            visible={menuOpen}
+            onDismiss={() => setMenuOpen(false)}
+            anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Result menu"> </Button>}
+          >
+            <Menu.Item leadingIcon="history" title={RESULT_HISTORY_TITLE} onPress={scrollToHistory} testID="result-menu-history" />
+            <Menu.Item leadingIcon="link-variant" title="Copy link" onPress={copyLink} testID="result-menu-copy-link" />
+            {result.canManage ? (
+              <Menu.Item leadingIcon="delete-outline" title="Delete result" titleStyle={{ color: colors.error }} onPress={startDelete} />
+            ) : null}
+          </Menu>
+        ) : null}
       />
-      <ResultsShare card={card} details={details} createdAt={result?.declaredAt} resultId={result?.id} />
       <ChangedAfterSharingLine note={history?.changedNote ?? null} onPress={scrollToHistory} />
       <ResultWarnings warnings={warnings} />
       {error ? (
@@ -406,22 +401,20 @@ export default function DeclaredResult() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
-      <Snackbar visible={Boolean(note)} onDismiss={() => setNote(null)} duration={3000}>{note ?? ''}</Snackbar>
-      <Snackbar
-        visible={Boolean(undoToast)}
+      <Toast message={note} onDismiss={() => setNote(null)} />
+      {/* D9.1: this Undo stands in for a confirm dialog, so it keeps its 10 s (the one exception to A13). */}
+      <Toast
+        message={undoToast}
         onDismiss={undoToastClosed}
-        duration={UNDO_DELETE_MS}
+        durationMs={UNDO_DELETE_MS}
         action={{ label: 'Undo', onPress: undoDelete, accessibilityLabel: 'Undo delete result' }}
         testID="result-delete-undo"
-      >
-        {undoToast ?? ''}
-      </Snackbar>
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  headerActions: { flexDirection: 'row', alignItems: 'center' },
   deleteBlock: { gap: spacing.sm, marginTop: spacing.md },
   deleteButton: { borderWidth: 2, borderRadius: radius.full },
   deleteContent: { minHeight: 52 },

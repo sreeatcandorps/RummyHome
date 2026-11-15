@@ -6,8 +6,10 @@
 
 export const ADD_PLAYERS_TITLE = 'Add players to this game';
 export const RETURN_TO_GAME = 'Return to game';
-export const FROM_DATABASE_ACCESSIBILITY = 'Add players to this game from the EZ Score database';
-export const ADD_NEW_PLAYERS = 'Add new players';
+export const FROM_DATABASE_ACCESSIBILITY = 'Find in database: add players to this game from the EZ Score database';
+/** The one pair of labels for adding people, everywhere (A21 / Q11.10): by initials, or from the database. */
+export const ADD_NEW_PLAYERS = 'Add by initials';
+export const FIND_IN_DATABASE = 'Find in database';
 export const SEARCH_PLACEHOLDER = 'Search name, initials or #ID';
 export const NON_PLAYING_ADMIN_BUTTON = 'Add non-playing admin';
 export const NON_PLAYING_ADMIN_NOTE = 'Someone who keeps score but does not play. Enter their Player ID (#NN). They can add and edit rounds; they get no column.';

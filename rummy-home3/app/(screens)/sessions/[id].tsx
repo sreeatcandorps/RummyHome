@@ -238,7 +238,7 @@ function SettleLedgerBody() {
 
       <Text variant="titleMedium" style={styles.payments}>Entries</Text>
       {session.entries.length === 0 ? (
-        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>None yet — tap a row to edit</Text>
+        <EmptyState icon="cash-multiple" title="No entries yet" message="Tap a row to add one." />
       ) : (
         [...session.entries].reverse().map((entry) => (
           <Pressable key={entry.id} onPress={() => editEntry(entry.id)} disabled={settled} style={styles.entry} accessibilityRole="button">

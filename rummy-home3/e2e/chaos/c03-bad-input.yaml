@@ -99,10 +99,10 @@ tags: [chaos]
 - takeScreenshot: c03-limit-50-refused
 - back
 - extendedWaitUntil:
-    visible: "Add new players"
+    visible: "Add by initials"
     timeout: 15000
 # Initials cells: a symbol and an emoji must not become a player.
-- tapOn: "Add new players"
+- tapOn: "Add by initials"
 - extendedWaitUntil:
     visible: "Row 1 first initial"
     timeout: 15000
@@ -116,7 +116,7 @@ tags: [chaos]
 - takeScreenshot: c03-initials-symbols
 - tapOn: "Done adding players"
 - extendedWaitUntil:
-    visible: "Add new players"
+    visible: "Add by initials"
     timeout: 15000
 - assertNotVisible: "Something went wrong"
 - back

@@ -84,7 +84,7 @@ export function PoolStandings({ rows, limit, compact = false, onReenter, busyId,
               <Text style={[styles.num, styles.value, tabularNums, styles.struck, { color: colors.onSurfaceVariant }]}>{r.total}</Text>
               <View style={[styles.reenterCell]}>
                 {onReenter && r.canReenter ? (
-                  <Button compact mode="contained-tonal" icon="restore" onPress={() => onReenter(r.playerId)} loading={busyId === r.playerId} disabled={Boolean(busyId)} accessibilityLabel={`Re-enter ${r.name}`} testID={`reenter-${r.playerId}`}>
+                  <Button compact mode="outlined" icon="restore" onPress={() => onReenter(r.playerId)} loading={busyId === r.playerId} disabled={Boolean(busyId)} accessibilityLabel={`Re-enter ${r.name}`} testID={`reenter-${r.playerId}`}>
                     Re-enter
                   </Button>
                 ) : (

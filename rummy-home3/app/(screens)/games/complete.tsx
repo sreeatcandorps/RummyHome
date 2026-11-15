@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
-import { formatGameDateTime } from '@/utils/gameDisplay';
+import { formatGameDateTime, gameTypeLabel } from '@/utils/gameDisplay';
 import { formatPoints } from '@/utils/results';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { completionCheck, poolCompletionCheck, sortFinalScores } from '@/utils/completeGame';
@@ -21,6 +21,7 @@ import { gameAdminLines } from '@/utils/gameAdmins';
 import { pointsGameMultiplier } from '@/utils/multiplier';
 import { GIVE_AWARDS_FIRST, isOut, isPoolGame, playersIn, playersOut, poolTotal, seatOf } from '@/utils/pool';
 import { screenTitle } from '@/utils/gameLabel';
+import { playersChipLabel } from '@/utils/scorecardLayout';
 
 /**
  * Complete game as its own page: final totals, a balance check, one filled
@@ -102,10 +103,13 @@ export default function CompleteGameScreen() {
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title, headerRight: () => <HelpButton text={HELP.complete} /> }} />
       <ScrollView contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}>
+        {/* A16: the scorecard's strip pattern — tags left to right, the date as the caption. */}
         <View style={styles.headerRow}>
-          <Tag label={done ? 'Completed' : 'Active'} tone={done ? 'primary' : 'positive'} icon={done ? 'flag-checkered' : 'circle-medium'} />
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{formatGameDateTime(game.date)}</Text>
+          <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={pool ? 'trophy-outline' : 'numeric'} />
+          <Tag label={playersChipLabel(players.length)} icon="account-group-outline" />
+          <Tag label={done ? 'Completed' : 'Active'} tone={done ? 'info' : 'positive'} icon={done ? 'flag-checkered' : 'circle-medium'} testID="complete-status-tag" />
         </View>
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{formatGameDateTime(game.date)}</Text>
 
         <Text variant="headlineSmall" style={styles.heading}>{done ? 'Final scores' : 'Final scores so far'}</Text>
         <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
@@ -159,7 +163,7 @@ export default function CompleteGameScreen() {
                 {game.awardedAt ? 'Change awards' : 'Give awards'}
               </Button>
             ) : null}
-            <Button mode="contained-tonal" icon="share-variant" onPress={() => router.push({ pathname: '/(screens)/games/final-scores', params: { id: game.id } })} accessibilityLabel="Share final scores">
+            <Button mode="outlined" icon="share-variant" onPress={() => router.push({ pathname: '/(screens)/games/final-scores', params: { id: game.id } })} accessibilityLabel="Share final scores">
               Share final scores
             </Button>
             <Button mode="outlined" icon="format-list-numbered" disabled={!game.awardedAt} onPress={() => router.push('/(screens)/results')} accessibilityLabel="Go to Results">
@@ -174,7 +178,7 @@ export default function CompleteGameScreen() {
             <Button mode="contained" icon="share-variant" onPress={() => router.push({ pathname: '/(screens)/games/final-scores', params: { id: game.id } })} accessibilityLabel="Share final scores">
               Share final scores
             </Button>
-            <Button mode="contained-tonal" icon="trophy-outline" onPress={() => router.push('/(screens)/results')} accessibilityLabel="Go to Results">
+            <Button mode="outlined" icon="format-list-numbered" onPress={() => router.push('/(screens)/results')} accessibilityLabel="Go to Results">
               Add to Results
             </Button>
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
@@ -221,7 +225,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs },
   heading: { fontWeight: '800' },
   adminsTitle: { fontWeight: '700', paddingTop: spacing.sm, paddingBottom: spacing.xs },
   adminRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs },

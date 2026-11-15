@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import { spacing, useAppTheme } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { GAME_STATUS_TONE } from '@/utils/gameStatus';
 import { HelpChip, helpHeadingText, isHelpHeading, splitHelpLine } from '@/utils/helpMarkup';
 
@@ -60,6 +60,6 @@ const styles = StyleSheet.create({
   chip: {
     fontWeight: '700',
     fontSize: 13,
-    ...(Platform.OS === 'ios' ? {} : { borderRadius: 6, overflow: 'hidden' as const }),
+    ...(Platform.OS === 'ios' ? {} : { borderRadius: radius.xs, overflow: 'hidden' as const }),
   },
 });

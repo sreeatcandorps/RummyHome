@@ -6,7 +6,7 @@ import { playerIdentityService } from '@/services/playerIdentity';
 import { Player } from '@/types/player';
 import { LinkOutcome, LinkRequestForMe, linkRequestDetail, linkRequestPrompt } from '@/utils/linkPlayer';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-import { spacing, useAppTheme } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 type LinkRequestsCardProps = {
   me: Player;
@@ -67,6 +67,6 @@ export function LinkRequestsCard({ me, onAnswered, preloaded = null }: LinkReque
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm, marginBottom: spacing.sm },
-  card: { borderRadius: 12, padding: spacing.md, gap: 6 },
+  card: { borderRadius: radius.md, padding: spacing.md, gap: 6 },
   row: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm },
 });

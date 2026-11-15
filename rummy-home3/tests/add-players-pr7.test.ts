@@ -33,17 +33,18 @@ test('7.1 Total counts seated players only; Added now reads 0 and 3; the button 
   assert.equal(ADD_PLAYERS_TITLE, 'Add players to this game');
 });
 
-test('7.2 labels: Add new players, From database spoken as the long sentence, yellow search box with #ID', () => {
-  assert.equal(ADD_NEW_PLAYERS, 'Add new players');
-  assert.equal(FROM_DATABASE_ACCESSIBILITY, 'Add players to this game from the EZ Score database');
+test('7.2 labels: Add by initials / Find in database (A21), the long spoken sentence, the one SearchField with #ID (A07)', () => {
+  assert.equal(ADD_NEW_PLAYERS, 'Add by initials');
+  assert.equal(FROM_DATABASE_ACCESSIBILITY, 'Find in database: add players to this game from the EZ Score database');
   assert.equal(SEARCH_PLACEHOLDER, 'Search name, initials or #ID');
   const picker = read('app/(screens)/games/new.tsx');
   assert.match(picker, /accessibilityLabel=\{ADD_NEW_PLAYERS\}>\s*\{ADD_NEW_PLAYERS\}/);
-  assert.match(picker, /accessibilityLabel=\{FROM_DATABASE_ACCESSIBILITY\}>\s*From database/);
-  assert.match(picker, /placeholder=\{SEARCH_PLACEHOLDER\}[^\n]*backgroundColor: colors\.leaderContainer/, 'pale yellow search box');
+  assert.match(picker, /accessibilityLabel=\{FROM_DATABASE_ACCESSIBILITY\}>\s*\{FIND_IN_DATABASE\}/);
+  assert.match(picker, /<SearchField value=\{query\} onChangeText=\{setQuery\}[^\n]*testID="picker-search"/, 'the one SearchField (A07)');
   assert.doesNotMatch(picker, /accessibilityLabel="Add players"/);
   const find = read('app/(screens)/players/new.tsx');
-  assert.match(find, /backgroundColor: colors\.leaderContainer/, 'the Find player search box is yellow too');
+  assert.match(find, /<SearchField[\s\S]*?testID="find-search"/, 'Find in database uses the same field');
+  assert.doesNotMatch(find, /leaderContainer/, 'no pale-yellow search box any more (A07)');
   assert.doesNotMatch(find, /Registered players only\./, 'the registered-only note lives in help');
   const theme = read('constants/theme.ts');
   assert.equal((theme.match(/leaderContainer: '#/g) ?? []).length, 2, 'light and dark palettes both define leaderContainer');

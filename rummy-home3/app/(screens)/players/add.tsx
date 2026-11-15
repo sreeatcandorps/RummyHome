@@ -45,7 +45,7 @@ type Row = {
 };
 
 export const DEFAULT_NEW_PLAYER_ROWS = NEW_PLAYER_ROWS_MAX;
-export const ADD_PLAYERS_TITLE = 'Add new players';
+export const ADD_PLAYERS_TITLE = 'Add by initials';
 // PR 10b (Q10.7): the heading no longer counts rows; the cells carry F / L placeholders instead of a sentence.
 export const ADD_PLAYERS_HEADING = 'Add new players by initials';
 export const ADD_PLAYERS_SUBLINE = 'First-name initial · Last-name initial';

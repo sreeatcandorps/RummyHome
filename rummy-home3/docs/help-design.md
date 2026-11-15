@@ -187,9 +187,9 @@ screens. Callout positions are indicative.
   1.5–2 screens. Alternative: menu items only, tricky cases in a separate FAQ page.
 - **Q11.9 (F11.1) Results naming.** Keep one screen, add a clear split "Make a result" / "Past results" with the help
   explaining both (recommended, no flow change) — or two Home buttons.
-- **Q11.10 (F11.2) One pair of labels** for adding people everywhere: "Add by initials" / "Find in database"
+- **Q11.10 (F11.2) One pair of labels** for adding people everywhere: "Add by initials" / "Find in database" — **built in Design audit 15b (A21)**
   (recommended; a PR 15 consistency item, not this PR).
-- **Q11.11 (F11.3) One Share… item** with a three-line sheet (recommended; PR 15) vs two items as today.
+- **Q11.11 (F11.3) One Share… item** with a three-line sheet (recommended; PR 15) vs two items as today — **built in Design audit 15b (A04): the header share icon opens the sheet**.
 - **Q11.12 (F11.4) "Game settings · locked"** on the menu item once rounds exist (recommended; small, could ride with PR 11).
 - **Q11.13 (F11.5) Complete done-state** shows the card preview and a single "Final scores & share" button; share buttons
   only on Final scores (recommended; PR 15). Keep as is if you like the shortcut.

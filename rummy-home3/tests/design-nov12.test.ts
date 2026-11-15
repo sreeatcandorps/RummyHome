@@ -54,7 +54,7 @@ test('design: one button standard — every Button comes from AppButton; pill, 2
   const button = src('components/ui/AppButton.tsx');
   assert.match(button, /export const BUTTON_EDGE = 4/);
   assert.match(button, /export const BUTTON_MIN_HEIGHT = 48/);
-  assert.match(button, /pill: \{ borderRadius: 999 \}/);
+  assert.match(button, /pill: \{ borderRadius: radius\.full \}/, "A15: the pill radius is the token");
   assert.match(button, /outlined && \{ borderWidth: 2/);
   assert.match(button, /borderBottomWidth: BUTTON_EDGE/);
   assert.match(button, /fontSize: 16, lineHeight: 20, fontWeight: '800'/);

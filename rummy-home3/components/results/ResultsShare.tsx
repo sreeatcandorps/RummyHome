@@ -16,6 +16,8 @@ type Props = {
   createdAt?: string;
   /** A saved result: a picture or PDF sent from here marks it shared, so Delete asks first (PR 9). */
   resultId?: string;
+  /** The screen's ⋮ menu, rendered last: share · help · menu is the header order everywhere (A20). */
+  menu?: React.ReactNode;
 };
 
 /**
@@ -23,7 +25,7 @@ type Props = {
  * PDF then carry the same "Not saved yet" banner and warnings as the screen (card.notes).
  * The one Save button lives in the screen body.
  */
-export function ResultsShare({ card, details, createdAt, resultId }: Props) {
+export function ResultsShare({ card, details, createdAt, resultId, menu }: Props) {
   const navigation = useNavigation();
   const [open, setOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -45,10 +47,11 @@ export function ResultsShare({ card, details, createdAt, resultId }: Props) {
             disabled={!card}
           />
           <HelpButton text={HELP.results} />
+          {menu}
         </View>
       ),
     });
-  }, [navigation, card]);
+  }, [navigation, card, menu]);
 
   const sharePdf = async () => {
     if (!details || pdfBusy) return;

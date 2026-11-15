@@ -601,7 +601,7 @@ const styles = StyleSheet.create({
   seatBar: {
     width: 16,
     height: 3,
-    borderRadius: 2,
+    borderRadius: radius.full,
   },
   cornerText: {
     fontSize: 11,

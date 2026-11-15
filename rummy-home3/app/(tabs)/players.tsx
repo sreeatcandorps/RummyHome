@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, SectionList, StyleSheet, View } from 'react-native';
-import { Chip, Dialog, Icon, Portal, Searchbar, Snackbar, Text, TouchableRipple } from 'react-native-paper';
+import { ActivityIndicator, FlatList, SectionList, StyleSheet, View } from 'react-native';
+import { Chip, Dialog, Icon, Portal, Text, TouchableRipple } from 'react-native-paper';
+import { SearchField } from '@/components/ui/SearchField';
+import { Toast } from '@/components/ui/Toast';
 import { Button } from '@/components/ui/AppButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
@@ -22,11 +24,12 @@ import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { appendPage, DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, mergeSearchResults, MyPlayersCursor, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, MY_PLAYERS_PAGE_SIZE, MY_PLAYERS_SEARCH_DEBOUNCE_MS, MY_PLAYERS_SEARCH_LIMIT, nextPageCursor, playerIdBadge, registrationLabel, REGISTRATION_TONE, SEARCH_FULL_NOTE, sectionsByLetter, shouldLoadMore, SORT_CHIP, SORT_OPTIONS, sortMyPlayers, visibleRegistration, withOwnerFirst } from '@/utils/myPlayersList';
-import { SEARCH_PLACEHOLDER } from '@/utils/addPlayers';
+import { ADD_NEW_PLAYERS, FIND_IN_DATABASE } from '@/utils/addPlayers';
 import { seatColor } from '@/constants/theme';
 import { shareInvite } from '@/utils/invite';
 import { Screen } from '@/components/ui/Screen';
 import { BottomBar } from '@/components/ui/BottomBar';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { BoldName } from '@/components/ui/BoldName';
@@ -286,13 +289,12 @@ export default function PlayersTab() {
     }
   };
 
+  // A09: a Paper ConfirmDialog, not Alert.alert; the verb repeats the title (A05).
+  const [removeTarget, setRemoveTarget] = useState<Player | null>(null);
   const confirmRemove = (target?: Player) => {
     const who = target ?? selected;
     if (!who) return;
-    Alert.alert(REMOVE_CONFIRM_TITLE(who.name), REMOVE_CONFIRM_BODY, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => remove(who) },
-    ]);
+    setRemoveTarget(who);
   };
 
   /** The unified ⋮ menu (utils/gamePlayers.myPlayerMenu): Invite · Link · Edit initials · Edit name · Remove from My players. */
@@ -394,12 +396,7 @@ export default function PlayersTab() {
   return (
     <View style={styles.flex}>
     <Screen>
-      <Searchbar
-        placeholder={SEARCH_PLACEHOLDER}
-        value={query}
-        onChangeText={setQuery}
-        style={styles.search}
-      />
+      <SearchField value={query} onChangeText={setQuery} style={styles.search} testID="my-players-search" />
       <View style={styles.controls}>
         <View style={styles.sortGroup}>
           {SORT_OPTIONS.map((option) => (
@@ -480,7 +477,7 @@ export default function PlayersTab() {
           icon="account-group-outline"
           title="Only you in My players so far."
           message="Add new players with just initials, or find registered players in the database."
-          actionLabel="Add new players"
+          actionLabel={ADD_NEW_PLAYERS}
           onAction={() => router.push('/(screens)/players/add')}
         />
       ) : null}
@@ -491,6 +488,17 @@ export default function PlayersTab() {
       ) : null}
 
       <Portal>
+        <ConfirmDialog
+          visible={Boolean(removeTarget)}
+          icon="account-remove-outline"
+          title={removeTarget ? REMOVE_CONFIRM_TITLE(removeTarget.name) : ''}
+          message={REMOVE_CONFIRM_BODY}
+          confirmLabel="Remove"
+          destructive
+          onDismiss={() => setRemoveTarget(null)}
+          onConfirm={() => { const who = removeTarget; setRemoveTarget(null); if (who) remove(who); }}
+          testID="remove-my-player"
+        />
         {sheet?.kind === 'invite' && me ? (
           <InviteToRegisterDialog player={sheet.player} owner={me} onDismiss={() => { setSheet(null); load(); }} />
         ) : null}
@@ -565,32 +573,31 @@ export default function PlayersTab() {
             onSave={saveMyInitials}
           />
         ) : null}
-        <Snackbar
-          visible={Boolean(undo)}
+        <Toast
+          message={undo ? REMOVED_TOAST(undo.name) : null}
           onDismiss={() => setUndo(null)}
-          duration={UNDO_REMOVE_MS}
-          action={{ label: 'Undo', onPress: undoRemove }}
+          durationMs={UNDO_REMOVE_MS}
+          action={{ label: 'Undo', onPress: undoRemove, accessibilityLabel: 'Undo remove from My players' }}
+          aboveBar
           testID="remove-undo"
-        >
-          {undo ? REMOVED_TOAST(undo.name) : ''}
-        </Snackbar>
+        />
       </Portal>
     </Screen>
     {/* A08: the three actions live in a bar above the tab bar, never below the fold or under it. */}
     <BottomBar fullWidth insetBottom={false} style={styles.actions} testID="my-players-actions">
       <ActionTile
         icon="account-plus-outline"
-        label="Add new players"
+        label={ADD_NEW_PLAYERS}
         tone="primary"
         onPress={() => router.push('/(screens)/players/add')}
-        accessibilityLabel="Add new players"
+        accessibilityLabel={ADD_NEW_PLAYERS}
       />
       <ActionTile
         icon="database-search"
-        label="Find player in database"
+        label={FIND_IN_DATABASE}
         tone="tonal"
         onPress={() => router.push('/(screens)/players/new')}
-        accessibilityLabel="Find player in database"
+        accessibilityLabel={FIND_IN_DATABASE}
       />
       <ActionTile
         icon={filter === 'unregistered' ? 'filter-check' : 'account-question-outline'}

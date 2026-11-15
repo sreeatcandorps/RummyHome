@@ -10,7 +10,7 @@ export const LIVE_GAME_REMOVE_MESSAGE = 'In a live game. Remove them after the g
 export const SELF_REMOVE_MESSAGE = 'You are always in your own list.';
 export const REMOVE_FAILED_MESSAGE = 'Couldn’t remove them. Try again.';
 /** How long the Undo toast stays after Remove from My players. */
-export const UNDO_REMOVE_MS = 6000;
+export const UNDO_REMOVE_MS = 4000;
 
 export const REMOVE_CONFIRM_TITLE = (name: string) => `Remove ${name} from My players?`;
 export const REMOVE_CONFIRM_BODY = 'Only your list changes. Their account, past games, scores and results stay as they are.';

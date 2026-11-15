@@ -162,7 +162,7 @@ test('A08: My players action tiles live in a BottomBar outside the scroll, with 
   const bar = page.indexOf('<BottomBar fullWidth insetBottom={false} style={styles.actions} testID="my-players-actions">');
   assert.ok(bar > screenClose && screenClose > 0, 'the bar comes after the scrolling Screen');
   assert.match(page, /actions: \{\s*alignItems: 'stretch',?\s*\}/);
-  assert.match(page, /placeholder=\{SEARCH_PLACEHOLDER\}/, 'A07 prep: the one search placeholder');
+  assert.match(page, /<SearchField value=\{query\} onChangeText=\{setQuery\}/, 'A07: the one SearchField (its placeholder is the one placeholder)');
   const flow = readFileSync(path.join(root, 'e2e/smoke/08-my-players.yaml'), 'utf8');
   assert.match(flow, /id: "my-players-actions"/, 'DC15-5: the smoke flow asserts the bar is on screen');
 });
@@ -235,7 +235,8 @@ test('Q11.18: Add new players has a header Back arrow that behaves like Done; th
   assert.match(add, /doneRef\.current = done;/);
   assert.doesNotMatch(add, /headerLeft: \(\) => null/);
   const layout = src('app/(screens)/_layout.tsx');
-  const addRoute = layout.slice(layout.indexOf("title: 'Add new players'"), layout.indexOf("title: 'Add new players'") + 200);
+  const routeTitle = layout.includes("title: 'Add by initials'") ? "title: 'Add by initials'" : "title: 'Add new players'";
+  const addRoute = layout.slice(layout.indexOf(routeTitle), layout.indexOf(routeTitle) + 200);
   assert.doesNotMatch(addRoute, /gestureEnabled: false/, 'the layout no longer blocks the gesture');
 });
 

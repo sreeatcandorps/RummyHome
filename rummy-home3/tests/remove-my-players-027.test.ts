@@ -63,8 +63,8 @@ test('027: the local roster soft-removes, hides removed rows and restores them (
 
 test('027: My players confirms, then shows an Undo toast (app/(tabs)/players.tsx)', () => {
   const screen = src('app/(tabs)/players.tsx');
-  assert.match(screen, /Alert\.alert\(REMOVE_CONFIRM_TITLE\(who\.name\), REMOVE_CONFIRM_BODY/, 'confirm first');
-  assert.match(screen, /<Snackbar[\s\S]*?duration=\{UNDO_REMOVE_MS\}[\s\S]*?action=\{\{ label: 'Undo', onPress: undoRemove \}\}/, 'Undo on the toast');
+  assert.match(screen, /<ConfirmDialog[\s\S]*?title=\{removeTarget \? REMOVE_CONFIRM_TITLE\(removeTarget\.name\) : ''\}[\s\S]*?message=\{REMOVE_CONFIRM_BODY\}[\s\S]*?confirmLabel="Remove"[\s\S]*?destructive/, 'confirm first (a Paper dialog, A09)');
+  assert.match(screen, /<Toast[\s\S]*?durationMs=\{UNDO_REMOVE_MS\}[\s\S]*?action=\{\{ label: 'Undo', onPress: undoRemove/, 'Undo on the toast');
   assert.match(screen, /await playersService\.restoreMyPlayer\(me\.id, back\.id\)/, 'Undo restores on the server');
   assert.match(screen, /setUndo\(removed\)/, 'the toast appears only after the server accepted the remove');
   assert.equal(REMOVE_CONFIRM_TITLE('R K'), 'Remove R K from My players?');

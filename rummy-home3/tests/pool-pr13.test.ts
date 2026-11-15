@@ -266,7 +266,12 @@ test('13.5c F13.23 the lowest score gets the most: Entry per drop left is refuse
   assert.equal(presetViability('drops', outsInputs).viable, true);
 
   // 50 / 50 and ties: the second place is level by design (≥ allowed); anyone else ahead of the winner is not.
-  assert.equal(presetViability('split', earlyInputs).viable, true);
+  // Q13.25 (Sree, Nov 15): the even split is a deliberate exception to "the winner gets the most" — always offered.
+  assert.equal(presetViability('split', earlyInputs).viable, true, 'Q13.25: 50 / 50 is never greyed');
+  assert.equal(presetViability('split', inputs).viable, true, 'Q13.25: not on the P12 pool either');
+  const splitGets = presetGets('split', earlyInputs);
+  const [first, second] = [...earlyInputs.standings].filter((s) => !s.out).sort((a, b) => a.total - b.total);
+  assert.equal(splitGets[first.playerId], splitGets[second.playerId], 'Q13.25: the two lowest still in get the same');
   const tied = { ...early, scores: { [A]: [0, 10], [B]: [10, 0], [C]: [15, 20], [D]: [30, 10] } } as unknown as Game;
   const tiedInputs = { standings: poolStandings(tied), entry: 100, limit: 101, drop: 25 };
   assert.deepEqual(winnersOf(tiedInputs.standings), [A, B], 'co-winners');

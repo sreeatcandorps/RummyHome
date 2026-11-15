@@ -10,7 +10,7 @@ tags: [smoke]
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "New game"
 - extendedWaitUntil:
-    visible: "Add new players"
+    visible: "Add by initials"
     timeout: 15000
 - assertVisible: "Add players to this game from the EZ Score database"
 - assertVisible: "Add Sree Test (you)"
@@ -18,7 +18,7 @@ tags: [smoke]
 - assertNotVisible: "You"
 - assertNotVisible: "Registered"
 - takeScreenshot: 09-new-game
-- tapOn: "Add new players"
+- tapOn: "Add by initials"
 - extendedWaitUntil:
     visible: "Add new players by initials"
     timeout: 15000
@@ -51,5 +51,5 @@ tags: [smoke]
     timeout: 10000
 - tapOn: "Done adding players"
 - extendedWaitUntil:
-    visible: "Add new players"
+    visible: "Add by initials"
     timeout: 15000

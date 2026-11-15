@@ -10,8 +10,8 @@ tags: [smoke]
     visible: "Harish Test"
     timeout: 15000
 - assertVisible: "Back to Home"
-- assertVisible: "Add new players"
-- assertVisible: "Find player in database"
+- assertVisible: "Add by initials"
+- assertVisible: "Find in database"
 # DC15-5 (A08): the action tiles sit in their own bar above the tab bar, never under it.
 - assertVisible:
     id: "my-players-actions"

@@ -66,7 +66,7 @@ export function LogRow({ entry, absolute = false, testID }: Props) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: spacing.sm, gap: spacing.sm },
-  dot: { width: 10, height: 10, borderRadius: 5, marginTop: 6 },
+  dot: { width: 10, height: 10, borderRadius: radius.full, marginTop: 6 },
   text: { flex: 1, gap: 2 },
   actor: { fontWeight: '700' },
   bold: { fontWeight: '700' },

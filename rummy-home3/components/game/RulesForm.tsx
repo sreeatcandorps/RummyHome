@@ -9,7 +9,7 @@ import { RulesDraft } from '@/utils/rulesDraft';
 
 export { draftFromRules, rulesFromDraft, showRule } from '@/utils/rulesDraft';
 export type { RulesDraft } from '@/utils/rulesDraft';
-import { spacing, useAppTheme } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 const signedField = (text: string) => {
   const digits = text.replace(/[^0-9]/g, '').slice(0, 3);
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { minWidth: 64 },
   limitInput: { maxWidth: 220 },
-  example: { borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, gap: 2 },
+  example: { borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 12, gap: 2 },
   radios: { flexDirection: 'row', flexWrap: 'wrap' },
   radio: { paddingHorizontal: 0, paddingVertical: 0, marginRight: spacing.md },
 });

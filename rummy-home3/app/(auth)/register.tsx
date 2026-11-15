@@ -3,8 +3,9 @@ import { COUNTRIES, Country, DEFAULT_COUNTRY, internationalPhone, phoneForCountr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PENDING_PLAYER_NO_KEY } from '@/services/playerIdentity';
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { TextInput, Text, HelperText, Menu } from 'react-native-paper';
+import { View, StyleSheet } from 'react-native';
+import { TextInput, Text, HelperText, Menu, Portal } from 'react-native-paper';
+import { NoticeDialog } from '@/components/ui/NoticeDialog';
 import { Button } from '@/components/ui/AppButton';
 import { router } from 'expo-router';
 import { storage } from '../../utils/storage';
@@ -28,6 +29,8 @@ export default function RegisterScreen() {
   const [zip, setZip] = React.useState('');
   const [playerIdText, setPlayerIdText] = React.useState('');
   const [checkEmail, setCheckEmail] = useState<string | null>(null);
+  // A09: a Paper notice, not Alert.alert; OK carries on to the next screen.
+  const [created, setCreated] = useState<{ message: string; to: '/(tabs)' | '/(auth)/login' } | null>(null);
   const [passcode, setPasscode] = React.useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -143,28 +146,14 @@ export default function RegisterScreen() {
       if (isSupabaseConfigured && !authData.session) {
         setCheckEmail(cleanEmail);
         return;
-        Alert.alert(
-          'Confirm Your Email',
-          'Your account was created, but you must confirm your email before you can sign in. Check your inbox, then return here and sign in with your email and 6-digit passcode.',
-          [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
-        );
-        return;
       }
 
       if (isSupabaseConfigured && authData.session) {
-        Alert.alert(
-          'Account Created Successfully',
-          'You are signed in and ready to play.',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
-        );
+        setCreated({ message: 'You are signed in and ready to play.', to: '/(tabs)' });
         return;
       }
 
-      Alert.alert(
-        'Account Created Successfully',
-        'Your account has been created. You can now login using your email and 6-digit passcode.',
-        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
-      );
+      setCreated({ message: 'Your account has been created. You can now log in with your email and 6-digit passcode.', to: '/(auth)/login' });
 
     } catch (err) {
       console.error('Registration error:', err);
@@ -340,7 +329,7 @@ export default function RegisterScreen() {
           </HelperText>
           {/sign(?:ing)? in/i.test(error) ? (
             <Button
-              mode="contained-tonal"
+              mode="outlined"
               icon="login"
               onPress={() => router.push({ pathname: '/(auth)/login', params: { email: email.trim() } })}
             >
@@ -370,6 +359,17 @@ export default function RegisterScreen() {
       >
         Clear form
       </Button>
+      <Portal>
+        {created ? (
+          <NoticeDialog
+            icon="check-circle-outline"
+            title="Account created"
+            message={created.message}
+            onDismiss={() => { const to = created.to; setCreated(null); router.replace(to); }}
+            testID="register-created"
+          />
+        ) : null}
+      </Portal>
     </AuthShell>
   );
 }

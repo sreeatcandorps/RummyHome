@@ -390,7 +390,7 @@ function AddAdminDialog({ game, busy, onDismiss, onConfirm }: {
             style={styles.flex}
             onSubmitEditing={lookUp}
           />
-          <Button mode="contained-tonal" onPress={lookUp} loading={looking} disabled={looking || !query.trim()} accessibilityLabel="Look up Player ID">Look up</Button>
+          <Button mode="contained" onPress={lookUp} loading={looking} disabled={looking || !query.trim()} accessibilityLabel="Look up Player ID">Look up</Button>
         </View>
         {problem ? <Text variant="bodyMedium" style={{ color: colors.error }}>{problem}</Text> : null}
         {target ? (

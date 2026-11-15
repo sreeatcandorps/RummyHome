@@ -25,6 +25,7 @@ section 0. This file is the build contract for PR 13; the earlier open questions
 | 14 | **Tutorial (PR 12, later)** must explain Complete, Award, Result. | PR 12 backlog |
 | 15 | **(Nov 14, 8:40 PM) Initials are never cut off.** All three characters show in the pool header and everywhere else initials appear (scorecard columns, standings, awards); widths, font or layout give way, never the label. A CI/visual check runs with three-letter initials (WWW, MMM) and 20 players. | F13.22: `utils/scorecardLayout.ts` `fitInitialsFontSize`, `ScoreTable` header, `SeatAvatar`, `PoolStandings`, `PoolAwardsCard`; Game W + `smoke/17`; `tests/initials-fit.test.ts` |
 | 16 | **(Nov 14, 8:40 PM) "Entry per drop left" stays, with a viability rule.** The option is viable only when the winner's share (what is left after the drop entries) is strictly more than every other player's; level, behind or negative is not viable. Then it is not suggested or preselected, it is greyed, and a tap shows "This is not ideal for this situation because the winner gets less than the others. Please pick another option." and does not apply. The lowest score always gets the most: the same check runs on the other presets (always true for Winner takes all and By points left; 50 / 50 levels second place by design, flagged) and Custom warns instead of blocking. | F13.23: `utils/poolAwards.ts` `winnerGetsMost` / `presetViability` / `viablePresets`, `games/award.tsx`; `tests/pool-pr13.test.ts` 13.5c; `smoke/16` |
+| 17 | **(Nov 15) Q13.25 — 50 / 50 is a deliberate exception.** "The lowest score gets the most" (row 16) greys a preset when the winner would not get strictly more than everyone else. The 50 / 50 even split levels second place with the winner by design; Sree confirmed it is a deliberate exception: it is always offered, never greyed, and its hint stays "split the pool evenly". No code change; the rule is written down and pinned by a test. | `utils/poolAwards.ts` `presetViability`, `tests/pool-pr13.test.ts` 13.5c |
 
 Small decisions taken while building (flagged in the PR body as F13.1–F13.12) are listed in section 7.
 
@@ -247,7 +248,8 @@ validation, confirm), `app/(screens)/games/complete.tsx` (pool wording, Give awa
   only when the winner gets strictly more than everyone else; otherwise it is greyed and refused with the pop-up. The
   check is one function (`winnerGetsMost`), so it also runs on the other presets: Winner takes all and By points left
   cannot fail it (the lowest score has the most points left; rounding remainders go to the winner); 50 / 50 puts the
-  second place level with the winner by design and is passed with that one exception — flagged as Q13.25 for Sree;
+  second place level with the winner by design and is passed with that one exception — **Q13.25, decided by Sree Nov 15:
+  the 50 / 50 even split is a deliberate exception to "the winner gets the most"; it stays offered and is never greyed**;
   Custom is the admin's own numbers, so the screen shows a red line ("The winner gets 100, X gets 200…") and never
   blocks. The overshoot case of F13.6 ("more than the pool") can no longer be selected, because when the drop entries
   exceed the pool the winner is left with nothing.

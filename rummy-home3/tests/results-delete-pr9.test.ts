@@ -85,11 +85,11 @@ test('9.5 the result page: visible Delete this result for managers, consequence 
   );
   assert.match(page, /sharedResults\.was\(loaded\.id\)\.then\(setWasShared\)/);
   assert.match(page, /setUndoToast\(deletedToast\(gameLabels\)\)/);
-  assert.match(page, /duration=\{UNDO_DELETE_MS\}[\s\S]*?action=\{\{ label: 'Undo', onPress: undoDelete/);
+  assert.match(page, /durationMs=\{UNDO_DELETE_MS\}[\s\S]*?action=\{\{ label: 'Undo', onPress: undoDelete/, 'the one Toast (A13) keeps the 10 s that stands in for a confirm (D9.1)');
   assert.match(page, /if \(!undone\.current\) router\.back\(\);/, 'leaving the toast alone goes back to the list');
   assert.match(page, /<Dialog\.Title>\{SHARED_CONFIRM_TITLE\}<\/Dialog\.Title>/);
   assert.match(page, /title="Delete result" titleStyle=\{\{ color: colors\.error \}\} onPress=\{startDelete\}/, 'the ⋮ item does the same');
-  assert.match(page, /<ResultsShare card=\{card\} details=\{details\} createdAt=\{result\?\.declaredAt\} resultId=\{result\?\.id\} \/>/, 'shares from the saved page are marked');
+  assert.match(page, /<ResultsShare\s+card=\{card\}\s+details=\{details\}\s+createdAt=\{result\?\.declaredAt\}\s+resultId=\{result\?\.id\}/, 'shares from the saved page are marked');
   const share = read('components/results/ResultsShare.tsx');
   assert.match(share, /if \(resultId\) sharedResults\.mark\(resultId\)/);
   assert.equal((share.match(/sharedResults\.mark\(resultId\)/g) ?? []).length, 2, 'picture and PDF both mark');
@@ -108,7 +108,7 @@ test('9.6 Past results: no Delete chip on the rows (PR 10b — Delete lives on t
   assert.match(list, /const showPicker = pickerOpen \?\? \(loading \|\| runsAGame\);/);
   const page = read('app/(screens)/results/[id].tsx');
   assert.match(page, /sharedResults\.was\(result\.id\)\.catch\(\(\) => false\)/, 'the shared-result confirm stays on the result page');
-  assert.match(page, /duration=\{UNDO_DELETE_MS\}/, 'Undo toast on the result page');
+  assert.match(page, /durationMs=\{UNDO_DELETE_MS\}/, 'Undo toast on the result page');
   const archive = read('services/archive.ts');
   assert.match(archive, /supabase\.rpc\('can_manage_result', \{ p_result_id: id \}\)/, 'the 023 function already granted to authenticated');
 });

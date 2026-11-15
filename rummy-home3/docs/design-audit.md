@@ -1,8 +1,9 @@
 # Design consistency audit (PR 15)
 
-Status: **15a built** (Nov 15, stacked on the Seating order build; no migration) — A01, A08, A11, A03, A05, A02, A06, A10
-and the three Help-spec items Q11.12 / Q11.14 / Q11.18, all as recommended (Sree approved Q15.1–Q15.11; nothing under
-Q15.12). **15b** (A04, A07, A09, A12, A13, A15, A16, A17, A19, A20, A21) follows as its own stacked PR. Before/after
+Status: **15a and 15b built** (Nov 15, two stacked PRs on the Seating order build; no migration). 15a: A01, A08, A11,
+A03, A05, A02, A06, A10 and the three Help-spec items Q11.12 / Q11.14 / Q11.18. 15b: A04, A07, A09, A12, A13, A15, A16,
+A17, A19, A20, A21 and the token test (DC15-1), plus the Q13.25 Pool note. All as recommended (Sree approved
+Q15.1–Q15.11; nothing under Q15.12). A14 and A18 stay as deliberate differences (§2). Before/after
 mockups in [`design-audit/`](design-audit/) — "before" is a crop of a real emulator screenshot (CI smoke run of PR 13's
 branch, Nov 14), "after" the proposed version. Items are ranked by impact. Section 4 explains the 15a / 15b split.
 
@@ -24,7 +25,27 @@ branch, Nov 14), "after" the proposed version. Items are ranked by impact. Secti
 
 Tests: `tests/design-audit-pr15a.test.ts` (DC15-2, DC15-3, DC15-4 and source checks for the rest); `smoke/08` asserts the
 My players bar is on screen (DC15-5). Flows now match `"Scorecard( · .*)?"`, `"Final scores · .*"`, and use `- back`
-where they tapped "Back to scorecard". DC15-1 (the token grep) comes with 15b.
+where they tapped "Back to scorecard".
+
+## 0b. What 15b built (where to look)
+
+| Item | Built as |
+| --- | --- |
+| A04 share in three places | `components/share/ShareSheet.tsx`: the scorecard header share icon (`scorecard-share-icon`, before Help) opens one sheet — Live scorecard link · Share final scores (when complete; the picture and PDF live on that page). The two ⋮ share items are gone. The saved result keeps its header icon → `ShareImageDialog` (picture + PDF) |
+| A07 search fields | `components/ui/SearchField.tsx`: white, standard border, `radius.sm`, the one placeholder; used by My players, New game and Find in database. Sort / filter controls sit in the row below |
+| A09 dialogs | `components/ui/ConfirmDialog.tsx` (Cancel + verb, red when destructive) joins `NoticeDialog`; the 10 `Alert.alert` calls (Me, My players Remove, Register) are gone. Account deleted shows its notice, then OK goes to sign-in |
+| A12 Tag / Chip | Paper `Chip` only where it is tappable (filters, choices); a status is a `Tag`. The Past results Restore chip is an outlined button; the chosen custom initials are a `Tag` |
+| A13 toasts | `components/ui/Toast.tsx`: 3 s, 4 s with Undo, `aboveBar` lifts it over a bottom bar. Remove from My players Undo is 4 s (it asks first now). The one exception: Delete result keeps its 10 s Undo (D9.1, it stands in for a confirm) |
+| A15 radii | every `borderRadius` outside `theme.ts` is a `radius.*` token; circles and pills are `radius.full` |
+| A16 status tag placement | Complete page: type · players · status tags left to right, the date as the caption under them |
+| A17 `contained-tonal` | gone; `AppButton` accepts `contained` / `outlined` / `text` only (tsc enforces). Former tonal buttons are outlined, or contained where they were the one action (Look up, the current round in Edit round) |
+| A19 empty states | `EmptyState` for "No results yet" and "No entries yet" |
+| A20 header order | share · help · menu everywhere; `ResultsShare` now renders the saved result's ⋮ too, so one `headerRight` source (the old second one raced it) |
+| A21 labels | `ADD_NEW_PLAYERS = 'Add by initials'`, `FIND_IN_DATABASE = 'Find in database'` on the tiles, the New game buttons, the two screen titles and in Help (`constants/help.ts`) |
+| Q13.25 | `docs/pool-design.md` §0 row 17 + F13.23: the 50 / 50 even split is a deliberate exception to "the winner gets the most", never greyed; pinned in `tests/pool-pr13.test.ts` 13.5c |
+
+Tests: `tests/design-tokens.test.ts` (DC15-1 and source checks for A04 A07 A12 A13 A16 A19 A20 A21). Flows: `smoke/08`,
+`09`, `16`, `19`, `full/32`, `50`, `chaos/c03` use the new labels; `full/41` goes through the share sheet.
 
 ## 0. Method
 

@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 2,
     height: 30,
-    borderRadius: 1,
+    borderRadius: radius.full,
   },
   // Covers the cells; text and background are transparent so only the cells show.
   overlay: {

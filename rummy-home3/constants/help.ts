@@ -43,12 +43,12 @@ export const HELP = {
     'Total is how many will be playing: the faces already in the game plus the ones ringed yellow that you are adding now. Admins who do not play are not counted.',
     'Tap a player below to add them; they get 0 for every round already played. Return to game seats everyone you added.',
     'The × on a face removes a player only while every one of their round scores is 0. Once they have a score, edit the round first.',
-    'Add new players: new people by initials. From database: registered players by name or Player ID.',
+    'Add by initials: new people by initials. Find in database: registered players by name or #ID.',
   ),
   newGame: bullets(
     'Tap yourself if you are playing. You can run a game without sitting in it. Tap a face or the × under Playing to send someone back to the list.',
     'Recent partners come first, then everyone else by how often you play together.',
-    'Add new players: new people by initials, seated as you save them. From database: a registered player, seated here and added to My players at once.',
+    'Add by initials: new people by initials, seated as you save them. Find in database: a registered player, seated here and added to My players at once.',
     'You are always first in the list; only players who have not finished signing up carry a tag (Unregistered, Pending registration). Up to 20 players.',
     'Next opens the Game type screen: Points or Pool, with this game’s Drop, Middle drop, Full count (and, for a pool, the limit and Re-entries) prefilled from your Settings.',
     'After you start, the ⋮ menu has Register players to send sign-up links.',
@@ -113,7 +113,7 @@ export const HELP = {
   settle: bullets('Finished games stay on Home under Recent.'),
   players: bullets(
     'My players is your own list, not everyone in the EZ Score database. New game picks from it. Frequent first; Alphabetical shows A–Z sections. Search finds anyone, even in a list of thousands.',
-    'Find player in database adds people from the EZ Score database. Add new players takes initials; they get a player ID at once and show as Unregistered until they sign up.',
+    'Find in database adds people from the EZ Score database. Add by initials takes initials; they get a #ID at once and show as Unregistered until they sign up.',
     'The Unregistered tile at the bottom shows how many have not signed up and filters the list to them. Each row’s ⋮ has Invite to register (a sign-up link, good once for 14 days) and Link to Player ID.',
     PLAYERS_NOTE,
     'Tap a row for the initials; the ⋮ edits, invites, links or removes. Remove from My players changes only your list: past games and results stay. Undo, or add them again, brings the history back.',
@@ -131,13 +131,13 @@ export const HELP = {
     'Type at least two letters of a name, or a player ID such as 42.',
     '+ My players adds the person to your list. It does not seat them in a game.',
     '"In your player list" means they are already there.',
-    'Not in the database? Go back and use Add new players.',
+    'Not in the database? Go back and use Add by initials.',
   ),
   addToGame: bullets(
     'Registered players only.',
     'Type at least two letters of a name, or a player ID such as 42.',
     '+ Add seats the person in this game and adds them to My players at the same time.',
-    'Not in the database? Go back and use Add new players.',
+    'Not in the database? Go back and use Add by initials.',
   ),
   addPlayers: bullets(
     'Three rows at a time. Cell 1 takes one letter and jumps on; cell 2 takes one or two letters or digits. The initials are the player’s name for now.',
@@ -195,7 +195,7 @@ export const HELP = {
 export const EMPTY_SETTLE = 'Finished games stay on Home under Recent.';
 
 export const FIND_HANDOFF =
-  "Can't find them? Use Find player in database, or Add new players if they are not registered yet, then come back.";
+  "Can't find them? Use Find in database, or Add by initials if they are not registered yet, then come back.";
 
 
 /** Settings priority, highest first, for the ladder graphic on User settings. */

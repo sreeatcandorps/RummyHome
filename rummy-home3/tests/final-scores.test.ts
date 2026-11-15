@@ -72,10 +72,10 @@ test('completion check: balanced rounds pass, an unbalanced round names itself, 
   assert.equal(empty.roundCount, 0);
 });
 
-test('single-game share never says Results; the scorecard menu says Share final scores; the full details go out as a PDF (PR 8, PR 10b buttons)', () => {
+test('single-game share never says Results; the scorecard share sheet offers Share final scores (A04); the full details go out as a PDF (PR 8, PR 10b buttons)', () => {
   const scorecard = readFileSync(path.join(process.cwd(), 'app/(screens)/games/[id].tsx'), 'utf8');
-  assert.match(scorecard, /title="Share final scores"/);
-  assert.doesNotMatch(scorecard, /title="Share results"/);
+  assert.match(scorecard, /label: 'Share final scores'/);
+  assert.doesNotMatch(scorecard, /Share results/);
   const page = readFileSync(path.join(process.cwd(), 'app/(screens)/games/final-scores.tsx'), 'utf8');
   assert.doesNotMatch(page, />\s*Share results\s*</i);
   assert.match(page, /label: 'Share final scores'/, 'the image button keeps its name (Maestro 05 waits for it)');

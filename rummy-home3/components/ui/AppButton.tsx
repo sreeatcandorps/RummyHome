@@ -1,9 +1,13 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { Button as PaperButton, ButtonProps } from 'react-native-paper';
-import { useAppTheme } from '@/constants/theme';
+import { radius, useAppTheme } from '@/constants/theme';
 
-export type AppButtonProps = ButtonProps & {
+/** Two weights only (design audit A17): filled primary, outlined secondary; text buttons live inside dialogs. */
+export type AppButtonMode = 'contained' | 'outlined' | 'text';
+
+export type AppButtonProps = Omit<ButtonProps, 'mode'> & {
+  mode?: AppButtonMode;
   /** Marigold Results button: the only non-green filled button in the app. */
   accent?: boolean;
 };
@@ -26,7 +30,6 @@ export const Button = React.forwardRef<React.ComponentRef<typeof PaperButton>, A
   const { colors } = useAppTheme();
   const filled = mode === 'contained';
   const outlined = mode === 'outlined';
-  const tonal = mode === 'contained-tonal';
 
   const edgeColor = disabled
     ? undefined
@@ -39,7 +42,7 @@ export const Button = React.forwardRef<React.ComponentRef<typeof PaperButton>, A
   const label = disabled
     ? textColor
     : textColor
-      ?? (accent ? colors.onSecondaryContainer : outlined ? colors.primary : tonal ? colors.onPrimaryContainer : undefined);
+      ?? (accent ? colors.onSecondaryContainer : outlined ? colors.primary : undefined);
 
   return (
     <PaperButton
@@ -53,7 +56,6 @@ export const Button = React.forwardRef<React.ComponentRef<typeof PaperButton>, A
         styles.pill,
         outlined && { borderWidth: 2, borderColor: disabled ? colors.outlineVariant : colors.outline },
         filled && edgeColor ? { borderBottomWidth: BUTTON_EDGE, borderBottomColor: edgeColor } : null,
-        tonal && !disabled ? { backgroundColor: colors.primaryContainer } : null,
         style,
       ]}
       contentStyle={[mode !== 'text' && !compact ? styles.content : styles.compactContent, contentStyle]}
@@ -64,7 +66,7 @@ export const Button = React.forwardRef<React.ComponentRef<typeof PaperButton>, A
 });
 
 const styles = StyleSheet.create({
-  pill: { borderRadius: 999 },
+  pill: { borderRadius: radius.full },
   content: { minHeight: BUTTON_MIN_HEIGHT },
   compactContent: { minHeight: 40 },
   label: { fontSize: 16, lineHeight: 20, fontWeight: '800' },

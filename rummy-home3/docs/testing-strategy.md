@@ -319,16 +319,17 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | T16-7 | T3 | `ci/volume/run-volume.mjs` + `e2e/chaos/c09` (PR 17) | database budgets V1–V5; 20 × 60 scorecard opens < 10 s on D1 (20 × 500 and the 30 × 20 result stay to do) |
 | T16-8 | U | `ci/select-tests.mjs` + `tests/test-selection-pr17.test.ts` (PR 17) | every source path maps to a flow set |
 
-## PR 15 test cases (Design consistency, `docs/design-audit.md`; 15a built, 15b to follow)
+## PR 15 test cases (Design consistency, `docs/design-audit.md`; 15a and 15b built)
 
 | # | Kind | Where | What it proves |
 | --- | --- | --- | --- |
-| DC15-1 | U | `tests/design-tokens.test.ts` (15b) | no `Alert.alert`, no `contained-tonal`, no raw `borderRadius` numbers outside `theme.ts`, no Paper `Chip` for status |
+| DC15-1 | U | `tests/design-tokens.test.ts` | no `Alert.alert` (and no `Alert` import), no `contained-tonal` (and `AppButtonMode` excludes it), every `borderRadius` outside `theme.ts` a `radius.*` token, Paper `Chip` only with `onPress`, `Snackbar` only inside `Toast`, `Searchbar` only inside `SearchField` |
 | DC15-2 | U | `tests/design-audit-pr15a.test.ts` | every game screen title is `screenTitle()` → "Screen · S1" / "Screen"; `headerTitleAlign` unset in every screen and the stack defaults |
 | DC15-3 | U | same | `formatWhen` ("Sat, Nov 14 · 7:49 PM", year only when not this year) is the one date formatter — no `toLocaleDateString`/`toLocaleTimeString` in screens or utils outside it; `#` + id the only ID badge |
 | DC15-4 | U | same | Results picker selected cards use `secondaryContainer`/`secondary` (game yellow); the "Results" tag and past-result edge the result green; the Add round badge the game yellow |
 | DC15-5 | S | `smoke/08-my-players.yaml` | the My players action bar (`my-players-actions`) and its Unregistered tile are on screen with the tab bar |
 | DC15-7 | U | same as DC15-2 | A05: no "Not yet" / "Got it" / bar "Back to scorecard" in any screen; "Deselect games?" confirms with Deselect; Complete pairs Cancel + Complete game; Add round has a header arrow. A08: `ActionBar` shape, `nextLabel`. A10: no uppercase section headings. Q11.12 / Q11.14 / Q11.18 source checks. Every flow matches the new titles |
+| DC15-8 | U | same as DC15-1 | A13 durations (3 s / 4 s / 10 s exception); A04 share icon + sheet entries and no ⋮ share items; A20 share · help · menu order and one `headerRight` on the saved result; A07 SearchField on three screens; A21 labels in tiles, titles and Help; A16 Complete strip; A19 EmptyState |
 | DC15-6 | N | nightly | screenshot diff of 12 key screens against the approved set (first visual-regression job) |
 
 ## PR 14 test cases (Multiplier — spec only, `docs/multiplier-design.md`; codes reserved, tests written with the build)

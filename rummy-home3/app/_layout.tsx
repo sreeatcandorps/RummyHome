@@ -10,7 +10,7 @@ import { PreferencesProvider, usePreferences } from '@/contexts/PreferencesConte
 import { authService } from '@/services/auth';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { storage } from '@/utils/storage';
-import { darkTheme, lightTheme, brand, spacing } from '@/constants/theme';
+import { brand, darkTheme, lightTheme, radius, spacing } from '@/constants/theme';
 import { isClockSkewError } from '@/utils/supabaseErrors';
 import { setStartupNotice } from '@/utils/startupNotice';
 import { withTimeout } from '@/utils/withTimeout';
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   retry: {
     alignSelf: 'flex-start',
     backgroundColor: brand.felt,
-    borderRadius: 8,
+    borderRadius: radius.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },

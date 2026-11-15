@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/AppButton';
 import { playerIdentityService } from '@/services/playerIdentity';
 import { claimRequestPrompt, PendingLink } from '@/utils/playerIdentity';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-import { spacing, useAppTheme } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 type ClaimRequestsCardProps = {
   ownerId: string;
@@ -61,6 +61,6 @@ export function ClaimRequestsCard({ ownerId, onChanged, preloaded = null }: Clai
 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm, marginBottom: spacing.sm },
-  card: { borderRadius: 12, padding: spacing.md, gap: 6 },
+  card: { borderRadius: radius.md, padding: spacing.md, gap: 6 },
   row: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm },
 });

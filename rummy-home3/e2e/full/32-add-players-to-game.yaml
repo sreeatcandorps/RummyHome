@@ -34,7 +34,7 @@ tags: [nightly]
 - assertVisible: "Total, 3 players"
 - assertVisible: "Added now: 0 · tap a player below to add them"
 - assertVisible: "Return to game"
-- assertVisible: "Add new players"
+- assertVisible: "Add by initials"
 - assertVisible: "Add players to this game from the EZ Score database"
 - takeScreenshot: 32b-add-players-total-3
 - tapOn: "Add R K"

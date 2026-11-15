@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { NoticeDialog } from '@/components/ui/NoticeDialog';
 import { Checkbox, Icon, IconButton, Portal, Text, TextInput, TouchableRipple } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
@@ -53,6 +54,8 @@ export default function MeScreen() {
   const [showDemo, setShowDemo] = useState(false);
   const [demoBusy, setDemoBusy] = useState<null | 'load' | 'clear'>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // A09: pop-up notices are Paper dialogs, never Alert.alert. `then` runs after OK (account deleted → sign-in).
+  const [popup, setPopup] = useState<{ title: string; message: string; icon?: string; then?: () => void } | null>(null);
   const [emailPrefs, setEmailPrefs] = useState<EmailPrefs>(DEFAULT_EMAIL_PREFS);
   const [emailError, setEmailError] = useState<string | null>(null);
   // Your initials (040, Q10.5): the letters you are on every scorecard you create.
@@ -138,7 +141,7 @@ export default function MeScreen() {
       setEditing(false);
       await load();
     } catch (err) {
-      Alert.alert('Couldn’t save', formatSupabaseError(err));
+      setPopup({ title: 'Couldn’t save', message: formatSupabaseError(err), icon: 'alert-circle-outline' });
     } finally {
       setSaving(false);
     }
@@ -204,7 +207,7 @@ export default function MeScreen() {
       else await storage.setCurrentPlayer(null);
       router.replace('/(auth)/login');
     } catch (err) {
-      Alert.alert('Couldn’t log out', formatSupabaseError(err));
+      setPopup({ title: 'Couldn’t log out', message: formatSupabaseError(err), icon: 'alert-circle-outline' });
     }
   };
 
@@ -213,13 +216,13 @@ export default function MeScreen() {
     try {
       if (action === 'load') {
         const result = await loadDemoData();
-        Alert.alert('Demo data loaded', `${result.hostName} is in the sample games.`);
+        setPopup({ title: 'Demo data loaded', message: `${result.hostName} is in the sample games.`, icon: 'check-circle-outline' });
       } else {
         await clearDemoData();
-        Alert.alert('Demo data cleared', 'Sample players and games were removed.');
+        setPopup({ title: 'Demo data cleared', message: 'Sample players and games were removed.', icon: 'check-circle-outline' });
       }
     } catch (err) {
-      Alert.alert('Demo data failed', err instanceof Error ? err.message : 'Something went wrong.');
+      setPopup({ title: 'Demo data failed', message: err instanceof Error ? err.message : 'Something went wrong.', icon: 'alert-circle-outline' });
     } finally {
       setDemoBusy(null);
     }
@@ -296,7 +299,7 @@ export default function MeScreen() {
           </View>
           <IconButton icon="pencil-outline" size={20} onPress={() => { setInitialsError(null); setEditingInitials(true); }} accessibilityLabel="Change your initials" style={styles.pencil} testID="me-edit-initials" />
         </View>
-        <Button mode="contained-tonal" icon="share-variant" onPress={() => player.playerCode && sharePlayerId(player.playerCode).catch(() => {})} disabled={!player.playerCode} contentStyle={styles.action} accessibilityLabel="Share your Player ID">
+        <Button mode="outlined" icon="share-variant" onPress={() => player.playerCode && sharePlayerId(player.playerCode).catch(() => {})} disabled={!player.playerCode} contentStyle={styles.action} accessibilityLabel="Share your Player ID">
           Share your Player ID
         </Button>
       </View>
@@ -421,6 +424,15 @@ export default function MeScreen() {
       </SectionCard>
 
       <Portal>
+        {popup ? (
+          <NoticeDialog
+            icon={popup.icon}
+            title={popup.title}
+            message={popup.message}
+            onDismiss={() => { const next = popup.then; setPopup(null); next?.(); }}
+            testID="me-notice"
+          />
+        ) : null}
         {editingInitials ? (
           <InitialsDialog
             name={player.name}
@@ -480,8 +492,7 @@ export default function MeScreen() {
         onDismiss={() => setDeleteOpen(false)}
         onDeleted={() => {
           setDeleteOpen(false);
-          router.replace('/(auth)/login');
-          Alert.alert(DELETE_ACCOUNT_DONE_TITLE, DELETE_ACCOUNT_DONE_BODY);
+          setPopup({ title: DELETE_ACCOUNT_DONE_TITLE, message: DELETE_ACCOUNT_DONE_BODY, icon: 'check-circle-outline', then: () => router.replace('/(auth)/login') });
         }}
       />
     </Screen>

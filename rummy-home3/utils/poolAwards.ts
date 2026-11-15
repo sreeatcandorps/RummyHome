@@ -147,7 +147,8 @@ function levelWithWinner(preset: AwardPreset, standings: PoolStanding[]): string
 /**
  * Which presets may be picked for this pool (F13.23). Winner takes all and By points left always
  * pass (the lowest score has the most points left); 50 / 50 passes with the second place level by
- * design; Entry per drop left fails when the others' drop entries leave the winner less than, or
+ * design (Q13.25, Sree Nov 15: the even split is a deliberate exception to "the winner gets the most" and is
+ * never greyed); Entry per drop left fails when the others' drop entries leave the winner less than, or
  * equal to, any of them (or nothing at all). Custom is the admin's own numbers: never blocked, the
  * screen warns instead (`winnerGetsMost` on the typed sheet).
  */
