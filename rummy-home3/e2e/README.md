@@ -46,9 +46,9 @@ Manygames (38 games); admins `a1` Arun Admin, `a2` Asha Coadmin (non-playing), `
 | BP1 | `BREAKP1` | Points, c1 + a1 admins, p01, p02, Mo Khan; s1 spectator; 3 rounds + an undone 4th (Round 4) | `chaos/c01` (saves round 4), `chaos/c04` (saves and undoes round 5), `roles/r01`, `roles/r02`, `two-device/*` (realtime saves one round, the race one more) |
 | BP2 | `BREAKP2` | Points, 20 seats × 60 rounds, a2 non-playing admin | `chaos/c09`, `roles/r04`, volume V5 |
 | BP4 | `BREAKP4` | Points, completed, in a result | (reserved: Recent / result views) |
-| BP5 | `BREAKP5` | Points, created by c2 who is not seated; a1, p05–p07; no rounds | `chaos/c02` (completes it) |
+| BP5 | `BREAKP5` | Points, created by c2 who is not seated; a1, p05–p07; no rounds | `chaos/c02` (completes it), `roles/r02` (s1 must not see it) |
 | BP6 / BP7 | `BREAKP6` / `BREAKP7` | Points, c1 + p11–p13, no rounds | `chaos/c05`+`c06` (offline then reconnect), `chaos/c07`+`c08` (kill mid-save) |
-| BQ1 | `BREAKQ1` | Pool 101, c3 + a1 + p03–p06; p05 out, p06 re-entered | `roles/r02` (s1 must not see it) |
+| BQ1 | `BREAKQ1` | Pool 101, c3 + a1 + p03–p06; p05 out, p06 re-entered; s1 spectator | `roles/r02` (s1 sees it view-only) |
 | BQ2 | `BREAKQ2` | Pool 201, 20 seats, 19 out, c3 the last one in | `chaos/c10` (completes, awards) |
 | BQ3 | `BREAKQ3` | Pool 400, re-entry off, completed and awarded | (reserved: awards block on a completed pool) |
 | BRKC01–38 | `BRKC01`… | c4's 38 games (30 completed, 8 active) | (reserved: Home paging, the live-games guard) |
