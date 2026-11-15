@@ -38,6 +38,42 @@ export function headerType(columnWidth: number): { initials: TextMetrics; total:
   };
 }
 
+/**
+ * F13.22 — initials are never clipped. Bold capitals and digits are estimated per glyph (W and M
+ * are the widest at ~0.95 em, I / J / 1 the narrowest) and the label's font steps down until the
+ * whole label fits the width it has. The estimate is deliberately generous (a touch wider than
+ * Roboto Bold) so the text layer never has to truncate; `adjustsFontSizeToFit` stays on the Text as
+ * a native safety net for fonts the estimate does not know.
+ */
+const WIDE_GLYPHS = new Set(['W', 'M']);
+const NARROW_GLYPHS = new Set(['I', 'J', '1']);
+const glyphEm = (ch: string) => (WIDE_GLYPHS.has(ch) ? 0.95 : NARROW_GLYPHS.has(ch) ? 0.42 : 0.74);
+
+/** Estimated advance width in dp of `text` set bold at `fontSize` with `letterSpacing` between glyphs. */
+export function estimateTextWidth(text: string, fontSize: number, letterSpacing = 0): number {
+  const glyphs = [...text];
+  return glyphs.reduce((w, ch) => w + glyphEm(ch) * fontSize, 0) + letterSpacing * Math.max(0, glyphs.length - 1);
+}
+
+/** Smaller than this the label is unreadable; the width budget is sized so it is never reached. */
+export const INITIALS_MIN_FONT = 8;
+export const INITIALS_LETTER_SPACING = 0.2;
+/** A score column's horizontal padding (styles.cell) plus its hairline border. */
+export const COLUMN_INSET = 2 * 2 + 1;
+
+/** The width a column header's initials may use. */
+export const initialsWidthIn = (columnWidth: number) => Math.max(0, columnWidth - COLUMN_INSET);
+
+/**
+ * The largest font size (half-point steps) at or under `base` at which `label` fits `available`
+ * dp once the phone's font scale is applied; never under INITIALS_MIN_FONT.
+ */
+export function fitInitialsFontSize(label: string, available: number, base: number, fontScale = 1): number {
+  let size = base;
+  while (size > INITIALS_MIN_FONT && estimateTextWidth(label, size * fontScale, INITIALS_LETTER_SPACING) > available) size -= 0.5;
+  return size;
+}
+
 /** The DEALS word fits from 44 dp up; narrower columns show the cards icon instead of "DEA…". */
 export function dealsBadge(columnWidth: number): 'text' | 'icon' {
   return columnWidth >= 44 ? 'text' : 'icon';

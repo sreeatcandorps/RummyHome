@@ -23,6 +23,8 @@ section 0. This file is the build contract for PR 13; the earlier open questions
 | 12 | **Wording:** "stake" and "prize" removed everywhere in the app; only **awards**, **results**, **winners**. A unit test greps the UI strings. | P28, `tests/pool-wording.test.ts` |
 | 13 | **Kept as designed:** header states and formulas, landscape, P19 (completed + awarded keeps showing out players' scores), P20 home cards (leader and creator tags), live link, game settings, help, log. | — |
 | 14 | **Tutorial (PR 12, later)** must explain Complete, Award, Result. | PR 12 backlog |
+| 15 | **(Nov 14, 8:40 PM) Initials are never cut off.** All three characters show in the pool header and everywhere else initials appear (scorecard columns, standings, awards); widths, font or layout give way, never the label. A CI/visual check runs with three-letter initials (WWW, MMM) and 20 players. | F13.22: `utils/scorecardLayout.ts` `fitInitialsFontSize`, `ScoreTable` header, `SeatAvatar`, `PoolStandings`, `PoolAwardsCard`; Game W + `smoke/17`; `tests/initials-fit.test.ts` |
+| 16 | **(Nov 14, 8:40 PM) "Entry per drop left" stays, with a viability rule.** The option is viable only when the winner's share (what is left after the drop entries) is strictly more than every other player's; level, behind or negative is not viable. Then it is not suggested or preselected, it is greyed, and a tap shows "This is not ideal for this situation because the winner gets less than the others. Please pick another option." and does not apply. The lowest score always gets the most: the same check runs on the other presets (always true for Winner takes all and By points left; 50 / 50 levels second place by design, flagged) and Custom warns instead of blocking. | F13.23: `utils/poolAwards.ts` `winnerGetsMost` / `presetViability` / `viablePresets`, `games/award.tsx`; `tests/pool-pr13.test.ts` 13.5c; `smoke/16` |
 
 Small decisions taken while building (flagged in the PR body as F13.1–F13.12) are listed in section 7.
 
@@ -208,6 +210,10 @@ validation, confirm), `app/(screens)/games/complete.tsx` (pool wording, Give awa
 | 13.22 | N | share live, share final, live link → Standings / awards headline / same table |
 | 13.23 | N | landscape 9 players; help ? on the pool scorecard |
 | 13.24 | N | Settings Pool 201 · 25/50/130 · Re-entry off → New game screen 2 prefills; Points unchanged |
+| 13.25 | U | F13.22 width math: every three-letter label (WWW, MMM, W88 …) fits every column width 38–140 dp at font scales 1–2 (capped 1.2), never under 8 pt; WWW on a 38 dp column ≥ 9 pt; avatars 26–40 fit; two plain letters keep the full size (`tests/initials-fit.test.ts`) |
+| 13.26 | S | F13.22 Game W (20 seats, WWW / MMM / WMW …, completed, awards pending): header labels WWW and MMM on screen, Standings labels, Awards screen avatars; screenshots are the visual check (`smoke/17`) |
+| 13.27 | U | F13.23 Entry per drop left: viable on the P12 pool (winner 500 vs 100); not viable early in a pool (drop entries eat the pool, winner 0) or when the winner is level (100 = 100); viable again once outs have put in; Winner takes all / By points left always viable, co-winners compared as a group; 50 / 50 levels second place only; Custom warns (`winnerGetsMost`), negative winner share refused; exact pop-up text (`tests/pool-pr13.test.ts` 13.5c) |
+| 13.28 | S | F13.23 on the smoke pool (500, drops would overshoot): tapping Entry per drop left shows the pop-up, "Pick another" closes it, the selection stays on By points left (`smoke/16`) |
 
 ## 7. Small decisions taken while building (flagged in the PR body)
 
@@ -225,6 +231,19 @@ validation, confirm), `app/(screens)/games/complete.tsx` (pool wording, Give awa
 - **F13.10** The scorecard corner's running sum and the round-row "off by" markers are hidden for a pool (no balance).
 - **F13.11** Home / Results status words: "Awards pending", "Awarded", "Give awards first".
 - **F13.12** The Points header stays initials · total (no player number) until the later PR Sree noted.
+- **F13.22** (decided by Sree, Nov 14, 8:40 PM — see §0 row 15) Initials never clip: the header label and the avatar
+  label step their font down to fit the width they have (estimated per glyph, W and M widest; `adjustsFontSizeToFit`
+  as the native safety net), the Standings label never shrinks (`flexShrink: 0`), the Awards screen and the awards
+  card show the seat label. The "#n" line and the DEALS band were never the clipper; the three-letter label on a 38 dp
+  column was.
+- **F13.23** (decided by Sree, Nov 14, 8:40 PM — see §0 row 16) "Entry per drop left" keeps its place but is viable
+  only when the winner gets strictly more than everyone else; otherwise it is greyed and refused with the pop-up. The
+  check is one function (`winnerGetsMost`), so it also runs on the other presets: Winner takes all and By points left
+  cannot fail it (the lowest score has the most points left; rounding remainders go to the winner); 50 / 50 puts the
+  second place level with the winner by design and is passed with that one exception — flagged as Q13.25 for Sree;
+  Custom is the admin's own numbers, so the screen shows a red line ("The winner gets 100, X gets 200…") and never
+  blocks. The overshoot case of F13.6 ("more than the pool") can no longer be selected, because when the drop entries
+  exceed the pool the winner is left with nothing.
 
 ## 8. Place in the sequence
 
