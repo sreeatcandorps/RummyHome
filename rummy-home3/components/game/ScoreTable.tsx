@@ -12,6 +12,9 @@ import {
   headerPadding,
   headerType,
   rowHeight as rowHeightFor,
+  effectiveFontScale,
+  fitInitialsFontSize,
+  initialsWidthIn,
   TABLE_MAX_FONT_SCALE,
 } from '@/utils/scorecardLayout';
 
@@ -293,8 +296,20 @@ export function ScoreTable({
         ) : null}
         <Text
           numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
           maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
-          style={[styles.headerText, { fontSize: type.initials.fontSize, lineHeight: type.initials.lineHeight, color: seatText }, out && styles.struck]}
+          testID={`score-header-initials-${index + 1}`}
+          style={[
+            styles.headerText,
+            {
+              // F13.22: three wide letters (WWW) step the font down rather than clip; the line height stays put.
+              fontSize: fitInitialsFontSize(column.label, initialsWidthIn(columnWidth), type.initials.fontSize, effectiveFontScale(fontScale)),
+              lineHeight: type.initials.lineHeight,
+              color: seatText,
+            },
+            out && styles.struck,
+          ]}
         >
           {column.label}
         </Text>

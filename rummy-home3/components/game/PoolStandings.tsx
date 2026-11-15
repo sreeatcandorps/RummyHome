@@ -101,7 +101,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xs, paddingVertical: 5, borderRadius: radius.sm },
   name: { flex: 1 },
   nameCell: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  label: { fontWeight: '800', minWidth: 30 },
+  // F13.22: the label keeps its own width; the name beside it is what shrinks.
+  label: { fontWeight: '800', minWidth: 30, flexShrink: 0 },
   num: { width: 56, textAlign: 'right' },
   value: { fontWeight: '700' },
   reenterCell: { width: 112, alignItems: 'flex-end' },
