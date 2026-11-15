@@ -12,9 +12,11 @@ import { signedPoints } from '@/utils/poolAwards';
  * the preset and the given-out line, or "Awards pending" with Give awards for an admin. Awards are
  * points from the pool; the word money never appears (D9, D12).
  */
-export function PoolAwardsCard({ game, names, canManage, compact = false, onGiveAwards }: {
+export function PoolAwardsCard({ game, names, labels, canManage, compact = false, onGiveAwards }: {
   game: Game;
   names: Record<string, string>;
+  /** Seat initials (F13.22: shown in full beside the name, never shrunk). */
+  labels?: Record<string, string>;
   canManage: boolean;
   compact?: boolean;
   onGiveAwards: () => void;
@@ -45,7 +47,10 @@ export function PoolAwardsCard({ game, names, canManage, compact = false, onGive
             const award = awards[r.playerId] ?? 0;
             return (
               <View key={r.playerId} style={styles.row} testID={`award-row-${r.playerId}`}>
-                <Text numberOfLines={1} style={[styles.name, { color: colors.onSurface }, r.out && styles.struck]}>{names[r.playerId] ?? '?'}</Text>
+                <View style={[styles.name, styles.nameCell]}>
+                  {labels?.[r.playerId] ? <Text style={[styles.label, { color: colors.onSurface }, r.out && styles.struck]}>{labels[r.playerId]}</Text> : null}
+                  <Text numberOfLines={1} style={[styles.flex, { color: colors.onSurface }, r.out && styles.struck]}>{names[r.playerId] ?? '?'}</Text>
+                </View>
                 <Text style={[styles.num, tabularNums, { color: colors.onSurfaceVariant }]}>{r.total}</Text>
                 <Text style={[styles.num, styles.award, tabularNums, { color: award > 0 ? colors.win : award < 0 ? colors.loss : colors.onSurface }]}>{signedPoints(award)}</Text>
               </View>
@@ -73,6 +78,9 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 28 },
   name: { flex: 1, fontWeight: '600' },
+  nameCell: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minWidth: 0 },
+  label: { fontWeight: '800', minWidth: 30, flexShrink: 0 },
+  flex: { flex: 1, fontWeight: '600' },
   struck: { textDecorationLine: 'line-through', opacity: 0.7 },
   num: { width: 56, textAlign: 'right', fontWeight: '600' },
   award: { fontWeight: '800' },

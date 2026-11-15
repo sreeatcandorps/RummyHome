@@ -137,9 +137,18 @@ tags: [smoke]
     id: "award-preset-left"
 - assertVisible: "Pool 500 · all given out"
 - takeScreenshot: 16n-awards-by-points-left
+# F13.23: in this pool the others' drop entries would leave the winner with less than them, so the
+# preset is greyed and refused with the pop-up; the selection stays on By points left.
 - tapOn:
     id: "award-preset-drops"
-- takeScreenshot: 16o-awards-entry-per-drop
+- extendedWaitUntil:
+    visible: "This is not ideal for this situation because the winner gets less than the others. Please pick another option."
+    timeout: 5000
+- takeScreenshot: 16o-awards-entry-per-drop-not-viable
+- tapOn:
+    id: "award-not-viable-ok"
+- assertNotVisible: "Not for this pool"
+- assertVisible: "Pool 500 · all given out"
 # Custom starts from the numbers on screen: back to Winner takes all first so Sree holds 500, then type 400.
 - tapOn:
     id: "award-preset-winner"
