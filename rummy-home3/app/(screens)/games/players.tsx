@@ -90,7 +90,8 @@ export default function GamePlayersScreen() {
   const labels = useMemo(() => seatLabels(playing), [playing]);
   const unseated = useMemo(() => roster.filter((seat) => seat.seated === false && seat.seatRole === 'game_admin'), [roster]);
   const watching = useMemo(() => roster.filter((seat) => seat.seatRole === 'spectator'), [roster]);
-  const canReorder = Boolean(game) && Object.values(game?.scores ?? {}).every((column) => (column?.length ?? 0) === 0);
+  // PR 21: ▲ ▼ go through set_seating_order (logged, atomic), so they work mid-game too; only a completed game locks them.
+  const canReorder = Boolean(game) && !game?.isComplete && !game?.closedAt;
 
   const run = async (work: () => Promise<unknown>, after?: () => void) => {
     setBusy(true);

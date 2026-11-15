@@ -67,6 +67,8 @@ export const KIND_LABELS: Record<string, string> = {
   reentry_undone: 'Re-entry undone',
   awards_set: 'Awards given',
   awards_changed: 'Awards changed',
+  // Seating order (PR 21)
+  seating_changed: 'Seating',
 };
 
 export function kindLabel(kind: string): string {
@@ -97,6 +99,7 @@ export function dotTone(entry: Pick<LogEntry, 'kind' | 'level'>): DotTone {
       return 'amber';
     case 'player_added':
     case 'player_reentered':
+    case 'seating_changed':
     case 'admin_added':
     case 'admin_removed':
     case 'viewer_added':

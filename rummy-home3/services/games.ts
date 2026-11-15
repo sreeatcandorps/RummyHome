@@ -19,6 +19,7 @@ import { canReopenGame, REOPEN_BLOCKED_MESSAGE } from '@/utils/gameStatus';
 import { createViewToken } from '@/utils/shareLink';
 import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validatePoolRoundScores, validateRoundScores } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
+import { EVERY_PLAYER_NEEDS_A_SEAT, isPermutation, sameOrder, stepSeat } from '@/utils/seating';
 import { createUuid, isUuid } from '@/utils/uuid';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
@@ -387,6 +388,8 @@ export const gamesService = {
         // 043 (PR 14): one multiplier for the whole Points game; a pool never carries the key.
         ...(input.rules.gameKind === 'points' ? { multiplier: multiplierOf(input.rules) } : {}),
       } : {}),
+      // PR 21: the Seating order pop-up is owed once, right after Start (the sheet flips this to true).
+      seatingPrompted: false,
     };
 
     if (!isSupabaseConfigured) {
@@ -1275,41 +1278,48 @@ export const gamesService = {
     return this.getGame(gameId);
   },
 
-  async moveSeat(gameId: string, profileId: string, direction: -1 | 1) {
+  /**
+   * Seating order (PR 21, 044): the whole order in one call — admin only, Active games only, every
+   * seated player once; the server parks and renumbers in one transaction and writes the Log line.
+   * Local games reorder the players array (no Log). The same order is a no-op.
+   */
+  async setSeatingOrder(gameId: string, order: string[]): Promise<Game | null> {
     const game = await this.getGame(gameId);
     if (!game) throw new Error('Game not found.');
-    const index = game.players.indexOf(profileId);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= game.players.length) return game;
-
+    if (!isPermutation(game.players, order)) throw new Error(EVERY_PLAYER_NEEDS_A_SEAT);
+    if (sameOrder(game.players, order)) return game;
     if (!isSupabaseConfigured) {
-      const players = [...game.players];
-      const [moved] = players.splice(index, 1);
-      players.splice(target, 0, moved);
-      const updated = { ...game, players };
+      const updated = { ...game, players: [...order] };
       await storage.updateGame(updated);
       return updated;
     }
-
-    const { data: rows, error } = await supabase
-      .from('game_players')
-      .select('id, profile_id, player_order, seated, role')
-      .eq('game_id', gameId)
-      .order('player_order', { ascending: true });
+    const { error } = await supabase.rpc('set_seating_order', { p_game_id: gameId, p_profile_ids: order });
     if (error) throw error;
-    const seated = (rows ?? []).filter((row) => row.role !== 'spectator' && (row as { seated?: boolean }).seated !== false);
-    const from = seated.findIndex((row) => row.profile_id === profileId);
-    const to = from + direction;
-    if (from < 0 || to < 0 || to >= seated.length) return game;
-    const a = seated[from];
-    const b = seated[to];
-    const park = 10000 + a.player_order;
-    const first = await supabase.from('game_players').update({ player_order: park }).eq('id', a.id);
-    if (first.error) throw first.error;
-    const second = await supabase.from('game_players').update({ player_order: a.player_order }).eq('id', b.id);
-    if (second.error) throw second.error;
-    const third = await supabase.from('game_players').update({ player_order: b.player_order }).eq('id', a.id);
-    if (third.error) throw third.error;
     return this.getGame(gameId);
+  },
+
+  /** The once-per-game pop-up was answered (Done or Keep this order): the key flips to true; the settings log ignores it (044). */
+  async markSeatingPrompted(gameId: string): Promise<void> {
+    if (!isSupabaseConfigured) {
+      const game = await this.getGame(gameId);
+      if (!game) return;
+      await storage.updateGame({ ...game, settings: { ...game.settings, seatingPrompted: true } });
+      return;
+    }
+    const { data: row, error: readError } = await supabase.from('games').select('settings').eq('id', gameId).maybeSingle();
+    if (readError) throw readError;
+    const current = (row?.settings ?? {}) as Record<string, unknown>;
+    if (current.seatingPrompted === true) return;
+    const { error } = await supabase.from('games').update({ settings: { ...current, seatingPrompted: true } as any }).eq('id', gameId);
+    if (error) throw error;
+  },
+
+  /** Players · Admins ▲ ▼: one seat up or down, through the same logged RPC as the Seating sheet (Q21.5). */
+  async moveSeat(gameId: string, profileId: string, direction: -1 | 1) {
+    const game = await this.getGame(gameId);
+    if (!game) throw new Error('Game not found.');
+    const next = stepSeat(game.players, profileId, direction);
+    if (sameOrder(game.players, next)) return game;
+    return this.setSeatingOrder(gameId, next);
   },
 };

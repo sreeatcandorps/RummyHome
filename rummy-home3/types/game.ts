@@ -13,6 +13,8 @@ export type GameSettings = {
   reentryLimit?: number | null;
   /** Points (043, PR 14): one multiplier for the whole game, 1–10,000; absent = 1. Never on a pool. */
   multiplier?: number;
+  /** Seating order (PR 21): false from Start until the admin answers the once-per-game pop-up; absent on older games (never asked). */
+  seatingPrompted?: boolean;
 };
 
 /** Pool (041) seat state, from game_players. Absent for Points games and pre-041 servers. */

@@ -36,6 +36,8 @@ import { StackedAction } from '@/components/ui/StackedAction';
 import { editableRounds } from '@/utils/editRound';
 import { Tag } from '@/components/ui/Tag';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
+import { SeatingSheet } from '@/components/game/SeatingSheet';
+import { canChangeSeating, SEATING_MENU_ITEM, shouldPromptSeating } from '@/utils/seating';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
 import { playersChipLabel } from '@/utils/scorecardLayout';
 import { rulesFromGame } from '@/utils/gameSettings';
@@ -81,6 +83,9 @@ export default function GameScreen() {
   // PR 14: the multiplier view toggle (per phone) and the Exact points sheet.
   const [showActual, setShowActual] = useActualToggle();
   const [exactOpen, setExactOpen] = useState(false);
+  // PR 21: the Seating order sheet — once per game right after Start ('popup'), any time from the ⋮ menu ('menu').
+  const [seating, setSeating] = useState<'popup' | 'menu' | null>(null);
+  const seatingAnswered = React.useRef(false);
 
   // Mount is covered by useFocusEffect below (it fires on focus, which includes the first mount): one load, not two.
   useEffect(() => {
@@ -90,6 +95,14 @@ export default function GameScreen() {
       realtimeService.unsubscribe(channel);
     };
   }, [id]);
+
+  // PR 21 (§3.2): the pop-up opens the first time the scorecard shows an admin a fresh game (≥ 2 seats, no rounds,
+  // settings.seatingPrompted false). Answered once per game: Done / Keep this order flip the flag on the game.
+  useEffect(() => {
+    if (loading || seating || seatingAnswered.current) return;
+    const roundCount = Math.max(0, ...Object.values(game?.scores ?? {}).map((column) => column?.length ?? 0));
+    if (shouldPromptSeating({ game, canScore, seatCount: players.length, roundCount })) setSeating('popup');
+  }, [loading, game, canScore, players.length, seating]);
 
   // Reload game data when screen comes into focus (e.g., after adding scores)
   useFocusEffect(
@@ -548,6 +561,9 @@ export default function GameScreen() {
               >
                 <Menu.Item leadingIcon="cog-outline" onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title="Game settings" />
                 <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title={PLAYERS_ADMINS_TITLE} />
+                {canChangeSeating(game, canScore) ? (
+                  <Menu.Item leadingIcon="seat-outline" title={SEATING_MENU_ITEM} onPress={() => { setMenuOpen(false); setSeating('menu'); }} testID="game-menu-seating" />
+                ) : null}
                 {canScore && !game.isComplete ? (
                   <Menu.Item leadingIcon="pencil-outline" title="Edit round" disabled={maxRounds === 0} onPress={() => { setMenuOpen(false); setEditRoundOpen(true); }} />
                 ) : null}
@@ -727,6 +743,26 @@ export default function GameScreen() {
         shortened={exactShortened}
         onDismiss={() => setExactOpen(false)}
         onSharePdf={() => { setExactOpen(false); shareFinalScores(); }}
+      />
+      <SeatingSheet
+        visible={seating !== null}
+        fromMenu={seating === 'menu'}
+        players={seats.map((seat) => ({ id: seat.id, name: seat.name, label: initialsFor(seat.id), out: pool && Boolean(seatOf(game, seat.id)?.outRound), reentered: pool && Boolean(seatOf(game, seat.id)?.reenteredRound) }))}
+        pool={pool}
+        dealerIds={game.dealerIds}
+        roundCount={maxRounds}
+        onDismiss={async () => {
+          const wasPopup = seating === 'popup';
+          setSeating(null);
+          if (wasPopup) { seatingAnswered.current = true; await gamesService.markSeatingPrompted(game.id).catch(() => {}); }
+        }}
+        onSave={async (order) => {
+          const wasPopup = seating === 'popup';
+          const updated = await gamesService.setSeatingOrder(game.id, order);
+          if (wasPopup) { seatingAnswered.current = true; await gamesService.markSeatingPrompted(game.id).catch(() => {}); }
+          if (updated) setGame(updated);
+          await loadGameData();
+        }}
       />
       <GameSettingsDialog
         visible={gameSettingsOpen}
