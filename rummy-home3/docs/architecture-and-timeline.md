@@ -49,7 +49,7 @@ Same codebase either way.
 | Results PDF | `expo-print` and `expo-sharing` | Share full details prints phone-sized HTML pages (390 × 780) to a PDF on the phone and opens the share sheet; a single game's rounds go the same way. The web build downloads the same details |
 | Backend | Supabase (Auth + Postgres + RLS) | Shared multi-user data without a custom server |
 | My players | `my_players` in `007_redesign.sql` | Per-account roster. Home and New game do not read every profile |
-| Scheduled DB job | **pg_cron** (Supabase extension) — `purge-deleted-games` nightly 03:15 UTC runs `purge_deleted_games()` (045, PR 20) | Deleted games are erased after 30 days; the Log keeps a `game_purged` row. The migration schedules the job only when the extension is on, so turn pg_cron on in the live project before applying 045 |
+| Scheduled DB job | **pg_cron** (Supabase extension), enabled on live Nov 15. The 045 job `purge-deleted-games` was **unscheduled the same day** (0 jobs) after Sree's rule that the app never permanently deletes games or results; PR 22 / migration 046 turns the 30-day step into a second-layer soft hide and reschedules it | Nothing calls `purge_deleted_games()` on live until 046 replaces it |
 | Public scorecard | `https://ezscore.mindweavetech.com/scorecard.html` | Static HTML. `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__` are filled at publish time, not committed |
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
@@ -447,6 +447,16 @@ More detail: `docs/play-store-setup.md`, `docs/release-checklist.md`.
   `gngcrplcldfiubvhcdin` and verified them: `game_multiplier`, `set_seating_order` and `games_multiplier_check` exist,
   row counts unchanged. **Live is at 044.** APK 9 keeps working (the multiplier is 1 and the seating RPC is unused until
   the next build). **045 (Going rogue, PR 20) is written and not applied**; it needs pg_cron on first.
+
+### 2026-11-15 — Migration 045 applied to the live project; pg_cron on; purge job then unscheduled
+- Build Bot (Sree's OK, 11:15 AM PT) enabled pg_cron and applied `045_going_rogue.sql` to `gngcrplcldfiubvhcdin`;
+  `purge_deleted_games` exists, row counts unchanged (games 42, game_players 291, rounds 92, scores 690, game_results 12,
+  event_log 19, profiles 92). **Live is at 045.**
+- One minute later Sree set a new rule: **nothing about games or results is ever permanently deleted by the app.** Build Bot
+  unscheduled the live `purge-deleted-games` cron job (0 jobs left); `purge_deleted_games()` still exists but nothing
+  calls it. After 30 days a deleted game becomes a second-layer soft delete — hidden from every user, not restorable by
+  users, kept in the database for support. Migration 046 (PR 22, stacked on PR 20) rewrites the function that way;
+  written, not applied. A manual / batch cleanup may come later when data gets big.
 
 ---
 
