@@ -40,7 +40,7 @@ tags: [smoke]
 - assertVisible: "Log out"
 - takeScreenshot: 07b-profile-bottom
 # PR 13: Settings holds "New game starts as", the Points defaults and the Pool defaults (limit chips,
-# 25 / 50 / 130, Re-entry). Nothing is saved.
+# 25 / 50 / 130, Re-entries Unlimited / Limited). Nothing is saved.
 - scrollUntilVisible:
     element: "User settings: game type, Drop, Middle drop, Full count"
     direction: UP
@@ -61,8 +61,18 @@ tags: [smoke]
     id: "settings-pool-limit-custom"
 - scrollUntilVisible:
     element:
-      id: "settings-pool-reentry"
+      id: "settings-pool-reentries-unlimited"
     direction: DOWN
     timeout: 10000
+# 042: Re-entries is Unlimited by default; Limited reveals the count field, nothing is saved.
+- tapOn:
+    id: "settings-pool-reentries-limited"
+- assertVisible:
+    id: "settings-pool-reentries-count"
+- takeScreenshot: 07e-settings-pool-defaults-limited
+- tapOn:
+    id: "settings-pool-reentries-unlimited"
+- assertNotVisible:
+    id: "settings-pool-reentries-count"
 - takeScreenshot: 07e-settings-pool-defaults
 - back

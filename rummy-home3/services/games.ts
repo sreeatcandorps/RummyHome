@@ -2,6 +2,7 @@ import { nextLocalGameLabel } from '@/utils/gameLabel';
 import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
+import { reentryLimitOf } from '@/utils/pool';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { INITIALS_FORMAT_MESSAGE, MIGRATION_007_HINT, playersService } from '@/services/players';
 import { RETIRED_ROUND_OFFSET, retiredRoundNumber } from '@/utils/editRound';
@@ -380,8 +381,8 @@ export const gamesService = {
         dropAmount: input.rules.drop,
         mdAmount: input.rules.middleDrop,
         maxCount: input.rules.fullCount,
-        // 041: a pool's limit and re-entry switch live beside its (plus) values.
-        ...(input.rules.gameKind === 'pool' ? { poolLimit: input.rules.poolLimit ?? 101, reentry: input.rules.reentry !== false } : {}),
+        // 041/042: a pool's limit and its re-entry limit (null = Unlimited) live beside its (plus) values.
+        ...(input.rules.gameKind === 'pool' ? { poolLimit: input.rules.poolLimit ?? 101, reentryLimit: input.rules.reentryLimit ?? null } : {}),
       } : {}),
     };
 
@@ -624,10 +625,10 @@ export const gamesService = {
 
   /**
    * Game settings: Points games change Drop, Middle drop, and Full count any time. A pool's limit
-   * and values are locked by the server once a round is saved (041); Re-entry can still change.
+   * is locked by the server once a round is saved (042); its values and Re-entries can still change.
    */
   async updateGameRules(gameId: string, rules: PointsRules): Promise<Game | null> {
-    const poolKeys = rules.gameKind === 'pool' ? { poolLimit: rules.poolLimit ?? 101, reentry: rules.reentry !== false } : {};
+    const poolKeys = rules.gameKind === 'pool' ? { poolLimit: rules.poolLimit ?? 101, reentryLimit: rules.reentryLimit ?? null } : {};
     if (!isSupabaseConfigured) {
       const game = await this.getGame(gameId);
       if (!game) return null;
@@ -660,14 +661,16 @@ export const gamesService = {
     return this.getGame(gameId);
   },
 
-  /** Pool (041): a player who is out comes back once, at the highest score still in. */
+  /** Pool (041/042): a player who is out comes back at the highest score still in, within the Re-entries limit. */
   async reenterPlayer(gameId: string, profileId: string): Promise<Game | null> {
     if (!isSupabaseConfigured) {
       const game = await this.getGame(gameId);
       if (!game) return null;
       const seat = game.poolSeats?.[profileId];
       if (!seat?.outRound) throw new Error('They are still in the pool.');
-      if (seat.entries > 1) throw new Error('They have already re-entered once.');
+      const limit = reentryLimitOf(game.settings);
+      if (limit === 0) throw new Error('Re-entries are off for this pool. Allow them in Game settings first.');
+      if (limit !== null && seat.entries - 1 >= limit) throw new Error(limit === 1 ? 'They have already re-entered once.' : `They have used all ${limit} re-entries.`);
       const inIds = game.players.filter((id) => !game.poolSeats?.[id]?.outRound);
       const high = Math.max(0, ...inIds.map((id) => (game.scores[id] ?? []).reduce((a, b) => a + b, 0)));
       const rounds = Math.max(0, ...game.players.map((id) => game.scores[id]?.length ?? 0));

@@ -244,7 +244,7 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | X14-10 | N | `full/51-multiplier-change.yaml` (to write) | Change multiplier ×10 → ×5 from round 7: `×10` marks on rounds 1–6, footer spans, Exact sheet both rates, Log line; All rounds variant; second phone sees it within 10 s |
 | X14-11 | M | emulator | every M-screen of the spec (M01–M22) |
 
-## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migration 041 written, not applied)
+## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migration 041 applied Nov 14; 042 re-entries setting + limit-only lock written, not applied)
 
 Spec: `docs/pool-design.md` (Sree's 14 decisions of Nov 14), mockups in `docs/pool-mockups/`.
 
@@ -263,6 +263,10 @@ Spec: `docs/pool-design.md` (Sree's 14 decisions of Nov 14), mockups in `docs/po
 | P13-11 | S | `smoke/16-pool-game.yaml` | New game: pick four → "Next · 4 players" → Game type (Points first, then Pool: Re-entry, Settings link, players at the bottom) → Start → Skip the co-admin nudge → pool scorecard (Pool tag, Standings "Limit 101 · 100 in, 101 out") → Add round (no Plus / Minus; Drop 25 / Middle drop 50 / Full count 130; Rummy; 135 → "Are you sure?" → Keep 135 → cell "then 135, out") → Save → "Round saved" sheet (Zed out at 135, Re-enter Zed) → scorecard OUT R1 → Re-enter from Standings (blue, 50) → Complete (pool line) → Confirm → "Give awards" / "Give awards first" → Awards (Winner takes all all given out, By points left, Entry per drop left, Custom 400 → "100 not given out") → Save → "Save awards anyway?" → Complete page "Change awards" + "Add to Results" → scorecard Awarded + Awards card → Delete game (screenshots 16–16s) |
 | P13-12 | S | `smoke/07-profile.yaml` | Settings: "New game starts as", Points defaults, Pool defaults with the limit chips, Custom and Re-entry (screenshots 07d, 07e) |
 | P13-13 | M | emulator | Every changed screen in the PR body gallery (CI artifact `ui-screenshots-<slug>-smoke`) |
+| T13-29 | U | `tests/pool-pr13.test.ts` 13.4 / 13.6b / 13.7 | 042 Re-entries: `reentryLimitOf` null / N / 0 / negative / 041 boolean; `reentryBlock` Unlimited (second re-entry fine) vs Limited 1 (`used`) vs 0 (`off`); labels Unlimited / None / 1 re-entry / 3 re-entries; draft Unlimited / Limited with count 0–99 and the exact error; `validateRules` 100 refused; profile key `poolReentryLimit` and the old `poolReentry` read; RulesForm has the two radios, the count field only for Limited, and `lockValues` greys only the pool limit |
+| T13-30 | D | `supabase/tests/33_pool_reentries_042.sql` (26) + `32_pool_041.sql` adjusted | `pool_reentry_limit` for every shape; the limit is PT423-locked and Drop / Middle drop / Full count change with the Log line "Changed game settings · Drop 20→25 · Full count 80→130 · Middle drop 40→50" (important once rounds exist); Unlimited allows a third entry; switching to Limited 2 mid-game refuses the third with "They have used all 2 re-entries."; Limited 0 refuses with "Re-entries are off…"; Limited 3 re-enters at the highest score in; a player still in is refused |
+| T13-31 | R | `ci/db/replay-rollbacks.sh` | rollback 042 first (once-per-player and the four-value lock back), forward 042 restores `pool_reentry_limit`, the limit-only lock and the labelled log |
+| T13-32 | S | `e2e/smoke/07-profile.yaml`, `16-pool-game.yaml` | Settings Pool block: Limited reveals `settings-pool-reentries-count`, Unlimited hides it; New game screen 2 shows "Re-entries" and "Unlimited" |
 
 ## PR 10b test cases (APK 9 fixes: Home, My players / own initials, Add players, Profile, Add round, Results, share image, PDFs; migration 040 written, not applied)
 
