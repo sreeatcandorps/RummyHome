@@ -33,7 +33,7 @@ test('F2 (chaos c11): a network failure is told apart from being signed out', ()
   assert.match(signedOutBlock.slice(0, 200), /message="Sign in to see your games\."/, 'the signed-out screen no longer carries the network error text');
 });
 
-test('F5 (smoke 17): a 20-player Standings card is height-capped and scrolls inside, so the grid keeps room', () => {
+test('F6 (smoke 17): a 20-player Standings card is height-capped and scrolls inside, so the grid keeps room', () => {
   const standings = src('components/game/PoolStandings.tsx');
   assert.match(standings, /maxHeight\?: number/);
   assert.match(standings, /maxHeight != null && \{ maxHeight \}/, 'the card itself is capped');
