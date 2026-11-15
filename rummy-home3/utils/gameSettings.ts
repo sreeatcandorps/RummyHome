@@ -166,5 +166,7 @@ export function withStoredPointsRules(base: GameSettings, stored: any): GameSett
     reentry: typeof stored.reentry === 'boolean' ? stored.reentry : base.reentry,
     reentryLimit: 'reentryLimit' in stored || typeof stored.reentry === 'boolean' ? reentryLimitOf(stored as GameSettings) : base.reentryLimit,
     ...(typeof stored.multiplier === 'number' ? { multiplier: multiplierOf(stored) } : {}),
+    // PR 21: the once-per-game Seating pop-up flag rides along (false from Start, true once answered).
+    ...(typeof stored.seatingPrompted === 'boolean' ? { seatingPrompted: stored.seatingPrompted } : {}),
   };
 }

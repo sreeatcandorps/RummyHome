@@ -22,9 +22,12 @@ import {
   showsPlayerChips,
   stepSeat,
 } from '../utils/seating';
+import { withStoredPointsRules } from '../utils/gameSettings';
+import { GameSettings } from '../types/game';
 
 const read = (file: string) => readFileSync(path.join(__dirname, '..', file), 'utf8');
 const four = ['sree', 'harish', 'priya', 'zed'];
+const DEFAULT_POINTS_SETTINGS = { gameType: 'stake', dropAmount: -10, mdAmount: -30, maxCount: -80, expense: false } as unknown as GameSettings;
 
 // ---------- X21-1: placing and stepping ----------
 test('placeAt moves a player to a seat and shifts the rows between', () => {
@@ -137,6 +140,14 @@ test('nextDealerFor in a pool skips players who are out (041 save_round)', () =>
   assert.equal(nextDealerFor(four, ['sree', 'harish', 'priya'], 3, out), 'zed', 'the last dealer went out this round: the next seat still in');
   assert.equal(nextDealerFor(['zed', 'sree', 'harish', 'priya'], ['sree', 'harish', 'priya'], 3, out), 'zed', 'wrapping past an out seat');
   assert.equal(nextDealerFor(four, [], 0, new Set(four)), undefined, 'everyone out: nobody deals');
+});
+
+test('withStoredPointsRules carries seatingPrompted from the stored settings (the gate reads game.settings)', () => {
+  const base = withStoredPointsRules(DEFAULT_POINTS_SETTINGS, { dropAmount: -10, mdAmount: -30, maxCount: -80, seatingPrompted: false });
+  assert.equal(base.seatingPrompted, false, 'a fresh game keeps false');
+  assert.equal(withStoredPointsRules(DEFAULT_POINTS_SETTINGS, { seatingPrompted: true }).seatingPrompted, true);
+  assert.equal(withStoredPointsRules(DEFAULT_POINTS_SETTINGS, { dropAmount: -10 }).seatingPrompted, undefined, 'older games have no key');
+  assert.ok(shouldPromptSeating({ game: { isComplete: false, settings: base }, canScore: true, seatCount: 4, roundCount: 0 }), 'so the pop-up gate opens for a fresh game');
 });
 
 // ---------- the wiring ----------
