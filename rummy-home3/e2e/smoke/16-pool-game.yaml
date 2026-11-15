@@ -1,7 +1,7 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
 # PR 13 Pool, end to end on the seed: New game is two screens (Players → Next → Game type: Pool,
-# settings prefilled 101 / 25 / 50 / 130 / Re-entry on → Start); the pool scorecard (Standings
+# settings prefilled 101 / 25 / 50 / 130 / Re-entries Unlimited → Start); the pool scorecard (Standings
 # card, OUT column, Re-enter); Add round in a pool (plus points, Rummy = 0, "Are you sure?" past the
 # Full count, the after-save sheet naming who is out); Complete → Give awards (presets, Custom,
 # Save anyway) → the Completed scorecard with the Awards block. Runs last in the smoke set and deletes
@@ -26,7 +26,8 @@ tags: [smoke]
 - takeScreenshot: 16b-game-type-points
 - tapOn:
     id: "game-type-pool"
-- assertVisible: "Re-entry"
+- assertVisible: "Re-entries"
+- assertVisible: "Unlimited"
 - assertVisible: "You can also set these defaults in Settings."
 - takeScreenshot: 16c-game-type-pool
 # The picked players sit under the settings card, below the fold on a phone.

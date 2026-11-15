@@ -1,6 +1,6 @@
 import { GameSettings } from '@/types/game';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
-import { DEFAULT_POOL_LIMIT, DEFAULT_POOL_REENTRY, DEFAULT_POOL_VALUES, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN } from '@/utils/pool';
+import { DEFAULT_POOL_LIMIT, DEFAULT_POOL_REENTRY_LIMIT, DEFAULT_POOL_VALUES, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_REENTRY_LIMIT_MAX, reentryLimitOf } from '@/utils/pool';
 
 /**
  * The rules a user or a game can change. Points games store penalties negative (a drop is -10);
@@ -20,8 +20,8 @@ export type PointsRules = {
   fullCount: number;
   /** Pool only: the score that puts a player out (100 in, 101 out). */
   poolLimit?: number;
-  /** Pool only: whether a player who is out may re-enter once. */
-  reentry?: boolean;
+  /** Pool only (042): re-entries per player — null = Unlimited, N = Limited to N (0 = none). */
+  reentryLimit?: number | null;
 };
 
 export const DEFAULT_POINTS_RULES: PointsRules = {
@@ -37,7 +37,7 @@ export const DEFAULT_POOL_RULES: PointsRules = {
   middleDrop: DEFAULT_POOL_VALUES.middleDrop,
   fullCount: DEFAULT_POOL_VALUES.fullCount,
   poolLimit: DEFAULT_POOL_LIMIT,
-  reentry: DEFAULT_POOL_REENTRY,
+  reentryLimit: DEFAULT_POOL_REENTRY_LIMIT,
 };
 
 export const defaultRulesFor = (kind: GameKind): PointsRules => (kind === 'pool' ? DEFAULT_POOL_RULES : DEFAULT_POINTS_RULES);
@@ -61,6 +61,8 @@ export function validateRules(rules: PointsRules): string | null {
     if (rules.middleDrop < rules.drop) return 'Middle drop is usually bigger than Drop.';
     const limit = rules.poolLimit ?? DEFAULT_POOL_LIMIT;
     if (!Number.isInteger(limit) || limit < POOL_CUSTOM_MIN || limit > POOL_CUSTOM_MAX) return `The pool limit is a whole number from ${POOL_CUSTOM_MIN} to ${POOL_CUSTOM_MAX}.`;
+    const re = rules.reentryLimit;
+    if (re != null && (!Number.isInteger(re) || re < 0 || re > POOL_REENTRY_LIMIT_MAX)) return `Re-entries is a whole number from 0 to ${POOL_REENTRY_LIMIT_MAX}, or Unlimited.`;
     return null;
   }
   if (rules.drop >= 0 || rules.middleDrop >= 0 || rules.fullCount >= 0) {
@@ -83,7 +85,7 @@ export function rulesFromProfileDefaults(defaults: Record<string, unknown> | nul
       middleDrop: Math.abs(num(d.poolMiddleDrop, DEFAULT_POOL_RULES.middleDrop)),
       fullCount: Math.abs(num(d.poolFullCount, DEFAULT_POOL_RULES.fullCount)),
       poolLimit: num(d.poolLimit, DEFAULT_POOL_LIMIT),
-      reentry: typeof d.poolReentry === 'boolean' ? d.poolReentry : DEFAULT_POOL_REENTRY,
+      reentryLimit: reentryLimitOf({ reentryLimit: d.poolReentryLimit as number | null | undefined, reentry: d.poolReentry as boolean | undefined } as GameSettings),
     };
   }
   return {
@@ -111,7 +113,7 @@ export function rulesToProfileDefaults(rules: PointsRules): Record<string, unkno
       poolDrop: rules.drop,
       poolMiddleDrop: rules.middleDrop,
       poolFullCount: rules.fullCount,
-      poolReentry: rules.reentry ?? DEFAULT_POOL_REENTRY,
+      poolReentryLimit: rules.reentryLimit ?? DEFAULT_POOL_REENTRY_LIMIT,
     };
   }
   return {
@@ -129,7 +131,7 @@ export function rulesFromGame(settings: GameSettings, gameType: 'stake' | 'pool'
       middleDrop: Math.abs(settings.mdAmount),
       fullCount: Math.abs(settings.maxCount),
       poolLimit: settings.poolLimit ?? DEFAULT_POOL_LIMIT,
-      reentry: settings.reentry !== false,
+      reentryLimit: reentryLimitOf(settings),
     };
   }
   return {
@@ -153,5 +155,6 @@ export function withStoredPointsRules(base: GameSettings, stored: any): GameSett
     maxCount: typeof fullCount === 'number' ? fullCount : base.maxCount,
     poolLimit: typeof stored.poolLimit === 'number' ? stored.poolLimit : base.poolLimit,
     reentry: typeof stored.reentry === 'boolean' ? stored.reentry : base.reentry,
+    reentryLimit: 'reentryLimit' in stored || typeof stored.reentry === 'boolean' ? reentryLimitOf(stored as GameSettings) : base.reentryLimit,
   };
 }
