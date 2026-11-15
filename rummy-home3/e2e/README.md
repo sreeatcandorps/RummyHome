@@ -24,7 +24,8 @@ Flows run in file-name order inside a set (`01-`, `02-`, …). File-name hooks, 
 `night-phone` puts the phone in dark mode, `--net-off` switches wifi and mobile data off ~0.7 s after the flow's
 *first* screenshot (the flow takes it right before the step it wants offline; back on when the flow ends),
 `--kill-after` force-stops the app ~0.7 s after the flow's first screenshot (so the tap right after it is
-interrupted) and again when Maestro returns. Maestro has no host-side hook, so "take a screenshot" is the signal.
+interrupted) and again when Maestro returns, `--revoke-session` deletes c1's server sessions (`psql $DB_URL`)
+after the first screenshot so the phone is left holding dead tokens. Maestro has no host-side hook, so "take a screenshot" is the signal.
 Sub-flows in `lib/` deliberately have no `env:` defaults: in Maestro a sub-flow's own `env:` block beats the
 values the caller passes with `runFlow … env:`, so every caller passes `EMAIL` / `CODE` itself. Every flow gets `adb logcat` cleared first and the crash buffer
 checked after: a crash or ANR of the app fails the flow even when Maestro passed (`crashes.csv`). A screen
@@ -54,7 +55,8 @@ Manygames (38 games); admins `a1` Arun Admin, `a2` Asha Coadmin (non-playing), `
 
 Order matters inside the chaos set (c05 before c06, c07 before c08; c01 before c04 on BP1). `chaos/c11` relaunches
 the app offline with a cached session (must not crash; today it shows "You're signed out — Network error", see the
-PR 17 findings).
+PR 17 findings). `chaos/c12` logs out with a revoked session (fails today: "Couldn't log out — Auth session
+missing!", the first bug the break-the-app runs found).
 
 | Game | Share code | State at the start | Used by |
 | --- | --- | --- | --- |

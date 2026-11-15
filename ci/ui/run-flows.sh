@@ -7,6 +7,8 @@
 #   *--net-off*     wifi + data go off ~0.7 s after the flow's FIRST screenshot (the flow takes it right
 #                   before the step it wants to run offline) and come back after the flow
 #   *--kill-after*  the app is force-stopped ~0.7 s after the flow's first screenshot (kill mid-save)
+#   *--revoke-session*  c1@test.local's server sessions are deleted (psql $DB_URL) after the first
+#                   screenshot — the phone still holds its tokens (expired / revoked session)
 #
 #   ci/ui/run-flows.sh <set-dir> <out-dir> [--quarantine]
 #
@@ -129,6 +131,13 @@ after_first_screenshot() {
           kill) adb shell am force-stop "$APP_ID" >/dev/null 2>&1 || true
                 echo "kill-after: app force-stopped after the flow's first screenshot" ;;
           net-off) network off ;;
+          revoke-session)
+            if [ -n "${DB_URL:-}" ]; then
+              psql "$DB_URL" -tAc "delete from auth.sessions s using auth.users u where s.user_id = u.id and u.email = 'c1@test.local'" \
+                && echo "revoke-session: c1's server sessions deleted" || echo "revoke-session: psql failed"
+            else
+              echo "revoke-session: DB_URL not set, nothing revoked"
+            fi ;;
         esac
         exit 0
       fi
@@ -160,6 +169,7 @@ for f in $(ls "$SET_DIR"/*.yaml 2>/dev/null | sort); do
   case "$name" in
     *--net-off*) after_first_screenshot "$name" net-off; net_was_off=1 ;;
     *--kill-after*) after_first_screenshot "$name" kill; KILL=1 ;;
+    *--revoke-session*) after_first_screenshot "$name" revoke-session ;;
   esac
 
   echo "::group::flow $name"
