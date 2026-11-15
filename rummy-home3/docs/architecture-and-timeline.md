@@ -401,21 +401,21 @@ More detail: `docs/play-store-setup.md`, `docs/release-checklist.md`.
 | `docs/privacy-policy.html` (repo root) | Hosted privacy page |
 | `TASK_LIST.md` | Older feature backlog (partially stale) |
 
-### 2026-11-15 — PR 14 Multiplier built (stacked PR; migration 043 written, not applied)
+### 2026-11-15 — PR 14 Multiplier built (stacked PR; migration 043 — applied to live later the same day, see below)
 - Points games carry `settings.multiplier` (1–10,000, whole game, changeable any time with a whole-game confirm). The app
   stores entered points and multiplies at the edges; Results / result e-mails / result lists sum as `bigint` in SQL (043).
 - New shared number rules: short form K / M / B (≤ 5 characters) on screens, exact with separators on sheets, PDFs, the
   live page and the `/r/` page; the share image goes to one column from 8-digit totals; PDF round blocks 5 / 4 / 3 wide.
-- 043 also returns the multiplier from `public_scorecard` and labels the settings-change Log line "Multiplier". Not applied
-  to live until Sree's OK after CI.
+- 043 also returns the multiplier from `public_scorecard` and labels the settings-change Log line "Multiplier". Applied to
+  live by Build Bot with Sree's OK on Nov 15 (with 044).
 
-### 2026-11-15 — PR 21 Seating order built (stacked PR; migration 044 written, not applied)
+### 2026-11-15 — PR 21 Seating order built (stacked PR; migration 044 — applied to live later the same day, see below)
 - The seating order is `game_players.player_order` as before; nothing new is stored. 044 adds `set_seating_order` (one
   logged, atomic RPC used by the new Seating sheet and the Players · Admins ▲ ▼, which now work mid-game), the Log kind
   `seating_changed`, and makes the settings log
   ignore the once-per-game pop-up flag `settings.seatingPrompted` (written false by Start, true after the first answer).
 - The sheet pops up once right after Start (tap-to-place or arrows, no drag dependency) and is in ⋮ for admins on Active
-  games. Going rogue's migration is renumbered 045. Smoke 19 and nightly 51 cover it; 044 waits for Sree's OK after CI.
+  games. Going rogue's migration is renumbered 045. Smoke 19 and nightly 51 cover it; 044 was applied to live with 043 on Nov 15 (below).
 
 ### 2026-11-15 — Design audit 15a built (stacked PR; no migration)
 - Screen-only: the P1/P2 half of `docs/design-audit.md` (A01 A08 A11 A03 A05 A02 A06 A10) plus the three Help-spec items
@@ -441,6 +441,12 @@ More detail: `docs/play-store-setup.md`, `docs/release-checklist.md`.
   `purged_game_id` + a `game_purged` row), scheduled nightly 03:15 UTC through **pg_cron** when the extension is on —
   Build Bot enables it on the live project when applying 045. Support path is support@ezscore.app (Q20.7). Items 4 and 5
   (round actions from the Log, last-admin guard) not built.
+
+### 2026-11-15 — Migrations 043 + 044 applied to the live project
+- With Sree's approval Build Bot ran `043_multiplier.sql` and `044_seating_order.sql` (from the PR 21 branch) on
+  `gngcrplcldfiubvhcdin` and verified them: `game_multiplier`, `set_seating_order` and `games_multiplier_check` exist,
+  row counts unchanged. **Live is at 044.** APK 9 keeps working (the multiplier is 1 and the seating RPC is unused until
+  the next build). **045 (Going rogue, PR 20) is written and not applied**; it needs pg_cron on first.
 
 ---
 
