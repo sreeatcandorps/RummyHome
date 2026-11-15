@@ -1,13 +1,15 @@
-# Multiplier — design mockups M01–M21 (PR 14, review set, revised Nov 15 after Sree's Nov 14 10:27 PM PT answers)
+# Multiplier — design mockups M01–M22 (PR 14, review set, revised Nov 15 to Sree's FINAL 12:35 AM PT answer)
 
 Flat copy of the generated set, embedded in [`../multiplier-design.md`](../multiplier-design.md) section 4. 390 dp, light theme,
 same style as the Pool set; each PNG has a caption strip. Sample games: S14 (4 players, ×2), S15 (7 players, ×100), S16 (20 players,
 14 rounds, ×10,000; Full count 80). The generator lives outside the repo.
 
-Revision notes (Nov 14 10:27 PM PT answers): the multiplier is set on the New game screen and locked once the game starts — M01 says so,
-M03 shows the read-only field in Game settings with the hint "To change the multiplier, end this game and start a new one.", and the
-Exact points sheet (M11, M21) repeats the hint. M22 (changing the multiplier mid-game) is gone. One K/M rule on every grid, no 13+
-special case: no value is longer than 5 characters including the sign (M09, M10, M19).
+Revision notes (Nov 15 12:35 AM PT, final): the multiplier defaults to ×1 and is prefilled — the creator never has to pick it (M01). It can be
+changed at any time from Game settings, and a change always applies to the whole game, every round from round 1 — M03 shows the field editable
+mid-game, M22 the confirm when rounds exist ("3 rounds already played …" — Apply to whole game / Start a new game instead / Cancel), the
+re-priced card and the one settings_changed Log line. The earlier lock + "end this game and start a new one" hint (M03, M11, M21) is gone; so is
+the per-round / "from round N" M22 of Nov 14. One K/M rule on every grid, no 13+ special case: no value is longer than 5 characters
+including the sign (M09, M10, M19).
 
 ## M01
 
@@ -92,3 +94,7 @@ special case: no value is longer than 5 characters including the sign (M09, M10,
 ## M21
 
 ![M21-exact-numbers-how-to-see-them.png](M21-exact-numbers-how-to-see-them.png)
+
+## M22
+
+![M22-change-multiplier-whole-game-confirm.png](M22-change-multiplier-whole-game-confirm.png)
