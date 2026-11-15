@@ -334,17 +334,17 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 
 | # | Kind | Where | What it proves |
 | --- | --- | --- | --- |
-| X14-1 | U | `tests/multiplier.test.ts` (to write) | `shortNumber`: one rule — K from 10,000, M from 1,000,000; never more than 5 characters including the sign; half away from zero; 999,500 → 1M; no ".0"; sign kept; 0 → "0"; CSV cases |
+| X14-1 | U | `tests/multiplier-pr14.test.ts` | `shortNumber`: one rule — K from 10,000, M from 1,000,000; never more than 5 characters including the sign; half away from zero; 999,500 → 1M; no ".0"; sign kept; 0 → "0"; CSV cases |
 | X14-2 | U | same | actual = entered × the game's one multiplier everywhere; exact sums add to 0; the red total rule ignores display rounding |
 | X14-3 | U | same | parsing 1–10,000, digits only, empty/0 → 1, over the cap → red text; absent key → 1; precedence game › user default › 1; Pool ignores it |
 | X14-4 | U | same | Final scores / share: two columns to 7 digits, one from 8, never short; PDF blocks 5 / 4 / 3 from the widest value |
 | X14-5 | U | same | Results: per-game multiplied contributions, `×N` header only when > 1, Winners exact, table K/M (mixed fixture) |
 | X14-6 | U | same | Toggle default ON, per phone, hidden at ×1, banner when OFF; saved / shared data unchanged |
-| X14-7 | D | `supabase/tests/34_multiplier_043.sql` (to write) | 043: result sums as bigint (2,280,000,000 saves), multiplier applied in SQL from `settings` at declare time, a `settings.multiplier` change on a game with rounds accepted and logged as one `settings_changed` row "Multiplier ×10 → ×5", a saved result unchanged after the game's multiplier changes, out-of-range refused, absent key → 1, rollback replay |
-| X14-8 | S | `smoke/17-multiplier.yaml` (to write) | ×100 game end to end: chip, toggle, "= −3,000" lines, Exact sheet, Final scores exact, Results `×100` |
-| X14-9 | N | `full/50-multiplier-20p.yaml` (to write) | 20 players at ×10,000 portrait + landscape (every cell ≤ 5 characters, no clipping, same layout as 4 players), share one column, PDF 4-column blocks |
-| X14-10 | S | `smoke/18-multiplier-change.yaml` (to write) | On a game with 3 rounds: Game settings → ×10 → ×5 → Save → confirm names 3 rounds → Cancel keeps ×10; Save → Apply to whole game → every cell / total re-priced, chip ×5, Log line; Start a new game instead → New game prefilled with the players and ×5; no rounds → no confirm |
-| X14-12 | U | `tests/multiplier.test.ts` (to write) | Confirm gating: 0 rounds → no dialog; N ≥ 1 → text with N; three actions; the Start-a-new-game payload (players, settings, new multiplier) |
+| X14-7 | D | `supabase/tests/34_multiplier_043.sql` | 043: result sums as bigint (2,280,000,000 saves), multiplier applied in SQL from `settings` at declare time, a `settings.multiplier` change on a game with rounds accepted and logged as one `settings_changed` row "Multiplier ×10 → ×5", a saved result unchanged after the game's multiplier changes, out-of-range refused, absent key → 1, rollback replay |
+| X14-8 | S | `smoke/18-multiplier-change.yaml` (same flow as X14-10: a ×10 game shows the chip, the toggle and the Exact sheet; Final scores / Results exact are unit-covered by X14-4 / X14-5) | ×10 game end to end: chip, toggle, banner, Exact sheet |
+| X14-9 | N | `full/50-multiplier-20p.yaml` | 20 players at ×10,000 portrait + landscape (every cell ≤ 5 characters, no clipping, same layout as 4 players), share one column, PDF 4-column blocks |
+| X14-10 | S | `smoke/18-multiplier-change.yaml` | On a game with 3 rounds: Game settings → ×10 → ×5 → Save → confirm names 3 rounds → Cancel keeps ×10; Save → Apply to whole game → every cell / total re-priced, chip ×5, Log line; Start a new game instead → New game prefilled with the players and ×5; no rounds → no confirm |
+| X14-12 | U | `tests/multiplier-pr14.test.ts` | Confirm gating: 0 rounds → no dialog; N ≥ 1 → text with N; three actions; the Start-a-new-game payload (players, settings, new multiplier) |
 | X14-11 | M | emulator | every M-screen of the spec (M01–M22) |
 
 ## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migrations 041 applied Nov 14 and 042 re-entries setting + limit-only lock applied Nov 15)

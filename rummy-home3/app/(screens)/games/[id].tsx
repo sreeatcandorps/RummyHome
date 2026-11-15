@@ -575,7 +575,7 @@ export default function GameScreen() {
           {typeTag}
           {playersTag}
           {statusTag}
-          <MultiplierChip multiplier={multiplier} onPress={() => setExactOpen(true)} />
+          <MultiplierChip multiplier={multiplier} onPress={() => setExactOpen(true)} testID="multiplier-chip" />
           {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
         </View>
         <ActualToggle multiplier={multiplier} on={showActual} onChange={setShowActual} />

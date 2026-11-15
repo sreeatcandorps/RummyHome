@@ -60,15 +60,16 @@ export const HELP = {
     'Re-entries: a player who is out may come back at the highest score still in — Unlimited, or Limited to a number per player.',
     'The settings here are for this game only and start from your Settings defaults.',
     'A pool’s limit locks once a round is saved; Drop, Middle drop, Full count and Re-entries can change any time (the Log records it).',
+    'Multiplier (Points only, 1 to 10,000): enter the small numbers as always; the app multiplies (×100 makes a 30 worth 3,000). A mid-game change applies to the whole game, or start a new game.',
     'When a pool is Completed, an admin gives awards (who gets what from the pool); the awards are what the pool adds to Results.',
   ),
   scorecard: bullets(
     'View only means you can watch but not change scores.',
-    'Totals sit in the header next to each name.',
+    'Totals sit in the header next to each name. With a multiplier, big numbers read short (8K, 1.2M); the ×N chip opens the exact points, and Actual / Entered points switches this phone’s view.',
     'Pool: header shows player number, initials and pool score; out is struck through, re-entered is blue. Standings below show points and drops left.',
     'Undo asks before removing the last round.',
     'Complete opens a page with the final totals and asks once more before locking. A Points game can then be picked for Results; a pool first needs awards.',
-    'The ⋮ menu changes this game’s Drop, Middle drop, and Full count, opens Players · Admins, shares the live link, reopens a Completed game, and hides or deletes it.',
+    'The ⋮ menu changes this game’s Drop, Middle drop, Full count and Multiplier, opens Players · Admins, shares the live link, reopens a Completed game, and hides or deletes it.',
     'Under the table: the game number with its creator and admins, and the full game ID. Tap the ID to copy it when you report a problem.',
   ),
   playersSheet: bullets(
@@ -157,6 +158,7 @@ export const HELP = {
     'Game settings: change one game from its ⋮ menu. They override everything for that game.',
     'User settings: what every new game starts with for you.',
     'Game defaults: Rummy’s standard -10, -30, -80, used when you have set nothing else.',
+    'Multiplier default (Points): what every new Points game starts at. ×1 means the points are exactly what you enter.',
   ),
   hiddenDeleted: bullets(
     'Hide game (scorecard ⋮) takes a game off your Home only. It still counts in results and stats. Unhide it here.',

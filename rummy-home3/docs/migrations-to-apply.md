@@ -548,7 +548,22 @@ PR 13 follow-up, **applied to live by Sree on Nov 15**:
 
 22. `supabase/migrations/042_pool_reentries_and_limit_lock.sql`
 
-Nothing is waiting to be applied. 043 (Multiplier, PR 14) and 044 (Going rogue, PR 20) are spec-only and not yet written.
+PR 14 Multiplier (Nov 15), **written, not applied — waiting for Sree's OK once PR 14's CI is green**:
+
+23. `supabase/migrations/043_multiplier.sql`
+
+What 043 does (rollback: `supabase/rollback/rollback_043_multiplier.sql`; pgTAP: `supabase/tests/34_multiplier_043.sql`):
+
+- `game_multiplier(settings, game_type)`: the one reader of `settings.multiplier` (Points only; absent, bad or Pool → 1).
+- `games_multiplier_check` trigger: `settings.multiplier`, when present, must be a whole number 1–10,000. No lock: the
+  multiplier may change at any time and always applies to the whole game (Sree's final answer, Nov 15 12:35 AM PT).
+- `declare_game_result`, `result_places_json`, `public_result`, `queue_result_saved_emails`, `list_game_results_page`:
+  result sums as `bigint` of `sum(entered) × multiplier`, so a ×10,000 result from six nights (2,280,000,000) saves and
+  lists. A saved result keeps its numbers if the game's multiplier changes later. Each result game carries `multiplier`.
+- `public_scorecard`: returns `multiplier` for the live web page (K / M cells, Exact points list).
+- `event_log_games`: the `settings_changed` labeller gains "Multiplier", so the Log reads "Multiplier ×10 → ×5".
+
+044 (Going rogue, PR 20) is spec-only and not yet written.
 
 Read-only checks that go with 021 (nothing is changed):
 

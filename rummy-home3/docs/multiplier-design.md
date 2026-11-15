@@ -1,13 +1,14 @@
-# Multiplier — design spec (PR 14, review first; nothing built yet)
+# Multiplier — design spec (PR 14, built Nov 15; migration 043 written, not applied)
 
-Status: **spec revised to Sree's FINAL answer of Nov 15, 12:35 AM PT**, which supersedes the Nov 14 10:27 PM "locked once
-the game starts" decision and Q14.25: the multiplier defaults to ×1 (app → user default → game, nothing to pick), **can
-be changed at any time, including mid-game, and a change always applies to the whole game, every round from round 1**;
-there is no per-round multiplier and no "from round N" option, ever. When rounds exist a confirm offers *Apply to whole
-game* / *Start a new game instead* / *Cancel*; the change is one `settings_changed` Log line. No app code, no migration
-applied. Mockups: [`multiplier-mockups/`](multiplier-mockups/) (M01–M22, generated like the Pool set: 390 dp, light theme,
-caption strip on each). Section 6 records every question with the answer that now stands; nothing is flagged for Sree.
-Section 9 says where the build sits in the queue.
+Status: **built** on `cursor/pr14-multiplier-build-0a03` (stacked on PR 21), to Sree's FINAL answer of Nov 15, 12:35 AM PT:
+the multiplier defaults to ×1 (app → user default → game, nothing to pick), **can be changed at any time, including
+mid-game, and a change always applies to the whole game, every round from round 1**; there is no per-round multiplier
+and no "from round N" option. When rounds exist a confirm offers *Apply to whole game* / *Start a new game instead* /
+*Cancel*; the change is one `settings_changed` Log line ("Multiplier ×10 → ×5"). Migration **043** is written with its
+rollback and pgTAP file 34 and is **not applied** to live (Sree applies once CI is green; `docs/migrations-to-apply.md`).
+Mockups: [`multiplier-mockups/`](multiplier-mockups/) (M01–M22). Section 6 records every question with the answer that
+stands. Where the build differs from a mockup in a detail, the build follows the rules in §3 (the mockups were drawn
+before the final whole-game answer). Sections 1–9 below are the spec as approved; §5 now describes what was written.
 
 ## 0. Sree's requirements (Nov 14, 3:46 PM PT) and how this spec reads them
 
@@ -191,17 +192,17 @@ layout therefore becomes block-of-N where N = 5, 4 or 3 is chosen from the wides
 The Nov 14 8:58 PM M22 (per-round rates, "From round N") and the Nov 15 lock-and-hint mockups are replaced; `git log` on
 `docs/multiplier-mockups/` has both if ever needed.
 
-## 5. Data (to be written in the build PR, not here)
+## 5. Data (written in the build PR)
 
 - `games.settings.multiplier` (jsonb key, integer 1–10,000, absent = 1) — the game's one multiplier, written by
   `create_game` and by the existing settings update path (admin-only, same as Drop / Middle drop / Full count). Profile
   defaults: `default_settings.multiplier`.
 - No `rounds` column, no RPC, no new log kind, **no lock trigger**.
-- Migration **043** (numbered after PR 13's 042, now applied): `declare_game_result` / `result_places_json` /
-  `public_result` sums as `bigint` of `sum(value) × multiplier` (so a result is right even when declared from an older
+- Migration **043** (numbered after PR 13's 042, which is applied): `declare_game_result` / `result_places_json` /
+  `public_result` / `queue_result_saved_emails` / `list_game_results_page` sums as `bigint` of `sum(value) × multiplier` (so a result is right even when declared from an older
   app build — D14.9); `public_scorecard` returns the multiplier for the live page; the settings-change Log labeller
   (036/042) gains the "Multiplier" label so the `settings_changed` line reads "Multiplier ×10 → ×5"; `games_settings_check`
-  validates 1–10,000. Rollback restores the 042 bodies. pgTAP file 34. To be written with the build, **not applied**.
+  validates 1–10,000. Rollback restores the 042 / 024 / 023 bodies. pgTAP file 34 (37 asserts). Written; **not applied**.
   (The 10:27 PM draft had a trigger refusing a `settings.multiplier` change on an existing game — removed.)
 - App: `utils/multiplier.ts` (`actual(value, m)`, `shortNumber(v)`, `exactLines(game)`), `pointsGameMultiplier(game)`;
   `GameSettings.multiplier?`; `RulesForm` field + example box (New game and Game settings alike; the whole-game confirm when rounds

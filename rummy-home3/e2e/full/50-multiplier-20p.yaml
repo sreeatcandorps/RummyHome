@@ -1,0 +1,95 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# PR 14 Multiplier (X14-9): game F (20 players × 30 rounds) at ×10,000. Game settings → 10000 → Save
+# passes the "Large multiplier" confirm (Keep it) and the whole-game confirm (Apply to whole game);
+# the scorecard then shows the ×10,000 chip and short totals (K / M, never more than five characters)
+# in the same layout as a four-player game; the Exact points sheet lists every exact total and the
+# "(exact)" footer. The flow ends by setting ×1 again so game F reads as before for full/20, 21.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEF1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEF1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 20000
+- tapOn: "Scorecard menu"
+- tapOn: "Game settings"
+- extendedWaitUntil:
+    visible: "Multiplier"
+    timeout: 5000
+- tapOn:
+    id: "game-settings-multiplier"
+- eraseText
+- inputText: "10000"
+- hideKeyboard
+- assertVisible: "A 30 is 300,000 .*"
+- tapOn:
+    id: "game-settings-save"
+- extendedWaitUntil:
+    visible: "Large multiplier"
+    timeout: 5000
+- assertVisible: ".*×10,000.*"
+- takeScreenshot: 50-large-multiplier-confirm
+- tapOn:
+    id: "multiplier-confirm-keep"
+- extendedWaitUntil:
+    visible: "Change the multiplier?"
+    timeout: 5000
+- assertVisible: "30 rounds already played.*"
+- tapOn:
+    id: "multiplier-apply-whole-game"
+- extendedWaitUntil:
+    visible:
+      id: "multiplier-chip"
+    timeout: 120000
+- assertVisible:
+    text: "×10,000"
+- assertVisible: "Actual points"
+- assertVisible: "TA"
+- assertVisible: "RND"
+- takeScreenshot: 50-scorecard-20p-x10000
+- tapOn:
+    id: "multiplier-chip"
+- extendedWaitUntil:
+    visible: "Exact points"
+    timeout: 5000
+- assertVisible:
+    id: "exact-totals-line"
+- assertVisible: ".*\\(exact\\).*"
+- takeScreenshot: 50b-exact-points-20p
+- tapOn: "Done"
+# Landscape: the same short numbers, nothing clipped.
+- setOrientation: LANDSCAPE_LEFT
+- extendedWaitUntil:
+    visible:
+      id: "multiplier-chip"
+    timeout: 120000
+- takeScreenshot: 50c-scorecard-20p-x10000-landscape
+- setOrientation: PORTRAIT
+# Back to ×1 so game F is unchanged for the other nightly flows.
+- tapOn: "Scorecard menu"
+- tapOn: "Game settings"
+- extendedWaitUntil:
+    visible: "Multiplier"
+    timeout: 5000
+- tapOn:
+    id: "game-settings-multiplier"
+- eraseText
+- inputText: "1"
+- hideKeyboard
+- tapOn:
+    id: "game-settings-save"
+- extendedWaitUntil:
+    visible: "Change the multiplier?"
+    timeout: 5000
+- tapOn:
+    id: "multiplier-apply-whole-game"
+- extendedWaitUntil:
+    notVisible:
+      id: "multiplier-chip"
+    timeout: 120000

@@ -400,6 +400,14 @@ More detail: `docs/play-store-setup.md`, `docs/release-checklist.md`.
 | `docs/privacy-policy.html` (repo root) | Hosted privacy page |
 | `TASK_LIST.md` | Older feature backlog (partially stale) |
 
+### 2026-11-15 — PR 14 Multiplier built (stacked PR; migration 043 written, not applied)
+- Points games carry `settings.multiplier` (1–10,000, whole game, changeable any time with a whole-game confirm). The app
+  stores entered points and multiplies at the edges; Results / result e-mails / result lists sum as `bigint` in SQL (043).
+- New shared number rules: short form K / M / B (≤ 5 characters) on screens, exact with separators on sheets, PDFs, the
+  live page and the `/r/` page; the share image goes to one column from 8-digit totals; PDF round blocks 5 / 4 / 3 wide.
+- 043 also returns the multiplier from `public_scorecard` and labels the settings-change Log line "Multiplier". Not applied
+  to live until Sree's OK after CI.
+
 ---
 
 ## Maintenance rule for agents
