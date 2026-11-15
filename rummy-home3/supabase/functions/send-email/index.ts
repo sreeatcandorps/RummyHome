@@ -65,7 +65,7 @@ const ordinal = (n: number) => {
 type OutboxRow = {
   id: number;
   event_key: string;
-  kind: 'game_started' | 'result_saved' | 'link_request';
+  kind: 'game_started' | 'result_saved' | 'link_request' | 'restore_requested';
   to_email: string;
   payload: Record<string, unknown>;
   attempts: number;
@@ -96,6 +96,18 @@ function render(row: OutboxRow): { subject: string; html: string; text: string }
 <p style="font-size:13px;color:#444">You can also answer on the Home screen of the app. This request expires on ${escapeHtml(when(p.expiresAt))}.</p>
 <p style="color:#666;font-size:12px;margin-top:24px">You get this because an EZ Score organiser typed your Player ID. If you did not expect it, tap No or ignore it. <a href="${SITE}/privacy">Privacy</a></p>`;
     const text = `Hi ${p.targetName ?? 'there'},\n\n${p.requesterName ?? 'A player'} asked to link their player ${who} to your EZ Score account (#${p.playerNo ?? ''}). If that is you, their seats and scores in ${count} ${count === 1 ? 'game' : 'games'}${games} move to your account.\n\nYes: ${p.yesUrl}\nNo: ${p.noUrl}\n\nExpires ${when(p.expiresAt)}. You can also answer in the app.`;
+    return { subject, html, text };
+  }
+
+  // 045 (PR 20): a scored player asked the creator / an admin to bring a deleted game back.
+  if (row.kind === 'restore_requested') {
+    const g = typeof p.gameLabel === 'string' && p.gameLabel ? `game ${p.gameLabel}` : 'a deleted game';
+    const subject = `${p.requesterName ?? 'A player'} asked to restore ${g}`;
+    const html = `<p>Hi ${escapeHtml(p.adminName ?? 'there')},</p>
+<p><strong>${escapeHtml(p.requesterName ?? 'A player')}</strong> asked to restore <strong>${escapeHtml(g)}</strong>${p.deletedByName ? `, deleted by ${escapeHtml(p.deletedByName)}${p.deletedAt ? ` on ${escapeHtml(when(p.deletedAt))}` : ''}` : ''}.</p>
+<p>Open EZ Score › Home › Deleted games and tap <strong>Restore game</strong> if it should come back.${p.purgeAt ? ` After ${escapeHtml(when(p.purgeAt))} it is gone for good.` : ''}</p>
+<p style="color:#666;font-size:12px;margin-top:24px">You get this because you created or admin this game. <a href="${SITE}/privacy">Privacy</a></p>`;
+    const text = `Hi ${p.adminName ?? 'there'},\n\n${p.requesterName ?? 'A player'} asked to restore ${g}${p.deletedByName ? `, deleted by ${p.deletedByName}` : ''}.\n\nOpen EZ Score > Home > Deleted games and tap Restore game if it should come back.${p.purgeAt ? ` After ${when(p.purgeAt)} it is gone for good.` : ''}`;
     return { subject, html, text };
   }
 

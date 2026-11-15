@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–044) applied, check the function state after each, then re-apply the forward
+# has every migration (001–045) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,18 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 045 (going rogue: restore_requests, request_restore, purge_deleted_games, the deleted-game readers; rolled back first)
+HAS_045=f
+if [ -f "$RB/rollback_045_going_rogue.sql" ]; then
+  HAS_045=t
+  if apply "$RB/rollback_045_going_rogue.sql"; then tap ok "rollback_045 applies"; else tap fail "rollback_045 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists request_restore)" = f ] && [ "$(fn_exists purge_deleted_games)" = f ] && [ "$(fn_has can_read_game can_read_deleted_game)" = f ] \
+    && [ "$(fn_has get_home_bundle deleted_games)" = f ] && [ "$(q "select not exists(select 1 from information_schema.columns where table_name='event_log' and column_name='purged_game_id')")" = t ] \
+    && [ "$(q "select not exists(select 1 from pg_constraint where conname='event_log_kind' and pg_get_constraintdef(oid) like '%game_purged%')")" = t ] \
+    && tap ok "after rollback_045 the asks, the purge, the deleted-game readers and the two Log kinds are gone" \
+    || tap fail "after rollback_045 request_restore / purge_deleted_games / purged_game_id / game_purged should be gone"
+fi
 
 # 044 (seating order: set_seating_order, the seating_changed Log kind, the pop-up flag ignored; rolled back first)
 HAS_044=f
@@ -428,6 +440,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_042" = t ] && FORWARD="$FORWARD 042_pool_reentries_and_limit_lock"
 [ "$HAS_043" = t ] && FORWARD="$FORWARD 043_multiplier"
 [ "$HAS_044" = t ] && FORWARD="$FORWARD 044_seating_order"
+[ "$HAS_045" = t ] && FORWARD="$FORWARD 045_going_rogue"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -576,6 +589,12 @@ if [ "$HAS_043" = t ]; then
 fi
 if [ "$HAS_044" = t ]; then
   [ "$(fn_exists set_seating_order)" = t ] && [ "$(fn_has event_log_games 'seatingPrompted')" = t ]     && [ "$(q "select exists(select 1 from pg_constraint where conname='event_log_kind' and pg_get_constraintdef(oid) like '%seating_changed%')")" = t ]     && tap ok "044 restored (set_seating_order, seating_changed kind, pop-up flag ignored by the settings log)" || tap fail "044 restored"
+fi
+
+if [ "$HAS_045" = t ]; then
+  [ "$(fn_exists request_restore)" = t ] && [ "$(fn_exists purge_deleted_games)" = t ] && [ "$(fn_has can_read_game can_read_deleted_game)" = t ] \
+    && [ "$(fn_has get_home_bundle deleted_games)" = t ] && [ "$(q "select exists(select 1 from pg_constraint where conname='event_log_kind' and pg_get_constraintdef(oid) like '%game_purged%')")" = t ] \
+    && tap ok "045 restored (request_restore, purge_deleted_games, deleted-game readers, Log kinds)" || tap fail "045 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

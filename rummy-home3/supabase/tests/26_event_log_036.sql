@@ -171,7 +171,9 @@ select lives_ok($$ select public.delete_game('10000000-0000-4000-8000-0000000000
 select tests.logout();
 select is((select string_agg(kind, ',' order by id) from pg_temp.since('dg')), 'result_changed,deleted,unclosed', '13.15 result_changed (removed from result) + deleted + unclosed');
 select tests.login(:SREE);
-select is((select string_agg(kind, ',' order by id) from pg_temp.since('dg')), 'result_changed,unclosed', '13.15 the deleted game''s own row is hidden from members with it (can_read_game); the rows that also point at the result stay');
+-- 045 (PR 20, Q20.3): sree created game A, so can_read_game still answers true for the deleted game and the
+-- Log stays readable (before 045 the game's own row was hidden; the rows that also point at the result always stayed)
+select is((select string_agg(kind, ',' order by id) from pg_temp.since('dg')), 'result_changed,deleted,unclosed', '13.15 the creator still reads the deleted game''s Log (045); the rows that also point at the result stay');
 select is((select summary from pg_temp.since('dg') where kind = 'result_changed'), 'Game S1 deleted — no longer counted in this result · Totals changed', '13.15 summary');
 select is((public.public_result_note((select id from rid)))->>'summary', 'Game S1 deleted — no longer counted in this result · Totals changed', '13.15 the public note follows');
 
