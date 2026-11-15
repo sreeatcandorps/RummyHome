@@ -2,6 +2,8 @@
 
 Friday’s build is a scorekeeper shared by several accounts. Tests are layered so a scoring bug and a “wrong person can see this game” bug are caught in different places.
 
+Flow view, roles, devices, automation tiers and the break-the-app programme: [`test-plan/README.md`](test-plan/README.md) (PR 16, review-first).
+
 ## Unit
 
 `npm test` runs `tests/*.test.ts` with no network.
@@ -238,6 +240,19 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | HL11-5 | S | `smoke/18-help.yaml` (to write) | `?` on Home, Scorecard, Add round, Results, Awards opens the page (screenshots) |
 | HL11-6 | N | `full/51-help-every-screen.yaml` (to write) | `?` on every screen; dark theme |
 | HL11-7 | M | emulator | read-through against the spec |
+
+## PR 16 test cases (Test plan — review-first, `docs/test-plan/`; codes reserved)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| T16-1 | U | `tests/test-plan-coverage.test.ts` (to write) | `coverage.md` lists every route and every dialog / notice / alert / snackbar string; zero gaps |
+| T16-2 | U | same | every `Fxx` in `flows.md` has a PNG; every W code used exists |
+| T16-3 | N | `e2e/roles/*.yaml` (to write) | must-not assertions per role (CR / AD / PL / SP / OU) on D1 |
+| T16-4 | N | `ui-full` device matrix (to add) | smoke set on D2–D4, screenshots vs approved set |
+| T16-5 | T3 | `e2e/chaos/*.yaml`, `ci/chaos/*.mjs` (to write) | C16-1..10, `adb monkey` 20,000 events, Firebase Robo: no crash, no duplicate round |
+| T16-6 | S | `web/tests/*.spec.ts` (Playwright, to write) | `/r/` scorecard and result pages on Chromium + WebKit; wrong token → not found |
+| T16-7 | T3 | volume with a device | 20 × 500 scorecard < 2 s on D2; 30 × 20 result < 3 s |
+| T16-8 | U | `ci/select-tests.mjs` (to write) | every source path maps to a flow set |
 
 ## PR 15 test cases (Design consistency — audit only, `docs/design-audit.md`; codes reserved)
 
