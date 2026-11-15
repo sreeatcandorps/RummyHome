@@ -239,6 +239,17 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | HL11-6 | N | `full/51-help-every-screen.yaml` (to write) | `?` on every screen; dark theme |
 | HL11-7 | M | emulator | read-through against the spec |
 
+## PR 15 test cases (Design consistency — audit only, `docs/design-audit.md`; codes reserved)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| DC15-1 | U | `tests/design-tokens.test.ts` (to write) | no `Alert.alert`, no `contained-tonal`, no raw `borderRadius` numbers outside `theme.ts`, no Paper `Chip` for status |
+| DC15-2 | U | same | every stack route title matches `Screen · S1` / `Screen`; `headerTitleAlign` unset everywhere |
+| DC15-3 | U | same | `formatWhen` is the only date formatter screens import; `#` + id the only ID helper |
+| DC15-4 | U | same | Results picker selected cards use the game tokens, the "Results" tag the result tokens |
+| DC15-5 | S | `smoke/19-design.yaml` (to write) | My players tiles and tab bar both on screen; Results picker screenshot |
+| DC15-6 | N | nightly | screenshot diff of 12 key screens against the approved set (first visual-regression job) |
+
 ## PR 14 test cases (Multiplier — spec only, `docs/multiplier-design.md`; codes reserved, tests written with the build)
 
 | # | Kind | Where | What it proves |
