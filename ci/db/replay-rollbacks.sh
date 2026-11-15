@@ -24,7 +24,17 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 041 (pool; rolled back first)
+# 042 (re-entries setting, limit-only lock; rolled back first)
+HAS_042=f
+if [ -f "$RB/rollback_042_pool_reentries_and_limit_lock.sql" ]; then
+  HAS_042=t
+  if apply "$RB/rollback_042_pool_reentries_and_limit_lock.sql"; then tap ok "rollback_042 applies"; else tap fail "rollback_042 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists pool_reentry_limit)" = f ] && [ "$(fn_has reenter_player 'already re-entered once')" = t ] && [ "$(fn_has games_pool_settings_lock 'dropAmount')" = t ] \
+    && tap ok "after rollback_042 re-entry is once per player and the four pool values are locked again (041)" \
+    || tap fail "after rollback_042 pool_reentry_limit should be gone and reenter_player / the lock back to 041"
+fi
+
+# 041 (pool)
 HAS_041=f
 if [ -f "$RB/rollback_041_pool.sql" ]; then
   HAS_041=t
@@ -397,6 +407,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_039" = t ] && FORWARD="$FORWARD 039_initials_rules"
 [ "$HAS_040" = t ] && FORWARD="$FORWARD 040_own_initials_and_round_gaps"
 [ "$HAS_041" = t ] && FORWARD="$FORWARD 041_pool"
+[ "$HAS_042" = t ] && FORWARD="$FORWARD 042_pool_reentries_and_limit_lock"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -533,6 +544,10 @@ fi
 if [ "$HAS_041" = t ]; then
   [ "$(fn_exists reenter_player)" = t ] && [ "$(fn_exists set_pool_awards)" = t ] && [ "$(fn_has save_round 'pool_recompute')" = t ] && [ "$(fn_has declare_game_result 'Give awards first')" = t ] \
     && tap ok "041 restored (reenter_player, set_pool_awards, pool save_round, awards-first results)" || tap fail "041 restored"
+fi
+if [ "$HAS_042" = t ]; then
+  [ "$(fn_exists pool_reentry_limit)" = t ] && [ "$(fn_has reenter_player 'pool_reentry_limit')" = t ] && [ "$(fn_has games_pool_settings_lock 'dropAmount')" = f ] && [ "$(fn_has event_log_games 'Re-entries')" = t ] \
+    && tap ok "042 restored (re-entry limit, limit-only lock, labelled settings log)" || tap fail "042 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op
