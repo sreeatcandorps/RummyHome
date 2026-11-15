@@ -214,6 +214,10 @@ for f in $(ls "$SET_DIR"/*.yaml 2>/dev/null | sort); do
     # Where the app was when the step failed: Maestro's own failure screenshot sits in the debug
     # folder; also take one now so the gallery has it under a predictable name.
     adb exec-out screencap -p > "$OUT/screens/${name}--FAILED.png" 2>/dev/null || true
+    # Everything the device logged during this flow (the buffer was cleared at its start): the only
+    # way to read a blank screen or a silent hang after the fact.
+    mkdir -p "$ABS_OUT/debug/$name"
+    adb logcat -d > "$ABS_OUT/debug/$name/logcat.txt" 2>/dev/null || true
     [ "$VIDEO" != off ] && record_stop "$name" keep
   fi
 done

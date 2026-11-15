@@ -43,11 +43,13 @@ tags: [chaos]
 - tapOn: "Player Two, no score"
 - tapOn: "7"
 - tapOn: "7"
+# 77 is under the Full count (80): only the inline "more than half" hint, no dialog. 777 asks.
+- assertNotVisible: "Over the Full count"
+- tapOn: "7"
 - extendedWaitUntil:
     visible: "Over the Full count"
     timeout: 5000
-- tapOn: "Keep -77"
-- tapOn: "7"
+- tapOn: "Keep -777"
 - tapOn: "Save score"
 - tapOn: "Mo Khan, no score"
 - tapOn: "5"

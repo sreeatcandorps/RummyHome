@@ -43,7 +43,8 @@ tags: [chaos]
 - tapOn:
     id: "game-menu-log"
 - extendedWaitUntil:
-    visible: "Log"
+    visible:
+      text: "Log · .*"
     timeout: 15000
 - assertNotVisible:
     text: ".*Round 2 added.*"

@@ -30,6 +30,13 @@ tags: [chaos]
     id: "game-type-pool"
 - tapOn:
     id: "new-game-limit-custom"
+# The red banner renders under the settings card, below the fold on a Pixel 6 (finding: the user sees
+# nothing happen on Start until they scroll), so each attempt scrolls down to it and back up to the field.
+- scrollUntilVisible:
+    element:
+      id: "new-game-limit-input"
+    direction: UP
+    timeout: 8000
 - tapOn:
     id: "new-game-limit-input"
 - eraseText: 6
@@ -37,12 +44,18 @@ tags: [chaos]
 - hideKeyboard
 - tapOn:
     id: "start-game"
-- extendedWaitUntil:
-    visible:
+- scrollUntilVisible:
+    element:
       text: ".*whole number from 51 to 999.*"
-    timeout: 5000
+    direction: DOWN
+    timeout: 8000
 - assertVisible: "Game type"
 - takeScreenshot: c03-limit-letters-refused
+- scrollUntilVisible:
+    element:
+      id: "new-game-limit-input"
+    direction: UP
+    timeout: 8000
 - tapOn:
     id: "new-game-limit-input"
 - eraseText: 6
@@ -50,11 +63,17 @@ tags: [chaos]
 - hideKeyboard
 - tapOn:
     id: "start-game"
-- extendedWaitUntil:
-    visible:
+- scrollUntilVisible:
+    element:
       text: ".*whole number from 51 to 999.*"
-    timeout: 5000
+    direction: DOWN
+    timeout: 8000
 - assertVisible: "Game type"
+- scrollUntilVisible:
+    element:
+      id: "new-game-limit-input"
+    direction: UP
+    timeout: 8000
 - tapOn:
     id: "new-game-limit-input"
 - eraseText: 6
@@ -66,10 +85,11 @@ tags: [chaos]
 - hideKeyboard
 - tapOn:
     id: "start-game"
-- extendedWaitUntil:
-    visible:
+- scrollUntilVisible:
+    element:
       text: ".*whole number from 51 to 999.*"
-    timeout: 5000
+    direction: DOWN
+    timeout: 8000
 - assertVisible: "Game type"
 - takeScreenshot: c03-limit-99999-refused
 - back

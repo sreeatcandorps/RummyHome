@@ -12,7 +12,11 @@ tags: [chaos]
       EMAIL: c1@test.local
 - tapOn: "Your profile"
 - extendedWaitUntil:
-    visible: "Log out"
+    visible: "Profile"
+    timeout: 15000
+- scrollUntilVisible:
+    element: "Log out"
+    direction: DOWN
     timeout: 15000
 - takeScreenshot: c12-profile-before-revoke
 - extendedWaitUntil:
