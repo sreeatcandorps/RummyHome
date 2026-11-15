@@ -244,7 +244,7 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | X14-10 | S | `smoke/18-multiplier-locked.yaml` (to write) | On a started game, Game settings shows the multiplier greyed with "To change the multiplier, end this game and start a new one."; Drop / Middle drop / Full count still save; a direct `settings.multiplier` update is refused by the server |
 | X14-11 | M | emulator | every M-screen of the spec (M01–M21) |
 
-## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migration 041 applied Nov 14; 042 re-entries setting + limit-only lock written, not applied)
+## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migrations 041 applied Nov 14 and 042 re-entries setting + limit-only lock applied Nov 15)
 
 Spec: `docs/pool-design.md` (Sree's 14 decisions of Nov 14), mockups in `docs/pool-mockups/`.
 
