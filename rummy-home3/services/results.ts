@@ -18,6 +18,7 @@ import {
   gameLabelFor,
 } from '@/utils/results';
 import { resultScoresOf } from '@/utils/pool';
+import { pointsGameMultiplier } from '@/utils/multiplier';
 
 const LOCAL_KEY = 'gameResults';
 
@@ -112,9 +113,10 @@ function sheetFrom(value: unknown, standings: ResultStanding[]): ResultSheet {
   const games = Array.isArray(row.games)
     ? row.games.flatMap((item) => {
       if (!item || typeof item !== 'object') return [];
-      const game = item as { id?: unknown; name?: unknown; label?: unknown; date?: unknown; scores?: unknown; rounds?: unknown };
+      const game = item as { id?: unknown; name?: unknown; label?: unknown; date?: unknown; scores?: unknown; rounds?: unknown; multiplier?: unknown };
       if (typeof game.id !== 'string') return [];
       const rounds = roundsRecord(game.rounds);
+      const multiplier = Number(game.multiplier);
       return [{
         id: game.id,
         name: typeof game.name === 'string' && game.name.trim() ? game.name : game.id.slice(-6).toUpperCase(),
@@ -122,6 +124,7 @@ function sheetFrom(value: unknown, standings: ResultStanding[]): ResultSheet {
         date: typeof game.date === 'string' ? game.date : '',
         scores: numberRecord(game.scores),
         ...(rounds ? { rounds } : {}),
+        ...(Number.isFinite(multiplier) && multiplier > 1 ? { multiplier } : {}),
       }];
     })
     : [];
@@ -315,6 +318,7 @@ export const resultsService = {
       players: game.players,
       scores: resultScoresOf(game),
       names: input.names,
+      multiplier: pointsGameMultiplier(game),
     })));
 
     if (!isSupabaseConfigured) {

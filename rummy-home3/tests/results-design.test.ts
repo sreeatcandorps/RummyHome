@@ -86,7 +86,7 @@ test('design: the band table splits games five per band; the last band stops at 
   assert.deepEqual(table.rows[0].bands[0].map((cell) => cell.tone), ['win', 'neg', 'win', 'neg', 'win']);
   assert.deepEqual(table.rows[0].bands[1].map((cell) => cell.tone), ['neg', 'win']);
   assert.deepEqual(table.header.map((band) => band.length), [5, 2], 'the header has the same 5 + 2 shape');
-  assert.deepEqual(table.rows[2].bands[0][0], { text: '—', tone: 'dash' }, 'not seated is a dash');
+  assert.deepEqual(table.rows[2].bands[0][0], { text: '—', short: '—', tone: 'dash' }, 'not seated is a dash');
   assert.equal(legendText({ initials: 'SK', playerNo: 1, name: 'Sree Koneru' }), 'SK #1 Sree Koneru');
   assert.equal(legendText({ initials: 'PLA', playerNo: null, name: 'Player 2' }), 'PLA Player 2');
 });

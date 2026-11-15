@@ -65,7 +65,8 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   const cardX = CARD_PAD;
   const cardW = CARD_W - CARD_PAD * 2;
   const colGap = 20;
-  const colW = (cardW - INNER_PAD * 2 - colGap) / 2;
+  // PR 14: one full-width column once a total runs to eight digits, so the numbers never collide with the names.
+  const colW = card.layout === 'single' ? cardW - INNER_PAD * 2 : (cardW - INNER_PAD * 2 - colGap) / 2;
   const nameWidth = colW - 96;
 
   // Measure first so the canvas is exactly as tall as the content.
@@ -73,7 +74,7 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
   const noteLines = (card.notes ?? []).map((note) => wrapText(ctx, note, cardW - INNER_PAD * 2 - 20, 3));
   const notesH = noteLines.reduce((sum, lines) => sum + lines.length * 18 + 16, 0);
   const colH = (lines: ShareLine[]) => (lines.length === 0 ? 34 : lines.reduce((sum, line) => sum + lineHeight(line), 0));
-  const columnsH = Math.max(colH(card.positive), colH(card.negative));
+  const columnsH = card.layout === 'single' ? colH(card.positive) : Math.max(colH(card.positive), colH(card.negative));
   ctx.font = '600 16px sans-serif';
   const gamesLines = card.gamesLine ? wrapText(ctx, card.gamesLine, cardW - INNER_PAD * 2, 3) : [];
   const tailH = (card.evenLine ? 24 : 0) + (gamesLines.length ? gamesLines.length * 22 + 10 : 0) + (card.generatedBy ? 22 : 0);
@@ -166,7 +167,7 @@ export function drawShareCard(card: ShareCard): HTMLCanvasElement {
     });
   };
   drawColumn(card.positive, left);
-  drawColumn(card.negative, left + colW + colGap);
+  if (card.layout !== 'single') drawColumn(card.negative, left + colW + colGap);
   y += columnsH + 12;
 
   const centre = cardX + cardW / 2;

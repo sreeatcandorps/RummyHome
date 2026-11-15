@@ -63,7 +63,8 @@ export function multiplyScores<T extends Record<string, (number | undefined)[] |
 /** "1,234,567" — exact, with thousands separators, sign kept (a plus only when asked). */
 export function formatExact(value: number, signed = true): string {
   const n = Math.trunc(Number(value) || 0);
-  const abs = Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 0, useGrouping: true });
+  // A regex, not toLocaleString: this runs for every cell of a 50-game × 20-player result.
+  const abs = String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   if (n < 0) return `-${abs}`;
   return signed && n > 0 ? `+${abs}` : abs;
 }
@@ -111,7 +112,7 @@ export function shortNumber(value: number, options: { plus?: boolean } = {}): st
 export const anyShortened = (values: number[]) => values.some((v) => Math.abs(Math.trunc(Number(v) || 0)) >= SHORT_FROM);
 
 /** "×100", "×10,000" — the chip and sub-line label. */
-export const multiplierLabel = (multiplier: number) => `×${multiplier.toLocaleString('en-US')}`;
+export const multiplierLabel = (multiplier: number) => `×${formatExact(multiplier, false)}`;
 
 /** "A 30 is 3,000 · a Full count is 8,000" — the live example under the field (D14.3). */
 export function multiplierExample(multiplier: number, fullCount: number | null | undefined): string {
@@ -186,7 +187,7 @@ export function exactLines(input: { players: { id: string; name: string; label?:
         label: player.label ?? '',
         total,
         exact: formatExact(total),
-        entered: input.multiplier > 1 ? `entered ${formatExact(entered)} × ${input.multiplier.toLocaleString('en-US')}` : null,
+        entered: input.multiplier > 1 ? `entered ${formatExact(entered)} × ${formatExact(input.multiplier, false)}` : null,
       };
     })
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));

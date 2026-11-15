@@ -15,6 +15,7 @@ import { buildFinalScoresSheet, totalsLine } from '@/utils/finalScoresSheet';
 import { gameAdminLines, gameAdminTextLines } from '@/utils/gameAdmins';
 import { IMAGE_READY, shareFinalScoresImage } from '@/utils/shareImage';
 import { PDF_READY, shareFinalScoresPdf } from '@/utils/shareResultsPdf';
+import { pointsGameMultiplier } from '@/utils/multiplier';
 import { isPoolGame, poolLimitOf } from '@/utils/pool';
 
 /**
@@ -43,6 +44,7 @@ export default function FinalScoresScreen() {
           pool: isPoolGame(game)
             ? { limit: poolLimitOf(game.settings), fullCount: Math.abs(game.settings.maxCount || 0), seats: game.poolSeats ?? {}, awards: game.awardedAt ? game.prizeShares : null }
             : undefined,
+          multiplier: pointsGameMultiplier(game),
         })
       : null),
     [game, players, roster],
@@ -92,6 +94,9 @@ export default function FinalScoresScreen() {
             <ShareCardView card={sheet.card} />
             <OffscreenShareCard card={sheet.card} cardRef={capture.ref} onHeight={capture.onHeight} />
             <Text variant="titleMedium" style={[styles.heading, { color: colors.onSurface }]} accessibilityRole="header">Round by round</Text>
+            {sheet.multiplierLine ? (
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="final-scores-multiplier">{sheet.multiplierLine}</Text>
+            ) : null}
             {sheet.adminLines.map((line) => (
               <Text key={line} variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{line}</Text>
             ))}

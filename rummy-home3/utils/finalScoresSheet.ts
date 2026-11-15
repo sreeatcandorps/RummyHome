@@ -1,5 +1,6 @@
 import { gameLabelOf, gameTitle, LabelledGame } from '@/utils/gameLabel';
 import { formatPoints } from '@/utils/results';
+import { exactSubline, multiplierLabel, multiplyScores } from '@/utils/multiplier';
 import { buildRoundTable, ResultsRoundTable } from '@/utils/resultsDetails';
 import { buildScoresCard, ShareCard } from '@/utils/shareCard';
 import { PoolSeat } from '@/types/game';
@@ -60,6 +61,10 @@ export type FinalScoresSheet = {
   /** Pool (PR 13): "4 in · 2 out · limit 101", and whether the card shows awards. */
   poolLine?: string;
   showsAwards?: boolean;
+  /** Multiplier (PR 14): the game's ×N when above 1; every number on the sheet is already the actual points. */
+  multiplier?: number;
+  /** "×100 · exact points" under the heading when the multiplier is above 1. */
+  multiplierLine?: string;
 };
 
 /** Pool (PR 13) inputs: seats for totals, the limit, and the awards once given. */
@@ -104,13 +109,17 @@ export function buildFinalScoresSheet(input: {
   admins?: string[];
   now?: Date;
   pool?: FinalScoresPool;
+  /** Points games (PR 14): the entered scores are multiplied once here; Pool ignores it. */
+  multiplier?: number;
 }): FinalScoresSheet {
   const now = input.now ?? new Date();
-  const roundCount = input.players.reduce((max, player) => Math.max(max, input.scores[player.id]?.length ?? 0), 0);
   const pool = input.pool;
+  const multiplier = !pool && input.multiplier && input.multiplier > 1 ? Math.trunc(input.multiplier) : 1;
+  const scores = multiplier > 1 ? multiplyScores(input.scores, multiplier) : input.scores;
+  const roundCount = input.players.reduce((max, player) => Math.max(max, scores[player.id]?.length ?? 0), 0);
 
   const players: FinalScoresPlayer[] = input.players.map((player) => {
-    const column = input.scores[player.id] ?? [];
+    const column = scores[player.id] ?? [];
     const seat = pool?.seats[player.id] ?? EMPTY_SEAT;
     const cells: FinalScoreCell[] = Array.from({ length: roundCount }, (_, index) => {
       const value = Number(column[index] ?? 0) || 0;
@@ -153,7 +162,7 @@ export function buildFinalScoresSheet(input: {
   const inCount = pool ? players.filter((p) => !isOut(pool.seats[p.id])).length : 0;
   const poolLine = pool ? `${inCount} in · ${players.length - inCount} out · limit ${pool.limit}${awards ? ' · awards given' : ''}` : undefined;
   const table = buildRoundTable(
-    { id: input.game.id, name: input.game.shareCode ?? label, label, date: input.game.date, scores: totals, rounds: input.scores, roundCount },
+    { id: input.game.id, name: input.game.shareCode ?? label, label, date: input.game.date, scores: totals, rounds: scores, roundCount, multiplier: multiplier > 1 ? multiplier : undefined },
     0,
     input.players,
   );
@@ -161,7 +170,7 @@ export function buildFinalScoresSheet(input: {
     title: awards ? `Awards · ${finalScoresHeading(input.game).replace(/^Final scores · /, '')}` : finalScoresHeading(input.game),
     tone: 'game',
     date: formatWhen(input.game.date),
-    summary: `${players.length} ${players.length === 1 ? 'player' : 'players'} · ${roundCount === 1 ? '1 round' : `${roundCount} rounds`}${poolLine ? ` · ${poolLine}` : ''}`,
+    summary: `${players.length} ${players.length === 1 ? 'player' : 'players'} · ${roundCount === 1 ? '1 round' : `${roundCount} rounds`}${poolLine ? ` · ${poolLine}` : ''}${multiplier > 1 ? ` · ${multiplierLabel(multiplier)}` : ''}`,
     standings: summary.map((row, index) => ({ id: row.id, name: row.name, points: row.total, games: 1, place: index + 1 })),
     players: input.players,
     games: [{ scores: awards ? Object.fromEntries(players.map((p) => [p.id, awards[p.id] ?? 0])) : totals }],
@@ -184,5 +193,7 @@ export function buildFinalScoresSheet(input: {
     card,
     poolLine,
     showsAwards: Boolean(awards),
+    multiplier: multiplier > 1 ? multiplier : undefined,
+    multiplierLine: exactSubline(multiplier) ?? undefined,
   };
 }

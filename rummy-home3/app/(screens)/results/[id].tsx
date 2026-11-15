@@ -1,3 +1,4 @@
+import { actual, pointsGameMultiplier } from '@/utils/multiplier';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -55,10 +56,12 @@ async function withRounds(result: GameResult): Promise<GameResult> {
     try {
       const loaded = await gamesService.getGame(game.id);
       if (!loaded) return game;
+      // PR 14: a saved result holds actual points; the reloaded rounds are entered points, so multiply them the same way.
+      const factor = pointsGameMultiplier(loaded);
       const rounds: Record<string, number[]> = {};
       Object.keys(game.scores).forEach((id) => {
         if (id === RESULT_EXPENSE_ID) return;
-        rounds[id] = (loaded.scores[id] ?? []).map((value) => Number(value) || 0);
+        rounds[id] = (loaded.scores[id] ?? []).map((value) => actual(Number(value) || 0, factor));
       });
       return { ...game, rounds };
     } catch {

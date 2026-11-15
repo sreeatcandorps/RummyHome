@@ -28,6 +28,7 @@ import { RESULT_UNSAVED_BANNER, resultShareNotes, resultWarningLines, saveBlocke
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { resultScoresOf } from '@/utils/pool';
+import { pointsGameMultiplier } from '@/utils/multiplier';
 
 function param(value: string | string[] | undefined): string {
   if (Array.isArray(value)) return value[0] ?? '';
@@ -108,6 +109,7 @@ export default function ShownResults() {
         players: game.players,
         scores: resultScoresOf(game),
         names: found.names,
+        multiplier: pointsGameMultiplier(game),
       }));
       if (!withinResultsPlayerLimit(shaped)) {
         setBlocked(true);

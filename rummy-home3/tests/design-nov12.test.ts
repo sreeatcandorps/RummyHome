@@ -138,7 +138,7 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
   assert.doesNotMatch(table, /footer\?: React\.ReactNode/);
   assert.match(table, /dealsNext && \{ backgroundColor: colors\.primaryContainer, borderBottomWidth: DEALER_BAR/);
   assert.ok(!/dealsNext && \{ backgroundColor: colors\.primary \}/.test(table), 'the dealer column is no longer filled button green');
-  assert.match(table, /\{pool \? String\(total\) : signed\(total\)\}/);
+  assert.match(table, /\{pool \? String\(total\) : shownTotal\(total\)\}/);
   assert.match(table, /const totalColor = dealsNext \? colors\.onPrimaryContainer\n\s+: pool \? \(out \? colors\.onSurfaceVariant : reentered \? colors\.reentry : colors\.onSurface\)\n\s+: total < 0 \? colors\.loss : colors\.onSurface/, 'Points totals: red when negative, near-black otherwise; a pool total is plain, grey when out, blue when re-entered (PR 13)');
   // Final batch item 5 in the green palette: only a win gets a background (the Clubhouse win tint); no red pill.
   assert.match(table, /text\.highlight && \{ backgroundColor: colors\.winContainer \}/);

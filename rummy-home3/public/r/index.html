@@ -220,7 +220,9 @@
       // How you got there: bands of five games; header and every row carry the same filled band, the last one as wide as its games.
       const bands = []; for (let i = 0; i < games.length; i += BAND) bands.push(games.slice(i, i + BAND));
       const box = (cells, head, i) => '<div class="box n' + cells.length + (head ? ' head' : '') + (i % 2 === 1 ? ' alt' : '') + '">' + cells.join('') + '</div>';
-      const headBoxes = bands.map((b, i) => box(b.map((g) => '<div class="c">' + esc(g.label || g.code || '') + '</div>'), true, i)).join('');
+      // PR 14: a multiplied game heads its column "S15 ×100"; the saved points are already actual points.
+      const multOf = (g) => (g.multiplier && g.multiplier > 1 ? ' ×' + Number(g.multiplier).toLocaleString('en-US') : '');
+      const headBoxes = bands.map((b, i) => box(b.map((g) => '<div class="c">' + esc((g.label || g.code || '') + multOf(g)) + '</div>'), true, i)).join('');
       const totalFor = new Map(standings.map((s) => [s.player, s.points]));
       const bodyRows = order.map((row) => {
         const boxes = bands.map((b, i) => box(b.map((g) => {
@@ -241,7 +243,7 @@
       // Games in this result: time first (bold), then the date; the game id last, in italics.
       const gameList = games.map((g) => {
         const n = g.scores ? Object.keys(g.scores).length : 0;
-        const counts = (n === 1 ? '1 player' : n + ' players') + (g.roundCount != null ? ' · ' + (g.roundCount === 1 ? '1 round' : g.roundCount + ' rounds') : '');
+        const counts = (n === 1 ? '1 player' : n + ' players') + (g.roundCount != null ? ' · ' + (g.roundCount === 1 ? '1 round' : g.roundCount + ' rounds') : '') + (multOf(g) ? ' ·' + multOf(g) : '');
         const admins = Array.isArray(g.adminNames) ? g.adminNames.filter((a) => a && a !== g.creatorName) : [];
         const people = [g.creatorName ? 'Creator ' + g.creatorName : '', admins.length ? (admins.length === 1 ? 'Admin ' : 'Admins ') + admins.join(', ') : ''].filter(Boolean).join(' · ');
         return '<div class="gm"><div class="g1"><span class="lab">' + esc(g.label || g.code || '') + '</span><span class="when"><b>' + esc(clock(g.date)) + '</b> ' + esc(dayOf(g.date)) + '</span></div>'

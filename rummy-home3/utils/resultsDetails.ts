@@ -1,4 +1,5 @@
 import { firstAppearanceOrder, initialsById } from '@/utils/playerInitials';
+import { pdfBlockSize, widestChars } from '@/utils/multiplier';
 import { formatPoints, playersByFirstName, resultsCountLine, ResultStanding, sheetGameLabel } from '@/utils/results';
 import {
   BandCell,
@@ -8,6 +9,7 @@ import {
   evenLine,
   gameCountsLine,
   GameInfo,
+  gameMultiplierLabel,
   gamePeopleLine,
   gamesInResult,
   legendOf,
@@ -37,6 +39,8 @@ export type ResultsDetailGame = {
   creatorName?: string | null;
   adminNames?: string[];
   reused?: boolean;
+  /** PR 14: the game's multiplier (scores and rounds here are already multiplied). */
+  multiplier?: number;
 };
 
 /** Up to this many players side by side in a round table; more wrap into another block. */
@@ -70,8 +74,12 @@ export type ResultsRoundTable = {
   playerNos: (number | null)[];
   rows: { round: number; cells: string[] }[];
   totals: string[];
-  /** Blocks of ROUND_BLOCK_SIZE players, totals in the head under each player (Part B). */
+  /** Blocks of `blockSize` players, totals in the head under each player (Part B). */
   blocks: RoundBlock[];
+  /** PR 14 (Q14.12): 5 players a block to 7 characters, 4 to 9, 3 past that — from the widest value in the game. */
+  blockSize: number;
+  /** PR 14: "×100" when the game had a multiplier; '' otherwise. */
+  multiplier: string;
   /** True when the saved result had no rounds to show. */
   totalsOnly: boolean;
 };
@@ -142,7 +150,8 @@ export function buildRoundTable(
     cells: seated.map((player) => cellAt(player.id, roundIndex)),
   }));
   const totals = seated.map((player) => formatPoints(game.scores[player.id] ?? 0));
-  const blocks: RoundBlock[] = chunkBy(seated.map((player, position) => ({ player, position })), ROUND_BLOCK_SIZE).map((block) => ({
+  const blockSize = pdfBlockSize(widestChars([...totals, ...rows.flatMap((row) => row.cells)]));
+  const blocks: RoundBlock[] = chunkBy(seated.map((player, position) => ({ player, position })), blockSize).map((block) => ({
     heads: block.map(({ player, position }) => ({ initials: initials[position], playerNo: player.playerNo ?? null, total: totals[position] })),
     rows: Array.from({ length: roundCount }, (_, roundIndex) => ({
       round: roundIndex + 1,
@@ -159,6 +168,8 @@ export function buildRoundTable(
     rows,
     totals,
     blocks,
+    blockSize,
+    multiplier: gameMultiplierLabel(game),
     totalsOnly: !rounds || roundCount === 0,
   };
 }
@@ -247,7 +258,7 @@ function bandBoxHtml(cells: { text: string; cls: string }[], head: boolean, inde
 
 export function bandTableHtml(table: BandTable): string {
   const header = `<div class="brow hrow"><div class="pcell head">Player</div><div class="tcell head">Total</div><div class="boxes">`
-    + table.header.map((band, index) => bandBoxHtml(band.map((label) => ({ text: label, cls: 'c' })), true, index)).join('')
+    + table.header.map((band, index) => bandBoxHtml(band.map((label, cell) => ({ text: table.headerMultipliers?.[index]?.[cell] ? `${label} ${table.headerMultipliers[index][cell]}` : label, cls: 'c' })), true, index)).join('')
     + '</div></div>';
   const rows = table.rows.map((row) =>
     `<div class="brow"><div class="pcell"><b>${escapeHtml(row.initials)}</b>${row.playerNo != null ? `<small>#${row.playerNo}</small>` : ''}</div>`
@@ -276,11 +287,11 @@ export function gameInfoHtml(info: GameInfo): string {
  * so a short last block is left-aligned instead of stretched (PR 10b) — and never splits
  * across a page break; its caption stays with it.
  */
-export function roundBlockHtml(block: RoundBlock, caption: string | null = null): string {
+export function roundBlockHtml(block: RoundBlock, caption: string | null = null, blockSize: number = ROUND_BLOCK_SIZE): string {
   const head = `<tr><th class="rn">Rnd</th>${block.heads.map((head) => `<th><span class="ini">${escapeHtml(head.initials)}</span>`
     + `<span class="tot ${pointsClass(head.total)}">${escapeHtml(head.total)}</span></th>`).join('')}</tr>`;
   const body = block.rows.map((row) => `<tr><td class="rn">${row.round}</td>${row.cells.map((cell) => `<td class="${pointsClass(cell)}">${escapeHtml(cell)}</td>`).join('')}</tr>`).join('');
-  return `${caption ? `<p class="cap">${escapeHtml(caption)}</p>` : ''}<table class="rb n${block.heads.length}"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+  return `${caption ? `<p class="cap">${escapeHtml(caption)}</p>` : ''}<table class="rb${blockSize === ROUND_BLOCK_SIZE ? '' : ` b${blockSize}`} n${block.heads.length}"><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }
 
 /** "HG Harish Gadupudi · #40" per seated player, under the blocks. */
@@ -296,13 +307,14 @@ export function roundLegendHtml(table: ResultsRoundTable): string {
  */
 export function roundTableHtml(table: ResultsRoundTable, options: { gameIdInHeading?: boolean } = {}): string {
   const gameId = options.gameIdInHeading === false ? '' : ` <i class="gid">Game ID ${escapeHtml(table.code)}</i>`;
-  const heading = `<h3><span class="lab">${escapeHtml(table.label)}</span> <span class="when"><b>${escapeHtml(table.start.time)}</b> ${escapeHtml(table.start.date)}</span>${gameId}</h3>`;
+  const mult = table.multiplier ? ` <span class="mult">${escapeHtml(table.multiplier)} · exact points</span>` : '';
+  const heading = `<h3><span class="lab">${escapeHtml(table.label)}</span>${mult} <span class="when"><b>${escapeHtml(table.start.time)}</b> ${escapeHtml(table.start.date)}</span>${gameId}</h3>`;
   if (table.initials.length === 0) return `<section class="game">${heading}<p class="mute">No players were seated.</p></section>`;
   if (table.totalsOnly) {
     const totals = table.initials.map((label, index) => `<span><b>${escapeHtml(label)}</b> ${escapeHtml(table.totals[index])}</span>`).join(' · ');
     return `<section class="game">${heading}<p class="legend">${totals}</p><p class="mute">Round scores were not saved with this result; game totals only.</p></section>`;
   }
-  const blocks = table.blocks.map((block, index) => roundBlockHtml(block, blockCaption(index, block.heads.length, table.initials.length))).join('');
+  const blocks = table.blocks.map((block, index) => roundBlockHtml(block, blockCaption(index, block.heads.length, table.initials.length, table.blockSize), table.blockSize)).join('');
   return `<section class="game">${heading}${blocks}${roundLegendHtml(table)}</section>`;
 }
 
@@ -371,6 +383,9 @@ export const RESULTS_DESIGN_CSS = `
   table.rb { border-collapse: collapse; width: 100%; margin-top: 6px; table-layout: fixed; page-break-inside: avoid; break-inside: avoid; }
   table.rb.n1 { width: calc(38px + (100% - 38px) * 1 / 5); } table.rb.n2 { width: calc(38px + (100% - 38px) * 2 / 5); }
   table.rb.n3 { width: calc(38px + (100% - 38px) * 3 / 5); } table.rb.n4 { width: calc(38px + (100% - 38px) * 4 / 5); }
+  table.rb.b4.n4 { width: 100%; } table.rb.b4.n1 { width: calc(38px + (100% - 38px) * 1 / 4); } table.rb.b4.n2 { width: calc(38px + (100% - 38px) * 2 / 4); } table.rb.b4.n3 { width: calc(38px + (100% - 38px) * 3 / 4); }
+  table.rb.b3.n3 { width: 100%; } table.rb.b3.n1 { width: calc(38px + (100% - 38px) * 1 / 3); } table.rb.b3.n2 { width: calc(38px + (100% - 38px) * 2 / 3); }
+  .mult { display: inline-block; background: #17201B; color: #fff; font-weight: 800; font-size: 12px; padding: 1px 7px; border-radius: 6px; }
   .brow, .gm, .pl { page-break-inside: avoid; break-inside: avoid; }
   table.rb th, table.rb td { border: 1px solid var(--line); padding: 3px 5px; font-size: 14px; text-align: right; font-variant-numeric: tabular-nums; }
   table.rb th { background: var(--head); text-align: center; vertical-align: bottom; }

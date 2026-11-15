@@ -18,6 +18,7 @@ import { formatPoints } from '@/utils/results';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { completionCheck, poolCompletionCheck, sortFinalScores } from '@/utils/completeGame';
 import { gameAdminLines } from '@/utils/gameAdmins';
+import { pointsGameMultiplier } from '@/utils/multiplier';
 import { GIVE_AWARDS_FIRST, isOut, isPoolGame, playersIn, playersOut, poolTotal, seatOf } from '@/utils/pool';
 
 /**
@@ -36,6 +37,7 @@ export default function CompleteGameScreen() {
   const [failure, setFailure] = useState<string | null>(null);
 
   const pool = isPoolGame(game);
+  const multiplier = pool ? 1 : pointsGameMultiplier(game);
   // Points: highest total first. Pool: players still in, lowest first, then the outs (seat colours stay with the person).
   const totals = useMemo(() => {
     const rows = players.map((player, index) => ({
@@ -44,11 +46,11 @@ export default function CompleteGameScreen() {
       out: pool ? isOut(seatOf(game, player.id)) : false,
       total: pool
         ? poolTotal(game?.scores[player.id], seatOf(game, player.id))
-        : (game?.scores[player.id] ?? []).reduce((sum, value) => sum + (Number(value) || 0), 0),
+        : (game?.scores[player.id] ?? []).reduce((sum, value) => sum + (Number(value) || 0), 0) * multiplier,
     }));
     if (!pool) return sortFinalScores(rows);
     return rows.sort((a, b) => Number(a.out) - Number(b.out) || a.total - b.total);
-  }, [game, players, pool]);
+  }, [game, players, pool, multiplier]);
   const check = useMemo(() => {
     if (!game) return null;
     if (pool) {

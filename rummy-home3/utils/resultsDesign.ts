@@ -1,6 +1,7 @@
 import { firstAppearanceOrder, initialsById, baseInitials } from '@/utils/playerInitials';
 import { playerIdBadge } from '@/utils/gamePlayers';
 import { formatPoints, ResultStanding, sheetGameLabel } from '@/utils/results';
+import { digitCount, multiplierLabel, SHARE_ONE_COLUMN_FROM_DIGITS, shortNumber } from '@/utils/multiplier';
 import { SITE_BASE_URL } from '@/utils/siteUrls';
 
 /**
@@ -115,7 +116,8 @@ export function evenLine(even: { name: string }[]): string | null {
 }
 
 export type BandCellTone = 'win' | 'neg' | 'plain' | 'dash' | 'blank';
-export type BandCell = { text: string; tone: BandCellTone };
+/** `text` is exact (PDF, web); `short` is the on-screen K/M form (PR 14) — the same string below 10,000. */
+export type BandCell = { text: string; short: string; tone: BandCellTone };
 
 export type BandTableRow = {
   id: string;
@@ -123,6 +125,8 @@ export type BandTableRow = {
   initials: string;
   playerNo?: number | null;
   total: string;
+  /** PR 14: the on-screen K/M form of the total. */
+  totalShort: string;
   totalTone: 'pos' | 'neg' | 'zero';
   /** One array per band, as many cells as games in that band (the last band is shorter; its shape stops at the last game, like the header). */
   bands: BandCell[][];
@@ -133,6 +137,8 @@ export type BandTable = {
   header: string[][];
   /** Start time under each label, same shape as header; '' when unknown. */
   headerTimes: string[][];
+  /** PR 14: "×100" under each label, same shape as header; '' at ×1. */
+  headerMultipliers: string[][];
   rows: BandTableRow[];
   bandCount: number;
   gameCount: number;
@@ -144,7 +150,12 @@ export type DesignGame = {
   label?: string | null;
   date?: string;
   scores: Record<string, number>;
+  /** PR 14: the game's multiplier (its scores are already multiplied). */
+  multiplier?: number;
 };
+
+/** "×100" for a game header, '' at ×1 / absent. */
+export const gameMultiplierLabel = (game: { multiplier?: number | null }) => (game.multiplier && game.multiplier > 1 ? multiplierLabel(game.multiplier) : '');
 
 export function bandRangesOf(count: number, size = BAND_SIZE): { start: number; end: number }[] {
   const ranges: { start: number; end: number }[] = [];
@@ -153,9 +164,9 @@ export function bandRangesOf(count: number, size = BAND_SIZE): { start: number; 
 }
 
 export function cellFor(game: { scores: Record<string, number> }, playerId: string): BandCell {
-  if (!Object.prototype.hasOwnProperty.call(game.scores, playerId)) return { text: '—', tone: 'dash' };
+  if (!Object.prototype.hasOwnProperty.call(game.scores, playerId)) return { text: '—', short: '—', tone: 'dash' };
   const value = game.scores[playerId];
-  return { text: formatPoints(value), tone: value > 0 ? 'win' : value < 0 ? 'neg' : 'plain' };
+  return { text: formatPoints(value), short: shortNumber(value, { plus: true }), tone: value > 0 ? 'win' : value < 0 ? 'neg' : 'plain' };
 }
 
 /** Short clock for the band header: "7:45 PM". */
@@ -184,6 +195,7 @@ export function buildBandTable(input: {
   const ranges = bandRangesOf(input.games.length);
   const header = ranges.map(({ start, end }) => input.games.slice(start, end).map((game) => sheetGameLabel({ label: game.label, name: game.name })));
   const headerTimes = ranges.map(({ start, end }) => input.games.slice(start, end).map((game) => clockOf(game.date)));
+  const headerMultipliers = ranges.map(({ start, end }) => input.games.slice(start, end).map((game) => gameMultiplierLabel(game)));
   const rows: BandTableRow[] = order.map((id) => {
     const player = byId.get(id);
     const name = player?.name ?? 'Player';
@@ -194,11 +206,12 @@ export function buildBandTable(input: {
       initials: input.labels.get(id) ?? baseInitials(name),
       playerNo: player?.playerNo ?? null,
       total: formatPoints(total),
+      totalShort: shortNumber(total, { plus: true }),
       totalTone: total > 0 ? 'pos' : total < 0 ? 'neg' : 'zero',
       bands: ranges.map(({ start, end }) => input.games.slice(start, end).map((game) => cellFor(game, id))),
     };
   });
-  return { header, headerTimes, rows, bandCount: ranges.length, gameCount: input.games.length };
+  return { header, headerTimes, headerMultipliers, rows, bandCount: ranges.length, gameCount: input.games.length };
 }
 
 export type LegendEntry = { initials: string; playerNo?: number | null; name: string };
@@ -234,6 +247,8 @@ export type GameInfo = {
   admins?: string[];
   start: { time: string; date: string };
   reused?: boolean;
+  /** PR 14: "×100" when the game had a multiplier; '' otherwise. */
+  multiplier: string;
 };
 
 export type GameMeta = {
@@ -247,8 +262,9 @@ export type GameMeta = {
 /** "9 players · 11 rounds · Game ID E3AC94" without the id (the id is rendered in italics by the surface). */
 export function gameCountsLine(info: GameInfo): string {
   const players = info.playerCount === 1 ? '1 player' : `${info.playerCount} players`;
-  if (info.roundCount == null) return players;
-  return `${players} · ${info.roundCount === 1 ? '1 round' : `${info.roundCount} rounds`}`;
+  const mult = info.multiplier ? ` · ${info.multiplier}` : '';
+  if (info.roundCount == null) return `${players}${mult}`;
+  return `${players} · ${info.roundCount === 1 ? '1 round' : `${info.roundCount} rounds`}${mult}`;
 }
 
 /** "Creator Sree Koneru · Admins Harish Gadupudi, Zed Zero"; null when nothing is known. */
@@ -276,6 +292,7 @@ export function gamesInResult(games: (DesignGame & GameMeta)[], now: Date = new 
     ...(game.adminNames?.length ? { admins: game.adminNames } : {}),
     start: startParts(game.date, now),
     ...(game.reused ? { reused: true } : {}),
+    multiplier: gameMultiplierLabel(game),
   }));
 }
 
@@ -307,17 +324,21 @@ export function generatedByLine(name: string | null | undefined): string | null 
   return `Generated by ${baseInitials(clean)}`;
 }
 
-export type ShareLayout = 'split' | 'balanced';
+/** 'single' (PR 14): one full-width column once any total runs to SHARE_ONE_COLUMN_FROM_DIGITS digits. */
+export type ShareLayout = 'split' | 'balanced' | 'single';
 
 export type ShareColumns = {
   left: RankedRow[];
   right: RankedRow[];
-  /** 'split' = positives left, negatives right; 'balanced' = one ranked order, half a side. */
+  /** 'split' = positives left, negatives right; 'balanced' = one ranked order, half a side; 'single' = everyone in one column. */
   layout: ShareLayout;
 };
 
 /** The two columns of the share image; nobody is ever left off (results share image only). */
 export function shareColumns(ranked: RankedScores, limit = SHARE_SPLIT_LIMIT): ShareColumns {
+  if ([...ranked.positive, ...ranked.negative].some((row) => digitCount(row.points) >= SHARE_ONE_COLUMN_FROM_DIGITS)) {
+    return { left: [...ranked.positive, ...ranked.negative], right: [], layout: 'single' };
+  }
   if (ranked.positive.length <= limit && ranked.negative.length <= limit) {
     return { left: ranked.positive, right: ranked.negative, layout: 'split' };
   }

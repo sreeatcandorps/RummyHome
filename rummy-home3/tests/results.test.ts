@@ -217,8 +217,8 @@ test('the full details carry the scores, the band table, the legend, the games b
   assert.deepEqual(details.roundTables[0].totals, ['+20', '-20']);
   assert.deepEqual(details.roundTables[0].blocks[0].heads.map((head) => [head.initials, head.total]), [['AD', '+20'], ['BE', '-20']]);
   assert.equal(details.roundTables[1].totalsOnly, false);
-  assert.deepEqual(details.table.rows[1].bands[0][1], { text: '—', tone: 'dash' });
-  assert.deepEqual(details.table.rows[0].bands[0][0], { text: '+20', tone: 'win' });
+  assert.deepEqual(details.table.rows[1].bands[0][1], { text: '—', short: '—', tone: 'dash' });
+  assert.deepEqual(details.table.rows[0].bands[0][0], { text: '+20', short: '+20', tone: 'win' });
   assert.equal(details.table.rows[0].total, '+25');
   assert.deepEqual(details.legend.map((entry) => entry.initials), ['AD', 'BE']);
   assert.equal(details.games[0].label, 'G7');

@@ -132,14 +132,27 @@
       const fromLink = /^[SPG]\d+$/.test(linkParam) ? 'Game ' + linkParam : /^\d+$/.test(linkParam) ? 'Game ' + linkParam : '';
       const gameNo = fromCard || fromLink;
       const status = card.status === 'completed' ? (pool ? (card.awarded ? 'Completed · Awarded' : 'Completed · Awards pending') : 'Completed') : 'Live';
-      document.getElementById('meta').textContent = [gameNo, pool ? 'Pool · limit ' + limit : '', 'Started ' + when, status].filter(Boolean).join(' · ');
+      document.getElementById('meta').textContent = [gameNo, pool ? 'Pool · limit ' + limit : '', multiplier > 1 ? '×' + multiplier.toLocaleString('en-US') : '', 'Started ' + when, status].filter(Boolean).join(' · ');
       // The scorecard standard: a win green, a penalty of more than half the Full count red text, the rest plain.
       const maxCount = Math.abs(Number(card.maxCount) || 0);
       const bigLoss = maxCount ? Math.floor(maxCount / 2) + 1 : null;
       // 031: a divider above each round where the first dealer deals again (one full rotation done).
       const dealers = card.dealers || {};
       const firstDealer = roundList.length ? dealers[String(roundList[0])] : null;
-      const fmt = (value) => (pool ? String(value) : value > 0 ? '+' + value : String(value));
+      // PR 14 multiplier: the card carries the entered scores and the ×N; this page shows actual points, short (K / M) in cells, exact on hover and in the list below.
+      const multiplier = pool ? 1 : Math.max(1, Math.trunc(Number(card.multiplier) || 1));
+      const exact = (value) => (value > 0 ? '+' : '') + Math.trunc(value).toLocaleString('en-US');
+      const short = (value) => {
+        const abs = Math.abs(value);
+        if (abs < 10000) return exact(value);
+        const unit = abs >= 1e9 ? [1e9, 'B'] : abs >= 1e6 ? [1e6, 'M'] : [1e3, 'K'];
+        let text = (abs / unit[0]).toFixed(1).replace(/\.0$/, '');
+        if (text.length > 3) text = String(Math.round(abs / unit[0]));
+        if (unit[1] === 'K' && text.length > 3) return short(Math.sign(value) * 1e6);
+        return (value < 0 ? '-' : '+') + text + unit[1];
+      };
+      const fmt = (value) => (pool ? String(value) : multiplier > 1 ? short(value * multiplier) : exact(value));
+      const hover = (value) => (multiplier > 1 ? ' title="' + exact(value * multiplier) + '"' : '');
       // Blocks of five players, totals in the header (PR 8 design, same as the results PDF).
       const BLOCK = 5;
       const blocks = [];
@@ -150,7 +163,7 @@
           const out = pool && seat.outRound;
           const re = pool && seat.reenteredRound && !out;
           const mark = out ? '<span class="mark out">OUT R' + seat.outRound + '</span>' : re ? '<span class="mark re">↺ R' + seat.reenteredRound + '</span>' : '';
-          return '<th class="' + (out ? 'isout' : re ? 'isre' : '') + '"><span class="ini">' + esc(labels[i]) + '</span><span class="total' + (!pool && totals[i] < 0 ? ' neg' : '') + '">' + fmt(totals[i]) + '</span>' + mark + '</th>';
+          return '<th class="' + (out ? 'isout' : re ? 'isre' : '') + '"><span class="ini">' + esc(labels[i]) + '</span><span class="total' + (!pool && totals[i] < 0 ? ' neg' : '') + '"' + hover(totals[i]) + '>' + fmt(totals[i]) + '</span>' + mark + '</th>';
         }).join('');
         const body = roundList.map((round, index) => {
           const cells = idx.map((i) => {
@@ -159,7 +172,7 @@
             if (pool && ((seat.outRound && round > seat.outRound) || (seat.reenteredRound && round < seat.reenteredRound && !(round in grid[i])))) return '<td class="gone">·</td>';
             const value = grid[i][round] || 0;
             const cls = pool ? (value === 0 ? 'pos' : (maxCount && value >= maxCount) ? 'big' : '') : value > 0 ? 'pos' : (bigLoss !== null && value <= -bigLoss) ? 'big' : '';
-            return '<td class="' + cls + '">' + fmt(value) + '</td>';
+            return '<td class="' + cls + '"' + hover(value) + '>' + fmt(value) + '</td>';
           }).join('');
           const rotation = index > 0 && firstDealer && dealers[String(round)] === firstDealer ? ' class="rotation"' : '';
           return '<tr' + rotation + '><td class="rn">' + round + '</td>' + cells + '</tr>';
@@ -170,6 +183,12 @@
       const sum = totals.reduce((total, value) => total + value, 0);
       const legend = '<p class="legend">' + labels.map((label, i) => '<span><b>' + esc(label) + '</b> ' + esc(names[i]) + '</span>').join(' · ') + '</p>';
       let standings = '';
+      if (multiplier > 1) {
+        // Exact points: the same list as the app's sheet (entered × multiplier, with thousands separators).
+        const rows = players.map((_, i) => i).sort((a, b) => totals[b] - totals[a]);
+        standings = '<div class="standings"><h2>Exact points</h2><p class="sub">×' + multiplier.toLocaleString('en-US') + ' · entered points × ' + multiplier.toLocaleString('en-US') + '</p>'
+          + rows.map((i) => '<p><b>' + esc(labels[i]) + '</b> ' + esc(names[i]) + ' <span class="st">' + exact(totals[i] * multiplier) + '</span><span class="st2">entered ' + exact(totals[i]) + '</span></p>').join('') + '</div>';
+      }
       if (pool) {
         // Standings (D5): players in, lowest first, with points and drops left; then the outs.
         const drop = Math.abs(Number(card.dropAmount) || 25);
@@ -184,7 +203,7 @@
           }).join('') + '</div>';
       }
       document.getElementById('board').innerHTML = '<div class="blocks">' + (tables || '<p class="msg">No players yet.</p>') + '</div>'
-        + '<p class="sum">' + (roundList.length === 1 ? '1 round' : roundList.length + ' rounds') + (pool ? '' : ' · Totals add to ' + sum) + '</p>' + standings + legend;
+        + '<p class="sum">' + (roundList.length === 1 ? '1 round' : roundList.length + ' rounds') + (pool ? '' : ' · Totals add to ' + exact(sum * multiplier)) + '</p>' + standings + legend;
     }
 
     // 036: the last 10 important changes (round added / edited / undone, players, settings…); the full log is in the app.

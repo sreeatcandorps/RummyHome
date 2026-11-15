@@ -37,6 +37,9 @@ export function BandTable({ table, legend, testID = 'results-band-table' }: { ta
               {band.map((label, cellIndex) => (
                 <View key={cellIndex} style={[styles.cell, styles.headCell, cellIndex > 0 && styles.cellLine]}>
                   <Text style={[styles.headLabel, { color: colors.onSurface }]} numberOfLines={1}>{label}</Text>
+                  {table.headerMultipliers?.[bandIndex]?.[cellIndex] ? (
+                    <Text style={[styles.headMultiplier, { color: colors.onSurfaceVariant }]} numberOfLines={1} testID={`band-header-multiplier-${bandIndex + 1}-${cellIndex + 1}`}>{table.headerMultipliers[bandIndex][cellIndex]}</Text>
+                  ) : null}
                 </View>
               ))}
             </View>
@@ -49,15 +52,15 @@ export function BandTable({ table, legend, testID = 'results-band-table' }: { ta
             <Text style={[styles.initials, { color: colors.onSurface }]} numberOfLines={1}>{row.initials}</Text>
             {row.playerNo != null ? <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }} numberOfLines={1}>{`#${row.playerNo}`}</Text> : null}
           </View>
-          <Text style={[styles.totalCell, styles.total, tabularNums, { color: row.totalTone === 'neg' ? colors.negative : colors.onSurface }]} numberOfLines={1}>
-            {row.total}
+          <Text style={[styles.totalCell, styles.total, tabularNums, { color: row.totalTone === 'neg' ? colors.negative : colors.onSurface }]} numberOfLines={1} accessibilityLabel={row.total}>
+            {row.totalShort ?? row.total}
           </Text>
           <View style={styles.boxes}>
             {row.bands.map((band, bandIndex) => (
               <View key={bandIndex} style={[styles.box, bandWidth(band.length), bandFill(bandIndex, false)]}>
                 {band.map((cell, cellIndex) => (
                   <View key={cellIndex} style={[styles.cell, cellIndex > 0 && styles.cellLine, cell.tone === 'dash' && styles.dashCell]}>
-                    <Text style={[styles.cellText, tabularNums, cellText(cell)]} numberOfLines={1}>{cell.text}</Text>
+                    <Text style={[styles.cellText, tabularNums, cellText(cell)]} numberOfLines={1} accessibilityLabel={cell.text}>{cell.short ?? cell.text}</Text>
                   </View>
                 ))}
               </View>
@@ -115,6 +118,7 @@ const styles = StyleSheet.create({
   dashCell: { alignItems: 'center' },
   headCell: { alignItems: 'center' },
   headLabel: { fontWeight: '800', fontSize: 13 },
+  headMultiplier: { fontWeight: '700', fontSize: 10 },
   cellText: { fontSize: 14 },
   legend: { marginTop: spacing.sm, lineHeight: 20 },
   legendInitials: { fontWeight: '800' },

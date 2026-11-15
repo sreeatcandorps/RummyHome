@@ -1,3 +1,4 @@
+import { multiplyScores, pointsGameMultiplier } from '@/utils/multiplier';
 import { Game, GameSettings, PoolSeat } from '@/types/game';
 
 /**
@@ -227,8 +228,9 @@ export const limitHint = (limit: number) => `${limit - 1} is in, ${limit} is out
  * one line per player (the pool scores themselves never count). An unawarded pool contributes
  * nothing; the picker keeps it out.
  */
-export function resultScoresOf(game: Pick<Game, 'gameType' | 'players' | 'scores' | 'awardedAt' | 'prizeShares'>): Record<string, number[]> {
-  if (!isPoolGame(game)) return game.scores;
+export function resultScoresOf(game: Pick<Game, 'gameType' | 'players' | 'scores' | 'awardedAt' | 'prizeShares'> & { settings?: Game['settings'] }): Record<string, number[]> {
+  // PR 14 (D14.9): a Points game contributes entered × its multiplier — Results are always actual points.
+  if (!isPoolGame(game)) return multiplyScores(game.scores, pointsGameMultiplier(game));
   if (!game.awardedAt) return Object.fromEntries(game.players.map((id) => [id, []]));
   return Object.fromEntries(game.players.map((id) => [id, [game.prizeShares?.[id] ?? 0]]));
 }

@@ -132,9 +132,11 @@ export function ShareCardView({
           <View style={styles.column} testID="share-positive">
             {card.positive.length === 0 ? <Text style={[styles.none, { color: palette.muted }]} {...fs}>None</Text> : card.positive.map((line) => <Line key={line.id} line={line} palette={palette} fixed={fixed} />)}
           </View>
-          <View style={styles.column} testID="share-negative">
-            {card.negative.length === 0 ? <Text style={[styles.none, { color: palette.muted }]} {...fs}>None</Text> : card.negative.map((line) => <Line key={line.id} line={line} palette={palette} fixed={fixed} />)}
-          </View>
+          {card.layout === 'single' ? null : (
+            <View style={styles.column} testID="share-negative">
+              {card.negative.length === 0 ? <Text style={[styles.none, { color: palette.muted }]} {...fs}>None</Text> : card.negative.map((line) => <Line key={line.id} line={line} palette={palette} fixed={fixed} />)}
+            </View>
+          )}
         </View>
         {card.evenLine ? <Text style={[styles.small, { color: palette.muted }]} {...fs}>{card.evenLine}</Text> : null}
         {card.gamesLine ? <Text style={[styles.small, styles.center, styles.gamesLine, { color: palette.muted }]} testID="share-games-line" {...fs}>{card.gamesLine}</Text> : null}

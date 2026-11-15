@@ -1,6 +1,7 @@
 import { gameLabelOf, LabelledGame } from '@/utils/gameLabel';
 import { MAX_RESULTS_PLAYERS } from '@/constants/limits';
 import { userAdminsGame } from '@/utils/gameAccess';
+import { formatExact } from '@/utils/multiplier';
 
 /** Older saved games may still have this column id. It is not a player. */
 export const RESULT_EXPENSE_ID = 'EX';
@@ -9,6 +10,8 @@ export type ResultGame = {
   players: string[];
   scores: Record<string, number[] | undefined>;
   names?: Record<string, string>;
+  /** PR 14: the game's multiplier, carried to the sheet so the Results table can head the column "S15 ×100". Scores are already multiplied. */
+  multiplier?: number;
 };
 
 export type ResultStanding = {
@@ -30,6 +33,8 @@ export type ResultSheetGame = {
   scores: Record<string, number>;
   /** Round-by-round scores for the PDF. Results saved before this was added have none. */
   rounds?: Record<string, number[]>;
+  /** PR 14: ×N when the game had a multiplier (shown under the game header); absent or 1 otherwise. */
+  multiplier?: number;
 };
 
 export type ResultSheet = {
@@ -267,9 +272,9 @@ export function resultsCountLine(gameCount: number, playerCount: number): string
   return `${gameCount === 1 ? '1 game' : `${gameCount} games`} · ${playerCount === 1 ? '1 player' : `${playerCount} players`}`;
 }
 
+/** "+1,234" / "-80" / "0": exact, with thousands separators (PR 14 — the exact places never shorten). */
 export function formatPoints(value: number): string {
-  if (value > 0) return `+${value}`;
-  return String(value);
+  return formatExact(value);
 }
 
 export function placeLabel(place: number): string {
@@ -433,7 +438,7 @@ export function buildResultSheet(
         scores[id] = values.reduce((sum, value) => sum + value, 0);
         rounds[id] = values;
       });
-      return { id: game.id, name: game.name, ...(game.label ? { label: game.label } : {}), date: game.date, scores, rounds };
+      return { id: game.id, name: game.name, ...(game.label ? { label: game.label } : {}), date: game.date, scores, rounds, ...(game.multiplier && game.multiplier > 1 ? { multiplier: game.multiplier } : {}) };
     }),
   };
 }
