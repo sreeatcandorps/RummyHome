@@ -68,8 +68,12 @@ tags: [smoke]
 # 042: Re-entries is Unlimited by default; Limited reveals the count field, nothing is saved.
 - tapOn:
     id: "settings-pool-reentries-limited"
-- assertVisible:
-    id: "settings-pool-reentries-count"
+# The count field appears below the radios and can land under the nav bar: scroll to it, don't assume.
+- scrollUntilVisible:
+    element:
+      id: "settings-pool-reentries-count"
+    direction: DOWN
+    timeout: 10000
 - takeScreenshot: 07e-settings-pool-defaults-limited
 - tapOn:
     id: "settings-pool-reentries-unlimited"
