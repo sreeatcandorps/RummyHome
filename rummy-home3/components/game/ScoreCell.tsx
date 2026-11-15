@@ -4,6 +4,7 @@ import { Icon, IconButton, Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { CELL_FILL, cellFill, CellStatus, cellTone } from '@/utils/roundEntry';
 import { poolScoreTone, scoreTextStyle, scoreTone } from '@/utils/scoreTone';
+import { actual, formatExact, spokenExact } from '@/utils/multiplier';
 
 type ScoreCellProps = {
   name: string;
@@ -20,6 +21,8 @@ type ScoreCellProps = {
   pool?: boolean;
   /** Pool: the player's total after this round and whether it puts them out ("→ 109 · OUT"). */
   after?: { total: number; out: boolean } | null;
+  /** PR 14: past ×1 a small "= −3,000" line under the entered number (Q14.9, M12). */
+  multiplier?: number;
   onPress: () => void;
   onClear: () => void;
 };
@@ -43,7 +46,7 @@ const nameFontSize = (name: string, compact?: boolean) => {
  * Beige while nothing is entered, light yellow while selected (or while a
  * number is being typed), light green once a score is confirmed for the round.
  */
-export function ScoreCell({ name, status, value, flashKey, width, compact, fullCount, pool = false, after, onPress, onClear }: ScoreCellProps) {
+export function ScoreCell({ name, status, value, flashKey, width, compact, fullCount, pool = false, after, multiplier = 1, onPress, onClear }: ScoreCellProps) {
   const { colors } = useAppTheme();
 
   const isConfirmed = status === 'confirmed';
@@ -101,10 +104,11 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
       : colors.onSurface;
   const valueWeight = saved?.fontWeight ?? '800';
 
+  const worth = !pool && multiplier > 1 && hasValue ? actual(value ?? 0, multiplier) : null;
   const statusLabel = isPending
     ? `typing ${show(value ?? 0)}`
     : hasValue
-      ? `score ${show(value ?? 0)}${after ? `, then ${after.total}${after.out ? ', out' : ''}` : ''}`
+      ? `score ${show(value ?? 0)}${after ? `, then ${after.total}${after.out ? ', out' : ''}` : ''}${worth !== null ? `, ${spokenExact(worth)} actual` : ''}`
       : 'no score';
 
   return (
@@ -144,6 +148,16 @@ export function ScoreCell({ name, status, value, flashKey, width, compact, fullC
           >
             {hasValue ? show(value) : ''}
           </Text>
+          {worth !== null ? (
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={[styles.after, tabularNums, { color: isSelected ? colors.onSecondaryContainer : colors.onSurfaceVariant }]}
+              testID="cell-actual"
+            >
+              {`= ${formatExact(worth)}`}
+            </Text>
+          ) : null}
           {pool && after && hasValue ? (
             <Text
               numberOfLines={1}

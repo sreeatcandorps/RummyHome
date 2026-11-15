@@ -1,3 +1,4 @@
+import { actual, formatExact, multiplierLabel } from '@/utils/multiplier';
 import { RoundEntryState } from '@/utils/roundEntry';
 
 /**
@@ -7,9 +8,11 @@ import { RoundEntryState } from '@/utils/roundEntry';
 const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
 /** "The Full count for this game is 80. Keep 120?" */
-export function overMaxConfirm(value: number, fullCount: number | null | undefined): string {
+export function overMaxConfirm(value: number, fullCount: number | null | undefined, multiplier = 1): string {
   const full = Math.abs(Number(fullCount) || 0);
-  return `The Full count for this game is ${full}. Keep ${signed(value)} for this round?`;
+  // PR 14 (M13): past ×1 the one confirm also says what the hand is worth.
+  const worth = multiplier > 1 ? ` That is ${formatExact(actual(value, multiplier))} at ${multiplierLabel(multiplier)}.` : '';
+  return `The Full count for this game is ${full}. Keep ${signed(value)} for this round?${worth}`;
 }
 
 /** Pool (D6/D7): the one confirm kept — a hand past the Full count. */

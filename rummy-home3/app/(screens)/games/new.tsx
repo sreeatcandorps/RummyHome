@@ -191,7 +191,9 @@ export default function NewGame() {
       setCandidates(list);
       setDefaults(saved);
       // Only before the type step: coming back from Settings must not undo edits made for this game.
-      setRules((current) => (step === 'type' ? current : saved.startsAs === 'pool' ? saved.pool : saved.points));
+      // PR 14: "Start a new game instead" arrives with the rules (and the new multiplier) already chosen.
+      const prefill = newGameDraft.takeRules();
+      setRules((current) => prefill ?? (step === 'type' ? current : saved.startsAs === 'pool' ? saved.pool : saved.points));
       setMyPlayers(mine);
       // Seats edited on the screens above us (Add New Players, Add player from database) come back through the draft.
       const pending = takePlayersToCheck();

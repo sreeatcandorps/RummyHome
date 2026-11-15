@@ -50,6 +50,7 @@ import { HelpText } from '../../components/ui/HelpText';
 import { BottomBar } from '../../components/ui/BottomBar';
 import { SeatAvatar } from '../../components/ui/SeatAvatar';
 import { ScoreCell } from '../../components/game/ScoreCell';
+import { pointsGameMultiplier } from '@/utils/multiplier';
 import { ScoreKeypad } from '../../components/game/ScoreKeypad';
 import { GameSettingsDialog } from '../../components/game/GameSettingsDialog';
 import { rulesFromGame } from '../../utils/gameSettings';
@@ -229,6 +230,8 @@ export default function ScoreEntryScreen() {
   }, []);
 
   const fullCount = game?.settings.maxCount;
+  // PR 14: entered points are typed and stored; the small line and the confirm say what they are worth.
+  const multiplier = pool ? 1 : pointsGameMultiplier(game);
 
   // A digit that first takes the number past the Full count asks once for that cell (D3.1).
   // Pool (D6/D7): the same one confirm, "Are you sure?", and no other warnings.
@@ -478,6 +481,7 @@ export default function ScoreEntryScreen() {
                 pool={pool}
                 after={after}
                 fullCount={game?.settings.maxCount}
+                multiplier={multiplier}
                 flashKey={flashKeys[participant.id] ?? 0}
                 onPress={() => update((state) => tapPlayer(state, participant.id))}
                 onClear={() => update((state) => clearPlayer(state, participant.id))}
@@ -681,7 +685,7 @@ export default function ScoreEntryScreen() {
           <Dialog.Title style={styles.dialogTitle}>{pool ? 'Are you sure?' : 'Over the Full count'}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]} testID="over-max-body">
-              {overMax ? (pool ? poolOverFullConfirm(overMax.value, fullCount) : overMaxConfirm(overMax.value, fullCount)) : ''}
+              {overMax ? (pool ? poolOverFullConfirm(overMax.value, fullCount) : overMaxConfirm(overMax.value, fullCount, multiplier)) : ''}
             </Text>
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>

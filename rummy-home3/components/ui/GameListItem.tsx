@@ -7,6 +7,8 @@ import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, ga
 import { Tag } from '@/components/ui/Tag';
 import { ACCESS_ICON, ACCESS_TONE, gameAccessLabel, viewerManagesGame, visibleRoleTag } from '@/utils/gameAccess';
 import { poolStatusLabel } from '@/utils/pool';
+import { MultiplierChip } from '@/components/game/MultiplierStrip';
+import { pointsGameMultiplier } from '@/utils/multiplier';
 
 type GameListItemProps = {
   game: Game;
@@ -85,6 +87,8 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
               />
               {awards && !game.closedAt ? <Tag label={awards} tone={awards === 'Awarded' ? 'positive' : 'warning'} icon="trophy-outline" style={styles.statusTag} /> : null}
               {roleTag ? <Tag label={roleTag} tone={ACCESS_TONE[roleTag]} icon={ACCESS_ICON[roleTag]} /> : null}
+              {/* PR 14: the multiplier chip, only past ×1 (M18). */}
+              <MultiplierChip multiplier={pointsGameMultiplier(game)} testID={`game-card-multiplier-${game.shareCode ?? game.id}`} />
               <Text
                 variant="bodySmall"
                 style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}

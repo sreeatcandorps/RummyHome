@@ -1,8 +1,9 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Animated, LayoutChangeEvent, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, LayoutChangeEvent, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
+import { actual, shortNumber, spokenExact } from '@/utils/multiplier';
 import {
   cellFontSize,
   columnLayout,
@@ -54,6 +55,15 @@ type ScoreTableProps = {
    * apply (F13.10), totals are shown without a sign and the header carries number / initials / score.
    */
   pool?: boolean;
+  /**
+   * PR 14: the game's multiplier. Past ×1 every Points cell and total shows entered × multiplier in
+   * the short form (−12K, 1.2M; never more than five characters) while `showActual` is on; off, the
+   * grid shows the entered points as before. The multiplier never changes what is stored.
+   */
+  multiplier?: number;
+  showActual?: boolean;
+  /** PR 14: tapping a header total opens the Exact points sheet. */
+  onTotalPress?: (columnId: string) => void;
 };
 
 /** Totals and the header read a size up from the cells; every number carries its sign. */
@@ -75,6 +85,8 @@ type ScoreRowProps = {
   fullCount?: number | null;
   colors: ReturnType<typeof useAppTheme>['colors'];
   pool?: boolean;
+  /** Points: the factor each shown value is multiplied by (1 = as entered). */
+  factor: number;
 };
 
 const sameColumns = (a: ScoreColumn[], b: ScoreColumn[]) =>
@@ -87,7 +99,7 @@ const sameCells = (a: (number | undefined)[], b: (number | undefined)[]) => a.le
  * scores objects on every render), so a reload, a menu or a realtime echo
  * redraws only the rows whose numbers changed, usually just the newest one.
  */
-const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isLatest, stripe, rotationStart, columnWidth, rowHeight, fontSize, fullCount, colors, pool }: ScoreRowProps) {
+const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isLatest, stripe, rotationStart, columnWidth, rowHeight, fontSize, fullCount, colors, pool, factor }: ScoreRowProps) {
   return (
     <View
       style={[
@@ -144,6 +156,8 @@ const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isL
         const tone = scoreTone(score, fullCount);
         const positive = tone === 'positive';
         const text = scoreTextStyle(tone);
+        // PR 14: the tone comes from the entered points; the figure shown is entered × multiplier, short form.
+        const shown = factor === 1 ? (positive ? `+${score}` : `${score}`) : shortNumber(actual(score, factor), { plus: positive });
         return (
           <View
             key={column.id}
@@ -169,8 +183,9 @@ const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isL
                     ? { color: colors.onWinContainer, fontWeight: text.fontWeight }
                     : { color: colors[text.colorKey], fontWeight: text.fontWeight },
                 ]}
+                accessibilityLabel={hasScore && factor !== 1 ? spokenExact(actual(score, factor)) : undefined}
               >
-                {!hasScore ? '–' : positive ? `+${score}` : `${score}`}
+                {!hasScore ? '–' : shown}
               </Text>
             </View>
           </View>
@@ -188,6 +203,7 @@ const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isL
   && prev.fontSize === next.fontSize
   && prev.fullCount === next.fullCount
   && prev.pool === next.pool
+  && prev.factor === next.factor
   && prev.colors === next.colors
   && sameColumns(prev.columns, next.columns)
   && sameCells(prev.cells, next.cells));
@@ -218,7 +234,13 @@ export function ScoreTable({
   fullCount,
   emptyMessage,
   pool = false,
+  multiplier = 1,
+  showActual = true,
+  onTotalPress,
 }: ScoreTableProps) {
+  // Pools never multiply; Points multiply while the view toggle is on.
+  const factor = !pool && showActual && multiplier > 1 ? multiplier : 1;
+  const shownTotal = (value: number) => (factor === 1 ? signed(value) : shortNumber(actual(value, factor), { plus: true }));
   const rotationStartSet = useMemo(() => new Set(rotationStarts ?? []), [rotationStarts]);
   const theme = useAppTheme();
   const { colors } = theme;
@@ -273,10 +295,14 @@ export function ScoreTable({
       : pool ? (out ? colors.onSurfaceVariant : reentered ? colors.reentry : colors.onSurface)
       : total < 0 ? colors.loss : colors.onSurface;
     return (
-      <View
+      <Pressable
         key={column.id}
         testID={`score-header-${index + 1}`}
-        accessibilityLabel={pool ? `${column.number != null ? `Player ${column.number}, ` : ''}${column.label}, ${total}${out ? `, out in round ${column.outRound}` : reentered ? ', re-entered' : ''}` : undefined}
+        onPress={onTotalPress ? () => onTotalPress(column.id) : undefined}
+        disabled={!onTotalPress}
+        accessibilityRole={onTotalPress ? 'button' : undefined}
+        accessibilityHint={onTotalPress ? 'Opens the exact points' : undefined}
+        accessibilityLabel={pool ? `${column.number != null ? `Player ${column.number}, ` : ''}${column.label}, ${total}${out ? `, out in round ${column.outRound}` : reentered ? ', re-entered' : ''}` : factor !== 1 ? `${column.label}, total ${spokenExact(actual(total, factor))}` : undefined}
         style={[
           styles.cell,
           styles.headerCell,
@@ -329,7 +355,7 @@ export function ScoreTable({
             out && styles.struck,
           ]}
         >
-          {pool ? String(total) : signed(total)}
+          {pool ? String(total) : shownTotal(total)}
         </Text>
         <View style={[styles.headerLabelRow, { height: type.deals.lineHeight }]}>
           {out ? (
@@ -363,7 +389,7 @@ export function ScoreTable({
             <View style={[styles.seatBar, { backgroundColor: column.isExpense ? colors.outlineVariant : seatText }]} />
           )}
         </View>
-      </View>
+      </Pressable>
     );
   });
 
@@ -379,7 +405,7 @@ export function ScoreTable({
       <Text style={[styles.cornerText, { color: colors.onSurfaceVariant }]} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>RND</Text>
       {!pool && grandTotal !== 0 ? (
         <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>
-          {grandTotal > 0 ? `+${grandTotal}` : grandTotal}
+          {shownTotal(grandTotal)}
         </Text>
       ) : null}
     </View>
@@ -412,7 +438,7 @@ export function ScoreTable({
         </Text>
         {!pool && offBy !== 0 ? (
           <Text style={[styles.roundMeta, { color: colors.error }]} numberOfLines={1} accessibilityLabel={`Round does not add up, off by ${offBy}`}>
-            {offBy > 0 ? `+${offBy}` : offBy}
+            {shownTotal(offBy)}
           </Text>
         ) : dealer ? (
           <Text style={[styles.roundMeta, { color: colors.onSurfaceVariant }]} numberOfLines={1} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>
@@ -479,6 +505,7 @@ export function ScoreTable({
                       fullCount={fullCount}
                       colors={colors}
                       pool={pool}
+                      factor={factor}
                     />
                   ))}
                 </View>

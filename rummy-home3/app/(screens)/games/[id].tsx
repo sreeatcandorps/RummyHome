@@ -42,6 +42,11 @@ import { rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame } from '@/utils/gameStatus';
 import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
 import { PoolAwardsCard } from '@/components/game/PoolAwardsCard';
+import { MultiplierChip, ActualToggle, ExactPointsSheet } from '@/components/game/MultiplierStrip';
+import { useActualToggle } from '@/hooks/useActualToggle';
+import { actual, anyShortened, exactLines, pointsGameMultiplier } from '@/utils/multiplier';
+import { newGameDraft } from '@/utils/newGameDraft';
+import { PointsRules } from '@/utils/gameSettings';
 import { isPoolGame, lastPlayerStanding, playersIn, poolLimitOf, poolStandings, poolStatusLabel, poolTotal, reentryBlock, REENTRY_BLOCK_TEXT, seatOf } from '@/utils/pool';
 
 export default function GameScreen() {
@@ -73,6 +78,9 @@ export default function GameScreen() {
   const [linkNote, setLinkNote] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reentering, setReentering] = useState<string | null>(null);
+  // PR 14: the multiplier view toggle (per phone) and the Exact points sheet.
+  const [showActual, setShowActual] = useActualToggle();
+  const [exactOpen, setExactOpen] = useState(false);
 
   // Mount is covered by useFocusEffect below (it fires on focus, which includes the first mount): one load, not two.
   useEffect(() => {
@@ -388,6 +396,16 @@ export default function GameScreen() {
   const totals = Object.fromEntries(players.map((player) => [player.id, getPlayerTotal(player.id)]));
   const roundTotals = Array.from({ length: maxRounds }, (_, roundIndex) => getRoundTotal(roundIndex));
   const grandTotal = players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0);
+  // PR 14: one multiplier per Points game; the grid shows entered × multiplier while the toggle is on.
+  const multiplier = pool ? 1 : pointsGameMultiplier(game);
+  const exact = exactLines({ players: players.map((p) => ({ id: p.id, name: p.name, label: initialsFor(p.id) })), totals, multiplier });
+  const exactShortened = anyShortened([...Object.values(totals), ...Object.values(game.scores).flat()].map((v) => actual(Number(v) || 0, multiplier)));
+  /** "Start a new game instead" (M22): New game with these players and the new rules prefilled; this game is left as it is. */
+  const startNewGameWith = (rules: PointsRules) => {
+    newGameDraft.set(players.map((p) => ({ id: p.id, name: p.name, playerCode: p.playerCode })));
+    newGameDraft.setRules(rules);
+    router.push('/(screens)/games/new');
+  };
 
   // The 028 label (S14 / P15), never the bare G-number (final batch item 2).
   const gameLabel = gameLabelOf(game);
@@ -427,6 +445,9 @@ export default function GameScreen() {
       compact={isShort}
       fullCount={game.settings?.maxCount}
       pool={pool}
+      multiplier={multiplier}
+      showActual={showActual}
+      onTotalPress={pool ? undefined : () => setExactOpen(true)}
       emptyMessage={game.isComplete ? 'This game was closed with no rounds.' : 'No rounds yet. Tap Add round to score the first hand.'}
     />
   );
@@ -554,8 +575,10 @@ export default function GameScreen() {
           {typeTag}
           {playersTag}
           {statusTag}
+          <MultiplierChip multiplier={multiplier} onPress={() => setExactOpen(true)} />
           {!canScore && !game.isComplete ? <Tag label="View only" icon="eye-outline" /> : null}
         </View>
+        <ActualToggle multiplier={multiplier} on={showActual} onChange={setShowActual} />
         {game.isComplete ? (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
             {pool ? (game.awardedAt ? 'Completed and awarded.' : 'Completed. Give awards to add this pool to a result.') : 'Completed.'}
@@ -696,11 +719,22 @@ export default function GameScreen() {
 
         <Snackbar visible={Boolean(linkNote)} onDismiss={() => setLinkNote(null)} duration={2500}>{linkNote ?? ''}</Snackbar>
       </Portal>
+      <ExactPointsSheet
+        visible={exactOpen}
+        multiplier={multiplier}
+        lines={exact}
+        sum={actual(grandTotal, multiplier)}
+        shortened={exactShortened}
+        onDismiss={() => setExactOpen(false)}
+        onSharePdf={() => { setExactOpen(false); shareFinalScores(); }}
+      />
       <GameSettingsDialog
         visible={gameSettingsOpen}
         rules={rulesFromGame(game.settings, game.gameType)}
         readOnly={!canScore}
         lockValues={pool && maxRounds > 0}
+        roundCount={maxRounds}
+        onStartNewGame={canScore && !pool ? startNewGameWith : undefined}
         onDismiss={() => setGameSettingsOpen(false)}
         onSave={async (rules) => {
           const updated = await gamesService.updateGameRules(game.id, rules);
