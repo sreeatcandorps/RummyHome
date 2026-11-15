@@ -449,7 +449,7 @@ Note for a re-run of 022: it re-creates the two editors with its letters-only bo
 
 Verified on a scratch Postgres 16 loaded with 001–039 and the CI seed: pgTAP (1143 checks; 55 new in `supabase/tests/29_initials_039.sql`, 13 of them driven by `supabase/tests/fixtures/initials-cases.csv`, the same table the unit test reads), the rollback replay (159 checks) and the 44 race checks all pass.
 
-## 040 — Own initials on the profile, one-off round-gap repair (PR 10b; **written, not applied**)
+## 040 — Own initials on the profile, one-off round-gap repair (PR 10b; **applied to live `gngcrplcldfiubvhcdin` on 2026-11-14, 6:32 PM PT** by Build Bot, data verified intact)
 
 File: `supabase/migrations/040_own_initials_and_round_gaps.sql`. Run after 039. Safe to re-run. Rollback: `supabase/rollback/rollback_040_own_initials_and_round_gaps.sql` (drops `set_my_initials` and `repair_round_gaps`, restores the 022 `seat_default_label`; the `profiles.initials` column and the repaired round numbers stay — both are harmless to the older app).
 
@@ -462,7 +462,7 @@ C. **Names**: a one-off `update` collapses doubled spaces in `profiles` display 
 
 Verified on a scratch Postgres 16 loaded with 001–040 and the CI seed: pgTAP 1230 checks (34 new in `supabase/tests/31_own_initials_040.sql`), the rollback replay (164 checks, 040 rolled back first and "040 restored" after the forward run) and the 44 race checks all pass.
 
-## 041 — Pool games (PR 13; **written, not applied**)
+## 041 — Pool games (PR 13; **applied to live `gngcrplcldfiubvhcdin` on 2026-11-14, 6:32 PM PT** by Build Bot, data verified intact; the two pre-Pool games that had been typed as "pool" were deleted at the same time)
 
 File: `supabase/migrations/041_pool.sql`. Run after 040. Safe to re-run. Rollback: `supabase/rollback/rollback_041_pool.sql` (drops the two triggers, `reenter_player`, `set_pool_awards`, `pool_recompute` and the helpers, the pool columns on `games` / `game_players`, and restores the 036 `save_round`, 035 `undo_last_round`, 034 `declare_game_result` / `public_result`, 031 `public_scorecard`, 022 `seat_rows_json` / `add_seated_player` and the 037 `scores_check`; stored pool rounds stay as rows the older app would read as positive points).
 
