@@ -165,7 +165,7 @@ declare
                            'WQW','MQM','OWO','OMO','QWQ','QMQ','GWG','GMG','DWD'];
 begin
   for v_i in 1..19 loop
-    v_pid := ('00000000-0000-4000-8000-000000000' || lpad(to_hex(1024 + v_i), 3, '0'))::uuid;
+    v_pid := ('00000000-0000-4000-8000-000000000' || lpad(to_hex(2304 + v_i), 3, '0'))::uuid;
     insert into public.profiles (id, display_name, first_name, last_name, player_status, managed_by, player_code)
     values (v_pid, 'Wide ' || v_labels[v_i], 'Wide', v_labels[v_i], 'unregistered', v_sree, 'E2EW' || lpad(v_i::text, 2, '0'));
     insert into public.my_players (owner_id, player_id, games_together, initials) values (v_sree, v_pid, 1, v_labels[v_i]);
