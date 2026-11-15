@@ -276,13 +276,14 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | X14-4 | U | same | Final scores / share: two columns to 7 digits, one from 8, never short; PDF blocks 5 / 4 / 3 from the widest value |
 | X14-5 | U | same | Results: per-game multiplied contributions, `×N` header only when > 1, Winners exact, table K/M (mixed fixture) |
 | X14-6 | U | same | Toggle default ON, per phone, hidden at ×1, banner when OFF; saved / shared data unchanged |
-| X14-7 | D | `supabase/tests/34_multiplier_043.sql` (to write) | 043: result sums as bigint (2,280,000,000 saves), multiplier applied in SQL from `settings`, a `settings.multiplier` change on an existing game refused with the lock message while Drop / Middle drop / Full count still change, absent key → 1, rollback replay |
+| X14-7 | D | `supabase/tests/34_multiplier_043.sql` (to write) | 043: result sums as bigint (2,280,000,000 saves), multiplier applied in SQL from `settings` at declare time, a `settings.multiplier` change on a game with rounds accepted and logged as one `settings_changed` row "Multiplier ×10 → ×5", a saved result unchanged after the game's multiplier changes, out-of-range refused, absent key → 1, rollback replay |
 | X14-8 | S | `smoke/17-multiplier.yaml` (to write) | ×100 game end to end: chip, toggle, "= −3,000" lines, Exact sheet, Final scores exact, Results `×100` |
 | X14-9 | N | `full/50-multiplier-20p.yaml` (to write) | 20 players at ×10,000 portrait + landscape (every cell ≤ 5 characters, no clipping, same layout as 4 players), share one column, PDF 4-column blocks |
-| X14-10 | S | `smoke/18-multiplier-locked.yaml` (to write) | On a started game, Game settings shows the multiplier greyed with "To change the multiplier, end this game and start a new one."; Drop / Middle drop / Full count still save; a direct `settings.multiplier` update is refused by the server |
-| X14-11 | M | emulator | every M-screen of the spec (M01–M21) |
+| X14-10 | S | `smoke/18-multiplier-change.yaml` (to write) | On a game with 3 rounds: Game settings → ×10 → ×5 → Save → confirm names 3 rounds → Cancel keeps ×10; Save → Apply to whole game → every cell / total re-priced, chip ×5, Log line; Start a new game instead → New game prefilled with the players and ×5; no rounds → no confirm |
+| X14-12 | U | `tests/multiplier.test.ts` (to write) | Confirm gating: 0 rounds → no dialog; N ≥ 1 → text with N; three actions; the Start-a-new-game payload (players, settings, new multiplier) |
+| X14-11 | M | emulator | every M-screen of the spec (M01–M22) |
 
-## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migration 041 applied Nov 14; 042 re-entries setting + limit-only lock written, not applied)
+## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migrations 041 applied Nov 14 and 042 re-entries setting + limit-only lock applied Nov 15)
 
 Spec: `docs/pool-design.md` (Sree's 14 decisions of Nov 14), mockups in `docs/pool-mockups/`.
 
