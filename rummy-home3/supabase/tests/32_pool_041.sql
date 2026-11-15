@@ -3,7 +3,7 @@
 -- "Give awards first" in results, awards (not round sums) in the result.
 -- Game P: sree (admin, seated) with harish, priya, zero; limit 101, Drop 25, MD 50, Full 80.
 begin;
-select plan(75);
+select plan(76);
 
 \set SREE '''00000000-0000-4000-8000-000000000001'''
 \set HARISH '''00000000-0000-4000-8000-000000000002'''
@@ -91,8 +91,10 @@ select is(public.pool_players_in(:P), array[:SREE, :HARISH, :PRIYA]::uuid[], '13
 -- 13.5 settings locked after a live round; re-entry may still change
 select throws_ok($$ update public.games set settings = settings || '{"poolLimit":201}' where id = '10000000-0000-4000-8000-0000000000d1' $$,
   'PT423', null, '13.5 the limit is locked once a round exists');
-select throws_ok($$ update public.games set settings = settings || '{"dropAmount":30}' where id = '10000000-0000-4000-8000-0000000000d1' $$,
-  'PT423', null, '13.5 Drop is locked too');
+-- 042: Drop / Middle drop / Full count are free once rounds exist (Q14.23); the Log records it
+select lives_ok($$ update public.games set settings = settings || '{"dropAmount":30}' where id = '10000000-0000-4000-8000-0000000000d1' $$, '13.5 (042) Drop may change mid-game');
+select is((select count(*)::int from public.event_log where game_id = :P and kind = 'settings_changed' and summary like '%Drop 25→30%'), 1, '13.5 (042) the change is in the Log');
+update public.games set settings = settings || '{"dropAmount":25}' where id = :P;
 select lives_ok($$ update public.games set settings = settings || '{"reentry":false}' where id = '10000000-0000-4000-8000-0000000000d1' $$, '13.5 re-entry can be switched');
 
 -- 13.7 scoring a player who is out is refused; round 3 among the three in
@@ -111,8 +113,8 @@ select is((select dealer_profile_id from public.rounds where game_id = :P and ro
 
 -- 13.8 re-entry: off → refused; on → once, at the highest score still in
 select throws_ok($$ select public.reenter_player('10000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-000000000008') $$,
-  'P0001', 'Re-entry is off for this pool. Turn it on in Game settings first.', '13.8 re-entry off is refused');
-update public.games set settings = settings || '{"reentry":true}' where id = :P;
+  'P0001', 'Re-entries are off for this pool. Allow them in Game settings first.', '13.8 re-entry off is refused (041 reentry:false reads as limit 0)');
+update public.games set settings = (settings - 'reentry') || '{"reentryLimit":1}' where id = :P;
 select throws_ok($$ select public.reenter_player('10000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-000000000003') $$,
   'P0001', 'They are still in the pool.', '13.8 a player still in cannot re-enter');
 select is((public.reenter_player(:P, :ZERO))->>'score', '95', '13.8 zero re-enters at the highest score in (priya 40+30+25 = 95)');
@@ -148,7 +150,7 @@ select lives_ok($$ select public.save_round('10000000-0000-4000-8000-0000000000d
     {"playerId":"00000000-0000-4000-8000-000000000008","scoreType":"count","value":40}]'::jsonb, false) $$, 'round 3: zero 110, out again');
 select is((select out_round from public.game_players where game_id = :P and profile_id = :ZERO), 3, 'out in round 3 (second time)');
 select throws_ok($$ select public.reenter_player('10000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-000000000008') $$,
-  'P0001', 'They have already re-entered once.', '13.8 re-entry is once per player');
+  'P0001', 'They have already re-entered once.', '13.8 re-entry limited to 1 is once per player');
 select is((select dealer_profile_id from public.rounds where game_id = :P and round_number = 3 and undone_at is null), :PRIYA::uuid, 'round 3 dealer priya');
 
 -- 13.10 a late joiner starts at the highest score still in, no zero rows
