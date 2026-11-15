@@ -227,6 +227,21 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
 
+## PR 14 test cases (Multiplier — spec only, `docs/multiplier-design.md`; codes reserved, tests written with the build)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| X14-1 | U | `tests/multiplier.test.ts` (to write) | `shortNumber`: K from 10,000 / compact from 1,000; 3 / 2 significant digits; half away from zero; no ".0"; sign kept; 0 → "0"; CSV cases |
+| X14-2 | U | same | actual = entered × multiplier everywhere; exact sums add to 0; the red total rule ignores display rounding |
+| X14-3 | U | same | parsing 1–10,000, digits only, empty/0 → 1, over the cap → red text; absent key → 1; Pool ignores it |
+| X14-4 | U | same | Final scores / share: two columns to 7 digits, one from 8, never short; PDF blocks 5 / 4 / 3 from the widest value |
+| X14-5 | U | same | Results: per-game multiplied contributions, `×N` header only when > 1, Winners exact, table K/M (mixed fixture) |
+| X14-6 | U | same | Toggle default ON, per phone, hidden at ×1, banner when OFF; saved / shared data unchanged |
+| X14-7 | D | `supabase/tests/33_multiplier_042.sql` (to write) | 042: result sums as bigint (2,280,000,000 saves), multiplier applied in SQL, PT423 lock after round 1, rollback replay |
+| X14-8 | S | `smoke/17-multiplier.yaml` (to write) | ×100 game end to end: chip, toggle, "= −3,000" lines, Exact sheet, Final scores exact, Results `×100` |
+| X14-9 | N | `full/50-multiplier-20p.yaml` (to write) | 20 players at ×10,000 portrait + landscape (no clipping), share one column, PDF 4-column blocks |
+| X14-10 | M | emulator | every M-screen of the spec |
+
 ## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migration 041 written, not applied)
 
 Spec: `docs/pool-design.md` (Sree's 14 decisions of Nov 14), mockups in `docs/pool-mockups/`.
