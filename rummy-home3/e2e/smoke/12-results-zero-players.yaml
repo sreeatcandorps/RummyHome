@@ -65,9 +65,13 @@ tags: [smoke]
       id: "result-delete"
     direction: DOWN
     timeout: 15000
-    # Centre it: edge-to-edge draws the last button under the translucent 3-button bar, and a tap
-    # at the bottom edge lands on the system Home button instead of the app (run 4).
-    centerElement: true
+# Edge-to-edge draws the last button under the translucent 3-button bar and a tap at the bottom edge
+# lands on the system Home button (run 4); centerElement cannot centre an element near the end of the
+# page (run 5), so nudge the page up by a third instead. At the very end the screen padding keeps the
+# button clear of the bar and the swipe is a no-op.
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
 - assertVisible: "Delete this result"
 - assertVisible:
     text: ".*back to Completed \\(from Closed\\). Everyone loses this result. You can restore it for 30 days from Settings › Hidden & deleted."
@@ -116,9 +120,13 @@ tags: [smoke]
       id: "result-delete"
     direction: DOWN
     timeout: 15000
-    # Centre it: edge-to-edge draws the last button under the translucent 3-button bar, and a tap
-    # at the bottom edge lands on the system Home button instead of the app (run 4).
-    centerElement: true
+# Edge-to-edge draws the last button under the translucent 3-button bar and a tap at the bottom edge
+# lands on the system Home button (run 4); centerElement cannot centre an element near the end of the
+# page (run 5), so nudge the page up by a third instead. At the very end the screen padding keeps the
+# button clear of the bar and the swipe is a no-op.
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
 - tapOn:
     id: "result-delete"
 - extendedWaitUntil:

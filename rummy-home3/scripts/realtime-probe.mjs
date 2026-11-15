@@ -47,6 +47,12 @@ const channel = supabase
   .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload) => {
     resolveEvent(payload.eventType);
   })
+  // Realtime confirms (or refuses) the postgres_changes subscription a moment after the join with a
+  // `system` message — "Subscribed to PostgreSQL" or the reason it could not. The join reply alone
+  // says nothing about CDC, so print it.
+  .on('system', {}, (payload) => {
+    console.log(`system: ${payload.status ?? ''} ${payload.extension ?? ''} ${payload.message ?? ''}`.trim());
+  })
   .subscribe((s, err) => {
     status = s;
     console.log(`channel: ${s}${err ? ` (${err.message})` : ''}`);
@@ -63,15 +69,33 @@ if (status !== 'SUBSCRIBED') {
   process.exit(1);
 }
 
+// The CDC subscription is registered asynchronously after the join; a change made before the
+// subscription row exists is never delivered. Nudge every 2 s until something arrives (run 5 nudged
+// once, right after SUBSCRIBED, and the single change was lost in that window).
 const t0 = Date.now();
-psql(`update public.games set settings = settings where id = '${gameId}'`);
+let nudges = 0;
+const nudge = () => {
+  psql(`update public.games set settings = settings where id = '${gameId}'`);
+  nudges += 1;
+};
+nudge();
 console.log(`nudged ${code} (no-op update)`);
+const timer = setInterval(nudge, 2000);
 
 const result = await Promise.race([gotEvent, new Promise((r) => setTimeout(() => r(null), waitMs))]);
+clearInterval(timer);
 await supabase.removeChannel(channel);
 if (result) {
-  console.log(`realtime-probe: PASS — ${result} event after ${Date.now() - t0} ms`);
+  console.log(`realtime-probe: PASS — ${result} event after ${Date.now() - t0} ms (${nudges} nudge${nudges === 1 ? '' : 's'})`);
   process.exit(0);
 }
-console.error(`realtime-probe: FAIL — no event within ${waitMs} ms (publication, RLS or the Realtime container)`);
+console.error(`realtime-probe: FAIL — no event within ${waitMs} ms after ${nudges} nudges (publication, RLS or the Realtime container)`);
+try {
+  console.error(`realtime.subscription rows: ${psql('select count(*) from realtime.subscription')}`);
+  console.error(`supabase_realtime publishes: ${psql("select string_agg(tablename, ', ' order by tablename) from pg_publication_tables where pubname = 'supabase_realtime'")}`);
+  console.error(`replication slots: ${psql("select string_agg(slot_name || '=' || case when active then 'active' else 'idle' end, ', ') from pg_replication_slots")}`);
+  console.error(`wal_level: ${psql('show wal_level')}`);
+} catch (e) {
+  console.error(`diagnostics failed: ${e.message}`);
+}
 process.exit(1);

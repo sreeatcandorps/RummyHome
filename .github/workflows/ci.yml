@@ -497,13 +497,22 @@ jobs:
         working-directory: rummy-home3
         run: |
           # No mail container either (the UI tests send nothing); its host port has clashed on a runner before.
+          # The step runs under bash -e, so a bare `cmd; rc=$?` aborts before rc is read (run 5 died here
+          # after 59 s with nothing printed): test the command directly and print the start log with the
+          # secret values masked rather than dropping those lines.
+          show_log() { sed -E 's/((key|secret|token)[^:=]*[:=] *)[^ ]+/\1[masked]/I' /tmp/supabase-start.log; }
+          started=0
           for attempt in 1 2 3; do
-            supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1; rc=$?
-            grep -viE 'key|secret|token' /tmp/supabase-start.log || true
-            [ "$rc" -eq 0 ] && break
-            echo "supabase start failed (attempt $attempt), retrying"; supabase stop --no-backup || true; sleep 10
+            if supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1; then
+              started=1; show_log; break
+            fi
+            echo "::warning::supabase start failed (attempt $attempt)"; show_log
+            docker ps -a --format '{{.Names}} {{.Status}}' || true
+            supabase stop --no-backup || true; sleep 10
           done
+          [ "$started" -eq 1 ] || { echo "::error::supabase start failed three times"; exit 1; }
           psql "$DB_URL" -tAc "select version()"
+          set -o pipefail
           supabase db reset 2>&1 | tail -3
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-break.sql
