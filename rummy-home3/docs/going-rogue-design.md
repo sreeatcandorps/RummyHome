@@ -1,8 +1,13 @@
-# Going rogue: player, admin, creator — design spec (PR 20, review first; nothing built)
+# Going rogue: player, admin, creator — design spec (PR 20)
 
-Status: **spec for Sree's review.** Written after his Nov 14, 10:27 PM PT answer that PR 18 (creator-only delete) should
-not be built as proposed and that admins may hold the same delete / restore power as the creator. No app code, no
-migration, nothing applied. Mockups: [`going-rogue-mockups/`](going-rogue-mockups/) (G01–G08, same style as the Pool and
+Status: **built as PR 20 (the simple version)** — §6 items 2 + 3 (players who scored see a deleted game under Home ›
+Deleted games, open it read-only, Ask an admin to restore; admins and the creator restore it from the same places) plus
+Q20.1 (a deleted game is really erased 30 days later by the nightly `purge_deleted_games()`, its Log rows kept under
+`game_purged`), the honest confirm text (G02), the support card and Help bullet (Q20.7). Items 4 (round actions from the
+Log) and 5 (last-reachable-admin guard) are **not built**; they stay below as the record of what was weighed. Migration
+`045_going_rogue.sql` is **written, not applied** — Build Bot / Sree apply it. Spec written after his Nov 14, 10:27 PM PT
+answer that PR 18 (creator-only delete) should not be built as proposed and that admins may hold the same delete / restore
+power as the creator. Mockups: [`going-rogue-mockups/`](going-rogue-mockups/) (G01–G08, same style as the Pool and
 Multiplier sets). Section 7 lists the questions; section 6 gives the recommendation and the simplest robust option.
 
 The question in one line: *someone with power over a game — creator, admin, or a player — deletes the game, removes the

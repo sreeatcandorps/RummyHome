@@ -49,6 +49,7 @@ Same codebase either way.
 | Results PDF | `expo-print` and `expo-sharing` | Share full details prints phone-sized HTML pages (390 × 780) to a PDF on the phone and opens the share sheet; a single game's rounds go the same way. The web build downloads the same details |
 | Backend | Supabase (Auth + Postgres + RLS) | Shared multi-user data without a custom server |
 | My players | `my_players` in `007_redesign.sql` | Per-account roster. Home and New game do not read every profile |
+| Scheduled DB job | **pg_cron** (Supabase extension) — `purge-deleted-games` nightly 03:15 UTC runs `purge_deleted_games()` (045, PR 20) | Deleted games are erased after 30 days; the Log keeps a `game_purged` row. The migration schedules the job only when the extension is on, so turn pg_cron on in the live project before applying 045 |
 | Public scorecard | `https://ezscore.mindweavetech.com/scorecard.html` | Static HTML. `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__` are filled at publish time, not committed |
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
@@ -430,6 +431,16 @@ More detail: `docs/play-store-setup.md`, `docs/release-checklist.md`.
   `AppButton`'s type (A17), `EmptyState` everywhere (A19), header order share · help · menu (A20), "Add by initials" /
   "Find in database" labels (A21). `tests/design-tokens.test.ts` is the DC15-1 drift guard. Q13.25 (50 / 50 is a
   deliberate exception) is written into the Pool doc and pinned by a test.
+
+### 2026-11-15 — Going rogue built (PR 20, stacked PR; migration 045 written, not applied)
+- The simple version of `docs/going-rogue-design.md` §6 (items 2 + 3 + Q20.1): players with a saved score see a deleted
+  game under Home › Deleted games and in a read-only scorecard with a red banner; `request_restore` logs the ask and
+  tells the creator and the admins (notice + `restore_requested` email); admins / creator restore from Home, the
+  scorecard or Settings › Hidden & deleted. **First real erasure:** `purge_deleted_games()` removes games deleted 30+
+  days ago (results they were removed from keep their baked standings; Log rows survive re-anchored on
+  `purged_game_id` + a `game_purged` row), scheduled nightly 03:15 UTC through **pg_cron** when the extension is on —
+  Build Bot enables it on the live project when applying 045. Support path is support@ezscore.app (Q20.7). Items 4 and 5
+  (round actions from the Log, last-admin guard) not built.
 
 ---
 

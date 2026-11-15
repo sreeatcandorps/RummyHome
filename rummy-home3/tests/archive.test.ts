@@ -65,7 +65,8 @@ test('restore and deleted copy', () => {
 test('scorecard menu offers Hide game to everyone and Delete game to managers only', () => {
   const screenSrc = src('app/(screens)/games/[id].tsx');
   assert.match(screenSrc, /title="Hide game"/);
-  assert.match(screenSrc, /\{canManage \? \([\s\S]*?title="Delete game"/);
+  // PR 20: canManageNow = canManage && !deleted — a deleted game offers neither Delete nor Players · Admins
+  assert.match(screenSrc, /\{canManageNow \? \([\s\S]*?title="Delete game"/);
   assert.match(screenSrc, /setCanManage\(access\.isCreator \|\| access\.seatRole === 'game_admin'\)/);
   assert.match(screenSrc, /deleteGameWarning\(holding\)/, 'the warning about saved results is shown before Delete');
 });

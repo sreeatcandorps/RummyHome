@@ -249,14 +249,14 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 
 | # | Kind | Where | What it proves |
 | --- | --- | --- | --- |
-| X20-1 | D | `supabase/tests/36_going_rogue_045.sql` (to write) | a player with a saved score reads a deleted game and sees it in `get_home_bundle.deletedGames`; no score → no access; public `/s/` still says deleted |
+| X20-1 | D | `supabase/tests/36_going_rogue_045.sql` | a player with a saved score reads a deleted game and sees it in `get_home_bundle.deletedGames`; no score → no access; public `/s/` still says deleted |
 | X20-2 | D | same | `request_restore`: one ask per person per game, Log row, notices to creator + admins, refused for non-members / non-deleted games |
 | X20-3 | D | same | purge: 31-day-old deleted game with no live result removed, Log rows kept as `game_purged`; 29-day-old and result-held games survive |
-| X20-4 | D | same | `restore_round` only when contiguous; `revert_round_edit` swaps live and retired rows; Pool recompute; admin-only; logged |
-| X20-5 | D | same | last-reachable-admin guard refused / allowed cases; `last_seen_at` stamped by the Home bundle |
-| X20-6 | U | `tests/going-rogue.test.ts` (to write) | Home bundle maps `deletedGames`; "gone for good on" date math; Ask button states |
-| X20-7 | S | `smoke/19-deleted-game-ask-restore.yaml` (to write) | admin deletes → player's Home shows Deleted games → read-only → Ask → admin sees the line → Restore → both Homes |
-| X20-8 | C | `chaos/c13-rogue-admin.yaml` (to write) | rogue-admin script (demote others, undo two rounds, edit one, delete, revoke session) → second admin recovers from Log and Deleted games |
+| X20-4 | D | — (not built: §6 item 4 is out of PR 20) | `restore_round` only when contiguous; `revert_round_edit` swaps live and retired rows; Pool recompute; admin-only; logged |
+| X20-5 | D | — (not built: §6 item 5 is out of PR 20) | last-reachable-admin guard refused / allowed cases; `last_seen_at` stamped by the Home bundle |
+| X20-6 | U | `tests/going-rogue.test.ts` | Home bundle maps `deleted_games`; "gone for good on" date math; Ask button states; "Anil and Priya asked" line; G02 confirm text; Help + support card; migration / rollback / replay hook present; scorecard read-only guards |
+| X20-7 | R | `e2e/roles/r05-deleted-game-ask-restore.yaml` | a1 deletes BREAKP1 (confirm says 30 days) → p01's Home shows Deleted games → read-only scorecard, no Add round → Ask → "Asked · date" → c1 sees "Player One asked to restore it" → Restore game → card is back. Runs under `deleted-games` / `scorecard` areas (`ci/select-tests.mjs`) |
+| X20-8 | C | — (not built: needs items 4 + 5) | rogue-admin script (demote others, undo two rounds, edit one, delete, revoke session) → second admin recovers from Log and Deleted games |
 
 ## PR 19 test cases (First fixes from the break-the-app suite: F1 log out with a dead session, F2 offline relaunch wording, F3 refused pool limit pinned on screen, F6 20-player Standings starving the grid; no migration)
 
