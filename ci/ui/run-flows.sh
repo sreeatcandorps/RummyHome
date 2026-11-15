@@ -3,8 +3,10 @@
 # connected emulator. One JUnit file and one debug folder per flow; the screenshots a flow takes land
 # in <out>/screens. File-name hooks (PR 1/4/5 and PR 17):
 #   *landscape*     emulator turned sideways            *font-scale*   phone font at 1.3x
-#   *night-phone*   phone in dark mode                  *--net-off*    wifi + data off for the flow
-#   *--kill-after*  the app is force-stopped right after the flow's last screenshot (kill mid-save)
+#   *night-phone*   phone in dark mode
+#   *--net-off*     wifi + data go off ~0.7 s after the flow's FIRST screenshot (the flow takes it right
+#                   before the step it wants to run offline) and come back after the flow
+#   *--kill-after*  the app is force-stopped ~0.7 s after the flow's first screenshot (kill mid-save)
 #
 #   ci/ui/run-flows.sh <set-dir> <out-dir> [--quarantine]
 #
@@ -114,22 +116,26 @@ crash_check() {
   return 0
 }
 
-kill_watcher() {
-  # --kill-after: force-stop the app ~0.7 s after the flow's last screenshot lands (the flow takes it
-  # right before the tap it wants interrupted), and again as soon as Maestro returns, whichever is first.
-  local name="$1"
+after_first_screenshot() {
+  # Runs "$2" ~0.7 s after the flow's first screenshot lands. Flows that want something to happen
+  # mid-flow (kill the app, drop the network) take a screenshot right before the step in question;
+  # Maestro has no hook of its own for host-side actions. Gives up after 2 minutes.
+  local name="$1" action="$2"
   (
     for _ in $(seq 1 1200); do
       if find "$ABS_OUT/debug/$name" -path '*/takeScreenshot/*.png' 2>/dev/null | grep -q .; then
         sleep 0.7
-        adb shell am force-stop "$APP_ID" >/dev/null 2>&1 || true
-        echo "kill-after: app force-stopped after the flow's screenshot"
+        case "$action" in
+          kill) adb shell am force-stop "$APP_ID" >/dev/null 2>&1 || true
+                echo "kill-after: app force-stopped after the flow's first screenshot" ;;
+          net-off) network off ;;
+        esac
         exit 0
       fi
       sleep 0.1
     done
   ) &
-  KILL_PID=$!
+  WATCH_PID=$!
 }
 
 in_filter() {
@@ -149,12 +155,12 @@ for f in $(ls "$SET_DIR"/*.yaml 2>/dev/null | sort); do
   case "$name" in *landscape*) rotate 1 ;; *) rotate "$BASE_ROTATION" ;; esac
   case "$name" in *font-scale*) font_scale 1.3 ;; *) font_scale "$BASE_FONT" ;; esac
   case "$name" in *night-phone*) night_mode yes ;; *) night_mode no ;; esac
+  WATCH_PID=""
+  KILL=0
   case "$name" in
-    *--net-off*) network off; net_was_off=1 ;;
-    *) [ "$net_was_off" -eq 1 ] && { network on; net_was_off=0; } ;;
+    *--net-off*) after_first_screenshot "$name" net-off; net_was_off=1 ;;
+    *--kill-after*) after_first_screenshot "$name" kill; KILL=1 ;;
   esac
-  KILL_PID=""
-  case "$name" in *--kill-after*) kill_watcher "$name" ;; esac
 
   echo "::group::flow $name"
   start=$(date +%s)
@@ -167,11 +173,13 @@ for f in $(ls "$SET_DIR"/*.yaml 2>/dev/null | sort); do
       --test-output-dir "$ABS_OUT/debug/$name" \
       "$ABS_SET/$name.yaml"
   rc=$?
-  if [ -n "$KILL_PID" ]; then
-    adb shell am force-stop "$APP_ID" >/dev/null 2>&1 || true
-    kill "$KILL_PID" >/dev/null 2>&1 || true
-    wait "$KILL_PID" 2>/dev/null || true
+  if [ -n "$WATCH_PID" ]; then
+    kill "$WATCH_PID" >/dev/null 2>&1 || true
+    wait "$WATCH_PID" 2>/dev/null || true
   fi
+  # kill-after: make sure the app really is dead when Maestro returns, whichever came first.
+  [ "$KILL" -eq 1 ] && { adb shell am force-stop "$APP_ID" >/dev/null 2>&1 || true; }
+  if [ "$net_was_off" -eq 1 ]; then network on; net_was_off=0; fi
   secs=$(( $(date +%s) - start ))
   crashed=0
   crash_check "$name" || crashed=1

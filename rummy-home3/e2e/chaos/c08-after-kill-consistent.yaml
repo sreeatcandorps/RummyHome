@@ -3,6 +3,7 @@ tags: [chaos]
 # C16-5 After the kill: relaunch, open BREAKP7. Either the round landed (Round 2, Log "Round 1 added") or it
 # did not (Round 1, no Log row) — never a half-saved round, never an error dialog on open.
 ---
+# Relaunch WITHOUT clearing state: the point is what the app shows after being killed.
 - launchApp
 - extendedWaitUntil:
     visible:
@@ -12,9 +13,20 @@ tags: [chaos]
     when:
       visible:
         id: "login-email"
-    file: ../lib/sign-in-as.yaml
-    env:
-      EMAIL: c1@test.local
+    commands:
+      - tapOn:
+          id: "login-email"
+      - inputText: c1@test.local
+      - hideKeyboard
+      - tapOn:
+          id: "login-passcode"
+      - inputText: "123456"
+      - hideKeyboard
+      - tapOn:
+          id: "login-submit"
+      - extendedWaitUntil:
+          visible: "New game"
+          timeout: 30000
 - runFlow:
     file: ../lib/open-break-game.yaml
     env:

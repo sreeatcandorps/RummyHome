@@ -21,9 +21,12 @@ GitHub Pages is switched on).
 
 Flows run in file-name order inside a set (`01-`, `02-`, …). File-name hooks, all applied by `ci/ui/run-flows.sh`:
 `landscape` turns the emulator (the flow also does `setOrientation`), `font-scale` sets the phone font to 1.3×,
-`night-phone` puts the phone in dark mode, `--net-off` switches wifi and mobile data off for the flow (back on for
-the next one), `--kill-after` force-stops the app ~0.7 s after the flow's last screenshot (so the tap right after
-it is interrupted) and again when Maestro returns. Every flow gets `adb logcat` cleared first and the crash buffer
+`night-phone` puts the phone in dark mode, `--net-off` switches wifi and mobile data off ~0.7 s after the flow's
+*first* screenshot (the flow takes it right before the step it wants offline; back on when the flow ends),
+`--kill-after` force-stops the app ~0.7 s after the flow's first screenshot (so the tap right after it is
+interrupted) and again when Maestro returns. Maestro has no host-side hook, so "take a screenshot" is the signal.
+Sub-flows in `lib/` deliberately have no `env:` defaults: in Maestro a sub-flow's own `env:` block beats the
+values the caller passes with `runFlow … env:`, so every caller passes `EMAIL` / `CODE` itself. Every flow gets `adb logcat` cleared first and the crash buffer
 checked after: a crash or ANR of the app fails the flow even when Maestro passed (`crashes.csv`). A screen
 recording runs during every flow; it is kept for failures (and for every chaos flow) under `videos/`.
 
@@ -49,7 +52,9 @@ Manygames (38 games); admins `a1` Arun Admin, `a2` Asha Coadmin (non-playing), `
 | BQ3 | `BREAKQ3` | Pool 400, re-entry off, completed and awarded | (reserved: awards block on a completed pool) |
 | BRKC01–38 | `BRKC01`… | c4's 38 games (30 completed, 8 active) | (reserved: Home paging, the live-games guard) |
 
-Order matters inside the chaos set (c05 before c06, c07 before c08; c01 before c04 on BP1).
+Order matters inside the chaos set (c05 before c06, c07 before c08; c01 before c04 on BP1). `chaos/c11` relaunches
+the app offline with a cached session (must not crash; today it shows "You're signed out — Network error", see the
+PR 17 findings).
 
 | Game | Share code | State at the start | Used by |
 | --- | --- | --- | --- |

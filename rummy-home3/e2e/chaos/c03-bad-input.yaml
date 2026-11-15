@@ -12,6 +12,14 @@ tags: [chaos]
     visible: "Add Chandra Creator (you)"
     timeout: 20000
 - tapOn: "Add Chandra Creator (you)"
+# c1's "frequent partners" list is long; search instead of scrolling.
+- tapOn:
+    id: "picker-search"
+- inputText: "Arun"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Add Arun Admin"
+    timeout: 10000
 - tapOn: "Add Arun Admin"
 - tapOn:
     id: "new-game-next"

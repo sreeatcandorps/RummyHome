@@ -106,14 +106,12 @@ for d in "$A" "$B"; do
 done
 sleep 5
 
-# ---- T1 realtime: A watches, B adds. A's sign-in + open takes ~25 s; B starts after that so the
-# round lands while A is already on the scorecard. BREAKP1 is at Round 4 fresh → Round 5.
+# ---- T1 realtime: A opens the scorecard and stays there; B adds a round; A must show it unprompted.
+# BREAKP1 is at Round 4 fresh → Round 5. Three flows in sequence so the timing cannot race itself.
 echo "::group::T1 realtime"
-flow "$A" t1-a-watch t1-realtime-watch.yaml EXPECT_ROUND=5 &
-WATCH=$!
-sleep 30
+flow "$A" t1-a-open t1-a-open.yaml
 flow "$B" t1-b-add t1-realtime-add.yaml
-wait "$WATCH"
+flow "$A" t1-a-expect t1-a-expect.yaml EXPECT_ROUND=5
 echo "::endgroup::"
 
 # ---- T2 race: both prefill round 5, then both Save within the same ~100 ms. Expected: Round 6 on

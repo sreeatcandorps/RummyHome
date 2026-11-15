@@ -1,8 +1,6 @@
 appId: com.mindweavetech.rummyhome
 # Two-device race, step 2 (both emulators at once): tap Save round. One device wins; the other must get
 # the conflict notice ("was just saved by …" / "The scorecard changed"), never a second round.
-env:
-  WHO: c1
 ---
 - tapOn: "Save round"
 - extendedWaitUntil:

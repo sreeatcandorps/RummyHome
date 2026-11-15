@@ -1,0 +1,24 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# C16-4b Launch offline: sign in online, then the runner drops the network after the first screenshot
+# and the app is relaunched with its cached session. It must not crash and must land on something that
+# explains itself — Home or a network message — within 30 s (no blank splash).
+# Finding on 2026-11-15: it shows "You're signed out — Network error…" although the session is cached;
+# the wording is misleading (the user is not signed out) but the app survives, so this flow passes.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- takeScreenshot: c11-online-before-relaunch
+- extendedWaitUntil:
+    visible: "zz-never-shown"
+    timeout: 6000
+    optional: true
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: ".*(New game|Network error|offline|Offline|No connection).*"
+    timeout: 30000
+- takeScreenshot: c11-launched-offline

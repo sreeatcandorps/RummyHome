@@ -1,11 +1,10 @@
 appId: com.mindweavetech.rummyhome
-# From Home, open one of the break-the-app games by share code (seed-break.sql) and wait for the scorecard.
+# From Home, open the game card with this share code (seed-break.sql) and wait for the scorecard.
+# The caller passes CODE (no env defaults here — see sign-in-as.yaml for why):
 #   - runFlow:
 #       file: ../lib/open-break-game.yaml
 #       env:
 #         CODE: BREAKP1
-env:
-  CODE: BREAKP1
 ---
 - extendedWaitUntil:
     visible: "New game"
