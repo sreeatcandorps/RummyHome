@@ -12,7 +12,7 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "Add by initials"
     timeout: 15000
-- assertVisible: "Add players to this game from the EZ Score database"
+- assertVisible: "Find in database: add players to this game from the EZ Score database"
 - assertVisible: "Add Sree Test (you)"
 - assertVisible: "Harish Test"
 - assertNotVisible: "You"
