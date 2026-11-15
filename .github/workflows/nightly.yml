@@ -21,7 +21,7 @@ permissions:
   actions: write
 
 env:
-  TARGET_REF: cursor/pr19-test-findings-fixes-0a03
+  TARGET_REF: cursor/pr20-going-rogue-build-0a03
 
 jobs:
   kick:
