@@ -450,7 +450,7 @@ export default function GameScreen() {
         compact={isShort}
         onReenter={game.isComplete ? undefined : reenter}
         busyId={reentering}
-        // F5: never more than this share of the screen, so the grid above keeps room at 20 players.
+        // F6: never more than this share of the screen, so the grid above keeps room at 20 players.
         maxHeight={Math.round(windowHeight * (isShort ? 0.45 : 0.38))}
       />
     </>

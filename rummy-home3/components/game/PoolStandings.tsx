@@ -19,7 +19,7 @@ export type PoolStandingRow = PoolStanding & {
  * and drops left; players who are out below, struck through, with Re-enter when they may come back.
  * The grid itself shows none of this.
  *
- * F5 (run 6, flow 17): the card sits under the grid in a fixed column, so with 20 players its rows
+ * F6 (run 6, flow 17): the card sits under the grid in a fixed column, so with 20 players its rows
  * used to take the whole screen and squeeze the grid to nothing. The rows now scroll inside the
  * card, which never grows past `maxHeight` (the screen passes a share of the window height).
  */

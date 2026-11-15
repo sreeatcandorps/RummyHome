@@ -243,7 +243,7 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | X20-7 | S | `smoke/19-deleted-game-ask-restore.yaml` (to write) | admin deletes → player's Home shows Deleted games → read-only → Ask → admin sees the line → Restore → both Homes |
 | X20-8 | C | `chaos/c13-rogue-admin.yaml` (to write) | rogue-admin script (demote others, undo two rounds, edit one, delete, revoke session) → second admin recovers from Log and Deleted games |
 
-## PR 19 test cases (First fixes from the break-the-app suite: F1 log out with a dead session, F2 offline relaunch wording, F3 refused pool limit pinned on screen, F5 20-player Standings starving the grid; no migration)
+## PR 19 test cases (First fixes from the break-the-app suite: F1 log out with a dead session, F2 offline relaunch wording, F3 refused pool limit pinned on screen, F6 20-player Standings starving the grid; no migration)
 
 | Code | Type | Where | What |
 | --- | --- | --- | --- |
