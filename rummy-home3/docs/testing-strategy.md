@@ -270,19 +270,19 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 
 | # | Kind | Where | What it proves |
 | --- | --- | --- | --- |
-| X14-1 | U | `tests/multiplier.test.ts` (to write) | `shortNumber`: one rule — K from 10,000, M from 1,000,000; 3 significant digits; half away from zero; no ".0"; sign kept; 0 → "0"; CSV cases |
-| X14-2 | U | same | actual = entered × that round's multiplier everywhere; mixed-rate games (×10 rounds 1–6, ×5 from 7) sum right; exact sums add to 0; the red total rule ignores display rounding |
+| X14-1 | U | `tests/multiplier.test.ts` (to write) | `shortNumber`: one rule — K from 10,000, M from 1,000,000; never more than 5 characters including the sign; half away from zero; 999,500 → 1M; no ".0"; sign kept; 0 → "0"; CSV cases |
+| X14-2 | U | same | actual = entered × the game's one multiplier everywhere; exact sums add to 0; the red total rule ignores display rounding |
 | X14-3 | U | same | parsing 1–10,000, digits only, empty/0 → 1, over the cap → red text; absent key → 1; precedence game › user default › 1; Pool ignores it |
 | X14-4 | U | same | Final scores / share: two columns to 7 digits, one from 8, never short; PDF blocks 5 / 4 / 3 from the widest value |
 | X14-5 | U | same | Results: per-game multiplied contributions, `×N` header only when > 1, Winners exact, table K/M (mixed fixture) |
 | X14-6 | U | same | Toggle default ON, per phone, hidden at ×1, banner when OFF; saved / shared data unchanged |
-| X14-7 | D | `supabase/tests/33_multiplier_042.sql` (to write) | 042: result sums as bigint (2,280,000,000 saves), multiplier applied in SQL per round, `rounds.multiplier` backfill 1, `set_game_multiplier` from-round / all-rounds / admin-only / refused on Completed / Log line, Pool lock keeps the limit and frees the three values (Q14.23), rollback replay |
+| X14-7 | D | `supabase/tests/34_multiplier_043.sql` (to write) | 043: result sums as bigint (2,280,000,000 saves), multiplier applied in SQL from `settings`, a `settings.multiplier` change on an existing game refused with the lock message while Drop / Middle drop / Full count still change, absent key → 1, rollback replay |
 | X14-8 | S | `smoke/17-multiplier.yaml` (to write) | ×100 game end to end: chip, toggle, "= −3,000" lines, Exact sheet, Final scores exact, Results `×100` |
-| X14-9 | N | `full/50-multiplier-20p.yaml` (to write) | 20 players at ×10,000 portrait + landscape (K/M text shrinks, no clipping — the Q14.24 gate), share one column, PDF 4-column blocks |
-| X14-10 | N | `full/51-multiplier-change.yaml` (to write) | Change multiplier ×10 → ×5 from round 7: `×10` marks on rounds 1–6, footer spans, Exact sheet both rates, Log line; All rounds variant; second phone sees it within 10 s |
-| X14-11 | M | emulator | every M-screen of the spec (M01–M22) |
+| X14-9 | N | `full/50-multiplier-20p.yaml` (to write) | 20 players at ×10,000 portrait + landscape (every cell ≤ 5 characters, no clipping, same layout as 4 players), share one column, PDF 4-column blocks |
+| X14-10 | S | `smoke/18-multiplier-locked.yaml` (to write) | On a started game, Game settings shows the multiplier greyed with "To change the multiplier, end this game and start a new one."; Drop / Middle drop / Full count still save; a direct `settings.multiplier` update is refused by the server |
+| X14-11 | M | emulator | every M-screen of the spec (M01–M21) |
 
-## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migration 041 written, not applied)
+## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migration 041 applied Nov 14; 042 re-entries setting + limit-only lock written, not applied)
 
 Spec: `docs/pool-design.md` (Sree's 14 decisions of Nov 14), mockups in `docs/pool-mockups/`.
 
@@ -301,6 +301,10 @@ Spec: `docs/pool-design.md` (Sree's 14 decisions of Nov 14), mockups in `docs/po
 | P13-11 | S | `smoke/16-pool-game.yaml` | New game: pick four → "Next · 4 players" → Game type (Points first, then Pool: Re-entry, Settings link, players at the bottom) → Start → Skip the co-admin nudge → pool scorecard (Pool tag, Standings "Limit 101 · 100 in, 101 out") → Add round (no Plus / Minus; Drop 25 / Middle drop 50 / Full count 130; Rummy; 135 → "Are you sure?" → Keep 135 → cell "then 135, out") → Save → "Round saved" sheet (Zed out at 135, Re-enter Zed) → scorecard OUT R1 → Re-enter from Standings (blue, 50) → Complete (pool line) → Confirm → "Give awards" / "Give awards first" → Awards (Winner takes all all given out, By points left, Entry per drop left, Custom 400 → "100 not given out") → Save → "Save awards anyway?" → Complete page "Change awards" + "Add to Results" → scorecard Awarded + Awards card → Delete game (screenshots 16–16s) |
 | P13-12 | S | `smoke/07-profile.yaml` | Settings: "New game starts as", Points defaults, Pool defaults with the limit chips, Custom and Re-entry (screenshots 07d, 07e) |
 | P13-13 | M | emulator | Every changed screen in the PR body gallery (CI artifact `ui-screenshots-<slug>-smoke`) |
+| T13-29 | U | `tests/pool-pr13.test.ts` 13.4 / 13.6b / 13.7 | 042 Re-entries: `reentryLimitOf` null / N / 0 / negative / 041 boolean; `reentryBlock` Unlimited (second re-entry fine) vs Limited 1 (`used`) vs 0 (`off`); labels Unlimited / None / 1 re-entry / 3 re-entries; draft Unlimited / Limited with count 0–99 and the exact error; `validateRules` 100 refused; profile key `poolReentryLimit` and the old `poolReentry` read; RulesForm has the two radios, the count field only for Limited, and `lockValues` greys only the pool limit |
+| T13-30 | D | `supabase/tests/33_pool_reentries_042.sql` (26) + `32_pool_041.sql` adjusted | `pool_reentry_limit` for every shape; the limit is PT423-locked and Drop / Middle drop / Full count change with the Log line "Changed game settings · Drop 20→25 · Full count 80→130 · Middle drop 40→50" (important once rounds exist); Unlimited allows a third entry; switching to Limited 2 mid-game refuses the third with "They have used all 2 re-entries."; Limited 0 refuses with "Re-entries are off…"; Limited 3 re-enters at the highest score in; a player still in is refused |
+| T13-31 | R | `ci/db/replay-rollbacks.sh` | rollback 042 first (once-per-player and the four-value lock back), forward 042 restores `pool_reentry_limit`, the limit-only lock and the labelled log |
+| T13-32 | S | `e2e/smoke/07-profile.yaml`, `16-pool-game.yaml` | Settings Pool block: Limited reveals `settings-pool-reentries-count`, Unlimited hides it; New game screen 2 shows "Re-entries" and "Unlimited" |
 
 ## PR 10b test cases (APK 9 fixes: Home, My players / own initials, Add players, Profile, Add round, Results, share image, PDFs; migration 040 written, not applied)
 
