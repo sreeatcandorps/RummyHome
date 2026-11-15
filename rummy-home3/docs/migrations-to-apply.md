@@ -563,7 +563,22 @@ What 043 does (rollback: `supabase/rollback/rollback_043_multiplier.sql`; pgTAP:
 - `public_scorecard`: returns `multiplier` for the live web page (K / M cells, Exact points list).
 - `event_log_games`: the `settings_changed` labeller gains "Multiplier", so the Log reads "Multiplier ×10 → ×5".
 
-044 (Going rogue, PR 20) is spec-only and not yet written.
+PR 21 Seating order (Nov 15), **written, not applied — waiting for Sree's OK once PR 21's CI is green**:
+
+24. `supabase/migrations/044_seating_order.sql`
+
+What 044 does (rollback: `supabase/rollback/rollback_044_seating_order.sql`; pgTAP: `supabase/tests/35_seating_order_044.sql`):
+
+- Log kind `seating_changed` (constraint restated as 041 did).
+- `set_seating_order(game, ids[])`: game admin only, Active games only, every seated non-spectator player exactly once;
+  parks the seats (+10000) then numbers them 0..N-1 in one transaction; one Log line "Seating changed · 1 SK · 2 PT · …"
+  (routine with no rounds, important after) with `from` / `to` / `rounds` / `nextDealer`. The Seating sheet and the
+  Players · Admins ▲ ▼ both call it. No new column: the order is `game_players.player_order`.
+- `event_log_games` ignores the settings key `seatingPrompted` (the once-per-game pop-up flag), so marking the pop-up
+  seen never logs "Changed game settings".
+- Rollback relabels `seating_changed` rows to `settings_changed`, restores the 041 kind list and the 043 `event_log_games`.
+
+045 (Going rogue, PR 20) is spec-only and not yet written.
 
 Read-only checks that go with 021 (nothing is changed):
 

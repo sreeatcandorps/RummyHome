@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–043) applied, check the function state after each, then re-apply the forward
+# has every migration (001–044) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -24,7 +24,15 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 043 (multiplier: results × multiplier as bigint, live-page key, Log label; rolled back first)
+# 044 (seating order: set_seating_order, the seating_changed Log kind, the pop-up flag ignored; rolled back first)
+HAS_044=f
+if [ -f "$RB/rollback_044_seating_order.sql" ]; then
+  HAS_044=t
+  if apply "$RB/rollback_044_seating_order.sql"; then tap ok "rollback_044 applies"; else tap fail "rollback_044 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists set_seating_order)" = f ] && [ "$(fn_has event_log_games 'seatingPrompted')" = f ]     && [ "$(q "select not exists(select 1 from pg_constraint where conname='event_log_kind' and pg_get_constraintdef(oid) like '%seating_changed%')")" = t ]     && tap ok "after rollback_044 set_seating_order is gone, the Log kinds are 041's and event_log_games is 043's"     || tap fail "after rollback_044 set_seating_order / seating_changed / seatingPrompted should be gone"
+fi
+
+# 043 (multiplier: results × multiplier as bigint, live-page key, Log label)
 HAS_043=f
 if [ -f "$RB/rollback_043_multiplier.sql" ]; then
   HAS_043=t
@@ -419,6 +427,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_041" = t ] && FORWARD="$FORWARD 041_pool"
 [ "$HAS_042" = t ] && FORWARD="$FORWARD 042_pool_reentries_and_limit_lock"
 [ "$HAS_043" = t ] && FORWARD="$FORWARD 043_multiplier"
+[ "$HAS_044" = t ] && FORWARD="$FORWARD 044_seating_order"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -564,6 +573,9 @@ if [ "$HAS_043" = t ]; then
   [ "$(fn_exists game_multiplier)" = t ] && [ "$(fn_has declare_game_result game_multiplier)" = t ] && [ "$(fn_has public_scorecard game_multiplier)" = t ] \
     && [ "$(fn_has event_log_games 'Multiplier')" = t ] && [ "$(q "select exists(select 1 from pg_trigger where tgname='games_multiplier_check')")" = t ] \
     && tap ok "043 restored (game_multiplier, results × multiplier, live-page key, Log label, range check)" || tap fail "043 restored"
+fi
+if [ "$HAS_044" = t ]; then
+  [ "$(fn_exists set_seating_order)" = t ] && [ "$(fn_has event_log_games 'seatingPrompted')" = t ]     && [ "$(q "select exists(select 1 from pg_constraint where conname='event_log_kind' and pg_get_constraintdef(oid) like '%seating_changed%')")" = t ]     && tap ok "044 restored (set_seating_order, seating_changed kind, pop-up flag ignored by the settings log)" || tap fail "044 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

@@ -208,6 +208,6 @@ does nothing for the creator-goes-rogue case, which is the one he raised.
 
 ## 9. Place in the sequence
 
-Spec only. If approved, the build stacks after PR 19 as PR 20 (build), after PR 14's 043, so its migration is **044**.
+Spec only. If approved, the build stacks after PR 19 as PR 20 (build), after PR 14's 043 and PR 21's 044 (Seating order), so its migration is **045**.
 It touches 023's readers (`can_read_game`, `get_home_bundle`, `list_hidden_and_deleted`), 035/036 for the round
 actions, and the Home screen — about PR 9-sized for the simplest option, PR 10b-sized for the full set.

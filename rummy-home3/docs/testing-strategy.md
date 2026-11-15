@@ -249,7 +249,7 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 
 | # | Kind | Where | What it proves |
 | --- | --- | --- | --- |
-| X20-1 | D | `supabase/tests/35_going_rogue_044.sql` (to write) | a player with a saved score reads a deleted game and sees it in `get_home_bundle.deletedGames`; no score → no access; public `/s/` still says deleted |
+| X20-1 | D | `supabase/tests/36_going_rogue_045.sql` (to write) | a player with a saved score reads a deleted game and sees it in `get_home_bundle.deletedGames`; no score → no access; public `/s/` still says deleted |
 | X20-2 | D | same | `request_restore`: one ask per person per game, Log row, notices to creator + admins, refused for non-members / non-deleted games |
 | X20-3 | D | same | purge: 31-day-old deleted game with no live result removed, Log rows kept as `game_purged`; 29-day-old and result-held games survive |
 | X20-4 | D | same | `restore_round` only when contiguous; `revert_round_edit` swaps live and retired rows; Pool recompute; admin-only; logged |
