@@ -227,6 +227,18 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
 
+## PR 11 test cases (Help redesign — spec only, `docs/help-design.md`; codes reserved)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| HL11-1 | U | `tests/help-pr11.test.ts` (to write) | every route has a topic; every topic has hero, 3–5 Need to know, ≥ 1 Tricky case, Also see |
+| HL11-2 | U | same | ⋮ items in help tables ⇔ `Menu.Item` titles in code |
+| HL11-3 | U | same | no money words; bold labels match on-screen strings |
+| HL11-4 | U | same | index lists every topic once; search; family colours from theme tokens |
+| HL11-5 | S | `smoke/18-help.yaml` (to write) | `?` on Home, Scorecard, Add round, Results, Awards opens the page (screenshots) |
+| HL11-6 | N | `full/51-help-every-screen.yaml` (to write) | `?` on every screen; dark theme |
+| HL11-7 | M | emulator | read-through against the spec |
+
 ## PR 14 test cases (Multiplier — spec only, `docs/multiplier-design.md`; codes reserved, tests written with the build)
 
 | # | Kind | Where | What it proves |
