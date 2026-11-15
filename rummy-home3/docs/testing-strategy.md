@@ -230,6 +230,21 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
 
+## PR 21 test cases (Seating order — spec only, `docs/seating-order-design.md`; codes reserved, tests written with the build)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| X21-1 | U | `tests/seating.test.ts` (to write) | `placeAt` shifts the rows between source and target by one; ▲ ▼ at the ends are no-ops; always a permutation; row sizes 40 / 32 / 30 dp by count |
+| X21-2 | U | same | pop-up gating: once per game for an admin with ≥ 2 seated players, 0 rounds, no `seatingPrompted`; never for players / viewers / completed / one player |
+| X21-3 | U | `tests/dealerRotation.test.ts` (extend) | after a reorder the next dealer is the seat after the last dealer in the new order; saved rounds keep their labels; dividers unchanged |
+| X21-4 | D | `supabase/tests/3x_seating_04x.sql` (to write) | `set_seating_order`: creator / admin OK and compacted 0..N-1; player / viewer / non-member refused; missing or duplicate player refused; Completed refused; spectators / unseated admins refused; 20 players reversed in one call, unique key intact |
+| X21-5 | D | same | Log row `seating_changed`: routine at 0 rounds, important after; text and details; rollback relabels to `settings_changed`, forward replay restores |
+| X21-6 | D | same | Pool: reorder with an out and a re-entered player keeps `out_round` / `reentry_score`; next `save_round` dealer = next seat still in, in the new order |
+| X21-7 | S | `smoke/19-seating-order.yaml` (to write) | Start → nudge Skip → sheet pops → move Priya to seat 2 → Done → columns, Log line, dealer bar → ⋮ Seating order → swap → Done → bar on the expected column |
+| X21-8 | N | `full/5x-seating-20p.yaml` (to write) | 20 players: the sheet scrolls, WWW / MMM pills whole, buttons fixed; landscape Players column; Pool reorder with 3 out |
+| X21-9 | R | `two-device/` (to write) | admin reorders on A; B sees the columns move within 3 s and gets no pop-up |
+| X21-10 | M | emulator | every S-screen (S01–S08) |
+
 ## PR 20 test cases (Going rogue: player, admin, creator — spec only, `docs/going-rogue-design.md`; codes reserved, tests written with the build)
 
 | # | Kind | Where | What it proves |
