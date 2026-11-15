@@ -4,14 +4,14 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   agoLabel, askButton, askedLine, ASK_RESTORE_LABEL, daysUntilPurge, DELETED_GAME_RETENTION_DAYS, deletedBannerLine, deletedCardLine,
-  deletedHomeGamesFrom, deletionFromRow, goneForGoodLabel, purgeDate, RESTORE_GAME_LABEL, SUPPORT_CARD_BODY, SUPPORT_EMAIL,
+  deletedHomeGamesFrom, deletionFromRow, hiddenForGoodLabel, purgeDate, RESTORE_GAME_LABEL, SUPPORT_CARD_BODY, SUPPORT_EMAIL,
 } from '../utils/deletedGames';
 import { DELETE_GAME_BODY } from '../utils/archive';
 import { dotTone, kindLabel } from '../utils/eventLog';
 import { HELP } from '../constants/help';
 
 // PR 20 Going rogue (docs/going-rogue-design.md §6 items 2 + 3, Q20.1 purge): X20-6 — the Home bundle's
-// deleted_games rows map to cards, the "gone for good on" date math, the Ask button states, the banner
+// deleted_games rows map to cards, the "hidden for good on" date math, the Ask button states, the banner
 // and card copy; plus the G02 confirm text, the Log labels, the Help bullet and the migration's shape.
 
 const root = process.cwd();
@@ -29,7 +29,7 @@ const row = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-test('X20-6 purge date math: deletedAt + 30 days, whole days left, never negative', () => {
+test('X20-6 hidden-for-good date math: deletedAt + 30 days, whole days left, never negative', () => {
   assert.equal(DELETED_GAME_RETENTION_DAYS, 30);
   assert.equal(purgeDate(DELETED), '2026-12-14T12:00:00.000Z');
   assert.equal(purgeDate(''), null);
@@ -40,10 +40,10 @@ test('X20-6 purge date math: deletedAt + 30 days, whole days left, never negativ
   assert.equal(daysUntilPurge(null, NOW), null);
 });
 
-test('X20-6 "gone for good on …" and "… ago" labels', () => {
-  assert.equal(goneForGoodLabel('2026-12-14T12:00:00Z', NOW), 'gone for good on Mon, Dec 14');
-    assert.equal(goneForGoodLabel('2026-11-15T12:00:00Z', NOW), 'gone for good today');
-  assert.equal(goneForGoodLabel(null, NOW), '');
+test('X20-6 "hidden for good on …" (046) and "… ago" labels', () => {
+  assert.equal(hiddenForGoodLabel('2026-12-14T12:00:00Z', NOW), 'hidden for good on Mon, Dec 14');
+    assert.equal(hiddenForGoodLabel('2026-11-15T12:00:00Z', NOW), 'hidden for good today');
+  assert.equal(hiddenForGoodLabel(null, NOW), '');
   assert.equal(agoLabel(DELETED, NOW), '2 days ago');
   assert.equal(agoLabel('2026-11-15T06:00:00Z', NOW), 'yesterday');
   assert.equal(agoLabel('2026-11-16T09:00:00Z', NOW), 'today');
@@ -51,9 +51,9 @@ test('X20-6 "gone for good on …" and "… ago" labels', () => {
 
 test('X20-6 the card line and the banner line (G03 / G04)', () => {
   const deletion = deletionFromRow(row())!;
-  assert.equal(deletedCardLine(deletion, NOW), 'Deleted by Harish · 2 days ago · gone for good on Mon, Dec 14');
-  assert.equal(deletedCardLine({ ...deletion, deletedByMe: true }, NOW), 'Deleted by you · 2 days ago · gone for good on Mon, Dec 14');
-  assert.equal(deletedBannerLine(deletion, NOW), 'This game was deleted by Harish 2 days ago · gone for good on Mon, Dec 14');
+  assert.equal(deletedCardLine(deletion, NOW), 'Deleted by Harish · 2 days ago · hidden for good on Mon, Dec 14');
+  assert.equal(deletedCardLine({ ...deletion, deletedByMe: true }, NOW), 'Deleted by you · 2 days ago · hidden for good on Mon, Dec 14');
+  assert.equal(deletedBannerLine(deletion, NOW), 'This game was deleted by Harish 2 days ago · hidden for good on Mon, Dec 14');
 });
 
 test('X20-6 Ask button states: ask once, then "Asked · date"', () => {
@@ -102,7 +102,7 @@ test('G02: the Delete game confirm is honest about 30 days and who still sees it
   assert.match(DELETE_GAME_BODY, /^Nothing is lost for 30 days\./);
   assert.match(DELETE_GAME_BODY, /Deleted games/);
   assert.match(DELETE_GAME_BODY, /ask an admin/);
-  assert.match(DELETE_GAME_BODY, /After 30 days it is gone for good\.$/);
+  assert.match(DELETE_GAME_BODY, /After 30 days it is hidden for good — nothing is erased, and support can still find it\.$/);
 });
 
 test('Q20.7: the support card and Help name support@ezscore.app, the Unique game ID and the 30 days', () => {
@@ -110,12 +110,13 @@ test('Q20.7: the support card and Help name support@ezscore.app, the Unique game
   assert.match(SUPPORT_CARD_BODY, /support@ezscore\.app/);
   assert.match(SUPPORT_CARD_BODY, /Unique game ID/);
   assert.match(SUPPORT_CARD_BODY, /30 days/);
+  assert.match(SUPPORT_CARD_BODY, /Nothing is ever erased/);
   const help = HELP.hiddenDeleted;
   assert.ok(help.includes('support@ezscore.app'), 'Help › Hidden & deleted carries the support address');
   assert.ok(help.includes('Deleted games'), 'Help tells players where to find a deleted game');
   const screen = src('app/(screens)/hidden-deleted.tsx');
   assert.ok(screen.includes('SUPPORT_CARD_TITLE') && screen.includes('SUPPORT_CARD_BODY'), 'the Settings screen shows the card');
-  assert.ok(screen.includes('goneForGoodLabel'), 'the deleted-game rows say when the purge comes');
+  assert.ok(screen.includes('hiddenForGoodLabel'), 'the deleted-game rows say when the game is hidden for good');
 });
 
 test('Log: the two new kinds have labels and tones', () => {

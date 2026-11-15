@@ -66,7 +66,7 @@ export const AREA_FLOWS = [
     flows: { chaos: ['c03-bad-input'] } },
   { area: 'seating', match: [/utils\/seating/, /components\/game\/SeatingSheet/, /migrations\/.*seating/, /utils\/dealerRotation/],
     flows: { full: ['51-seating-20p', '70-game-log'], roles: ['r01-player-view-only', 'r04-nonplaying-admin'] } },
-  { area: 'deleted-games', match: [/utils\/deletedGames/, /components\/home\/DeletedGames/, /components\/game\/DeletedGameBanner/, /hidden-deleted\.tsx$/, /utils\/archive/, /services\/archive/, /migrations\/.*going_rogue/],
+  { area: 'deleted-games', match: [/utils\/deletedGames/, /components\/home\/DeletedGames/, /components\/game\/DeletedGameBanner/, /hidden-deleted\.tsx$/, /utils\/archive/, /services\/archive/, /migrations\/.*going_rogue/, /migrations\/.*no_permanent_delete/, /tests\/no-permanent-delete/],
     flows: { roles: ['r05-deleted-game-ask-restore'], full: ['70-game-log'] } },
   { area: 'rls', match: [/migrations\/.*(policy|rls|grant)/i],
     flows: {}, roles: true },
