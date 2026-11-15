@@ -152,7 +152,8 @@ tags: [smoke]
 - inputText: "4"
 - inputText: "0"
 - inputText: "0"
-- hideKeyboard
+# One hideKeyboard only: a second one with the keyboard already closed acts as Back on Android and
+# leaves the Awards page.
 - hideKeyboard
 - assertVisible: "Pool 500 · 400 given out · 100 not given out"
 - takeScreenshot: 16p-awards-custom-not-all-given-out
