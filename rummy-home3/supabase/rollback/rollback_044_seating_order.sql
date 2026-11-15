@@ -12,6 +12,7 @@ alter table public.event_log add constraint event_log_kind check (kind in (
   'player_out', 'player_reentered', 'reentry_undone', 'awards_set', 'awards_changed'));
 
 drop function if exists public.set_seating_order(uuid, uuid[]);
+drop function if exists public.default_initials(text);
 
 create or replace function public.event_log_games()
 returns trigger

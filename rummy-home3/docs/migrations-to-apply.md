@@ -574,6 +574,8 @@ What 044 does (rollback: `supabase/rollback/rollback_044_seating_order.sql`; pgT
   parks the seats (+10000) then numbers them 0..N-1 in one transaction; one Log line "Seating changed · 1 SK · 2 PT · …"
   (routine with no rounds, important after) with `from` / `to` / `rounds` / `nextDealer`. The Seating sheet and the
   Players · Admins ▲ ▼ both call it. No new column: the order is `game_players.player_order`.
+- `default_initials(name)`: the scorecard's default 2-letter label (first + last word, or the first two letters of a
+  one-word name) for seats with no stored label, so the Log line reads "ST", "TU" like the column headers.
 - `event_log_games` ignores the settings key `seatingPrompted` (the once-per-game pop-up flag), so marking the pop-up
   seen never logs "Changed game settings".
 - Rollback relabels `seating_changed` rows to `settings_changed`, restores the 041 kind list and the 043 `event_log_games`.

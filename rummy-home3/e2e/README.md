@@ -48,7 +48,7 @@ Manygames (38 games); admins `a1` Arun Admin, `a2` Asha Coadmin (non-playing), `
 | BP4 | `BREAKP4` | Points, completed, in a result | (reserved: Recent / result views) |
 | BP5 | `BREAKP5` | Points, created by c2 who is not seated; a1, p05–p07; no rounds | `chaos/c02` (completes it), `roles/r02` (s1 must not see it) |
 | BP6 / BP7 | `BREAKP6` / `BREAKP7` | Points, c1 + p11–p13, no rounds | `chaos/c05`+`c06` (offline then reconnect), `chaos/c07`+`c08` (kill mid-save) |
-| BQ1 | `BREAKQ1` | Pool 101, c3 + a1 + p03–p06; p05 out, p06 re-entered; s1 spectator | `roles/r02` (s1 sees it view-only) |
+| BQ1 | `BREAKQ1` | Pool 101, c3 + a1 + p03–p06; p05 out, p06 re-entered; s1 spectator | `roles/r02` (s1 sees it view-only), `full/51` (PR 21: the Seating sheet counts the out, moves an out player, Cancel saves nothing) |
 | BQ2 | `BREAKQ2` | Pool 201, 20 seats, 19 out, c3 the last one in | `chaos/c10` (completes, awards) |
 | BQ3 | `BREAKQ3` | Pool 400, re-entry off, completed and awarded | (reserved: awards block on a completed pool) |
 | BRKC01–38 | `BRKC01`… | c4's 38 games (30 completed, 8 active) | (reserved: Home paging, the live-games guard) |
@@ -65,9 +65,9 @@ missing!", the first bug the break-the-app runs found).
 | W | `GAMEW1` | pool 101, completed, awards pending, 20 seats × 3 rounds, placeholders' initials WWW / MMM / WMW … | `smoke/17` (F13.22: header, Standings and Awards labels in full; saves nothing) |
 | H | `GAMEH1` | active, 3 players, no rounds | `smoke/14` (Rummy with a positive pot: -40 share, confirm, saves round 1; PR 3 / 037), `full/32` (Add players to this game: R K and C D in, Total 3 → 5, Return to game, then Otto Outsider #5 as non-playing admin; R K and C D removed again at the end; PR 7), `full/80` (count warnings; saves nothing) |
 | G | `GAMEG1` | completed, 6 seated, no rounds | `smoke/12` (seated players with no rounds make a 6-player result; saves and closes G; PR 9 / PR 10b: Delete this result → Undo, then Delete again from the result page → Deleted + Restore, so G ends Closed), `smoke/15` (shares G's result, then Delete asks first; nothing deleted), `full/41` (Final scores card in marigold and the results share dialog in green; nothing sent) |
-| F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11`, `full/20`, `full/21` (font scale 1.3, with A), `full/50` (PR 14: ×10,000 — Large multiplier confirm, short totals, Exact sheet, landscape; sets ×1 again at the end) |
+| F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11`, `full/20`, `full/21` (font scale 1.3, with A), `full/50` (PR 14: ×10,000 — Large multiplier confirm, short totals, Exact sheet, landscape; sets ×1 again at the end), `full/51` (PR 21: Seating order with 20 players — chips, deals-next seat, Test Uniform to seat 1 and back, the Log row) |
 
-Order matters inside the smoke set (A gains a round, then is completed). Everything else has its own
+Order matters inside the smoke set (A gains a round, then is completed). `smoke/16` and `smoke/19` each start a game of their own (the Seating pop-up appears once after Start) and delete it at the end. Everything else has its own
 game so the sets stay independent of each other. `full/60` switches Appearance to Dark and back to
 Phone; it runs last in the full set so the other screenshots are light.
 

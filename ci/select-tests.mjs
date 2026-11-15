@@ -64,6 +64,8 @@ export const AREA_FLOWS = [
     flows: { full: ['10-sign-out-bad-passcode'], chaos: ['c11-launch-offline--net-off', 'c12-logout-dead-session--revoke-session'] }, roles: true },
   { area: 'new-game', match: [/games\/new\.tsx$/, /components\/game\/(GameTypeStep|RulesForm)/, /utils\/rulesDraft/, /utils\/gameSettings/],
     flows: { chaos: ['c03-bad-input'] } },
+  { area: 'seating', match: [/utils\/seating/, /components\/game\/SeatingSheet/, /migrations\/.*seating/, /utils\/dealerRotation/],
+    flows: { full: ['51-seating-20p', '70-game-log'], roles: ['r01-player-view-only', 'r04-nonplaying-admin'] } },
   { area: 'rls', match: [/migrations\/.*(policy|rls|grant)/i],
     flows: {}, roles: true },
 ];

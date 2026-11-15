@@ -1,6 +1,6 @@
 # Seating order — design spec (PR 21, review first; nothing built)
 
-Status: **spec for Sree's review**, written to his Nov 15, 12:40 AM PT note. No app code, no migration, nothing applied.
+Status: **built** (Nov 15; approved by Sree at 1:34 AM PT with every Q21.x recommendation). Migration `044_seating_order.sql` is written and **not applied**; Going rogue's migration moved to 045. Build notes: the pop-up flag is written `false` by Start and the sheet only pops while it is exactly `false`, so games started before this build (and the demo seed) never pop — §3.2; the ▲ ▼ on Players · Admins now work mid-game through the same RPC; the Log line falls back to the scorecard's default initials (`default_initials` in SQL) when a seat has no stored label.
 Mockups: [`seating-order-mockups/`](seating-order-mockups/) (S01–S08, same style as the Pool / Multiplier / Going rogue
 sets; 390 dp, light theme, caption strip on each). Section 7 lists the questions with a recommendation on each; section 8
 the test rows; section 9 the place in the queue.
@@ -82,10 +82,11 @@ on a phone in portrait with ≤ 7 players the chips are not needed — the rows 
 - Opens on the scorecard **the first time it is shown with zero rounds** to the admin who started the game, after the
   co-admin nudge (New game → Start → nudge → scorecard → sheet). Not on the Players screen, not on New game — the game
   must exist first so the sheet writes to a real row.
-- **Once per game**: Done or Keep this order sets `games.settings.seatingPrompted = true` (jsonb key, written by the
-  same settings path as Drop / Middle drop / Full count, no migration). A second admin opening the game sees no pop-up
-  (the flag is on the game, not the phone — Q21.1).
-- **Skipped** when the game has one player (nothing to order) or was created from the Rules editor's demo seed.
+- **Once per game**: Start writes `games.settings.seatingPrompted = false`; Done or Keep this order sets it `true` (jsonb
+  key, written by the same settings path as Drop / Middle drop / Full count; 044 keeps it out of the settings Log). The
+  sheet pops only while the key is exactly `false`, so a second admin opening the game sees no pop-up (the flag is on the
+  game, not the phone — Q21.1) and games started before this build never pop (they have the ⋮ item).
+- **Skipped** when the game has one player (nothing to order) or was created from the Rules editor's demo seed (no key).
 - With **one** player seated no sheet; with ≥ 2 always, even if the admin "always sits in add order" — one tap closes it.
 
 ### 3.3 Mid-game (menu)

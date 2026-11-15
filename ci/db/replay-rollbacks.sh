@@ -29,7 +29,7 @@ HAS_044=f
 if [ -f "$RB/rollback_044_seating_order.sql" ]; then
   HAS_044=t
   if apply "$RB/rollback_044_seating_order.sql"; then tap ok "rollback_044 applies"; else tap fail "rollback_044 applies: $(head -c 300 "$OUTERR")"; fi
-  [ "$(fn_exists set_seating_order)" = f ] && [ "$(fn_has event_log_games 'seatingPrompted')" = f ]     && [ "$(q "select not exists(select 1 from pg_constraint where conname='event_log_kind' and pg_get_constraintdef(oid) like '%seating_changed%')")" = t ]     && tap ok "after rollback_044 set_seating_order is gone, the Log kinds are 041's and event_log_games is 043's"     || tap fail "after rollback_044 set_seating_order / seating_changed / seatingPrompted should be gone"
+  [ "$(fn_exists set_seating_order)" = f ] && [ "$(fn_exists default_initials)" = f ] && [ "$(fn_has event_log_games 'seatingPrompted')" = f ]     && [ "$(q "select not exists(select 1 from pg_constraint where conname='event_log_kind' and pg_get_constraintdef(oid) like '%seating_changed%')")" = t ]     && tap ok "after rollback_044 set_seating_order is gone, the Log kinds are 041's and event_log_games is 043's"     || tap fail "after rollback_044 set_seating_order / seating_changed / seatingPrompted should be gone"
 fi
 
 # 043 (multiplier: results × multiplier as bigint, live-page key, Log label)
@@ -575,7 +575,7 @@ if [ "$HAS_043" = t ]; then
     && tap ok "043 restored (game_multiplier, results × multiplier, live-page key, Log label, range check)" || tap fail "043 restored"
 fi
 if [ "$HAS_044" = t ]; then
-  [ "$(fn_exists set_seating_order)" = t ] && [ "$(fn_has event_log_games 'seatingPrompted')" = t ]     && [ "$(q "select exists(select 1 from pg_constraint where conname='event_log_kind' and pg_get_constraintdef(oid) like '%seating_changed%')")" = t ]     && tap ok "044 restored (set_seating_order, seating_changed kind, pop-up flag ignored by the settings log)" || tap fail "044 restored"
+  [ "$(fn_exists set_seating_order)" = t ] && [ "$(fn_exists default_initials)" = t ] && [ "$(fn_has event_log_games 'seatingPrompted')" = t ]     && [ "$(q "select exists(select 1 from pg_constraint where conname='event_log_kind' and pg_get_constraintdef(oid) like '%seating_changed%')")" = t ]     && tap ok "044 restored (set_seating_order, seating_changed kind, pop-up flag ignored by the settings log)" || tap fail "044 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

@@ -1,0 +1,191 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# PR 21 Seating order (X21-7), end to end on the seed: a fresh Points game (Sree, Harish, Priya, Zed) →
+# Start → Skip → the Seating order sheet pops up once with the players in the order they were picked;
+# tap Zed, then seat 1 (tap-to-place) → Zed deals round 1 (green seat 1) → Done → the scorecard columns
+# follow the seats and the Log has a routine "Seating changed" row. Then ⋮ → Seating order (mid-game
+# path, no rounds yet so no "rounds played" note) → ▼ on seat 1 swaps Zed and Sree → Done → columns move
+# again and the Log has a second Seating row. Cancel from the menu changes nothing. Runs after smoke/16
+# (deletes its game at the end, so no other flow sees an extra game); no round is saved, no result.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "New game"
+- extendedWaitUntil:
+    visible: "Add new players"
+    timeout: 15000
+- tapOn: "Add Sree Test (you)"
+- tapOn: "Add Harish Test"
+- tapOn: "Add Priya Test"
+- tapOn: "Add Zed Zero"
+- assertVisible: "Next · 4 players"
+- tapOn:
+    id: "new-game-next"
+- extendedWaitUntil:
+    visible: "Game type"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "start-game"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "start-game"
+# Harish and Priya are registered, so the co-admin nudge asks once; Skip starts without one.
+- extendedWaitUntil:
+    visible: "Skip"
+    timeout: 15000
+- tapOn: "Skip"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 20000
+# The pop-up: once per game, seats in pick order, seat 1 deals round 1.
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible: "Seating order"
+- assertVisible: "Pops up once, right after Start. Admins only."
+- assertVisible:
+    id: "seat-name-1"
+    text: "Sree Test"
+- assertVisible:
+    id: "seat-name-4"
+    text: "Zed Zero"
+- assertVisible:
+    id: "seat-deals-next"
+- assertVisible: "Keep this order"
+- takeScreenshot: 19-seating-popup
+# Tap-to-place: pick Zed up, drop them on seat 1; everyone else shifts down one seat.
+- tapOn:
+    id: "seat-row-4"
+- assertVisible: "Zed Zero picked up — choose a seat"
+- takeScreenshot: 19b-seating-picked-up
+- tapOn:
+    id: "seat-row-1"
+- assertVisible:
+    id: "seat-name-1"
+    text: "Zed Zero"
+- assertVisible:
+    id: "seat-name-2"
+    text: "Sree Test"
+- assertVisible:
+    id: "seat-name-4"
+    text: "Priya Test"
+- assertNotVisible: "Zed Zero picked up — choose a seat"
+- takeScreenshot: 19c-seating-zed-first
+- tapOn:
+    id: "seating-done"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-sheet"
+    timeout: 15000
+# The scorecard columns follow the seats: Zed is column 1 now, Sree column 2.
+- assertVisible:
+    id: "score-header-initials-1"
+    text: "ZZ"
+- assertVisible:
+    id: "score-header-initials-2"
+    text: "ST"
+- takeScreenshot: 19d-scorecard-zed-first
+# The Log: a routine Seating row with the new order by initials.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*Seating changed · 1 ZZ · 2 ST.*"
+- takeScreenshot: 19e-log-seating-row
+- back
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+# Mid-game path from ⋮ (no rounds yet, so no "rounds played" note); Done is off until something moves.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-seating"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible: "Mid-game · admins only · logged"
+- assertNotVisible: "Keep this order"
+- assertNotVisible:
+    text: ".*rounds? played.*"
+- assertVisible:
+    id: "seat-name-1"
+    text: "Zed Zero"
+- takeScreenshot: 19f-seating-from-menu
+# ▼ on seat 1 swaps Zed and Sree.
+- tapOn:
+    id: "seat-down-1"
+- assertVisible:
+    id: "seat-name-1"
+    text: "Sree Test"
+- assertVisible:
+    id: "seat-name-2"
+    text: "Zed Zero"
+- tapOn:
+    id: "seating-done"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible:
+    id: "score-header-initials-1"
+    text: "ST"
+- assertVisible:
+    id: "score-header-initials-2"
+    text: "ZZ"
+- takeScreenshot: 19g-scorecard-sree-first-again
+# Cancel from the menu changes nothing.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-seating"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- tapOn:
+    id: "seat-up-3"
+- assertVisible:
+    id: "seat-name-2"
+    text: "Harish Test"
+- tapOn:
+    id: "seating-cancel"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-sheet"
+    timeout: 5000
+- assertVisible:
+    id: "score-header-initials-2"
+    text: "ZZ"
+# The Log now has two Seating rows, newest first.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*Seating changed · 1 ST · 2 ZZ.*"
+- assertVisible:
+    text: ".*Seating changed · 1 ZZ · 2 ST.*"
+- takeScreenshot: 19h-log-two-seating-rows
+- back
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+# Clean up: the creator deletes the game so Home and the Results picker stay as the other flows expect.
+- tapOn: "Scorecard menu"
+- tapOn: "Delete game"
+- extendedWaitUntil:
+    visible: "Delete this game?"
+    timeout: 5000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000

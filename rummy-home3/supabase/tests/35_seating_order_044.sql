@@ -4,7 +4,7 @@
 -- out / re-entry state and the deal skips the out player in the new order; 20 seats reversed in one call.
 -- Game T: sree (admin, seated), harish, priya, zero; 004 is a viewer; 005 is a non-playing admin.
 begin;
-select plan(42);
+select plan(47);
 
 \set SREE '''00000000-0000-4000-8000-000000000001'''
 \set HARISH '''00000000-0000-4000-8000-000000000002'''
@@ -68,6 +68,13 @@ select throws_ok($$ select public.set_seating_order('10000000-0000-4000-8000-000
   'P0001', 'Every player needs a seat.', 'a non-playing admin in the list is refused');
 select throws_ok($$ select public.set_seating_order('10000000-0000-4000-8000-0000000000f5', null) $$,
   'P0001', 'Every player needs a seat.', 'null is refused');
+
+-- default_initials mirrors the scorecard's first candidate (utils/initials.ts) for seats with no stored label
+select is(public.default_initials('Sree Test'), 'ST', 'default initials: first + last word');
+select is(public.default_initials('Test Uniform'), 'TU', 'default initials: two words');
+select is(public.default_initials('Madonna'), 'MA', 'default initials: one word takes two letters');
+select is(public.default_initials('J'), 'JX', 'default initials: a one-letter name gets an X');
+select is(public.default_initials(''), 'PL', 'default initials: no name reads PL');
 
 -- the same order is a no-op: nothing written, nothing logged
 select is((public.set_seating_order(:T, array[:SREE, :HARISH, :PRIYA, :ZERO]::uuid[]))->>'changed', 'false', 'the current order changes nothing');

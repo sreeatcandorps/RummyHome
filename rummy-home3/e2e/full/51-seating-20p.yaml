@@ -1,0 +1,188 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# PR 21 Seating order (X21-8): the 20-player pass. Game F (20 players × 30 rounds, Sree creator) → ⋮ →
+# Seating order: twenty rows with the Players chips beside them, the "30 rounds played" note, the green
+# "deals next" seat (round 30's dealer was seat 10, so seat 11 deals next); tap-to-place moves seat 20
+# (Test Uniform) to seat 1 → Done → column 1 reads TU and the Log has an important Seating row listing
+# all twenty seats. The flow then moves TU back to seat 20 so game F reads as before for full/20, 21, 50.
+# Second half, as c3 on the pool BQ1 (6 seats, Player Five out in round 3, Player Six re-entered): the
+# subline counts the outs, an out player is movable like anyone else, Cancel saves nothing.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEF1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEF1"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 20000
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-seating"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible: "Mid-game · admins only · logged"
+- assertVisible: "30 rounds played.*"
+- assertVisible:
+    id: "seating-chips"
+- assertVisible:
+    id: "seat-chip-TU"
+- assertVisible:
+    id: "seat-name-1"
+    text: "Sree Test"
+- takeScreenshot: 51-seating-20p-top
+# Seat 11 (Test Juliet) deals next: round 30's dealer sat at 10.
+- scrollUntilVisible:
+    element:
+      id: "seat-row-11"
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: "seat-deals-next"
+- takeScreenshot: 51b-seating-20p-deals-next
+- scrollUntilVisible:
+    element:
+      id: "seat-row-20"
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: "seat-name-20"
+    text: "Test Uniform"
+- tapOn:
+    id: "seat-row-20"
+- assertVisible: "Test Uniform picked up — choose a seat"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-1"
+    direction: UP
+    timeout: 15000
+- tapOn:
+    id: "seat-row-1"
+- assertVisible:
+    id: "seat-name-1"
+    text: "Test Uniform"
+- assertVisible:
+    id: "seat-name-2"
+    text: "Sree Test"
+- takeScreenshot: 51c-seating-20p-uniform-first
+- tapOn:
+    id: "seating-done"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-sheet"
+    timeout: 120000
+- assertVisible:
+    id: "score-header-initials-1"
+    text: "TU"
+- assertVisible:
+    id: "score-header-initials-2"
+    text: "ST"
+- takeScreenshot: 51d-scorecard-20p-uniform-first
+# The Log: an important Seating row that names all twenty seats.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*Seating changed · 1 TU · 2 ST · 3 TA.*"
+- tapOn:
+    id: "game-log-filter-important"
+- assertVisible:
+    text: ".*Seating changed · 1 TU.*"
+- takeScreenshot: 51e-log-seating-20p
+- back
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+# Put TU back at seat 20 so game F is unchanged for the other nightly flows.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-seating"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- tapOn:
+    id: "seat-row-1"
+- assertVisible: "Test Uniform picked up — choose a seat"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-20"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-20"
+- assertVisible:
+    id: "seat-name-20"
+    text: "Test Uniform"
+- tapOn:
+    id: "seating-done"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-sheet"
+    timeout: 120000
+- assertVisible:
+    id: "score-header-initials-1"
+    text: "ST"
+- assertVisible:
+    id: "score-header-initials-20"
+    text: "TU"
+- takeScreenshot: 51f-scorecard-20p-restored
+# Pool: BQ1 as its creator c3. Out and re-entered seats show as such, and an out player moves like anyone else.
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c3@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKQ1
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-seating"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible: "Pool · 6 seats · 1 out"
+- assertVisible: "3 rounds played.*"
+- assertVisible:
+    id: "seat-name-5"
+    text: "Player Five"
+- takeScreenshot: 51g-seating-pool-outs
+- tapOn:
+    id: "seat-up-5"
+- assertVisible:
+    id: "seat-name-4"
+    text: "Player Five"
+- assertVisible:
+    id: "seat-name-5"
+    text: "Player Four"
+- tapOn:
+    id: "seating-cancel"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-sheet"
+    timeout: 5000
+# Reopen: Player Five is still seat 5.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-seating"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible:
+    id: "seat-name-5"
+    text: "Player Five"
+- takeScreenshot: 51h-pool-unchanged
+- tapOn:
+    id: "seating-cancel"

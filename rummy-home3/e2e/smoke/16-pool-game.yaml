@@ -52,6 +52,18 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "Scorecard"
     timeout: 20000
+# PR 21: a fresh game asks who sits where, once; the pool subline counts the seats. Keep this order closes it.
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible: "Pool · 4 seats · 0 out"
+- tapOn:
+    id: "seating-cancel"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-sheet"
+    timeout: 5000
 - assertVisible: "Pool"
 - assertVisible:
     id: "pool-standings"

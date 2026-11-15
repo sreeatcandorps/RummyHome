@@ -408,6 +408,14 @@ More detail: `docs/play-store-setup.md`, `docs/release-checklist.md`.
 - 043 also returns the multiplier from `public_scorecard` and labels the settings-change Log line "Multiplier". Not applied
   to live until Sree's OK after CI.
 
+### 2026-11-15 — PR 21 Seating order built (stacked PR; migration 044 written, not applied)
+- The seating order is `game_players.player_order` as before; nothing new is stored. 044 adds `set_seating_order` (one
+  logged, atomic RPC used by the new Seating sheet and the Players · Admins ▲ ▼, which now work mid-game), the Log kind
+  `seating_changed`, a `default_initials` SQL helper matching the scorecard's default labels, and makes the settings log
+  ignore the once-per-game pop-up flag `settings.seatingPrompted` (written false by Start, true after the first answer).
+- The sheet pops up once right after Start (tap-to-place or arrows, no drag dependency) and is in ⋮ for admins on Active
+  games. Going rogue's migration is renumbered 045. Smoke 19 and nightly 51 cover it; 044 waits for Sree's OK after CI.
+
 ---
 
 ## Maintenance rule for agents
