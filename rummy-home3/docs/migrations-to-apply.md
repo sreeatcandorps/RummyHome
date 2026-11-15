@@ -477,6 +477,20 @@ E. **Results** (D10): `declare_game_result` refuses an unawarded pool ("Give awa
 
 Verified on a scratch Postgres 16 loaded with 001–041 and the CI seed: pgTAP (75 new in `supabase/tests/32_pool_041.sql`; `27_rummy_negative_037.sql` now accepts the constraint or the 041 trigger), the rollback replay (041 rolled back first, "041 restored" after the forward run) and the race checks all pass (`ci/db/local-run.sh`, four statuses 0).
 
+## 042 — Pool re-entries setting, limit-only lock (PR 13 follow-up; **written, not applied**)
+
+File: `supabase/migrations/042_pool_reentries_and_limit_lock.sql`. Run after 041. Safe to re-run. Rollback: `supabase/rollback/rollback_042_pool_reentries_and_limit_lock.sql` (restores the 041 `reenter_player` and settings lock and the 036 `event_log_games`; drops `pool_reentry_limit`).
+
+Sree, Nov 14 10:27 PM PT: re-entries become a setting (Unlimited / Limited N, default Unlimited) instead of the on/off switch with "once per player"; and only the pool limit stays locked once rounds exist (Q14.23).
+
+- `pool_reentry_limit(settings)`: `reentryLimit` null / absent → Unlimited (null), N → N, below 0 → 0; the 041 boolean `reentry` is still read (false → 0, true → Unlimited), so games saved before this keep their meaning.
+- `reenter_player`: refuses with "Re-entries are off for this pool…" at 0, "They have already re-entered once." at Limited 1, "They have used all N re-entries." above; otherwise as 041.
+- `games_pool_settings_lock`: only `poolLimit` is locked (PT423); Drop / Middle drop / Full count / Re-entries change freely and the `settings_changed` Log line records them, now labelled "Pool limit", "Re-entries", "Re-entry".
+
+Not applied by this change. Until it runs, the app from this PR on still works against 041: it writes `reentryLimit`, which 041 ignores (041 reads `reentry`, default on → once per player), and the app's own eligibility check is the one the user sees; the server refuses a second re-entry with the 041 message. Data: adds no column, changes no row.
+
+Verified on a scratch Postgres 16 loaded with 001–042 and the CI seed: pgTAP 1332 checks (26 new in `supabase/tests/33_pool_reentries_042.sql`, `32_pool_041.sql` adjusted to the 042 lock and the Limited 1 message), the rollback replay (042 rolled back first and "042 restored" after the forward run) all pass.
+
 ## Apply order for the Nov 10–12 batches
 
 017–020 were applied on Nov 11 (~11:25 AM PT); 021–026 were applied on Nov 12 from PR 7 head `d62d9c6`. Steps 1–6 are kept for the record (all re-runnable):
@@ -526,9 +540,13 @@ PR 10b (Nov 14), unapplied, **waiting for Sree's OK**:
 
 20. `supabase/migrations/040_own_initials_and_round_gaps.sql`
 
-PR 13 (Nov 14), unapplied, **waiting for Sree's OK**:
+PR 10b + PR 13, **applied to live by Build Bot on Nov 14, 6:32 PM PT** (040 and 041):
 
 21. `supabase/migrations/041_pool.sql`
+
+PR 13 follow-up (Nov 15), unapplied, **waiting for Sree's OK**:
+
+22. `supabase/migrations/042_pool_reentries_and_limit_lock.sql`
 
 Read-only checks that go with 021 (nothing is changed):
 

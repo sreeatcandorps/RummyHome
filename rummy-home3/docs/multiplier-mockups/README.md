@@ -1,11 +1,13 @@
-# Multiplier — design mockups M01–M22 (PR 14, review set, revised Nov 15 after Sree's Nov 14 8:58 PM PT answers)
+# Multiplier — design mockups M01–M21 (PR 14, review set, revised Nov 15 after Sree's Nov 14 10:27 PM PT answers)
 
 Flat copy of the generated set, embedded in [`../multiplier-design.md`](../multiplier-design.md) section 4. 390 dp, light theme,
-same style as the Pool set; each PNG has a caption strip. Sample games: S14 (4 players, ×2), S15 (7 players, ×100; also ×10 → ×5
-in M22), S16 (20 players, 14 rounds, ×10,000; Full count 80). The generator lives outside the repo.
+same style as the Pool set; each PNG has a caption strip. Sample games: S14 (4 players, ×2), S15 (7 players, ×100), S16 (20 players,
+14 rounds, ×10,000; Full count 80). The generator lives outside the repo.
 
-Revision notes: no lock anywhere (M01, M03, M04); the ×N chip carries an ⓘ; one K/M rule on every grid (M09–M11, M14, M19, M20);
-new M21 (how the exact number is reached) and M22 (changing the multiplier mid-game).
+Revision notes (Nov 14 10:27 PM PT answers): the multiplier is set on the New game screen and locked once the game starts — M01 says so,
+M03 shows the read-only field in Game settings with the hint "To change the multiplier, end this game and start a new one.", and the
+Exact points sheet (M11, M21) repeats the hint. M22 (changing the multiplier mid-game) is gone. One K/M rule on every grid, no 13+
+special case: no value is longer than 5 characters including the sign (M09, M10, M19).
 
 ## M01
 
@@ -90,7 +92,3 @@ new M21 (how the exact number is reached) and M22 (changing the multiplier mid-g
 ## M21
 
 ![M21-exact-numbers-how-to-see-them.png](M21-exact-numbers-how-to-see-them.png)
-
-## M22
-
-![M22-change-multiplier-mid-game.png](M22-change-multiplier-mid-game.png)

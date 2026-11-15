@@ -12,7 +12,7 @@ section 0. This file is the build contract for PR 13; the earlier open questions
 | 1 | **New game is two screens.** Screen 1 Players, button **Next** (not Start game). Screen 2 Game type: Points or Pool and its settings, picked players listed at the bottom, **Back to players**, **Start**. Settings prefill from the user's saved defaults (Points or Pool), editable for this game only, with the link "You can also set these defaults in Settings". The Pool limit picker is here and in Settings. | P01–P03b, `games/new.tsx` + new `games/new-type.tsx` |
 | 2 | **Pool limits 101 · 201 · 251 · Custom.** 100 is in, 101 is out (200 in / 201 out, 250 in / 251 out). 250 dropped. | P02, P04, `utils/pool.ts` |
 | 3 | **Pool default drops: 25 / 50 / 130** (drop / middle drop / full count). | P02, P04, `utils/gameSettings.ts` |
-| 4 | **Re-entry is a simple on/off setting, default ON.** No "not allowed after N points" rule. After every round the app shows who is eligible for re-entry. | P02, P10, P11, `reenter_player`, `settings.reentry` |
+| 4 | **Re-entries is a setting: Unlimited / Limited N** (Nov 14 10:27 PM PT, replacing the on/off switch and F13.1 "once per player"). Default **Unlimited**; Limited shows a number field (0 = none). It cascades like every other pool setting: app default (Unlimited) → the user's default in Settings → this game on the Pool New game screen; editable mid-game. No "not allowed after N points" rule. After every round the app shows who is eligible for re-entry. | P02, P04, P10, P11, `reenter_player`, `settings.reentryLimit` (042) |
 | 5 | **Scorecard** keeps round order (latest at the bottom, focus on it) and the **Standings** section below. Points-left and drops-left leave the main grid (they live in Standings). Column header: **player number** on top, then **initials**, then **score**. A re-entered player is coloured **blue** instead of carrying a tag. Note for later: Points games lack player numbers; proposed as a later PR, not now. | P05–P07, `ScoreTable`, `PoolStandings` |
 | 6 | **Round entry allows more than one zero** (no "exactly one winner" rule). A count above the Full count asks "Are you sure?" and is then **allowed** (no cap). | P08, P09, `utils/pool.ts` validation |
 | 7 | **Multiplier principle (PR 14):** users always enter actual points; the multiplier computes the saved total shown on the scorecard. PR 13 removes the high-number warning and keeps only the "more than Full count?" confirm. PR 13 stores points ×1. | P06 formulas, `score-entry.tsx` |
@@ -61,14 +61,15 @@ mix. Complete → Award → Result; the game is Closed only after the result.
   ![P01-new-game-players-next](pool-mockups/P01-new-game-players-next.png)
 - **New game, screen 2 — Game type (P02, P03, P03b).** Segmented **Points | Pool**, opening on the user's default
   type. Pool: limit chips **101 · 201 · 251 · Custom…** (Custom shows a fourth field, 51–999), Drop / Middle drop /
-  Full count (positive, default 25 / 50 / 130), **Re-entry** switch (default on). Points: the three negative fields as
+  Full count (positive, default 25 / 50 / 130), **Re-entries** radio Unlimited / Limited (Limited reveals "Re-entries per
+  player (0–99)"; default Unlimited). Points: the three negative fields as
   today. Both: "Prefilled from your saved defaults. Changes here apply to this game only." and the link **You can also
   set these defaults in Settings**. Below: the picked players as chips. Bottom bar: **‹ Back to players** · **Start
   pool** / **Start game**.
   ![P02-new-game-type-pool](pool-mockups/P02-new-game-type-pool.png)
   ![P03-new-game-type-points](pool-mockups/P03-new-game-type-points.png)
   ![P03b-new-game-pool-custom-limit](pool-mockups/P03b-new-game-pool-custom-limit.png)
-- **Settings (P04).** Two blocks, Points and Pool (limit chips, 25 / 50 / 130, Re-entry), plus "New game starts as".
+- **Settings (P04).** Two blocks, Points and Pool (limit chips, 25 / 50 / 130, Re-entries Unlimited / Limited N), plus "New game starts as".
   ![P04-settings-defaults-points-and-pool](pool-mockups/P04-settings-defaults-points-and-pool.png)
 - **Scorecard (P05–P07).** Same table. Header per player: **#number · initials · score** (the dealer's column keeps the
   green tint). A re-entered player's header is **blue**; the cell of the round they came back in reads "↺109+14".
@@ -130,7 +131,7 @@ mix. Complete → Award → Result; the game is Closed only after the result.
   ![P28-wording-store-safe](pool-mockups/P28-wording-store-safe.png)
   ![P29-game-log-pool-events](pool-mockups/P29-game-log-pool-events.png)
 
-## 4. Data and RPCs — migration `041_pool.sql` (+ rollback `041_pool.sql`)
+## 4. Data and RPCs — migration `041_pool.sql` (applied to live Nov 14) + `042_pool_reentries_and_limit_lock.sql` (written, not applied)
 
 **Columns**
 - `games.settings` (jsonb) gains `poolLimit int`, `reentry bool` (pool games only; the three values stay in
@@ -142,8 +143,9 @@ mix. Complete → Award → Result; the game is Closed only after the result.
   `out_round` is derived (recomputed by `pool_recompute` after every save / undo / re-entry); "in" means
   `out_round is null`.
 - `scores`: the 037 check constraint stays for Points. A trigger `scores_pool_sign` enforces, for a pool game,
-  `value >= 0` and `rummy = 0`. A trigger `games_pool_settings_lock` refuses changes to `poolLimit` / the three values
-  once a live round exists (Re-entry may change).
+  `value >= 0` and `rummy = 0`. A trigger `games_pool_settings_lock` refuses changes to `poolLimit` once a live round
+  exists; since **042** (Q14.23) Drop / Middle drop / Full count and Re-entries may change mid-game and the 036
+  `settings_changed` Log line records them ("Changed game settings · Drop 25→30").
 
 **Functions (new or pool branch)**
 - `pool_total(game, profile)` = `reentry_score + Σ scores in rounds ≥ reentered_round` (or Σ all when never
@@ -151,8 +153,9 @@ mix. Complete → Award → Result; the game is Closed only after the result.
 - `save_round` pool branch: every value ≥ 0, rummy rows = 0, at least one 0; every player who is in must be scored;
   refuses a round when ≤ 1 player is in; dealer rotation (031) uses only players who are in; after insert
   `pool_recompute`, log `player_out` for each newly out player.
-- `reenter_player(p_game_id, p_profile_id)`: admin only, Re-entry on, game active, player out, not re-entered before,
-  ≥ 1 other player in; sets `reentered_round = next round`, `reentry_score = max total among players in`,
+- `reenter_player(p_game_id, p_profile_id)`: admin only, game active, player out, re-entries used so far
+  (`entries − 1`) below the game's limit (`pool_reentry_limit(settings)`: `reentryLimit` null = Unlimited, N = Limited,
+  0 = none; the 041 boolean `reentry` is still read: false → 0, true → Unlimited), ≥ 1 other player in; sets `reentered_round = next round`, `reentry_score = max total among players in`,
   `entries += 1`, `out_round = null`. Logged `player_reentered`.
 - `undo_last_round` pool branch: if a seat has `reentered_round = last round + 1` (re-entered after the last save) the
   re-entry is undone instead (its own step, logged `reentry_undone`); otherwise the round is undone and
@@ -189,14 +192,14 @@ validation, confirm), `app/(screens)/games/complete.tsx` (pool wording, Give awa
 | 13.1 | U | `pointsLeft`, `dropsLeft`, `isOut` for 52/81/94/100/101 at limit 101, drop 25 → left 49/20/7/1/0, drops 1/0/0/0/0, out only at 101 |
 | 13.2 | U | pool round validation: no zero / two zeros / missing in-player / count 150 with full 130 → refused, ok, refused, confirm-then-ok |
 | 13.3 | U | store-safe wording: UI strings vs the P28 "never" list, incl. "stake" and "prize" |
-| 13.4 | U | `rulesFromProfileDefaults` without pool keys → 101 · 25/50/130 · re-entry on; Points untouched; limits 101/201/251/custom 51–999 |
+| 13.4 | U | `rulesFromProfileDefaults` without pool keys → 101 · 25/50/130 · Re-entries Unlimited; old `poolReentry` false/true → 0 / Unlimited; Points untouched; limits 101/201/251/custom 51–999 |
 | 13.5 | U | award presets on the P12 data: winner takes all / by points left / 50/50 / entry per drop left / custom; remainders to the winner; given-out line |
 | 13.6 | D | `save_round` pool: round that takes HG to 201 sets `out_round = 6`; next dealer skips HG; ≤ 1 player in → refused; two zeros accepted; negative refused by the trigger |
-| 13.7 | D | `reenter_player`: score = highest in, `entries = 2`; refused when not out, twice, Re-entry off, or Completed |
+| 13.7 | D | `reenter_player`: score = highest in, `entries = 2`; refused when not out, past the limit (Limited 1: twice), none (Limited 0 or 041 `reentry:false`), or Completed; Unlimited lets a third entry through (`supabase/tests/32`, `33`) |
 | 13.8 | D | `set_pool_awards`: Active / Closed → refused; unbalanced Completed → saved with who/when; second call logs `awards_changed` |
 | 13.9 | D | `declare_game_result` with an unawarded pool → "Give awards first"; awarded → result uses `prize_shares`; mixed S + P totals = S sums + P awards; `public_result` marks the P game |
 | 13.10 | D | `undo_last_round` after an out clears `out_round`; after a re-entry removes the re-entry first |
-| 13.11 | D | pool settings locked after round 1 (trigger); Re-entry still switchable |
+| 13.11 | D | pool limit locked after round 1 (trigger, 042); Drop / Middle drop / Full count and Re-entries change mid-game with a `settings_changed` Log line that names them |
 | 13.12 | R | 041 down/up with pool rows present; 036 kind list restored and widened again |
 | 13.13 | C | two admins save round 6 with different winners → second refused (035 rule) |
 | 13.14 | S | New game → Next → Pool → 101 → Start pool → header #1 · SK · 0; Standings 101 left · 4 drops |
@@ -209,15 +212,19 @@ validation, confirm), `app/(screens)/games/complete.tsx` (pool wording, Give awa
 | 13.21 | N | Results S14 + P10 → yellow headers, legend, totals |
 | 13.22 | N | share live, share final, live link → Standings / awards headline / same table |
 | 13.23 | N | landscape 9 players; help ? on the pool scorecard |
-| 13.24 | N | Settings Pool 201 · 25/50/130 · Re-entry off → New game screen 2 prefills; Points unchanged |
+| 13.24 | N | Settings Pool 201 · 25/50/130 · Re-entries Limited 1 → New game screen 2 prefills; Points unchanged |
 | 13.25 | U | F13.22 width math: every three-letter label (WWW, MMM, W88 …) fits every column width 38–140 dp at font scales 1–2 (capped 1.2), never under 8 pt; WWW on a 38 dp column ≥ 9 pt; avatars 26–40 fit; two plain letters keep the full size (`tests/initials-fit.test.ts`) |
 | 13.26 | S | F13.22 Game W (20 seats, WWW / MMM / WMW …, completed, awards pending): header labels WWW and MMM on screen, Standings labels, Awards screen avatars; screenshots are the visual check (`smoke/17`) |
 | 13.27 | U | F13.23 Entry per drop left: viable on the P12 pool (winner 500 vs 100); not viable early in a pool (drop entries eat the pool, winner 0) or when the winner is level (100 = 100); viable again once outs have put in; Winner takes all / By points left always viable, co-winners compared as a group; 50 / 50 levels second place only; Custom warns (`winnerGetsMost`), negative winner share refused; exact pop-up text (`tests/pool-pr13.test.ts` 13.5c) |
 | 13.28 | S | F13.23 on the smoke pool (500, drops would overshoot): tapping Entry per drop left shows the pop-up, "Pick another" closes it, the selection stays on By points left (`smoke/16`) |
+| 13.29 | U | 042 Re-entries: `reentryLimitOf` (null / N / 0 / negative / 041 boolean), `reentryBlock` Unlimited vs Limited 1 / 2 vs none, labels, draft Unlimited / Limited count 0–99 and the error line, `validateRules` 0–99, profile key `poolReentryLimit` with old `poolReentry` read (`tests/pool-pr13.test.ts` 13.4 / 13.6b / 13.7) |
+| 13.30 | D | 042 pgTAP `33_pool_reentries_042.sql`: `pool_reentry_limit` table, limit locked / values free with the labelled Log line, Unlimited third entry, Limited 2 refuses the third, Limited 0 refuses all, Limited 3 allows at the highest in |
+| 13.31 | R | rollback 042 → 041 `reenter_player` (once) and the four-value lock; forward 042 again (`ci/db/replay-rollbacks.sh`) |
+| 13.32 | S | Settings Pool block: Limited reveals the count field, Unlimited hides it (`smoke/07`); New game screen 2 shows Re-entries · Unlimited (`smoke/16`) |
 
 ## 7. Small decisions taken while building (flagged in the PR body)
 
-- **F13.1** Re-entry is once per player (the Nov 13 recommended answer; Sree's "on/off" did not say how many times).
+- **F13.1** ~~Re-entry is once per player~~ — replaced on Nov 14 (10:27 PM PT) by the Re-entries setting (decision 4): Unlimited by default, or Limited N per player, cascading app → Settings → this game. Migration `042_pool_reentries_and_limit_lock.sql` (written, **not applied**) carries it with the limit-only lock.
 - **F13.2** A late joiner (Add players mid-pool) starts at the highest score still in and counts one entry.
 - **F13.3** "Player leaves mid-pool" is not built: the admin uses Custom awards (and Undo / remove-seat as today).
 - **F13.4** Entry per player defaults to 100 points and is edited on the Awards screen only (not in Settings).
