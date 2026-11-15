@@ -4,7 +4,7 @@
 -- out / re-entry state and the deal skips the out player in the new order; 20 seats reversed in one call.
 -- Game T: sree (admin, seated), harish, priya, zero; 004 is a viewer; 005 is a non-playing admin.
 begin;
-select plan(47);
+select plan(45);
 
 \set SREE '''00000000-0000-4000-8000-000000000001'''
 \set HARISH '''00000000-0000-4000-8000-000000000002'''
@@ -69,12 +69,10 @@ select throws_ok($$ select public.set_seating_order('10000000-0000-4000-8000-000
 select throws_ok($$ select public.set_seating_order('10000000-0000-4000-8000-0000000000f5', null) $$,
   'P0001', 'Every player needs a seat.', 'null is refused');
 
--- default_initials mirrors the scorecard's first candidate (utils/initials.ts) for seats with no stored label
-select is(public.default_initials('Sree Test'), 'ST', 'default initials: first + last word');
-select is(public.default_initials('Test Uniform'), 'TU', 'default initials: two words');
-select is(public.default_initials('Madonna'), 'MA', 'default initials: one word takes two letters');
-select is(public.default_initials('J'), 'JX', 'default initials: a one-letter name gets an X');
-select is(public.default_initials(''), 'PL', 'default initials: no name reads PL');
+-- a seat with no stored label logs as the scorecard's default initials (022 initials_candidates, same as utils/initials.ts)
+select is((public.initials_candidates('Sree Test'))[1], 'ST', 'the Log fallback for "Sree Test" is ST, not SR');
+select is((public.initials_candidates('Test Uniform'))[1], 'TU', 'and TU for "Test Uniform"');
+select is((public.initials_candidates('Madonna'))[1], 'MA', 'one word takes two letters');
 
 -- the same order is a no-op: nothing written, nothing logged
 select is((public.set_seating_order(:T, array[:SREE, :HARISH, :PRIYA, :ZERO]::uuid[]))->>'changed', 'false', 'the current order changes nothing');

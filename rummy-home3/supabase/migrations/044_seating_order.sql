@@ -4,7 +4,8 @@
 --   A. the Log kind 'seating_changed' (constraint restated as 041 did);
 --   B. set_seating_order(p_game_id, p_profile_ids): game admin only, Active games only, every seated
 --      non-spectator player exactly once; one transaction (park +10000, then 0..N-1); one Log line
---      "Seating changed · 1 SK · 2 PT · …" — routine with no rounds (the pop-up), important after;
+--      "Seating changed · 1 SK · 2 PT · …" (a seat with no stored label reads as the scorecard's default,
+--      initials_candidates(name)[1] from 022) — routine with no rounds (the pop-up), important after;
 --      details {from, to, rounds, nextDealer}. Players · Admins ▲ ▼ and the Seating sheet both call it.
 --   C. event_log_games (043 body) ignores the settings key 'seatingPrompted' (the once-per-game pop-up
 --      flag written by the app), so marking the pop-up seen never logs "Changed game settings".
@@ -24,23 +25,6 @@ alter table public.event_log add constraint event_log_kind check (kind in (
   'seating_changed'));
 
 -- ---------- B. set_seating_order ----------
--- The scorecard's default initials (utils/initials.ts initialsCandidates()[0]) for a seat with no stored
--- label: first letter of the first and last word, or the first two letters of a one-word name. The Log
--- line then reads like the column headers ("Sree Test" → ST, "Test Uniform" → TU), not "SR" / "TE".
-create or replace function public.default_initials(p_name text)
-returns text
-language sql
-immutable
-as $$
-  with w as (select array_remove(regexp_split_to_array(upper(coalesce(p_name, '')), '[^A-Z0-9]+'), '') as words)
-  select case
-    when coalesce(array_length(words, 1), 0) = 0 then 'PL'
-    when array_length(words, 1) >= 2 then left(words[1], 1) || left(words[array_length(words, 1)], 1)
-    when length(words[1]) >= 2 then left(words[1], 2)
-    else words[1] || 'X' end
-  from w;
-$$;
-
 create or replace function public.set_seating_order(p_game_id uuid, p_profile_ids uuid[])
 returns jsonb
 language plpgsql
@@ -126,7 +110,7 @@ begin
     v_next := v_rotation[(v_rounds % array_length(v_rotation, 1)) + 1];
   end if;
 
-  select string_agg(format('%s %s', ord, coalesce(nullif(ps->>'ini', ''), public.default_initials(ps->>'name'))), ' · ' order by ord)
+  select string_agg(format('%s %s', ord, coalesce(nullif(ps->>'ini', ''), (public.initials_candidates(ps->>'name'))[1])), ' · ' order by ord)
     into v_summary
     from unnest(v_seats) with ordinality as s(id, ord)
     cross join lateral public.player_snapshot(p_game_id, s.id) ps;

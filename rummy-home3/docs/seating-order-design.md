@@ -1,6 +1,6 @@
 # Seating order — design spec (PR 21, review first; nothing built)
 
-Status: **built** (Nov 15; approved by Sree at 1:34 AM PT with every Q21.x recommendation). Migration `044_seating_order.sql` is written and **not applied**; Going rogue's migration moved to 045. Build notes: the pop-up flag is written `false` by Start and the sheet only pops while it is exactly `false`, so games started before this build (and the demo seed) never pop — §3.2; the ▲ ▼ on Players · Admins now work mid-game through the same RPC; the Log line falls back to the scorecard's default initials (`default_initials` in SQL) when a seat has no stored label.
+Status: **built** (Nov 15; approved by Sree at 1:34 AM PT with every Q21.x recommendation). Migration `044_seating_order.sql` is written and **not applied**; Going rogue's migration moved to 045. Build notes: the pop-up flag is written `false` by Start and the sheet only pops while it is exactly `false`, so games started before this build (and the demo seed) never pop — §3.2; the ▲ ▼ on Players · Admins now work mid-game through the same RPC; the Log line falls back to the scorecard's default initials (022 `initials_candidates`) when a seat has no stored label.
 Mockups: [`seating-order-mockups/`](seating-order-mockups/) (S01–S08, same style as the Pool / Multiplier / Going rogue
 sets; 390 dp, light theme, caption strip on each). Section 7 lists the questions with a recommendation on each; section 8
 the test rows; section 9 the place in the queue.
