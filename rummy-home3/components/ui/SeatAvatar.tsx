@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, seatColor, useAppTheme } from '@/constants/theme';
+import { fitInitialsFontSize } from '@/utils/scorecardLayout';
 
 export const nameInitials = (name: string) =>
   (name || '?')
@@ -30,7 +31,10 @@ export function SeatAvatar({ name, label, color, size = 40, icon, muted, style }
   const background = muted ? theme.colors.surfaceVariant : color ?? seatColor(0, { onDark: theme.dark });
   const foreground = muted ? theme.colors.onSurfaceVariant : '#FFFFFF';
   const text = label ?? nameInitials(name);
-  const fontSize = Math.round(size * (text.length > 2 ? 0.32 : 0.4));
+  // F13.22: three characters are never clipped by the circle — the font steps down to fit the chord
+  // the text sits on (the line is ~0.4 r tall, so the chord is ~0.9 of the diameter), with the
+  // native shrink as a safety net.
+  const fontSize = fitInitialsFontSize(text, size * 0.9, Math.round(size * (text.length > 2 ? 0.34 : 0.4)));
 
   return (
     <View
@@ -45,7 +49,7 @@ export function SeatAvatar({ name, label, color, size = 40, icon, muted, style }
       {icon ? (
         <Icon source={icon} size={Math.round(size * 0.5)} color={foreground} />
       ) : (
-        <Text style={[styles.text, { color: foreground, fontSize, lineHeight: fontSize * 1.2 }]} numberOfLines={1}>
+        <Text style={[styles.text, { color: foreground, fontSize, lineHeight: fontSize * 1.2, letterSpacing: text.length > 2 ? 0 : 0.3 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
           {text}
         </Text>
       )}
@@ -60,6 +64,5 @@ const styles = StyleSheet.create({
   },
   text: {
     fontWeight: '700',
-    letterSpacing: 0.3,
   },
 });

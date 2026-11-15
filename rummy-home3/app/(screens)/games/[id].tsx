@@ -438,6 +438,7 @@ export default function GameScreen() {
         <PoolAwardsCard
           game={game}
           names={Object.fromEntries(players.map((p) => [p.id, p.name]))}
+          labels={Object.fromEntries(players.map((p) => [p.id, initialsFor(p.id)]))}
           canManage={canManage}
           compact={isShort}
           onGiveAwards={() => router.push({ pathname: '/(screens)/games/award', params: { id: game.id } })}
