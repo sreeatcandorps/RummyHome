@@ -1,0 +1,71 @@
+# Board sync — the RummyHome project board (https://github.com/users/sreeatcandorps/projects/1) updates
+# itself, so it is always the single place that says what is happening. Rules: ci/board/rules.mjs;
+# code: ci/board/sync.mjs; token steps: ci/board/README.md.
+#
+# Needs one repository secret: PROJECT_TOKEN (a personal access token with project read/write + repo
+# read). Without it the run fails with "PROJECT_TOKEN missing". The token is never printed.
+#
+# Safety: pull_request_target runs with secrets, so this workflow never checks out the PR's code — only
+# the default branch — and runs nothing from the PR. It only reads the PR through the API.
+#
+# Stacked PRs: pull_request_target uses the workflow file on the PR's *base* branch, so for a stack whose
+# bases are feature branches the open / label / close events only fire once those branches carry this
+# file. workflow_run (CI finished), issues and the 2-hourly reconcile all run from main regardless, so
+# the board heals within two hours either way.
+name: Board sync
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, converted_to_draft, synchronize, closed, labeled, unlabeled]
+  issues:
+    types: [opened, reopened, closed, labeled, unlabeled]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  schedule:
+    - cron: '23 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only print what would change
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: board-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: board-sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Rule tests
+        run: node --test ci/board/rules.test.mjs
+      - name: Secret present?
+        env:
+          HAS_TOKEN: ${{ secrets.PROJECT_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" != "true" ]; then
+            echo "::error title=PROJECT_TOKEN missing::Add a repository secret named PROJECT_TOKEN — Settings › Secrets and variables › Actions › New repository secret (steps in ci/board/README.md)."
+            exit 1
+          fi
+      - name: Sync the board
+        env:
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT_OWNER: sreeatcandorps
+          PROJECT_NUMBER: '1'
+          DRY: ${{ inputs.dry_run || 'false' }}
+        run: |
+          if [ "$DRY" = "true" ]; then node ci/board/sync.mjs --reconcile --dry-run; else node ci/board/sync.mjs; fi
