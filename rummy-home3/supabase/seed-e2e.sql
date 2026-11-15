@@ -11,6 +11,9 @@
 --                                                     -> known-bugs/pr8-results-zero-players
 --   H  10000000-0000-4000-8000-000000000011  GAMEH1  active, sree creator and seated, 3 players, no rounds
 --                                                     -> known-bugs/pr3-rummy-positive-pot
+--   W  10000000-0000-4000-8000-000000000012  GAMEW1  pool 101, completed, awards pending, 20 players x 3 rounds,
+--                                                     every placeholder's initials three WIDE letters (WWW, MMM, WMW …)
+--                                                     -> smoke/17-pool-wide-initials-20p (F13.22: nothing is clipped)
 -- Placeholders Test Alpha..Test Uniform (E2EP01..E2EP19) are unregistered players managed by sree, in his My players.
 
 -- ---------------------------------------------------------------------------
@@ -142,4 +145,53 @@ begin
     end loop;
   end loop;
   update public.games set current_round = 31 where id = v_game;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Game W: the F13.22 check. A 20-seat pool whose 19 placeholders carry the widest three-letter
+-- initials there are (W and M, then O / Q / G / D), completed and waiting for awards, so one flow
+-- can look at the header columns, the Standings card and the Awards screen with every label in full.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_game uuid := '10000000-0000-4000-8000-000000000012';
+  v_sree uuid := '00000000-0000-4000-8000-000000000001';
+  v_players uuid[] := array[v_sree];
+  v_pid uuid;
+  v_round uuid;
+  v_n integer;
+  v_i integer;
+  v_labels text[] := array['WWW','MMM','WMW','MWM','WWM','MMW','MWW','WMM','WOW','MOM',
+                           'WQW','MQM','OWO','OMO','QWQ','QMQ','GWG','GMG','DWD'];
+begin
+  for v_i in 1..19 loop
+    v_pid := ('00000000-0000-4000-8000-000000000' || lpad(to_hex(1024 + v_i), 3, '0'))::uuid;
+    insert into public.profiles (id, display_name, first_name, last_name, player_status, managed_by, player_code)
+    values (v_pid, 'Wide ' || v_labels[v_i], 'Wide', v_labels[v_i], 'unregistered', v_sree, 'E2EW' || lpad(v_i::text, 2, '0'));
+    insert into public.my_players (owner_id, player_id, games_together, initials) values (v_sree, v_pid, 1, v_labels[v_i]);
+    v_players := v_players || v_pid;
+  end loop;
+
+  insert into public.games (id, created_by, status, game_type, settings, share_code, created_at, completed_at, current_round)
+  values (v_game, v_sree, 'completed', 'pool',
+          '{"gameType":"pool","expenseEnabled":false,"stakeDrop":25,"stakeMiddleDrop":50,"dropAmount":25,"mdAmount":50,"maxCount":130,"poolLimit":101,"reentry":true}',
+          'GAMEW1', now() - interval '3 hours', now() - interval '2 hours', 4);
+
+  for v_i in 1..20 loop
+    insert into public.game_players (game_id, profile_id, player_order, role, seated)
+    values (v_game, v_players[v_i], v_i - 1, case when v_i = 1 then 'game_admin' else 'player' end::public.game_member_role, true);
+  end loop;
+
+  -- Three rounds: the winner (seat n) scores 0, everyone else 20; nobody reaches 101.
+  for v_n in 1..3 loop
+    insert into public.rounds (game_id, round_number, dealer_profile_id, created_by)
+    values (v_game, v_n, v_players[v_n], v_sree)
+    returning id into v_round;
+    for v_i in 1..20 loop
+      insert into public.scores (round_id, game_id, profile_id, score_type, value)
+      values (v_round, v_game, v_players[v_i],
+              case when v_i = v_n then 'rummy'::public.score_type else 'count'::public.score_type end,
+              case when v_i = v_n then 0 else 20 end);
+    end loop;
+  end loop;
 end $$;

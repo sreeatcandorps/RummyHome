@@ -120,7 +120,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | | guardrails: 20th seat, player limits (029) | U, D | D + N | — |
 | Initials | 1+2 cells, auto-advance, clash → HT2, edit, 3 at a time | U, D, S | U + D + **S** | `smoke/09` (was `known-bugs/pr6`) |
 | | edit initials mid-game (digit allowed, Save above the keyboard) | U, N | U + N | `full/31` |
-| Scorecard | 4 / 20 players render, header not clipped, DEALS; header and score cells of one column on screen together (PR 10a); pool header number / initials / score, OUT, re-entered blue, Standings and Awards cards (PR 13) | U (source grep), S | **S** | `smoke/02`, `smoke/10`, `smoke/11`, `smoke/16` |
+| Scorecard | 4 / 20 players render, header not clipped, DEALS; header and score cells of one column on screen together (PR 10a); pool header number / initials / score, OUT, re-entered blue, Standings and Awards cards (PR 13); three-letter initials (WWW, MMM) never clipped on 20 columns, Standings, Awards (F13.22) | U (source grep, `initials-fit`), S | **S** | `smoke/02`, `smoke/10`, `smoke/11`, `smoke/16`, `smoke/17` |
 | | 20 players: last column reachable by swiping, header in step | N | N | `full/20` (slow: 600-cell hierarchy) |
 | | portrait ↔ landscape | S | **S** | `smoke/03`, `smoke/11` |
 | | dealer rotation + divider after seat change (031) | U, D | D + N | — |
@@ -143,6 +143,7 @@ Legend: **U** unit (`npm test`) · **D** pgTAP / DB on the local Supabase · **C
 | My Players | A–Z sections, search, paging to 1,000, remove + undo toast | U, D (027/030), S (search) | N | `smoke/08` |
 | Complete game | confirm, points only, status to Completed | U, S | **S** | `smoke/05` |
 | Results | picker chips, tick rules, non-admin message; pool rows pick only once awarded, "Give awards first" (PR 13) | U, S (picker) | N | `smoke/06`, `smoke/16` |
+| Pool awards | presets preview, Custom inline, Save anyway when unbalanced (PR 13); the lowest score gets the most: Entry per drop left greyed + pop-up when the winner would be level or behind, Custom warns (F13.23) | U (`pool-pr13` 13.5c), S | **S** | `smoke/16` |
 | | show results 1 game / 5 games / 30 × 20 | U, volume, S (1 game) | **S** (1 game), N (30 × 20) | `smoke/06` |
 | | PR 8 design: ranked split + medals, bands of five games with borders, legend, Games in this result | U (model, HTML, CSS parity), S | **S** | `smoke/06`, `smoke/12` |
 | | save result (completed → closed), closed-reuse warning | U, D, N | N | `full/40` |
