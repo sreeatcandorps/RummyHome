@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Icon, SegmentedButtons, Text } from 'react-native-paper';
+import { Dialog, Icon, Portal, SegmentedButtons, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
@@ -8,6 +8,7 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { draftFromRules, RulesDraft, RulesForm, rulesFromDraft } from '@/components/game/RulesForm';
 import { GameKind, PointsRules } from '@/utils/gameSettings';
+import { highMultiplierConfirm } from '@/utils/multiplier';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 export const SETTINGS_LINK = 'You can also set these defaults in Settings.';
@@ -34,6 +35,8 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
   const { colors } = useAppTheme();
   const [draft, setDraft] = useState<RulesDraft>(() => draftFromRules(rules));
   const [problem, setProblem] = useState<string | null>(null);
+  /** PR 14 (suggestion 2): a multiplier of 1,000 or more asks once before Start. */
+  const [highConfirm, setHighConfirm] = useState<{ rules: PointsRules; text: string } | null>(null);
 
   const switchKind = (next: GameKind) => {
     if (next === kind) return;
@@ -47,6 +50,8 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
     const parsed = rulesFromDraft(draft);
     if (!parsed.rules) { setProblem(parsed.error); return; }
     setProblem(null);
+    const high = parsed.rules.gameKind === 'points' ? highMultiplierConfirm(parsed.rules.multiplier ?? 1, parsed.rules.fullCount) : null;
+    if (high) { setHighConfirm({ rules: parsed.rules, text: high }); return; }
     onStart(parsed.rules);
   };
 
@@ -104,6 +109,17 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
           <Text variant="bodyMedium" style={{ color: colors.onErrorContainer, flex: 1 }}>{problem ?? error}</Text>
         </View>
       ) : null}
+
+      <Portal>
+        <Dialog visible={Boolean(highConfirm)} onDismiss={() => setHighConfirm(null)} testID="multiplier-high-confirm">
+          <Dialog.Title>Large multiplier</Dialog.Title>
+          <Dialog.Content><Text variant="bodyMedium">{highConfirm?.text ?? ''}</Text></Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setHighConfirm(null)}>Change</Button>
+            <Button mode="contained" onPress={() => { const r = highConfirm?.rules; setHighConfirm(null); if (r) onStart(r); }} testID="multiplier-high-keep">Keep it</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
       <BottomBar style={styles.bottom}>
         <Button mode="outlined" onPress={onBack} disabled={creating} icon="arrow-left" contentStyle={styles.barContent} style={styles.back} accessibilityLabel="Back to players">

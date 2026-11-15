@@ -321,11 +321,11 @@ test('13.6 pool limits 101 / 201 / 251 / Custom (51–999); 100 in, 101 out; def
 test('13.6b profile defaults hold both kinds and which one a new game starts as', () => {
   const all = allRulesFromProfileDefaults({ stakeDrop: -10, stakeMiddleDrop: -30, maxCount: -80, poolLimit: 201, poolDrop: 20, poolMiddleDrop: 40, poolFullCount: 100, poolReentryLimit: 2, gameKind: 'pool' });
   assert.equal(all.startsAs, 'pool');
-  assert.deepEqual(all.points, { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80 });
+  assert.deepEqual(all.points, { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80, multiplier: 1 });
   assert.deepEqual(all.pool, { gameKind: 'pool', drop: 20, middleDrop: 40, fullCount: 100, poolLimit: 201, reentryLimit: 2 });
   assert.equal(rulesFromProfileDefaults({ poolReentry: false }, 'pool').reentryLimit, 0, 'an old saved switch off reads as none');
   assert.equal(rulesFromProfileDefaults({ poolReentry: true }, 'pool').reentryLimit, null, 'an old saved switch on reads as Unlimited');
-  assert.deepEqual(rulesFromProfileDefaults(null), { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80 }, 'no defaults: Points, as before');
+  assert.deepEqual(rulesFromProfileDefaults(null), { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80, multiplier: 1 }, 'no defaults: Points, as before (×1)');
   assert.deepEqual(rulesFromProfileDefaults(null, 'pool'), DEFAULT_POOL_RULES);
   assert.deepEqual(rulesToProfileDefaults(DEFAULT_POOL_RULES), { poolLimit: 101, poolDrop: 25, poolMiddleDrop: 50, poolFullCount: 130, poolReentryLimit: null });
   assert.deepEqual(rulesFromGame(settings, 'pool'), { gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: null });
@@ -349,8 +349,8 @@ test('13.7 RulesForm draft: chips for the three limits, Custom for anything else
   assert.deepEqual(draftFromRules({ ...DEFAULT_POOL_RULES, reentryLimit: 3 }), { ...draft, reentryMode: 'limited', reentryCount: '3' });
   const bad = rulesFromDraft({ ...draft, poolLimit: '12' });
   assert.match(bad.error!, /51 to 999/);
-  const points = rulesFromDraft({ gameKind: 'points', drop: '-10', middleDrop: '-30', fullCount: '-80', poolLimit: '101', customLimit: false, reentryMode: 'unlimited', reentryCount: '1' });
-  assert.deepEqual(points.rules, { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80 });
+  const points = rulesFromDraft({ gameKind: 'points', drop: '-10', middleDrop: '-30', fullCount: '-80', poolLimit: '101', customLimit: false, reentryMode: 'unlimited', reentryCount: '1', multiplier: '' });
+  assert.deepEqual(points.rules, { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80, multiplier: 1 });
 
   const form = src('components/game/RulesForm.tsx');
   assert.match(form, /POOL_LIMITS\.map\(/, 'one chip per limit');

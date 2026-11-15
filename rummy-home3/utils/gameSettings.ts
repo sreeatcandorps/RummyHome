@@ -1,5 +1,6 @@
 import { GameSettings } from '@/types/game';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
+import { MULTIPLIER_DEFAULT, MULTIPLIER_MAX, MULTIPLIER_MIN, MULTIPLIER_RANGE_TEXT, multiplierOf } from '@/utils/multiplier';
 import { DEFAULT_POOL_LIMIT, DEFAULT_POOL_REENTRY_LIMIT, DEFAULT_POOL_VALUES, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_REENTRY_LIMIT_MAX, reentryLimitOf } from '@/utils/pool';
 
 /**
@@ -22,6 +23,8 @@ export type PointsRules = {
   poolLimit?: number;
   /** Pool only (042): re-entries per player — null = Unlimited, N = Limited to N (0 = none). */
   reentryLimit?: number | null;
+  /** Points only (PR 14): the game's multiplier, 1–10,000; absent reads as 1. */
+  multiplier?: number;
 };
 
 export const DEFAULT_POINTS_RULES: PointsRules = {
@@ -29,6 +32,7 @@ export const DEFAULT_POINTS_RULES: PointsRules = {
   drop: DEFAULT_PROFILE_SETTINGS.stakeDrop,
   middleDrop: DEFAULT_PROFILE_SETTINGS.stakeMiddleDrop,
   fullCount: DEFAULT_PROFILE_SETTINGS.maxCount,
+  multiplier: MULTIPLIER_DEFAULT,
 };
 
 export const DEFAULT_POOL_RULES: PointsRules = {
@@ -69,6 +73,8 @@ export function validateRules(rules: PointsRules): string | null {
     return 'Drop, Middle drop, and Full count must be less than 0.';
   }
   if (Math.abs(rules.middleDrop) < Math.abs(rules.drop)) return 'Middle drop is usually bigger than Drop.';
+  const m = rules.multiplier ?? MULTIPLIER_DEFAULT;
+  if (!Number.isInteger(m) || m < MULTIPLIER_MIN || m > MULTIPLIER_MAX) return MULTIPLIER_RANGE_TEXT;
   return null;
 }
 
@@ -93,6 +99,7 @@ export function rulesFromProfileDefaults(defaults: Record<string, unknown> | nul
     drop: num(d.pointsDrop ?? d.stakeDrop, DEFAULT_POINTS_RULES.drop),
     middleDrop: num(d.pointsMiddleDrop ?? d.stakeMiddleDrop, DEFAULT_POINTS_RULES.middleDrop),
     fullCount: num(d.maxCount ?? d.fullCount, DEFAULT_POINTS_RULES.fullCount),
+    multiplier: multiplierOf({ multiplier: d.multiplier }),
   };
 }
 
@@ -120,6 +127,7 @@ export function rulesToProfileDefaults(rules: PointsRules): Record<string, unkno
     stakeDrop: rules.drop,
     stakeMiddleDrop: rules.middleDrop,
     maxCount: rules.fullCount,
+    multiplier: rules.multiplier ?? MULTIPLIER_DEFAULT,
   };
 }
 
@@ -139,6 +147,7 @@ export function rulesFromGame(settings: GameSettings, gameType: 'stake' | 'pool'
     drop: settings.dropAmount,
     middleDrop: settings.mdAmount,
     fullCount: settings.maxCount,
+    multiplier: multiplierOf(settings, 'stake'),
   };
 }
 
@@ -156,5 +165,6 @@ export function withStoredPointsRules(base: GameSettings, stored: any): GameSett
     poolLimit: typeof stored.poolLimit === 'number' ? stored.poolLimit : base.poolLimit,
     reentry: typeof stored.reentry === 'boolean' ? stored.reentry : base.reentry,
     reentryLimit: 'reentryLimit' in stored || typeof stored.reentry === 'boolean' ? reentryLimitOf(stored as GameSettings) : base.reentryLimit,
+    ...(typeof stored.multiplier === 'number' ? { multiplier: multiplierOf(stored) } : {}),
   };
 }

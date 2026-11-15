@@ -11,6 +11,8 @@ export type GameSettings = {
   reentry?: boolean;
   /** Pool (042): re-entries per player. null / absent = Unlimited; N = Limited to N (0 = none). */
   reentryLimit?: number | null;
+  /** Points (043, PR 14): one multiplier for the whole game, 1–10,000; absent = 1. Never on a pool. */
+  multiplier?: number;
 };
 
 /** Pool (041) seat state, from game_players. Absent for Points games and pre-041 servers. */

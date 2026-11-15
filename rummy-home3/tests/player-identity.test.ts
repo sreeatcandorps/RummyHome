@@ -244,7 +244,7 @@ test('drop rules: typed with a minus, stored negative, validated, applied to gam
   assert.equal(DEFAULT_POINTS_RULES.fullCount, -80);
   assert.equal(validateRules({ gameKind: 'points', drop: -40, middleDrop: -30, fullCount: -80 }), 'Middle drop is usually bigger than Drop.');
   assert.equal(validateRules({ gameKind: 'points', drop: -10, middleDrop: -30, fullCount: 80 }), 'Drop, Middle drop, and Full count must be less than 0.');
-  assert.deepEqual(rulesFromProfileDefaults({ stakeDrop: -20, stakeMiddleDrop: -40 }), { gameKind: 'points', drop: -20, middleDrop: -40, fullCount: -80 });
+  assert.deepEqual(rulesFromProfileDefaults({ stakeDrop: -20, stakeMiddleDrop: -40 }), { gameKind: 'points', drop: -20, middleDrop: -40, fullCount: -80, multiplier: 1 });
   assert.equal(rulesToProfileDefaults({ gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80 }).maxCount, -80);
   assert.equal(rulesFromGame({ expense: false, expenseAmount: 0, dropAmount: -10, mdAmount: -30, maxCount: -80 }).fullCount, -80);
   const base = { expense: false, expenseAmount: 0, dropAmount: -10, mdAmount: -30, maxCount: -80 };

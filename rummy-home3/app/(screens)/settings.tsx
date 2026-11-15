@@ -50,7 +50,7 @@ export default function UserSettings() {
     try {
       await userSettingsService.saveAll(userId, { startsAs, points: p.rules, pool: q.rules });
       setNotice({
-        text: `Saved. Points: Drop ${p.rules.drop}, Middle drop ${p.rules.middleDrop}, Full count ${p.rules.fullCount}. Pool: limit ${q.rules.poolLimit}, Drop ${q.rules.drop}, Middle drop ${q.rules.middleDrop}, Full count ${q.rules.fullCount}, Re-entries ${reentryLimitLabel(q.rules.reentryLimit ?? null)}. New games start with these.`,
+        text: `Saved. Points: Drop ${p.rules.drop}, Middle drop ${p.rules.middleDrop}, Full count ${p.rules.fullCount}, Multiplier ×${p.rules.multiplier ?? 1}. Pool: limit ${q.rules.poolLimit}, Drop ${q.rules.drop}, Middle drop ${q.rules.middleDrop}, Full count ${q.rules.fullCount}, Re-entries ${reentryLimitLabel(q.rules.reentryLimit ?? null)}. New games start with these.`,
         tone: 'saved',
       });
     } catch (e) { problem(e instanceof Error ? e.message : 'Couldn’t save.'); }
@@ -69,7 +69,7 @@ export default function UserSettings() {
           ]}
         />
       </SectionCard>
-      <SectionCard title="Points defaults" icon="numeric" supportingText="Every new Points game starts with these. Change one game from its ⋮ menu > Game settings.">
+      <SectionCard title="Points defaults" icon="numeric" supportingText="Every new Points game starts with these, including the multiplier (×1 unless you set one). Change one game from its ⋮ menu > Game settings.">
         <RulesForm draft={points} onChange={(next) => { setPoints(next); clearSaved(); }} testIDPrefix="settings-points" />
       </SectionCard>
       <SectionCard title="Pool defaults" icon="pool" supportingText="Every new Pool game starts with these. The limit and the values lock once a round is saved; Re-entry can change any time.">

@@ -2,6 +2,7 @@ import { nextLocalGameLabel } from '@/utils/gameLabel';
 import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
+import { multiplierOf } from '@/utils/multiplier';
 import { reentryLimitOf } from '@/utils/pool';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { INITIALS_FORMAT_MESSAGE, MIGRATION_007_HINT, playersService } from '@/services/players';
@@ -383,6 +384,8 @@ export const gamesService = {
         maxCount: input.rules.fullCount,
         // 041/042: a pool's limit and its re-entry limit (null = Unlimited) live beside its (plus) values.
         ...(input.rules.gameKind === 'pool' ? { poolLimit: input.rules.poolLimit ?? 101, reentryLimit: input.rules.reentryLimit ?? null } : {}),
+        // 043 (PR 14): one multiplier for the whole Points game; a pool never carries the key.
+        ...(input.rules.gameKind === 'points' ? { multiplier: multiplierOf(input.rules) } : {}),
       } : {}),
     };
 
@@ -628,7 +631,7 @@ export const gamesService = {
    * is locked by the server once a round is saved (042); its values and Re-entries can still change.
    */
   async updateGameRules(gameId: string, rules: PointsRules): Promise<Game | null> {
-    const poolKeys = rules.gameKind === 'pool' ? { poolLimit: rules.poolLimit ?? 101, reentryLimit: rules.reentryLimit ?? null } : {};
+    const poolKeys = rules.gameKind === 'pool' ? { poolLimit: rules.poolLimit ?? 101, reentryLimit: rules.reentryLimit ?? null } : { multiplier: multiplierOf(rules) };
     if (!isSupabaseConfigured) {
       const game = await this.getGame(gameId);
       if (!game) return null;

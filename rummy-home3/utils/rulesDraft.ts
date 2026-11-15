@@ -1,4 +1,5 @@
 import { GameKind, parseRuleInput, PointsRules, validateRules } from '@/utils/gameSettings';
+import { MULTIPLIER_DEFAULT, multiplierFieldText, parseMultiplierInput } from '@/utils/multiplier';
 import { DEFAULT_POOL_LIMIT, parsePoolLimit, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_LIMITS, POOL_REENTRY_LIMIT_MAX } from '@/utils/pool';
 
 /** The Rules form's text state and its parsing, kept out of the component so the tests can run it without React Native. */
@@ -15,6 +16,8 @@ export type RulesDraft = {
   reentryMode: 'unlimited' | 'limited';
   /** Pool only: the Limited count as text ("1"). */
   reentryCount: string;
+  /** Points only (PR 14): the multiplier as typed ("" at ×1). */
+  multiplier: string;
 };
 
 /** Points fields show the minus sign; pool fields are plain plus numbers. */
@@ -29,6 +32,7 @@ export const draftFromRules = (r: PointsRules): RulesDraft => ({
   customLimit: r.gameKind === 'pool' && !(POOL_LIMITS as readonly number[]).includes(r.poolLimit ?? DEFAULT_POOL_LIMIT),
   reentryMode: r.reentryLimit == null ? 'unlimited' : 'limited',
   reentryCount: r.reentryLimit == null ? '1' : String(r.reentryLimit),
+  multiplier: r.gameKind === 'points' ? multiplierFieldText(r.multiplier) : '',
 });
 
 /** The Limited count, or null for Unlimited; -1 when the Limited field does not hold a whole number 0–99. */
@@ -51,7 +55,11 @@ export function rulesFromDraft(draft: RulesDraft): { rules: PointsRules; error: 
         const poolLimit = parsePoolLimit(draft.poolLimit);
         return { gameKind: 'pool' as const, drop, middleDrop, fullCount, poolLimit: poolLimit ?? -1, reentryLimit: parseReentryLimit(draft) };
       })()
-    : { gameKind: 'points', drop, middleDrop, fullCount };
+    : (() => {
+        const m = parseMultiplierInput(draft.multiplier ?? '');
+        return { gameKind: 'points' as const, drop, middleDrop, fullCount, multiplier: m.value ?? -1 };
+      })();
+  if (rules.gameKind === 'points' && rules.multiplier === -1) return { rules: null, error: parseMultiplierInput(draft.multiplier ?? '').error ?? 'Type a whole number for the multiplier.' };
   if (rules.gameKind === 'pool' && rules.poolLimit === -1) return { rules: null, error: `The pool limit is a whole number from ${POOL_CUSTOM_MIN} to ${POOL_CUSTOM_MAX}.` };
   if (rules.gameKind === 'pool' && rules.reentryLimit === -1) return { rules: null, error: `Re-entries is a whole number from 0 to ${POOL_REENTRY_LIMIT_MAX}, or Unlimited.` };
   const problem = validateRules(rules);

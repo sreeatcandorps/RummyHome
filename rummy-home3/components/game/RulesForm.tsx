@@ -4,6 +4,7 @@ import { RadioButton, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { limitHint, parsePoolLimit, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_LIMITS, POOL_REENTRY_LIMIT_MAX } from '@/utils/pool';
 import { parseReentryLimit } from '@/utils/rulesDraft';
+import { multiplierExample, multiplierFieldInput, MULTIPLIER_RANGE_TEXT, parseMultiplierInput } from '@/utils/multiplier';
 import { RulesDraft } from '@/utils/rulesDraft';
 
 export { draftFromRules, rulesFromDraft, showRule } from '@/utils/rulesDraft';
@@ -18,6 +19,9 @@ const plainField = (text: string) => text.replace(/[^0-9]/g, '').slice(0, 3);
 
 export const POINTS_RULES_NOTE = 'Drop, Middle drop, and Full count are negative. Defaults are -10, -30, and -80.';
 export const POOL_RULES_NOTE = 'Pool scores are plus points: the winner scores 0 and everyone else adds their hand. Defaults are 25, 50, and 130.';
+/** PR 14: under the Multiplier field once rounds exist (Game settings). */
+export const multiplierRoundsNote = (rounds: number) => `${rounds === 1 ? '1 round' : `${rounds} rounds`} played · a change re-prices the whole game`;
+export const MULTIPLIER_HINT = 'Type the points as usual; the app multiplies. ×1 unless you change it — changeable later for the whole game.';
 export const POOL_LOCK_NOTE = 'Rounds have been saved, so the pool limit is locked — changing it would change who is out. Drop, Middle drop, Full count and Re-entries can still change; the Log records it.';
 
 /**
@@ -25,12 +29,14 @@ export const POOL_LOCK_NOTE = 'Rounds have been saved, so the pool limit is lock
  * Custom, D2) and Re-entries (D4; 042: Unlimited / Limited N). `lockValues` greys the pool limit
  * once a pool has a saved round (13.5, Q14.23); the three values and Re-entries stay live.
  */
-export function RulesForm({ draft, onChange, disabled = false, lockValues = false, testIDPrefix = 'rules' }: {
+export function RulesForm({ draft, onChange, disabled = false, lockValues = false, testIDPrefix = 'rules', roundCount = 0 }: {
   draft: RulesDraft;
   onChange: (d: RulesDraft) => void;
   disabled?: boolean;
   lockValues?: boolean;
   testIDPrefix?: string;
+  /** Game settings: rounds already saved, so the Multiplier box can say a change re-prices them (PR 14). */
+  roundCount?: number;
 }) {
   const { colors } = useAppTheme();
   const pool = draft.gameKind === 'pool';
@@ -40,6 +46,10 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
   const numbersDisabled = disabled;
   const limitNumber = parsePoolLimit(draft.poolLimit);
   const reentryLimit = parseReentryLimit(draft);
+  // PR 14 (Points only): the multiplier field and the live example under it (D14.3).
+  const parsedMultiplier = parseMultiplierInput(draft.multiplier ?? '');
+  const multiplierValue = parsedMultiplier.value ?? 1;
+  const fullCountNumber = parseInt((draft.fullCount || '').replace(/[^0-9]/g, '') || '80', 10);
   return (
     <View style={styles.wrap}>
       {pool ? (
@@ -101,6 +111,37 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
       <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
         {lockValues ? POOL_LOCK_NOTE : pool ? POOL_RULES_NOTE : POINTS_RULES_NOTE}
       </Text>
+      {!pool ? (
+        <View style={styles.block} testID={`${testIDPrefix}-multiplier-block`}>
+          <Text variant="titleSmall">Multiplier</Text>
+          <TextInput
+            mode="outlined"
+            label="Multiplier"
+            keyboardType="number-pad"
+            disabled={numbersDisabled}
+            value={draft.multiplier ?? ''}
+            placeholder="1"
+            left={<TextInput.Affix text="×" />}
+            onChangeText={(t) => onChange({ ...draft, multiplier: multiplierFieldInput(t) })}
+            error={parsedMultiplier.value === null}
+            style={styles.limitInput}
+            testID={`${testIDPrefix}-multiplier`}
+            accessibilityLabel="Multiplier, 1 to 10,000"
+          />
+          {parsedMultiplier.value === null ? (
+            <Text variant="bodySmall" style={{ color: colors.error }} testID={`${testIDPrefix}-multiplier-error`}>{MULTIPLIER_RANGE_TEXT}</Text>
+          ) : null}
+          <View style={[styles.example, { backgroundColor: colors.secondaryContainer }]} testID={`${testIDPrefix}-multiplier-example`}>
+            <Text variant="bodyMedium" style={{ color: colors.onSecondaryContainer, fontWeight: '700' }}>
+              {multiplierExample(multiplierValue, fullCountNumber)}
+            </Text>
+            {roundCount > 0 ? (
+              <Text variant="bodySmall" style={{ color: colors.onSecondaryContainer }}>{multiplierRoundsNote(roundCount)}</Text>
+            ) : null}
+          </View>
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{MULTIPLIER_HINT}</Text>
+        </View>
+      ) : null}
       {pool ? (
         <View style={styles.block}>
           <Text variant="titleSmall">Re-entries</Text>
@@ -143,6 +184,7 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { minWidth: 64 },
   limitInput: { maxWidth: 220 },
+  example: { borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, gap: 2 },
   radios: { flexDirection: 'row', flexWrap: 'wrap' },
   radio: { paddingHorizontal: 0, paddingVertical: 0, marginRight: spacing.md },
 });
