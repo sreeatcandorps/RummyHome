@@ -1,0 +1,46 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  s04["S04 Home (Live · Recent · bottom bar)"]:::screen
+  s10["S10 New game · Players picker / Add players to this game"]:::screen
+  s09["S09 New game · Game type (Points / Pool, rules, multiplier)"]:::screen
+  s11["S11 Fix initials (before Start)"]:::screen
+  w14[/"W14 New game problem line (players, Full count, multiplier range)"/]:::warning
+  p47(["P47 Large multiplier (Game type)"]):::popup
+  p45(["P45 Add a co-admin?"]):::popup
+  w28[/"W28 Guardrail refusals (GRD01: 20 seats, 500 rounds, 10 live games,…"/]:::warning
+  type{"Points or Pool?"}:::decision
+  mult{"Multiplier ≥ ×1,000?"}:::decision
+  clash{"Initials clash among seated players?"}:::decision
+  coadmin{"Registered seated player and no co-admin?"}:::decision
+  e03[["E03 Game started (live link)"]]:::email
+  s14["S14 Scorecard (Points / Pool)"]:::screen
+  p25(["P25 Seating order sheet"]):::popup
+  s04 -->|"New game"| s10
+  s10 -->|"Next (≥ 2 players)"| s09
+  s09 --> type
+  type -->|"Points: Full count, multiplier"| s09
+  type -->|"Pool: limit, re-entries"| s09
+  s09 -->|"invalid rule"| w14
+  w14 --> s09
+  s09 -->|"Start game"| mult
+  mult -->|"yes"| p47
+  p47 -->|"keep"| clash
+  mult -->|"no"| clash
+  clash -->|"yes"| s11
+  s11 -->|"fixed"| coadmin
+  clash -->|"no"| coadmin
+  coadmin -->|"yes"| p45
+  p45 -->|"pick / skip"| s14
+  coadmin -->|"no"| s14
+  s09 -->|"GRD01: 10 live games / 50 per day"| w28
+  s14 -->|"game_started email"| e03
+  s14 -->|"Seating prompt (F05)"| p25
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px

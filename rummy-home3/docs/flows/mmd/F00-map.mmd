@@ -1,0 +1,54 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  f01[["F01 Sign in / up / out"]]:::flow
+  f02[["F02 Me & settings"]]:::flow
+  f03[["F03 Create game"]]:::flow
+  f04[["F04 Add players"]]:::flow
+  f05[["F05 Seating"]]:::flow
+  f06[["F06 Rounds & dealer"]]:::flow
+  f07[["F07 Edit / undo"]]:::flow
+  f08[["F08 Multiplier"]]:::flow
+  f09[["F09 Pool out / re-entry"]]:::flow
+  f10[["F10 Complete → Awards"]]:::flow
+  f17[["F17 Results"]]:::flow
+  f11[["F11 Share & web"]]:::flow
+  f12[["F12 Admins & roles"]]:::flow
+  f13[["F13 Delete / hide / restore"]]:::flow
+  f14[["F14 Offline & sync"]]:::flow
+  f15[["F15 Emails"]]:::flow
+  f16[["F16 Help"]]:::flow
+  home["S04 Home"]:::screen
+  card["S14 Scorecard"]:::screen
+  f01 --> home
+  home --> f02
+  home --> f03
+  f03 --> f04
+  f03 --> card
+  card --> f05
+  card --> f06
+  f06 --> f07
+  card --> f08
+  card --> f09
+  card --> f10
+  f10 --> f17
+  card --> f11
+  f17 --> f11
+  card --> f12
+  f04 --> f12
+  card --> f13
+  home --> f13
+  f06 --> f14
+  f03 --> f15
+  f17 --> f15
+  f13 --> f15
+  home --> f16
+  card --> f16
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px

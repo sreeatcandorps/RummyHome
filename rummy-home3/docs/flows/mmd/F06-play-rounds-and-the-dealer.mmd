@@ -1,0 +1,49 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  s14["S14 Scorecard (Points / Pool)"]:::screen
+  s15["S15 Enter Scores (Add round / Edit round)"]:::screen
+  w12[/"W12 Count warning line (half / Full count)"/]:::warning
+  w13[/"W13 Balance pill (Save off until 0)"/]:::warning
+  p31(["P31 Over the Full count / Are you sure? (pool)"]):::popup
+  p33(["P33 Rummy share is not a win"]):::popup
+  p34(["P34 Round notice (Round N already saved · scorecard refreshed · vie…"]):::popup
+  w38[/"W38 Rummy / positive pot colours (yellow selected, green win, red p…"/]:::warning
+  w28[/"W28 Guardrail refusals (GRD01: 20 seats, 500 rounds, 10 live games,…"/]:::warning
+  type("Drop · Middle drop · Count · Rummy"):::step
+  over{"Value over the Full count?"}:::decision
+  bal{"Balance 0?"}:::decision
+  rummy{"Rummy share ≤ 0?"}:::decision
+  save("save_round (one transaction, per-game lock)"):::step
+  conflict{"Someone else saved / undid first?"}:::decision
+  dealer("Next dealer = seat after the previous dealer"):::step
+  s25["S25 Web · live scorecard page"]:::screen
+  s14 -->|"Add round"| s15
+  s15 --> type
+  type --> over
+  over -->|"first time in this cell"| p31
+  p31 -->|"keep"| s15
+  over -->|"≥ half / full"| w12
+  w12 --> s15
+  s15 --> bal
+  bal -->|"no: Save off"| w13
+  bal -->|"yes"| rummy
+  rummy -->|"yes"| p33
+  p33 -->|"Save anyway"| save
+  rummy -->|"no"| save
+  save --> conflict
+  conflict -->|"yes: PT409"| p34
+  p34 -->|"refreshed"| s14
+  conflict -->|"no"| dealer
+  dealer -->|"row + colours"| s14
+  s14 --> w38
+  save -->|"round 501"| w28
+  s14 -->|"realtime → live page"| s25
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px

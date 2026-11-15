@@ -1,0 +1,38 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  s14["S14 Scorecard (Points / Pool)"]:::screen
+  s15["S15 Enter Scores (Add round / Edit round)"]:::screen
+  p32(["P32 Round saved (pool: out · eligible · re-enter)"]):::popup
+  w35[/"W35 Pool standings (OUT · re-entry eligible · re-entered · limit)"/]:::warning
+  w10[/"W10 Pool over hint (everyone out / limit reached)"/]:::warning
+  p31(["P31 Over the Full count / Are you sure? (pool)"]):::popup
+  w19[/"W19 Game settings error / locked note"/]:::warning
+  s18["S18 Complete (game / pool)"]:::screen
+  over{"Total ≥ pool limit?"}:::decision
+  reentry{"Re-entries left (Unlimited / Limited N)?"}:::decision
+  reenter("Re-enter at the highest live total"):::step
+  left{"One player left?"}:::decision
+  s14 -->|"Add round (pool)"| s15
+  s15 -->|"value ≥ limit: Are you sure?"| p31
+  s15 -->|"Save"| over
+  over -->|"yes: who is out"| p32
+  over -->|"no"| s14
+  p32 --> s14
+  s14 -->|"OUT · eligible · re-entered"| w35
+  w35 -->|"Re-enter"| reentry
+  reentry -->|"yes"| reenter
+  reenter --> s14
+  reentry -->|"no: limit reached"| w10
+  s14 --> left
+  left -->|"yes: everyone out"| w10
+  w10 -->|"Complete"| s18
+  s14 -->|"settings locked after round 1"| w19
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px

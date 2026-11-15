@@ -1,0 +1,40 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  s14["S14 Scorecard (Points / Pool)"]:::screen
+  p18(["P18 Scorecard ⋮ menu (Players · Admins, Seating, Edit round, Reopen…"]):::popup
+  p26(["P26 Game settings (Full count, multiplier, pool rules)"]):::popup
+  p27(["P27 Change the multiplier? / Large multiplier"]):::popup
+  w11[/"W11 Multiplier chip + entered-points banner"/]:::warning
+  p28(["P28 Exact points (multiplier totals)"]):::popup
+  s17["S17 Log (game log)"]:::screen
+  w19[/"W19 Game settings error / locked note"/]:::warning
+  s20["S20 Final scores (single game share)"]:::screen
+  s23["S23 Results · saved result"]:::screen
+  rounds{"Rounds exist?"}:::decision
+  high{"≥ ×1,000?"}:::decision
+  apply("Whole game re-valued (entered points unchanged)"):::step
+  s14 --> p18
+  p18 -->|"Game settings"| p26
+  p26 -->|"new multiplier"| rounds
+  rounds -->|"yes: confirm"| p27
+  rounds -->|"no"| high
+  p27 -->|"Apply to whole game"| high
+  high -->|"yes: Large multiplier"| p27
+  high -->|"no"| apply
+  p27 -->|"keep"| apply
+  apply --> s14
+  s14 -->|"chip ×N · entered banner"| w11
+  w11 -->|"Exact points"| p28
+  p26 -->|"out of range"| w19
+  apply -->|"Log: Multiplier changed"| s17
+  apply -->|"Final scores × N"| s20
+  apply -->|"Result bands show ×N"| s23
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px

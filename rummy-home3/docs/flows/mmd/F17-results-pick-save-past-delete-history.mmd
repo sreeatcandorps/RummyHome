@@ -1,0 +1,62 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  s04["S04 Home (Live · Recent · bottom bar)"]:::screen
+  s21["S21 Results · pick games + Past results"]:::screen
+  w21[/"W21 Results picker count + locked (non-admin) cards"/]:::warning
+  p51(["P51 Not an admin (locked card)"]):::popup
+  p49(["P49 Deselect games?"]):::popup
+  p50(["P50 Give awards first"]):::popup
+  s22["S22 Results · view (unsaved)"]:::screen
+  w22[/"W22 Not saved yet. This result may change."/]:::warning
+  w23[/"W23 Result warnings (Active game · already in a previous result)"/]:::warning
+  p53(["P53 Result saved (status changes)"]):::popup
+  s23["S23 Results · saved result"]:::screen
+  p54(["P54 Result ⋮ menu (History · Copy link · Delete result)"]):::popup
+  w25[/"W25 Delete consequence line (games go back to Completed)"/]:::warning
+  p55(["P55 Delete a shared result?"]):::popup
+  p56(["P56 Result deleted · UNDO (saved result)"]):::popup
+  w26[/"W26 Deleted results section (Restore, 30 days)"/]:::warning
+  p52(["P52 Results toast (Result deleted · UNDO / restored)"]):::popup
+  w24[/"W24 Changed after sharing · removed / deleted notes · History"/]:::warning
+  e04[["E04 Result saved (/r/ link)"]]:::email
+  p57(["P57 Link copied (result)"]):::gap
+  admin{"Admin of the game?"}:::decision
+  closed("Games → Closed"):::step
+  shared{"Shared from this phone?"}:::decision
+  undo{"Undo within 10 s?"}:::decision
+  reopen("Games back to Completed"):::step
+  s04 -->|"Results"| s21
+  s21 --> w21
+  s21 -->|"tap card"| admin
+  admin -->|"no"| p51
+  admin -->|"yes: tick → Show results"| s22
+  s21 -->|"chip hides ticked"| p49
+  s21 -->|"pool no awards"| p50
+  s22 --> w22
+  s22 --> w23
+  s22 -->|"Save result"| p53
+  p53 --> closed
+  closed --> e04
+  closed --> s23
+  s23 --> p54
+  s23 --> w25
+  s23 -->|"Delete this result"| shared
+  shared -->|"yes"| p55
+  p55 -->|"Delete"| p56
+  shared -->|"no"| p56
+  p56 --> undo
+  undo -->|"Undo"| s23
+  undo -->|"no"| reopen
+  s21 -->|"Deleted (30 days)"| w26
+  w26 -->|"Restore"| p52
+  s23 -->|"History"| w24
+  p54 -->|"Copy link"| p57
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px
