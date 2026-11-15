@@ -60,14 +60,21 @@ tags: [smoke]
 - assertVisible: "Pool defaults"
 - assertVisible:
     id: "settings-pool-limit-custom"
+# Scroll to the hint under the radios so the radio row is fully on screen before tapping (a tap on a
+# half-visible row at the bottom edge was lost on Pixel 6).
 - scrollUntilVisible:
     element:
-      id: "settings-pool-reentries-unlimited"
+      text: "Out players may re-enter as often as they like.*"
     direction: DOWN
     timeout: 10000
+- assertVisible:
+    id: "settings-pool-reentries-unlimited"
 # 042: Re-entries is Unlimited by default; Limited reveals the count field, nothing is saved.
 - tapOn:
     id: "settings-pool-reentries-limited"
+- extendedWaitUntil:
+    visible: "Type a whole number.|No re-entries: out is out.|Once per player.|Up to .* times per player."
+    timeout: 10000
 # The count field appears below the radios and can land under the nav bar: scroll to it, don't assume.
 - scrollUntilVisible:
     element:
