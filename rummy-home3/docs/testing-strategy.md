@@ -230,6 +230,19 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
 
+## PR 20 test cases (Going rogue: player, admin, creator — spec only, `docs/going-rogue-design.md`; codes reserved, tests written with the build)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| X20-1 | D | `supabase/tests/35_going_rogue_044.sql` (to write) | a player with a saved score reads a deleted game and sees it in `get_home_bundle.deletedGames`; no score → no access; public `/s/` still says deleted |
+| X20-2 | D | same | `request_restore`: one ask per person per game, Log row, notices to creator + admins, refused for non-members / non-deleted games |
+| X20-3 | D | same | purge: 31-day-old deleted game with no live result removed, Log rows kept as `game_purged`; 29-day-old and result-held games survive |
+| X20-4 | D | same | `restore_round` only when contiguous; `revert_round_edit` swaps live and retired rows; Pool recompute; admin-only; logged |
+| X20-5 | D | same | last-reachable-admin guard refused / allowed cases; `last_seen_at` stamped by the Home bundle |
+| X20-6 | U | `tests/going-rogue.test.ts` (to write) | Home bundle maps `deletedGames`; "gone for good on" date math; Ask button states |
+| X20-7 | S | `smoke/19-deleted-game-ask-restore.yaml` (to write) | admin deletes → player's Home shows Deleted games → read-only → Ask → admin sees the line → Restore → both Homes |
+| X20-8 | C | `chaos/c13-rogue-admin.yaml` (to write) | rogue-admin script (demote others, undo two rounds, edit one, delete, revoke session) → second admin recovers from Log and Deleted games |
+
 ## PR 19 test cases (First fixes from the break-the-app suite: F1 log out with a dead session, F2 offline relaunch wording, F3 refused pool limit pinned on screen; no migration)
 
 | Code | Type | Where | What |
