@@ -14,7 +14,7 @@ tags: [smoke, landscape]
 - tapOn:
     id: "game-card-GAMEA1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertVisible: "Add round"
 - assertVisible: "DEALS"

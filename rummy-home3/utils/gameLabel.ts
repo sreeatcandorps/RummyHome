@@ -27,6 +27,16 @@ export function gameTitle(game: LabelledGame, fallback = 'Game'): string {
   return label ? `Game ${label}` : fallback;
 }
 
+/**
+ * Header title of a game screen (design audit A02): "Scorecard · S3", "Complete · S3", "Awards · P1",
+ * "Log · S3", "Players · Admins · S3" — the screen first, then the game label; just the screen when the
+ * game has no number yet. Titles are centred; the content keeps its own heading ("S3 · Round 7").
+ */
+export function screenTitle(screen: string, game: LabelledGame | null | undefined): string {
+  const label = game ? gameLabelOf(game) : null;
+  return label ? `${screen} · ${label}` : screen;
+}
+
 /** Labels for a list of games as shown in link requests: "(S3, P1)". */
 export function gameLabelList(labels: readonly string[] | null | undefined): string {
   return labels && labels.length ? ` (${labels.join(', ')})` : '';

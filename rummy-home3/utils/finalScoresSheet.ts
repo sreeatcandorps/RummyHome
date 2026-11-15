@@ -1,4 +1,4 @@
-import { gameLabelOf, gameTitle, LabelledGame } from '@/utils/gameLabel';
+import { LabelledGame, gameLabelOf, gameTitle, screenTitle } from '@/utils/gameLabel';
 import { formatPoints } from '@/utils/results';
 import { exactSubline, multiplierLabel, multiplyScores } from '@/utils/multiplier';
 import { buildRoundTable, ResultsRoundTable } from '@/utils/resultsDetails';
@@ -6,14 +6,9 @@ import { buildScoresCard, ShareCard } from '@/utils/shareCard';
 import { PoolSeat } from '@/types/game';
 import { EMPTY_SEAT, isOut, poolTotal } from '@/utils/pool';
 
-/** "Mon, Jul 27 · 6:27 PM" — same shape as the scorecard header. Pure copy so this module runs under node. */
-export function formatWhen(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Unknown date';
-  const day = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-  return `${day} · ${time}`;
-}
+import { formatWhen } from '@/utils/formatWhen';
+
+export { formatWhen };
 
 
 /** Round scores in the long image sit in square cells, five to a row. */
@@ -82,10 +77,9 @@ export function chunk<T>(items: T[], size: number): T[][] {
   return rows;
 }
 
-/** "Final scores · Game S10" (PR 10b title). */
+/** "Final scores · S10" (PR 10b title; A02 drops the word "Game"). */
 export function finalScoresHeading(game: LabelledGame): string {
-  const label = gameLabelOf(game);
-  return label ? `Final scores · Game ${label}` : 'Final scores';
+  return screenTitle('Final scores', game);
 }
 
 /** "Game S3": the visible number only; the long id never appears on a shared sheet. */

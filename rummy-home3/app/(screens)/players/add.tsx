@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { NativeSyntheticEvent, Platform, ScrollView, StyleSheet, TextInput as NativeTextInput, TextInputKeyPressEventData, View } from 'react-native';
-import { Dialog, Portal, Text, TextInput } from 'react-native-paper';
+import { Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
@@ -112,11 +112,14 @@ export default function AddPlayersScreen() {
     })().catch(() => {});
   }, [refreshMine]);
 
-  // Back gestures, the hardware back button, and header taps all come through here.
+  // Back gestures and the hardware back button come through here: they behave like Done (Q11.18), so
+  // typed-but-unsaved letters still ask first and nothing is lost by a swipe.
+  const doneRef = React.useRef<() => void>(() => {});
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (event) => {
       if (leaving.current) return;
       event.preventDefault();
+      doneRef.current();
     });
     return unsubscribe;
   }, [navigation]);
@@ -125,8 +128,9 @@ export default function AddPlayersScreen() {
     navigation.setOptions({
       title: ADD_PLAYERS_TITLE,
       headerBackVisible: false,
-      headerLeft: () => null,
-      gestureEnabled: false,
+      // Q11.18: a Back arrow that behaves like Done (rows save on their own).
+      headerLeft: () => <IconButton icon="arrow-left" onPress={() => doneRef.current()} accessibilityLabel="Done adding players, back" testID="add-players-back" />,
+      gestureEnabled: true,
       headerRight: () => <HelpButton text={HELP.addPlayers} />,
     });
   }, [navigation]);
@@ -193,6 +197,7 @@ export default function AddPlayersScreen() {
     }
     leave();
   };
+  doneRef.current = done;
 
   // Backspace in an empty cell walks back: cell 2 → cell 1 (cleared); row n cell 1 → row n−1 cell 2.
   const backspaceFrom = (row: Row, cell: 'first' | 'last', index: number) => (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {

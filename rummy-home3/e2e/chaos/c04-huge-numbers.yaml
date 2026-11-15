@@ -60,7 +60,7 @@ tags: [chaos]
 - takeScreenshot: c04-huge-round-balanced
 - tapOn: "Save round"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 - assertNotVisible: "Something went wrong"
 - assertNotVisible: "Could not save round"

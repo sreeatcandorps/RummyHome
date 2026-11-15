@@ -17,5 +17,5 @@ appId: com.mindweavetech.rummyhome
 - tapOn:
     id: "game-card-${CODE}"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000

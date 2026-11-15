@@ -29,7 +29,8 @@ export function Tag({ label, tone = 'neutral', icon, style, wrap = false, testID
     leader: { bg: colors.leaderContainer, fg: colors.onLeaderContainer },
     danger: { bg: colors.errorContainer, fg: colors.onErrorContainer },
     info: { bg: colors.tertiaryContainer, fg: colors.onTertiaryContainer },
-    results: { bg: colors.secondaryContainer, fg: colors.onSecondaryContainer },
+    // A01: results are green everywhere (games are yellow).
+    results: { bg: colors.primaryContainer, fg: colors.onPrimaryContainer },
     // Something still to do ("Awards pending"): the marigold of a selected cell, not an error red.
     warning: { bg: colors.secondaryContainer, fg: colors.onSecondaryContainer },
     stake: { bg: gameTypes.stake.container, fg: gameTypes.stake.on },

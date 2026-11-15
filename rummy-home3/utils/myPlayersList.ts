@@ -95,10 +95,10 @@ export function playerIdNumber(player: Pick<ListedPlayer, 'playerNo' | 'playerCo
   return null;
 }
 
-/** "Player ID 42", or null when the player has no numeric ID yet. */
+/** "#42" (design audit A03: one ID format wherever a player is listed), or null when the player has no numeric ID yet. */
 export function playerIdBadge(player: Pick<ListedPlayer, 'playerNo' | 'playerCode'>): string | null {
   const n = playerIdNumber(player);
-  return n == null ? null : `Player ID ${n}`;
+  return n == null ? null : `#${n}`;
 }
 
 export function sortMyPlayers<T extends ListedPlayer>(players: T[], sort: MyPlayersSort): T[] {

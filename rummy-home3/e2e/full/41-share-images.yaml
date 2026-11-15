@@ -1,7 +1,7 @@
 appId: com.mindweavetech.rummyhome
 tags: [full]
 # PR 10b share pictures, side by side for the eye: the single game's Final scores card (marigold frame,
-# "Final scores · Game …" title, Share final scores + Share full details buttons, no Back button) and
+# "Final scores · S…" title, Share final scores + Share full details buttons, no Back button) and
 # the results share dialog (green frame, every player, no code / link / "and N more" on the card).
 # Game G is completed with 6 seated players; its saved result exists once smoke/12 has run (the
 # nightly runs smoke first). The pixel size of the saved file (1080 wide) cannot be read by Maestro;
@@ -17,12 +17,12 @@ tags: [full]
 - tapOn:
     id: "game-card-GAMEG1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 - tapOn: "Scorecard menu"
 - tapOn: "Share final scores"
 - extendedWaitUntil:
-    visible: "Final scores · Game .*"
+    visible: "Final scores · .*"
     timeout: 20000
 - assertVisible: "Share final scores"
 - assertVisible: "Share full details"
@@ -41,7 +41,7 @@ tags: [full]
 - takeScreenshot: 41b-final-scores-rounds-legend
 - back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - launchApp
 - tapOn: "Results"

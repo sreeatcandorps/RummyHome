@@ -7,7 +7,7 @@ import { PlayerStatus } from '@/utils/playerIdentity';
  * game details and final scores.
  */
 
-export const PLAYERS_ADMINS_TITLE = 'Players/Admins';
+export const PLAYERS_ADMINS_TITLE = 'Players · Admins';
 
 type GameForAdmins = GameLike & { closedAt?: string | null; isComplete?: boolean };
 

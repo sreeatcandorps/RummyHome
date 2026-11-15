@@ -43,6 +43,6 @@ tags: [chaos]
 - takeScreenshot: c09-20x60-add-round
 - back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertNotVisible: "Something went wrong"

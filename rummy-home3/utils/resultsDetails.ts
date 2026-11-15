@@ -275,7 +275,7 @@ export function legendHtml(legend: LegendEntry[]): string {
 export function gameInfoHtml(info: GameInfo): string {
   const people = gamePeopleLine(info);
   return `<div class="gm"><div class="g1"><span class="lab">${escapeHtml(info.label)}</span>`
-    + `<span class="when"><b>${escapeHtml(info.start.time)}</b> ${escapeHtml(info.start.date)}</span></div>`
+    + `<span class="when">${escapeHtml(info.start.date)} · <b>${escapeHtml(info.start.time)}</b></span></div>`
     + `<div class="g2">${escapeHtml(gameCountsLine(info))} · <i class="gid">Game ID ${escapeHtml(info.code)}</i></div>`
     + (people ? `<div class="g2">${escapeHtml(people)}</div>` : '')
     + (info.reused ? '<div class="g2 warn">Already counted in an earlier result</div>' : '')
@@ -308,7 +308,7 @@ export function roundLegendHtml(table: ResultsRoundTable): string {
 export function roundTableHtml(table: ResultsRoundTable, options: { gameIdInHeading?: boolean } = {}): string {
   const gameId = options.gameIdInHeading === false ? '' : ` <i class="gid">Game ID ${escapeHtml(table.code)}</i>`;
   const mult = table.multiplier ? ` <span class="mult">${escapeHtml(table.multiplier)} · exact points</span>` : '';
-  const heading = `<h3><span class="lab">${escapeHtml(table.label)}</span>${mult} <span class="when"><b>${escapeHtml(table.start.time)}</b> ${escapeHtml(table.start.date)}</span>${gameId}</h3>`;
+  const heading = `<h3><span class="lab">${escapeHtml(table.label)}</span>${mult} <span class="when">${escapeHtml(table.start.date)} · <b>${escapeHtml(table.start.time)}</b></span>${gameId}</h3>`;
   if (table.initials.length === 0) return `<section class="game">${heading}<p class="mute">No players were seated.</p></section>`;
   if (table.totalsOnly) {
     const totals = table.initials.map((label, index) => `<span><b>${escapeHtml(label)}</b> ${escapeHtml(table.totals[index])}</span>`).join(' · ');
@@ -550,13 +550,13 @@ export function resultsDetailsPdf(details: ResultsDetails): Uint8Array {
   });
   lines.push(...details.legend.map(legendText), '', 'Games in this result');
   details.games.forEach((info) => {
-    lines.push(`${info.label}  ${info.start.time} ${info.start.date}  ${gameCountsLine(info)}  Game ID ${info.code}`);
+    lines.push(`${info.label}  ${info.start.date} · ${info.start.time}  ${gameCountsLine(info)}  Game ID ${info.code}`);
     const people = gamePeopleLine(info);
     if (people) lines.push(`  ${people}`);
   });
   if (details.roundTables.length > 0) lines.push('', 'Round by round');
   details.roundTables.forEach((table) => {
-    lines.push('', `${table.label}  ${table.start.time} ${table.start.date}  Game ID ${table.code}`);
+    lines.push('', `${table.label}  ${table.start.date} · ${table.start.time}  Game ID ${table.code}`);
     if (table.totalsOnly) {
       lines.push(table.initials.map((label, index) => `${label} ${table.totals[index]}`).join('  '), 'Round scores were not saved with this result.');
     } else {

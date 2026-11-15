@@ -22,9 +22,11 @@ import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { isNotReadyMessage } from '@/utils/notReady';
 import { matchesMyPlayer } from '@/utils/playerSearch';
 import { appendPage, DEFAULT_MY_PLAYERS_SORT, filterMyPlayers, mergeSearchResults, MyPlayersCursor, MyPlayersFilter, MyPlayersSort, myPlayersGridHeight, MY_PLAYERS_CARD_HEIGHT, MY_PLAYERS_PAGE_SIZE, MY_PLAYERS_SEARCH_DEBOUNCE_MS, MY_PLAYERS_SEARCH_LIMIT, nextPageCursor, playerIdBadge, registrationLabel, REGISTRATION_TONE, SEARCH_FULL_NOTE, sectionsByLetter, shouldLoadMore, SORT_CHIP, SORT_OPTIONS, sortMyPlayers, visibleRegistration, withOwnerFirst } from '@/utils/myPlayersList';
+import { SEARCH_PLACEHOLDER } from '@/utils/addPlayers';
 import { seatColor } from '@/constants/theme';
 import { shareInvite } from '@/utils/invite';
 import { Screen } from '@/components/ui/Screen';
+import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { BoldName } from '@/components/ui/BoldName';
@@ -390,9 +392,10 @@ export default function PlayersTab() {
   ), [statusOf, me?.id, openRow, initialsOf, nameChanged, menuFor_, menuFor, openMenu, closeMenu, act]);
 
   return (
+    <View style={styles.flex}>
     <Screen>
       <Searchbar
-        placeholder="Search name or player ID"
+        placeholder={SEARCH_PLACEHOLDER}
         value={query}
         onChangeText={setQuery}
         style={styles.search}
@@ -481,29 +484,6 @@ export default function PlayersTab() {
           onAction={() => router.push('/(screens)/players/add')}
         />
       ) : null}
-      <View style={styles.actions} accessibilityRole="toolbar">
-        <ActionTile
-          icon="account-plus-outline"
-          label="Add new players"
-          tone="primary"
-          onPress={() => router.push('/(screens)/players/add')}
-          accessibilityLabel="Add new players"
-        />
-        <ActionTile
-          icon="database-search"
-          label="Find player in database"
-          tone="tonal"
-          onPress={() => router.push('/(screens)/players/new')}
-          accessibilityLabel="Find player in database"
-        />
-        <ActionTile
-          icon={filter === 'unregistered' ? 'filter-check' : 'account-question-outline'}
-          label={filter === 'unregistered' ? 'Showing unregistered' : `Unregistered · ${openCount}`}
-          tone={filter === 'unregistered' ? 'tonal' : 'outlined'}
-          onPress={() => setFilter((cur) => (cur === 'all' ? 'unregistered' : 'all'))}
-          accessibilityLabel={filter === 'unregistered' ? 'Showing unregistered only. Tap to show everyone' : `Show unregistered only, ${openCount}`}
-        />
-      </View>
       {!loading && players.length === 0 ? (
         <Button mode="text" icon="share-variant" onPress={() => shareInvite().catch(() => {})}>
           Invite
@@ -596,6 +576,31 @@ export default function PlayersTab() {
         </Snackbar>
       </Portal>
     </Screen>
+    {/* A08: the three actions live in a bar above the tab bar, never below the fold or under it. */}
+    <BottomBar fullWidth insetBottom={false} style={styles.actions} testID="my-players-actions">
+      <ActionTile
+        icon="account-plus-outline"
+        label="Add new players"
+        tone="primary"
+        onPress={() => router.push('/(screens)/players/add')}
+        accessibilityLabel="Add new players"
+      />
+      <ActionTile
+        icon="database-search"
+        label="Find player in database"
+        tone="tonal"
+        onPress={() => router.push('/(screens)/players/new')}
+        accessibilityLabel="Find player in database"
+      />
+      <ActionTile
+        icon={filter === 'unregistered' ? 'filter-check' : 'account-question-outline'}
+        label={filter === 'unregistered' ? 'Showing unregistered' : `Unregistered · ${openCount}`}
+        tone={filter === 'unregistered' ? 'tonal' : 'outlined'}
+        onPress={() => setFilter((cur) => (cur === 'all' ? 'unregistered' : 'all'))}
+        accessibilityLabel={filter === 'unregistered' ? 'Showing unregistered only. Tap to show everyone' : `Show unregistered only, ${openCount}`}
+      />
+    </BottomBar>
+    </View>
   );
 }
 
@@ -653,8 +658,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
     alignItems: 'stretch',
   },
   detail: { gap: spacing.sm },

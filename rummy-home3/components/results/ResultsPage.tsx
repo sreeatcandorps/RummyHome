@@ -77,7 +77,7 @@ export function ResultsPage({
       </View>
 
       <View testID="results-totals" accessibilityLabel="Scores" style={styles.block}>
-        <Text variant="labelLarge" style={[styles.section, { color: colors.onSurfaceVariant }]}>Scores</Text>
+        <Text variant="titleSmall" style={[styles.section, { color: colors.onSurfaceVariant }]}>Scores</Text>
         <View style={styles.columns}>
           <View testID="results-positive" accessibilityLabel="Positive totals" style={styles.column}>
             {scores.positive.length === 0 ? <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>None</Text> : null}
@@ -93,14 +93,14 @@ export function ResultsPage({
 
       {sheet.games.length > 0 ? (
         <View style={styles.block}>
-          <Text variant="labelLarge" style={[styles.section, { color: colors.onSurfaceVariant }]}>{GAME_BY_GAME_TITLE}</Text>
+          <Text variant="titleSmall" style={[styles.section, { color: colors.onSurfaceVariant }]}>{GAME_BY_GAME_TITLE}</Text>
           <BandTable table={details.table} legend={details.legend} testID="results-band-table" />
         </View>
       ) : null}
 
       {details.games.length > 0 ? (
         <View style={styles.block}>
-          <Text variant="labelLarge" style={[styles.section, { color: colors.onSurfaceVariant }]}>Games in this result</Text>
+          <Text variant="titleSmall" style={[styles.section, { color: colors.onSurfaceVariant }]}>Games in this result</Text>
           <GamesInResult games={details.games} />
         </View>
       ) : null}
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   grow: { flex: 1 },
   flag: { paddingTop: 4 },
   count: { fontWeight: '800', marginTop: 2 },
-  section: { fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
+  section: { fontWeight: '800' },
   block: { gap: spacing.sm },
   columns: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   column: { flex: 1, minWidth: 0 },

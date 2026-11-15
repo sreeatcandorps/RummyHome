@@ -50,7 +50,7 @@ test('players show a numeric Player ID badge and never a letter code', () => {
   assert.equal(playerIdNumber({ playerCode: '7' }), 7);
   assert.equal(playerIdNumber({ playerCode: 'QTGFJH' }), null, 'old letter codes are hidden');
   assert.equal(playerIdNumber({}), null);
-  assert.equal(playerIdBadge({ playerNo: 42 }), 'Player ID 42');
+  assert.equal(playerIdBadge({ playerNo: 42 }), '#42');
   assert.equal(playerIdBadge({ playerCode: 'QTGFJH' }), null);
 });
 

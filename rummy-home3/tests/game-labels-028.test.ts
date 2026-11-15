@@ -48,7 +48,7 @@ test('028: the long id left every screen; the label is shown everywhere the G ba
   assert.doesNotMatch(footer, /game\.id\b|Clipboard/, 'no UUID, no copy (PR 4 shows the 6-character share code instead)');
   assert.match(footer, /scorecardFooterLines/);
   const scorecard = src('app/(screens)/games/[id].tsx');
-  assert.match(scorecard, /title: gameTitle\(game, 'Scorecard'\)/, 'the scorecard header says "Game S3"');
+  assert.match(scorecard, /title: screenTitle\('Scorecard', game\)/, 'the scorecard header says "Scorecard · S3" (A02)');
   for (const rel of ['utils/gameDisplay.ts', 'utils/gameOwners.ts', 'utils/results.ts', 'utils/resultsSave.ts', 'utils/finalScoresSheet.ts', 'utils/scorecardSheet.ts', 'utils/linkPlayer.ts', 'app/(screens)/hidden-deleted.tsx']) {
     assert.doesNotMatch(src(rel), /`G\$\{/, `${rel} builds no G-number`);
   }

@@ -5,6 +5,7 @@
  * result page, the share image, the PDF and the /r/ page all print the same way.
  */
 import { isLocalToday } from '@/utils/localDay';
+import { formatWhen, formatWhenDay, formatWhenTime } from '@/utils/formatWhen';
 
 export type LogLevel = 'important' | 'routine';
 
@@ -122,7 +123,7 @@ export const DOT_COLORS: Record<DotTone, string> = {
 export function formatLogTime(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return formatWhenTime(date);
 }
 
 /** "Today", "Yesterday" or "Wed, Nov 12" */
@@ -133,14 +134,14 @@ export function formatLogDay(value: string, now: Date = new Date()): string {
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
-  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  return formatWhenDay(date, now);
 }
 
-/** "Nov 13, 10:31 PM" — absolute, for the result History (it spans days). */
+/** "Thu, Nov 13 · 10:31 PM" — absolute, for the result History (it spans days); the one date format (A06). */
 export function formatLogWhen(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${formatLogTime(value)}`;
+  return formatWhen(date);
 }
 
 export type LogDayGroup = { day: string; key: string; entries: LogEntry[] };

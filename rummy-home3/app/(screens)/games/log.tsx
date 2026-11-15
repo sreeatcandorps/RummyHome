@@ -13,7 +13,7 @@ import { spacing, useAppTheme } from '@/constants/theme';
 import { eventLogService } from '@/services/eventLog';
 import { gamesService } from '@/services/games';
 import { defaultLogFilter, groupByDay, LogEntry, LogFilter } from '@/utils/eventLog';
-import { gameLabelOf } from '@/utils/gameLabel';
+import { screenTitle } from '@/utils/gameLabel';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 
 const FILTER_KEY = 'ezscore.gameLogFilter';
@@ -126,7 +126,7 @@ export default function GameLogScreen() {
   };
 
   const groups = useMemo(() => groupByDay(rows), [rows]);
-  const title = game ? `Log · ${gameLabelOf(game)}` : 'Log';
+  const title = screenTitle('Log', game);
 
   return (
     <Screen>

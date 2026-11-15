@@ -32,16 +32,11 @@ tags: [chaos]
       - back
 - runFlow:
     when:
-      visible: "Back to scorecard"
+      visible: "Complete · .*"
     commands:
-      - tapOn: "Back to scorecard"
-- runFlow:
-    when:
-      visible: "Not yet"
-    commands:
-      - tapOn: "Not yet"
+      - back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - extendedWaitUntil:
     visible: "Round 5"

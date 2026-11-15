@@ -26,3 +26,13 @@ export function addedNowLine(added: number): string {
 export function returnButtonLabel(): string {
   return RETURN_TO_GAME;
 }
+
+/**
+ * The New game Next button (design audit A08): a disabled primary says why in its own label,
+ * "Next · pick 2+ players" / "Next · pick 1 more player", then "Next · 4 players".
+ */
+export function nextLabel(seatedCount: number): string {
+  if (seatedCount <= 0) return 'Next · pick 2+ players';
+  if (seatedCount === 1) return 'Next · pick 1 more player';
+  return `Next · ${seatedCount} players`;
+}

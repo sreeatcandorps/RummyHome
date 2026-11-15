@@ -319,15 +319,16 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | T16-7 | T3 | `ci/volume/run-volume.mjs` + `e2e/chaos/c09` (PR 17) | database budgets V1–V5; 20 × 60 scorecard opens < 10 s on D1 (20 × 500 and the 30 × 20 result stay to do) |
 | T16-8 | U | `ci/select-tests.mjs` + `tests/test-selection-pr17.test.ts` (PR 17) | every source path maps to a flow set |
 
-## PR 15 test cases (Design consistency — audit only, `docs/design-audit.md`; codes reserved)
+## PR 15 test cases (Design consistency, `docs/design-audit.md`; 15a built, 15b to follow)
 
 | # | Kind | Where | What it proves |
 | --- | --- | --- | --- |
-| DC15-1 | U | `tests/design-tokens.test.ts` (to write) | no `Alert.alert`, no `contained-tonal`, no raw `borderRadius` numbers outside `theme.ts`, no Paper `Chip` for status |
-| DC15-2 | U | same | every stack route title matches `Screen · S1` / `Screen`; `headerTitleAlign` unset everywhere |
-| DC15-3 | U | same | `formatWhen` is the only date formatter screens import; `#` + id the only ID helper |
-| DC15-4 | U | same | Results picker selected cards use the game tokens, the "Results" tag the result tokens |
-| DC15-5 | S | `smoke/19-design.yaml` (to write) | My players tiles and tab bar both on screen; Results picker screenshot |
+| DC15-1 | U | `tests/design-tokens.test.ts` (15b) | no `Alert.alert`, no `contained-tonal`, no raw `borderRadius` numbers outside `theme.ts`, no Paper `Chip` for status |
+| DC15-2 | U | `tests/design-audit-pr15a.test.ts` | every game screen title is `screenTitle()` → "Screen · S1" / "Screen"; `headerTitleAlign` unset in every screen and the stack defaults |
+| DC15-3 | U | same | `formatWhen` ("Sat, Nov 14 · 7:49 PM", year only when not this year) is the one date formatter — no `toLocaleDateString`/`toLocaleTimeString` in screens or utils outside it; `#` + id the only ID badge |
+| DC15-4 | U | same | Results picker selected cards use `secondaryContainer`/`secondary` (game yellow); the "Results" tag and past-result edge the result green; the Add round badge the game yellow |
+| DC15-5 | S | `smoke/08-my-players.yaml` | the My players action bar (`my-players-actions`) and its Unregistered tile are on screen with the tab bar |
+| DC15-7 | U | same as DC15-2 | A05: no "Not yet" / "Got it" / bar "Back to scorecard" in any screen; "Deselect games?" confirms with Deselect; Complete pairs Cancel + Complete game; Add round has a header arrow. A08: `ActionBar` shape, `nextLabel`. A10: no uppercase section headings. Q11.12 / Q11.14 / Q11.18 source checks. Every flow matches the new titles |
 | DC15-6 | N | nightly | screenshot diff of 12 key screens against the approved set (first visual-regression job) |
 
 ## PR 14 test cases (Multiplier — spec only, `docs/multiplier-design.md`; codes reserved, tests written with the build)
@@ -388,7 +389,7 @@ Spec: `docs/pool-design.md` (Sree's 14 decisions of Nov 14), mockups in `docs/po
 | B10-11 | S | `smoke/07-profile.yaml` | Pencils, "Your initials on scorecards", Change passcode with the keyboard open: all three fields visible (screenshot) |
 | B10-12 | S | `smoke/09-new-game.yaml` | Heading "Add new players by initials", F / L subline, no "Unregistered" after a save |
 | B10-13 | S | `smoke/10-scorecard-20-players.yaml` | Add round for 20 players: three columns (screenshot); when the "N more ▾" pill shows, tapping it scrolls the rest into view (screenshot); Back saves nothing |
-| B10-14 | S | `smoke/05-complete-game.yaml` | Final scores: title "Final scores · Game …", Share full details + Share final scores, no Back button |
+| B10-14 | S | `smoke/05-complete-game.yaml` | Final scores: title "Final scores · S…" (A02), Share full details + Share final scores, no Back button |
 | B10-15 | S + N | `smoke/12-results-zero-players.yaml`, `full/40-results-save-and-past.yaml` | No Delete chip on the rows; the result foot shows "Unique result ID · …" (screenshot); Delete from the page → toast runs out → Deleted + Restore |
 | B10-16 | N | `full/41-share-images.yaml` | Game G Final scores card (marigold) and the results share dialog (green) side by side; no "Full details · …" line and no "and N more" on the card. The 1080 px file size is pinned by B10-6, not by Maestro |
 

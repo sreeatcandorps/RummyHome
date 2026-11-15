@@ -7,7 +7,7 @@ tags: [nightly]
 - tapOn:
     id: "game-card-GAMEE1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - tapOn: "Scorecard menu"
 - extendedWaitUntil:
@@ -19,9 +19,9 @@ tags: [nightly]
     visible: "Add admin by Player ID"
     timeout: 15000
 - assertVisible: "Harish Test"
-- assertVisible: "Back to scorecard"
+- assertVisible: "Add new player"
 - takeScreenshot: 30b-players-admins
-- tapOn: "Back to scorecard"
+- back
 - extendedWaitUntil:
     visible: "Add round"
     timeout: 15000

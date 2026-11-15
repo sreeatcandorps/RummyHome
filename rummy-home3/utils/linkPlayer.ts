@@ -2,6 +2,7 @@ import { gameLabelList, gameLabelOf } from '@/utils/gameLabel';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { isUnregistered, PendingLink } from '@/utils/playerIdentity';
+import { formatWhenDay } from '@/utils/formatWhen';
 
 /**
  * Link to Player ID (migration 025, as amended Nov 12): a request, not an immediate merge.
@@ -120,7 +121,7 @@ export function linkRequestSentMessage(outcome: Pick<LinkRequestOutcome, 'player
 /** The pending state inside the Link dialog. */
 export function linkPendingMessage(pending: NonNullable<LinkPreview['pending']>): string {
   const who = pending.targetName ? `${pending.targetName}${pending.targetNo != null ? ` (#${pending.targetNo})` : ''}` : `#${pending.targetNo ?? '?'}`;
-  return `Waiting for ${who} to say Yes. Expires ${new Date(pending.expiresAt).toLocaleDateString()}.`;
+  return `Waiting for ${who} to say Yes. Expires ${formatWhenDay(pending.expiresAt)}.`;
 }
 
 /** The one-time pop-up for the organiser: "Harish (HG) is now linked to #40." (same text the server stores). */
@@ -142,7 +143,7 @@ export function linkRequestPrompt(req: Pick<LinkRequestForMe, 'ownerName' | 'pla
 export function linkRequestDetail(req: Pick<LinkRequestForMe, 'playerName' | 'gameCount' | 'gameLabels' | 'expiresAt'> & { gameNumbers?: number[] }): string {
   const games = gameLabelList(req.gameLabels);
   const move = req.gameCount === 0 ? `${req.playerName} is in no games yet.` : `Yes moves ${req.playerName}'s seats and scores in ${req.gameCount} ${gameWord(req.gameCount)}${games} to your account.`;
-  return `${move} Expires ${new Date(req.expiresAt).toLocaleDateString()}.`;
+  return `${move} Expires ${formatWhenDay(req.expiresAt)}.`;
 }
 
 // ---------- local prototype store (no Supabase): the same rules over the games on this phone ----------

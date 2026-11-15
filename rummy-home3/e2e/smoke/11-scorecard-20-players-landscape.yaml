@@ -12,7 +12,7 @@ tags: [smoke, landscape]
 - tapOn:
     id: "game-card-GAMEF1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 - assertVisible: "TA"
 - assertVisible: "20 players"

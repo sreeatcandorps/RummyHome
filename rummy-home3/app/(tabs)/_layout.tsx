@@ -80,7 +80,6 @@ export default function TabLayout() {
         headerTintColor: theme.colors.onSurface,
         headerTitleStyle: { fontSize: 22, fontWeight: '700' },
         headerShadowVisible: false,
-        headerTitleAlign: 'left',
         sceneStyle: { backgroundColor: theme.colors.background },
         headerRight: () => <HeaderTools />,
       }}

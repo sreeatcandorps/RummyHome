@@ -170,3 +170,11 @@ export function withStoredPointsRules(base: GameSettings, stored: any): GameSett
     ...(typeof stored.seatingPrompted === 'boolean' ? { seatingPrompted: stored.seatingPrompted } : {}),
   };
 }
+
+/**
+ * The ⋮ item for Game settings (Q11.12): a pool with saved rounds says so on the item itself,
+ * "Game settings · locked" — the limit cannot change; Drop / Middle drop / Full count and Re-entries still can.
+ */
+export function gameSettingsMenuTitle(pool: boolean, roundCount: number): string {
+  return pool && roundCount > 0 ? 'Game settings · locked' : 'Game settings';
+}

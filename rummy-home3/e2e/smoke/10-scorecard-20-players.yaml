@@ -13,7 +13,7 @@ tags: [smoke]
 - tapOn:
     id: "game-card-GAMEF1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 - assertVisible: "Round 31"
 - assertVisible: "20 players"
@@ -46,5 +46,5 @@ tags: [smoke]
       - takeScreenshot: 10e-add-round-20p-after-more
 - back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000

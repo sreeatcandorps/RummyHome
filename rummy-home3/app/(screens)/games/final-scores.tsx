@@ -6,7 +6,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { useGameRoster } from '@/hooks/useGameRoster';
 import { useLayout } from '@/hooks/useLayout';
-import { BottomBar } from '@/components/ui/BottomBar';
+import { ActionBar } from '@/components/ui/ActionBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FinalScoresView } from '@/components/share/FinalScoresView';
 import { OffscreenShareCard, useShareCapture } from '@/components/share/OffscreenShareCard';
@@ -109,32 +109,10 @@ export default function FinalScoresScreen() {
             </Text>
             {note ? <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="final-scores-note">{note}</Text> : null}
           </ScrollView>
-          <BottomBar>
-            <Button
-              mode="outlined"
-              icon="file-pdf-box"
-              onPress={shareRounds}
-              loading={busy === 'rounds'}
-              disabled={busy !== null}
-              style={styles.flex}
-              accessibilityLabel="Share full details"
-              testID="share-rounds"
-            >
-              Share full details
-            </Button>
-            <Button
-              mode="contained"
-              icon="share-variant"
-              onPress={shareImage}
-              loading={busy === 'image'}
-              disabled={busy !== null}
-              style={styles.flex}
-              accessibilityLabel="Share final scores"
-              testID="share-final-scores"
-            >
-              Share final scores
-            </Button>
-          </BottomBar>
+          <ActionBar
+            secondary={{ label: 'Share full details', icon: 'file-pdf-box', onPress: shareRounds, loading: busy === 'rounds', disabled: busy !== null, testID: 'share-rounds' }}
+            primary={{ label: 'Share final scores', icon: 'share-variant', onPress: shareImage, loading: busy === 'image', disabled: busy !== null, testID: 'share-final-scores' }}
+          />
         </>
       )}
     </View>
@@ -147,5 +125,4 @@ const styles = StyleSheet.create({
   content: { paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   heading: { fontWeight: '700', marginTop: spacing.xs },
   bold: { fontWeight: '700' },
-  flex: { flex: 1 },
 });

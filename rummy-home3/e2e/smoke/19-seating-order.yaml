@@ -36,7 +36,7 @@ tags: [smoke]
     timeout: 15000
 - tapOn: "Skip"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 # The pop-up: once per game, seats in pick order, seat 1 deals round 1.
 - extendedWaitUntil:
@@ -100,7 +100,7 @@ tags: [smoke]
 - takeScreenshot: 19e-log-seating-row
 - back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 # Mid-game path from ⋮ (no rounds yet, so no "rounds played" note); Done is off until something moves.
 - tapOn: "Scorecard menu"
@@ -177,7 +177,7 @@ tags: [smoke]
 - takeScreenshot: 19h-log-two-seating-rows
 - back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 # Clean up: the creator deletes the game so Home and the Results picker stay as the other flows expect.
 - tapOn: "Scorecard menu"

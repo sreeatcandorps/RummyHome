@@ -8,15 +8,19 @@ type BottomBarProps = {
   style?: ViewStyle;
   /** Let the bar's content span the full width instead of the reading column. */
   fullWidth?: boolean;
+  /** Tab screens: the tab bar already clears the gesture bar, so the action bar needs no inset of its own. */
+  insetBottom?: boolean;
+  testID?: string;
 };
 
 /** Sticky action bar that clears the gesture / navigation bar. */
-export function BottomBar({ children, style, fullWidth }: BottomBarProps) {
+export function BottomBar({ children, style, fullWidth, insetBottom = true, testID }: BottomBarProps) {
   const theme = useAppTheme();
   const { insets, gutterLeft, gutterRight, isShort } = useLayout();
 
   return (
     <View
+      testID={testID}
       style={[
         styles.bar,
         {
@@ -25,7 +29,7 @@ export function BottomBar({ children, style, fullWidth }: BottomBarProps) {
           paddingLeft: gutterLeft,
           paddingRight: gutterRight,
           paddingTop: isShort ? spacing.sm : spacing.md,
-          paddingBottom: insets.bottom + (isShort ? spacing.sm : spacing.md),
+          paddingBottom: (insetBottom ? insets.bottom : 0) + (isShort ? spacing.sm : spacing.md),
         },
       ]}
     >

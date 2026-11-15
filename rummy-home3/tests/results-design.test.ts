@@ -91,12 +91,12 @@ test('design: the band table splits games five per band; the last band stops at 
   assert.equal(legendText({ initials: 'PLA', playerNo: null, name: 'Player 2' }), 'PLA Player 2');
 });
 
-test('design: "Games in this result" leads with the start time, then the date; the Game ID is last; creator and admins follow', () => {
+test('design: "Games in this result" leads with the date, then the start time (A06); the Game ID is last; creator and admins follow', () => {
   const now = new Date(2026, 10, 13);
   const parts = startParts('2026-11-05T19:45:00', now);
   assert.equal(parts.time, '7:45 PM');
-  assert.equal(parts.date, 'Thursday, November 5');
-  assert.equal(startParts('2025-11-05T19:45:00', now).date, 'Wednesday, November 5, 2025', 'a past year says so');
+  assert.equal(parts.date, 'Thu, Nov 5');
+  assert.equal(startParts('2025-11-05T19:45:00', now).date, 'Wed, Nov 5, 2025', 'a past year says so');
   assert.deepEqual(startParts(undefined), { time: '', date: '' });
   const [info] = gamesInResult([{ ...twoGames[1], rounds: { h: [1, 2, 3] }, creatorName: 'Sree Koneru', adminNames: ['Sree Koneru', 'Harish Gadupudi'], reused: true }], now);
   assert.equal(info.label, 'S13');
@@ -108,7 +108,7 @@ test('design: "Games in this result" leads with the start time, then the date; t
   const details = buildResultsDetails({ createdAtLabel: 'x', standings, players, games: [{ ...twoGames[1], creatorName: 'Sree Koneru', adminNames: ['Sree Koneru', 'Harish Gadupudi'] }], now });
   const html = resultsDetailsHtml(details);
   const block = html.slice(html.indexOf('<div class="gm">'), html.indexOf('</div></div>', html.indexOf('<div class="gm">')));
-  assert.match(block, /<span class="lab">S13<\/span><span class="when"><b>\d+:\d\d [AP]M<\/b> \w+day, November 5<\/span>/, 'only the time is bold');
+  assert.match(block, /<span class="lab">S13<\/span><span class="when">Thu, Nov 5 · <b>\d+:\d\d [AP]M<\/b><\/span>/, 'the date, then the time in bold (A06)');
   assert.match(block, /5 players · <i class="gid">Game ID C0DE2<\/i>/, 'no rounds known → players only, then the id in italics');
   assert.match(block, /Creator Sree Koneru · Admins Harish Gadupudi/, 'the creator is not repeated under Admins');
   assert.ok(block.indexOf('class="when"') < block.indexOf('class="gid"'), 'time and date before the id');

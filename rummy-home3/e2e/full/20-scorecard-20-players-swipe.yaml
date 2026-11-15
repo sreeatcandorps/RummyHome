@@ -13,7 +13,7 @@ tags: [nightly]
 - tapOn:
     id: "game-card-GAMEF1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 - assertVisible: "TA"
 - swipe:

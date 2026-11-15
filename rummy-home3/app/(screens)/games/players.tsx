@@ -33,6 +33,7 @@ import { LinkPlayerDialog } from '@/components/players/LinkPlayerDialog';
 import { LinkRequestSentDialog } from '@/components/players/LinkRequestSentDialog';
 import { InviteToRegisterDialog } from '@/components/players/InviteToRegisterDialog';
 import { seatLabels } from '@/utils/initials';
+import { screenTitle } from '@/utils/gameLabel';
 
 type Sheet =
   | { kind: 'edit'; seat: Player }
@@ -125,7 +126,6 @@ export default function GamePlayersScreen() {
     }
   };
 
-  const back = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'));
 
   if (loading) {
     return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator size="large" color={colors.primary} /></View>;
@@ -182,7 +182,7 @@ export default function GamePlayersScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ title: PLAYERS_ADMINS_TITLE, headerRight: () => <HelpButton text={HELP.playersSheet} /> }} />
+      <Stack.Screen options={{ title: screenTitle(PLAYERS_ADMINS_TITLE, game), headerRight: () => <HelpButton text={HELP.playersSheet} /> }} />
       <ScrollView contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}>
         <Text variant="titleSmall" style={styles.section}>Playing · {playing.length}</Text>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
@@ -230,16 +230,14 @@ export default function GamePlayersScreen() {
           </View>
         ) : null}
       </ScrollView>
-      <BottomBar>
-        <Button mode="outlined" icon={canScore ? 'arrow-left' : undefined} onPress={back} accessibilityLabel="Back to scorecard">
-          {canScore ? 'Scorecard' : 'Back to scorecard'}
-        </Button>
-        {canScore ? (
-          <Button mode="contained" icon="account-plus-outline" onPress={openAdd} disabled={busy} style={styles.flex} accessibilityLabel="Add new player">
+      {/* A05: the page returns through the header arrow; the bar holds the one action admins have here. */}
+      {canScore ? (
+        <BottomBar>
+          <Button mode="contained" icon="account-plus-outline" onPress={openAdd} disabled={busy} style={styles.flex} accessibilityLabel="Add new player" testID="players-add-new">
             Add new player
           </Button>
-        ) : null}
-      </BottomBar>
+        </BottomBar>
+      ) : null}
 
       <Portal>
         {sheet?.kind === 'edit' ? (
@@ -325,7 +323,7 @@ export default function GamePlayersScreen() {
             <Dialog.Icon icon="alert-circle-outline" />
             <Dialog.Title>Remove from game</Dialog.Title>
             <Dialog.Content><Text variant="bodyMedium">{sheet.message}</Text></Dialog.Content>
-            <Dialog.Actions><Button mode="contained" onPress={() => setSheet(null)}>Got it</Button></Dialog.Actions>
+            <Dialog.Actions><Button mode="contained" onPress={() => setSheet(null)}>OK</Button></Dialog.Actions>
           </Dialog>
         ) : null}
 
@@ -333,7 +331,7 @@ export default function GamePlayersScreen() {
           <Dialog.Icon icon="alert-circle-outline" />
           <Dialog.Title>Something went wrong</Dialog.Title>
           <Dialog.Content><Text variant="bodyMedium">{failure}</Text></Dialog.Content>
-          <Dialog.Actions><Button mode="contained" onPress={() => setFailure(null)}>Got it</Button></Dialog.Actions>
+          <Dialog.Actions><Button mode="contained" onPress={() => setFailure(null)}>OK</Button></Dialog.Actions>
         </Dialog>
       </Portal>
     </View>

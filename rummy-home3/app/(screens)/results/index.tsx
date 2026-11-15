@@ -70,7 +70,7 @@ function PastResult({ item }: { item: GameResultSummary }) {
   const rows = pastResultRows(item.top);
   const reused = resultReusedNote(item.reusedCount);
   return (
-    <View style={[styles.past, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderLeftColor: colors.secondary }]} testID={`past-result-${item.id}`}>
+    <View style={[styles.past, { backgroundColor: colors.surface, borderColor: colors.outlineVariant, borderLeftColor: colors.primary }]} testID={`past-result-${item.id}`}>
       <TouchableRipple
         onPress={() => router.push(`/(screens)/results/${item.id}`)}
         borderless
@@ -403,7 +403,7 @@ export default function ResultsScreen() {
           <Dialog.Content><Text variant="bodyMedium">{pendingSwitch?.question}</Text></Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setPendingSwitch(null)} accessibilityLabel="Keep the selection">Cancel</Button>
-            <Button mode="contained" onPress={() => pendingSwitch && applySwitch(pendingSwitch)} accessibilityLabel="Deselect and switch">OK</Button>
+            <Button mode="contained" onPress={() => pendingSwitch && applySwitch(pendingSwitch)} accessibilityLabel="Deselect and switch" testID="deselect-confirm">Deselect</Button>
           </Dialog.Actions>
         </Dialog>
         <Dialog visible={Boolean(needsAwards)} onDismiss={() => setNeedsAwards(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>

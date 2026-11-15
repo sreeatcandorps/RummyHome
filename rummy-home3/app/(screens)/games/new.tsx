@@ -36,7 +36,7 @@ import { GameTypeStep } from '@/components/game/GameTypeStep';
 import { CoAdminNudge, coAdminCandidates } from '@/components/game/CoAdminNudge';
 import { emailsService } from '@/services/emails';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
-import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FROM_DATABASE_ACCESSIBILITY, returnButtonLabel, SEARCH_PLACEHOLDER, totalLabel } from '@/utils/addPlayers';
+import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FROM_DATABASE_ACCESSIBILITY, nextLabel, returnButtonLabel, SEARCH_PLACEHOLDER, totalLabel } from '@/utils/addPlayers';
 
 type Pick = DraftPick;
 
@@ -570,7 +570,7 @@ export default function NewGame() {
         <BottomBar style={styles.bottom}>
           {tiles}
           <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} icon="arrow-right" contentStyle={[styles.startContent, styles.nextContent]} labelStyle={styles.startLabel} accessibilityLabel="Next: game type" testID="new-game-next">
-            {seatedCount < 2 ? (seatedCount === 0 ? 'Pick at least two players' : 'Pick at least one more player') : `Next · ${seatedCount} players`}
+            {nextLabel(seatedCount)}
           </Button>
         </BottomBar>
       )}
@@ -580,7 +580,7 @@ export default function NewGame() {
           <Dialog.Icon icon="account-cancel-outline" />
           <Dialog.Title>Can’t remove this player</Dialog.Title>
           <Dialog.Content><Text variant="bodyMedium">{blocked}</Text></Dialog.Content>
-          <Dialog.Actions><Button mode="contained" onPress={() => setBlocked(null)}>Got it</Button></Dialog.Actions>
+          <Dialog.Actions><Button mode="contained" onPress={() => setBlocked(null)}>OK</Button></Dialog.Actions>
         </Dialog>
       </Portal>
     </View>

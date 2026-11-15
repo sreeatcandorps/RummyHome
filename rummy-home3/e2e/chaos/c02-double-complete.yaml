@@ -37,11 +37,11 @@ tags: [chaos]
 - takeScreenshot: c02-completed-once
 - runFlow:
     when:
-      visible: "Back to scorecard"
+      visible: "Complete · .*"
     commands:
-      - tapOn: "Back to scorecard"
+      - back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - tapOn: "Scorecard menu"
 - tapOn:

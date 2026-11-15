@@ -17,7 +17,7 @@ tags: [nightly]
 - tapOn:
     id: "game-card-GAMEF1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 - tapOn: "Scorecard menu"
 - tapOn:
@@ -100,7 +100,7 @@ tags: [nightly]
 - takeScreenshot: 51e-log-seating-20p
 - back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 # Put TU back at seat 20 so game F is unchanged for the other nightly flows.
 - tapOn: "Scorecard menu"

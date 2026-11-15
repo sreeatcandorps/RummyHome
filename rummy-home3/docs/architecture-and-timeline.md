@@ -416,6 +416,13 @@ More detail: `docs/play-store-setup.md`, `docs/release-checklist.md`.
 - The sheet pops up once right after Start (tap-to-place or arrows, no drag dependency) and is in ⋮ for admins on Active
   games. Going rogue's migration is renumbered 045. Smoke 19 and nightly 51 cover it; 044 waits for Sree's OK after CI.
 
+### 2026-11-15 — Design audit 15a built (stacked PR; no migration)
+- Screen-only: the P1/P2 half of `docs/design-audit.md` (A01 A08 A11 A03 A05 A02 A06 A10) plus the three Help-spec items
+  Q11.12 / Q11.14 / Q11.18. New shared pieces: `components/ui/ActionBar.tsx` (the one bottom bar), `utils/formatWhen.ts`
+  (the one date format), `screenTitle()` ("Screen · S1", centred everywhere). "Back to scorecard" bar buttons are gone;
+  the header arrow is the way back (Add round gained one). Flows match `"Scorecard( · .*)?"`; `tests/design-audit-pr15a.test.ts`
+  pins it. 15b (share sheet, SearchField, dialogs, Tag/Chip, Toast, tokens test) follows as its own stacked PR.
+
 ---
 
 ## Maintenance rule for agents

@@ -179,7 +179,7 @@ test('design: Add round — selected cell yellow, saved win light green with a g
   assert.match(keypad, /borderBottomColor: canSave \? colors\.primaryEdge/);
   assert.match(keypad, /saveEdge: \{\s*borderBottomWidth: BUTTON_EDGE/);
   const entry = src('app/(screens)/score-entry.tsx');
-  assert.match(entry, /gameBadge, \{ backgroundColor: colors\.tertiaryContainer \}/);
+  assert.match(entry, /gameBadge, \{ backgroundColor: colors\.secondaryContainer \}/, 'A11: the game badge is the game yellow, not info blue');
   assert.ok(!/SeatAvatar name=\{scorerName\} size=\{3\d\} color=\{colors\.primary\}/.test(entry), 'the scorer avatar is a seat colour');
 });
 

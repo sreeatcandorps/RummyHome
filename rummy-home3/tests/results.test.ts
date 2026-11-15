@@ -226,7 +226,7 @@ test('the full details carry the scores, the band table, the legend, the games b
   assert.equal(details.games[0].creator, 'Ada');
   assert.deepEqual(details.games[0].admins, ['Bea']);
   assert.equal(details.games[0].start.time, clockOf('2026-10-28T15:00:00.000Z'));
-  assert.match(details.games[0].start.date, /^\w+day, October 28$/);
+  assert.match(details.games[0].start.date, /^\w{3}, Oct 28$/);
   const html = resultsDetailsHtml(details);
   assert.match(html, /EZ Score: Rummy/);
   assert.match(html, /Saved Wed, Oct 28 · 6:40 PM/);
@@ -239,7 +239,7 @@ test('the full details carry the scores, the band table, the legend, the games b
   assert.match(html, /class="box n2 head"/);
   assert.equal((html.match(/class="box n2"/g) ?? []).length, 2, 'one two-game band per player row');
   assert.match(html, /Games in this result/);
-  assert.match(html, /<span class="when"><b>[^<]+<\/b> \w+day, October 28<\/span>/, 'time bold, then the date');
+  assert.match(html, /<span class="when">\w{3}, Oct 28 · <b>[^<]+<\/b><\/span>/, 'the date, then the time in bold (A06)');
   assert.match(html, /<i class="gid">Game ID ALPHA<\/i>/, 'the game id is last and italic');
   assert.match(html, /Creator Ada · Admins Bea/);
   assert.match(html, /<table class="rb n2">/);

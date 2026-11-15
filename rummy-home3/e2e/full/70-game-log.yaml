@@ -9,7 +9,7 @@ tags: [nightly]
 - tapOn:
     id: "game-card-GAMEE1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertVisible: "Round 2"
 - tapOn: "Add round"

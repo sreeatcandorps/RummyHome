@@ -17,12 +17,12 @@ export function GamesInResult({ games }: { games: GameInfo[] }) {
         return (
           <View key={info.id} style={[styles.game, { borderBottomColor: colors.outlineVariant }]} testID={`result-game-${info.label}`}>
             <View style={styles.firstLine}>
-              <View style={[styles.chip, { backgroundColor: colors.primary }]}>
-                <Text style={[styles.chipText, { color: colors.onPrimary }]}>{info.label}</Text>
+              <View style={[styles.chip, { backgroundColor: colors.secondaryContainer }]}>
+                <Text style={[styles.chipText, { color: colors.onSecondaryContainer }]}>{info.label}</Text>
               </View>
               <Text variant="bodyLarge" style={{ color: colors.onSurface, flexShrink: 1 }}>
+                {info.start.date ? `${info.start.date} · ` : ''}
                 <Text variant="bodyLarge" style={styles.time}>{info.start.time}</Text>
-                {info.start.date ? ` ${info.start.date}` : ''}
               </Text>
             </View>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>

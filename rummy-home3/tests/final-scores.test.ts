@@ -18,8 +18,8 @@ const scores = {
   c: [10, -10, 20, 0, 30, -90, 10],
 };
 
-test('heading and footer: "Final scores · Game S3", "Game S3" footer, never the id, never the word Results', () => {
-  assert.equal(finalScoresHeading(game), 'Final scores · Game S3');
+test('heading and footer: "Final scores · S3" (A02), "Game S3" footer, never the id, never the word Results', () => {
+  assert.equal(finalScoresHeading(game), 'Final scores · S3');
   assert.equal(finalScoresHeading({ gameNumber: null }), 'Final scores');
   assert.equal(finalScoresFooter(game), 'Game S3');
   assert.equal(finalScoresFooter({ ...game, gameLabel: 'P3', gameType: 'pool' }), 'Game P3');
@@ -78,13 +78,13 @@ test('single-game share never says Results; the scorecard menu says Share final 
   assert.doesNotMatch(scorecard, /title="Share results"/);
   const page = readFileSync(path.join(process.cwd(), 'app/(screens)/games/final-scores.tsx'), 'utf8');
   assert.doesNotMatch(page, />\s*Share results\s*</i);
-  assert.match(page, /accessibilityLabel="Share final scores"/, 'the image button keeps its name (Maestro 05 waits for it)');
-  assert.match(page, /accessibilityLabel="Share full details"/, 'the PDF button is "Share full details" (10.11)');
+  assert.match(page, /label: 'Share final scores'/, 'the image button keeps its name (Maestro 05 waits for it)');
+  assert.match(page, /label: 'Share full details'/, 'the PDF button is "Share full details" (10.11)');
   assert.doesNotMatch(page, />Back<\/Button>/, 'the header arrow is the only Back');
   assert.match(page, /shareFinalScoresPdf\(sheet\)/);
   assert.match(page, /<ShareCardView card=\{sheet\.card\} \/>/, 'the standings card is previewed on screen');
   assert.match(page, /<OffscreenShareCard card=\{sheet\.card\} cardRef=\{capture\.ref\} onHeight=\{capture\.onHeight\} \/>/, 'and captured from the fixed-width off-screen copy');
-  assert.match(page, /title: sheet \? sheet\.heading : 'Final scores'/, 'the screen title is "Final scores · Game S10"');
+  assert.match(page, /title: sheet \? sheet\.heading : 'Final scores'/, 'the screen title is "Final scores · S10"');
   assert.match(page, /\[styles\.bold, \{ color: colors\.negative \}\]/, 'a non-zero totals line reads red');
 });
 
@@ -92,7 +92,7 @@ test('PR 8 part B: the single-game picture is the standings card; the rounds com
   const many = Array.from({ length: 7 }, (_, index) => ({ id: `p${index}`, name: `Player ${index + 1}`, playerNo: index + 1 }));
   const manyScores = Object.fromEntries(many.map((player, index) => [player.id, [index === 0 ? 60 : -10, index === 6 ? 60 : -10]]));
   const sheet = buildFinalScoresSheet({ game, players: many, scores: manyScores });
-  assert.equal(sheet.card.title, 'Final scores · Game S3');
+  assert.equal(sheet.card.title, 'Final scores · S3');
   assert.equal(sheet.card.tone, 'game', 'a game share is marigold, never the results green');
   assert.equal(sheet.card.positive.length, 2, 'two players finished up');
   assert.equal(sheet.card.positive[0].medal, 1, 'gold medal on the top total');

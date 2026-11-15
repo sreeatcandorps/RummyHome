@@ -13,6 +13,7 @@ import { pointsGameMultiplier } from '@/utils/multiplier';
 type GameListItemProps = {
   game: Game;
   onPress: () => void;
+  /** A11: kept for callers; the game square is yellow on every list, status lives in the tag. */
   selected?: boolean;
   /** When given, the card says what the game is to this person: Creator, Admin, Player or View only. */
   viewerId?: string | null;
@@ -24,7 +25,7 @@ type GameListItemProps = {
   lockedNote?: string;
 };
 
-export function GameListItem({ game, onPress, selected = false, viewerId, checked, locked = false, lockedNote }: GameListItemProps) {
+export function GameListItem({ game, onPress, viewerId, checked, locked = false, lockedNote }: GameListItemProps) {
   const theme = useAppTheme();
   const tint = gameTypeTint(game.gameType, theme.gameTypes);
   const dateLabel = formatGameDateTime(game.date);
@@ -44,7 +45,8 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
     <View
       style={[
         styles.card,
-        { backgroundColor: on ? theme.colors.primaryContainer : theme.colors.surface, borderColor: on ? theme.colors.primary : theme.colors.outlineVariant },
+        // A01: a picked game is game-yellow (results are green); the ON state shows in the rule and the checkbox.
+        { backgroundColor: on ? theme.colors.secondaryContainer : theme.colors.surface, borderColor: on ? theme.colors.secondary : theme.colors.outlineVariant },
         locked && styles.locked,
       ]}
     >
@@ -59,17 +61,17 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
       >
         <View style={styles.row}>
           {gNumber ? (
-            <View style={[styles.numberBadge, { backgroundColor: selected ? theme.colors.primary : tint.container }]}>
-              <Text style={[styles.numberText, { color: selected ? theme.colors.onPrimary : tint.on }]}>
+            <View style={[styles.numberBadge, { backgroundColor: tint.container }]}>
+              <Text style={[styles.numberText, { color: tint.on }]}>
                 {gNumber}
               </Text>
             </View>
           ) : (
-            <View style={[styles.typeIcon, { backgroundColor: selected ? theme.colors.primary : tint.container }]}>
+            <View style={[styles.typeIcon, { backgroundColor: tint.container }]}>
               <Icon
-                source={selected ? 'check' : game.gameType === 'pool' ? 'trophy-outline' : 'numeric'}
+                source={game.gameType === 'pool' ? 'trophy-outline' : 'numeric'}
                 size={22}
-                color={selected ? theme.colors.onPrimary : tint.on}
+                color={tint.on}
               />
             </View>
           )}
@@ -113,7 +115,7 @@ export function GameListItem({ game, onPress, selected = false, viewerId, checke
           ) : locked ? (
             <Icon source="lock-outline" size={22} color={theme.colors.onSurfaceVariant} />
           ) : pickable ? (
-            <Icon source={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={on ? theme.colors.primary : theme.colors.onSurfaceVariant} />
+            <Icon source={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={on ? theme.colors.primary : theme.colors.onSurfaceVariant} testID={on ? `game-card-checked-${game.shareCode ?? game.id}` : undefined} />
           ) : (
             <Icon source="chevron-right" size={22} color={theme.colors.onSurfaceVariant} />
           )}

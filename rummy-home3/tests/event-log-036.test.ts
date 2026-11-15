@@ -128,7 +128,7 @@ test('changed note: one line, same words on the page, the picture, the PDF and t
   assert.equal(changedNoteLine(null), null);
   assert.equal(changedNoteLine({ summary: '', actorName: 'Sree Test', at: '2026-11-13T22:31:00' }), null);
   const line = changedNoteLine({ summary: 'Round 3 of S1 edited · Totals changed', actorName: 'Sree Test', at: '2026-11-13T22:31:00', count: 1 });
-  assert.ok(line?.startsWith(`${CHANGED_AFTER_SHARING}: Round 3 of S1 edited · Totals changed · Sree Test · Nov 13, `), line ?? undefined);
+  assert.ok(line?.startsWith(`${CHANGED_AFTER_SHARING}: Round 3 of S1 edited · Totals changed · Sree Test · Fri, Nov 13 · `), line ?? undefined);
   assert.doesNotMatch(line ?? '', /earlier/);
   const many = changedNoteLine({ summary: 'Round 4 of S1 undone · Totals changed', actorName: 'Sree Test', at: '2026-11-13T22:31:00', count: 3 });
   assert.match(many ?? '', /\(\+2 earlier\)$/);

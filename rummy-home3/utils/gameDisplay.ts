@@ -3,24 +3,13 @@ import { Game } from '@/types/game';
 import { gameTypeColors } from '@/constants/theme';
 import { isLocalToday, isWithinLast24Hours } from '@/utils/localDay';
 
+import { formatWhen } from '@/utils/formatWhen';
+
 export { isLocalToday, isWithinLast24Hours };
 
-/** "Mon, Jul 27 · 6:27 PM" — the primary way players recognise a game. */
+/** "Mon, Jul 27 · 6:27 PM" — the primary way players recognise a game (A06: the one `formatWhen`). */
 export function formatGameDateTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Unknown date';
-
-  const day = date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-  const time = date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-
-  return `${day} · ${time}`;
+  return formatWhen(value);
 }
 
 /** Short, human-shareable identifier. Falls back to the tail of the uuid. */

@@ -139,7 +139,7 @@ test('10.11 colour rule: the game share (card, PDF) carries no results green; re
   const scores = Object.fromEntries(players.map((player, index) => [player.id, [index === 0 ? 130 : -10, 0, index === 13 ? 40 : 0]]));
   const sheet = buildFinalScoresSheet({ game, players, scores });
   assert.equal(sheet.card.tone, 'game');
-  assert.equal(sheet.card.title, 'Final scores · Game S10');
+  assert.equal(sheet.card.title, 'Final scores · S10');
   assert.equal(sheet.card.positive.length + sheet.card.negative.length, 14, 'never cut');
   assert.equal(sheet.card.layout, 'balanced', '13 negatives pass ten a side');
   const html = roundsPdfHtml({ heading: sheet.heading, lines: [], table: sheet.table, footer: sheet.footer });

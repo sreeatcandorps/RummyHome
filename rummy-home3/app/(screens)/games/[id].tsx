@@ -1,4 +1,4 @@
-import { gameLabelOf, gameTitle } from '@/utils/gameLabel';
+import { gameLabelOf, screenTitle } from '@/utils/gameLabel';
 import { dealerForRound, nextDealer, rotationStarts } from '@/utils/dealerRotation';
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
@@ -40,7 +40,7 @@ import { SeatingSheet } from '@/components/game/SeatingSheet';
 import { canChangeSeating, SEATING_MENU_ITEM, shouldPromptSeating } from '@/utils/seating';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
 import { playersChipLabel } from '@/utils/scorecardLayout';
-import { rulesFromGame } from '@/utils/gameSettings';
+import { gameSettingsMenuTitle, rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame } from '@/utils/gameStatus';
 import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
 import { PoolAwardsCard } from '@/components/game/PoolAwardsCard';
@@ -316,7 +316,7 @@ export default function GameScreen() {
   if (game?.deletedAt) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
-        <Stack.Screen options={{ headerShown: true, title: gameTitle(game, 'Scorecard') }} />
+        <Stack.Screen options={{ headerShown: true, title: screenTitle('Scorecard', game) }} />
         <EmptyState
           icon="delete-outline"
           title={GAME_DELETED_TITLE}
@@ -328,7 +328,7 @@ export default function GameScreen() {
           <Dialog visible={!!actionError} onDismiss={() => setActionError(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
             <Dialog.Title style={styles.dialogTitle}>Something went wrong</Dialog.Title>
             <Dialog.Content><Text variant="bodyMedium" style={styles.dialogBody}>{actionError}</Text></Dialog.Content>
-            <Dialog.Actions style={styles.dialogActions}><Button mode="contained" onPress={() => setActionError(null)}>Got it</Button></Dialog.Actions>
+            <Dialog.Actions style={styles.dialogActions}><Button mode="contained" onPress={() => setActionError(null)}>OK</Button></Dialog.Actions>
           </Dialog>
           <Snackbar visible={Boolean(linkNote)} onDismiss={() => setLinkNote(null)} duration={4000}>{linkNote ?? ''}</Snackbar>
         </Portal>
@@ -547,8 +547,7 @@ export default function GameScreen() {
       <Stack.Screen
         options={{
           headerShown: true,
-          title: 'Scorecard',
-          headerTitleAlign: 'left',
+          title: screenTitle('Scorecard', game),
           headerStyle: { backgroundColor: colors.background },
           headerRight: () => (
             <View style={styles.headerActions}>
@@ -559,7 +558,7 @@ export default function GameScreen() {
                 onDismiss={() => setMenuOpen(false)}
                 anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu"> </Button>}
               >
-                <Menu.Item leadingIcon="cog-outline" onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title="Game settings" />
+                <Menu.Item leadingIcon={pool && maxRounds > 0 ? 'lock-outline' : 'cog-outline'} onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title={gameSettingsMenuTitle(pool, maxRounds)} testID="game-menu-settings" />
                 <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title={PLAYERS_ADMINS_TITLE} />
                 {canChangeSeating(game, canScore) ? (
                   <Menu.Item leadingIcon="seat-outline" title={SEATING_MENU_ITEM} onPress={() => { setMenuOpen(false); setSeating('menu'); }} testID="game-menu-seating" />
@@ -728,7 +727,7 @@ export default function GameScreen() {
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
             <Button mode="contained" onPress={() => setActionError(null)} contentStyle={styles.dialogButtonContent}>
-              Got it
+              OK
             </Button>
           </Dialog.Actions>
         </Dialog>

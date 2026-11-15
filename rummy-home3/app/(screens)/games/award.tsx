@@ -8,29 +8,16 @@ import { HELP } from '@/constants/help';
 import { useGameRoster } from '@/hooks/useGameRoster';
 import { useLayout } from '@/hooks/useLayout';
 import { gamesService } from '@/services/games';
-import { BottomBar } from '@/components/ui/BottomBar';
+import { ActionBar } from '@/components/ui/ActionBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-import { gameNumberLabel } from '@/utils/gameDisplay';
 import { DEFAULT_POOL_ENTRY, DEFAULT_POOL_VALUES, isPoolGame, poolLimitOf, poolStandings } from '@/utils/pool';
-import {
-  AWARD_PRESETS,
-  AwardPreset,
-  awardsPayload,
-  buildAwardSheet,
-  getsFromAwards,
-  givenOutText,
-  NOT_VIABLE_TEXT,
-  presetGets,
-  saveAnywayText,
-  signedPoints,
-  viablePresets,
-  winnerGetsMost,
-} from '@/utils/poolAwards';
+import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsPayload, buildAwardSheet, getsFromAwards, givenOutText, presetGets, sameAwards, saveAnywayText, signedPoints, viablePresets, winnerGetsMost } from '@/utils/poolAwards';
 import { seatLabels } from '@/utils/initials';
+import { screenTitle } from '@/utils/gameLabel';
 
 /**
  * Awards for a Completed pool (D8, D9): tap a category to preview every player's award, edit
@@ -146,8 +133,7 @@ export default function AwardScreen() {
     );
   }
 
-  const number = gameNumberLabel(game);
-  const title = number ? `Awards · ${number}` : 'Awards';
+  const title = screenTitle('Awards', game);
   const locked = Boolean(game.closedAt);
   const blocked = !game.isComplete
     ? 'Complete the pool first.'
@@ -274,23 +260,18 @@ export default function AwardScreen() {
         </Text>
       </ScrollView>
 
-      <BottomBar>
-        <Button mode="outlined" onPress={() => router.back()} disabled={saving} style={styles.secondary}>
-          Cancel
-        </Button>
-        <Button
-          mode="contained"
-          icon="trophy-outline"
-          onPress={() => save(false)}
-          disabled={Boolean(blocked) || saving}
-          loading={saving}
-          style={styles.flex}
-          accessibilityLabel="Save awards"
-          testID="award-save"
-        >
-          {game.awardedAt ? 'Save changes' : 'Save awards'}
-        </Button>
-      </BottomBar>
+      {/* Q11.14: once the awards are saved and unchanged, the last step is Add to Results (Complete → Award → Result). */}
+      {game.awardedAt && sameAwards(sheet, game.prizeShares) ? (
+        <ActionBar
+          secondary={{ label: 'Cancel', onPress: () => router.back(), disabled: saving, testID: 'award-cancel' }}
+          primary={{ label: 'Add to Results', icon: 'format-list-numbered', onPress: () => router.push('/(screens)/results'), accessibilityLabel: 'Add to Results', testID: 'award-add-to-results' }}
+        />
+      ) : (
+        <ActionBar
+          secondary={{ label: 'Cancel', onPress: () => router.back(), disabled: saving, testID: 'award-cancel' }}
+          primary={{ label: game.awardedAt ? 'Save changes' : 'Save awards', icon: 'trophy-outline', onPress: () => save(false), disabled: Boolean(blocked) || saving, loading: saving, accessibilityLabel: 'Save awards', testID: 'award-save' }}
+        />
+      )}
 
       <Portal>
         <Dialog visible={Boolean(confirm)} onDismiss={() => saving || setConfirm(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
@@ -316,7 +297,7 @@ export default function AwardScreen() {
           <Dialog.Icon icon="alert-circle-outline" />
           <Dialog.Title>Could not save awards</Dialog.Title>
           <Dialog.Content><Text variant="bodyMedium">{failure}</Text></Dialog.Content>
-          <Dialog.Actions><Button mode="contained" onPress={() => setFailure(null)}>Got it</Button></Dialog.Actions>
+          <Dialog.Actions><Button mode="contained" onPress={() => setFailure(null)}>OK</Button></Dialog.Actions>
         </Dialog>
       </Portal>
     </View>
@@ -344,8 +325,7 @@ const styles = StyleSheet.create({
   numWide: { width: 64, textAlign: 'right', fontWeight: '600' },
   getsInput: { height: 36, backgroundColor: 'transparent', textAlign: 'right' },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
-  flex: { flex: 1 },
-  secondary: { flex: 0.7 },
   dialog: { borderRadius: radius.xl },
+  flex: { flex: 1 },
   dialogTitle: { textAlign: 'center', fontWeight: '700' },
 });

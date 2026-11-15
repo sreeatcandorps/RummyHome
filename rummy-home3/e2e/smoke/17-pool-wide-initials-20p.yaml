@@ -16,7 +16,7 @@ tags: [smoke]
 - tapOn:
     id: "game-card-GAMEW1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 - assertVisible: "20 players"
 # A completed pool shows the Awards card and Standings first; the round grid sits below them.
@@ -47,6 +47,6 @@ tags: [smoke]
 - takeScreenshot: 17-pool-wide-initials-awards
 - tapOn: "Cancel"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - back

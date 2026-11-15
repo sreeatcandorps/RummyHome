@@ -62,6 +62,7 @@ import { isRoundConflict, roundConflictMessage } from '../../utils/roundConflict
 import { rummyShareNeedsConfirm } from '../../utils/rummyDistribution';
 import { overMaxConfirm, poolOverFullConfirm, rummyShareConfirm } from '../../utils/roundConfirms';
 import { afterRound, AfterRound, isPoolGame, overFullCount, playersIn, poolTotal, seatOf } from '../../utils/pool';
+import { gameSettingsMenuTitle } from '@/utils/gameSettings';
 
 type Participant = {
   id: string;
@@ -371,14 +372,16 @@ export default function ScoreEntryScreen() {
     <View
       style={[
         styles.header,
-        { paddingTop: insets.top + spacing.xs, paddingLeft: gutterLeft, paddingRight: Math.max(insets.right, spacing.xs) },
+        { paddingTop: insets.top + spacing.xs, paddingLeft: Math.max(insets.left, spacing.xs), paddingRight: Math.max(insets.right, spacing.xs) },
       ]}
     >
+      {/* A05: the page returns through a header arrow, not a menu item. */}
+      <IconButton icon="arrow-left" onPress={closeScreen} accessibilityLabel="Back to scorecard" style={styles.noMargin} testID="score-entry-back" />
       <View style={styles.headerText}>
         <View style={styles.titleRow}>
           {gameNumberLabel(game) ? (
-            <View style={[styles.gameBadge, { backgroundColor: colors.tertiaryContainer }]}>
-              <Text variant="labelLarge" style={[styles.gameBadgeText, { color: colors.onTertiaryContainer }]}>
+            <View style={[styles.gameBadge, { backgroundColor: colors.secondaryContainer }]}>
+              <Text variant="labelLarge" style={[styles.gameBadgeText, { color: colors.onSecondaryContainer }]}>
                 {gameNumberLabel(game)}
               </Text>
             </View>
@@ -409,7 +412,7 @@ export default function ScoreEntryScreen() {
           />
         }
       >
-        <Menu.Item leadingIcon="cog-outline" title="Game settings" onPress={() => { setMenuOpen(false); setSettingsOpen(true); }} />
+        <Menu.Item leadingIcon={pool && nextRoundNumber(game) > 1 ? 'lock-outline' : 'cog-outline'} title={gameSettingsMenuTitle(pool, nextRoundNumber(game) - 1)} onPress={() => { setMenuOpen(false); setSettingsOpen(true); }} />
         <Menu.Item leadingIcon="share-variant" title="Share live scorecard" onPress={shareLive} />
         <Menu.Item
           leadingIcon="eraser-variant"
@@ -422,7 +425,6 @@ export default function ScoreEntryScreen() {
           title="Help"
           onPress={() => { setMenuOpen(false); setNotice({ title: 'Add round', body: pool ? HELP.scoreEntryPool : HELP.scoreEntry, icon: 'help-circle-outline' }); }}
         />
-        <Menu.Item leadingIcon="arrow-left" title="Back to scorecard" onPress={() => { setMenuOpen(false); closeScreen(); }} />
       </Menu>
     </View>
   );
@@ -783,7 +785,7 @@ export default function ScoreEntryScreen() {
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
             <Button mode="contained" onPress={dismissNotice} contentStyle={styles.dialogButtonContent}>
-              Got it
+              OK
             </Button>
           </Dialog.Actions>
         </Dialog>

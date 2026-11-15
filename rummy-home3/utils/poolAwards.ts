@@ -200,3 +200,16 @@ export function getsFromAwards(awards: Record<string, number>, standings: PoolSt
 }
 
 export const signedPoints = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+
+/**
+ * Whether the sheet still shows the saved awards (design audit Q11.14): on an awarded pool with nothing
+ * changed the Awards screen ends with "Add to Results" instead of "Save changes", so the chain
+ * Complete → Award → Result is visible from the last step.
+ */
+export function sameAwards(sheet: AwardSheet, saved: Record<string, number> | null | undefined): boolean {
+  if (!saved) return false;
+  const current = awardsPayload(sheet).awards;
+  const ids = new Set([...Object.keys(current), ...Object.keys(saved)]);
+  for (const id of ids) if ((current[id] ?? 0) !== (saved[id] ?? 0)) return false;
+  return true;
+}

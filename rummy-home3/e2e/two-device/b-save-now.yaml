@@ -10,14 +10,9 @@ appId: com.mindweavetech.rummyhome
 - takeScreenshot: t2-after-save-${WHO}
 - runFlow:
     when:
-      visible: "Back to scorecard"
+      visible: "Complete · .*"
     commands:
-      - tapOn: "Back to scorecard"
-- runFlow:
-    when:
-      visible: "Not yet"
-    commands:
-      - tapOn: "Not yet"
+      - back
 - runFlow:
     when:
       visible: "OK"
@@ -29,6 +24,6 @@ appId: com.mindweavetech.rummyhome
     commands:
       - back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 - assertNotVisible: "Something went wrong"

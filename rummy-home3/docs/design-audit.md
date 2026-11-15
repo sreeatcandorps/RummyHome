@@ -1,8 +1,30 @@
-# Design consistency audit (PR 15, suggestions only; nothing built)
+# Design consistency audit (PR 15)
 
-Status: **audit for Sree's review.** No app code. Before/after mockups in [`design-audit/`](design-audit/) — "before" is a
-crop of a real emulator screenshot (CI smoke run of PR 13's branch, Nov 14), "after" the proposed version. Items are
-ranked by impact. Section 4 answers Sree's earlier question about timing / a separate design PR.
+Status: **15a built** (Nov 15, stacked on the Seating order build; no migration) — A01, A08, A11, A03, A05, A02, A06, A10
+and the three Help-spec items Q11.12 / Q11.14 / Q11.18, all as recommended (Sree approved Q15.1–Q15.11; nothing under
+Q15.12). **15b** (A04, A07, A09, A12, A13, A15, A16, A17, A19, A20, A21) follows as its own stacked PR. Before/after
+mockups in [`design-audit/`](design-audit/) — "before" is a crop of a real emulator screenshot (CI smoke run of PR 13's
+branch, Nov 14), "after" the proposed version. Items are ranked by impact. Section 4 explains the 15a / 15b split.
+
+## 0a. What 15a built (where to look)
+
+| Item | Built as |
+| --- | --- |
+| A01 selected games green | `GameListItem`: a picked card fills `secondaryContainer` with a `secondary` ring (the game yellow); the check mark keeps the brand green; `game-card-checked-<code>` testID |
+| A11 number square changes colour | the number square and type icon keep the game-type tint whatever the status or selection; the Add round badge is `secondaryContainer` too |
+| A08 bottom bars | `components/ui/ActionBar.tsx` (≤ 2 actions, primary filled right, secondary outlined left, a disabled primary says why — "Next · pick 2+ players"); Complete, Final scores and Awards use it; `BottomBar` gained `insetBottom` and the My players tiles sit in their own bar above the tab bar (`my-players-actions`) |
+| A03 ID formats | `#42` everywhere a player is listed (`playerIdBadge` in both helpers); "Player ID" only where it is explained |
+| A05 dismiss wording | Cancel on every confirm; the verb repeats the title ("Deselect games?" → Deselect); notices say OK (no more "Got it"); info sheets Close; "Not now" only on Give awards first (the other button leaves); the "Back to scorecard" bar buttons on Complete, Players · Admins and the Add round ⋮ are gone — the header arrow (Add round now has one) is the way back |
+| A02 titles | `screenTitle('Scorecard', game)` → "Scorecard · S1", centred (no `headerTitleAlign` anywhere); Complete · S1, Final scores · S1, Awards · P1, Log · S1, Players · Admins · S1 |
+| A06 dates | `utils/formatWhen.ts` — "Sat, Nov 14 · 7:49 PM", the year only when not this year; `formatGameDateTime`, `finalScoresSheet.formatWhen`, `formatLogWhen`, `startParts` and the link-request expiry all resolve to it; Games in this result reads date · time |
+| A10 headings | the saved result page's SCORES / GAME BY GAME / GAMES IN THIS RESULT are sentence case `titleSmall` |
+| Q11.12 | ⋮ "Game settings · locked" (lock icon) once a pool has a saved round, on the scorecard and Add round |
+| Q11.14 | Awards: saved and unchanged → Cancel + **Add to Results** (opens the Results picker); otherwise Cancel + Save |
+| Q11.18 | Add new players: a header Back arrow that behaves like Done; swipe / hardware back route through Done too |
+
+Tests: `tests/design-audit-pr15a.test.ts` (DC15-2, DC15-3, DC15-4 and source checks for the rest); `smoke/08` asserts the
+My players bar is on screen (DC15-5). Flows now match `"Scorecard( · .*)?"`, `"Final scores · .*"`, and use `- back`
+where they tapped "Back to scorecard". DC15-1 (the token grep) comes with 15b.
 
 ## 0. Method
 

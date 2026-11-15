@@ -50,7 +50,7 @@ tags: [smoke]
     timeout: 15000
 - tapOn: "Skip"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 # PR 21: a fresh game asks who sits where, once; the pool subline counts the seats. Keep this order closes it.
 - extendedWaitUntil:
@@ -110,7 +110,7 @@ tags: [smoke]
 - tapOn:
     id: "after-done"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertVisible: "OUT R1"
 - takeScreenshot: 16i-pool-scorecard-out
@@ -196,9 +196,9 @@ tags: [smoke]
     timeout: 20000
 - assertVisible: "Add to Results"
 - takeScreenshot: 16r-pool-awarded-complete-page
-- tapOn: "Back to scorecard"
+- back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertVisible: "Awarded"
 - assertVisible:

@@ -13,6 +13,6 @@ appId: com.mindweavetech.rummyhome
 - runFlow: ../lib/fill-round-bp1.yaml
 - tapOn: "Save round"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 20000
 - takeScreenshot: t1-b-added-round

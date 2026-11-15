@@ -8,18 +8,19 @@ import { HELP } from '@/constants/help';
 import { useGameRoster } from '@/hooks/useGameRoster';
 import { useLayout } from '@/hooks/useLayout';
 import { gamesService } from '@/services/games';
-import { BottomBar } from '@/components/ui/BottomBar';
+import { ActionBar } from '@/components/ui/ActionBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
-import { formatGameDateTime, gameNumberLabel } from '@/utils/gameDisplay';
+import { formatGameDateTime } from '@/utils/gameDisplay';
 import { formatPoints } from '@/utils/results';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { completionCheck, poolCompletionCheck, sortFinalScores } from '@/utils/completeGame';
 import { gameAdminLines } from '@/utils/gameAdmins';
 import { pointsGameMultiplier } from '@/utils/multiplier';
 import { GIVE_AWARDS_FIRST, isOut, isPoolGame, playersIn, playersOut, poolTotal, seatOf } from '@/utils/pool';
+import { screenTitle } from '@/utils/gameLabel';
 
 /**
  * Complete game as its own page: final totals, a balance check, one filled
@@ -93,8 +94,7 @@ export default function CompleteGameScreen() {
     );
   }
 
-  const number = gameNumberLabel(game);
-  const title = number ? `Complete ${number}` : 'Complete game';
+  const title = screenTitle('Complete', game);
   const done = game.isComplete;
   const blocked = !canScore ? 'Only a game admin can complete a game.' : check.problem;
 
@@ -184,23 +184,12 @@ export default function CompleteGameScreen() {
         ) : null}
       </ScrollView>
 
-      <BottomBar>
-        <Button mode="outlined" onPress={backToScorecard} disabled={completing} style={done ? styles.flex : styles.secondary}>
-          {done ? 'Back to scorecard' : 'Not yet'}
-        </Button>
-        {!done ? (
-          <Button
-            mode="contained"
-            icon="flag-checkered"
-            onPress={() => setConfirmOpen(true)}
-            disabled={Boolean(blocked) || completing}
-            style={styles.flex}
-            accessibilityLabel="Complete game"
-          >
-            Complete game
-          </Button>
-        ) : null}
-      </BottomBar>
+      {!done ? (
+        <ActionBar
+          secondary={{ label: 'Cancel', onPress: backToScorecard, disabled: completing, testID: 'complete-cancel' }}
+          primary={{ label: 'Complete game', icon: 'flag-checkered', onPress: () => setConfirmOpen(true), disabled: Boolean(blocked) || completing, accessibilityLabel: 'Complete game', testID: 'complete-game' }}
+        />
+      ) : null}
 
       <Portal>
         <Dialog visible={confirmOpen} onDismiss={() => completing || setConfirmOpen(false)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
@@ -221,7 +210,7 @@ export default function CompleteGameScreen() {
           <Dialog.Icon icon="alert-circle-outline" />
           <Dialog.Title>Could not complete</Dialog.Title>
           <Dialog.Content><Text variant="bodyMedium">{failure}</Text></Dialog.Content>
-          <Dialog.Actions><Button mode="contained" onPress={() => setFailure(null)}>Got it</Button></Dialog.Actions>
+          <Dialog.Actions><Button mode="contained" onPress={() => setFailure(null)}>OK</Button></Dialog.Actions>
         </Dialog>
       </Portal>
     </View>
@@ -243,7 +232,5 @@ const styles = StyleSheet.create({
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   next: { gap: spacing.sm, marginTop: spacing.sm },
   dialog: { borderRadius: radius.xl },
-  flex: { flex: 1 },
   // The shorter label gives the filled action the room it needs on a narrow phone.
-  secondary: { flex: 0.8 },
 });

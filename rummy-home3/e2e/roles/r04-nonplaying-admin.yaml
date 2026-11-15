@@ -22,5 +22,5 @@ tags: [roles]
 - takeScreenshot: r04-nonplaying-admin-add-round
 - back
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000

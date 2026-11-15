@@ -18,7 +18,7 @@ tags: [nightly]
 - tapOn:
     id: "game-card-GAMEE1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - takeScreenshot: 60c-scorecard-dark
 - tapOn: "Add round"

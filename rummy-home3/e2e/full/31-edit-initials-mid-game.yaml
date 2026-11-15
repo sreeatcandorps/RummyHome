@@ -8,7 +8,7 @@ tags: [nightly]
 - tapOn:
     id: "game-card-GAMEE1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertVisible: "ZZ"
 - tapOn: "Scorecard menu"
@@ -40,7 +40,7 @@ tags: [nightly]
     notVisible: "Initials for Zed Zero"
     timeout: 15000
 - assertVisible: "ZZ2"
-- tapOn: "Back to scorecard"
+- back
 - extendedWaitUntil:
     visible: "Add round"
     timeout: 15000
@@ -64,7 +64,7 @@ tags: [nightly]
 - extendedWaitUntil:
     notVisible: "Initials for Zed Zero"
     timeout: 15000
-- tapOn: "Back to scorecard"
+- back
 - extendedWaitUntil:
     visible: "Add round"
     timeout: 15000

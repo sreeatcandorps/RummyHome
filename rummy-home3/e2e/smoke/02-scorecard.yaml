@@ -11,7 +11,7 @@ tags: [smoke]
 - tapOn:
     id: "game-card-GAMEA1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertVisible: "Points"
 - assertVisible:

@@ -1,5 +1,6 @@
 import { firstAppearanceOrder, initialsById, baseInitials } from '@/utils/playerInitials';
 import { playerIdBadge } from '@/utils/gamePlayers';
+import { formatWhenDay } from '@/utils/formatWhen';
 import { formatPoints, ResultStanding, sheetGameLabel } from '@/utils/results';
 import { digitCount, multiplierLabel, SHARE_ONE_COLUMN_FROM_DIGITS, shortNumber } from '@/utils/multiplier';
 import { SITE_BASE_URL } from '@/utils/siteUrls';
@@ -225,14 +226,12 @@ export function legendText(entry: LegendEntry): string {
   return [entry.initials, entry.playerNo != null ? `#${entry.playerNo}` : null, entry.name].filter(Boolean).join(' ');
 }
 
-/** "7:45 PM" and "Thursday, November 5" (with the year when it is not this year). */
+/** "7:45 PM" and "Thu, Nov 5" (with the year when it is not this year) — the one date format (A06). */
 export function startParts(iso: string | undefined, now: Date = new Date()): { time: string; date: string } {
   if (!iso) return { time: '', date: '' };
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return { time: '', date: '' };
-  const sameYear = date.getFullYear() === now.getFullYear();
-  const day = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
-  return { time: clockOf(iso), date: day };
+  return { time: clockOf(iso), date: formatWhenDay(date, now) };
 }
 
 export type GameInfo = {

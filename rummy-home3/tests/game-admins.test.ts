@@ -79,13 +79,13 @@ test('nov 10: a non-player admin is not counted as a player and appears on the f
   assert.deepEqual(bare.adminLines, [], 'nothing shown when the admins are unknown');
 });
 
-test('nov 10: the menu and page are called Players/Admins; a load failure offers Retry instead of "Game not available"', () => {
-  assert.equal(PLAYERS_ADMINS_TITLE, 'Players/Admins');
+test('nov 10: the menu and page are called Players · Admins (A02); a load failure offers Retry instead of "Game not available"', () => {
+  assert.equal(PLAYERS_ADMINS_TITLE, 'Players · Admins');
   const scorecard = readFileSync(path.join(__dirname, '..', 'app', '(screens)', 'games', '[id].tsx'), 'utf8');
   assert.match(scorecard, /title=\{PLAYERS_ADMINS_TITLE\}/);
   assert.doesNotMatch(scorecard, /title="Players"/);
   const page = readFileSync(path.join(__dirname, '..', 'app', '(screens)', 'games', 'players.tsx'), 'utf8');
-  assert.match(page, /title: PLAYERS_ADMINS_TITLE/);
+  assert.match(page, /title: screenTitle\(PLAYERS_ADMINS_TITLE, game\)/, 'the page title is "Players · Admins · S3" (A02)');
   assert.match(page, /actionLabel="Retry"/);
   assert.match(page, /onAction=\{reload\}/);
   assert.match(page, /addNonPlayerAdmin\(game\.id, target\.id\)/);

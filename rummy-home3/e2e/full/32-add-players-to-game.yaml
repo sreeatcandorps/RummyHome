@@ -12,7 +12,7 @@ tags: [nightly]
 - tapOn:
     id: "game-card-GAMEH1"
 - extendedWaitUntil:
-    visible: "Scorecard"
+    visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertNotVisible: "RK"
 - tapOn: "Scorecard menu"
@@ -102,7 +102,7 @@ tags: [nightly]
 - extendedWaitUntil:
     notVisible: "Confirm remove C D"
     timeout: 15000
-- tapOn: "Back to scorecard"
+- back
 - extendedWaitUntil:
     visible: "Add round"
     timeout: 15000
