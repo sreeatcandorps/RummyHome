@@ -526,6 +526,24 @@ jobs:
           name: test-apk-${{ github.run_id }}
           path: ci/out/apk
 
+      - name: "Realtime probe (is the local Realtime delivering postgres_changes at all?)"
+        if: matrix.suite == 'two-device'
+        working-directory: rummy-home3
+        run: |
+          # Same subscription shape as the app, from the runner. Green here + red T1 on the phones =
+          # the app; red here = the local stack (then the Realtime container log is attached).
+          set -o pipefail
+          eval "$(supabase status -o env | grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=')"
+          export SUPABASE_ANON_KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          echo "::add-mask::$SUPABASE_ANON_KEY"
+          mkdir -p ../ci/out/ui/two-device
+          if node scripts/realtime-probe.mjs 2>&1 | tee ../ci/out/ui/two-device/realtime-probe.txt; then
+            echo "realtime probe green"
+          else
+            echo "::warning title=Realtime probe red::the local Realtime did not deliver a games change to a subscribed client — T1 will say nothing about the app"
+            docker logs "$(docker ps --format '{{.Names}}' | grep -m1 realtime)" 2>&1 | tail -150 > ../ci/out/ui/two-device/realtime-container.log || true
+          fi
+
       - name: Install Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
