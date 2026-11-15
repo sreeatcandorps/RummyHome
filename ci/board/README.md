@@ -11,10 +11,11 @@ The project board ([users/sreeatcandorps/projects/1](https://github.com/users/sr
 | A check red, or still running | Building | Spec | — |
 | Label `waiting-on-sree` added | Waiting on Sree | Waiting on Sree | Waiting on Sree |
 | Label removed | recomputed from the rows above | | |
+| Spec approved by Sree (label `approved`, or Status row `\| Approved \| yes … \|`) | — | **Done** (the build is its own PR) | — |
 | Merged or closed | Done (closed unmerged: Note "Closed without merge") | Done | closed → Done |
 | Draft | Building | Spec | — |
 
-\* a PR is "spec" when it has label `spec` or `docs`, or its title starts "Spec" / "PR N spec", or says "docs only". The board-sync check itself is ignored when judging "green". Not on the board yet → added. Every 2 hours (and on Actions › Board sync › Run workflow) every open PR / issue and every card is reconciled, so anything missed heals itself.
+\* a PR is "spec" when it has label `spec` or `docs`, or its title starts "Spec" / "PR N spec", or says "docs only". The board-sync check itself is ignored when judging "green". A spec PR lands in Waiting on Sree only while he still has questions to answer; once approved (label `approved` or the `| Approved | yes |` row) it is Done. Not on the board yet → added. Every 2 hours (and on Actions › Board sync › Run workflow) every open PR / issue and every card is reconciled, so anything missed heals itself.
 
 Optional **Note** text field (create it on the board if wanted): "In APK v11" / "Not in APK v11", read from the PR body's Status block row `| In [APK vN] … | yes / no |`.
 

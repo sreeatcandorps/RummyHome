@@ -12,6 +12,7 @@ export const STATUS = Object.freeze({
 });
 
 export const WAITING_LABEL = 'waiting-on-sree';
+export const APPROVED_LABEL = 'approved';
 
 const lower = (labels) => (labels ?? []).map((l) => (typeof l === 'string' ? l : l?.name ?? '').toLowerCase());
 
@@ -21,6 +22,15 @@ export function isSpecPr({ title = '', labels = [] } = {}) {
   if (l.includes('spec') || l.includes('docs')) return true;
   const t = title.trim();
   return /^spec\b/i.test(t) || /^PR\s*\d+[a-z]?\s*spec\b/i.test(t) || /\bdocs(\s*\+\s*mockups)?\s*only\b/i.test(t);
+}
+
+/**
+ * Sree has approved this spec and nothing is left for him: label `approved`, or a Status-block row
+ * `| Approved | yes … |` in the PR body (the agent can write the row when it cannot set labels).
+ */
+export function isApproved({ labels = [], body = '' } = {}) {
+  if (lower(labels).includes(APPROVED_LABEL)) return true;
+  return /^\|\s*Approved\s*\|\s*\*{0,2}yes\b/im.test(String(body ?? ''));
 }
 
 /**
@@ -56,15 +66,17 @@ export function checksState(contexts, { ignore = /board[- ]sync/i } = {}) {
  * Where a pull request belongs.
  *   merged or closed            → Done
  *   label waiting-on-sree       → Waiting on Sree
+ *   spec PR approved (label / Status row) → Done — nothing left for Sree; the build lives in its own PR
  *   draft                       → Building (spec PR: Spec)
  *   checks green                → Ready to test (spec PR: Waiting on Sree)
  *   checks red / pending / none → Building (spec PR: Spec)
  */
-export function prStatus({ state = 'OPEN', merged = false, isDraft = false, labels = [], title = '', checks = 'none' } = {}) {
+export function prStatus({ state = 'OPEN', merged = false, isDraft = false, labels = [], title = '', body = '', checks = 'none' } = {}) {
   const s = String(state).toUpperCase();
   if (merged || s === 'MERGED' || s === 'CLOSED') return STATUS.DONE;
   if (lower(labels).includes(WAITING_LABEL)) return STATUS.WAITING;
   const spec = isSpecPr({ title, labels });
+  if (spec && isApproved({ labels, body })) return STATUS.DONE;
   if (isDraft) return spec ? STATUS.SPEC : STATUS.BUILDING;
   if (checks === 'success') return spec ? STATUS.WAITING : STATUS.READY;
   return spec ? STATUS.SPEC : STATUS.BUILDING;

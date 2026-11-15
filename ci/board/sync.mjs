@@ -134,7 +134,7 @@ async function syncPr(project, number) {
   if (!pr) { log(`  PR #${number}: not found`); return; }
   const labels = pr.labels.nodes.map((l) => l.name);
   const checks = checksState(pr.commits.nodes[0]?.commit?.statusCheckRollup?.contexts?.nodes ?? []);
-  const status = prStatus({ state: pr.state, merged: pr.merged, isDraft: pr.isDraft, labels, title: pr.title, checks });
+  const status = prStatus({ state: pr.state, merged: pr.merged, isDraft: pr.isDraft, labels, title: pr.title, body: pr.body, checks });
   const note = noteFor({ state: pr.state, merged: pr.merged, body: pr.body });
   log(`PR #${number} "${pr.title.slice(0, 60)}" · ${pr.state.toLowerCase()}${pr.isDraft ? ' draft' : ''} · checks ${checks} → ${status}`);
   await place(project, 'PR', number, pr.id, status, note);

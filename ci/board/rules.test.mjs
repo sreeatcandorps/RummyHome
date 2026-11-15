@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { checksState, isSpecPr, issueStatus, noteFor, prStatus, STATUS } from './rules.mjs';
+import { checksState, isApproved, isSpecPr, issueStatus, noteFor, prStatus, STATUS } from './rules.mjs';
 
 const run = (name, status, conclusion) => ({ __typename: 'CheckRun', name, status, conclusion });
 const ctx = (context, state) => ({ __typename: 'StatusContext', context, state });
@@ -57,6 +57,23 @@ test('prStatus: spec / docs-only PRs', () => {
   assert.equal(prStatus({ ...spec, checks: 'success', isDraft: true }), STATUS.SPEC);
   assert.equal(prStatus({ ...spec, checks: 'success', state: 'MERGED', merged: true }), STATUS.DONE);
   assert.equal(prStatus({ title: 'PR 23: User flows (docs only)', checks: 'success' }), STATUS.WAITING);
+});
+
+test('approved spec PRs (built elsewhere) are Done, not Waiting on Sree', () => {
+  const spec = { title: 'PR 14 spec: Multiplier — docs only', checks: 'success' };
+  assert.ok(isApproved({ labels: ['approved'] }));
+  assert.ok(isApproved({ labels: [{ name: 'Approved' }] }));
+  assert.ok(isApproved({ body: '## Status\n| | |\n| --- | --- |\n| Approved | yes — built in #49 |\n' }));
+  assert.ok(isApproved({ body: '| Approved | **yes** (Nov 15) |' }));
+  assert.ok(!isApproved({ body: '| Approved | no — Q11 open |' }));
+  assert.ok(!isApproved({ body: 'Approved: yes' }), 'only the Status-block row counts');
+  assert.ok(!isApproved({}));
+  assert.equal(prStatus({ ...spec, labels: ['approved'] }), STATUS.DONE);
+  assert.equal(prStatus({ ...spec, body: '| Approved | yes — built in #49 |' }), STATUS.DONE);
+  assert.equal(prStatus({ ...spec, body: '| Approved | yes |', checks: 'pending' }), STATUS.DONE, 'approval does not wait for checks');
+  assert.equal(prStatus({ ...spec, body: '| Approved | yes |', labels: ['waiting-on-sree'] }), STATUS.WAITING, 'an explicit waiting label still wins');
+  assert.equal(prStatus({ ...spec, body: '| Approved | no |' }), STATUS.WAITING, 'not approved, green → Waiting on Sree');
+  assert.equal(prStatus({ title: 'PR 22: build', checks: 'success', labels: ['approved'] }), STATUS.READY, 'approved means nothing for a build PR');
 });
 
 test('issueStatus', () => {
