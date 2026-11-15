@@ -44,7 +44,7 @@ const INFRA = [/^ci\//, /^\.github\//, /^rummy-home3\/e2e\//, /^rummy-home3\/sup
 export const AREA_FLOWS = [
   { area: 'add-round', match: [/score-entry\.tsx$/, /ScoreKeypad/, /ScoreCell/, /roundEntry/, /rummyDistribution/, /roundConfirms/, /scoreAfter/],
     flows: { full: ['80-add-round-count-warnings'], chaos: ['c01-rapid-save-taps', 'c04-huge-numbers'] } },
-  { area: 'scorecard', match: [/games\/\[id\]\.tsx$/, /components\/game\/Score(Header|Table|Grid|Column|card)/, /scorecardLayout/, /components\/game\/Standings/],
+  { area: 'scorecard', match: [/games\/\[id\]\.tsx$/, /components\/game\/Score(Header|Table|Grid|Column|card)/, /scorecardLayout/, /components\/game\/(Pool)?Standings/],
     flows: { full: ['20-scorecard-20-players-swipe', '21-scorecard-font-scale'], chaos: ['c09-big-scorecard-20x60'], roles: ['r01-player-view-only', 'r04-nonplaying-admin'] } },
   { area: 'save-round', match: [/services\/games\.ts$/, /migrations\/.*save_round/, /migrations\/.*undo/, /utils\/saveRound/],
     flows: { chaos: ['c01-rapid-save-taps', 'c05-offline-save--net-off', 'c06-reconnect-retry', 'c07-kill-mid-save--kill-after', 'c08-after-kill-consistent'] }, twoDevice: true },

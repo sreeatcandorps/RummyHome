@@ -49,7 +49,7 @@ export default function GameScreen() {
   const router = useRouter();
   const theme = useAppTheme();
   const { colors } = theme;
-  const { isShort, insets, gutterLeft, gutterRight } = useLayout();
+  const { isShort, insets, gutterLeft, gutterRight, height: windowHeight } = useLayout();
   // Seed from the last-known copy so returning from Add round shows the new row at once; the fresh load follows.
   const cachedGame = gamesService.peekGame(typeof id === 'string' ? id : null);
   const cachedSeats = gamesService.peekSeats(typeof id === 'string' ? id : null);
@@ -444,7 +444,15 @@ export default function GameScreen() {
           onGiveAwards={() => router.push({ pathname: '/(screens)/games/award', params: { id: game.id } })}
         />
       ) : null}
-      <PoolStandings rows={poolRows} limit={poolLimitOf(game.settings)} compact={isShort} onReenter={game.isComplete ? undefined : reenter} busyId={reentering} />
+      <PoolStandings
+        rows={poolRows}
+        limit={poolLimitOf(game.settings)}
+        compact={isShort}
+        onReenter={game.isComplete ? undefined : reenter}
+        busyId={reentering}
+        // F5: never more than this share of the screen, so the grid above keeps room at 20 players.
+        maxHeight={Math.round(windowHeight * (isShort ? 0.45 : 0.38))}
+      />
     </>
   ) : null;
 

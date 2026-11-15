@@ -473,7 +473,7 @@ test('13.9 scorecard: header shows number / initials / score, OUT struck through
   assert.match(table, /OUT R/);
   const scorecard = src('app/(screens)/games/[id].tsx');
   assert.match(scorecard, /number: player\.playerNo \?\? null/, 'the public player number, no new column');
-  assert.match(scorecard, /<PoolStandings rows=\{poolRows\}/);
+  assert.match(scorecard, /<PoolStandings\s+rows=\{poolRows\}/);
   assert.match(scorecard, /onReenter=\{game\.isComplete \? undefined : reenter\}/);
   assert.match(scorecard, /lockValues=\{pool && maxRounds > 0\}/);
   assert.match(scorecard, /\(pool \? a\.total - b\.total : b\.total - a\.total\)/, 'the leader of a pool is the lowest score still in');

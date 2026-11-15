@@ -32,3 +32,13 @@ test('F2 (chaos c11): a network failure is told apart from being signed out', ()
   const signedOutBlock = home.slice(home.indexOf('title="You\'re signed out"'));
   assert.match(signedOutBlock.slice(0, 200), /message="Sign in to see your games\."/, 'the signed-out screen no longer carries the network error text');
 });
+
+test('F5 (smoke 17): a 20-player Standings card is height-capped and scrolls inside, so the grid keeps room', () => {
+  const standings = src('components/game/PoolStandings.tsx');
+  assert.match(standings, /maxHeight\?: number/);
+  assert.match(standings, /maxHeight != null && \{ maxHeight \}/, 'the card itself is capped');
+  assert.match(standings, /<ScrollView style=\{styles\.rows\} nestedScrollEnabled/, 'rows scroll inside the card');
+  assert.match(standings, /rows: \{ flexGrow: 0, flexShrink: 1 \}/, 'the scroller shrinks instead of pushing the card past the cap');
+  const scorecard = src('app/(screens)/games/[id].tsx');
+  assert.match(scorecard, /maxHeight=\{Math\.round\(windowHeight \* \(isShort \? 0\.45 : 0\.38\)\)\}/, 'a share of the window, not a fixed number');
+});

@@ -230,7 +230,7 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
 
-## PR 19 test cases (First fixes from the break-the-app suite: F1 log out with a dead session, F2 offline relaunch wording, F3 refused pool limit pinned on screen; no migration)
+## PR 19 test cases (First fixes from the break-the-app suite: F1 log out with a dead session, F2 offline relaunch wording, F3 refused pool limit pinned on screen, F5 20-player Standings starving the grid; no migration)
 
 | Code | Type | Where | What |
 | --- | --- | --- | --- |
@@ -241,6 +241,7 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | T19-5 | N | `e2e/chaos/c11--net-off` | relaunch offline with a cached session shows Home or "Couldn't reach the server"; "You're signed out" must not appear |
 | T19-6 | N | `e2e/chaos/c03` | `abc`, `0`, `50` in the custom limit: `new-game-problem` with the 51–999 line is on screen with no scroll after Start |
 | T19-7 | CI | `ci/select-tests.mjs`, `tests/test-selection-pr17.test.ts` | new areas: `auth` now also matches `(tabs)/index.tsx`, `(tabs)/me.tsx`, `utils/supabaseErrors` and adds c11 + c12; `new-game` (`games/new.tsx`, `GameTypeStep`, `RulesForm`, `rulesDraft`, `gameSettings`) adds c03 |
+| T19-8 | U + S | `tests/test-findings-pr19.test.ts`, `e2e/smoke/17-pool-wide-initials-20p.yaml` | run 6 flow 17: on the 20-seat completed pool the Standings card filled the screen and the grid had no height (`score-header-initials-2` never found). `PoolStandings` is capped at 38 % of the window (45 % landscape) and its rows scroll inside; the smoke flow now reaches the header without scrolling. `ci/select-tests.mjs` scorecard area also matches `PoolStandings` |
 
 ## PR 17 test cases (Test infrastructure: roster seed, chaos / roles / two-device / monkey suites, device matrix, dashboard, bug filing; no migration)
 
