@@ -222,6 +222,7 @@ export default function AwardScreen() {
                   value={customText[r.playerId] ?? String(r.gets)}
                   onChangeText={(t) => editCustom(r.playerId, t)}
                   keyboardType="number-pad"
+                  selectTextOnFocus
                   style={[styles.numWide, styles.getsInput]}
                   accessibilityLabel={`${nameOf(r.playerId)} gets`}
                   testID={`award-gets-${r.playerId}`}

@@ -59,7 +59,10 @@ tags: [smoke]
     id: "settings-pool-limit-101"
 - assertVisible:
     id: "settings-pool-limit-custom"
-- assertVisible:
-    id: "settings-pool-reentry"
+- scrollUntilVisible:
+    element:
+      id: "settings-pool-reentry"
+    direction: DOWN
+    timeout: 10000
 - takeScreenshot: 07e-settings-pool-defaults
 - back

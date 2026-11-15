@@ -147,8 +147,12 @@ tags: [smoke]
     id: "award-preset-custom"
 - tapOn:
     id: "award-gets-00000000-0000-4000-8000-000000000001"
+# One character per step: a fast "400" into the controlled field doubled characters on the emulator.
 - eraseText
-- inputText: "400"
+- inputText: "4"
+- inputText: "0"
+- inputText: "0"
+- hideKeyboard
 - hideKeyboard
 - assertVisible: "Pool 500 · 400 given out · 100 not given out"
 - takeScreenshot: 16p-awards-custom-not-all-given-out
