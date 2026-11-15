@@ -9,28 +9,28 @@ Screens **32** (+ 8 redirect-only routes) · Pop-ups **60** · Warnings **40** �
 | S01 | Sign in | `app/(auth)/login.tsx` | `/(auth)/login` | F01 F14 | 12 |
 | S02 | Create account | `app/(auth)/register.tsx` | `/(auth)/register` | F01 | 4 |
 | S03 | Forgot passcode (OTP → new passcode) | `app/(auth)/forgot-password.tsx` | `/(auth)/forgot-password` | F01 | 1 |
-| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | `/(tabs)` | F01 F02 F03 F12 F13 F14 F16 F17 | 69 |
-| S05 | My players | `app/(tabs)/players.tsx` | `/(tabs)/players` | F04 | 38 |
-| S06 | Me (profile) | `app/(tabs)/me.tsx` | `/(tabs)/me` | F01 F02 F15 | 26 |
-| S07 | User settings (game defaults) | `app/(screens)/settings.tsx` | `/settings` | F02 | 27 |
-| S08 | Hidden & deleted | `app/(screens)/hidden-deleted.tsx` | `/hidden-deleted` | F13 | 22 |
-| S09 | New game · Game type (Points / Pool, rules, multiplier) | `app/(screens)/games/new.tsx + components/game/GameTypeStep.tsx` | `/games/new (step 2)` | F03 | 27 |
-| S10 | New game · Players picker / Add players to this game | `app/(screens)/games/new.tsx` | `/games/new, /games/new?gameId=` | F03 F04 | 38 |
-| S11 | Fix initials (before Start) | `components/players/FixInitialsScreen.tsx` | `/games/new (fix step)` | F03 | 16 |
-| S12 | Add by initials | `app/(screens)/players/add.tsx` | `/players/add` | F04 | 36 |
-| S13 | Find in database | `app/(screens)/players/new.tsx` | `/players/new` | F04 | 24 |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | `/games/[id]` | F03 F05 F06 F07 F08 F09 F10 F11 F12 F13 F14 F16 | 86 |
-| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | `/score-entry` | F06 F07 F09 F14 F16 | 57 |
-| S16 | Players · Admins | `app/(screens)/games/players.tsx` | `/games/players` | F12 F16 | 50 |
-| S17 | Log (game log) | `app/(screens)/games/log.tsx` | `/games/log` | F05 F07 F08 F13 | 23 |
-| S18 | Complete (game / pool) | `app/(screens)/games/complete.tsx` | `/games/complete` | F09 F10 | 23 |
-| S19 | Awards (pool) | `app/(screens)/games/award.tsx` | `/games/award` | F10 F16 | 19 |
+| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | `/(tabs)` | F01 F02 F03 F12 F13 F14 F16 F17 | 71 |
+| S05 | My players | `app/(tabs)/players.tsx` | `/(tabs)/players` | F04 | 39 |
+| S06 | Me (profile) | `app/(tabs)/me.tsx` | `/(tabs)/me` | F01 F02 F15 | 27 |
+| S07 | User settings (game defaults) | `app/(screens)/settings.tsx` | `/settings` | F02 | 28 |
+| S08 | Hidden & deleted | `app/(screens)/hidden-deleted.tsx` | `/hidden-deleted` | F13 | 24 |
+| S09 | New game · Game type (Points / Pool, rules, multiplier) | `app/(screens)/games/new.tsx + components/game/GameTypeStep.tsx` | `/games/new (step 2)` | F03 | 28 |
+| S10 | New game · Players picker / Add players to this game | `app/(screens)/games/new.tsx` | `/games/new, /games/new?gameId=` | F03 F04 | 39 |
+| S11 | Fix initials (before Start) | `components/players/FixInitialsScreen.tsx` | `/games/new (fix step)` | F03 | 17 |
+| S12 | Add by initials | `app/(screens)/players/add.tsx` | `/players/add` | F04 | 37 |
+| S13 | Find in database | `app/(screens)/players/new.tsx` | `/players/new` | F04 | 25 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | `/games/[id]` | F03 F05 F06 F07 F08 F09 F10 F11 F12 F13 F14 F16 | 87 |
+| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | `/score-entry` | F06 F07 F09 F14 F16 | 58 |
+| S16 | Players · Admins | `app/(screens)/games/players.tsx` | `/games/players` | F12 F16 | 51 |
+| S17 | Log (game log) | `app/(screens)/games/log.tsx` | `/games/log` | F05 F07 F08 F13 | 24 |
+| S18 | Complete (game / pool) | `app/(screens)/games/complete.tsx` | `/games/complete` | F09 F10 | 24 |
+| S19 | Awards (pool) | `app/(screens)/games/award.tsx` | `/games/award` | F10 F16 | 20 |
 | S20 | Final scores (single game share) | `app/(screens)/games/final-scores.tsx` | `/games/final-scores` | F08 F10 F11 | 9 |
-| S21 | Results · pick games + Past results | `app/(screens)/results/index.tsx` | `/results` | F10 F16 F17 | 37 |
-| S22 | Results · view (unsaved) | `app/(screens)/results/view.tsx` | `/results/view` | F17 | 24 |
-| S23 | Results · saved result | `app/(screens)/results/[id].tsx` | `/results/[id]` | F08 F11 F17 | 33 |
+| S21 | Results · pick games + Past results | `app/(screens)/results/index.tsx` | `/results` | F10 F16 F17 | 38 |
+| S22 | Results · view (unsaved) | `app/(screens)/results/view.tsx` | `/results/view` | F17 | 25 |
+| S23 | Results · saved result | `app/(screens)/results/[id].tsx` | `/results/[id]` | F08 F11 F17 | 34 |
 | S24 | Claim link landing (remembers token → sign up / Home) | `app/claim.tsx` | `/claim?t=` | F04 | 1 |
-| S25 | Web · live scorecard page | `public/scorecard.html` | `/scorecard.html?c=CODE` | F06 F11 F15 | 20 |
+| S25 | Web · live scorecard page | `public/scorecard.html` | `/scorecard.html?c=CODE` | F06 F11 F15 | 21 |
 | S26 | Web · result page | `public/r/index.html` | `/r/<result id>` | F11 F15 | 14 |
 | S27 | Web · link request Yes / No | `public/link.html` | `/link.html?t=` | F04 F15 | 5 |
 | S28 | Web · unsubscribe | `public/unsubscribe.html` | `/unsubscribe.html?t=` | F15 | 4 |
@@ -85,7 +85,7 @@ Screens **32** (+ 8 redirect-only routes) · Pop-ups **60** · Warnings **40** �
 | P27 | Change the multiplier? / Large multiplier | `components/game/GameSettingsDialog.tsx` | dialog · S14 S15 | F08 | 3 |
 | P28 | Exact points (multiplier totals) | `components/game/MultiplierStrip.tsx` | sheet · S14 | F08 | 3 |
 | P29 | Link copied (scorecard) | `app/(screens)/games/[id].tsx` | toast · S14 | F11 | <span style="color:#c62828">**GAP**</span> |
-| P30 | Help | `components/ui/HelpButton.tsx` | dialog · S04 S05 S06 S07 S08 S09 S10 S11 S12 S13 S14 S15 S16 S17 S18 S19 S21 S22 S23 | F16 | 16 |
+| P30 | Help | `components/ui/HelpButton.tsx` | dialog · S04 S05 S06 S07 S08 S09 S10 S11 S12 S13 S14 S15 S16 S17 S18 S19 S21 S22 S23 | F16 | 17 |
 | P31 | Over the Full count / Are you sure? (pool) | `app/(screens)/score-entry.tsx` | dialog · S15 | F06 F09 | 4 |
 | P32 | Round saved (pool: out · eligible · re-enter) | `app/(screens)/score-entry.tsx` | dialog · S15 | F09 | 2 |
 | P33 | Rummy share is not a win | `app/(screens)/score-entry.tsx` | dialog · S15 | F06 | 1 |
@@ -114,7 +114,7 @@ Screens **32** (+ 8 redirect-only routes) · Pop-ups **60** · Warnings **40** �
 | P56 | Result deleted · UNDO (saved result) | `app/(screens)/results/[id].tsx` | toast · S23 | F17 | 4 |
 | P57 | Link copied (result) | `app/(screens)/results/[id].tsx` | toast · S23 | F17 | <span style="color:#c62828">**GAP**</span> |
 | P58 | Share results preview (picture) | `components/share/ShareImageDialog.tsx` | modal · S20 S23 | F11 | 2 |
-| P59 | Hidden & deleted toast (restored · unhidden) | `app/(screens)/hidden-deleted.tsx` | toast · S08 | F13 | 4 |
+| P59 | Hidden & deleted toast (restored · unhidden) | `app/(screens)/hidden-deleted.tsx` | toast · S08 | F13 | 6 |
 | P60 | Initials clash sentence (stored form) | `app/(screens)/players/add.tsx` | dialog · S12 | F04 | 11 |
 
 ## Warnings, errors, banners, tags
@@ -124,12 +124,12 @@ Screens **32** (+ 8 redirect-only routes) · Pop-ups **60** · Warnings **40** �
 | W01 | Sign-in error (wrong passcode · cannot reach server · locked) | `utils/authErrors.ts` | error · S01 | F01 | 3 |
 | W02 | An account with this email already exists | `utils/signUpOutcome.ts` | error · S02 | F01 | 2 |
 | W03 | OTP / passcode validation (6 digits, mismatch) | `utils/passcode.ts, utils/passcodeFlow.ts` | error · S03 S06 | F01 F02 | 1 |
-| W04 | Deleted games card (read-only, gone for good on …, Ask / Restore) | `components/home/DeletedGamesCard.tsx` | card · S04 | F13 | 4 |
+| W04 | Deleted games card (read-only, hidden for good on …, Ask / Restore) | `components/home/DeletedGamesCard.tsx` | card · S04 | F13 | 6 |
 | W05 | Link requests card (Yes / No) | `components/players/LinkRequestsCard.tsx` | card · S04 | F15 | 4 |
 | W06 | Claim requests card | `components/players/ClaimRequestsCard.tsx` | card · S04 | F15 | 2 |
 | W07 | Empty states (no live games · no players · no results) | `components/ui/EmptyState.tsx` | empty · S04 S05 S21 | F04 | 1 |
 | W08 | Game status tag (Active · Completed · Closed · Deleted) | `app/(screens)/games/[id].tsx` | tag · S14 S18 | F10 | 1 |
-| W09 | Deleted game banner (Deleted by …, Ask to restore / Restore) | `components/game/DeletedGameBanner.tsx` | banner · S14 | F13 | 2 |
+| W09 | Deleted game banner (Deleted by …, Ask to restore / Restore) | `components/game/DeletedGameBanner.tsx` | banner · S14 | F13 | 3 |
 | W10 | Pool over hint (everyone out / limit reached) | `app/(screens)/games/[id].tsx` | inline · S14 | F09 | 1 |
 | W11 | Multiplier chip + entered-points banner | `components/game/MultiplierStrip.tsx` | chip · S14 | F08 | 2 |
 | W12 | Count warning line (half / Full count) | `app/(screens)/score-entry.tsx` | inline · S15 | F06 | 2 |
@@ -150,7 +150,7 @@ Screens **32** (+ 8 redirect-only routes) · Pop-ups **60** · Warnings **40** �
 | W27 | My players search-full note + 1,000 limit | `app/(tabs)/players.tsx, utils/guardrails.ts` | inline · S05 | F04 | 2 |
 | W28 | Guardrail refusals (GRD01: 20 seats, 500 rounds, 10 live games, 50 games/day, 100 players/day, 20 pending links) | `utils/guardrails.ts` | error · S09 S10 S15 S16 | F03 F04 F06 | 5 |
 | W29 | Offline / network copy (cannot reach server · saved on this phone) | `utils/supabaseErrors.ts` | inline · S01 S04 S14 S15 | F14 | 6 |
-| W30 | Support card (Can’t find a game? support@ezscore.app) | `app/(screens)/hidden-deleted.tsx` | card · S08 | F13 | 1 |
+| W30 | Support card (Can’t find a game? support@ezscore.app) | `app/(screens)/hidden-deleted.tsx` | card · S08 | F13 | 3 |
 | W31 | Settings Saved banner | `app/(screens)/settings.tsx` | banner · S07 | F02 | 10 |
 | W32 | Final scores note + multiplier line | `app/(screens)/games/final-scores.tsx` | inline · S20 | F10 | 2 |
 | W33 | Web result banners (deleted · edited after it was saved · older versions) | `public/r/index.html` | web · S26 | F11 | 13 |
@@ -159,7 +159,7 @@ Screens **32** (+ 8 redirect-only routes) · Pop-ups **60** · Warnings **40** �
 | W36 | Pool awards card (after complete) | `components/game/PoolAwardsCard.tsx` | card · S14 S18 | F10 | 4 |
 | W37 | Toast errors (formatSupabaseError) on every write | `utils/supabaseErrors.ts` | inline · S04 S05 S06 S14 S15 S16 S21 S23 | F14 | 3 |
 | W38 | Rummy / positive pot colours (yellow selected, green win, red penalty) | `components/game/ScoreKeypad.tsx, utils/scoreTone.ts` | inline · S15 S14 | F06 | 7 |
-| W39 | Deleted game read-only (no Add round / Undo / Share) | `app/(screens)/games/[id].tsx` | inline · S14 | F13 | 2 |
+| W39 | Deleted game read-only (no Add round / Undo / Share) | `app/(screens)/games/[id].tsx` | inline · S14 | F13 | 3 |
 | W40 | Role tags on Home cards (Creator · Admin · Player · View only) | `components/ui/GameListItem.tsx` | tag · S04 S21 | F12 | 8 |
 
 ## Emails
@@ -171,5 +171,5 @@ Screens **32** (+ 8 redirect-only routes) · Pop-ups **60** · Warnings **40** �
 | E03 | Game started (live link) | `supabase/functions/send-email/index.ts (game_started)` | New game created | F03 F15 | 7 |
 | E04 | Result saved (/r/ link) | `supabase/functions/send-email/index.ts (result_saved)` | Save result | F15 F17 | 9 |
 | E05 | Link request (Yes / No) | `supabase/functions/send-email/index.ts (link_request)` | Send request in Link to Player ID | F04 F15 | 9 |
-| E06 | Restore requested | `supabase/functions/send-email/index.ts (restore_requested)` | Ask to restore a deleted game | F13 F15 | 2 |
-| E07 | Scorecard by email | `supabase/functions/send-email/index.ts (kind scorecard)` | Share → Email | F11 F15 | 5 |
+| E06 | Restore requested | `supabase/functions/send-email/index.ts (restore_requested)` | Ask to restore a deleted game | F13 F15 | 3 |
+| E07 | Scorecard by email | `supabase/functions/send-email/index.ts (kind scorecard)` | Share → Email | F11 F15 | 6 |

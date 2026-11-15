@@ -76,17 +76,17 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 86 |
-| S18 | Complete (game / pool) | `app/(screens)/games/complete.tsx` | 23 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
+| S18 | Complete (game / pool) | `app/(screens)/games/complete.tsx` | 24 |
 | P40 | Complete this game? / Complete this pool? | `app/(screens)/games/complete.tsx` | 3 |
 | P41 | Could not complete | `app/(screens)/games/complete.tsx` | 1 |
-| S19 | Awards (pool) | `app/(screens)/games/award.tsx` | 19 |
+| S19 | Awards (pool) | `app/(screens)/games/award.tsx` | 20 |
 | P42 | Not all given out (save awards anyway?) | `app/(screens)/games/award.tsx` | 2 |
 | P43 | Not for this pool | `app/(screens)/games/award.tsx` | 2 |
 | W20 | Awards hints (given out · winner warning · blocked) | `app/(screens)/games/award.tsx` | 1 |
 | W36 | Pool awards card (after complete) | `components/game/PoolAwardsCard.tsx` | 4 |
 | S20 | Final scores (single game share) | `app/(screens)/games/final-scores.tsx` | 9 |
-| S21 | Results · pick games + Past results | `app/(screens)/results/index.tsx` | 37 |
+| S21 | Results · pick games + Past results | `app/(screens)/results/index.tsx` | 38 |
 | P50 | Give awards first | `app/(screens)/results/index.tsx` | 3 |
 | P22 | Reopen this game? | `app/(screens)/games/[id].tsx` | 1 |
 | P44 | Could not save awards | `app/(screens)/games/award.tsx` | 3 |

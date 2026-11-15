@@ -251,12 +251,23 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | --- | --- | --- | --- |
 | X20-1 | D | `supabase/tests/36_going_rogue_045.sql` | a player with a saved score reads a deleted game and sees it in `get_home_bundle.deletedGames`; no score → no access; public `/s/` still says deleted |
 | X20-2 | D | same | `request_restore`: one ask per person per game, Log row, notices to creator + admins, refused for non-members / non-deleted games |
-| X20-3 | D | same | purge: 31-day-old deleted game with no live result removed, Log rows kept as `game_purged`; 29-day-old and result-held games survive |
+| X20-3 | D | same | the 30-day step (rewritten by 046): 31-day-old deleted game with no live result is hidden for good (`archived_at`), every row kept, one `game_archived` Log line; 29-day-old and result-held games untouched |
 | X20-4 | D | — (not built: §6 item 4 is out of PR 20) | `restore_round` only when contiguous; `revert_round_edit` swaps live and retired rows; Pool recompute; admin-only; logged |
 | X20-5 | D | — (not built: §6 item 5 is out of PR 20) | last-reachable-admin guard refused / allowed cases; `last_seen_at` stamped by the Home bundle |
-| X20-6 | U | `tests/going-rogue.test.ts` | Home bundle maps `deleted_games`; "gone for good on" date math; Ask button states; "Anil and Priya asked" line; G02 confirm text; Help + support card; migration / rollback / replay hook present; scorecard read-only guards |
+| X20-6 | U | `tests/going-rogue.test.ts` | Home bundle maps `deleted_games`; "hidden for good on" date math; Ask button states; "Anil and Priya asked" line; G02 confirm text; Help + support card; migration / rollback / replay hook present; scorecard read-only guards |
 | X20-7 | R | `e2e/roles/r05-deleted-game-ask-restore.yaml` | a1 deletes BREAKP1 (confirm says 30 days) → p01's Home shows Deleted games → read-only scorecard, no Add round → Ask → "Asked · date" → c1 sees "Player One asked to restore it" → Restore game → card is back. Runs under `deleted-games` / `scorecard` areas (`ci/select-tests.mjs`) |
 | X20-8 | C | — (not built: needs items 4 + 5) | rogue-admin script (demote others, undo two rounds, edit one, delete, revoke session) → second admin recovers from Log and Deleted games |
+
+## PR 22 test cases (No permanent delete: migration 046 `games.archived_at`, nightly `archive_deleted_games()`, copy; written, not applied)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| X22-1 | D | `supabase/tests/37_no_permanent_delete_046.sql` | schema: `archived_at`, `archive_deleted_games` service-only (not app, not anon), `purge_deleted_games` kept by name and deletes nothing, `game_archived` kind, 30 days unchanged |
+| X22-2 | D | same | the nightly step hides exactly the 31-day-old game; counts of games, seats, rounds, scores, asks and Log rows are unchanged except the one `game_archived` line (System, anchored on the game, nothing on `purged_game_id`); 29-day-old and result-held games untouched; runs twice → 0; the 045 name does the same |
+| X22-3 | D | same | archived game: scored player, deleting admin and creator cannot read it, see no bundle, no Home / Settings row, no Log row, cannot ask; `restore_game` → PT410 "hidden for good … support@ezscore.app"; `/s/` says deleted |
+| X22-4 | D | same | dashboard SQL finds it by `share_code` with all 3 scores; clearing `archived_at` / `deleted_at` / `deleted_by` makes it a live game the player reads again |
+| X22-5 | U | `tests/no-permanent-delete-pr22.test.ts` | 046 text has the column, the step, the kind, the cron `archive-deleted-games` and unschedules `purge-deleted-games`, PT410, support address; no `delete from` games / rounds / scores / seats / results / Log (the one delete left is 045's cleared ask on restore); rollback exists, drops the column and function, leaves the purge job off; replay hook wired; pgTAP 36 updated |
+| X22-6 | U | same | `DELETE_GAME_BODY`, Deleted games supporting text, support card, Help › Hidden & deleted, `hiddenForGoodLabel`, the Settings screen and the restore e-mail never say "gone for good" / "erased for good" / "no longer exists" / "permanently"; `game_archived` → "Hidden for good" (red); r05 asserts the new card line |
 
 ## PR 19 test cases (First fixes from the break-the-app suite: F1 log out with a dead session, F2 offline relaunch wording, F3 refused pool limit pinned on screen, F6 20-player Standings starving the grid; no migration)
 

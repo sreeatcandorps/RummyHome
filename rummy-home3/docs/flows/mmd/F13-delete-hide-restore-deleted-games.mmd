@@ -5,7 +5,7 @@ flowchart TD
   p21(["P21 Delete this game?"]):::popup
   p23(["P23 Something went wrong (scorecard action error)"]):::popup
   s04["S04 Home (Live · Recent · bottom bar)"]:::screen
-  w04[/"W04 Deleted games card (read-only, gone for good on …, Ask / Restor…"/]:::warning
+  w04[/"W04 Deleted games card (read-only, hidden for good on …, Ask / Rest…"/]:::warning
   w09[/"W09 Deleted game banner (Deleted by …, Ask to restore / Restore)"/]:::warning
   w39[/"W39 Deleted game read-only (no Add round / Undo / Share)"/]:::warning
   p03(["P03 Home toast (Asked · Game restored)"]):::popup
@@ -18,7 +18,7 @@ flowchart TD
   which{"Hide (just me) or Delete (everyone)?"}:::decision
   who{"Who opens it?"}:::decision
   days{"30 days passed?"}:::decision
-  purge("Nightly job (045: erase · 046: hide for good, keep rows)"):::step
+  purge("Nightly job (046): hide for good, keep every row"):::step
   s14 --> p18
   p18 --> which
   which -->|"Hide game: off my Home"| s04

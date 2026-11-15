@@ -157,7 +157,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W01 | Sign-in error (wrong passcode · cannot reach server · locked) | x |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | W02 | An account with this email already exists | x |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | W03 | OTP / passcode validation (6 digits, mismatch) | x | x |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| W04 | Deleted games card (read-only, gone for good on …, Ask / Restore) |  |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |
+| W04 | Deleted games card (read-only, hidden for good on …, Ask / Restore) |  |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |
 | W05 | Link requests card (Yes / No) |  |  |  |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |
 | W06 | Claim requests card |  |  |  |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |
 | W07 | Empty states (no live games · no players · no results) |  |  |  | x |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
@@ -202,28 +202,28 @@ CSV twins in `csv/`. Red = no flow / no test.
 | S01 | Sign in | 6 |  |  |  | 1 |  | 5 |  |  |  | 12 |  |
 | S02 | Create account | 4 |  |  |  |  |  |  |  |  |  | 4 |  |
 | S03 | Forgot passcode (OTP → new passcode) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
-| S04 | Home (Live · Recent · bottom bar) | 28 | 6 |  | 13 | 13 | 5 | 4 |  |  |  | 69 |  |
-| S05 | My players | 27 | 4 |  | 5 | 2 |  |  |  |  |  | 38 |  |
-| S06 | Me (profile) | 20 |  |  | 3 | 2 |  | 1 |  |  |  | 26 |  |
-| S07 | User settings (game defaults) | 19 | 1 |  | 5 | 2 |  |  |  |  |  | 27 |  |
-| S08 | Hidden & deleted | 16 | 2 |  | 3 | 1 |  |  |  |  |  | 22 |  |
-| S09 | New game · Game type (Points / Pool, rules, multiplier) | 17 | 2 | 1 | 4 | 2 |  | 1 |  |  |  | 27 |  |
-| S10 | New game · Players picker / Add players to this game | 26 | 4 | 1 | 4 | 2 |  | 1 |  |  |  | 38 |  |
-| S11 | Fix initials (before Start) | 13 |  |  | 2 | 1 |  |  |  |  |  | 16 |  |
-| S12 | Add by initials | 20 | 6 |  | 6 | 3 |  | 1 |  |  |  | 36 |  |
-| S13 | Find in database | 17 |  |  | 4 | 3 |  |  |  |  |  | 24 |  |
-| S14 | Scorecard (Points / Pool) | 37 | 7 | 1 | 12 | 10 | 4 | 11 | 4 |  |  | 86 |  |
-| S15 | Enter Scores (Add round / Edit round) | 33 | 6 | 1 | 7 | 5 |  | 4 | 1 |  |  | 57 |  |
-| S16 | Players · Admins | 33 | 7 | 1 | 5 | 4 |  |  |  |  |  | 50 |  |
-| S17 | Log (game log) | 13 |  |  | 4 | 3 |  | 2 | 1 |  |  | 23 |  |
-| S18 | Complete (game / pool) | 14 |  |  | 5 | 1 | 1 | 2 |  |  |  | 23 |  |
-| S19 | Awards (pool) | 13 | 1 |  | 3 | 1 |  | 1 |  |  |  | 19 |  |
+| S04 | Home (Live · Recent · bottom bar) | 29 | 7 |  | 13 | 13 | 5 | 4 |  |  |  | 71 |  |
+| S05 | My players | 28 | 4 |  | 5 | 2 |  |  |  |  |  | 39 |  |
+| S06 | Me (profile) | 21 |  |  | 3 | 2 |  | 1 |  |  |  | 27 |  |
+| S07 | User settings (game defaults) | 20 | 1 |  | 5 | 2 |  |  |  |  |  | 28 |  |
+| S08 | Hidden & deleted | 17 | 3 |  | 3 | 1 |  |  |  |  |  | 24 |  |
+| S09 | New game · Game type (Points / Pool, rules, multiplier) | 18 | 2 | 1 | 4 | 2 |  | 1 |  |  |  | 28 |  |
+| S10 | New game · Players picker / Add players to this game | 27 | 4 | 1 | 4 | 2 |  | 1 |  |  |  | 39 |  |
+| S11 | Fix initials (before Start) | 14 |  |  | 2 | 1 |  |  |  |  |  | 17 |  |
+| S12 | Add by initials | 21 | 6 |  | 6 | 3 |  | 1 |  |  |  | 37 |  |
+| S13 | Find in database | 18 |  |  | 4 | 3 |  |  |  |  |  | 25 |  |
+| S14 | Scorecard (Points / Pool) | 38 | 7 | 1 | 12 | 10 | 4 | 11 | 4 |  |  | 87 |  |
+| S15 | Enter Scores (Add round / Edit round) | 34 | 6 | 1 | 7 | 5 |  | 4 | 1 |  |  | 58 |  |
+| S16 | Players · Admins | 34 | 7 | 1 | 5 | 4 |  |  |  |  |  | 51 |  |
+| S17 | Log (game log) | 14 |  |  | 4 | 3 |  | 2 | 1 |  |  | 24 |  |
+| S18 | Complete (game / pool) | 15 |  |  | 5 | 1 | 1 | 2 |  |  |  | 24 |  |
+| S19 | Awards (pool) | 14 | 1 |  | 3 | 1 |  | 1 |  |  |  | 20 |  |
 | S20 | Final scores (single game share) | 6 |  |  | 1 | 1 |  | 1 |  |  |  | 9 |  |
-| S21 | Results · pick games + Past results | 22 | 4 |  | 5 | 3 | 3 |  |  |  |  | 37 |  |
-| S22 | Results · view (unsaved) | 17 | 2 |  | 3 | 2 |  |  |  |  |  | 24 |  |
-| S23 | Results · saved result | 23 | 3 |  | 4 | 3 |  |  |  |  |  | 33 |  |
+| S21 | Results · pick games + Past results | 23 | 4 |  | 5 | 3 | 3 |  |  |  |  | 38 |  |
+| S22 | Results · view (unsaved) | 18 | 2 |  | 3 | 2 |  |  |  |  |  | 25 |  |
+| S23 | Results · saved result | 24 | 3 |  | 4 | 3 |  |  |  |  |  | 34 |  |
 | S24 | Claim link landing (remembers token → sign up / Home) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
-| S25 | Web · live scorecard page | 10 | 10 |  |  |  |  |  |  |  |  | 20 |  |
+| S25 | Web · live scorecard page | 10 | 11 |  |  |  |  |  |  |  |  | 21 |  |
 | S26 | Web · result page | 6 | 8 |  |  |  |  |  |  |  |  | 14 |  |
 | S27 | Web · link request Yes / No | 3 | 2 |  |  |  |  |  |  |  |  | 5 |  |
 | S28 | Web · unsubscribe | 2 | 2 |  |  |  |  |  |  |  |  | 4 |  |
@@ -260,7 +260,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | P27 | Change the multiplier? / Large multiplier | 1 |  |  | 1 | 1 |  |  |  |  |  | 3 |  |
 | P28 | Exact points (multiplier totals) | 1 |  |  | 1 | 1 |  |  |  |  |  | 3 |  |
 | P29 | Link copied (scorecard) |  |  |  |  |  |  |  |  |  |  | 0 | <span style="color:#c62828">**GAP**</span> |
-| P30 | Help | 13 |  |  | 2 | 1 |  |  |  |  |  | 16 |  |
+| P30 | Help | 14 |  |  | 2 | 1 |  |  |  |  |  | 17 |  |
 | P31 | Over the Full count / Are you sure? (pool) | 1 |  |  | 1 | 1 |  | 1 |  |  |  | 4 |  |
 | P32 | Round saved (pool: out · eligible · re-enter) | 1 |  |  | 1 |  |  |  |  |  |  | 2 |  |
 | P33 | Rummy share is not a win |  |  |  | 1 |  |  |  |  |  |  | 1 |  |
@@ -289,17 +289,17 @@ CSV twins in `csv/`. Red = no flow / no test.
 | P56 | Result deleted · UNDO (saved result) | 1 | 1 |  | 1 | 1 |  |  |  |  |  | 4 |  |
 | P57 | Link copied (result) |  |  |  |  |  |  |  |  |  |  | 0 | <span style="color:#c62828">**GAP**</span> |
 | P58 | Share results preview (picture) | 2 |  |  |  |  |  |  |  |  |  | 2 |  |
-| P59 | Hidden & deleted toast (restored · unhidden) | 2 | 2 |  |  |  |  |  |  |  |  | 4 |  |
+| P59 | Hidden & deleted toast (restored · unhidden) | 3 | 3 |  |  |  |  |  |  |  |  | 6 |  |
 | P60 | Initials clash sentence (stored form) | 4 | 6 |  | 1 |  |  |  |  |  |  | 11 |  |
 | W01 | Sign-in error (wrong passcode · cannot reach server · locked) | 3 |  |  |  |  |  |  |  |  |  | 3 |  |
 | W02 | An account with this email already exists | 2 |  |  |  |  |  |  |  |  |  | 2 |  |
 | W03 | OTP / passcode validation (6 digits, mismatch) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
-| W04 | Deleted games card (read-only, gone for good on …, Ask / Restore) | 1 | 2 |  |  |  | 1 |  |  |  |  | 4 |  |
+| W04 | Deleted games card (read-only, hidden for good on …, Ask / Restore) | 2 | 3 |  |  |  | 1 |  |  |  |  | 6 |  |
 | W05 | Link requests card (Yes / No) | 2 | 2 |  |  |  |  |  |  |  |  | 4 |  |
 | W06 | Claim requests card |  | 2 |  |  |  |  |  |  |  |  | 2 |  |
 | W07 | Empty states (no live games · no players · no results) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
 | W08 | Game status tag (Active · Completed · Closed · Deleted) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
-| W09 | Deleted game banner (Deleted by …, Ask to restore / Restore) | 1 |  |  |  |  | 1 |  |  |  |  | 2 |  |
+| W09 | Deleted game banner (Deleted by …, Ask to restore / Restore) | 2 |  |  |  |  | 1 |  |  |  |  | 3 |  |
 | W10 | Pool over hint (everyone out / limit reached) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
 | W11 | Multiplier chip + entered-points banner |  |  |  | 1 | 1 |  |  |  |  |  | 2 |  |
 | W12 | Count warning line (half / Full count) | 1 |  |  |  | 1 |  |  |  |  |  | 2 |  |
@@ -320,7 +320,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W27 | My players search-full note + 1,000 limit | 1 | 1 |  |  |  |  |  |  |  |  | 2 |  |
 | W28 | Guardrail refusals (GRD01: 20 seats, 500 rounds, 10 live games, 50 games/day, 100 players/day, 20 pending links) | 2 | 2 | 1 |  |  |  |  |  |  |  | 5 |  |
 | W29 | Offline / network copy (cannot reach server · saved on this phone) | 3 |  |  |  |  |  | 3 |  |  |  | 6 |  |
-| W30 | Support card (Can’t find a game? support@ezscore.app) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
+| W30 | Support card (Can’t find a game? support@ezscore.app) | 2 | 1 |  |  |  |  |  |  |  |  | 3 |  |
 | W31 | Settings Saved banner | 6 | 1 |  | 2 | 1 |  |  |  |  |  | 10 |  |
 | W32 | Final scores note + multiplier line | 2 |  |  |  |  |  |  |  |  |  | 2 |  |
 | W33 | Web result banners (deleted · edited after it was saved · older versions) | 5 | 8 |  |  |  |  |  |  |  |  | 13 |  |
@@ -329,7 +329,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W36 | Pool awards card (after complete) | 1 |  |  | 2 |  |  | 1 |  |  |  | 4 |  |
 | W37 | Toast errors (formatSupabaseError) on every write | 3 |  |  |  |  |  |  |  |  |  | 3 |  |
 | W38 | Rummy / positive pot colours (yellow selected, green win, red penalty) | 7 |  |  |  |  |  |  |  |  |  | 7 |  |
-| W39 | Deleted game read-only (no Add round / Undo / Share) | 1 |  |  |  |  | 1 |  |  |  |  | 2 |  |
+| W39 | Deleted game read-only (no Add round / Undo / Share) | 2 |  |  |  |  | 1 |  |  |  |  | 3 |  |
 | W40 | Role tags on Home cards (Creator · Admin · Player · View only) | 5 |  |  |  |  | 3 |  |  |  |  | 8 |  |
 
 ## d. Scenario → flow → requirement → screens → test file → last result
@@ -568,8 +568,9 @@ CSV twins in `csv/`. Red = no flow / no test.
 | F13-5 | edge | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | Deleted game in a saved result → result re-totals, "S5 removed" version | [`supabase/tests/13_hide_delete_023.sql`](../../supabase/tests/13_hide_delete_023.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F13-6 | misuse | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | Outsider / non-scorer cannot read a deleted game | [`supabase/tests/36_going_rogue_045.sql`](../../supabase/tests/36_going_rogue_045.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F13-6 | misuse | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | Outsider / non-scorer cannot read a deleted game | [`supabase/tests/13_hide_delete_023.sql`](../../supabase/tests/13_hide_delete_023.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F13-7 | edge | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | 30-day step: 045 purge erases; 046 (PR 22) will hide for good instead — nothing deleted | [`supabase/tests/36_going_rogue_045.sql`](../../supabase/tests/36_going_rogue_045.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F13-7 | edge | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | 30-day step: 045 purge erases; 046 (PR 22) will hide for good instead — nothing deleted | [`tests/going-rogue.test.ts`](../../tests/going-rogue.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F13-7 | edge | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | 30-day step (046): hidden for good, nothing deleted; support can still find it; restore refused with PT410 | [`supabase/tests/37_no_permanent_delete_046.sql`](../../supabase/tests/37_no_permanent_delete_046.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F13-7 | edge | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | 30-day step (046): hidden for good, nothing deleted; support can still find it; restore refused with PT410 | [`supabase/tests/36_going_rogue_045.sql`](../../supabase/tests/36_going_rogue_045.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F13-7 | edge | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | 30-day step (046): hidden for good, nothing deleted; support can still find it; restore refused with PT410 | [`tests/no-permanent-delete-pr22.test.ts`](../../tests/no-permanent-delete-pr22.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F13-8 | happy | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | Log rows: Game deleted · Restore asked · Game restored | [`supabase/tests/36_going_rogue_045.sql`](../../supabase/tests/36_going_rogue_045.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F13-8 | happy | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | Log rows: Game deleted · Restore asked · Game restored | [`tests/going-rogue.test.ts`](../../tests/going-rogue.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F13-9 | happy | F13 | R34 R35 R36 R37 | S14 P18 P21 P23 S04 W04 W09 W39 P03 E06 S08 W30 P59 S17 W24 | Support card with support@ezscore.app on Hidden & deleted | [`tests/going-rogue.test.ts`](../../tests/going-rogue.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
@@ -669,7 +670,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | P27 | dialog | Change the multiplier? / Large multiplier | S14 S15 | F08 | Multiplier changed when rounds exist, or ≥ ×1,000 | 3 |
 | P28 | sheet | Exact points (multiplier totals) | S14 | F08 | Multiplier chip → Exact points | 3 |
 | P29 | toast | Link copied (scorecard) | S14 | F11 | Share → Copy link | 0 |
-| P30 | dialog | Help | S04 S05 S06 S07 S08 S09 S10 S11 S12 S13 S14 S15 S16 S17 S18 S19 S21 S22 S23 | F16 | ? in the header | 16 |
+| P30 | dialog | Help | S04 S05 S06 S07 S08 S09 S10 S11 S12 S13 S14 S15 S16 S17 S18 S19 S21 S22 S23 | F16 | ? in the header | 17 |
 | P31 | dialog | Over the Full count / Are you sure? (pool) | S15 | F06 F09 | Typed value first passes the Full count (once per cell) | 4 |
 | P32 | dialog | Round saved (pool: out · eligible · re-enter) | S15 | F09 | Pool round saved with a change in who is out | 2 |
 | P33 | dialog | Rummy share is not a win | S15 | F06 | Save with a Rummy share ≤ 0 | 1 |
@@ -698,17 +699,17 @@ CSV twins in `csv/`. Red = no flow / no test.
 | P56 | toast | Result deleted · UNDO (saved result) | S23 | F17 | Delete this result tapped | 4 |
 | P57 | toast | Link copied (result) | S23 | F17 | ⋮ → Copy link | 0 |
 | P58 | modal | Share results preview (picture) | S20 S23 | F11 | Share → Picture | 2 |
-| P59 | toast | Hidden & deleted toast (restored · unhidden) | S08 | F13 | Restore / Unhide tapped | 4 |
+| P59 | toast | Hidden & deleted toast (restored · unhidden) | S08 | F13 | Restore / Unhide tapped | 6 |
 | P60 | dialog | Initials clash sentence (stored form) | S12 | F04 | Typed initials are already someone else’s | 11 |
 | W01 | error | Sign-in error (wrong passcode · cannot reach server · locked) | S01 | F01 | Sign in fails | 3 |
 | W02 | error | An account with this email already exists | S02 | F01 | Sign-up with a known email | 2 |
 | W03 | error | OTP / passcode validation (6 digits, mismatch) | S03 S06 | F01 F02 | OTP or passcode not 6 digits / mismatch | 1 |
-| W04 | card | Deleted games card (read-only, gone for good on …, Ask / Restore) | S04 | F13 | A game you scored in was deleted in the last 30 days | 4 |
+| W04 | card | Deleted games card (read-only, hidden for good on …, Ask / Restore) | S04 | F13 | A game you scored in was deleted in the last 30 days | 6 |
 | W05 | card | Link requests card (Yes / No) | S04 | F15 | Someone asked to link a seat to your Player ID | 4 |
 | W06 | card | Claim requests card | S04 | F15 | Open claim requests for your account | 2 |
 | W07 | empty | Empty states (no live games · no players · no results) | S04 S05 S21 | F04 | List has no rows | 1 |
 | W08 | tag | Game status tag (Active · Completed · Closed · Deleted) | S14 S18 | F10 | Always on the scorecard strip | 1 |
-| W09 | banner | Deleted game banner (Deleted by …, Ask to restore / Restore) | S14 | F13 | Opening a deleted game from Deleted games | 2 |
+| W09 | banner | Deleted game banner (Deleted by …, Ask to restore / Restore) | S14 | F13 | Opening a deleted game from Deleted games | 3 |
 | W10 | inline | Pool over hint (everyone out / limit reached) | S14 | F09 | Pool cannot continue | 1 |
 | W11 | chip | Multiplier chip + entered-points banner | S14 | F08 | Game multiplier ≠ ×1 | 2 |
 | W12 | inline | Count warning line (half / Full count) | S15 | F06 | Typed value ≥ half or ≥ Full count | 2 |
@@ -729,7 +730,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W27 | inline | My players search-full note + 1,000 limit | S05 | F04 | Search over the page cap / roster at 1,000 | 2 |
 | W28 | error | Guardrail refusals (GRD01: 20 seats, 500 rounds, 10 live games, 50 games/day, 100 players/day, 20 pending links) | S09 S10 S15 S16 | F03 F04 F06 | A server guardrail refuses the write | 5 |
 | W29 | inline | Offline / network copy (cannot reach server · saved on this phone) | S01 S04 S14 S15 | F14 | Request never reached the server | 6 |
-| W30 | card | Support card (Can’t find a game? support@ezscore.app) | S08 | F13 | Always at the foot of Hidden & deleted | 1 |
+| W30 | card | Support card (Can’t find a game? support@ezscore.app) | S08 | F13 | Always at the foot of Hidden & deleted | 3 |
 | W31 | banner | Settings Saved banner | S07 | F02 | Save tapped | 10 |
 | W32 | inline | Final scores note + multiplier line | S20 | F10 | Final scores screen | 2 |
 | W33 | web | Web result banners (deleted · edited after it was saved · older versions) | S26 | F11 | Result deleted or has versions | 13 |
@@ -738,5 +739,5 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W36 | card | Pool awards card (after complete) | S14 S18 | F10 | Completed pool | 4 |
 | W37 | inline | Toast errors (formatSupabaseError) on every write | S04 S05 S06 S14 S15 S16 S21 S23 | F14 | Any server write fails | 3 |
 | W38 | inline | Rummy / positive pot colours (yellow selected, green win, red penalty) | S15 S14 | F06 | Typed or saved values | 7 |
-| W39 | inline | Deleted game read-only (no Add round / Undo / Share) | S14 | F13 | Game deleted | 2 |
+| W39 | inline | Deleted game read-only (no Add round / Undo / Share) | S14 | F13 | Game deleted | 3 |
 | W40 | tag | Role tags on Home cards (Creator · Admin · Player · View only) | S04 S21 | F12 | Always | 8 |

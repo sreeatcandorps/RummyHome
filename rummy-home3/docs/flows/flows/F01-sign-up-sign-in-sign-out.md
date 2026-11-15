@@ -85,5 +85,5 @@ flowchart TD
 | P17 | Country picker (phone code) | `app/(auth)/register.tsx` | <span style="color:#c62828">**GAP**</span> |
 | E01 | Welcome | `supabase/functions/send-email/index.ts (kind welcome)` | 1 |
 | E02 | OTP / passcode reset | `supabase/templates/recovery-passcode.html` | 1 |
-| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 69 |
-| S06 | Me (profile) | `app/(tabs)/me.tsx` | 26 |
+| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 71 |
+| S06 | Me (profile) | `app/(tabs)/me.tsx` | 27 |

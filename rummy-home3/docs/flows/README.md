@@ -13,7 +13,7 @@ One Mermaid flowchart per flow (boxes = screens / steps, diamonds = decisions, e
 | Requirements | 51 | — | 50 (98%) |
 | Scenarios | 145 | 17 flows | 131 (90%) |
 
-Redirect-only routes (not counted): 8. Test corpus scanned: 165 files (unit 70, pgTAP 36, concurrency 1, smoke 19, full 15, roles 5, chaos 12, two-device 6, monkey 1).
+Redirect-only routes (not counted): 8. Test corpus scanned: 167 files (unit 71, pgTAP 37, concurrency 1, smoke 19, full 15, roles 5, chaos 12, two-device 6, monkey 1).
 
 "Touched by a test" = some test file names one of the item's signals (testID, copy, helper); a pop-up or warning touched also counts for its host screen. It says a test *reaches* the item, not that every branch is asserted — the scenario GAP list below is the stricter view.
 
@@ -94,12 +94,12 @@ flowchart TD
 | [F10](flows/F10-complete-awards-result.md) Complete → Awards → Result | 4 | 3 |  | 3 |  | 1 | 1 |  |  |  | 9 | 1 |
 | [F11](flows/F11-share-picture-pdf-link-live-page-email.md) Share: picture, PDF, link, live page, email | 5 | 5 |  | 2 | 1 |  |  |  |  |  | 10 | 2 |
 | [F12](flows/F12-admins-and-roles.md) Admins and roles | 3 | 4 |  |  | 2 | 4 |  |  |  |  | 9 | 1 |
-| [F13](flows/F13-delete-hide-restore-deleted-games.md) Delete, hide, restore, Deleted games | 2 | 3 |  |  |  | 1 |  |  |  |  | 10 | 1 |
+| [F13](flows/F13-delete-hide-restore-deleted-games.md) Delete, hide, restore, Deleted games | 3 | 4 |  |  |  | 1 |  |  |  |  | 10 | 1 |
 | [F14](flows/F14-offline-and-sync.md) Offline and sync | 5 | 1 |  |  |  |  | 5 |  |  |  | 8 | 1 |
 | [F15](flows/F15-notifications-and-emails.md) Notifications and emails | 4 | 5 |  |  |  |  |  |  |  |  | 8 | 1 |
 | [F16](flows/F16-help.md) Help | 6 |  |  | 1 | 1 |  |  |  |  |  | 3 |  |
 | [F17](flows/F17-results-pick-save-past-delete-history.md) Results: pick, save, past, delete, history | 6 | 5 |  | 3 | 2 |  |  |  |  |  | 11 |  |
-| **Total** | 50 | 34 | 0 | 15 | 13 | 5 | 12 | 4 | 0 | 0 | 145 | 14 |
+| **Total** | 51 | 35 | 0 | 15 | 13 | 5 | 12 | 4 | 0 | 0 | 145 | 14 |
 
 ## GAP list
 

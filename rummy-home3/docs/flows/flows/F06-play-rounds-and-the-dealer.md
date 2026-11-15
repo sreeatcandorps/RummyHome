@@ -75,8 +75,8 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 86 |
-| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 57 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
+| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 58 |
 | W12 | Count warning line (half / Full count) | `app/(screens)/score-entry.tsx` | 2 |
 | W13 | Balance pill (Save off until 0) | `app/(screens)/score-entry.tsx` | 8 |
 | P31 | Over the Full count / Are you sure? (pool) | `app/(screens)/score-entry.tsx` | 4 |
@@ -84,4 +84,4 @@ flowchart TD
 | P34 | Round notice (Round N already saved · scorecard refreshed · view only) | `app/(screens)/score-entry.tsx` | 8 |
 | W38 | Rummy / positive pot colours (yellow selected, green win, red penalty) | `components/game/ScoreKeypad.tsx, utils/scoreTone.ts` | 7 |
 | W28 | Guardrail refusals (GRD01: 20 seats, 500 rounds, 10 live games, 50 games/day, 100 players/day, 20 pending links) | `utils/guardrails.ts` | 5 |
-| S25 | Web · live scorecard page | `public/scorecard.html` | 20 |
+| S25 | Web · live scorecard page | `public/scorecard.html` | 21 |

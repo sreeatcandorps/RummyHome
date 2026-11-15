@@ -100,10 +100,10 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S10 | New game · Players picker / Add players to this game | `app/(screens)/games/new.tsx` | 38 |
-| S12 | Add by initials | `app/(screens)/players/add.tsx` | 36 |
-| S13 | Find in database | `app/(screens)/players/new.tsx` | 24 |
-| S05 | My players | `app/(tabs)/players.tsx` | 38 |
+| S10 | New game · Players picker / Add players to this game | `app/(screens)/games/new.tsx` | 39 |
+| S12 | Add by initials | `app/(screens)/players/add.tsx` | 37 |
+| S13 | Find in database | `app/(screens)/players/new.tsx` | 25 |
+| S05 | My players | `app/(tabs)/players.tsx` | 39 |
 | P60 | Initials clash sentence (stored form) | `app/(screens)/players/add.tsx` | 11 |
 | P48 | Unsaved letters | `app/(screens)/players/add.tsx` | 1 |
 | P05 | Initials for {name} (shared editor) | `components/players/InitialsDialog.tsx` | 2 |

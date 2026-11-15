@@ -82,12 +82,12 @@ flowchart TD
 | E03 | Game started (live link) | `supabase/functions/send-email/index.ts (game_started)` | 7 |
 | E04 | Result saved (/r/ link) | `supabase/functions/send-email/index.ts (result_saved)` | 9 |
 | E05 | Link request (Yes / No) | `supabase/functions/send-email/index.ts (link_request)` | 9 |
-| E06 | Restore requested | `supabase/functions/send-email/index.ts (restore_requested)` | 2 |
-| E07 | Scorecard by email | `supabase/functions/send-email/index.ts (kind scorecard)` | 5 |
+| E06 | Restore requested | `supabase/functions/send-email/index.ts (restore_requested)` | 3 |
+| E07 | Scorecard by email | `supabase/functions/send-email/index.ts (kind scorecard)` | 6 |
 | S28 | Web · unsubscribe | `public/unsubscribe.html` | 4 |
 | S27 | Web · link request Yes / No | `public/link.html` | 5 |
 | S26 | Web · result page | `public/r/index.html` | 14 |
-| S25 | Web · live scorecard page | `public/scorecard.html` | 20 |
-| S06 | Me (profile) | `app/(tabs)/me.tsx` | 26 |
+| S25 | Web · live scorecard page | `public/scorecard.html` | 21 |
+| S06 | Me (profile) | `app/(tabs)/me.tsx` | 27 |
 | W05 | Link requests card (Yes / No) | `components/players/LinkRequestsCard.tsx` | 4 |
 | W06 | Claim requests card | `components/players/ClaimRequestsCard.tsx` | 2 |

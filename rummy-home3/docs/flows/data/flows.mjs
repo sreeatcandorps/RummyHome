@@ -353,7 +353,7 @@ export const FLOWS = [
       { k: 'which', label: 'Hide (just me) or Delete (everyone)?', type: 'decision' },
       { k: 'who', label: 'Who opens it?', type: 'decision' },
       { k: 'days', label: '30 days passed?', type: 'decision' },
-      { k: 'purge', label: 'Nightly job (045: erase · 046: hide for good, keep rows)', type: 'step' },
+      { k: 'purge', label: 'Nightly job (046): hide for good, keep every row', type: 'step' },
     ],
     edges: [
       ['s14', 'p18'], ['p18', 'which'], ['which', 's04', 'Hide game: off my Home'], ['which', 'p21', 'Delete game'], ['p21', 's04', 'Delete'], ['p21', 'p23', 'failed'],
@@ -368,7 +368,7 @@ export const FLOWS = [
       { id: 'F13-4', kind: 'happy', text: 'Creator sees "Player One asked to restore it" → Restore → Game restored, back on Home', tests: [e2e('roles/r05-deleted-game-ask-restore'), pg('36_going_rogue_045')] },
       { id: 'F13-5', kind: 'edge', text: 'Deleted game in a saved result → result re-totals, "S5 removed" version', tests: [pg('24_results_design_034'), pg('13_hide_delete_023')] },
       { id: 'F13-6', kind: 'misuse', text: 'Outsider / non-scorer cannot read a deleted game', tests: [pg('36_going_rogue_045'), pg('13_hide_delete_023')] },
-      { id: 'F13-7', kind: 'edge', text: '30-day step: 045 purge erases; 046 (PR 22) will hide for good instead — nothing deleted', tests: [pg('36_going_rogue_045'), unit('going-rogue')] },
+      { id: 'F13-7', kind: 'edge', text: '30-day step (046): hidden for good, nothing deleted; support can still find it; restore refused with PT410', tests: [pg('37_no_permanent_delete_046'), pg('36_going_rogue_045'), unit('no-permanent-delete-pr22')] },
       { id: 'F13-8', kind: 'happy', text: 'Log rows: Game deleted · Restore asked · Game restored', tests: [pg('36_going_rogue_045'), unit('going-rogue')] },
       { id: 'F13-9', kind: 'happy', text: 'Support card with support@ezscore.app on Hidden & deleted', tests: [unit('going-rogue')] },
       { id: 'F13-10', kind: 'edge', text: 'Hidden & deleted screen on the device (Unhide, Restore, toast)', tests: [] },

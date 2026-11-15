@@ -61,11 +61,11 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 86 |
-| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 57 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
+| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 58 |
 | P32 | Round saved (pool: out · eligible · re-enter) | `app/(screens)/score-entry.tsx` | 2 |
 | W35 | Pool standings (OUT · re-entry eligible · re-entered · limit) | `components/game/PoolStandings.tsx` | 4 |
 | W10 | Pool over hint (everyone out / limit reached) | `app/(screens)/games/[id].tsx` | 1 |
 | P31 | Over the Full count / Are you sure? (pool) | `app/(screens)/score-entry.tsx` | 4 |
 | W19 | Game settings error / locked note | `components/game/GameSettingsDialog.tsx` | 3 |
-| S18 | Complete (game / pool) | `app/(screens)/games/complete.tsx` | 23 |
+| S18 | Complete (game / pool) | `app/(screens)/games/complete.tsx` | 24 |

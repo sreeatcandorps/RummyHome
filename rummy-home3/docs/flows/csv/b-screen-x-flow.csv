@@ -94,7 +94,7 @@
 "W01","Sign-in error (wrong passcode · cannot reach server · locked)","x","","","","","","","","","","","","","","","","",""
 "W02","An account with this email already exists","x","","","","","","","","","","","","","","","","",""
 "W03","OTP / passcode validation (6 digits, mismatch)","x","x","","","","","","","","","","","","","","","",""
-"W04","Deleted games card (read-only, gone for good on …, Ask / Restore)","","","","","","","","","","","","","x","","","","",""
+"W04","Deleted games card (read-only, hidden for good on …, Ask / Restore)","","","","","","","","","","","","","x","","","","",""
 "W05","Link requests card (Yes / No)","","","","","","","","","","","","","","","x","","",""
 "W06","Claim requests card","","","","","","","","","","","","","","","x","","",""
 "W07","Empty states (no live games · no players · no results)","","","","x","","","","","","","","","","","","","",""

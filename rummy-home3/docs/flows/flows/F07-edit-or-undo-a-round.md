@@ -62,11 +62,11 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 86 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
 | P18 | Scorecard ⋮ menu (Players · Admins, Seating, Edit round, Reopen, Log, Hide, Delete, Settings) | `app/(screens)/games/[id].tsx` | 15 |
 | P19 | Edit which round? | `app/(screens)/games/[id].tsx` | 5 |
 | P20 | Remove the last round? (Undo) | `app/(screens)/games/[id].tsx` | 12 |
-| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 57 |
+| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 58 |
 | P34 | Round notice (Round N already saved · scorecard refreshed · view only) | `app/(screens)/score-entry.tsx` | 8 |
-| S17 | Log (game log) | `app/(screens)/games/log.tsx` | 23 |
+| S17 | Log (game log) | `app/(screens)/games/log.tsx` | 24 |
 | W24 | Changed after sharing · removed / deleted notes · History | `components/results/ResultHistory.tsx` | 2 |

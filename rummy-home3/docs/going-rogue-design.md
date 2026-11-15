@@ -1,5 +1,17 @@
 # Going rogue: player, admin, creator — design spec (PR 20)
 
+> **Decision, Nov 15 11:16 AM PT (Sree) — supersedes Q20.1's purge.** *Nothing about games or results is ever
+> permanently deleted by the app.* After 30 days a deleted game becomes a **second-layer soft delete**: hidden from
+> every user (not under Deleted games, not readable, not restorable in the app) but kept in the database so support
+> can still look it up. Built as **PR 22 / migration `046_no_permanent_delete.sql`** (written, not applied):
+> `games.archived_at`, nightly `archive_deleted_games()` (pg_cron `archive-deleted-games`, 03:15 UTC), Log kind
+> `game_archived` ("Hidden for good"); `purge_deleted_games()` keeps its name but is the same non-destructive step.
+> Build Bot unscheduled the live `purge-deleted-games` job at 11:18 AM PT; nothing was ever erased on live. Every
+> "erased" / "gone for good" line in the app, Help and the restore e-mail now reads "hidden for good — nothing is
+> erased". Support path: dashboard SQL on `games where archived_at is not null` (see the foot of 046); handing a game
+> back is `archived_at = null, deleted_at = null, deleted_by = null`. A game a live result still holds, or a prize
+> session holds, is left restorable (as 045 did). Tests: X22-1…6 below.
+
 Status: **built as PR 20 (the simple version)** — §6 items 2 + 3 (players who scored see a deleted game under Home ›
 Deleted games, open it read-only, Ask an admin to restore; admins and the creator restore it from the same places) plus
 Q20.1 (a deleted game is really erased 30 days later by the nightly `purge_deleted_games()`, its Log rows kept under
@@ -210,6 +222,12 @@ does nothing for the creator-goes-rogue case, which is the one he raised.
 | X20-6 | U | Home bundle maps `deletedGames`; "gone for good on" date math; Ask button states |
 | X20-7 | S | Smoke: admin deletes → player's Home shows Deleted games → opens read-only → Ask → admin sees the line → Restore → game back on both Homes |
 | X20-8 | C | Chaos (PR 17 suite): rogue-admin script (demote others, undo two rounds, edit one, delete, revoke session) → recovery by a second admin from the Log and Deleted games within the flow's time budget |
+| X22-1 | D | 046 schema: `games.archived_at`, `archive_deleted_games` service-only, `purge_deleted_games` deletes nothing, `game_archived` kind |
+| X22-2 | D | The nightly step hides a 31-day-old deleted game for good and removes no row (games, seats, rounds, scores, asks, Log counted before and after); 29-day-old and result-held games untouched; idempotent |
+| X22-3 | D | An archived game is invisible to creator, admins, deleter, scored players and app admins — Home, Settings, bundle, Log, ask; `restore_game` refuses with PT410 and the support address; `/s/` says deleted |
+| X22-4 | D | Support finds it by code with all its scores; clearing the stamps makes it a live game again |
+| X22-5 | U | 046 text: no `delete from` games / rounds / scores / results / Log, cron non-destructive, rollback leaves the purge job off, replay hook wired, pgTAP 36 updated |
+| X22-6 | U | No screen, dialog, Help line, e-mail or flow promises erasure; "Hidden for good" Log label; r05 reads the new card line |
 
 ## 9. Place in the sequence
 

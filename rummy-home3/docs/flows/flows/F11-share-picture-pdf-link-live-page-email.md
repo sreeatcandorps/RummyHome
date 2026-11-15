@@ -79,18 +79,18 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 86 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
 | S20 | Final scores (single game share) | `app/(screens)/games/final-scores.tsx` | 9 |
-| S23 | Results · saved result | `app/(screens)/results/[id].tsx` | 33 |
+| S23 | Results · saved result | `app/(screens)/results/[id].tsx` | 34 |
 | P24 | Share sheet (picture · PDF · link) | `components/share/ShareSheet.tsx` | 3 |
 | P58 | Share results preview (picture) | `components/share/ShareImageDialog.tsx` | 2 |
 | P29 | Link copied (scorecard) | `app/(screens)/games/[id].tsx` | <span style="color:#c62828">**GAP**</span> |
 | P35 | Enter Scores ⋮ menu (Game settings · Share live scorecard · Clear / Undo my changes · Help) | `app/(screens)/score-entry.tsx` | 2 |
-| S25 | Web · live scorecard page | `public/scorecard.html` | 20 |
+| S25 | Web · live scorecard page | `public/scorecard.html` | 21 |
 | S26 | Web · result page | `public/r/index.html` | 14 |
 | W33 | Web result banners (deleted · edited after it was saved · older versions) | `public/r/index.html` | 13 |
 | W34 | Web scorecard Changes card | `public/scorecard.html` | 13 |
-| E07 | Scorecard by email | `supabase/functions/send-email/index.ts (kind scorecard)` | 5 |
+| E07 | Scorecard by email | `supabase/functions/send-email/index.ts (kind scorecard)` | 6 |
 | P55 | Delete a shared result? | `app/(screens)/results/[id].tsx` | 2 |
 | S29 | Web · privacy policy | `public/privacy/index.html` | 1 |
 | S31 | Web · get the app | `public/get/index.html` | 1 |
