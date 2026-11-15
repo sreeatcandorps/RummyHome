@@ -23,10 +23,14 @@ import {
   buildAwardSheet,
   getsFromAwards,
   givenOutText,
+  NOT_VIABLE_TEXT,
   presetGets,
   saveAnywayText,
   signedPoints,
+  viablePresets,
+  winnerGetsMost,
 } from '@/utils/poolAwards';
+import { seatLabels } from '@/utils/initials';
 
 /**
  * Awards for a Completed pool (D8, D9): tap a category to preview every player's award, edit
@@ -46,6 +50,7 @@ export default function AwardScreen() {
   const [customText, setCustomText] = useState<Record<string, string>>({});
   const [seededFrom, setSeededFrom] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null);
+  const [notViable, setNotViable] = useState(false);
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -81,8 +86,16 @@ export default function AwardScreen() {
 
   const sheet = useMemo(() => buildAwardSheet(preset, inputs, gets), [preset, inputs, gets]);
   const givenOut = givenOutText(sheet);
+  // F13.23: the lowest score must get the most. A preset that cannot manage it here is greyed and
+  // refused with a pop-up; Custom is the admin's own numbers, so it only warns.
+  const viable = useMemo(() => viablePresets(inputs), [inputs]);
+  const customCheck = preset === 'custom' ? winnerGetsMost(gets, standings) : null;
 
   const pickPreset = (next: AwardPreset) => {
+    if (!viable[next]) {
+      setNotViable(true);
+      return;
+    }
     if (next === 'custom') {
       // Custom starts from the numbers on screen so an admin tweaks rather than retypes.
       setCustomText(Object.fromEntries(sheet.rows.map((r) => [r.playerId, String(r.gets)])));
@@ -144,6 +157,8 @@ export default function AwardScreen() {
         ? 'Only a game admin gives awards.'
         : null;
   const nameOf = (playerId: string) => players.find((p) => p.id === playerId)?.name ?? '?';
+  const labelById = seatLabels(players);
+  const labelOf = (playerId: string) => labelById.get(playerId) ?? undefined;
   const colorOf = (playerId: string) => seatColor(Math.max(0, players.findIndex((p) => p.id === playerId)));
   const toneColor = givenOut.tone === 'ok' ? colors.win : givenOut.tone === 'under' ? colors.onSurfaceVariant : colors.loss;
 
@@ -183,7 +198,9 @@ export default function AwardScreen() {
               mode={preset === p.key ? 'contained' : 'outlined'}
               onPress={() => pickPreset(p.key)}
               disabled={Boolean(blocked)}
+              style={!viable[p.key] ? styles.notViable : undefined}
               accessibilityState={{ selected: preset === p.key }}
+              accessibilityHint={!viable[p.key] ? 'Not ideal for this pool: the winner would get less than the others' : undefined}
               testID={`award-preset-${p.key}`}
             >
               {p.label}
@@ -193,6 +210,16 @@ export default function AwardScreen() {
         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="award-hint">
           {AWARD_PRESETS.find((p) => p.key === preset)?.hint}
         </Text>
+        {customCheck && !customCheck.ok ? (
+          <View style={styles.warnRow}>
+            <Icon source="alert-outline" size={16} color={colors.loss} />
+            <Text variant="bodySmall" style={{ color: colors.loss, flex: 1 }} testID="award-winner-warning">
+              {customCheck.winnerGets < 0
+                ? 'The winner gets a negative amount.'
+                : `The winner gets ${customCheck.winnerGets}, ${nameOf(customCheck.rival ?? '')} gets ${customCheck.rivalGets}. The lowest score usually gets the most.`}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
           <View style={[styles.row, styles.headRow, { borderBottomColor: colors.hairline }]}>
@@ -205,7 +232,7 @@ export default function AwardScreen() {
           {sheet.rows.map((r) => (
             <View key={r.playerId} style={[styles.row, { borderBottomColor: colors.hairline }]} testID={`award-row-${r.playerId}`}>
               <View style={styles.nameCell}>
-                <SeatAvatar name={nameOf(r.playerId)} color={colorOf(r.playerId)} size={28} />
+                <SeatAvatar name={nameOf(r.playerId)} label={labelOf(r.playerId)} color={colorOf(r.playerId)} size={32} />
                 <View style={styles.flex}>
                   <Text variant="bodyMedium" numberOfLines={1} style={[{ fontWeight: '600' }, r.out && styles.struck]}>{nameOf(r.playerId)}</Text>
                   <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
@@ -277,6 +304,14 @@ export default function AwardScreen() {
             <Button mode="contained" onPress={() => save(true)} loading={saving} disabled={saving} testID="award-save-anyway-yes">Save anyway</Button>
           </Dialog.Actions>
         </Dialog>
+        <Dialog visible={notViable} onDismiss={() => setNotViable(false)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+          <Dialog.Icon icon="information-outline" />
+          <Dialog.Title style={styles.dialogTitle}>Not for this pool</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, textAlign: 'center' }} testID="award-not-viable">{NOT_VIABLE_TEXT}</Text>
+          </Dialog.Content>
+          <Dialog.Actions><Button mode="contained" onPress={() => setNotViable(false)} testID="award-not-viable-ok">Pick another</Button></Dialog.Actions>
+        </Dialog>
         <Dialog visible={Boolean(failure)} onDismiss={() => setFailure(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Icon icon="alert-circle-outline" />
           <Dialog.Title>Could not save awards</Dialog.Title>
@@ -296,6 +331,8 @@ const styles = StyleSheet.create({
   entryBox: { alignItems: 'flex-end', gap: 2 },
   entryInput: { width: 96, height: 40, backgroundColor: 'transparent' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
+  notViable: { opacity: 0.45 },
+  warnRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, paddingHorizontal: spacing.sm, paddingTop: spacing.xs, marginTop: spacing.xs },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.xs, borderBottomWidth: StyleSheet.hairlineWidth },
   headRow: { paddingVertical: 2 },

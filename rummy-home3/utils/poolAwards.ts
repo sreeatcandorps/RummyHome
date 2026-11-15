@@ -94,13 +94,71 @@ export function presetGets(preset: AwardPreset, { standings, entry, limit, drop 
     return gets;
   }
 
-  // drops: one entry per drop left for every player still in, the winner gets the rest (may exceed the pool, F13.6).
+  // drops: one entry per drop left for every player still in, the winner gets the rest. When the drop
+  // entries eat the pool the winner is left with nothing (or less than someone): `presetViability` then
+  // marks the preset not viable and the screen refuses it (F13.23).
   const gets = { ...zero };
   inRows.forEach((s) => { if (!winners.includes(s.playerId)) gets[s.playerId] = dropsLeft(s.total, limit, drop) * entry; });
   const others = sum(Object.values(gets));
   const rest = Math.max(0, poolTotal - others);
   Object.assign(gets, splitEvenly(rest, winners));
   return gets;
+}
+
+/** The pop-up when a non-viable preset is tapped (F13.23, Sree's wording). */
+export const NOT_VIABLE_TEXT = 'This is not ideal for this situation because the winner gets less than the others. Please pick another option.';
+
+export type WinnerCheck = {
+  /** Every winner gets strictly more than every non-winner, and nothing negative. */
+  ok: boolean;
+  /** The non-winner who gets as much as or more than a winner, when there is one. */
+  rival: string | null;
+  winnerGets: number;
+  rivalGets: number;
+};
+
+/**
+ * F13.23: the lowest score must get the most. Co-winners (tied lowest, F13.6) share equally and are
+ * compared as a group; `equals` names players a preset deliberately puts level with the winner
+ * (50 / 50's second place), who are compared with ≥ instead of >.
+ */
+export function winnerGetsMost(gets: Record<string, number>, standings: PoolStanding[], equals: string[] = []): WinnerCheck {
+  const winners = winnersOf(standings);
+  const winnerGets = winners.length ? Math.min(...winners.map((id) => gets[id] ?? 0)) : 0;
+  let rival: string | null = null;
+  let rivalGets = 0;
+  for (const s of standings) {
+    if (winners.includes(s.playerId)) continue;
+    const g = gets[s.playerId] ?? 0;
+    const beats = equals.includes(s.playerId) ? g > winnerGets : g >= winnerGets;
+    if (beats && (rival === null || g > rivalGets)) { rival = s.playerId; rivalGets = g; }
+  }
+  return { ok: winnerGets >= 0 && rival === null, rival, winnerGets, rivalGets };
+}
+
+/** Who a preset deliberately puts level with the winner: 50 / 50's second place; nobody otherwise. */
+function levelWithWinner(preset: AwardPreset, standings: PoolStanding[]): string[] {
+  if (preset !== 'split') return [];
+  const inRows = standings.filter((s) => !s.out);
+  const winners = winnersOf(standings);
+  return [...inRows].sort((a, b) => a.total - b.total).slice(0, 2).map((s) => s.playerId).filter((id) => !winners.includes(id));
+}
+
+/**
+ * Which presets may be picked for this pool (F13.23). Winner takes all and By points left always
+ * pass (the lowest score has the most points left); 50 / 50 passes with the second place level by
+ * design; Entry per drop left fails when the others' drop entries leave the winner less than, or
+ * equal to, any of them (or nothing at all). Custom is the admin's own numbers: never blocked, the
+ * screen warns instead (`winnerGetsMost` on the typed sheet).
+ */
+export function presetViability(preset: AwardPreset, inputs: Inputs): WinnerCheck & { viable: boolean } {
+  if (preset === 'custom') return { ok: true, viable: true, rival: null, winnerGets: 0, rivalGets: 0 };
+  const check = winnerGetsMost(presetGets(preset, inputs), inputs.standings, levelWithWinner(preset, inputs.standings));
+  return { ...check, viable: check.ok };
+}
+
+export function viablePresets(inputs: Inputs): Record<AwardPreset, boolean> {
+  return Object.fromEntries(AWARD_PRESETS.map((p) => [p.key, presetViability(p.key, inputs).viable])) as Record<AwardPreset, boolean>;
 }
 
 export function buildAwardSheet(preset: AwardPreset, inputs: Inputs, gets: Record<string, number>): AwardSheet {
