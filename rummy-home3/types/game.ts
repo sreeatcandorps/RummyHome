@@ -7,8 +7,10 @@ export type GameSettings = {
   poolAmount?: number;
   /** Pool (041): the score that puts a player out (100 in, 101 out). */
   poolLimit?: number;
-  /** Pool (041): whether a player who is out may come back once, at the highest score still in. */
+  /** Pool (041, read-only since 042): the old on/off switch. false reads as reentryLimit 0, true as Unlimited. */
   reentry?: boolean;
+  /** Pool (042): re-entries per player. null / absent = Unlimited; N = Limited to N (0 = none). */
+  reentryLimit?: number | null;
 };
 
 /** Pool (041) seat state, from game_players. Absent for Points games and pre-041 servers. */

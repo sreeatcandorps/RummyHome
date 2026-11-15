@@ -5,8 +5,9 @@ import { Game, GameSettings, PoolSeat } from '@/types/game';
  * the tests agree on who is out, who may re-enter, and what each round must contain.
  *
  * A pool is rummy scored upside down: the round's winner(s) score 0 and everyone else ADDS their
- * hand. Reach the limit and you are out ("100 in, 101 out"). With Re-entry on, a player who is out
- * may come back once, at the highest score still in.
+ * hand. Reach the limit and you are out ("100 in, 101 out"). A player who is out may come back at
+ * the highest score still in — as often as the Re-entries setting allows (042: Unlimited by default,
+ * or Limited to N per player).
  */
 
 export const POOL_LIMITS = [101, 201, 251] as const;
@@ -15,7 +16,9 @@ export const POOL_CUSTOM_MAX = 999;
 export const DEFAULT_POOL_LIMIT = 101;
 /** Pool values are plus points (the sheet stores them positive). */
 export const DEFAULT_POOL_VALUES = { drop: 25, middleDrop: 50, fullCount: 130 } as const;
-export const DEFAULT_POOL_REENTRY = true;
+/** Re-entries per player (042): null = Unlimited (the default), N = Limited to N, 0 = none. */
+export const DEFAULT_POOL_REENTRY_LIMIT: number | null = null;
+export const POOL_REENTRY_LIMIT_MAX = 99;
 /** What one entry into the pool is worth on the Awards screen (editable there, F13.4). */
 export const DEFAULT_POOL_ENTRY = 100;
 
@@ -26,7 +29,24 @@ export const poolLimitOf = (settings: GameSettings | null | undefined) => {
   return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : DEFAULT_POOL_LIMIT;
 };
 
-export const reentryOn = (settings: GameSettings | null | undefined) => settings?.reentry !== false;
+/** The re-entry limit a game plays with: null = Unlimited. Reads the 041 switch for older games. */
+export function reentryLimitOf(settings: GameSettings | null | undefined): number | null {
+  if (!settings) return DEFAULT_POOL_REENTRY_LIMIT;
+  if (settings.reentryLimit !== undefined) {
+    return typeof settings.reentryLimit === 'number' && Number.isFinite(settings.reentryLimit) ? Math.max(0, Math.floor(settings.reentryLimit)) : null;
+  }
+  if (settings.reentry === false) return 0;
+  return DEFAULT_POOL_REENTRY_LIMIT;
+}
+
+export const reentryOn = (settings: GameSettings | null | undefined) => reentryLimitOf(settings) !== 0;
+
+/** "Unlimited" / "1 re-entry" / "3 re-entries" / "None". */
+export function reentryLimitLabel(limit: number | null): string {
+  if (limit === null) return 'Unlimited';
+  if (limit === 0) return 'None';
+  return `${limit} re-entr${limit === 1 ? 'y' : 'ies'}`;
+}
 
 export const EMPTY_SEAT: PoolSeat = { outRound: null, reenteredRound: null, reentryScore: null, entries: 1 };
 
@@ -102,13 +122,15 @@ export function reentryScore(game: Pick<Game, 'players' | 'scores' | 'poolSeats'
 
 export type ReentryBlock = 'in' | 'off' | 'used' | 'nobody' | 'completed';
 
-/** Why a player cannot re-enter right now, or null when they can (once per player, F13.1). */
+/** Why a player cannot re-enter right now, or null when they can (042: within the Re-entries limit). */
 export function reentryBlock(game: Pick<Game, 'players' | 'poolSeats' | 'settings' | 'isComplete'>, playerId: string): ReentryBlock | null {
   const seat = seatOf(game, playerId);
   if (game.isComplete) return 'completed';
   if (!isOut(seat)) return 'in';
-  if (!reentryOn(game.settings)) return 'off';
-  if (seat.entries > 1) return 'used';
+  const limit = reentryLimitOf(game.settings);
+  if (limit === 0) return 'off';
+  // entries counts the first entry too, so re-entries used = entries - 1
+  if (limit !== null && seat.entries - 1 >= limit) return 'used';
   if (playersIn(game).length === 0) return 'nobody';
   return null;
 }
@@ -118,8 +140,8 @@ export const eligibleForReentry = (game: Pick<Game, 'players' | 'poolSeats' | 's
 
 export const REENTRY_BLOCK_TEXT: Record<ReentryBlock, string> = {
   in: 'Still in the pool.',
-  off: 'Re-entry is off for this pool. Turn it on in Game settings.',
-  used: 'Already re-entered once.',
+  off: 'Re-entries are off for this pool. Allow them in Game settings.',
+  used: 'Used every re-entry this pool allows.',
   nobody: 'Nobody is still in the pool.',
   completed: 'The pool is completed. Reopen it to re-enter a player.',
 };
