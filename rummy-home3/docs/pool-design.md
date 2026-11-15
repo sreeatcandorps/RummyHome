@@ -131,7 +131,7 @@ mix. Complete → Award → Result; the game is Closed only after the result.
   ![P28-wording-store-safe](pool-mockups/P28-wording-store-safe.png)
   ![P29-game-log-pool-events](pool-mockups/P29-game-log-pool-events.png)
 
-## 4. Data and RPCs — migration `041_pool.sql` (applied to live Nov 14) + `042_pool_reentries_and_limit_lock.sql` (written, not applied)
+## 4. Data and RPCs — migration `041_pool.sql` (applied to live Nov 14) + `042_pool_reentries_and_limit_lock.sql` (applied to live by Sree, Nov 15)
 
 **Columns**
 - `games.settings` (jsonb) gains `poolLimit int`, `reentry bool` (pool games only; the three values stay in
@@ -224,7 +224,7 @@ validation, confirm), `app/(screens)/games/complete.tsx` (pool wording, Give awa
 
 ## 7. Small decisions taken while building (flagged in the PR body)
 
-- **F13.1** ~~Re-entry is once per player~~ — replaced on Nov 14 (10:27 PM PT) by the Re-entries setting (decision 4): Unlimited by default, or Limited N per player, cascading app → Settings → this game. Migration `042_pool_reentries_and_limit_lock.sql` (written, **not applied**) carries it with the limit-only lock.
+- **F13.1** ~~Re-entry is once per player~~ — replaced on Nov 14 (10:27 PM PT) by the Re-entries setting (decision 4): Unlimited by default, or Limited N per player, cascading app → Settings → this game. Migration `042_pool_reentries_and_limit_lock.sql` (**applied to live by Sree on Nov 15**) carries it with the limit-only lock.
 - **F13.2** A late joiner (Add players mid-pool) starts at the highest score still in and counts one entry.
 - **F13.3** "Player leaves mid-pool" is not built: the admin uses Custom awards (and Undo / remove-seat as today).
 - **F13.4** Entry per player defaults to 100 points and is edited on the Awards screen only (not in Settings).

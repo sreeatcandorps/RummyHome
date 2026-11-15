@@ -228,7 +228,7 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
 
-## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migration 041 applied Nov 14; 042 re-entries setting + limit-only lock written, not applied)
+## PR 13 test cases (Pool: two-screen New game, pool scorecard, Add round, re-entry, Complete → Award → Result; migrations 041 applied Nov 14 and 042 re-entries setting + limit-only lock applied Nov 15)
 
 Spec: `docs/pool-design.md` (Sree's 14 decisions of Nov 14), mockups in `docs/pool-mockups/`.
 
