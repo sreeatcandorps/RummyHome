@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.resolve(process.argv[2] ?? path.join(here, '..', 'out'));
 const UI = path.join(OUT, 'ui');
-const SETS = ['smoke', 'full', 'known-bugs'];
+const SETS = ['smoke', 'full', 'chaos', 'roles', 'two-device', 'monkey', 'known-bugs'];
 
 const sets = [];
 for (const set of SETS) {
@@ -39,7 +39,13 @@ for (const set of SETS) {
   const screens = fs.existsSync(screensDir)
     ? fs.readdirSync(screensDir).filter((f) => f.endsWith('.png')).sort()
     : [];
-  sets.push({ set, flows, screens });
+  const videosDir = path.join(dir, 'videos');
+  const videos = fs.existsSync(videosDir) ? fs.readdirSync(videosDir).filter((f) => f.endsWith('.mp4')).sort() : [];
+  const crashCsv = path.join(dir, 'crashes.csv');
+  const crashes = fs.existsSync(crashCsv)
+    ? fs.readFileSync(crashCsv, 'utf8').split('\n').filter(Boolean).map((l) => { const p = l.split(','); return { flow: p[0], kind: p[1], detail: p.slice(2).join(',') }; })
+    : [];
+  sets.push({ set, flows, screens, videos, crashes });
 }
 
 // ---------- markdown ---------------------------------------------------------------------------
@@ -48,13 +54,18 @@ md.push('## Device UI tests (Maestro, Android emulator)', '');
 if (sets.length === 0) {
   md.push('_No UI results found under `ci/out/ui`._');
 } else {
-  for (const { set, flows, screens } of sets) {
+  for (const { set, flows, screens, videos, crashes } of sets) {
     const passed = flows.filter((f) => f.ok).length;
     const label = set === 'known-bugs' ? 'known-bugs (quarantined: red until the fixing PR lands)' : set;
     md.push(`### ${label} — ${passed}/${flows.length} flows passed`, '');
     md.push('| Flow | Result | Time |', '|---|---|---|');
-    for (const f of flows) md.push(`| \`${f.name}\` | ${f.ok ? 'pass' : '**FAIL**'} | ${f.secs}s |`);
+    for (const f of flows) md.push(`| \`${f.name}\` | ${f.ok ? 'pass' : '**FAIL**'} | ${f.secs}s${videos.includes(`${f.name}.mp4`) ? ' · video' : ''} |`);
     md.push('');
+    if (crashes.length) {
+      md.push(`**${crashes.length} crash/ANR in this set:**`, '');
+      for (const c of crashes) md.push(`- \`${c.flow}\` — ${c.kind}: ${c.detail}`);
+      md.push('');
+    }
     if (screens.length) {
       md.push(`<details><summary>${screens.length} screenshots</summary>`, '');
       for (const s of screens) md.push(`- \`ui/${set}/screens/${s}\``);
@@ -102,14 +113,15 @@ figure{margin:0} figcaption{font-size:12px;color:#666;margin-top:4px}
 img{max-height:520px;max-width:100%;border:1px solid #ccc;border-radius:6px;background:#000}
 </style>
 <h1>EZ Score — device UI screenshots</h1>
-<p>Maestro flows on a Pixel 6 / API 34 emulator. Light is the default; dark and landscape variants sit beside the same screen when the set has them.</p>`);
-for (const { set, flows, screens } of sets) {
+<p>Maestro flows on an Android emulator (device and suite in the artifact name). Light is the default; dark and landscape variants sit beside the same screen when the set has them.</p>`);
+for (const { set, flows, screens, videos, crashes } of sets) {
   const passed = flows.filter((f) => f.ok).length;
   html.push(`<h2>${esc(set)} — ${passed}/${flows.length} flows passed</h2>`);
+  for (const c of crashes) html.push(`<p class="fail">${esc(c.kind.toUpperCase())} in ${esc(c.flow)}: ${esc(c.detail)}</p>`);
   html.push('<table><tr><th>Flow</th><th>Result</th><th>Time</th></tr>');
   for (const f of flows) {
     html.push(
-      `<tr><td><code>${esc(f.name)}</code></td><td class="${f.ok ? 'pass' : 'fail'}">${f.ok ? 'pass' : 'FAIL'}</td><td>${f.secs}s</td></tr>`,
+      `<tr><td><code>${esc(f.name)}</code></td><td class="${f.ok ? 'pass' : 'fail'}">${f.ok ? 'pass' : 'FAIL'}</td><td>${f.secs}s${videos.includes(`${f.name}.mp4`) ? ` · <a href="${esc(set)}/videos/${esc(f.name)}.mp4">video</a>` : ''}</td></tr>`,
     );
   }
   html.push('</table>');

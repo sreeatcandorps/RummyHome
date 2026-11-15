@@ -97,10 +97,11 @@ test('e2e: known-bug flows say which PR fixes them, and smoke flows are tagged s
   }
 });
 
-test('e2e: the workflow runs ui-smoke on pull requests and ui-full nightly, with the runner scripts', () => {
+test('e2e: the workflow runs the device plan (PR 17: select → apk → ui matrix) with the runner scripts', () => {
   const wf = readFileSync(join(repo, '.github/workflows/ci.yml'), 'utf8');
-  assert.match(wf, /name: ui-\$\{\{ matrix\.suite \}\}/);
-  assert.match(wf, /fromJSON\('\["full"\]'\) \|\| fromJSON\('\["smoke"\]'\)/);
+  assert.match(wf, /name: ui-\$\{\{ matrix\.device \}\}-\$\{\{ matrix\.suite \}\}/);
+  assert.match(wf, /matrix: \$\{\{ fromJSON\(needs\.select\.outputs\.matrix\) \}\}/);
+  assert.match(wf, /seed-break\.sql/, 'the break-the-app roster is seeded for the device jobs');
   assert.match(wf, /reactivecircus\/android-emulator-runner@v2/);
   assert.match(wf, /EXPO_PUBLIC_SUPABASE_URL: http:\/\/10\.0\.2\.2:54321/, 'the APK talks to the local Supabase');
   assert.match(wf, /seed-e2e\.sql/);

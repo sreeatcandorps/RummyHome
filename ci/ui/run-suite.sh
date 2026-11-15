@@ -3,42 +3,68 @@
 # flow sets for the suite, keep the logcat tail. Called by the android-emulator-runner step in
 # .github/workflows/ci.yml (that action runs each `script:` line in its own shell, hence one script).
 #
-#   ci/ui/run-suite.sh <smoke|full> <apk>
+#   ci/ui/run-suite.sh <suite> <apk>
+#
+#   smoke       e2e/smoke + known-bugs (quarantine)                 every PR
+#   full        smoke + e2e/full + known-bugs                       nightly, pre-release
+#   chaos       e2e/chaos (break-the-app: double taps, offline, kill mid-save, huge numbers, 20×60)
+#   roles       e2e/roles (player / spectator / outsider / non-playing admin)
+#   two-device  e2e/two-device on two emulators (realtime + save race) — see run-two-device.sh
+#   monkey      adb monkey fuzz run aimed at crashes — see ci/chaos/monkey.sh
 #
 # Writes ci/out/ui/<set>/... (see run-flows.sh) and ci/out/ui/<set>.status (0/1) for the blocking
 # sets. Always exits 0: the workflow's last step reads the status files, so the artifact and gallery
-# are produced even when a set fails.
+# are produced even when a set fails. FLOW_FILTER / VIDEO pass through to run-flows.sh.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 
-SUITE="${1:?smoke|full}"
+SUITE="${1:?suite}"
 APK="${2:?apk path}"
 OUT=ci/out/ui
 mkdir -p "$OUT"
 
+settle_device() {
+  # Keep the screen on and the orientation ours for the whole run; dismiss the keyguard. System
+  # "isn't responding" / "has stopped" dialogs are hidden: one launcher ANR after a snapshot restore
+  # sat on top of every flow once. Our own app's crashes still fail the flow (logcat is checked).
+  adb shell settings put system screen_off_timeout 1800000
+  adb shell settings put system accelerometer_rotation 0
+  adb shell settings put system user_rotation 0
+  adb shell settings put global hide_error_dialogs 1
+  adb shell input keyevent 82
+  adb shell input keyevent 3
+  sleep 5
+}
+
+run_set() {
+  # run_set <set> [--quarantine]
+  echo 0 > "$OUT/$1.status"
+  ci/ui/run-flows.sh "rummy-home3/e2e/$1" "$OUT/$1" "${2:-}" || echo 1 > "$OUT/$1.status"
+}
+
 adb devices
-adb install -r "$APK"
-
-# Keep the screen on and the orientation ours for the whole run; dismiss the keyguard. System
-# "isn't responding" / "has stopped" dialogs are hidden: one launcher ANR after a snapshot restore
-# sat on top of every flow once. Our own app's crashes still fail the flow (the screen is gone).
-adb shell settings put system screen_off_timeout 1800000
-adb shell settings put system accelerometer_rotation 0
-adb shell settings put system user_rotation 0
-adb shell settings put global hide_error_dialogs 1
-adb shell input keyevent 82
-adb shell input keyevent 3
-sleep 5
-
-echo 0 > "$OUT/smoke.status"
-ci/ui/run-flows.sh rummy-home3/e2e/smoke "$OUT/smoke" || echo 1 > "$OUT/smoke.status"
-
-if [ "$SUITE" = full ]; then
-  echo 0 > "$OUT/full.status"
-  ci/ui/run-flows.sh rummy-home3/e2e/full "$OUT/full" || echo 1 > "$OUT/full.status"
-fi
-
-ci/ui/run-flows.sh rummy-home3/e2e/known-bugs "$OUT/known-bugs" --quarantine
+case "$SUITE" in
+  two-device)
+    ci/ui/run-two-device.sh "$APK"
+    ;;
+  monkey)
+    adb install -r "$APK"
+    settle_device
+    ci/chaos/monkey.sh "${MONKEY_EVENTS:-5000}" "$OUT/monkey"
+    ;;
+  *)
+    adb install -r "$APK"
+    settle_device
+    case "$SUITE" in
+      # With a FLOW_FILTER (change-based selection) only the named flows of the one set run.
+      smoke) run_set smoke; [ -n "${FLOW_FILTER:-}" ] || run_set known-bugs --quarantine ;;
+      full)  [ -n "${FLOW_FILTER:-}" ] || run_set smoke; run_set full; [ -n "${FLOW_FILTER:-}" ] || run_set known-bugs --quarantine ;;
+      chaos) VIDEO="${VIDEO:-all}" run_set chaos ;;
+      roles) run_set roles ;;
+      *) echo "unknown suite: $SUITE"; echo 1 > "$OUT/$SUITE.status" ;;
+    esac
+    ;;
+esac
 
 adb logcat -d -t 2000 > "$OUT/logcat-tail.txt" || true
 exit 0

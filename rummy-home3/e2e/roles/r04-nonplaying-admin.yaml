@@ -1,0 +1,26 @@
+appId: com.mindweavetech.rummyhome
+tags: [roles]
+# R16-4 A non-playing admin (a2 on BREAKP2: game_admin, not seated) can score but is not a column.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: a2@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP2
+- assertVisible: "Add round"
+- assertVisible: "20 players"
+- assertNotVisible: "View only"
+- takeScreenshot: r04-nonplaying-admin-scorecard
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 20000
+- assertNotVisible: "Amit Twoboards, no score"
+- takeScreenshot: r04-nonplaying-admin-add-round
+- back
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000

@@ -1,0 +1,89 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# C16-6 Bad input: letters and a sign in the pool Custom limit, zero, a five-digit limit; symbols and an
+# emoji in the initials cells. Each must be refused inline (the Start / Save stays put) and nothing may crash.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- tapOn: "New game"
+- extendedWaitUntil:
+    visible: "Add Chandra Creator (you)"
+    timeout: 20000
+- tapOn: "Add Chandra Creator (you)"
+- tapOn: "Add Arun Admin"
+- tapOn:
+    id: "new-game-next"
+- extendedWaitUntil:
+    visible: "Game type"
+    timeout: 15000
+- tapOn:
+    id: "game-type-pool"
+- tapOn:
+    id: "new-game-limit-custom"
+- tapOn:
+    id: "new-game-limit-input"
+- eraseText: 6
+- inputText: "abc"
+- hideKeyboard
+- tapOn:
+    id: "start-game"
+- extendedWaitUntil:
+    visible:
+      text: ".*whole number from 51 to 999.*"
+    timeout: 5000
+- assertVisible: "Game type"
+- takeScreenshot: c03-limit-letters-refused
+- tapOn:
+    id: "new-game-limit-input"
+- eraseText: 6
+- inputText: "0"
+- hideKeyboard
+- tapOn:
+    id: "start-game"
+- extendedWaitUntil:
+    visible:
+      text: ".*whole number from 51 to 999.*"
+    timeout: 5000
+- assertVisible: "Game type"
+- tapOn:
+    id: "new-game-limit-input"
+- eraseText: 6
+- inputText: "9"
+- inputText: "9"
+- inputText: "9"
+- inputText: "9"
+- inputText: "9"
+- hideKeyboard
+- tapOn:
+    id: "start-game"
+- extendedWaitUntil:
+    visible:
+      text: ".*whole number from 51 to 999.*"
+    timeout: 5000
+- assertVisible: "Game type"
+- takeScreenshot: c03-limit-99999-refused
+- back
+- extendedWaitUntil:
+    visible: "Add new players"
+    timeout: 15000
+# Initials cells: a symbol and an emoji must not become a player.
+- tapOn: "Add new players"
+- extendedWaitUntil:
+    visible: "Row 1 first initial"
+    timeout: 15000
+- tapOn: "Row 1 first initial"
+- inputText: "#"
+- inputText: "😀"
+- inputText: "1"
+- hideKeyboard
+- assertVisible: "Done adding players"
+- assertNotVisible: "Something went wrong"
+- takeScreenshot: c03-initials-symbols
+- tapOn: "Done adding players"
+- extendedWaitUntil:
+    visible: "Add new players"
+    timeout: 15000
+- assertNotVisible: "Something went wrong"
+- back

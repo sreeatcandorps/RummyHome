@@ -1,0 +1,64 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# C16-1 Rapid taps: Save round mashed six times in about a second. Exactly one round may be saved.
+# BREAKP1 starts at Round 4 (seed-break.sql); afterwards the scorecard must read Round 5, never Round 6,
+# and the Log must show "Round 4 added" but no "Round 5 added".
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP1
+- assertVisible: "Round 4"
+- tapOn: "Add round"
+- runFlow: ../lib/fill-round-bp1.yaml
+- takeScreenshot: c01-before-mash
+# First tap on the real button, then five more on the same spot while the screen is changing.
+- tapOn: "Save round"
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          point: "65%,89%"
+          waitToSettleTimeoutMs: 50
+# Whatever the mash opened (Add round again, the Complete page), come back to the scorecard.
+- runFlow:
+    when:
+      visible: "Save round"
+    commands:
+      - back
+- runFlow:
+    when:
+      visible: "Back to scorecard"
+    commands:
+      - tapOn: "Back to scorecard"
+- runFlow:
+    when:
+      visible: "Not yet"
+    commands:
+      - tapOn: "Not yet"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- extendedWaitUntil:
+    visible: "Round 5"
+    timeout: 15000
+- assertNotVisible: "Round 6"
+- assertNotVisible: "Something went wrong"
+- takeScreenshot: c01-after-mash-round-5
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*Round 4 added.*"
+- assertNotVisible:
+    text: ".*Round 5 added.*"
+- takeScreenshot: c01-log-one-round
+- back

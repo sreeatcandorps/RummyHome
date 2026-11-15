@@ -1,0 +1,25 @@
+appId: com.mindweavetech.rummyhome
+# On the Add round screen of BREAKP1 (seats: Chandra Creator, Arun Admin, Player One, Player Two, Mo Khan),
+# enter a balanced round without saving it. Rummy goes to Chandra Creator.
+---
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- tapOn: "Arun Admin, no score"
+- tapOn: "Drop -10"
+- tapOn: "Player One, no score"
+- tapOn: "Middle drop -30"
+- tapOn: "Player Two, no score"
+- tapOn: "2"
+- tapOn: "5"
+- tapOn: "Save score"
+- tapOn: "Mo Khan, no score"
+- tapOn: "1"
+- tapOn: "5"
+- tapOn: "Save score"
+- tapOn: "Chandra Creator, no score"
+- tapOn: "Rummy"
+- assertVisible: "Balance 0"
+- assertVisible:
+    text: "Save round"
+    enabled: true

@@ -1,0 +1,19 @@
+appId: com.mindweavetech.rummyhome
+# Two-device realtime, device A (c1): sit on the BREAKP1 scorecard while device B (a1) adds a round with
+# t1-realtime-add.yaml; the new round must appear here without any tap.
+env:
+  EXPECT_ROUND: "5"
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP1
+- takeScreenshot: t1-a-watching
+- extendedWaitUntil:
+    visible: "Round ${EXPECT_ROUND}"
+    timeout: 120000
+- takeScreenshot: t1-a-saw-new-round

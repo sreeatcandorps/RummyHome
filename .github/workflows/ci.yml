@@ -9,10 +9,13 @@
 # How to read the result: open the run → "Summary" → scroll to "EZ Score test report".
 # Or download the "test-report-<branch>" artifact and open report.md.
 #
-# Device UI tests (job "ui-smoke" on every pull request, "ui-full" nightly and on demand) build the app
-# with Gradle on the runner, point it at the same throw-away local Supabase, and drive it on an
-# Android emulator with Maestro (rummy-home3/e2e). Screenshots: "ui-screenshots-<branch>" artifact,
-# open ui/index.html. Details: rummy-home3/e2e/README.md and docs/testing-strategy.md.
+# Device UI tests (PR 17): the "select" job reads the change and picks the plan — per PR the smoke gate
+# plus the deeper flows for the touched area, nightly every suite (full, chaos, roles, two-device,
+# monkey) on the reference phone and smoke on three other devices, pre-release everything plus volume.
+# "apk" builds the app once (Gradle, pointed at the runner's throw-away local Supabase), the "ui"
+# matrix drives it on emulators with Maestro (rummy-home3/e2e), "dashboard" publishes screenshots,
+# videos and history to the gh-pages branch and files bugs as issues. Details: rummy-home3/e2e/README.md,
+# docs/test-plan/automation.md and docs/testing-strategy.md.
 
 name: CI
 
@@ -28,9 +31,17 @@ on:
         description: Branch, tag or full 40-character commit SHA to test (blank = the branch this is run from)
         required: false
         default: ''
+      tier:
+        description: Device tier — nightly (every suite on the reference phone, smoke elsewhere) or prerelease (everything + volume + monkey 20k)
+        required: false
+        default: nightly
+        type: choice
+        options: [nightly, prerelease, pr]
 
 permissions:
   contents: read
+
+# Nightly: the top of the PR stack and the APK-ready branch (main does not carry the stack yet).
 
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
@@ -47,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "main"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
+        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "cursor/pr17-test-infra-0a03"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
     steps:
       # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
       # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
@@ -123,7 +134,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "main"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
+        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "cursor/pr17-test-infra-0a03"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
     env:
       # Supabase CLI defaults for the local stack started below; never the hosted project.
       DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
@@ -227,7 +238,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "main"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
+        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "cursor/pr17-test-infra-0a03"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
     steps:
       # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
       # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
@@ -290,53 +301,92 @@ jobs:
           if-no-files-found: error
 
   # ------------------------------------------------------------------------------------------------
-  # Device UI tests: the real Android app on an emulator, driven by Maestro flows (rummy-home3/e2e).
+  # Device UI tests (PR 17): the real Android app on emulators, driven by Maestro flows (rummy-home3/e2e).
   #
-  #   ui-smoke  every pull request (not plain pushes). Sets: smoke (blocking) + known-bugs (quarantined: these
-  #             flows describe behaviour a later PR fixes; they are expected to fail until then and
-  #             never fail the job).
-  #   ui-full   nightly and workflow_dispatch. Sets: smoke + full + known-bugs.
+  #   select     reads the change (PR: base...head file list, commit-message tags) or the tier
+  #              (nightly / prerelease) and emits the device × suite matrix — ci/select-tests.mjs.
+  #   apk        builds the release APK once per run, pointed at the runner's local Supabase
+  #              (10.0.2.2 is the host as seen from the emulator); the device jobs download it.
+  #   ui         one job per matrix row: local Supabase + seeds, emulator, suite, gallery, artifact.
+  #   volume     load against the local database (pre-release tier) — ci/volume/run-volume.mjs (size
+  #              ladder) and ci/volume/run-stress.mjs (latency budgets, guard, concurrency).
+  #   dashboard  gathers every ui artifact, publishes screenshots / videos / history to the gh-pages
+  #              branch (the page Sree watches), comments on the PR and files found bugs as issues.
   #
-  # The app is built once per run from this commit (expo prebuild + gradlew assembleRelease, signed
-  # with the debug keystore the template already uses) and bundled with EXPO_PUBLIC_SUPABASE_URL
-  # pointing at the local Supabase on the runner (10.0.2.2 is the host as seen from the emulator).
   # Nothing here reaches the production project; no secrets are used. The APK is not a release and is
-  # not uploaded anywhere but the run's own artifacts.
+  # not uploaded anywhere but the run's own artifacts. Tags in the head commit message: [ui-all] runs
+  # every suite on a PR, [tier:nightly] / [tier:prerelease] run that tier on a PR, [file-bugs] lets a
+  # PR run open issues (nightly and pre-release always do).
   # ------------------------------------------------------------------------------------------------
-  ui:
-    name: ui-${{ matrix.suite }} (${{ github.head_ref || github.ref_name }})
-    # Not on plain pushes: every branch here has a pull request, and the PR run is the one that counts.
-    # Running on both would double the emulator minutes for the same commit.
-    if: github.event_name != 'push'
+  select:
+    name: Pick the device plan
     runs-on: ubuntu-latest
-    timeout-minutes: 75
-    permissions:
-      contents: read
-      pull-requests: write
-    strategy:
-      fail-fast: false
-      matrix:
-        suite: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && fromJSON('["full"]') || fromJSON('["smoke"]') }}
+    timeout-minutes: 5
+    outputs:
+      tier: ${{ steps.plan.outputs.tier }}
+      ui: ${{ steps.plan.outputs.ui }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      volume: ${{ steps.plan.outputs.volume }}
+      file_bugs: ${{ steps.plan.outputs.file_bugs }}
+      publish: ${{ steps.plan.outputs.publish }}
+      reason: ${{ steps.plan.outputs.reason }}
+      checkout_ref: ${{ steps.plan.outputs.checkout_ref }}
+      slug: ${{ steps.plan.outputs.slug }}
     env:
-      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-      # The Android app runs in the emulator; 10.0.2.2 is the runner's loopback from in there.
+      # Schedules only fire from the default branch, which does not carry this tooling yet; a nightly
+      # run checks out the top of the PR stack and tests that.
+      NIGHTLY_REF: cursor/pr17-test-infra-0a03
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          INPUT_TIER: ${{ inputs.tier }}
+          INPUT_REF: ${{ inputs.ref }}
+        run: |
+          FILES=""; MESSAGE=""
+          if [ "$EVENT" = pull_request ]; then
+            FILES="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || true)"
+            MESSAGE="$(git log -1 --format=%B "$HEAD_SHA" || true)"
+          fi
+          TIER="$INPUT_TIER"
+          case "$MESSAGE" in *"[tier:prerelease]"*) TIER=prerelease ;; *"[tier:nightly]"*) TIER=nightly ;; esac
+          REF="${{ github.sha }}"
+          [ "$EVENT" = schedule ] && REF="$NIGHTLY_REF"
+          [ "$EVENT" = workflow_dispatch ] && [ -n "$INPUT_REF" ] && REF="$INPUT_REF"
+          NAME="${{ github.head_ref || github.ref_name }}"
+          [ "$EVENT" = schedule ] && NAME="$NIGHTLY_REF"
+          echo "checkout_ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "slug=$(echo "$NAME" | tr '/' '-')" >> "$GITHUB_OUTPUT"
+          SELECT_EVENT="$EVENT" SELECT_TIER="$TIER" SELECT_FILES="$FILES" SELECT_MESSAGE="$MESSAGE" node ci/select-tests.mjs
+          {
+            echo "### Device plan"; echo
+            echo "\`$(grep -m1 '^tier=' "$GITHUB_OUTPUT" | cut -d= -f2)\` — $(grep -m1 '^reason=' "$GITHUB_OUTPUT" | cut -d= -f2-)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  apk:
+    name: Build the test APK
+    needs: select
+    if: needs.select.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      anon_sha: ${{ steps.keys.outputs.anon_sha }}
+    env:
       EXPO_PUBLIC_SUPABASE_URL: http://10.0.2.2:54321
       CI: 1
       EXPO_NO_TELEMETRY: 1
     steps:
       - uses: actions/checkout@v4
-
-      - id: meta
-        name: Name this run
-        run: |
-          REF="${{ github.head_ref || github.ref_name }}"
-          echo "slug=$(echo "$REF" | tr '/' '-')" >> "$GITHUB_OUTPUT"
-
-      - name: Enable KVM for the emulator
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
+        with:
+          ref: ${{ needs.select.outputs.checkout_ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -358,33 +408,22 @@ jobs:
           version: latest
           github-token: ${{ github.token }}
 
-      # ---- database: the same local stack the db job uses, plus the UI fixtures ------------------
-      - name: Start a throw-away local Supabase
-        working-directory: rummy-home3
-        run: |
-          # No mail container either (the UI tests send nothing); its host port has clashed on a runner before.
-          for attempt in 1 2 3; do
-            supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1; rc=$?
-            grep -viE 'key|secret|token' /tmp/supabase-start.log || true
-            [ "$rc" -eq 0 ] && break
-            echo "supabase start failed (attempt $attempt), retrying"; supabase stop --no-backup || true; sleep 10
-          done
-          psql "$DB_URL" -tAc "select version()"
-          supabase db reset 2>&1 | tail -3
-          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
-          psql "$DB_URL" -tAc "select count(*) || ' games seeded for the UI tests' from public.games"
-
+      # The local anon key is the same on every runner (the CLI's fixed demo JWT), so the APK built here
+      # talks to the local Supabase of every device job. Each device job checks the hash before using it.
       - id: keys
         name: Read the local anon key (never printed)
         working-directory: rummy-home3
         run: |
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1 || true
+          grep -viE 'key|secret|token' /tmp/supabase-start.log | tail -3 || true
           eval "$(supabase status -o env | grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=')"
           KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
           [ -n "$KEY" ] || { echo "no anon key from supabase status"; exit 1; }
           echo "::add-mask::$KEY"
           echo "anon=$KEY" >> "$GITHUB_OUTPUT"
+          echo "anon_sha=$(printf '%s' "$KEY" | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+          supabase stop --no-backup || true
 
-      # ---- app: native project + release APK pointed at the local database ----------------------
       - name: Install app dependencies
         working-directory: rummy-home3
         run: npm ci --no-audit --no-fund
@@ -409,13 +448,91 @@ jobs:
           ./gradlew assembleRelease --no-daemon --console=plain -q
           ls -la app/build/outputs/apk/release/
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-apk-${{ github.run_id }}
+          path: rummy-home3/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 3
+          if-no-files-found: error
+
+  ui:
+    name: ui-${{ matrix.device }}-${{ matrix.suite }}
+    needs: [select, apk]
+    if: needs.select.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      CI: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.select.outputs.checkout_ref }}
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+
+      # ---- database: migrations + the UI fixtures + the break-the-app roster -----------------------
+      - name: Start a throw-away local Supabase, seed it
+        working-directory: rummy-home3
+        run: |
+          # No mail container either (the UI tests send nothing); its host port has clashed on a runner before.
+          for attempt in 1 2 3; do
+            supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1; rc=$?
+            grep -viE 'key|secret|token' /tmp/supabase-start.log || true
+            [ "$rc" -eq 0 ] && break
+            echo "supabase start failed (attempt $attempt), retrying"; supabase stop --no-backup || true; sleep 10
+          done
+          psql "$DB_URL" -tAc "select version()"
+          supabase db reset 2>&1 | tail -3
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-break.sql
+          psql "$DB_URL" -tAc "select count(*) || ' games seeded for the UI tests' from public.games"
+
+      - name: Check this runner's anon key is the one baked into the APK
+        working-directory: rummy-home3
+        env:
+          EXPECTED: ${{ needs.apk.outputs.anon_sha }}
+        run: |
+          eval "$(supabase status -o env | grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=')"
+          KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          echo "::add-mask::$KEY"
+          HERE="$(printf '%s' "$KEY" | sha256sum | cut -c1-16)"
+          [ "$HERE" = "$EXPECTED" ] || { echo "local anon key differs from the APK's (hash $HERE vs $EXPECTED): the CLI versions diverged between jobs"; exit 1; }
+          echo "anon key matches the APK"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: test-apk-${{ github.run_id }}
+          path: ci/out/apk
+
       - name: Install Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
           "$HOME/.maestro/bin/maestro" --version
 
-      # ---- emulator: Pixel 6, API 34, snapshot cached between runs --------------------------------
+      # ---- emulator: snapshot cached per device ---------------------------------------------------
       - name: AVD cache
         uses: actions/cache@v4
         id: avd-cache
@@ -423,66 +540,54 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-x86_64-default-pixel6-v2
+          key: avd-${{ matrix.api }}-${{ matrix.arch }}-${{ matrix.target }}-${{ matrix.profile }}-v3
 
       - name: Create the AVD and a boot snapshot (cache miss only)
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
-          arch: x86_64
-          target: default
-          profile: pixel_6
+          api-level: ${{ matrix.api }}
+          arch: ${{ matrix.arch }}
+          target: ${{ matrix.target }}
+          profile: ${{ matrix.profile }}
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
 
-      - name: Run the ${{ matrix.suite }} suite on the emulator
+      - name: Run ${{ matrix.suite }} on ${{ matrix.label }}
         uses: reactivecircus/android-emulator-runner@v2
         env:
           SUITE: ${{ matrix.suite }}
+          FLOW_FILTER: ${{ matrix.flows }}
+          DEVICE_ROTATION: ${{ matrix.rotation }}
+          DEVICE_FONT_SCALE: ${{ matrix.font }}
+          MONKEY_EVENTS: ${{ matrix.monkeyEvents }}
+          EMULATOR_SYSTEM_IMAGE: system-images;android-${{ matrix.api }};${{ matrix.target }};${{ matrix.arch }}
+          EMULATOR_PROFILE: ${{ matrix.profile }}
           MAESTRO_CLI_NO_ANALYTICS: 1
         with:
-          api-level: 34
-          arch: x86_64
-          target: default
-          profile: pixel_6
+          api-level: ${{ matrix.api }}
+          arch: ${{ matrix.arch }}
+          target: ${{ matrix.target }}
+          profile: ${{ matrix.profile }}
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           # The action runs each script line in its own shell, so the whole suite lives in one script.
-          script: ci/ui/run-suite.sh "$SUITE" rummy-home3/android/app/build/outputs/apk/release/app-release.apk
+          script: ci/ui/run-suite.sh "$SUITE" ci/out/apk/app-release.apk
 
       - name: Gallery + job summary
         if: always()
         run: node ci/ui/build-gallery.mjs ci/out
 
-      - name: Upload screenshots and Maestro output
+      - name: Upload screenshots, videos and Maestro output
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ui-screenshots-${{ steps.meta.outputs.slug }}-${{ matrix.suite }}
+          name: ui-${{ needs.select.outputs.slug }}-${{ matrix.device }}-${{ matrix.suite }}
           path: ci/out/ui
           if-no-files-found: warn
-
-      - name: Comment the result on the pull request
-        if: always() && github.event_name == 'pull_request'
-        continue-on-error: true
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const marker = '<!-- ezscore-ui-tests -->';
-            const path = 'ci/out/ui/summary.md';
-            const body = marker + '\n' + (fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '_UI tests produced no summary._') +
-              `\n\n[Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
-            const { data: comments } = await github.rest.issues.listComments({
-              ...context.repo, issue_number: context.issue.number, per_page: 100,
-            });
-            const mine = comments.find((c) => c.body && c.body.startsWith(marker));
-            if (mine) await github.rest.issues.updateComment({ ...context.repo, comment_id: mine.id, body });
-            else await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
 
       - name: Stop the local Supabase
         if: always()
@@ -490,6 +595,192 @@ jobs:
         run: supabase stop --no-backup || true
 
       - name: Fail the job if a blocking set failed
+        env:
+          TIER: ${{ needs.select.outputs.tier }}
+          SUITE: ${{ matrix.suite }}
         run: |
-          for s in smoke full; do [ -f ci/out/ui/$s.status ] && echo "$s: exit $(cat ci/out/ui/$s.status)"; done
-          for s in smoke full; do [ ! -f ci/out/ui/$s.status ] || [ "$(cat ci/out/ui/$s.status)" = 0 ] || exit 1; done
+          # On a PR only the gate (smoke; full when selected) blocks; chaos / roles / two-device / monkey
+          # findings go to the dashboard and the PR comment. Nightly and pre-release: everything blocks.
+          case "$TIER" in pr) SETS="smoke full" ;; *) SETS="smoke full chaos roles two-device monkey" ;; esac
+          rc=0
+          for s in $SETS; do
+            [ -f "ci/out/ui/$s.status" ] || continue
+            echo "$s: exit $(cat "ci/out/ui/$s.status")"
+            [ "$(cat "ci/out/ui/$s.status")" = 0 ] || rc=1
+          done
+          for s in chaos roles two-device monkey; do
+            [ -f "ci/out/ui/$s.status" ] && [ "$(cat "ci/out/ui/$s.status")" != 0 ] && [ "$TIER" = pr ] && echo "::warning title=$s found something::$s is red on this PR run (not blocking on a PR) — see the dashboard comment"
+          done
+          exit $rc
+
+  volume:
+    name: Volume on local Supabase
+    needs: select
+    if: needs.select.outputs.volume == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.select.outputs.checkout_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ci/package-lock.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+      - name: Start a throw-away local Supabase, seed it
+        working-directory: rummy-home3
+        run: |
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket 2>&1 | grep -viE 'key|secret|token' || true
+          supabase db reset 2>&1 | tail -2
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-break.sql
+      - name: Run the stress checks (latency budgets, 500-round guard, 8 clients)
+        working-directory: ci
+        run: |
+          npm ci --no-audit --no-fund
+          mkdir -p out/volume
+          set +e
+          VOLUME_OUT=out/volume node volume/run-stress.mjs | tee out/volume/stress.tap
+          echo "${PIPESTATUS[0]}" > out/volume/stress.status
+      - name: Run the size ladder (docs/volume-testing.md)
+        working-directory: ci
+        run: |
+          set +e
+          OUT=out/volume node volume/run-volume.mjs | tee out/volume/volume.tap
+          echo "${PIPESTATUS[0]}" > out/volume/volume.status
+          cat out/volume/results.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: volume-${{ needs.select.outputs.slug }}
+          path: ci/out/volume
+      - name: Stop the local Supabase
+        if: always()
+        working-directory: rummy-home3
+        run: supabase stop --no-backup || true
+      - run: '[ "$(cat ci/out/volume/stress.status)" = 0 ] && [ "$(cat ci/out/volume/volume.status)" = 0 ]'
+
+  dashboard:
+    name: Dashboard, PR comment, bug filing
+    needs: [select, apk, ui, volume]
+    if: always() && needs.select.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.select.outputs.checkout_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ui-${{ needs.select.outputs.slug }}-*
+          path: ci/out/ui-all
+        continue-on-error: true
+
+      - name: Fetch the current dashboard (gh-pages) for history
+        run: |
+          if git fetch --depth 1 origin gh-pages 2>/dev/null; then
+            git worktree add site FETCH_HEAD
+          else
+            mkdir site
+          fi
+          ls site | head
+
+      - id: pages
+        name: Is GitHub Pages enabled?
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if URL="$(gh api "repos/${{ github.repository }}/pages" --jq .html_url 2>/dev/null)"; then
+            echo "url=$URL" >> "$GITHUB_OUTPUT"; echo "enabled=true" >> "$GITHUB_OUTPUT"; echo "Pages: $URL"
+          else
+            echo "url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> "$GITHUB_OUTPUT"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=GitHub Pages is not enabled::Settings → Pages → Source 'Deploy from a branch' → gh-pages / (root). The dashboard is published to the gh-pages branch either way."
+          fi
+
+      - name: Build the dashboard
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SELECT_TIER: ${{ needs.select.outputs.tier }}
+          SELECT_REASON: ${{ needs.select.outputs.reason }}
+        run: node ci/ui/build-dashboard.mjs ci/out/ui-all site
+
+      - name: "Publish to gh-pages (one orphan commit, so the branch never grows)"
+        if: needs.select.outputs.publish == 'true'
+        run: |
+          cd site
+          [ -e .git ] || git init -q
+          git checkout -q --orphan publish
+          git add -A
+          git -c user.name=ezscore-ci -c user.email=ezscore-ci@users.noreply.github.com commit -q -m "dashboard: run ${{ github.run_number }} (${{ needs.select.outputs.slug }})"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
+          echo "published run ${{ github.run_id }} to gh-pages"
+
+      - name: File found bugs as issues
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FILE_BUGS: ${{ needs.select.outputs.file_bugs }}
+          PAGES_URL: ${{ steps.pages.outputs.url }}
+        run: node ci/report/file-bugs.mjs ci/out/ui-all
+
+      - name: Comment on the pull request
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.url }}
+          PAGES_ENABLED: ${{ steps.pages.outputs.enabled }}
+          REASON: ${{ needs.select.outputs.reason }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- ezscore-ui-tests -->';
+            let runs = [];
+            try { runs = JSON.parse(fs.readFileSync('site/runs.json', 'utf8')); } catch {}
+            const me = runs.find((r) => String(r.id) === String(context.runId));
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const pages = process.env.PAGES_URL.replace(/\/$/, '');
+            const lines = [marker, '## Device tests', '', `_${process.env.REASON}_`, ''];
+            if (me) {
+              lines.push(`**${me.passed}/${me.total} flows passed**${me.crashes ? ` · **${me.crashes} crash/ANR**` : ''}`, '');
+              lines.push('| Job | Result |', '|---|---|');
+              for (const j of me.jobs) lines.push(`| ${j.device} · ${j.suite} | ${j.ok ? 'green' : '**red**'} |`);
+              lines.push('');
+            } else {
+              lines.push('_No device results were collected (see the run)._', '');
+            }
+            lines.push(`[Dashboard for this run](${pages}/runs/${context.runId}/) · [All runs](${pages}/) · [GitHub run](${runUrl})`);
+            if (process.env.PAGES_ENABLED !== 'true') lines.push('', '> GitHub Pages is not enabled yet, so the dashboard links 404 until Settings → Pages → *Deploy from a branch* → `gh-pages` / root is set once. The content is already on the `gh-pages` branch.');
+            if (fs.existsSync('ci/out/ui-all/bugs.md')) lines.push('', fs.readFileSync('ci/out/ui-all/bugs.md', 'utf8'));
+            const body = lines.join('\n');
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: context.issue.number, per_page: 100 });
+            const mine = comments.find((c) => c.body && c.body.startsWith(marker));
+            if (mine) await github.rest.issues.updateComment({ ...context.repo, comment_id: mine.id, body });
+            else await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+
+      - name: Job summary
+        if: always()
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.url }}
+        run: |
+          echo "### Dashboard" >> "$GITHUB_STEP_SUMMARY"
+          echo "${PAGES_URL%/}/runs/${{ github.run_id }}/ (all runs: ${PAGES_URL})" >> "$GITHUB_STEP_SUMMARY"

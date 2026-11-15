@@ -1,6 +1,6 @@
 # Test plan (PR 16) — index
 
-Review-first. **No test infrastructure is built until Sree approves**; this folder is the plan. The existing per-PR
+Approved by Sree on Nov 14 (Android-only, budget OK, infrastructure first). **PR 17 builds it** — see "Status" below; this folder stays the plan. The existing per-PR
 reference stays `../testing-strategy.md` (areas, codes, PR blocks); this plan adds the flow view, the role and device
 axes, the automation tiers and the break-the-app programme, and links back to those codes.
 
@@ -11,6 +11,21 @@ axes, the automation tiers and the break-the-app programme, and links back to th
 | 3 | [`devices.md`](devices.md) | device classes D1–D7, tooling options with cost and effort, the flow × role × device matrix |
 | 4 | [`automation.md`](automation.md) | tiers T0–T4, change-based selection table, flakiness policy |
 | 5 | [`break-the-app.md`](break-the-app.md) | current testing setup (accounts, seed, CI jobs, volume, emulators, gaps), proposed roster / seed / volume / chaos / fuzz / role runs, live visibility from Sree's PC, bug reporting to GitHub issues and the project board, build order |
+
+## Status (PR 17, test infrastructure)
+
+| Plan item | Built in PR 17 | Still open |
+| --- | --- | --- |
+| Roster of test users + Points / Pool seed games (`break-the-app.md` §3.1–3.2) | `supabase/seed-break.sql`: 38 accounts, 63 placeholders, 47 games | — |
+| Chaos C16-1..10 (§3.4) | `e2e/chaos/c01–c10` + runner hooks `--net-off`, `--kill-after`, crash detection, video | C16-3 concurrent edits is the two-device race; soak is T4 |
+| Fuzz (§3.5) | `ci/chaos/monkey.sh` (1.5k PR / 5k nightly / 20k pre-release) | Firebase Robo needs a Google Cloud project (Sree) |
+| Role runs (§3.6) | `e2e/roles/r01–r04` | SP on every flow; CR vs AD on Complete |
+| Device matrix D1–D4 (`devices.md`) | `ci/select-tests.mjs` DEVICES: Pixel 6, Pixel 4a API 30, Pixel 7 Pro font 1.3, Pixel Tablet landscape | D5 real phones, D6/D7 iOS (Q16.4: Android-only) |
+| Two emulators, concurrent edits (§3.7) | `ci/ui/run-two-device.sh` + `e2e/two-device/*` | — |
+| Tiers and change-based selection (`automation.md`) | `select` job: PR / nightly / pre-release; area → flows map; `[ui-all]`, `[tier:…]`, `[file-bugs]` tags | screenshot regression (Q16.14), Playwright `/r/` (T16-6) |
+| Live view from Sree's PC (§4) | gh-pages dashboard: history, screenshots, videos, Live panel over the Actions API | GitHub Pages must be switched on once; App Live / Maestro Cloud / self-hosted runner are flagged, not started |
+| Bug filing (§5) | `ci/report/file-bugs.mjs`: issues `bug` + `found-by-tests`, de-duplicated; board add attempted | board auto-add rule (Q16.8) or a `PROJECTS_TOKEN` |
+| Volume (§3.3) | `volume` job, pre-release tier: the existing `run-volume.mjs` size ladder + new `run-stress.mjs` V1–V5 (latency budgets, 8 clients, 500-round guard) | 20 × 500 on a device, 30 × 20 result |
 
 ## Headline numbers
 

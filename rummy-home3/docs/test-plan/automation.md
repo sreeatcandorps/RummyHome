@@ -10,13 +10,19 @@
 | T3 Pre-APK | before each milestone APK | half a day of machine time | T2 + volume at full sizes (`docs/volume-testing.md`), chaos set (C16-x), Robo / monkey on Firebase Test Lab real devices, **manual two-phone pass** (M cells) on D5 | yes for the APK |
 | T4 Weekly / on demand | Sunday, or `workflow_dispatch` | hours | 10,000-player roster, 500-round games, 30 × 20 result, soak (one emulator adding a round every 20 s for 2 hours), fuzz with the big-number and bad-input corpus | report only |
 
-Today: T0 and T1 exist (without Playwright, coverage test, role runs); T2 exists for D1 only; T3 is the manual
-`two-phone-nov11.md` pass plus the volume script run by hand; T4 does not exist.
+Today (after PR 17): T0 and T1 exist (T1 adds the area's deeper flows by name; no Playwright / coverage test yet);
+T2 is the `nightly` tier — full + chaos + roles + two-device + monkey 5k on D1 and smoke on D2–D4; T3 is the
+`prerelease` tier (`workflow_dispatch`, tier = prerelease) — full on every device, chaos on D1 / D2 / D4, monkey 20k,
+the volume job — plus the manual two-phone pass; T4 does not exist. Tiers are chosen by `ci/select-tests.mjs`
+(job `select`), the plan is printed in the job summary.
 
 ## 2. Change-based selection (what runs when)
 
-A small script (`ci/select-tests.mjs`, to write) reads the PR diff and emits the flow list for `ui-smoke`. The full set
-still runs nightly, so selection can only make a PR faster, never hide a failure for more than a night.
+`ci/select-tests.mjs` (PR 17) reads the PR diff (`base...head`) and emits the device × suite matrix. The smoke set
+always runs whole on a PR (it is the gate); the table below is the **intent**, the script's `AREA_FLOWS` map is the
+implementation (areas: add-round, scorecard, save-round, players, results, complete-awards, help, theme, log, auth,
+rls) and `tests/test-selection-pr17.test.ts` keeps the two honest. The full set still runs nightly, so selection
+can only make a PR faster, never hide a failure for more than a night.
 
 | Changed paths | Always | Added flows |
 | --- | --- | --- |
@@ -36,9 +42,11 @@ still runs nightly, so selection can only make a PR faster, never hide a failure
 | `docs/**` only | unit (doc tests: testing-strategy codes, help tables, coverage) | none |
 | `package.json`, `app.json`, `eas.json`, `.github/**` | everything | whole smoke set |
 
-Rules: (1) `smoke/01` (sign in + Home) always runs because every flow depends on it; (2) a PR label `full-ui` forces the
-full set; (3) if the selector cannot classify a path it falls back to the whole smoke set; (4) selection is logged in the
-job summary so a skipped flow is visible.
+Rules as built: (1) the whole smoke set always runs on an app change; (2) `[ui-all]` in the head commit message runs
+every suite on the reference phone (labels cannot be set from the agent's read-only CLI, so the tag replaces the
+`full-ui` label), `[tier:nightly]` / `[tier:prerelease]` run that tier on a PR, `[file-bugs]` lets a PR run open issues;
+(3) a change under `ci/`, `.github/`, `e2e/` or the seeds runs every suite; a docs-only change runs nothing on a device;
+an app path outside the map runs smoke only; (4) the plan is printed in the `select` job summary.
 
 ## 3. Flakiness policy
 

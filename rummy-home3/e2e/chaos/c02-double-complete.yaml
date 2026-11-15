@@ -1,0 +1,56 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# C16-1 Double submit: the Complete confirmation is tapped four times in a row. The game must complete
+# once, with no error dialog, and the Log must hold one "completed" row.
+# BREAKP5: active, no rounds, a1 is the seated admin (the creator c2 is not seated).
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: a1@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP5
+- tapOn: "Complete game"
+- extendedWaitUntil:
+    visible: "Game admins"
+    timeout: 15000
+- tapOn: "Complete game"
+- extendedWaitUntil:
+    visible: "Complete this game?"
+    timeout: 5000
+- takeScreenshot: c02-confirm-dialog
+# First tap on the real button (bottom right of the dialog), then three more on the same spot.
+- tapOn: "Confirm complete game"
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          point: "77%,57%"
+          waitToSettleTimeoutMs: 50
+- extendedWaitUntil:
+    visible: "Completed"
+    timeout: 20000
+- assertNotVisible: "Something went wrong"
+- assertNotVisible: "Could not complete"
+- takeScreenshot: c02-completed-once
+- runFlow:
+    when:
+      visible: "Back to scorecard"
+    commands:
+      - tapOn: "Back to scorecard"
+- extendedWaitUntil:
+    visible: "Scorecard"
+    timeout: 15000
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*[Cc]ompleted.*"
+- takeScreenshot: c02-log-completed
+- back

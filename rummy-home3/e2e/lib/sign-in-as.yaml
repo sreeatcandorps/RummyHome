@@ -1,0 +1,48 @@
+appId: com.mindweavetech.rummyhome
+# Sign in as a specific seeded account (supabase/seed-break.sql roster), logging out first if someone
+# else is signed in. Every chaos / roles / two-device flow starts here:
+#   - runFlow:
+#       file: ../lib/sign-in-as.yaml
+#       env:
+#         EMAIL: c1@test.local
+env:
+  EMAIL: c1@test.local
+  PASSCODE: "123456"
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "New game|Sign in"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "New game"
+    commands:
+      - tapOn: "Your profile"
+      - scrollUntilVisible:
+          element: "Log out"
+          direction: DOWN
+          timeout: 10000
+      - tapOn: "Log out"
+      - extendedWaitUntil:
+          visible:
+            id: "login-email"
+          timeout: 20000
+- tapOn:
+    id: "login-email"
+- eraseText: 60
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "login-passcode"
+- eraseText: 10
+- inputText: ${PASSCODE}
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: "Loading your games"
+    timeout: 20000

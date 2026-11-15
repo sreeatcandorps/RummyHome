@@ -229,6 +229,27 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | I6-10 | S | `smoke/09-new-game.yaml` | Add new players: three rows and no fourth; H then T (cell 1 jumps on) → "Saved HT2", "Harish Test is already HT. This new player is HT2.", no HTE, "Edit initials for HT2" (screenshot); Done |
 | I6-11 | N | `full/31-edit-initials-mid-game.yaml` | Game E Players/Admins → Options for Zed Zero → Edit initials: hint "Change the letters to save."; ZZ2 typed → format hint, Save visible (screenshot) → the Players page and the scorecard read ZZ2; back to ZZ |
 
+## PR 17 test cases (Test infrastructure: roster seed, chaos / roles / two-device / monkey suites, device matrix, dashboard, bug filing; no migration)
+
+| # | Kind | Where | What it proves |
+| --- | --- | --- | --- |
+| T17-1 | U | `tests/test-selection-pr17.test.ts` | `ci/select-tests.mjs`: docs-only → no device; push → no device; an app change → smoke + the area's flows by name; infra change → every suite; `[ui-all]` / `[file-bugs]` tags; nightly and pre-release matrices; every mapped flow exists; the workflow reads the planner's matrix; the runner knows every suite and hook; the seed has every game a flow opens (T16-8) |
+| T17-2 | D | `supabase/seed-break.sql` (applied after `seed-e2e.sql` in every device job and the volume job) | roster of 38 accounts (4 creators, 3 admins incl. non-playing, 20 players, spectator, 2 outsiders) + 63 placeholders; BREAKP1 (3 rounds + undone 4th, spectator), BREAKP2 (20 × 60), BREAKP4 completed in a result, BREAKP5 (creator not seated), BREAKP6 / BREAKP7 (offline, kill targets), BREAKQ1 (pool 101 with an out and a re-entry), BREAKQ2 (pool 201, 19 out), BREAKQ3 (pool 400 awarded), 38 games for one creator, a pending link; the 029 guard is lifted only while seeding and re-enabled |
+| T17-3 | N | `e2e/chaos/c01`, `c02` | C16-1 double submit: Save round mashed 6× → one round, Log has one row; Complete confirm 4× → completed once |
+| T17-4 | N | `e2e/chaos/c03`, `c04` | C16-6 / C16-7 bad input and huge numbers: `abc`, `0`, `99999` refused in the pool Custom limit with the 51–999 line; `#`, emoji, digit in an initials cell add nobody; a fifth digit is ignored (cap 9999), four-digit counts save, totals render, Undo removes them |
+| T17-5 | N | `e2e/chaos/c05--net-off`, `c06` | C16-4 offline: wifi + data off (runner hook) → "Could not save round", still Round 1; network back → saves once, Round 2, never Round 3 |
+| T17-6 | N | `e2e/chaos/c07--kill-after`, `c08` | C16-5 kill mid-save: the app is force-stopped ~0.7 s after the pre-save screenshot; on relaunch the game is Round 1 or Round 2 with a matching Log, never half-saved, no error on open |
+| T17-7 | N | `e2e/chaos/c09`, `c10` | volume on a device: BREAKP2 (20 × 60) opens within 10 s, swipes, Add round draws; BREAKQ2 with 19 outs completes, Awards lists 20, Winner takes all saves |
+| T17-8 | N | `e2e/roles/r01–r04` | T16-3 must-nots: player sees View only and no Add round / Undo / Complete; spectator read-only and not in the header, no card for a pool they are not in; outsider sees no BREAK card; non-playing admin scores but is not a column |
+| T17-9 | N | `e2e/two-device/*`, `ci/ui/run-two-device.sh` | T16-5/6 two emulators: device B adds a round and A shows it unprompted (realtime); both prefill and Save in the same instant → exactly one new round on both, the loser sees the conflict notice, Log has one row |
+| T17-10 | T3 | `ci/chaos/monkey.sh` | `adb monkey` on the signed-in app, fixed seed 17, no system keys: 1,500 events on an infra PR, 5,000 nightly, 20,000 pre-release; a CRASH / NOT RESPONDING line or a logcat crash for the package fails the run |
+| T17-11 | T3 | `ci/volume/run-stress.mjs` (pre-release tier next to the existing `run-volume.mjs` size ladder; local Supabase only, refuses a hosted URL) | V1 40 × 25 sequential save_round p95 ≤ 250 ms; V2 8 clients × 50 at once p95 ≤ 600 ms, no errors; V3 home list for a user in 50+ games ≤ 400 ms; V4 round 500 saves and 501 is refused by the guard; V5 the 20 × 60 game reads back ≤ 300 ms |
+| T17-12 | I | `ci/ui/run-flows.sh` | every flow: logcat cleared before, crash buffer + ANR check after (a crash fails a passing flow and lands in `crashes.csv`), `screenrecord` video kept for failures (always for chaos), `--net-off` / `--kill-after` / `FLOW_FILTER` / `DEVICE_ROTATION` / `DEVICE_FONT_SCALE` |
+| T17-13 | I | `.github/workflows/ci.yml` jobs `select` → `apk` → `ui` (matrix) → `volume` → `dashboard` | the APK is built once per run and shared; each device job checks its local anon key hash against the APK's; devices Pixel 6 (reference), Pixel 4a API 30, Pixel 7 Pro font 1.3, Pixel Tablet landscape; on a PR only smoke / full block, the rest warn; nightly / pre-release everything blocks |
+| T17-14 | I | `ci/ui/build-dashboard.mjs`, gh-pages | one orphan commit per run (branch never grows), last 15 runs with screenshots, failure / chaos videos, crash lines, a Live panel polling the public Actions API every 60 s with links to running job logs |
+| T17-15 | I | `ci/report/file-bugs.mjs` | one issue per failing flow or crash outside `known-bugs`, labels `bug` + `found-by-tests` (label created if missing), de-duplicated by title (comment on repeat, reopen if closed), project-board add attempted and skipped with a note when the token cannot; dry run unless `FILE_BUGS=true` (nightly, pre-release, `[file-bugs]`) |
+| T17-16 | I | `.github/workflows/nightly.yml` | the one file main needs: at 09:00 UTC it asks CI to run the nightly tier on the top of the stack via `workflow_dispatch` (GITHUB_TOKEN may start that event) |
+
 ## PR 11 test cases (Help redesign — spec only, `docs/help-design.md`; codes reserved)
 
 | # | Kind | Where | What it proves |
@@ -247,12 +268,12 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | --- | --- | --- | --- |
 | T16-1 | U | `tests/test-plan-coverage.test.ts` (to write) | `coverage.md` lists every route and every dialog / notice / alert / snackbar string; zero gaps |
 | T16-2 | U | same | every `Fxx` in `flows.md` has a PNG; every W code used exists |
-| T16-3 | N | `e2e/roles/*.yaml` (to write) | must-not assertions per role (CR / AD / PL / SP / OU) on D1 |
-| T16-4 | N | `ui-full` device matrix (to add) | smoke set on D2–D4, screenshots vs approved set |
-| T16-5 | T3 | `e2e/chaos/*.yaml`, `ci/chaos/*.mjs` (to write) | C16-1..10, `adb monkey` 20,000 events, Firebase Robo: no crash, no duplicate round |
+| T16-3 | N | `e2e/roles/*.yaml` (PR 17) | must-not assertions per role (CR / AD / PL / SP / OU) on D1 |
+| T16-4 | N | `ui` device matrix (PR 17: `ci/select-tests.mjs` DEVICES) | smoke set on D2–D4, screenshots vs approved set |
+| T16-5 | T3 | `e2e/chaos/*.yaml`, `ci/chaos/monkey.sh` (PR 17) | C16-1..10, `adb monkey` 20,000 events pre-release: no crash, no duplicate round (Robo: not started, see PR 17 flags) |
 | T16-6 | S | `web/tests/*.spec.ts` (Playwright, to write) | `/r/` scorecard and result pages on Chromium + WebKit; wrong token → not found |
-| T16-7 | T3 | volume with a device | 20 × 500 scorecard < 2 s on D2; 30 × 20 result < 3 s |
-| T16-8 | U | `ci/select-tests.mjs` (to write) | every source path maps to a flow set |
+| T16-7 | T3 | `ci/volume/run-volume.mjs` + `e2e/chaos/c09` (PR 17) | database budgets V1–V5; 20 × 60 scorecard opens < 10 s on D1 (20 × 500 and the 30 × 20 result stay to do) |
+| T16-8 | U | `ci/select-tests.mjs` + `tests/test-selection-pr17.test.ts` (PR 17) | every source path maps to a flow set |
 
 ## PR 15 test cases (Design consistency — audit only, `docs/design-audit.md`; codes reserved)
 

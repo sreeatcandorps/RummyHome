@@ -1,0 +1,49 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# Pool edge: BREAKQ2 (limit 201, 20 seats) has 19 players OUT and one left. The scorecard must offer
+# Complete, the Awards page must list all 20 with Winner takes all, and awards must save.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c3@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKQ2
+- assertVisible: "Pool"
+- takeScreenshot: c10-pool-19-out
+- tapOn: "Complete game"
+- extendedWaitUntil:
+    visible: "Game admins"
+    timeout: 15000
+- takeScreenshot: c10-pool-complete-page
+- tapOn: "Complete game"
+- extendedWaitUntil:
+    visible: "Complete this pool?"
+    timeout: 5000
+- tapOn: "Confirm complete game"
+- extendedWaitUntil:
+    visible: "Give awards"
+    timeout: 20000
+- tapOn:
+    id: "complete-give-awards"
+- extendedWaitUntil:
+    visible: "Winner takes all"
+    timeout: 15000
+- tapOn:
+    id: "award-preset-winner"
+- takeScreenshot: c10-awards-20-rows
+- scrollUntilVisible:
+    element: "Player Nineteen"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: c10-awards-20-rows-bottom
+- tapOn:
+    id: "award-save"
+- extendedWaitUntil:
+    visible:
+      text: "Awarded|Change awards"
+    timeout: 20000
+- assertNotVisible: "Could not save awards"
+- takeScreenshot: c10-pool-awarded
