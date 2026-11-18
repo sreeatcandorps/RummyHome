@@ -19,45 +19,20 @@ tags: [smoke]
     visible: "Scorecard( · .*)?"
     timeout: 20000
 - assertVisible: "20 players"
-# PR 24 portrait pool: the round grid takes the top ~70%, the Awards card and Standings sit in their
-# own pane underneath, each scrolling on its own. Swipe the pane up to bring Standings into it.
+# PR 24 portrait pool: the round grid takes the top ~70% (header initials WWW / MMM in full), the Awards
+# card and Standings sit in their own pane underneath, each scrolling on its own. Awards first while
+# the card is at the top of the pane, then swipe the pane up to bring Standings into it.
 - assertVisible:
     id: "pool-standings-pane"
 - assertVisible:
     id: "give-awards"
-- takeScreenshot: 17-pool-wide-initials-portrait
-- swipe:
-    from:
-      id: "pool-standings-pane"
-    direction: UP
-- extendedWaitUntil:
-    visible:
-      id: "pool-standings"
-    timeout: 5000
-- assertVisible: "WWW"
-- assertVisible: "MMM"
-- takeScreenshot: 17-pool-wide-initials-standings
-- scrollUntilVisible:
-    element:
-      id: "score-header-initials-2"
-    direction: DOWN
-    timeout: 15000
-- assertVisible: "WWW"
-- assertVisible: "MMM"
-- takeScreenshot: 17-pool-wide-initials-header
-# Back up the pane to the Awards card: twenty standings rows take more than one swipe.
-- repeat:
-    times: 6
-    while:
-      notVisible:
-        id: "give-awards"
-    commands:
-      - swipe:
-          from:
-            id: "pool-standings-pane"
-          direction: DOWN
 - assertVisible:
-    id: "give-awards"
+    id: "score-header-initials-2"
+    text: "WWW"
+- assertVisible:
+    id: "score-header-initials-3"
+    text: "MMM"
+- takeScreenshot: 17-pool-wide-initials-portrait
 - tapOn:
     id: "give-awards"
 - extendedWaitUntil:
@@ -69,4 +44,15 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000
+- swipe:
+    from:
+      id: "pool-standings-pane"
+    direction: UP
+- extendedWaitUntil:
+    visible:
+      id: "pool-standings"
+    timeout: 5000
+- assertVisible: "WWW"
+- assertVisible: "MMM"
+- takeScreenshot: 17-pool-wide-initials-standings
 - back
