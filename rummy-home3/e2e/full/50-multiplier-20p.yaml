@@ -62,7 +62,7 @@ tags: [nightly]
     id: "exact-totals-line"
 - assertVisible: ".*\\(exact\\).*"
 - takeScreenshot: 50b-exact-points-20p
-- tapOn: "Done"
+- tapOn: "Close"
 # Landscape: the same short numbers, nothing clipped.
 - setOrientation: LANDSCAPE_LEFT
 - extendedWaitUntil:

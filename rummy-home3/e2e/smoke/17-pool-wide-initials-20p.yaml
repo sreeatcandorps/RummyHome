@@ -40,7 +40,9 @@ tags: [smoke]
     timeout: 15000
 - assertVisible: "20 entries (a re-entry counts twice) · pool 2000 points"
 - takeScreenshot: 17-pool-wide-initials-awards
-- tapOn: "Cancel"
+# Nov 18: first-time Awards bar is Not now + Save awards; Not now leaves the pool Completed without awards.
+- tapOn:
+    id: "award-not-now"
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000

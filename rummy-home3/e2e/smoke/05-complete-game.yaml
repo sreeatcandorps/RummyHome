@@ -56,6 +56,14 @@ tags: [smoke]
     visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertVisible: "Completed"
-- assertVisible: "Share final scores"
 - assertNotVisible: "Complete game"
 - takeScreenshot: 05e-completed-scorecard
+# The completed scorecard shares from the header icon: live link + final scores (picture or PDF).
+- tapOn:
+    id: "scorecard-share-icon"
+- extendedWaitUntil:
+    visible:
+      id: "share-final-scores-option"
+    timeout: 5000
+- assertVisible: "Share final scores"
+- tapOn: "Close"
