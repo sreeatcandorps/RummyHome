@@ -39,18 +39,34 @@ tags: [smoke]
 - assertVisible:
     id: "score-reentry-3"
     text: "(↺41|Re-entered at 41.*)"
+# Five-row card: rounds 2–6 are in view (newest at the bottom), round 1 is scrolled above the card.
 - assertVisible:
+    id: "score-cell-2-6"
+- assertNotVisible:
     id: "score-cell-2-1"
 - assertVisible:
     id: "pool-standings-pane"
 - assertVisible:
     id: "pool-standings"
 - takeScreenshot: 20-pool-13p-portrait
-# The footer scrolls with the rounds, inside the card.
-- scrollUntilVisible:
-    element:
-      id: "game-id-footer"
+# The card scrolls on its own: up for round 1, down for the Creator / Unique game ID footer inside it.
+- swipe:
+    from:
+      id: "pool-table-pane"
     direction: DOWN
+- assertVisible:
+    id: "score-cell-2-1"
+- swipe:
+    from:
+      id: "pool-table-pane"
+    direction: UP
+- swipe:
+    from:
+      id: "pool-table-pane"
+    direction: UP
+- extendedWaitUntil:
+    visible:
+      id: "game-id-footer"
     timeout: 10000
 - assertVisible:
     text: "Unique game ID: GAMEV1"
