@@ -65,7 +65,7 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000
-# Landscape: the table keeps the whole width; the standings follow the rounds in the same scroller.
+# Landscape: the table keeps the whole width (all 13 columns, TL last); the standings follow the rounds in the same scroller.
 - setOrientation: LANDSCAPE_LEFT
 - extendedWaitUntil:
     visible:
@@ -73,7 +73,10 @@ tags: [smoke]
     timeout: 15000
 - assertVisible:
     id: "score-header-initials-8"
-    text: "TH"
+    text: "TG"
+- assertVisible:
+    id: "score-header-initials-13"
+    text: "TL"
 - assertNotVisible:
     id: "pool-standings-pane"
 - takeScreenshot: 20d-pool-13p-landscape

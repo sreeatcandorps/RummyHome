@@ -241,11 +241,15 @@ test('X24-9 New game: Players → Next → Game type → Next → Order of playe
 
 // ---------- X24-3 / 5 / 6: the scorecard ----------
 test('X24-3 pool header: one line taller than Points (the #number line), same type sizes; the footer at 70% italic', async () => {
-  const { headerHeight, footerType, FOOTER_SCALE, PORTRAIT_TABLE_FLEX, PORTRAIT_STANDINGS_FLEX } = await import('../utils/scorecardLayout');
+  const { headerHeight, footerType, FOOTER_SCALE, PORTRAIT_TABLE_FLEX, PORTRAIT_STANDINGS_FLEX, POOL_HEADER_SLACK, portraitPaneHeights } = await import('../utils/scorecardLayout');
   const points = headerHeight(72, false, 1, false);
   const poolH = headerHeight(72, false, 1, true);
   assert.ok(poolH > points, 'the pool header gets room for its extra line');
   assert.ok(poolH - points <= 20, 'only one small line taller');
+  assert.equal(poolH - points, 13 + POOL_HEADER_SLACK, 'the #number line plus the slack that keeps the dealer column from shrinking its initials (CI run 1)');
+  assert.deepEqual(portraitPaneHeights(700), { table: 490, standings: 210 }, 'explicit pane heights, 70 / 30');
+  assert.deepEqual(portraitPaneHeights(0), { table: 0, standings: 0 }, 'before the first layout the panes fall back to flex');
+  assert.match(read('components/game/ScoreTable.tsx'), /flexShrink: 0,\s*includeFontPadding: false,\s*\},\s*headerTotal/, 'the initials never give way');
   const f = footerType();
   assert.equal(FOOTER_SCALE, 0.7);
   assert.equal(f.fontStyle, 'italic');

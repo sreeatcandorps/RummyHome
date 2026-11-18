@@ -96,8 +96,11 @@ export function headerHeight(columnWidth: number, compact: boolean, fontScale = 
   const scale = effectiveFontScale(fontScale);
   const type = headerType(columnWidth);
   const lines = (type.initials.lineHeight + type.total.lineHeight + type.deals.lineHeight + (pool ? type.deals.lineHeight : 0)) * scale;
-  return Math.ceil(lines + DEALER_BAR + headerPadding(compact) * 2);
+  // Pool: a fourth line of native text rounding, plus the dealer bar drawn inside the dealer's cell,
+  // left that one column a pixel short and its initials shrank (CI run 1); POOL_HEADER_SLACK covers it.
+  return Math.ceil(lines + DEALER_BAR + headerPadding(compact) * 2 + (pool ? POOL_HEADER_SLACK : 0));
 }
+export const POOL_HEADER_SLACK = DEALER_BAR;
 
 /** A score row is one line of cell text plus breathing room; it grows with the font scale and never clips. */
 export function rowHeight(columnWidth: number, columnCount: number, compact: boolean, fontScale = 1): number {
@@ -168,3 +171,14 @@ export const footerType = (): TextMetrics & { fontStyle: 'italic'; fontWeight: '
 /** Portrait (PR 24): the scorecard takes about 70% of the height, the standings the rest; each scrolls on its own. */
 export const PORTRAIT_TABLE_FLEX = 7;
 export const PORTRAIT_STANDINGS_FLEX = 3;
+
+/**
+ * The two pane heights for a measured body. Explicit heights, not flex: on the emulator the flex
+ * split left the standings a ~90 dp sliver (CI run 1 of PR 24), so the screen measures the body once
+ * and hands each pane a number. Before the first layout (0) both are 0 and the panes fall back to flex.
+ */
+export function portraitPaneHeights(bodyHeight: number): { table: number; standings: number } {
+  if (bodyHeight <= 0) return { table: 0, standings: 0 };
+  const table = Math.round((bodyHeight * PORTRAIT_TABLE_FLEX) / (PORTRAIT_TABLE_FLEX + PORTRAIT_STANDINGS_FLEX));
+  return { table, standings: bodyHeight - table };
+}

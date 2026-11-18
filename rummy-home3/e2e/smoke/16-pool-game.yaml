@@ -130,13 +130,24 @@ tags: [smoke]
 - assertVisible: "OUT R1"
 - takeScreenshot: 16i-pool-scorecard-out
 
-# Re-enter Zed from Standings: he comes back at 50 (the highest score still in) and reads blue.
+# Re-enter Zed from Standings: a new pool's Re-entry score is Highest score + 1 (PR 24), so he comes
+# back at 51 (the highest still in is 50) and reads blue. The Re-enter button sits in the standings
+# pane under the players still in, so swipe that pane up first (the table pane above scrolls on its own).
+- swipe:
+    from:
+      id: "pool-standings-pane"
+    direction: UP
+- extendedWaitUntil:
+    visible:
+      id: "reenter-00000000-0000-4000-8000-000000000008"
+    timeout: 5000
+- takeScreenshot: 16i2-pool-standings-pane-reenter
 - tapOn:
     id: "reenter-00000000-0000-4000-8000-000000000008"
 - extendedWaitUntil:
     notVisible: "OUT R1"
     timeout: 15000
-- assertVisible: "ZZ Zed Zero, 50, 51 left, 3 drops, re-entered"
+- assertVisible: "ZZ Zed Zero, 51, 50 left, 2 drops, re-entered"
 - takeScreenshot: 16j-pool-reentered
 
 # Complete the pool (early split) → Give awards.

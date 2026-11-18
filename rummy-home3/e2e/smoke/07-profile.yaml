@@ -78,11 +78,18 @@ tags: [smoke]
       id: "settings-pool-reentries-count"
     direction: DOWN
     timeout: 10000
-# PR 24: switching to Limited leaves the count empty (the hint asks for it) instead of guessing a number.
+# PR 24: switching to Limited leaves the count empty (the hint under the field asks for it) instead of
+# guessing a number. The hint sits under the field, so scroll to it rather than assume it is on screen.
+- scrollUntilVisible:
+    element:
+      text: "Type how many re-entries each player gets (0–99)."
+    direction: DOWN
+    timeout: 10000
 - assertVisible:
     id: "settings-pool-reentries-count"
-    text: ""
-- assertVisible: "Type how many re-entries each player gets (0–99)."
+- assertNotVisible:
+    id: "settings-pool-reentries-count"
+    text: "[0-9]+"
 - takeScreenshot: 07e-settings-pool-defaults-limited
 - tapOn:
     id: "settings-pool-reentries-unlimited"

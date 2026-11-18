@@ -43,7 +43,7 @@ import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
 import { SeatingSheet } from '@/components/game/SeatingSheet';
 import { canChangeSeating, SEATING_MENU_ITEM } from '@/utils/seating';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
-import { playersChipLabel, PORTRAIT_STANDINGS_FLEX, PORTRAIT_TABLE_FLEX } from '@/utils/scorecardLayout';
+import { playersChipLabel, PORTRAIT_STANDINGS_FLEX, PORTRAIT_TABLE_FLEX, portraitPaneHeights } from '@/utils/scorecardLayout';
 import { gameSettingsMenuTitle, rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame } from '@/utils/gameStatus';
 import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
@@ -65,6 +65,9 @@ export default function GameScreen() {
   const cachedGame = gamesService.peekGame(typeof id === 'string' ? id : null);
   const cachedSeats = gamesService.peekSeats(typeof id === 'string' ? id : null);
   const [game, setGame] = useState<Game | null>(cachedGame);
+  // PR 24 portrait pool: the body is measured once and the two panes get explicit heights (70 / 30).
+  const [portraitBody, setPortraitBody] = useState(0);
+  const panes = portraitPaneHeights(portraitBody);
   const [players, setPlayers] = useState<Player[]>(() => (cachedSeats ?? []).filter((p) => p.seatRole !== 'spectator' && p.seated !== false && p.id !== 'EX'));
   const [members, setMembers] = useState<Player[]>(cachedSeats ?? []);
   const [loading, setLoading] = useState(!(cachedGame && cachedSeats));
@@ -652,12 +655,14 @@ export default function GameScreen() {
           ]}
         >
           {/* PR 24: portrait pool — scorecard about 70%, standings about 30%, each scrolling on its own. */}
-          <View style={pool ? styles.portraitTablePane : styles.flex}>{table}</View>
-          {pool ? (
-            <ScrollView style={styles.portraitStandingsPane} contentContainerStyle={styles.portraitStandingsContent} showsVerticalScrollIndicator testID="pool-standings-pane">
-              {poolBelow}
-            </ScrollView>
-          ) : null}
+          <View style={pool ? styles.portraitPanes : styles.flex} onLayout={pool ? (e) => setPortraitBody(Math.round(e.nativeEvent.layout.height)) : undefined}>
+            <View style={pool ? (panes.table ? { height: panes.table } : styles.portraitTablePane) : styles.flex} testID={pool ? 'pool-table-pane' : undefined}>{table}</View>
+            {pool ? (
+              <ScrollView style={panes.standings ? { height: panes.standings, flexGrow: 0 } : styles.portraitStandingsPane} contentContainerStyle={styles.portraitStandingsContent} showsVerticalScrollIndicator testID="pool-standings-pane">
+                {poolBelow}
+              </ScrollView>
+            ) : null}
+          </View>
         </View>
       )}
       {!game.isComplete && canScoreNow ? (
@@ -858,6 +863,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: spacing.sm,
   },
+  portraitPanes: {
+    flex: 1,
+  },
   portraitTablePane: {
     flex: PORTRAIT_TABLE_FLEX,
   },
@@ -865,6 +873,7 @@ const styles = StyleSheet.create({
     flex: PORTRAIT_STANDINGS_FLEX,
   },
   portraitStandingsContent: {
+    paddingTop: spacing.sm,
     paddingBottom: spacing.xs,
   },
   landscapeBody: {

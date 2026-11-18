@@ -20,11 +20,20 @@ tags: [smoke]
     timeout: 20000
 - assertVisible: "20 players"
 # PR 24 portrait pool: the round grid takes the top ~70%, the Awards card and Standings sit in their
-# own pane underneath, each scrolling on its own.
+# own pane underneath, each scrolling on its own. Swipe the pane up to bring Standings into it.
 - assertVisible:
     id: "pool-standings-pane"
 - assertVisible:
-    id: "pool-standings"
+    id: "give-awards"
+- takeScreenshot: 17-pool-wide-initials-portrait
+- swipe:
+    from:
+      id: "pool-standings-pane"
+    direction: UP
+- extendedWaitUntil:
+    visible:
+      id: "pool-standings"
+    timeout: 5000
 - assertVisible: "WWW"
 - assertVisible: "MMM"
 - takeScreenshot: 17-pool-wide-initials-standings
@@ -36,11 +45,15 @@ tags: [smoke]
 - assertVisible: "WWW"
 - assertVisible: "MMM"
 - takeScreenshot: 17-pool-wide-initials-header
-- scrollUntilVisible:
-    element:
+# Back up the pane to the Awards card.
+- swipe:
+    from:
+      id: "pool-standings-pane"
+    direction: DOWN
+- extendedWaitUntil:
+    visible:
       id: "give-awards"
-    direction: UP
-    timeout: 10000
+    timeout: 5000
 - tapOn:
     id: "give-awards"
 - extendedWaitUntil:

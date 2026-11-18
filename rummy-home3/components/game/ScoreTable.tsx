@@ -637,12 +637,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 1,
     maxWidth: '100%',
+    overflow: 'hidden',
   },
   headerText: {
     fontWeight: '800',
     textAlign: 'center',
     letterSpacing: 0.2,
-    flexShrink: 1,
+    // Never the line that gives way: a header a pixel short pushes the bottom label row, not the initials.
+    flexShrink: 0,
     includeFontPadding: false,
   },
   headerTotal: {
