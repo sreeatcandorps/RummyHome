@@ -14,6 +14,11 @@
 --   W  10000000-0000-4000-8000-000000000012  GAMEW1  pool 101, completed, awards pending, 20 players x 3 rounds,
 --                                                     every placeholder's initials three WIDE letters (WWW, MMM, WMW …)
 --                                                     -> smoke/17-pool-wide-initials-20p (F13.22: nothing is clipped)
+--   V  10000000-0000-4000-8000-000000000013  GAMEV1  pool 101, active, 13 players x 6 rounds, sree creator and seated;
+--                                                     Test Alpha out in round 2 and back for round 3 at the highest (20,
+--                                                     rule "Highest score" at the time), Test Bravo out in round 4 and back
+--                                                     for round 5 at the highest + 1 (41, rule "Highest score + 1")
+--                                                     -> smoke/20-pool-13p-reentry (PR 24: layout, grey-above rule, ↺ score)
 -- Placeholders Test Alpha..Test Uniform (E2EP01..E2EP19) are unregistered players managed by sree, in his My players.
 
 -- ---------------------------------------------------------------------------
@@ -194,4 +199,62 @@ begin
               case when v_i = v_n then 0 else 20 end);
     end loop;
   end loop;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Game V (PR 24): a live 13-seat pool with two re-entries. Sree plus Test Alpha..Test Lima (game F's
+-- placeholders). Rounds: everyone 10 except the winner (seat n) at 0. Test Alpha takes a full count
+-- (130) in round 2 and is out at 140; the highest total still in is 20, so he comes back for round 3 at
+-- 20 (the "Highest score" rule, before the game switched to + 1). Test Bravo takes 130 in round 4 (out
+-- at 150); the highest still in is 40, so she comes back for round 5 at 41 ("Highest score + 1", the
+-- game's setting now). The round-5 "typed" scores for Alpha and Bravo are ordinary counts.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_game uuid := '10000000-0000-4000-8000-000000000013';
+  v_sree uuid := '00000000-0000-4000-8000-000000000001';
+  v_players uuid[] := array[v_sree];
+  v_round uuid;
+  v_n integer;
+  v_i integer;
+  v_value integer;
+begin
+  for v_i in 1..12 loop
+    v_players := v_players || ('00000000-0000-4000-8000-0000000000' || lpad(to_hex(224 + v_i), 2, '0'))::uuid;
+  end loop;
+
+  insert into public.games (id, created_by, status, game_type, settings, share_code, created_at, current_round)
+  values (v_game, v_sree, 'active', 'pool',
+          '{"gameType":"pool","expenseEnabled":false,"stakeDrop":25,"stakeMiddleDrop":50,"dropAmount":25,"mdAmount":50,"maxCount":130,"poolLimit":101,"reentry":true,"reentryPlus":1,"lateEntryPlus":1,"seatingPrompted":true}',
+          'GAMEV1', now() - interval '90 minutes', 7);
+
+  for v_i in 1..13 loop
+    insert into public.game_players (game_id, profile_id, player_order, role, seated)
+    values (v_game, v_players[v_i], v_i - 1, case when v_i = 1 then 'game_admin' else 'player' end::public.game_member_role, true);
+  end loop;
+
+  for v_n in 1..6 loop
+    insert into public.rounds (game_id, round_number, dealer_profile_id, created_by)
+    values (v_game, v_n, v_players[v_n], v_sree)
+    returning id into v_round;
+    for v_i in 1..13 loop
+      -- Out players score nothing in the rounds they sit out: Alpha (seat 2) is in every round
+      -- (out at the end of 2, back for 3); Bravo (seat 3) likewise (out at the end of 4, back for 5).
+      v_value := case
+        when v_i = v_n then 0
+        when v_i = 2 and v_n = 2 then 130
+        when v_i = 3 and v_n = 4 then 130
+        else 10 end;
+      insert into public.scores (round_id, game_id, profile_id, score_type, value)
+      values (v_round, v_game, v_players[v_i],
+              case when v_i = v_n then 'rummy'::public.score_type else 'count'::public.score_type end,
+              v_value);
+    end loop;
+  end loop;
+
+  -- Alpha: out in round 2, re-entered for round 3 at the highest (20). Bravo: out in round 4, back for round 5 at 40 + 1.
+  update public.game_players set out_round = null, reentered_round = 3, reentry_score = 20, entries = 2
+   where game_id = v_game and profile_id = v_players[2];
+  update public.game_players set out_round = null, reentered_round = 5, reentry_score = 41, entries = 2
+   where game_id = v_game and profile_id = v_players[3];
 end $$;

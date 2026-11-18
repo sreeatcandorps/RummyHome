@@ -19,7 +19,13 @@ tags: [smoke, landscape]
 - assertVisible: "Add round"
 - assertVisible: "DEALS"
 - assertVisible: "HT"
-# PR 4: the header keeps its full height sideways; the footer is one line under the card.
+# PR 4: the header keeps its full height sideways; the footer is one line inside the card under the
+# last round (PR 24: small italics, scrolls with the rounds).
+- scrollUntilVisible:
+    element:
+      id: "game-id-footer"
+    direction: DOWN
+    timeout: 10000
 - assertVisible:
     text: "Creator:.*Unique game ID: GAMEA1"
 - takeScreenshot: 03-scorecard-4p-landscape

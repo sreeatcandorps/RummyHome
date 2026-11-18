@@ -8,12 +8,19 @@ import {
   DEFAULT_LATE_ENTRY_PLUS, DEFAULT_REENTRY_PLUS, entryPlusDefault, entryPlusLabel, entryScoreUnder, highestIn, lateEntryPlusOf, lateEntryScore, reentryPlusOf, reentryScore,
 } from '../utils/pool';
 import { draftFromRules, parseReentryLimit, rulesFromDraft } from '../utils/rulesDraft';
+import {
+  clearOrder, displayOrder, isLastNumbered, numberedCounter, orderChanged, orderComplete, seatNumberOf, showsPlayerCode, startOrder, stepNumbered, tapPlayer,
+} from '../utils/seating';
 
 // PR 24 (Sree's feedback on v11, Nov 17) — item 7: where a player who comes back starts.
 // X24-7a the two rules: "Highest score" (0) or "Highest score + 1" (1); new pools and user defaults
 // at + 1; a game without the keys keeps the 041 rule. X24-7b the Re-entries form: Unlimited by
 // default, switching to Limited leaves the count empty. X24-7c migration 047 is written with its
-// rollback, pgTAP file and replay hook, and is NOT applied to live.
+// rollback, pgTAP file and replay hook, and is NOT applied to live. X24-10 Order of players: the
+// tap-to-number draft (undo last, highlight, arrows on numbered rows only, Clear, Done when everyone
+// is numbered). X24-9 the New game flow: Next, Next, Next, Start game — order before co-admin.
+// X24-3/5/6 the scorecard: pool header one line taller than Points (same typography), footer inside
+// the card at 70% italic, portrait 70/30 panes, landscape standings below.
 
 const read = (p: string) => readFileSync(path.join(process.cwd(), p), 'utf8');
 
@@ -127,4 +134,142 @@ test('X24-7c migration 047 is written with rollback, pgTAP and replay hook — n
   assert.match(t38, /re-enters at the highest score still in \(20\)/, 'the 041 rule when the key is absent');
   assert.match(t38, /re-enters at 41/, 'Highest + 1');
   assert.match(t38, /late entry at Highest \+ 1/);
+});
+
+// ---------- X24-10: the Order of players draft ----------
+const four = ['sree', 'harish', 'priya', 'zed'];
+
+test('X24-10a game start: nobody numbered; a tap numbers and lifts the player; tapping the last one again undoes it', () => {
+  let d = startOrder(four);
+  assert.deepEqual(d.numbered, []);
+  assert.equal(d.focus, null);
+  assert.deepEqual(displayOrder(d), four, 'untouched rows keep the pick order');
+  assert.ok(!orderComplete(d));
+  assert.equal(numberedCounter(0, 4), '0 of 4 numbered');
+
+  d = tapPlayer(d, 'zed');
+  assert.deepEqual(displayOrder(d), ['zed', 'sree', 'harish', 'priya'], 'seat 1 moves to the top');
+  assert.equal(seatNumberOf(d, 'zed'), 1);
+  assert.equal(seatNumberOf(d, 'sree'), null);
+  assert.equal(d.focus, 'zed', 'the last touched row is highlighted');
+  assert.ok(isLastNumbered(d, 'zed'));
+
+  d = tapPlayer(d, 'zed');
+  assert.deepEqual(d.numbered, [], 'tapping the most recent number takes it back');
+  assert.deepEqual(displayOrder(d), four, 'and the player drops back among the unnumbered, in pick order');
+
+  d = tapPlayer(tapPlayer(tapPlayer(d, 'zed'), 'sree'), 'harish');
+  assert.deepEqual(d.numbered, ['zed', 'sree', 'harish']);
+  assert.equal(numberedCounter(3, 4), '3 of 4 numbered');
+  const before = d;
+  d = tapPlayer(d, 'zed');
+  assert.deepEqual(d.numbered, before.numbered, 'tapping an earlier number only highlights');
+  assert.equal(d.focus, 'zed');
+  d = tapPlayer(d, 'priya');
+  assert.ok(orderComplete(d));
+  assert.equal(numberedCounter(4, 4), 'Everyone numbered');
+  assert.deepEqual(displayOrder(d), ['zed', 'sree', 'harish', 'priya']);
+  assert.ok(orderChanged(d), 'Done has something to save');
+  assert.equal(tapPlayer(d, 'nobody'), d, 'an unknown id is ignored');
+});
+
+test('X24-10b arrows move numbered players at once and never touch the unnumbered; Clear empties everything', () => {
+  let d = tapPlayer(tapPlayer(startOrder(four), 'zed'), 'sree');
+  assert.equal(stepNumbered(d, 'priya', -1), d, 'no arrows on an unnumbered row');
+  d = stepNumbered(d, 'sree', -1);
+  assert.deepEqual(d.numbered, ['sree', 'zed']);
+  assert.equal(d.focus, 'sree');
+  assert.deepEqual(stepNumbered(d, 'sree', -1).numbered, ['sree', 'zed'], 'seat 1 has nowhere to go up');
+  assert.deepEqual(stepNumbered(d, 'zed', 1).numbered, ['sree', 'zed'], 'the last number has nowhere to go down');
+  assert.deepEqual(displayOrder(d), ['sree', 'zed', 'harish', 'priya'], 'the unnumbered stay below, in pick order');
+  const cleared = clearOrder(d);
+  assert.deepEqual(cleared.numbered, []);
+  assert.equal(cleared.focus, null);
+  assert.deepEqual(cleared.base, four, 'Clear keeps the players');
+});
+
+test('X24-10c mid-game: the sheet opens prefilled so one move is one tap; Done stays off until the order changes', () => {
+  const d = startOrder(four, true);
+  assert.deepEqual(d.numbered, four);
+  assert.ok(orderComplete(d));
+  assert.ok(!orderChanged(d), 'nothing moved yet');
+  const moved = stepNumbered(d, 'zed', -1);
+  assert.ok(orderChanged(moved));
+  assert.deepEqual(displayOrder(moved), ['sree', 'harish', 'zed', 'priya']);
+  const back = stepNumbered(moved, 'zed', 1);
+  assert.ok(!orderChanged(back), 'moving back leaves Done off again');
+  // Clear then renumber in the same order: complete, unchanged, Done off.
+  const same = four.reduce((acc, id) => tapPlayer(acc, id), clearOrder(d));
+  assert.ok(orderComplete(same) && !orderChanged(same));
+  assert.ok(showsPlayerCode(360) && !showsPlayerCode(320), 'the player ID shows only when the row is wide enough');
+});
+
+test('X24-10d the component and sheet: no chips panel, no "Keep this order", arrows only on numbered rows, Clear and Done', () => {
+  const list = read('components/game/OrderOfPlayers.tsx');
+  assert.match(list, /\{numbered \? \(\s*<View style=\{styles\.arrows\}>/, 'arrows render for numbered rows only');
+  assert.match(list, /onPress=\{\(\) => onChange\(tapPlayer\(draft, id\)\)\}/, 'a row tap goes through tapPlayer');
+  assert.match(list, /showsPlayerCode\(rowWidth\)/, 'the player ID shows when it fits');
+  assert.ok(!list.includes('Keep this order') && !list.includes('Picked up'));
+  const sheet = read('components/game/SeatingSheet.tsx');
+  assert.match(sheet, /startOrder\(base, true\)/, 'mid-game opens prefilled');
+  assert.match(sheet, /testID="seating-clear"/);
+  assert.match(sheet, /disabled=\{saving \|\| !complete \|\| !changed\} testID="seating-done"/);
+  assert.ok(!sheet.includes('fromMenu') && !sheet.includes('seating-chips'));
+});
+
+// ---------- X24-9: the New game flow ----------
+test('X24-9 New game: Players → Next → Game type → Next → Order of players → Next → Co-admin → Start game', () => {
+  const screen = read('app/(screens)/games/new.tsx');
+  assert.match(screen, /useState<'players' \| 'type' \| 'order' \| 'coadmin'>\('players'\)/);
+  assert.match(screen, /setOrder\(startOrder\(newGameSeats\(selectedIds\)\)\);\s*setStep\('order'\);/, 'the order step starts with nobody numbered');
+  assert.match(screen, /if \(coAdminPicks\.length\) \{ setStep\('coadmin'\); return; \}/, 'co-admin comes after the order');
+  assert.match(screen, /nextIsStart=\{coAdminPicks\.length === 0\}/, 'with nobody to pick, the order step\'s button starts the game');
+  assert.match(screen, /newGameSeats\(displayOrder\(order\)\)/, 'the seats are the numbered order');
+  assert.ok(!screen.includes('setNudge') && !screen.includes('<CoAdminNudge'), 'the nudge dialog is gone');
+  const type = read('components/game/GameTypeStep.tsx');
+  assert.match(type, /testID="new-game-type-next"/);
+  assert.ok(!type.includes('testID="start-game"'), 'the type step never says Start');
+  const order = read('components/game/OrderStep.tsx');
+  assert.match(order, /testID="new-game-order-next"/);
+  assert.match(order, /testID="start-game"/, 'the order step says Start game only when no co-admin step follows');
+  assert.match(order, /testID="new-game-order-clear"/);
+  const coadmin = read('components/game/CoAdminNudge.tsx');
+  assert.match(coadmin, /export function CoAdminStep/);
+  assert.match(coadmin, /testID="start-game"/);
+  assert.ok(!read('app/(screens)/games/[id].tsx').includes('shouldPromptSeating'), 'the scorecard pop-up is gone');
+});
+
+// ---------- X24-3 / 5 / 6: the scorecard ----------
+test('X24-3 pool header: one line taller than Points (the #number line), same type sizes; the footer at 70% italic', async () => {
+  const { headerHeight, footerType, FOOTER_SCALE, PORTRAIT_TABLE_FLEX, PORTRAIT_STANDINGS_FLEX } = await import('../utils/scorecardLayout');
+  const points = headerHeight(72, false, 1, false);
+  const poolH = headerHeight(72, false, 1, true);
+  assert.ok(poolH > points, 'the pool header gets room for its extra line');
+  assert.ok(poolH - points <= 20, 'only one small line taller');
+  const f = footerType();
+  assert.equal(FOOTER_SCALE, 0.7);
+  assert.equal(f.fontStyle, 'italic');
+  assert.equal(f.fontWeight, '400', 'never bold');
+  assert.ok(f.fontSize <= 10);
+  assert.equal(PORTRAIT_TABLE_FLEX / (PORTRAIT_TABLE_FLEX + PORTRAIT_STANDINGS_FLEX), 0.7, 'portrait: 70% scorecard, 30% standings');
+  const table = read('components/game/ScoreTable.tsx');
+  assert.match(table, /testID="score-table-footer"/, 'the footer lives inside the card, under the last row');
+  assert.match(table, /REENTRY_MARK = '↺'/);
+  assert.match(table, /beforeReentry \? \{ color: colors\.onSurfaceVariant \}/, 'cells above the re-entry row go grey');
+  assert.match(table, /`\$\{REENTRY_MARK\}\$\{column\.reentryScore\}`/, 'the re-entry cell shows the re-entry score, not the typed one');
+  const screen = read('app/(screens)/games/[id].tsx');
+  assert.match(screen, /below=\{isShort \? poolBelow : undefined\}/, 'landscape: standings below the table, in its scroller');
+  assert.match(screen, /testID="pool-standings-pane"/, 'portrait: the standings pane');
+  assert.ok(!/flexDirection: 'row'[^\n]*standings/i.test(screen), 'never side by side');
+});
+
+// ---------- X24-1: wording ----------
+test('X24-1 no "stake" in user-facing copy', () => {
+  const files = ['components/game/RulesForm.tsx', 'components/game/GameTypeStep.tsx', 'app/(screens)/settings.tsx', 'constants/help.ts', 'app/(screens)/games/new.tsx', 'app/(screens)/games/[id].tsx', 'components/game/PoolStandings.tsx', 'utils/eventLog.ts'];
+  for (const f of files) {
+    const src = read(f).replace(/\/\/.*$|\/\*[\s\S]*?\*\//gm, '');
+    const strings = [...src.matchAll(/(['"`])((?:(?!\1)[^\\]|\\.)*)\1/g)].map((m) => m[2]);
+    const offending = strings.filter((text) => /\bstakes?\b/i.test(text) && !/^stake$|gameType|'stake'|stakeDrop|stakeMiddleDrop/.test(text));
+    assert.deepEqual(offending, [], `${f} shows "stake" to the user`);
+  }
 });

@@ -376,7 +376,7 @@ test('13.7 RulesForm draft: chips for the three limits, Custom for anything else
 
 test('13.7b New game is two screens: Players (Next) then Game type (Points / Pool, prefilled, players at the bottom, Back, Start)', () => {
   const screen = src('app/(screens)/games/new.tsx');
-  assert.match(screen, /useState<'players' \| 'type'>\('players'\)/, 'a step, not a second route');
+  assert.match(screen, /useState<'players' \| 'type' \| 'order' \| 'coadmin'>\('players'\)/, 'steps, not routes (PR 24: Order of players and Co-admin follow)');
   assert.match(screen, /testID="new-game-next"/);
   assert.match(screen, /userSettingsService\.getAll\(/, 'both default blocks are loaded');
   assert.match(screen, /<GameTypeStep/);
@@ -385,7 +385,8 @@ test('13.7b New game is two screens: Players (Next) then Game type (Points / Poo
   assert.match(step, /testID: 'game-type-pool'/);
   assert.match(step, /SETTINGS_LINK = 'You can also set these defaults in Settings\.'/);
   assert.match(step, /testIDPrefix="new-game"/);
-  assert.match(step, /testID="start-game"/);
+  assert.match(step, /testID="new-game-type-next"/, 'PR 24: the type step says Next; only the last step says Start');
+  assert.ok(!step.includes('testID="start-game"'));
   assert.match(step, /Back/);
 });
 

@@ -394,8 +394,9 @@ export const gamesService = {
         // 043 (PR 14): one multiplier for the whole Points game; a pool never carries the key.
         ...(input.rules.gameKind === 'points' ? { multiplier: multiplierOf(input.rules) } : {}),
       } : {}),
-      // PR 21: the Seating order pop-up is owed once, right after Start (the sheet flips this to true).
-      seatingPrompted: false,
+      // PR 21 owed a Seating order pop-up right after Start; PR 24 sets the order as a New game step,
+      // so a new game never owes one. The key stays so PR 21 builds reading this game behave.
+      seatingPrompted: true,
     };
 
     if (!isSupabaseConfigured) {
@@ -1313,21 +1314,6 @@ export const gamesService = {
     return this.getGame(gameId);
   },
 
-  /** The once-per-game pop-up was answered (Done or Keep this order): the key flips to true; the settings log ignores it (044). */
-  async markSeatingPrompted(gameId: string): Promise<void> {
-    if (!isSupabaseConfigured) {
-      const game = await this.getGame(gameId);
-      if (!game) return;
-      await storage.updateGame({ ...game, settings: { ...game.settings, seatingPrompted: true } });
-      return;
-    }
-    const { data: row, error: readError } = await supabase.from('games').select('settings').eq('id', gameId).maybeSingle();
-    if (readError) throw readError;
-    const current = (row?.settings ?? {}) as Record<string, unknown>;
-    if (current.seatingPrompted === true) return;
-    const { error } = await supabase.from('games').update({ settings: { ...current, seatingPrompted: true } as any }).eq('id', gameId);
-    if (error) throw error;
-  },
 
   /** Players · Admins ▲ ▼: one seat up or down, through the same logged RPC as the Seating sheet (Q21.5). */
   async moveSeat(gameId: string, profileId: string, direction: -1 | 1) {

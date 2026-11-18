@@ -1,11 +1,12 @@
-import { GameSettings } from '@/types/game';
 import { nextDealer } from '@/utils/dealerRotation';
 
 /**
- * Seating order (PR 21). The order IS `game_players.player_order`: nothing new is stored. These are
- * the pure pieces of the Seating sheet — moving a player to a seat, the ▲ ▼ steps, the row sizes,
- * when the pop-up shows (once per game, `settings.seatingPrompted`), the copy, and who deals next
- * under the order being built (the same rule the scorecard and `save_round` use).
+ * Order of players (PR 21 as "Seating order"; PR 24 reshaped it on Sree's v11 feedback). The order
+ * IS `game_players.player_order`: nothing new is stored. These are the pure pieces of the Order of
+ * players list — numbering players by tapping them, undoing the last number, the ▲ ▼ steps, Clear,
+ * the row sizes, the copy, and who deals next under the order being built (the same rule the
+ * scorecard and `save_round` use). The once-per-game pop-up is gone: a new game sets its order as a
+ * step before Start, and admins change it any time from ⋮.
  */
 
 /** Move `id` to `seat` (0-based); the rows between source and target shift one seat towards the gap. */
@@ -46,50 +47,82 @@ export function seatRowHeight(count: number): number {
   return 30;
 }
 
-/** The Players chip column appears on wide layouts: ≥ 8 players, landscape or a tablet (S02). */
-export function showsPlayerChips(count: number, layout: { width: number; height: number }): boolean {
-  return count >= 8 || layout.width > layout.height || layout.width >= 600;
-}
-
-export type SeatingPromptGame = {
-  isComplete: boolean;
-  settings?: Partial<Pick<GameSettings, 'seatingPrompted'>> | null;
-  closedAt?: string | null;
-  deletedAt?: string | null;
+/**
+ * PR 24 — the Order of players list. Players are numbered by tapping them: the first tap gives 1,
+ * the next 2, and so on; numbered players rise to the top in number order, the rest wait below in
+ * their current order. Tapping the most recently numbered player takes their number back (undo the
+ * last tap); tapping any other numbered player only highlights them. ▲ ▼ move a numbered player one
+ * place. Clear takes every number back. Done / Next need everyone numbered.
+ */
+export type OrderDraft = {
+  /** Every seated player in today's order (the fallback order for the unnumbered). */
+  base: string[];
+  /** The numbered players, seat 1 first. */
+  numbered: string[];
+  /** The last player touched (highlighted, one at a time). */
+  focus: string | null;
 };
 
-/**
- * The pop-up (S01, §3.2): once per game, right after Start, to an admin, with ≥ 2 seats and no rounds.
- * Only games started with this build carry `seatingPrompted: false`; older zero-round games (and the demo
- * seed) never had the key and never pop — the ⋮ menu item is always there for them.
- */
-export function shouldPromptSeating(input: { game: SeatingPromptGame | null | undefined; canScore: boolean; seatCount: number; roundCount: number }): boolean {
-  const { game } = input;
-  if (!game || !input.canScore) return false;
-  if (game.isComplete || game.closedAt || game.deletedAt) return false;
-  if (input.seatCount < 2 || input.roundCount > 0) return false;
-  return game.settings?.seatingPrompted === false;
+/** A fresh draft: nobody numbered (game start), or everyone in today's order (mid-game, so one move is one tap). */
+export const startOrder = (base: readonly string[], prefilled = false): OrderDraft => ({ base: [...base], numbered: prefilled ? [...base] : [], focus: null });
+
+/** The rows as shown: numbered first in number order, then the rest in their base order. */
+export const displayOrder = (draft: OrderDraft): string[] => [...draft.numbered, ...draft.base.filter((id) => !draft.numbered.includes(id))];
+
+/** 1-based seat number, or null while the player is unnumbered. */
+export const seatNumberOf = (draft: OrderDraft, id: string): number | null => {
+  const at = draft.numbered.indexOf(id);
+  return at < 0 ? null : at + 1;
+};
+
+export const isLastNumbered = (draft: OrderDraft, id: string) => draft.numbered.length > 0 && draft.numbered[draft.numbered.length - 1] === id;
+export const orderComplete = (draft: OrderDraft) => draft.numbered.length === draft.base.length;
+
+/** A tap: number an unnumbered player, un-number the most recent one, or just highlight. */
+export function tapPlayer(draft: OrderDraft, id: string): OrderDraft {
+  if (!draft.base.includes(id)) return draft;
+  if (!draft.numbered.includes(id)) return { ...draft, numbered: [...draft.numbered, id], focus: id };
+  if (isLastNumbered(draft, id)) return { ...draft, numbered: draft.numbered.slice(0, -1), focus: id };
+  return { ...draft, focus: id };
 }
+
+/** ▲ (-1) / ▼ (+1) on a numbered player; unnumbered players have no arrows. */
+export function stepNumbered(draft: OrderDraft, id: string, direction: -1 | 1): OrderDraft {
+  if (!draft.numbered.includes(id)) return draft;
+  return { ...draft, numbered: stepSeat(draft.numbered, id, direction), focus: id };
+}
+
+/** Clear: every number back, nothing highlighted. */
+export const clearOrder = (draft: OrderDraft): OrderDraft => ({ ...draft, numbered: [], focus: null });
+
+/** Whether Done would change anything (mid-game: Done stays off until it would). */
+export const orderChanged = (draft: OrderDraft) => !sameOrder(draft.base, displayOrder(draft));
+
+/** The player ID (#42) joins the row only where it fits: a row 360 dp wide or more (landscape, tablet). */
+export const showsPlayerCode = (rowWidth: number) => rowWidth >= 360;
 
 /** The sheet's menu item and Done exist only while the game is Active (Q21.7). */
 export const canChangeSeating = (game: { isComplete: boolean; closedAt?: string | null; deletedAt?: string | null } | null | undefined, canScore: boolean) =>
   Boolean(game) && canScore && !game!.isComplete && !game!.closedAt && !game!.deletedAt;
 
 // ---------- copy ----------
-export const SEATING_TITLE = 'Seating order';
-export const SEATING_MENU_ITEM = 'Seating order';
-export const KEEP_THIS_ORDER = 'Keep this order';
+export const SEATING_TITLE = 'Order of players';
+export const SEATING_MENU_ITEM = 'Order of players';
 export const SEATING_DONE = 'Done';
-export const SEATING_POPUP_SUBLINE = 'Pops up once, right after Start. Admins only.';
+export const SEATING_CLEAR = 'Clear';
 export const SEATING_MENU_SUBLINE = 'Mid-game · admins only · logged';
-export const SEATING_POPUP_NOTE = 'Seat 1 deals round 1 and the deal goes round by seat. Tap a player, then the seat they belong in, or use the arrows.';
+/** Under the title on the New game step and the mid-game sheet. */
+export const ORDER_HOW_TO = 'Tap players in seating order: the first tap is seat 1. Tap the last one again to take it back. Seat 1 deals round 1 and the deal goes round by seat.';
 export const EVERY_PLAYER_NEEDS_A_SEAT = 'Every player needs a seat.';
 
-/** "Pool · 6 seats · 1 out" for a pool; "4 seats" otherwise. */
-export function seatingSubline(input: { pool: boolean; seatCount: number; outCount: number; fromMenu: boolean }): string {
+/** "Pool · 6 seats · 1 out" for a pool; the mid-game subline otherwise. */
+export function seatingSubline(input: { pool: boolean; seatCount: number; outCount: number }): string {
   if (input.pool) return `Pool · ${input.seatCount} ${input.seatCount === 1 ? 'seat' : 'seats'} · ${input.outCount} out`;
-  return input.fromMenu ? SEATING_MENU_SUBLINE : SEATING_POPUP_SUBLINE;
+  return SEATING_MENU_SUBLINE;
 }
+
+/** "3 of 8 numbered" under the list while the order is being built; "Everyone numbered" when done. */
+export const numberedCounter = (numbered: number, total: number) => (numbered >= total ? 'Everyone numbered' : `${numbered} of ${total} numbered`);
 
 /** The yellow note on the mid-game sheet (S05 B). Null when no rounds exist. */
 export function midGameSeatingNote(roundCount: number): string | null {
@@ -97,18 +130,11 @@ export function midGameSeatingNote(roundCount: number): string | null {
   return `${roundCount === 1 ? '1 round' : `${roundCount} rounds`} played. Saved rounds keep their dealers; the next deal follows the new order. Columns on the scorecard move with the seats.`;
 }
 
-/** "Priya picked up — choose a seat" (announced and shown while a player is held). */
-export const pickedUpText = (name: string) => `${name} picked up — choose a seat`;
-
-/** "Picked up 1 · Seated 7" under the Players column (S02). */
-export const pickedCounter = (picked: boolean, seatCount: number) => `Picked up ${picked ? 1 : 0} · Seated ${seatCount - (picked ? 1 : 0)}`;
-
-/** One accessible row: "Seat 3, Harish Gadupudi, deals next, out". */
-export function seatRowLabel(input: { seat: number; name: string; dealsNext: boolean; out?: boolean; picked?: boolean }): string {
-  const parts = [`Seat ${input.seat}`, input.name];
+/** One accessible row: "Seat 3, Harish Gadupudi, deals next, out"; "Not numbered, Priya" before a tap. */
+export function seatRowLabel(input: { seat: number | null; name: string; dealsNext: boolean; out?: boolean }): string {
+  const parts = [input.seat == null ? 'Not numbered' : `Seat ${input.seat}`, input.name];
   if (input.dealsNext) parts.push('deals next');
   if (input.out) parts.push('out');
-  if (input.picked) parts.push('picked up');
   return parts.join(', ');
 }
 

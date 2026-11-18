@@ -19,7 +19,10 @@ tags: [smoke]
     visible: "Scorecard( · .*)?"
     timeout: 20000
 - assertVisible: "20 players"
-# A completed pool shows the Awards card and Standings first; the round grid sits below them.
+# PR 24 portrait pool: the round grid takes the top ~70%, the Awards card and Standings sit in their
+# own pane underneath, each scrolling on its own.
+- assertVisible:
+    id: "pool-standings-pane"
 - assertVisible:
     id: "pool-standings"
 - assertVisible: "WWW"

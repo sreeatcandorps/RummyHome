@@ -20,16 +20,16 @@ test('co-admin nudge: registered seated players other than the organiser, in sea
   assert.equal(CO_ADMIN_NUDGE_BODY, 'Add a co-admin so someone else can keep scoring if your phone dies.');
 });
 
-test('new game: the nudge sits between the initials check and createGame, is skippable, and emails go out after creation', () => {
+test('new game: the co-admin step follows the Order of players only when someone can be picked (PR 24), and emails go out after creation', () => {
   const s = src('app/(screens)/games/new.tsx');
-  assert.match(s, /if \(coAdminPicks\.length\) \{ setNudge\(\{ labels: typeLabels \}\); return; \}/, 'Start game pauses on the nudge only when someone can be picked');
-  assert.match(s, /onSkip=\{\(\) => \{ if \(nudge\) createGame\(nudge\.labels, null\); \}\}/, 'Skip starts the game without a co-admin');
-  assert.match(s, /onPick=\{\(id\) => \{ if \(nudge\) createGame\(nudge\.labels, id\); \}\}/);
+  assert.match(s, /if \(coAdminPicks\.length\) \{ setStep\('coadmin'\); return; \}/, 'the co-admin step shows only when someone can be picked');
+  assert.match(s, /onStart=\{\(coAdminId\) => createGame\(typeLabels, coAdminId\)\}/, 'Start game with the pick, or none');
   assert.match(s, /setSeatRole\(created\.id, coAdminId, 'game_admin'\)/, 'the pick becomes a game admin right after creation');
   assert.match(s, /emailsService\.gameStarted\(created\.id\)\.catch/, 'game-started emails are best effort');
-  const nudge = src('components/game/CoAdminNudge.tsx');
-  assert.match(nudge, /<Button onPress=\{onSkip\} disabled=\{busy\}>Skip<\/Button>/);
-  assert.match(nudge, /Add and start/);
+  const step = src('components/game/CoAdminNudge.tsx');
+  assert.match(step, /testID="start-game"/, 'the one button that says Start');
+  assert.match(step, /Start game · \$\{playerCount\} players/);
+  assert.ok(!step.includes('Add and start') && !step.includes('>Skip<'), 'PR 24: a step page, not a Skip / Add and start dialog');
 });
 
 test('results: saving flushes the result-saved outbox; no game-completed email exists anywhere', () => {

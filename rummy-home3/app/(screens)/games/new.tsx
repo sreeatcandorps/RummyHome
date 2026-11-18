@@ -34,7 +34,9 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { GameTypeStep } from '@/components/game/GameTypeStep';
-import { CoAdminNudge, coAdminCandidates } from '@/components/game/CoAdminNudge';
+import { CoAdminStep, coAdminCandidates } from '@/components/game/CoAdminNudge';
+import { OrderStep } from '@/components/game/OrderStep';
+import { displayOrder, OrderDraft, startOrder } from '@/utils/seating';
 import { emailsService } from '@/services/emails';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FIND_IN_DATABASE, FROM_DATABASE_ACCESSIBILITY, nextLabel, returnButtonLabel, totalLabel } from '@/utils/addPlayers';
@@ -152,13 +154,16 @@ export default function NewGame() {
   const [rules, setRules] = useState<PointsRules>(DEFAULT_POINTS_RULES);
   /** The user's saved defaults for both kinds; the Game type step prefills from them (D1). */
   const [defaults, setDefaults] = useState<UserDefaults>({ startsAs: 'points', points: DEFAULT_POINTS_RULES, pool: DEFAULT_POOL_RULES });
-  /** New game is two screens (D1): pick players (Next), then the game type and its settings (Back / Start). */
-  const [step, setStep] = useState<'players' | 'type'>('players');
+  /**
+   * New game is a run of steps (D1, PR 24): pick players (Next), the game type and its settings (Next),
+   * the Order of players (Next — or Start game when no co-admin can be picked), then the co-admin (Start game).
+   */
+  const [step, setStep] = useState<'players' | 'type' | 'order' | 'coadmin'>('players');
   /** Column letters resolved on Next (Fix initials runs there), used by Start. */
   const [typeLabels, setTypeLabels] = useState<Map<string, string> | null>(null);
   const [creating, setCreating] = useState(false);
-  /** Start game paused on the co-admin nudge; holds the resolved column letters. */
-  const [nudge, setNudge] = useState<{ labels: Map<string, string> } | null>(null);
+  /** PR 24: the Order of players being built on step 3 (nobody numbered to begin with). */
+  const [order, setOrder] = useState<OrderDraft>(() => startOrder([]));
   const [removing, setRemoving] = useState<string | null>(null);
   const [blocked, setBlocked] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -219,10 +224,13 @@ export default function NewGame() {
   // Leaving without starting (or returning) forgets the draft.
   useEffect(() => () => newGameDraft.clear(), []);
 
-  // The hardware back on the Game type step returns to the players, not out of New game.
+  // The hardware back on a later step returns to the step before, not out of New game.
   useEffect(() => {
-    if (step !== 'type') return;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => { setStep('players'); return true; });
+    if (step === 'players') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setStep(step === 'coadmin' ? 'order' : step === 'order' ? 'type' : 'players');
+      return true;
+    });
     return () => sub.remove();
   }, [step]);
 
@@ -320,9 +328,10 @@ export default function NewGame() {
     });
   };
 
+  /** The last step: the game, with the seats in the Order of players and the co-admin (if any). */
   const createGame = async (labels: Map<string, string>, coAdminId: string | null, chosen: PointsRules = rules) => {
     if (!me) return;
-    const playerIds = newGameSeats(selectedIds);
+    const playerIds = newGameSeats(displayOrder(order));
     setCreating(true);
     try {
       const created = await gamesService.createGame({
@@ -337,12 +346,10 @@ export default function NewGame() {
       emailsService.gameStarted(created.id).catch(() => {});
       newGameDraft.clear();
       setFix(null);
-      setNudge(null);
       router.replace(`/(screens)/games/${created.id}`);
     } catch (err) {
       setError(formatSupabaseError(err));
       setFix(null);
-      setNudge(null);
     } finally {
       setCreating(false);
     }
@@ -362,12 +369,20 @@ export default function NewGame() {
     setStep('type');
   };
 
-  /** Start (step 2): the co-admin nudge, then the game. */
-  const startWithRules = async (chosen: PointsRules) => {
+  /** Next (step 2 done): the rules are settled; the Order of players follows, nobody numbered yet. */
+  const rulesNext = (chosen: PointsRules) => {
     if (!typeLabels) return;
     setRules(chosen);
-    if (coAdminPicks.length) { setNudge({ labels: typeLabels }); return; }
-    await createGame(typeLabels, null, chosen);
+    setError(null);
+    setOrder(startOrder(newGameSeats(selectedIds)));
+    setStep('order');
+  };
+
+  /** Next / Start (step 3 done): the co-admin step when someone can be picked, otherwise the game. */
+  const orderNext = async () => {
+    if (!typeLabels) return;
+    if (coAdminPicks.length) { setStep('coadmin'); return; }
+    await createGame(typeLabels, null, rules);
   };
 
   const startGame = async () => {
@@ -483,13 +498,45 @@ export default function NewGame() {
           picks={selected.map((p) => ({ id: p.id, name: p.name, label: typeLabels.get(p.id) }))}
           onKindChange={(_kind, next) => setRules(next)}
           onBack={() => setStep('players')}
-          onStart={startWithRules}
+          onNext={rulesNext}
           creating={creating}
           error={error}
         />
-        <CoAdminNudge visible={Boolean(nudge)} candidates={coAdminPicks} busy={creating}
-          onSkip={() => { if (nudge) createGame(nudge.labels, null); }}
-          onPick={(id) => { if (nudge) createGame(nudge.labels, id); }} />
+      </>
+    );
+  }
+
+  if (step === 'order' && typeLabels) {
+    const byId = new Map(candidates.map((c) => [c.id, c]));
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Order of players', headerRight: () => <HelpButton text={HELP.gameType} /> }} />
+        <OrderStep
+          players={selected.map((p) => ({ id: p.id, name: p.name, label: typeLabels.get(p.id) ?? '', playerCode: p.playerCode ?? byId.get(p.id)?.playerCode ?? null }))}
+          draft={order}
+          onChange={setOrder}
+          onBack={() => setStep('type')}
+          onNext={orderNext}
+          nextIsStart={coAdminPicks.length === 0}
+          creating={creating}
+          error={error}
+        />
+      </>
+    );
+  }
+
+  if (step === 'coadmin' && typeLabels) {
+    return (
+      <>
+        <Stack.Screen options={{ title: 'Co-admin', headerRight: () => <HelpButton text={HELP.gameType} /> }} />
+        <CoAdminStep
+          candidates={coAdminPicks}
+          playerCount={selected.length}
+          busy={creating}
+          error={error}
+          onBack={() => setStep('order')}
+          onStart={(coAdminId) => createGame(typeLabels, coAdminId)}
+        />
       </>
     );
   }
