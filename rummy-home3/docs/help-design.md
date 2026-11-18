@@ -1,8 +1,12 @@
-# Help — redesign spec (PR 11, review first; nothing built yet)
+# Help — redesign spec (PR 11; approved Nov 15, built Nov 18 on `cursor/pr11-help-build-0a03`)
 
-Status: **spec for Sree's review.** No app code. Mockups: [`help-mockups/`](help-mockups/) (H00–H14; each priority screen
-is shown as the real emulator screenshot, annotated with numbered callouts, beside its proposed help page). Questions are
-in section 8; the build follows the recommended answers unless Sree says otherwise.
+Status: **built as written** (every recommended answer in section 8, Q11.1–Q11.23). Mockups: [`help-mockups/`](help-mockups/)
+(H00–H14). What exists: `constants/helpTopics.ts` (the topics), `app/(screens)/help/[topic].tsx` and `help/index.tsx`
+(page and index with search), `components/help/*` (page, rich lines, Why? link), `components/ui/InfoTip.tsx` (ⓘ mini
+helps, Sree's Nov 17 addition — first on New game · Game type / `RulesForm`, the rest after Sree approves the approach),
+`scripts/help-screenshots.mjs` + `scripts/help-callouts.json` → `assets/help/*.png`. Not built: a `?` on the claim route
+(it has no screen — it redirects to Create account, which has one); `players-admins`, `hidden-deleted` and `sign-in` have
+no annotated screenshot yet because the smoke run takes no frame of them.
 
 ## 0. What Sree asked (Nov 14, 3:53 PM PT)
 

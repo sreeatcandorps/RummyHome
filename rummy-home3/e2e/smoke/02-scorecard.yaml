@@ -34,13 +34,12 @@ tags: [smoke]
 - assertVisible:
     id: "score-cell-2-.*"
 - takeScreenshot: 02-scorecard-4p
+# PR 11: ? opens the screen's help page (Need to know first, then the Full guide).
 - tapOn: "Help"
 - extendedWaitUntil:
-    visible:
-      text: "Help"
-      index: 1
+    visible: "Help · Scorecard"
     timeout: 5000
+- assertVisible: "Need to know"
 - takeScreenshot: 02b-scorecard-help
-# Android back closes the help note (the Close button can sit below the fold on long notes).
 - back
 - assertVisible: "Add round"

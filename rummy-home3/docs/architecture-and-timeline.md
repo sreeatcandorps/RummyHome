@@ -342,6 +342,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | New game (Points / Pool, my players) | Done. Two screens: Players (Next) then Game type with this game's settings prefilled from Settings. Creator is not pre-seated; Add players (full screen) / Add player from database |
 | Game table + score entry | Done, portrait + landscape. Add round: grid, presets, keypad, Balance gate, explicit 0, big losses in red. Complete game, Final scores, and Players are their own pages. Apply `014_save_round_atomic.sql` for the one-transaction save |
 | Home | Done. Results → every live game → Recent (every Completed/Closed game, newest first, no filter). History screen redirects home |
+| In-app help | Help pages per screen + index with search + Why? links + ⓘ mini helps (PR 11, Nov 18). Screenshots regenerate from a CI smoke run |
 | Results | Done in the app. Status chips (with deselect warning), every game listed and admin-only ticks, Show results then explicit Save result (closes games, status popup), share after save, totals and table with Player IDs, banded share image, full-details PDF. `008` and `013` are live; `018_results_reuse_and_player_ids.sql` (reused flag, Player IDs) is written, not applied |
 | Security / concurrency (019) | `019_security_and_concurrency_fixes.sql` written, scratch-verified, **not applied**: role lock, owner-only contact columns + `my_profile`, per-game lock in `save_round` / `remove_seat_if_no_scores`, `PT409` conflicts. App handles both pre- and post-019 databases |
 | Performance (020) | `020_performance_rpcs_and_indexes.sql` written, scratch-verified, **not applied**: index-driven visibility RPCs, policy wrappers, bundle RPCs. App works on both pre- and post-020 databases; see `docs/performance/RESULTS.md` |
@@ -484,3 +485,14 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   `purge-deleted-games`. Every "erased" / "gone for good" line in the app, Help, the Log label and the restore e-mail
   now says "hidden for good — nothing is erased" (APK v11 still carries the old words until the next build). pgTAP 37
   (X22-1…4), pgTAP 36's X20-3 rewritten, unit X22-5/6, rollback 046 (leaves the purge job off), replay hook.
+
+### 2026-11-18 — PR 11 Help built (stacked PR on #68; no migration)
+- Help moved from one dialog per screen (`constants/help.ts` `HELP`) to one **help page per screen**: `constants/helpTopics.ts`
+  (19 topics: purpose · Need to know · annotated screenshot · Full guide · the ⋮ table · Tricky cases · Also see), rendered by
+  `app/(screens)/help/[topic].tsx`; a **help index with local search** (`help/index.tsx`, reachable from Me and from every
+  help page); two rules pages; "Why?" links from five puzzling dialogs to the matching Tricky case. The screenshots are
+  real smoke-run frames halved and badged by `scripts/help-screenshots.mjs` (pngjs only), positions in
+  `scripts/help-callouts.json` — regenerate from the branch's own CI smoke artifact. Mini helps (Sree, Nov 17): an `InfoTip` ⓘ
+  beside a section title opens a short pop-up (Got it / Full guide) and replaces the paragraphs under it; first applied to
+  New game · Game type and the shared `RulesForm` (so Game settings and Settings get them too), pending Sree's approval of
+  the approach before the other screens. No new dependency, no hosting change.
