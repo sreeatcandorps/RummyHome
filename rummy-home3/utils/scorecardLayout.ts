@@ -168,17 +168,20 @@ export const footerType = (): TextMetrics & { fontStyle: 'italic'; fontWeight: '
   fontWeight: '400',
 });
 
-/** Portrait (PR 24): the scorecard takes about 70% of the height, the standings the rest; each scrolls on its own. */
-export const PORTRAIT_TABLE_FLEX = 7;
-export const PORTRAIT_STANDINGS_FLEX = 3;
-
 /**
- * The two pane heights for a measured body. Explicit heights, not flex: on the emulator the flex
- * split left the standings a ~90 dp sliver (CI run 1 of PR 24), so the screen measures the body once
- * and hands each pane a number. Before the first layout (0) both are 0 and the panes fall back to flex.
+ * Pool portrait (Nov 18, Sree): the card is not a fixed share of the screen (PR 24's 70 / 30 is gone).
+ * It hugs its content — round rows (one placeholder row at 0 rounds), one empty row, the footer lines —
+ * and is capped at `maxRows` round-row heights; the standings take the rest. Returns the card body
+ * height for a content height, or the cap.
  */
-export function portraitPaneHeights(bodyHeight: number): { table: number; standings: number } {
-  if (bodyHeight <= 0) return { table: 0, standings: 0 };
-  const table = Math.round((bodyHeight * PORTRAIT_TABLE_FLEX) / (PORTRAIT_TABLE_FLEX + PORTRAIT_STANDINGS_FLEX));
-  return { table, standings: bodyHeight - table };
+export function poolCardBodyHeight(contentHeight: number, rowHeight: number, maxRows: number): number {
+  return Math.min(Math.max(0, contentHeight), maxRows * rowHeight);
+}
+
+/** Sree (Nov 18): the pool card in portrait is at most five round rows tall; at 0 rounds it is five lines (row · empty row · Creator · Admin · ID). */
+export const POOL_CARD_MAX_ROWS = 5;
+
+/** How far the hugging card scrolls so the newest round sits at the bottom of its viewport (the empty row and footer stay below). */
+export function newestRoundOffset(roundCount: number, rowHeight: number, viewportHeight: number): number {
+  return Math.max(0, roundCount * rowHeight - viewportHeight);
 }

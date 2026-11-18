@@ -512,3 +512,10 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   every player's pool score, entries, put in, gets, award and out round, re-entries, and the rounds with "out" / ↺
   cells (`utils/endFlow.ts`, `utils/finalScoresSheet.ts` `pdfSections`). PR B (pool portrait 5-line card, landscape
   without standings) and PR C (decisions log, PR template) follow as separate PRs.
+
+### 2026-11-18 — Pool portrait five-row card, landscape without standings (PR B of the Nov 18 batch, no migration)
+- Sree's 5-line rule replaces PR 24's 70 / 30 split: the pool card in portrait hugs its rounds (a placeholder row at 0
+  rounds), one empty row and the Creator / Admin / ID lines, capped at five round-row heights, with the newest round
+  anchored at the bottom of the card; the Standings take the rest. Landscape pool is the full-width table alone, like
+  Points — the standings pane and the `below` slot are gone; an admin reaches Give / Change awards from the strip.
+  `pool-design.md` §0 rows 21–22 rewritten. Maestro 17 / 20 updated.

@@ -19,9 +19,9 @@ tags: [smoke]
     visible: "Scorecard( · .*)?"
     timeout: 20000
 - assertVisible: "20 players"
-# PR 24 portrait pool: the round grid takes the top ~70% (header initials WWW / MMM in full), the Awards
-# card and Standings sit in their own pane underneath, each scrolling on its own. Awards first while
-# the card is at the top of the pane, then swipe the pane up to bring Standings into it.
+# Pool portrait (Nov 18): the round grid hugs its rounds (five rows at most; header initials WWW / MMM in
+# full), the Awards card and Standings sit in the pane underneath, which scrolls on its own. Awards first
+# while the card is at the top of the pane, then swipe the pane up to bring Standings into it.
 - assertVisible:
     id: "pool-standings-pane"
 - assertVisible:

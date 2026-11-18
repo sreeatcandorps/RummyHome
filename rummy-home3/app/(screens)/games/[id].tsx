@@ -43,7 +43,7 @@ import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
 import { SeatingSheet } from '@/components/game/SeatingSheet';
 import { canChangeSeating, SEATING_MENU_ITEM } from '@/utils/seating';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
-import { playersChipLabel, PORTRAIT_STANDINGS_FLEX, PORTRAIT_TABLE_FLEX, portraitPaneHeights } from '@/utils/scorecardLayout';
+import { playersChipLabel, POOL_CARD_MAX_ROWS } from '@/utils/scorecardLayout';
 import { gameSettingsMenuTitle, rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame } from '@/utils/gameStatus';
 import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
@@ -67,9 +67,6 @@ export default function GameScreen() {
   const cachedGame = gamesService.peekGame(typeof id === 'string' ? id : null);
   const cachedSeats = gamesService.peekSeats(typeof id === 'string' ? id : null);
   const [game, setGame] = useState<Game | null>(cachedGame);
-  // PR 24 portrait pool: the body is measured once and the two panes get explicit heights (70 / 30).
-  const [portraitBody, setPortraitBody] = useState(0);
-  const panes = portraitPaneHeights(portraitBody);
   const [players, setPlayers] = useState<Player[]>(() => (cachedSeats ?? []).filter((p) => p.seatRole !== 'spectator' && p.seated !== false && p.id !== 'EX'));
   const [members, setMembers] = useState<Player[]>(cachedSeats ?? []);
   const [loading, setLoading] = useState(!(cachedGame && cachedSeats));
@@ -481,8 +478,8 @@ export default function GameScreen() {
   const playersTag = <Tag label={playersChipLabel(players.length)} icon="account-group-outline" />;
 
   // Pool (D5): Standings under the grid; on a completed pool the awards block (P19/P30) too.
-  // PR 24: the card no longer scrolls inside itself — portrait gives it its own pane under the
-  // 70% scorecard; landscape puts it in the table's scroller.
+  // Nov 18 (Sree): portrait only. The card hugs its rounds (five at most) and the standings take the
+  // rest; landscape is the full-width table alone, like Points — turn the phone for the standings.
   const poolBelow = pool ? (
     <>
       {game.isComplete ? (
@@ -536,9 +533,8 @@ export default function GameScreen() {
       footer={idFooter}
       // PR 24: a tap on a round number edits that round (the re-entry round too); the menu's Edit round stays.
       onRoundPress={canScoreNow && !game.isComplete && !deleted ? openEditRound : undefined}
-      // Landscape pool (PR 24): the table keeps the full width (8+ players on one screen) and the
-      // standings follow the last round row in the same scroller — never side by side.
-      below={isShort ? poolBelow : undefined}
+      // Pool portrait (Nov 18): Sree's 5-line rule — see ScoreTable.hugRows.
+      hugRows={pool && !isShort ? POOL_CARD_MAX_ROWS : undefined}
     />
   );
 
@@ -643,9 +639,17 @@ export default function GameScreen() {
         </View>
         <ActualToggle multiplier={multiplier} on={showActual} onChange={setShowActual} />
         {game.isComplete && !deleted ? (
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="completed-line">
-            {pool && game.awardedAt ? 'Completed and awarded.' : 'Completed.'}
-          </Text>
+          <View style={styles.completedRow}>
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="completed-line">
+              {pool && game.awardedAt ? 'Completed and awarded.' : 'Completed.'}
+            </Text>
+            {/* Landscape pool has no awards card (no standings pane), so the admin's way to the awards sits in the strip. */}
+            {pool && isShort && canManageNow && !game.closedAt ? (
+              <Button compact mode="text" icon="trophy-outline" onPress={openAwards} testID="strip-give-awards">
+                {game.awardedAt ? 'Change awards' : 'Give awards'}
+              </Button>
+            ) : null}
+          </View>
         ) : poolOver ? (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="pool-over-hint">
             One player is left in. Complete the pool, or re-enter someone below.
@@ -670,11 +674,11 @@ export default function GameScreen() {
             (game.isComplete || !canScoreNow) && { paddingBottom: insets.bottom + spacing.md },
           ]}
         >
-          {/* PR 24: portrait pool — scorecard about 70%, standings about 30%, each scrolling on its own. */}
-          <View style={pool ? styles.portraitPanes : styles.flex} onLayout={pool ? (e) => setPortraitBody(Math.round(e.nativeEvent.layout.height)) : undefined}>
-            <View style={pool ? (panes.table ? { height: panes.table } : styles.portraitTablePane) : styles.flex} testID={pool ? 'pool-table-pane' : undefined}>{table}</View>
+          {/* Pool portrait (Nov 18): the card hugs its rounds (five at most, see ScoreTable.hugRows); the standings fill what is left. */}
+          <View style={styles.flex}>
+            {pool ? <View style={styles.poolTablePane} testID="pool-table-pane">{table}</View> : table}
             {pool ? (
-              <ScrollView style={panes.standings ? { height: panes.standings, flexGrow: 0 } : styles.portraitStandingsPane} contentContainerStyle={styles.portraitStandingsContent} showsVerticalScrollIndicator testID="pool-standings-pane">
+              <ScrollView style={styles.flex} contentContainerStyle={styles.portraitStandingsContent} showsVerticalScrollIndicator testID="pool-standings-pane">
                 {poolBelow}
               </ScrollView>
             ) : null}
@@ -889,18 +893,20 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: spacing.sm,
   },
-  portraitPanes: {
-    flex: 1,
-  },
-  portraitTablePane: {
-    flex: PORTRAIT_TABLE_FLEX,
-  },
-  portraitStandingsPane: {
-    flex: PORTRAIT_STANDINGS_FLEX,
+  // The hugging card: never grows past its rows, shrinks before the standings do not.
+  poolTablePane: {
+    flexGrow: 0,
+    flexShrink: 1,
   },
   portraitStandingsContent: {
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     paddingBottom: spacing.xs,
+  },
+  completedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
   },
   landscapeBody: {
     flex: 1,
