@@ -10,7 +10,7 @@ import { gamesService } from '@/services/games';
 import { ActionBar } from '@/components/ui/ActionBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
-import { TitleWithTip } from '@/components/ui/InfoTip';
+import { InfoTip, TitleWithTip } from '@/components/ui/InfoTip';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { formatGameDateTime, gameTypeLabel } from '@/utils/gameDisplay';
@@ -28,6 +28,9 @@ import { playersChipLabel } from '@/utils/scorecardLayout';
  * button and a second confirmation. Once completed it offers Share final
  * scores and Results, and can no longer complete the game twice.
  */
+export const COMPLETE_POINTS_TIP = ['Completing locks the scores. The game can then be picked for Results.', 'Nothing is deleted: Reopen from the scorecard menu if this was a mistake.'];
+export const COMPLETE_POOL_TIP = ['Completing locks the scores. Then give the awards; the pool can be picked for Results once awarded.', 'Nothing is deleted: Reopen from the scorecard menu if this was a mistake.'];
+
 export default function CompleteGameScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -111,14 +114,19 @@ export default function CompleteGameScreen() {
         </View>
         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{formatGameDateTime(game.date)}</Text>
 
-        <Text variant="headlineSmall" style={styles.heading}>{done ? 'Final scores' : 'Final scores so far'}</Text>
-        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-          {done
-            ? `Completed${game.completedAt ? ` ${formatGameDateTime(game.completedAt)}` : ''}. Scores are locked. Reopen from the scorecard menu if this was a mistake.`
-            : pool
-              ? 'Completing locks the scores. Then give the awards; the pool can be picked for Results once awarded. Nothing is deleted.'
-              : 'Completing locks the scores. The game can then be picked for Results. Nothing is deleted.'}
-        </Text>
+        {done ? (
+          <>
+            <Text variant="headlineSmall" style={styles.heading}>Final scores</Text>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+              {`Completed${game.completedAt ? ` ${formatGameDateTime(game.completedAt)}` : ''}. Scores are locked. Reopen from the scorecard menu if this was a mistake.`}
+            </Text>
+          </>
+        ) : (
+          <View style={styles.headingRow}>
+            <Text variant="headlineSmall" style={styles.heading}>Final scores so far</Text>
+            <InfoTip title="Completing" text={pool ? COMPLETE_POOL_TIP : COMPLETE_POINTS_TIP} topic="complete" anchor="reopen" testID="complete-locks-tip" />
+          </View>
+        )}
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
           {totals.map(({ player, color, total, out }) => (
@@ -223,6 +231,7 @@ const styles = StyleSheet.create({
   content: { paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   headerRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs },
   heading: { fontWeight: '800' },
+  headingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   adminsTitle: { fontWeight: '700', paddingTop: spacing.sm, paddingBottom: spacing.xs },
   adminRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs },
   card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingTop: spacing.xs },
