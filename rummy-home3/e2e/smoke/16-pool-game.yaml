@@ -35,7 +35,7 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "Got it"
     timeout: 5000
-- assertVisible: ".*come back at the highest score still in.*"
+- assertVisible: ".*Re-entry score says where they start.*"
 - takeScreenshot: 16c2-game-type-reentries-tip
 - tapOn: "Got it"
 - assertNotVisible: "Got it"
