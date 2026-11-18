@@ -43,6 +43,10 @@ const HomeGameRow = React.memo(function HomeGameRow({ game, viewerId }: { game: 
   );
 });
 
+/** Mini helps (PR 11): the paragraphs that used to sit under the card titles. */
+export const LIVE_TIP = ['Every game that is still [Active] and that you are in. Tap one to carry on scoring.', 'Only an admin of the game can change scores; everyone else sees it [View only].'];
+export const RECENT_TIP = 'The yellow square carries the game number; the tag shows the status. A [Closed] game is part of a saved result.';
+
 export default function Dashboard() {
   const { colors } = useAppTheme();
   const { isWide } = useLayout();
@@ -221,7 +225,7 @@ export default function Dashboard() {
     <SectionCard
       title={live.length ? `Live · ${live.length}` : 'Live'}
       icon="cards-playing-outline"
-      supportingText={live.length ? 'Tap a game to carry on scoring.' : undefined}
+      tip={{ title: 'Live', text: LIVE_TIP, topic: 'home', anchor: 'statuses', testID: 'home-live-tip' }}
     >
       {live.length === 0 ? (
         <Text variant="bodyLarge" accessibilityLabel="No live game">No live game.</Text>
@@ -234,6 +238,7 @@ export default function Dashboard() {
   // Sree (Nov 14): no count in the Recent title; the card sits on a grey surface so Live reads as the thing to tap.
   const recentTitle = 'Recent';
   const recentSupporting = 'Completed and Closed games, newest first.';
+  const recentTip = { title: 'Recent', text: [recentSupporting, RECENT_TIP], topic: 'home' as const, anchor: 'recent', testID: 'home-recent-tip' };
   const recentStyle = { backgroundColor: colors.surfaceVariant };
   const noFinished = <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>No finished games yet.</Text>;
   const showMoreRow = paging.action === 'none' ? null : (
@@ -252,7 +257,7 @@ export default function Dashboard() {
   );
 
   const recent = (
-    <SectionCard title={recentTitle} icon="history" supportingText={recentSupporting} style={recentStyle}>
+    <SectionCard title={recentTitle} icon="history" tip={recentTip} style={recentStyle}>
       {finished.length === 0 ? noFinished : (
         shownFinished.map((game) => <HomeGameRow key={game.id} game={game} viewerId={viewerId} />)
       )}
@@ -378,7 +383,7 @@ export default function Dashboard() {
             {settleButton}
             {liveCard}
             <View style={styles.sectionGap} />
-            <SectionCard title={recentTitle} icon="history" supportingText={recentSupporting} part="top" style={recentStyle} />
+            <SectionCard title={recentTitle} icon="history" tip={recentTip} part="top" style={recentStyle} />
           </View>
         </>
       )}

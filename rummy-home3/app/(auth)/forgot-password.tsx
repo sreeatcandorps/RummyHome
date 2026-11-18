@@ -6,7 +6,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { OtpField } from '@/components/ui/OtpField';
 import { PasscodeField } from '@/components/ui/PasscodeField';
 import { AuthShell } from '@/components/ui/AuthShell';
-import { HELP } from '@/constants/help';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { passcodeClient } from '@/services/auth';
@@ -111,7 +110,7 @@ export default function ForgotPasscodeScreen() {
       subtitle={step === 'email'
         ? 'We’ll email you a 6-digit OTP. Type it here, then choose a new passcode. No web page needed.'
         : `Type the 6-digit OTP we emailed to ${email.trim()}, then choose your new passcode.`}
-      help={HELP.reset}
+      help="sign-in"
       icon="lock-reset"
       footer={
         <View style={styles.footerActions}>

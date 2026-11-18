@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { Portal, Text } from 'react-native-paper';
+import { TitleWithTip } from '@/components/ui/InfoTip';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { useGameRoster } from '@/hooks/useGameRoster';
@@ -97,11 +98,18 @@ export default function FinalScoresScreen() {
       ) : (
         <>
           <ScrollView contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}>
-            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-              {sheet.showsAwards
-                ? 'This is the picture that will be shared: the awards. The full details below go out as a PDF.'
-                : 'This is the picture that will be shared: the scores of this game. The full details below go out as a PDF.'}
-            </Text>
+            <TitleWithTip
+              variant="titleMedium"
+              title="The picture"
+              tip={{
+                text: sheet.showsAwards
+                  ? 'This is the picture that will be shared: the awards. The full details below (awards, entries, pool scores, every round) go out as a PDF from **Share full details**.'
+                  : 'This is the picture that will be shared: the scores of this game. The full details below go out as a PDF from **Share full details**.',
+                topic: 'final-scores',
+                anchor: 'sharing',
+                testID: 'final-scores-picture-tip',
+              }}
+            />
             <ShareCardView card={sheet.card} />
             <OffscreenShareCard card={sheet.card} cardRef={capture.ref} onHeight={capture.onHeight} />
             <Text variant="titleMedium" style={[styles.heading, { color: colors.onSurface }]} accessibilityRole="header">Round by round</Text>

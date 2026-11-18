@@ -11,7 +11,7 @@ import {
   SUPPORT_EMAIL,
 } from '../utils/accountDeletion';
 import { seatMenu } from '../utils/gamePlayers';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
 

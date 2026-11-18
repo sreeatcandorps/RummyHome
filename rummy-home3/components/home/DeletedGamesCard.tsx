@@ -30,7 +30,7 @@ export function DeletedGamesCard({ games, viewerId, busyId, onOpen, onAsk, onRes
     <SectionCard
       title={`${DELETED_GAMES_TITLE} · ${games.length}`}
       icon="delete-clock-outline"
-      supportingText={DELETED_GAMES_SUPPORTING}
+      tip={{ text: DELETED_GAMES_SUPPORTING, topic: 'hidden-deleted', testID: 'home-deleted-tip' }}
       style={{ backgroundColor: colors.surfaceVariant }}
     >
       <View testID="home-deleted-games">

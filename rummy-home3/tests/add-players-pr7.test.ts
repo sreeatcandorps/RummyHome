@@ -100,9 +100,9 @@ test('7.6 the three tag sites go through visibleRegistration and the four text s
     ['app/(screens)/games/players.tsx', /· Registered/],
     ['components/players/LinkPlayerDialog.tsx', /Registered</],
     ['app/(screens)/players/new.tsx', /Registered players only/],
-    ['constants/help.ts', /whether they are Registered/],
+    ['constants/helpTopics.ts', /whether they are Registered/],
   ];
   for (const [file, pattern] of textSites) assert.doesNotMatch(read(file), pattern, `${file} prints no Registered text`);
-  const help = read('constants/help.ts');
-  assert.match(help, /Only players who have not finished signing up carry a tag \(Unregistered, Pending registration\)/);
+  const help = read('constants/helpTopics.ts');
+  assert.match(help, /Only players who have not finished signing up carry a tag \(\[Unregistered\], \[Pending registration\]\)/);
 });

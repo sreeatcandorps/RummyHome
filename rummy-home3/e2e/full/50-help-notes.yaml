@@ -1,15 +1,30 @@
 appId: com.mindweavetech.rummyhome
 tags: [nightly]
-# Every ? on the main screens opens and closes (a sentence from each note is the check: long notes
-# open scrolled, so the "Help" title may be off-screen). PR 12 (in-app Help) adds a per-screen flow and
-# the wording checks; until then this is the smoke of the notes themselves.
+# PR 11: every ? on the main screens opens that screen's help page (title "Help · <screen>",
+# Need to know first) and Back returns to the screen. Then the index and its search.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Help"
 - extendedWaitUntil:
-    visible: ".*Two buttons: Home.*"
+    visible: "Help · Home"
     timeout: 5000
+- assertVisible: "Need to know"
 - takeScreenshot: 50-help-home
+# The index link in the header lists every page by group; search narrows it.
+- tapOn: "Help index"
+- extendedWaitUntil:
+    visible: "Help & guide"
+    timeout: 5000
+- takeScreenshot: 50a-help-index
+- tapOn:
+    id: "help-search"
+- inputText: "awards"
+- extendedWaitUntil:
+    visible: ".*Awards.*"
+    timeout: 5000
+- takeScreenshot: 50a2-help-search-awards
+- hideKeyboard
+- back
 - back
 - tapOn: "New game"
 - extendedWaitUntil:
@@ -17,7 +32,7 @@ tags: [nightly]
     timeout: 15000
 - tapOn: "Help"
 - extendedWaitUntil:
-    visible: ".*You can run a game without sitting in it.*"
+    visible: "Help · New game · Players"
     timeout: 5000
 - takeScreenshot: 50b-help-new-game
 - back
@@ -29,7 +44,7 @@ tags: [nightly]
     timeout: 15000
 - tapOn: "Help"
 - extendedWaitUntil:
-    visible: ".*My players is your own list.*"
+    visible: "Help · My players"
     timeout: 5000
 - takeScreenshot: 50c-help-my-players
 - back
@@ -39,7 +54,18 @@ tags: [nightly]
     timeout: 15000
 - tapOn: "Help"
 - extendedWaitUntil:
-    visible: ".*Your email is how you sign in.*"
+    visible: "Help · Me"
     timeout: 5000
 - takeScreenshot: 50d-help-profile
+- back
+- launchApp
+- tapOn: "Results"
+- extendedWaitUntil:
+    visible: "Past results"
+    timeout: 15000
+- tapOn: "Help"
+- extendedWaitUntil:
+    visible: "Help · Results"
+    timeout: 5000
+- takeScreenshot: 50e-help-results
 - back

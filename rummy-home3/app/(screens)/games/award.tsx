@@ -4,13 +4,14 @@ import { Dialog, Icon, Portal, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { HELP } from '@/constants/help';
 import { useGameRoster } from '@/hooks/useGameRoster';
 import { useLayout } from '@/hooks/useLayout';
 import { gamesService } from '@/services/games';
 import { ActionBar } from '@/components/ui/ActionBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
+import { TitleWithTip } from '@/components/ui/InfoTip';
+import { WhyLink } from '@/components/help/WhyLink';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
@@ -29,6 +30,12 @@ import { screenTitle } from '@/utils/gameLabel';
  * Save or Not now; opened from the scorecard or the Results picker it returns to its caller. No
  * Results button here — Results is its own errand from Home.
  */
+/** Mini help (PR 11): the five presets and the formula, once beside the chips instead of under them. */
+export const SPLIT_TIP = [
+  ...AWARD_PRESETS.map((p) => `**${p.label}**: ${p.hint}`),
+  'Award = Gets − Put in. The awards are what this pool counts for if it is ever added to Results.',
+];
+
 export default function AwardScreen() {
   const { id, next } = useLocalSearchParams<{ id: string; next?: string }>();
   const router = useRouter();
@@ -163,7 +170,7 @@ export default function AwardScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ title, headerRight: () => <HelpButton text={HELP.awards} /> }} />
+      <Stack.Screen options={{ title, headerRight: () => <HelpButton topic="awards" /> }} />
       <ScrollView
         contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}
         keyboardShouldPersistTaps="handled"
@@ -189,6 +196,7 @@ export default function AwardScreen() {
           {`${sheet.rows.reduce((n, r) => n + r.entries, 0)} entries (a re-entry counts twice) · pool ${sheet.poolTotal} points`}
         </Text>
 
+        <TitleWithTip title="How to split the pool" tip={{ text: SPLIT_TIP, topic: 'awards', anchor: 'the-presets', testID: 'award-split-tip' }} />
         <View style={styles.chips}>
           {AWARD_PRESETS.map((p) => (
             <Button
@@ -206,9 +214,6 @@ export default function AwardScreen() {
             </Button>
           ))}
         </View>
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="award-hint">
-          {AWARD_PRESETS.find((p) => p.key === preset)?.hint}
-        </Text>
         {customCheck && !customCheck.ok ? (
           <View style={styles.warnRow}>
             <Icon source="alert-outline" size={16} color={colors.loss} />
@@ -268,9 +273,6 @@ export default function AwardScreen() {
         </View>
 
         {blocked ? <Text variant="bodyMedium" style={{ color: colors.error }} testID="award-blocked">{blocked}</Text> : null}
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          Award = Gets − Put in.
-        </Text>
       </ScrollView>
 
       {/* First awards: Not now leaves the pool Completed without awards (give them later from the scorecard). Editing: Cancel + Save changes. */}
@@ -287,6 +289,7 @@ export default function AwardScreen() {
           <Dialog.Title style={styles.dialogTitle}>Not all given out</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, textAlign: 'center' }} testID="award-save-anyway">{confirm}</Text>
+            <WhyLink why="saveAwardsAnyway" before={() => setConfirm(null)} />
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setConfirm(null)} disabled={saving}>Change</Button>

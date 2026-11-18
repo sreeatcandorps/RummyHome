@@ -14,7 +14,6 @@ import { playerSearchMode } from '@/utils/playerSearch';
 import { orderDatabaseResults, playerIdBadge } from '@/utils/myPlayersList';
 import { shareInvite } from '@/utils/invite';
 import { newGameDraft } from '@/utils/newGameDraft';
-import { HELP } from '@/constants/help';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { Screen } from '@/components/ui/Screen';
 import { BoldName } from '@/components/ui/BoldName';
@@ -50,7 +49,7 @@ export default function FindPlayersScreen() {
   React.useLayoutEffect(() => {
     navigation.setOptions({
       title: FIND_IN_DATABASE,
-      headerRight: () => <HelpButton text={fromNewGame ? HELP.addToGame : HELP.find} />,
+      headerRight: () => <HelpButton topic="add-players" anchor="find-in-database" />,
     });
   }, [navigation, fromNewGame]);
 

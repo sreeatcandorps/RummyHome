@@ -40,13 +40,12 @@ tags: [smoke]
 - assertVisible:
     id: "score-cell-2-.*"
 - takeScreenshot: 02-scorecard-4p
+# PR 11: ? opens the screen's help page (Need to know first, then the Full guide).
 - tapOn: "Help"
-# The scorecard note is taller than a Pixel 6 screen, so the dialog title can sit half off the top
-# (PR 81 moves help to its own page); wait for the first bullet, which is always on screen.
 - extendedWaitUntil:
-    visible: "View only means you can watch but not change scores."
+    visible: "Help · Scorecard"
     timeout: 5000
+- assertVisible: "Need to know"
 - takeScreenshot: 02b-scorecard-help
-# Android back closes the help note (the Close button can sit below the fold on long notes).
 - back
 - assertVisible: "Add round"

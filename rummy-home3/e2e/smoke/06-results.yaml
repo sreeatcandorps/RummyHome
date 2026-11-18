@@ -32,10 +32,10 @@ tags: [smoke]
     direction: DOWN
     timeout: 15000
 - takeScreenshot: 06d-results-games-block
+# PR 11: ? opens the Results help page at "The preview".
 - tapOn: "Help"
-# The results help is long and opens scrolled, so wait for a sentence from it rather than the title.
 - extendedWaitUntil:
-    visible: ".*Nothing is saved by looking.*"
+    visible: "Help · Results"
     timeout: 5000
 - takeScreenshot: 06c-results-help
 - back

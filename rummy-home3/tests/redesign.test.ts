@@ -4,7 +4,7 @@ import { isLocalToday } from '../utils/localDay';
 import { userAdminsGame } from '../utils/gameAccess';
 import { inviteMessage, INVITE_URL } from '../utils/inviteLink';
 import { matchesMyPlayer, playerSearchMode } from '../utils/playerSearch';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 import { pointsGameLabel, settleEnabled } from '../constants/features';
 import { coinSum, openingBalances, stakePrizeShares, validateLegs } from '../utils/prizeSession';
 

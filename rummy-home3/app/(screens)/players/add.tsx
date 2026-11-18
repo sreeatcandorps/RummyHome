@@ -23,8 +23,8 @@ import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { playerIdBadge } from '@/utils/myPlayersList';
 import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
 import { SelectedPlayersStrip } from '@/components/players/SelectedPlayersStrip';
-import { HELP } from '@/constants/help';
 import { HelpButton } from '@/components/ui/HelpButton';
+import { InfoTip } from '@/components/ui/InfoTip';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
@@ -131,7 +131,7 @@ export default function AddPlayersScreen() {
       // Q11.18: a Back arrow that behaves like Done (rows save on their own).
       headerLeft: () => <IconButton icon="arrow-left" onPress={() => doneRef.current()} accessibilityLabel="Done adding players, back" testID="add-players-back" />,
       gestureEnabled: true,
-      headerRight: () => <HelpButton text={HELP.addPlayers} />,
+      headerRight: () => <HelpButton topic="add-players" />,
     });
   }, [navigation]);
 
@@ -259,7 +259,10 @@ export default function AddPlayersScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}
       >
-        <Text variant="titleMedium" style={styles.heading} accessibilityRole="header">{ADD_PLAYERS_HEADING}</Text>
+        <View style={styles.headingRow}>
+          <Text variant="titleMedium" style={styles.heading} accessibilityRole="header">{ADD_PLAYERS_HEADING}</Text>
+          <InfoTip title={ADD_PLAYERS_HEADING} text={[EDIT_NOTE, 'Back (or Done) returns to the game; rows you saved are already in.']} topic="add-players" anchor="add-by-initials" testID="add-players-tip" />
+        </View>
         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{ADD_PLAYERS_SUBLINE}</Text>
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
@@ -354,7 +357,6 @@ export default function AddPlayersScreen() {
           })}
         </View>
 
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{EDIT_NOTE}</Text>
       </ScrollView>
 
       <Portal>
@@ -412,6 +414,7 @@ export default function AddPlayersScreen() {
 }
 
 const styles = StyleSheet.create({
+  headingRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   root: { flex: 1 },
   content: { paddingTop: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm },
   heading: { fontWeight: '800' },

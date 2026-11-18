@@ -147,8 +147,15 @@ tags: [smoke]
     direction: DOWN
     timeout: 10000
 - assertVisible: "Deleted"
+# PR 11 mini help: the 30-day note sits in the ⓘ beside the Deleted title.
+- tapOn: "About Deleted"
+- extendedWaitUntil:
+    visible: "Got it"
+    timeout: 5000
 - assertVisible: ".*stay listed for 30 days under \"Deleted\".*"
 - takeScreenshot: 12h-past-results-deleted-restore
+- tapOn: "Got it"
+- assertNotVisible: "Got it"
 - tapOn:
     id: "deleted-result-restore-.*"
 - extendedWaitUntil:

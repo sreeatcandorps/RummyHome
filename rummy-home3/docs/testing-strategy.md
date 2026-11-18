@@ -322,17 +322,23 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | T17-17 | N | `e2e/chaos/c11--net-off`, `c12--revoke-session` | relaunch offline with a cached session: no crash, a screen that explains itself within 30 s (finding F2, fixed in PR 19); Log out after the server session was revoked (runner deletes `auth.sessions` via psql) must still land on the login screen (finding F1, fixed in PR 19) |
 | T17-18 | I | `scripts/realtime-probe.mjs` (two-device job, before the emulators) | subscribes like the app (postgres_changes on `games`, one id) and nudges the row through psql; green probe + red T1 = the app, red probe = the local stack (Realtime container log attached) |
 
-## PR 11 test cases (Help redesign — spec only, `docs/help-design.md`; codes reserved)
+## PR 11 test cases (Help redesign, `docs/help-design.md`; built Nov 18, no migration)
 
 | # | Kind | Where | What it proves |
 | --- | --- | --- | --- |
-| HL11-1 | U | `tests/help-pr11.test.ts` (to write) | every route has a topic; every topic has hero, 3–5 Need to know, ≥ 1 Tricky case, Also see |
-| HL11-2 | U | same | ⋮ items in help tables ⇔ `Menu.Item` titles in code |
-| HL11-3 | U | same | no money words; bold labels match on-screen strings |
-| HL11-4 | U | same | index lists every topic once; search; family colours from theme tokens |
-| HL11-5 | S | `smoke/18-help.yaml` (to write) | `?` on Home, Scorecard, Add round, Results, Awards opens the page (screenshots) |
-| HL11-6 | N | `full/51-help-every-screen.yaml` (to write) | `?` on every screen; dark theme |
-| HL11-7 | M | emulator | read-through against the spec |
+| HL11-1 | U | `tests/help-pr11.test.ts` | every route in `app/` has a topic (`ROUTE_TOPIC`); every topic has a purpose, 3–5 Need to know, ≥ 1 Tricky case, Also see; every screenshot file exists and is in `HELP_SCREENSHOTS`; every `HELP_WHY` and every anchored `?` resolves to a real section or Tricky id |
+| HL11-2 | U | same | the ⋮ tables (scorecard, Add round sheet, Players · Admins row, My players row, saved result) list the `Menu.Item` titles / `SEAT_MENU_LABEL` values the code renders, in order |
+| HL11-3 | U | same | no money / stake / prize / settle words; `[Chip]`s are the real tags; bold labels match on-screen strings; legacy sentences kept; Q11.16 "User settings" gone; markup round-trips |
+| HL11-4 | U | same | index lists every topic once in Home order; search by alias, phrase, hyphenated word, empty; family colours from theme tokens; index reachable from Me and every help page |
+| HL11-5 | U | same | mini helps: Game type keeps only live feedback; `InfoTip` reads "About <title>", Got it / Full guide, tap outside closes; `RulesForm` has limit / values / multiplier / re-entries ⓘ with the lock note folded in; Game settings ⓘ → scorecard help |
+| HL11-6 | U | same | Why? links in the five dialogs (Give awards first · Save awards anyway · The scorecard changed · counted again · Settings locked) |
+| HL11-7 | U | same | mini helps on every screen (Home, Deleted games, Settings, Hidden & deleted, Me, Results, Awards, Complete, Final scores, Players · Admins, Add players, Fix initials, New game): each section keeps its title plus a ⓘ, the paragraph is gone from the screen but its constant stays, every ⓘ topic#anchor resolves; `SectionCard` `tip` slot |
+| HL11-8 | U | same | help copy matches PR 24 (#82): four-step New game (Next / Start game), Order of players (tap to number, undo, arrows, Clear / Done), ↺ re-entry score with grey cells above, footer inside the scorecard, Re-entry score / Late entry; no "Seating order", "Skip" or "asks who sits where" |
+| HL11-9 | S | `smoke/01`, `02`, `06`, `12`, `16` | `?` on the scorecard and Results opens "Help · Scorecard" / "Help · Results" (02b, 06c); the Live ⓘ (01d), the Re-entries ⓘ (16c2) and the Deleted-results ⓘ (12h) open and Got it closes |
+| HL11-10 | N | `full/50-help-notes.yaml`, `full/40` | `?` on Home, New game, My players, Me, Results opens its page; the index and search (screenshots 50*); the Deleted-results ⓘ (40h) |
+| HL11-11 | M | emulator | read-through of every page against the spec; dark theme |
+
+Legacy help tests (`HELP.*` strings in build3/build4/pool-pr13/…) read the same copy through `tests/_helpLegacy.ts`, which flattens a topic back to the old bullet text.
 
 ## PR 16 test cases (Test plan — review-first, `docs/test-plan/`; codes reserved)
 

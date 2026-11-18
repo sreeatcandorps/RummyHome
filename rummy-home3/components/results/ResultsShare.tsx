@@ -4,7 +4,6 @@ import { IconButton } from 'react-native-paper';
 import { useNavigation } from 'expo-router';
 import { ShareImageDialog } from '@/components/share/ShareImageDialog';
 import { HelpButton } from '@/components/ui/HelpButton';
-import { HELP } from '@/constants/help';
 import { ShareCard } from '@/utils/shareCard';
 import { ResultsDetails } from '@/utils/resultsDetails';
 import { shareResultsPdf } from '@/utils/shareResultsPdf';
@@ -46,7 +45,7 @@ export function ResultsShare({ card, details, createdAt, resultId, menu }: Props
             }}
             disabled={!card}
           />
-          <HelpButton text={HELP.results} />
+          <HelpButton topic="results" anchor="the-preview" />
           {menu}
         </View>
       ),

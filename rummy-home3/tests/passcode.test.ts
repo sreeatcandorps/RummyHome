@@ -13,7 +13,7 @@ import {
   passcodeProblem,
 } from '../utils/passcode';
 import { changePasscode, completePasscodeReset, PasscodeAuthClient, requestPasscodeCode } from '../utils/passcodeFlow';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 
 test('P1-B: a passcode is exactly six digits, nothing else', () => {
   assert.equal(isPasscode('123456'), true);

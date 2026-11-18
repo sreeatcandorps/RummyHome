@@ -9,6 +9,7 @@ import { LoadingRows } from '@/components/ui/LoadingRows';
 import { Screen } from '@/components/ui/Screen';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { InfoTip, TitleWithTip } from '@/components/ui/InfoTip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Tag } from '@/components/ui/Tag';
 import { RESULTS_PLAYER_LIMIT } from '@/constants/limits';
@@ -52,6 +53,7 @@ import {
   MAKE_RESULT_FOLD_NOTE,
 } from '@/utils/resultsSave';
 import { GIVE_AWARDS_FIRST, poolNeedsAwards } from '@/utils/pool';
+import { WhyLink } from '@/components/help/WhyLink';
 import {
   DELETED_SECTION_NOTE,
   DELETED_SECTION_TITLE,
@@ -142,6 +144,12 @@ function DeletedResult({ row, busy, onRestore }: { row: DeletedResultRow; busy: 
     </View>
   );
 }
+
+/** Mini help (PR 11) beside the picker heading. */
+export const PICKER_TIP = [
+  'Tick the games for this result. Only games you created or admin can be ticked; a pool needs its awards first.',
+  '**Show results** only previews — nothing is saved by looking. **Save result** is on the preview.',
+];
 
 export default function ResultsScreen() {
   const { colors } = useAppTheme();
@@ -288,7 +296,7 @@ export default function ResultsScreen() {
 
   const picker = (
     <>
-      <Text variant="titleMedium" accessibilityRole="header">{resultsPickerHeading(filter)}</Text>
+      <TitleWithTip variant="titleMedium" title={resultsPickerHeading(filter)} tip={{ title: 'Make a result', text: PICKER_TIP, topic: 'results', anchor: 'the-preview', testID: 'results-picker-tip' }} />
       <View style={styles.filterRow}>
         {RESULTS_STATUSES.map((option) => {
           const on = filter.includes(option);
@@ -378,7 +386,7 @@ export default function ResultsScreen() {
     <Screen onScroll={onScroll}>
       {makeResultHeader}
       {showPicker ? picker : null}
-      <SectionCard title="Past results" icon="podium" supportingText="Tap one to open it, share it, or save the PDF.">
+      <SectionCard title="Past results" icon="podium" tip={{ text: 'Tap one to open it, share it, or save the PDF. Its ⋮ has Copy link, History and Delete result.', topic: 'results', anchor: 'a-saved-result', testID: 'past-results-tip' }}>
         {saved.length === 0 ? (
           <EmptyState icon="podium" title="No results yet" message="Pick completed games above and make a result; it will be listed here." />
         ) : (
@@ -393,11 +401,13 @@ export default function ResultsScreen() {
         ) : null}
         {deletedRows.length > 0 ? (
           <View style={styles.deletedSection} testID="deleted-results">
-            <Text variant="titleSmall" accessibilityRole="header" style={{ color: colors.onSurfaceVariant }}>{DELETED_SECTION_TITLE}</Text>
+            <View style={styles.deletedTitle}>
+              <Text variant="titleSmall" accessibilityRole="header" style={{ color: colors.onSurfaceVariant }}>{DELETED_SECTION_TITLE}</Text>
+              <InfoTip title={DELETED_SECTION_TITLE} text={DELETED_SECTION_NOTE} topic="hidden-deleted" anchor="results" testID="deleted-results-note-tip" />
+            </View>
             <View style={styles.list}>
               {deletedRows.map((row) => <DeletedResult key={row.id} row={row} busy={rowBusy === row.id} onRestore={() => restoreRow(row.id)} />)}
             </View>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{DELETED_SECTION_NOTE}</Text>
           </View>
         ) : null}
       </SectionCard>
@@ -416,7 +426,10 @@ export default function ResultsScreen() {
         <Dialog visible={Boolean(needsAwards)} onDismiss={() => setNeedsAwards(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Icon icon="trophy-outline" />
           <Dialog.Title>{GIVE_AWARDS_FIRST}</Dialog.Title>
-          <Dialog.Content><Text variant="bodyMedium">A pool joins a result through its awards. Open the pool, give the awards, then pick it here.</Text></Dialog.Content>
+          <Dialog.Content>
+            <Text variant="bodyMedium">A pool joins a result through its awards. Open the pool, give the awards, then pick it here.</Text>
+            <WhyLink why="giveAwardsFirst" before={() => setNeedsAwards(null)} />
+          </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setNeedsAwards(null)}>Not now</Button>
             <Button mode="contained" onPress={() => { const g = needsAwards; setNeedsAwards(null); if (g) router.push({ pathname: '/(screens)/games/award', params: { id: g.id } }); }}>Give awards</Button>
@@ -434,6 +447,7 @@ export default function ResultsScreen() {
 }
 
 const styles = StyleSheet.create({
+  deletedTitle: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   left: { textAlign: 'left' },
   list: { gap: spacing.sm },
   ripple: { borderRadius: radius.lg },

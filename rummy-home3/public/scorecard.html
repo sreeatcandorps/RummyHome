@@ -10,8 +10,9 @@
     header { background: var(--green); color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
     header h1 { margin: 0; font-size: 20px; font-weight: 800; }
     button.help { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); border-radius: 999px; width: 32px; height: 32px; font-weight: 700; cursor: pointer; }
-    dialog { border: 0; border-radius: 12px; max-width: 420px; }
-    dialog p { margin: 0 0 12px; }
+    details.about { margin: 8px 4px 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    details.about summary { cursor: pointer; font-weight: 700; color: var(--ink); }
+    details.about p { margin: 6px 0 0; }
     .meta { margin-top: 4px; font-size: 14px; opacity: 0.95; }
     main { padding: 12px 12px 24px; max-width: 430px; margin: 0 auto; }
     /* Blocks of five players (same as the results PDF): one table per block, totals in the header, so nothing scrolls sideways. */
@@ -59,12 +60,14 @@
       <h1>EZ Score: Rummy</h1>
       <div class="meta" id="meta">Loading…</div>
     </div>
-    <button class="help" type="button" aria-label="Help" onclick="document.getElementById('help').showModal()">?</button>
+    <button class="help" type="button" aria-label="Help" onclick="var a=document.getElementById('about');a.open=true;a.scrollIntoView({behavior:'smooth',block:'start'})">?</button>
   </header>
-  <dialog id="help">
-    <p>This page updates on its own. It shows the game number, the start time, every round, and the totals, five players to a block. No login. Anyone with the link can watch.</p>
-    <form method="dialog"><button>Close</button></form>
-  </dialog>
+  <!-- PR 11: a short "About this page" fold instead of a dialog; the ? opens it. -->
+  <details class="about" id="about">
+    <summary>About this page</summary>
+    <p>This page updates on its own and needs no login. Anyone with the link can watch.</p>
+    <p>It shows the game number, the start time, every round and the totals, five players to a block, and under the board the latest changes to the game. Only the people in the EZ Score app can change scores.</p>
+  </details>
   <main id="board"></main>
   <section id="changes"></section>
   <script>

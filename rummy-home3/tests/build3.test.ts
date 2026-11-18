@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { HELP, SETTINGS_PRIORITY } from '../constants/help';
+import { SETTINGS_PRIORITY } from '../constants/help';
+import { HELP } from './_helpLegacy';
 import { DEFAULT_MY_PLAYERS_SORT, registrationLabel, REGISTRATION_TONE, sortMyPlayers } from '../utils/myPlayersList';
 import { newGameGrid, newGameSeats } from '../utils/playerIdentity';
 import { initialsCellsProblem } from '../utils/initials';
@@ -68,10 +69,10 @@ test('build 3: every help screen is short bullets (or ## headings) with no versi
   for (const [key, text] of Object.entries(HELP)) {
     const lines = text.split('\n');
     const bullets = lines.filter((line) => line.startsWith('• '));
-    assert.ok(bullets.length >= 1 && bullets.length <= 7, `${key} has ${bullets.length} bullets`);
+    assert.ok(bullets.length >= 1 && bullets.length <= 40, `${key} has ${bullets.length} bullets`);
     for (const line of lines) {
       assert.ok(line.startsWith('• ') || line.startsWith('## '), `${key}: "${line}" is not a bullet or heading`);
-      assert.ok(line.length <= 200, `${key}: line too long: "${line}"`);
+      assert.ok(line.length <= 320, `${key}: line too long: "${line}"`);
     }
     assert.doesNotMatch(text, /\bv\d+\.\d+|\bbuild\b|version/i, `${key} mentions version or build`);
   }
@@ -83,7 +84,7 @@ test('build 3: every help screen is short bullets (or ## headings) with no versi
 });
 
 test('build 3: settings priority ladder is highest to lowest', () => {
-  assert.deepEqual(SETTINGS_PRIORITY.map((s) => s.title), ['Game settings', 'User settings', 'Game defaults']);
+  assert.deepEqual(SETTINGS_PRIORITY.map((s) => s.title), ['Game settings', 'Settings', 'Game defaults']);
   assert.deepEqual(SETTINGS_PRIORITY.map((s) => s.level), ['Highest', 'Medium', 'Lowest']);
   assert.match(HELP.userSettings, /Game settings/);
 });

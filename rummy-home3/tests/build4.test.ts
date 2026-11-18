@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 import { helpOutline, splitHelpLine } from '../utils/helpMarkup';
 import { nameSegments } from '../utils/boldName';
 import { filterMyPlayers, matchesPlayerFilter, SORT_CHIP, SORT_OPTIONS } from '../utils/myPlayersList';
@@ -19,8 +19,8 @@ import { GAME_STATUS_TONE } from '../utils/gameStatus';
 
 test('build 4: Home help is Statuses, Results, My players, with coloured chips', () => {
   const { headings, bullets } = helpOutline(HELP.home);
-  assert.deepEqual(headings, ['Statuses', 'Results', 'My players', 'Bottom bar']);
-  assert.equal(bullets.length, 6);
+  assert.deepEqual(headings, ['Statuses', 'Results', 'My players', 'Recent', 'Bottom bar']);
+  assert.equal(bullets.length, 9);
   assert.ok(bullets[0].startsWith('[Active]'));
   assert.ok(bullets[1].startsWith('[Completed]'));
   assert.ok(bullets[2].startsWith('[Closed]'));
@@ -29,7 +29,7 @@ test('build 4: Home help is Statuses, Results, My players, with coloured chips',
   assert.equal(bullets[4], 'My players is a list of players you regularly play with. The number on the button is how many are in it.');
   assert.doesNotMatch(bullets[4], /database|register|link/i);
   // PR 5: two bottom buttons; My players is a Home button with its count badge.
-  assert.match(bullets[5], /^Two buttons: Home .*your initials/);
+  assert.match(bullets[8], /^Two buttons: Home .*your initials/);
   const parts = splitHelpLine('From [Completed] to [Closed].');
   assert.deepEqual(parts, [
     { kind: 'text', text: 'From ' },

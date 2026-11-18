@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
+import { InfoTip } from '@/components/ui/InfoTip';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { InitialsConflict } from '@/utils/initials';
 import { BottomBar } from '@/components/ui/BottomBar';
@@ -35,11 +36,9 @@ export function FixInitialsScreen({ conflicts, choices, onChoose, taken, youId, 
           <Text variant="bodyMedium" style={styles.flex}>
             {pairs} in this game share initials. Pick new letters for the players who joined your My players later, or type your own.
           </Text>
+          <InfoTip title="Fix initials" text={['The player who joined your My players first keeps the short form.', 'Initials stay the same in every game you create; **Not now** keeps the new letters for this game only.']} topic="new-game" anchor="initials-clash" testID="fix-initials-tip" />
         </View>
         <InitialsConflictList conflicts={conflicts} choices={choices} onChoose={onChoose} taken={taken} youId={youId} />
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          The player who joined your My players first keeps the short form. Initials stay the same in every game you create.
-        </Text>
         {error ? <Text variant="bodyMedium" style={{ color: colors.error }}>{error}</Text> : null}
       </ScrollView>
       <BottomBar>

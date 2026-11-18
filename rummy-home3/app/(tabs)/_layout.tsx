@@ -3,8 +3,8 @@ import { Image, StyleSheet, View } from 'react-native';
 import { router, Tabs, usePathname } from 'expo-router';
 import { IconButton, Text } from 'react-native-paper';
 import { HelpButton } from '@/components/ui/HelpButton';
+import { HelpTopicKey } from '@/constants/helpTopics';
 import { PillTabBar } from '@/components/ui/TabBarButtons';
-import { HELP } from '@/constants/help';
 import { authService } from '@/services/auth';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
@@ -35,16 +35,12 @@ function useMyName() {
 
 function HeaderTools() {
   const path = usePathname();
-  const text = path.includes('/players')
-    ? HELP.players
-    : path.includes('/me')
-      ? HELP.me
-      : HELP.home;
+  const topic: HelpTopicKey = path.includes('/players') ? 'my-players' : path.includes('/me') ? 'me' : 'home';
 
   // Tab pages already carry the account chip in the bottom bar; the header keeps only Help.
   return (
     <View style={styles.headerRight}>
-      <HelpButton text={text} />
+      <HelpButton topic={topic} />
     </View>
   );
 }

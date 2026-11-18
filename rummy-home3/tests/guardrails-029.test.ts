@@ -42,7 +42,7 @@ test('029: the limits Sree asked for, and the app repeats the exact server wordi
   assert.equal(MAX_SEATED_PLAYERS, 20, 'the seat cap in the app is the guardrail');
   assert.equal(SEATED_PLAYER_LIMIT, GUARDRAIL_MESSAGES.players_per_game);
   assert.equal(GAME_SIZE_MESSAGE, 'A game must have between 2 and 20 players.');
-  assert.match(src('constants/help.ts'), /Up to 20 players\./);
+  assert.match(src('constants/helpTopics.ts'), /Up to 20 players\./);
 });
 
 test('029: enforced by BEFORE triggers on the tables (not only in RPCs), each raising GRD01', () => {

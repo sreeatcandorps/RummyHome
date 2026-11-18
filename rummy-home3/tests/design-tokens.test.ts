@@ -5,7 +5,7 @@ import path from 'node:path';
 import { UNDO_DELETE_MS } from '../utils/resultsDelete';
 import { UNDO_REMOVE_MS } from '../utils/removeMyPlayer';
 import { ADD_NEW_PLAYERS, FIND_IN_DATABASE, SEARCH_PLACEHOLDER } from '../utils/addPlayers';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 import { blockedDialogTitle, completeDialogBody } from '../utils/endFlow';
 
 // Design audit PR 15b (docs/design-audit.md §1, §3, §4): the token test (A15, DC15-1) and source checks for the
@@ -118,7 +118,7 @@ test('A20: header right is share · help · menu — scorecard and saved result;
   const menu = header.indexOf('<Menu');
   assert.ok(share > 0 && help > share && menu > help, 'share, then help, then menu');
   const rs = src('components/results/ResultsShare.tsx');
-  assert.match(rs, /testID="results-share-icon"[\s\S]*?<HelpButton text=\{HELP\.results\} \/>\s*\{menu\}/, 'ResultsShare renders share · help · menu');
+  assert.match(rs, /testID="results-share-icon"[\s\S]*?<HelpButton topic="results" anchor="the-preview" \/>\s*\{menu\}/, 'ResultsShare renders share · help · menu');
   const saved = src('app/(screens)/results/[id].tsx');
   assert.doesNotMatch(saved, /headerRight:/, 'the saved result no longer sets a second headerRight that raced ResultsShare');
   assert.match(saved, /<ResultsShare[\s\S]*?menu=\{result \? \(\s*<Menu/, 'its ⋮ goes through ResultsShare');

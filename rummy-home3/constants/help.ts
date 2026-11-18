@@ -1,203 +1,23 @@
 /**
- * Help popups. Short bullets only, one idea each, covering what the screen
- * itself cannot say. Every line starts with a bullet so the dialog can render
- * them with a hanging indent.
+ * Shared help strings that screens render directly. The help pages themselves live in
+ * constants/helpTopics.ts (one topic per screen) and are opened by components/ui/HelpButton.
  */
-
-const bullets = (...lines: string[]) => lines.map((line) => `• ${line}`).join('\n');
 
 /** Lives in the My players help (it used to be a banner above the list). */
 export const PLAYERS_NOTE =
   'A player must be registered in the database to see their games in the app. Anyone can watch a game live, without the app or registering, when the admin shares the live link.';
-
-export const HELP = {
-  signIn: bullets(
-    'Your passcode is 6 digits. Numbers only.',
-    'Forgot passcode emails you a 6-digit code (OTP) to type back here, then you choose a new passcode.',
-  ),
-  createAccount: bullets(
-    'Email is how you sign in. It cannot be changed later.',
-    'Phone and zip code are optional. We never text you.',
-    'Came from a friend’s link? Confirm your email, then tap Yes on "Is this you?" to move your past scores here.',
-    'Have a player ID like 42 but no link? Enter it and the friend who added you approves it.',
-    'A player ID is never used to sign in.',
-  ),
-  reset: bullets(
-    'We email a 6-digit code (OTP), never a text. Type it in the OTP box; no web page.',
-    'The OTP works once and expires in 15 minutes. Tap Send a new OTP if it is refused.',
-    'Your old passcode keeps working until the new one is saved.',
-  ),
-  home: [
-    '## Statuses',
-    '• [Active] An active game. Scores are still going in.',
-    '• [Completed] A game that is complete. Every score is in.',
-    '• [Closed] Once a game is part of a consolidated result, it is marked Closed.',
-    '## Results',
-    '• [Results] show the consolidated winners from one or more games. Once results are announced, the games that were part of the results move from [Completed] to [Closed].',
-    '## My players',
-    '• My players is a list of players you regularly play with. The number on the button is how many are in it.',
-    '## Bottom bar',
-    '• Two buttons: Home (this page) and your initials (your profile and settings).',
-  ].join('\n'),
-  addPlayersToGame: bullets(
-    'Total is how many will be playing: the faces already in the game plus the ones ringed yellow that you are adding now. Admins who do not play are not counted.',
-    'Tap a player below to add them; they get 0 for every round already played. Return to game seats everyone you added.',
-    'The × on a face removes a player only while every one of their round scores is 0. Once they have a score, edit the round first.',
-    'Add by initials: new people by initials. Find in database: registered players by name or #ID.',
-  ),
-  newGame: bullets(
-    'Tap yourself if you are playing. You can run a game without sitting in it. Tap a face or the × under Playing to send someone back to the list.',
-    'Recent partners come first, then everyone else by how often you play together.',
-    'Add by initials: new people by initials, seated as you save them. Find in database: a registered player, seated here and added to My players at once.',
-    'You are always first in the list; only players who have not finished signing up carry a tag (Unregistered, Pending registration). Up to 20 players.',
-    'Next opens the Game type screen: Points or Pool, with this game’s Drop, Middle drop, Full count (and, for a pool, the limit and Re-entries) prefilled from your Settings.',
-    'After you start, the ⋮ menu has Register players to send sign-up links.',
-    'Scorecard columns show each player’s initials from your My players. If two would match, a Fix initials step appears before the game starts.',
-  ),
-  gameType: bullets(
-    'Points: every round adds up to 0; the winner takes what the others lost. Scores are minus by default.',
-    'Pool: the winner scores 0, everyone else adds their hand. Reach the limit (100 in, 101 out) and you are out.',
-    'Re-entries: a player who is out may come back at the highest score still in — Unlimited, or Limited to a number per player.',
-    'The settings here are for this game only and start from your Settings defaults.',
-    'A pool’s limit locks once a round is saved; Drop, Middle drop, Full count and Re-entries can change any time (the Log records it).',
-    'Multiplier (Points only, 1 to 10,000): enter the small numbers as always; the app multiplies (×100 makes a 30 worth 3,000). A mid-game change applies to the whole game, or start a new game.',
-    'When a pool is Completed, an admin gives awards (who gets what from the pool); the awards are what the pool adds to Results.',
-  ),
-  scorecard: bullets(
-    'View only means you can watch but not change scores.',
-    'Totals sit in the header next to each name. With a multiplier, big numbers read short (8K, 1.2M); the ×N chip opens the exact points, and Actual / Entered points switches this phone’s view.',
-    'Pool: header shows player number, initials and pool score; out is struck through, re-entered is blue. Standings below show points and drops left.',
-    'Order of players: set before Start by tapping players in seating order. Seat 1 deals first and the deal goes round by seat. Admins change the order any time from ⋮; played rounds keep their dealer.',
-    'Undo asks before removing the last round. Complete shows the final totals and asks once more before locking; a Points game can then be picked for Results, a pool first needs awards.',
-    'The ⋮ menu changes this game’s Drop, Middle drop, Full count and Multiplier, opens Players · Admins, shares the live link, reopens a Completed game, and hides or deletes it.',
-    'Under the table: the game number with its creator and admins, and the full game ID. Tap the ID to copy it when you report a problem.',
-  ),
-  playersSheet: bullets(
-    'Each row shows the name, Player ID and role (Creator, Admin, Player, View only). Only players who have not finished signing up carry a tag (Unregistered, Pending registration).',
-    'Admins can change scores. The creator is always an admin. Admins can be set after the game is over too.',
-    'The ⋮ on a row, in this order: Invite to register and Link to Player ID (unregistered players you added), Edit initials, Edit name, Make or Remove admin, Remove from game.',
-    'Link to Player ID needs the account’s Player ID and its email together, and moves the player in every game they are in. It refuses if that account already plays in one of those games.',
-    'Edit initials (in the ⋮) changes this game’s column letters. When you created the game, your My players entry follows so the next game agrees.',
-    'Add new player picks from My players (0 for rounds already played). Add non-playing admin: someone who keeps score but does not play, by Player ID; no column.',
-    'Remove from game asks first and works only while the player has no scores or every round score they have is 0. Otherwise edit the rounds and clear their scores first.',
-  ),
-  share: bullets(
-    'Anyone with the live link can watch rounds and totals without the app or an account.',
-    'Share on the Final screen, once the game is complete: a yellow picture of this game’s scores (or the awards), or the full details as a PDF with every round.',
-  ),
-  scoreEntry: bullets(
-    'Tap one or more players, then type a number or tap Drop, Middle drop, or Full count. Everyone you tapped gets it.',
-    'Yellow: selected now. Green: score saved for this round. Beige: nothing yet.',
-    'Scores are minus by default. Tap + for a hand-entered win.',
-    'Rummy: tap the winners first. They split what the table lost so the round adds to 0; the extra point goes to the player tapped first.',
-    'Moving to another player saves the number you were typing.',
-    'Save round unlocks when Balance is 0.',
-  ),
-  scoreEntryPool: bullets(
-    'Pool: type each hand as plus points. Tap the winner, then Rummy: they score 0. More than one winner is fine.',
-    'Every player still in needs a score. Players who are out are not on the sheet.',
-    'A hand above the Full count asks “Are you sure?” once, then saves.',
-    'Each cell shows the score after this round; OUT marks a player the round puts out.',
-  ),
-  awards: bullets(
-    'The pool is worth one entry per entry made (a re-entry counts twice). Tap a preset to see who gets what; players are sorted by points left.',
-    'Winner takes all · By points left · 50/50 · Entry per drop left · Custom (type each player’s share).',
-    'Award = what a player gets minus their entries. The awards are what this pool counts for if it is ever added to Results.',
-    'Save works even when the pool is not fully given out; the app asks “Save awards anyway?” first. Awards can be edited until the pool is in a saved result.',
-    'Not now leaves the pool Completed without awards. Give them later from the scorecard; Results asks for them first.',
-  ),
-  settle: bullets('Finished games stay on Home under Recent.'),
-  players: bullets(
-    'My players is your own list, not everyone in the EZ Score database. New game picks from it. Frequent first; Alphabetical shows A–Z sections. Search finds anyone, even in a list of thousands.',
-    'Find in database adds people from the EZ Score database. Add by initials takes initials; they get a #ID at once and show as Unregistered until they sign up.',
-    'The Unregistered tile at the bottom shows how many have not signed up and filters the list to them. Each row’s ⋮ has Invite to register (a sign-up link, good once for 14 days) and Link to Player ID.',
-    PLAYERS_NOTE,
-    'Tap a row for the initials; the ⋮ edits, invites, links or removes. Remove from My players changes only your list: past games and results stay. Undo, or add them again, brings the history back.',
-    'Initials: first and last letter. If two of your players share them, the one added first keeps the short form; the other gets three letters from their name (SUK). Or type any 2–3 letters.',
-    'Initials must differ only within your My players and never change by themselves. After a rename you see the new name at once, plus a “Name changed” note if the letters no longer fit.',
-  ),
-  initials: bullets(
-    'Two players here would get the same column letters. The one who joined your My players first keeps the short form.',
-    'Tap a suggestion or Edit… to type any 2 or 3 letters (A to Z) for the other player.',
-    'Apply and start saves the new letters to My players, so every game you create agrees. Not now uses them for this game only.',
-    'Letters stay the same for a seat once the game starts; a game admin can change them from Players · Admins.',
-  ),
-  find: bullets(
-    'Registered players only.',
-    'Type at least two letters of a name, or a player ID such as 42.',
-    '+ My players adds the person to your list. It does not seat them in a game.',
-    '"In your player list" means they are already there.',
-    'Not in the database? Go back and use Add by initials.',
-  ),
-  addToGame: bullets(
-    'Registered players only.',
-    'Type at least two letters of a name, or a player ID such as 42.',
-    '+ Add seats the person in this game and adds them to My players at the same time.',
-    'Not in the database? Go back and use Add by initials.',
-  ),
-  addPlayers: bullets(
-    'Three rows at a time. Cell 1 takes one letter and jumps on; cell 2 takes one or two letters or digits. The initials are the player’s name for now.',
-    'When the letters are already someone’s in My players, the new player gets the next free form, such as SK2. Edit lets you type any free 2–3 characters; the first must be a letter.',
-    'Each row saves on its own. Saved players show as Unregistered until they sign up. There is no delete here; remove a player from the previous screen.',
-    'Tap Done to go back. Nothing else closes this screen.',
-  ),
-  me: bullets(
-    'Your email is how you sign in. It cannot be changed for now.',
-    'Your player ID is what you give someone so they can find you. It is never used to sign in.',
-    'Phone is optional and never texted.',
-    'User settings are the defaults every new game starts with.',
-    'Dark mode is saved on this phone only.',
-    'Delete account (under Account) removes your sign-in, email, phone and Player ID for good. Scorecards you shared keep your name as an unregistered player.',
-  ),
-  userSettings: bullets(
-    'Which settings win, highest first: Game settings for one game, then User settings, then Game defaults.',
-    'Game settings: change one game from its ⋮ menu. They override everything for that game.',
-    'User settings: what every new game starts with for you.',
-    'Game defaults: Rummy’s standard -10, -30, -80, used when you have set nothing else.',
-    'Multiplier default (Points): what every new Points game starts at. ×1 means the points are exactly what you enter.',
-  ),
-  hiddenDeleted: bullets(
-    'Hide game (scorecard ⋮) takes a game off your Home only. It still counts in results and stats. Unhide it here.',
-    'Delete game (creator or admin) removes it for every player. A game in a saved result leaves that result; the result is totalled again.',
-    'Restore brings a deleted game back. It is not added back to results it was removed from; save a new result if it should count.',
-    'Delete result (result ⋮, for whoever saved it or an admin of its games) removes the result for everyone. Its games are no longer Closed.',
-    'Only the person who deleted something, or an admin of it, can restore it. Players who scored in a deleted game see it on Home under Deleted games and can ask an admin to restore it.',
-    'A deleted game stays under Deleted games for 30 days, then is hidden for good — nothing is ever erased. No admin left? Email support@ezscore.app with the Unique game ID from the scorecard foot.',
-  ),
-  results: bullets(
-    'The Completed, Closed, and Active chips choose which games are listed; any mix can be on. Completed games you run start ticked. If a chip would hide a ticked game, the app asks first.',
-    'Every game you are in is listed, but only games you create or admin can be ticked. A pool counts its awards, not its scores; without awards it is greyed: “Give awards first”.',
-    'Pick one or more games and tap Show results. The highest total is the winner; 1st, 2nd, and 3rd place are named. Nothing is saved by looking.',
-    'Save result (the button at the top) moves the games to Closed and lists what changed. It is off while an Active game is selected: go back and deselect it.',
-    'A Closed game can be picked again, but the app warns you: its points were already counted once, and the saved result carries a small warning icon. Best to first delete the old result that closed it.',
-    'Delete this result (at the foot of a result, below History) sends its games back to Completed (from Closed). Undo for 10 seconds; admins can restore it for 30 days from Settings › Hidden & deleted.',
-    'Share works before or after saving: a picture of the totals (five games per row) or a PDF with every round; the result id is at the bottom of both. A game keeps its own number. At most 50 players.',
-  ),
-  publicScorecard: bullets(
-    'This page updates on its own and needs no login.',
-    'Anyone with the link can watch.',
-  ),
-  gameLog: bullets(
-    'Every change to this game, written by the server. Nobody can edit or remove entries.',
-    'All shows everything; Important hides routine changes such as initials, admin changes and view-only players. Your choice is remembered on this phone.',
-    'Tap an edited round to see the old and new scores. New entries appear as they happen.',
-    'Hide game is personal and is not listed.',
-  ),
-  resultHistory: bullets(
-    'History lists what happened to this result after it was saved: deletions, restores, and changes to a game it counts.',
-    'When a round is edited or undone in a game that is part of this result, the result is totalled again and the line "Changed after sharing" is added to the page, the picture, the PDF and the web page.',
-  ),
-} as const;
 
 export const EMPTY_SETTLE = 'Finished games stay on Home under Recent.';
 
 export const FIND_HANDOFF =
   "Can't find them? Use Find in database, or Add by initials if they are not registered yet, then come back.";
 
+/** The live web page's "About this page" fold (public/scorecard.html). */
+export const PUBLIC_SCORECARD_ABOUT = ['This page updates on its own and needs no login.', 'Anyone with the link can watch.'] as const;
 
-/** Settings priority, highest first, for the ladder graphic on User settings. */
+/** Settings priority, highest first, for the ladder graphic on Settings. */
 export const SETTINGS_PRIORITY = [
   { level: 'Highest', title: 'Game settings', detail: 'One game, from its ⋮ menu' },
-  { level: 'Medium', title: 'User settings', detail: 'Your defaults for new games' },
+  { level: 'Medium', title: 'Settings', detail: 'Your defaults for new games' },
   { level: 'Lowest', title: 'Game defaults', detail: 'Rummy standard: -10, -30, -80' },
 ] as const;

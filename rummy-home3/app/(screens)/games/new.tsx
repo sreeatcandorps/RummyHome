@@ -28,11 +28,11 @@ import { FixInitialsScreen } from '@/components/players/FixInitialsScreen';
 import { ConflictChoices } from '@/components/players/InitialsConflictList';
 import { findInitialsConflicts, InitialsConflict, InitialsRow, resolveInitials, seatLabels } from '@/utils/initials';
 import { MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
-import { HELP } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { HelpButton } from '@/components/ui/HelpButton';
+import { InfoTip } from '@/components/ui/InfoTip';
 import { GameTypeStep } from '@/components/game/GameTypeStep';
 import { CoAdminStep, coAdminCandidates } from '@/components/game/CoAdminNudge';
 import { OrderStep } from '@/components/game/OrderStep';
@@ -98,9 +98,14 @@ function PlayingCount({ count, hint }: { count: number; hint: string }) {
         </Animated.View>
       </View>
       <Text variant="bodyMedium" style={[styles.flex, { color: colors.onSurfaceVariant }]}>{hint}</Text>
+      <InfoTip title="Playing" text={PLAYING_TIP} topic="new-game" anchor="picking-players" testID="new-game-playing-tip" />
     </View>
   );
 }
+
+/** Mini helps (PR 11) on the New game picker. */
+export const PLAYING_TIP = ['Tap players below to seat them. Tap yourself if you are playing — you can run a game without sitting in it.', 'Tap a face (or its ×) under Playing to send someone back. The order here is the order to start with; the next step, **Order of players**, lets you change it.'];
+export const LIST_TIP = ['**Frequent** (flame): you first, then recent partners, then most games together. **A–Z**: alphabetical.', 'Search finds anyone in My players. **Add by initials** and **Find in database** add someone who is not in the list yet.'];
 
 /**
  * Add mode (PR 7): a big yellow "N / TOTAL" circle — seated players only (D7.1), the number
@@ -470,7 +475,7 @@ export default function NewGame() {
     const taken = new Map([...labels].map(([id, label]) => [label, fix.rows.find((row) => row.id === id)?.name ?? '']));
     return (
       <>
-        <Stack.Screen options={{ title: 'Fix initials', headerRight: () => <HelpButton text={HELP.initials} /> }} />
+        <Stack.Screen options={{ title: 'Fix initials', headerRight: () => <HelpButton topic="new-game" anchor="initials-clash" /> }} />
         <FixInitialsScreen
           conflicts={fix.conflicts}
           choices={choices}
@@ -490,7 +495,7 @@ export default function NewGame() {
   if (step === 'type' && typeLabels) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Game type', headerRight: () => <HelpButton text={HELP.gameType} /> }} />
+        <Stack.Screen options={{ title: 'Game type', headerRight: () => <HelpButton topic="game-type" /> }} />
         <GameTypeStep
           kind={rules.gameKind}
           rules={rules}
@@ -510,7 +515,7 @@ export default function NewGame() {
     const byId = new Map(candidates.map((c) => [c.id, c]));
     return (
       <>
-        <Stack.Screen options={{ title: 'Order of players', headerRight: () => <HelpButton text={HELP.gameType} /> }} />
+        <Stack.Screen options={{ title: 'Order of players', headerRight: () => <HelpButton topic="new-game" anchor="order-of-players" /> }} />
         <OrderStep
           players={selected.map((p) => ({ id: p.id, name: p.name, label: typeLabels.get(p.id) ?? '', playerCode: p.playerCode ?? byId.get(p.id)?.playerCode ?? null }))}
           draft={order}
@@ -528,7 +533,7 @@ export default function NewGame() {
   if (step === 'coadmin' && typeLabels) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Co-admin', headerRight: () => <HelpButton text={HELP.gameType} /> }} />
+        <Stack.Screen options={{ title: 'Co-admin', headerRight: () => <HelpButton topic="new-game" anchor="co-admin-and-start" /> }} />
         <CoAdminStep
           candidates={coAdminPicks}
           playerCount={selected.length}
@@ -542,7 +547,7 @@ export default function NewGame() {
   }
 
   const newCount = staged.filter((p) => !savedIds.has(p.id)).length;
-  const hint = seatedCount === 0 ? 'Nobody yet. Tap players below; tap yourself if you are playing.' : seatedCount === 1 ? 'player · pick one more to start' : 'players';
+  const hint = seatedCount === 0 ? 'Nobody yet — tap players below.' : seatedCount === 1 ? 'player · pick one more to start' : 'players';
 
   const tiles = (
     <View style={styles.addRow}>
@@ -569,7 +574,7 @@ export default function NewGame() {
           title: addMode ? ADD_PLAYERS_TITLE : 'New game',
           headerRight: () => (
             <View style={styles.headerActions}>
-              <HelpButton text={addMode ? HELP.addPlayersToGame : HELP.newGame} />
+              <HelpButton topic="new-game" anchor={addMode ? 'adding-mid-game' : undefined} />
             </View>
           ),
         }}
@@ -595,10 +600,8 @@ export default function NewGame() {
               { value: 'name', icon: 'sort-alphabetical-ascending', accessibilityLabel: 'Sort alphabetically', style: styles.sortButton },
             ]}
           />
+          <InfoTip title="The list" text={LIST_TIP} topic="new-game" anchor="picking-players" testID="new-game-list-tip" />
         </View>
-        <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
-          {sort === 'frequent' ? 'Sorted by Frequent: recent partners first, then most games together.' : 'Sorted alphabetically.'}
-        </Text>
         {error ? <Text style={{ color: isNotReadyMessage(error) ? colors.onSurfaceVariant : colors.error }}>{error}</Text> : null}
         {loading && candidates.length === 0 ? <LoadingRows /> : null}
 

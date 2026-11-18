@@ -13,7 +13,7 @@ import {
   UNDO_REMOVE_MS,
 } from '../utils/removeMyPlayer';
 import { myPlayerMenu, SEAT_MENU_LABEL } from '../utils/gamePlayers';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
 

@@ -30,7 +30,16 @@ tags: [smoke]
 - assertVisible: "Re-entries"
 - assertVisible: "Unlimited"
 - takeScreenshot: 16c-game-type-pool
-# With the Re-entries block the Settings link and the picked players sit below the fold on a phone.
+# PR 11 mini help: the ⓘ beside Re-entries opens a short pop-up; Got it closes it.
+- tapOn: "About Re-entries"
+- extendedWaitUntil:
+    visible: "Got it"
+    timeout: 5000
+- assertVisible: ".*Re-entry score says where they start.*"
+- takeScreenshot: 16c2-game-type-reentries-tip
+- tapOn: "Got it"
+- assertNotVisible: "Got it"
+# The Settings link and the picked players sit below the fold on a phone.
 - scrollUntilVisible:
     element:
       text: "You can also set these defaults in Settings."

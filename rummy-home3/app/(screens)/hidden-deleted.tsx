@@ -110,13 +110,13 @@ export default function HiddenAndDeletedScreen() {
       {!data && !error ? <LoadingRows /> : null}
       {data ? (
         <>
-          <SectionCard title={`Games I hid · ${data.hidden.length}`} icon="eye-off-outline" supportingText="Off your Home only. They still count in results and stats.">
+          <SectionCard title={`Games I hid · ${data.hidden.length}`} icon="eye-off-outline" tip={{ text: 'Off your Home only. They still count in results and stats. **Unhide** puts a game back on Home.', topic: 'hidden-deleted', testID: 'hidden-games-tip' }}>
             {data.hidden.length ? data.hidden.map(hiddenRow) : empty('No hidden games.')}
           </SectionCard>
-          <SectionCard title={`Deleted games · ${data.deletedGames.length}`} icon="delete-outline" supportingText="Off everyone's Home until restored; players who scored in it can still open it read-only. Hidden for good 30 days after the delete — nothing is erased. A game removed from a saved result is not added back.">
+          <SectionCard title={`Deleted games · ${data.deletedGames.length}`} icon="delete-outline" tip={{ text: ['Off everyone\u2019s Home until restored; players who scored in it can still open it read-only.', 'Hidden for good 30 days after the delete — nothing is erased. A game removed from a saved result is not added back.'], topic: 'hidden-deleted', anchor: 'thirty-days', testID: 'deleted-games-tip' }}>
             {data.deletedGames.length ? data.deletedGames.map(deletedGameRow) : empty('No deleted games.')}
           </SectionCard>
-          <SectionCard title={`Deleted results · ${data.deletedResults.length}`} icon="podium" supportingText="Their games are not Closed while deleted and can go into a new result.">
+          <SectionCard title={`Deleted results · ${data.deletedResults.length}`} icon="podium" tip={{ text: 'Their games are not [Closed] while deleted and can go into a new result. **Restore** closes them again.', topic: 'hidden-deleted', anchor: 'results', testID: 'deleted-results-tip' }}>
             {data.deletedResults.length ? data.deletedResults.map(deletedResultRow) : empty('No deleted results.')}
           </SectionCard>
           <SectionCard title={SUPPORT_CARD_TITLE} icon="lifebuoy" mode="outlined">
