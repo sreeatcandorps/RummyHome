@@ -1,0 +1,123 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Profile tab: name, Player ID, Appearance, Settings, the version line, Log out present.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "Your profile"
+- extendedWaitUntil:
+    visible: "Appearance"
+    timeout: 15000
+- assertVisible: "Sree Test"
+- assertVisible: "Change passcode"
+# PR 10b: pencils instead of the big Edit buttons; your initials row; passcode dialog with the
+# fields first and the keyboard open — all three fields must stay on screen.
+- assertVisible: "Edit name"
+- assertVisible: "Your initials on scorecards"
+- assertVisible:
+    id: "me-edit-initials"
+- takeScreenshot: 07-profile
+- tapOn: "Change passcode"
+- extendedWaitUntil:
+    visible:
+      id: "passcode-current"
+    timeout: 15000
+- tapOn:
+    id: "passcode-current"
+- assertVisible:
+    id: "passcode-current"
+- assertVisible:
+    id: "passcode-next"
+- assertVisible:
+    id: "passcode-confirm"
+- takeScreenshot: 07c-change-passcode-keyboard-open
+- hideKeyboard
+- back
+- scrollUntilVisible:
+    element:
+      text: "App version.*"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Log out"
+- takeScreenshot: 07b-profile-bottom
+# PR 13: Settings holds "New game starts as", the Points defaults and the Pool defaults (limit chips,
+# 25 / 50 / 130, Re-entries Unlimited / Limited). Nothing is saved.
+- scrollUntilVisible:
+    element: "User settings: game type, Drop, Middle drop, Full count"
+    direction: UP
+    timeout: 10000
+- tapOn: "User settings: game type, Drop, Middle drop, Full count"
+- extendedWaitUntil:
+    visible: "New game starts as"
+    timeout: 15000
+- assertVisible: "Points defaults"
+- takeScreenshot: 07d-settings-points-defaults
+# PR 14: the Points card grew a Multiplier block, so the pool chips sit a screen lower; scroll to the chip itself.
+- scrollUntilVisible:
+    element:
+      id: "settings-pool-limit-101"
+    direction: DOWN
+    timeout: 15000
+- assertVisible: "Pool defaults"
+- assertVisible:
+    id: "settings-pool-limit-custom"
+# Scroll to the hint under the radios so the radio row is fully on screen before tapping (a tap on a
+# half-visible row at the bottom edge was lost on Pixel 6).
+- scrollUntilVisible:
+    element:
+      text: "Out players may re-enter as often as they like.*"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "settings-pool-reentries-unlimited"
+# 042: Re-entries is Unlimited by default; Limited reveals the count field, nothing is saved.
+- tapOn:
+    id: "settings-pool-reentries-limited"
+# The count field appears below the radios and can land under the nav bar: scroll to it, don't assume.
+- scrollUntilVisible:
+    element:
+      id: "settings-pool-reentries-count"
+    direction: DOWN
+    timeout: 10000
+# PR 24: switching to Limited leaves the count empty (the hint under the field asks for it) instead of
+# guessing a number. The hint sits under the field, so scroll to it rather than assume it is on screen.
+- scrollUntilVisible:
+    element:
+      text: "Type how many re-entries each player gets (0–99)."
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "settings-pool-reentries-count"
+- assertNotVisible:
+    id: "settings-pool-reentries-count"
+    text: "[0-9]+"
+- takeScreenshot: 07e-settings-pool-defaults-limited
+- tapOn:
+    id: "settings-pool-reentries-unlimited"
+- assertNotVisible:
+    id: "settings-pool-reentries-count"
+- takeScreenshot: 07e-settings-pool-defaults
+# PR 24: Re-entry score (inside the Re-entries block) and Late entry (its own section), both default
+# to Highest score + 1; the other choice is Highest score. Nothing is saved.
+# Each hint sits under its radios, so scroll to the hint and the radios above it are on screen too.
+- scrollUntilVisible:
+    element:
+      text: "Where a re-entering player starts."
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Re-entry score"
+- assertVisible:
+    id: "settings-pool-reentry-score-highest"
+- assertVisible:
+    id: "settings-pool-reentry-score-plus-one"
+- scrollUntilVisible:
+    element:
+      text: "Where a player added after round 1 starts."
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Late entry"
+- assertVisible:
+    id: "settings-pool-late-entry-score-highest"
+- assertVisible:
+    id: "settings-pool-late-entry-score-plus-one"
+- takeScreenshot: 07f-settings-late-entry-section
+- back

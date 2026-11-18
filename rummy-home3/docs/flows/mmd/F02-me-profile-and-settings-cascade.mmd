@@ -1,0 +1,46 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  s04["S04 Home (Live · Recent · bottom bar)"]:::screen
+  s06["S06 Me (profile)"]:::screen
+  s07["S07 User settings (game defaults)"]:::screen
+  p05(["P05 Initials for {name} (shared editor)"]):::popup
+  p06(["P06 Change passcode"]):::popup
+  p07(["P07 Delete your account?"]):::popup
+  p04(["P04 Me notice (Couldn’t save · Couldn’t log out · Demo data · Accou…"]):::popup
+  w03[/"W03 OTP / passcode validation (6 digits, mismatch)"/]:::warning
+  w15[/"W15 Initials format line / Change the letters to save"/]:::warning
+  w31[/"W31 Settings Saved banner"/]:::warning
+  appearance("Light / Dark / Phone"):::step
+  emails("Email checkboxes (Game started · Results)"):::step
+  defaults("Game defaults (Full count, pool re-entries, multiplier)"):::step
+  next("Next New game starts from these defaults"):::step
+  gone(("Signed out, account anonymised")):::stop
+  s30["S30 Web · delete account page"]:::screen
+  s04 -->|"Profile"| s06
+  s06 -->|"Edit initials"| p05
+  p05 -->|"invalid"| w15
+  w15 --> p05
+  p05 -->|"Save"| s06
+  s06 -->|"Change passcode"| p06
+  p06 -->|"bad OTP / mismatch"| w03
+  p06 -->|"done"| s06
+  s06 --> appearance
+  s06 --> emails
+  s06 -->|"User settings"| s07
+  s07 --> defaults
+  defaults -->|"Save"| w31
+  w31 --> next
+  s06 -->|"Delete account"| p07
+  p07 -->|"tick + Delete"| p04
+  p04 --> gone
+  s06 -->|"save / log out failed"| p04
+  s30 -->|"web page points here"| p07
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px

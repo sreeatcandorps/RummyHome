@@ -1,0 +1,122 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# C16-6 Bad input: letters and a sign in the pool Custom limit, zero, a five-digit limit; symbols and an
+# emoji in the initials cells. Each must be refused inline (the Start / Save stays put) and nothing may crash.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- tapOn: "New game"
+- extendedWaitUntil:
+    visible: "Add Chandra Creator (you)"
+    timeout: 20000
+- tapOn: "Add Chandra Creator (you)"
+# c1's "frequent partners" list is long; search instead of scrolling.
+- tapOn:
+    id: "picker-search"
+- inputText: "Arun"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Add Arun Admin"
+    timeout: 10000
+- tapOn: "Add Arun Admin"
+- tapOn:
+    id: "new-game-next"
+- extendedWaitUntil:
+    visible: "Game type"
+    timeout: 15000
+- tapOn:
+    id: "game-type-pool"
+- tapOn:
+    id: "new-game-limit-custom"
+# The red banner renders under the settings card, below the fold on a Pixel 6 (finding: the user sees
+# nothing happen on Next until they scroll), so each attempt scrolls down to it and back up to the field.
+- scrollUntilVisible:
+    element:
+      id: "new-game-limit-input"
+    direction: UP
+    timeout: 8000
+- tapOn:
+    id: "new-game-limit-input"
+- eraseText: 6
+- inputText: "abc"
+- hideKeyboard
+- tapOn:
+    id: "new-game-type-next"
+# F3 fixed (PR 19): the message is pinned above the Next bar, so it must be on screen with no scroll.
+- assertVisible:
+    id: "new-game-problem"
+- assertVisible: ".*whole number from 51 to 999.*"
+- assertVisible: "Game type"
+- takeScreenshot: c03-limit-letters-refused
+- scrollUntilVisible:
+    element:
+      id: "new-game-limit-input"
+    direction: UP
+    timeout: 8000
+- tapOn:
+    id: "new-game-limit-input"
+- eraseText: 6
+- inputText: "0"
+- hideKeyboard
+- tapOn:
+    id: "new-game-type-next"
+# F3 fixed (PR 19): the message is pinned above the Next bar, so it must be on screen with no scroll.
+- assertVisible:
+    id: "new-game-problem"
+- assertVisible: ".*whole number from 51 to 999.*"
+- assertVisible: "Game type"
+- scrollUntilVisible:
+    element:
+      id: "new-game-limit-input"
+    direction: UP
+    timeout: 8000
+- tapOn:
+    id: "new-game-limit-input"
+- eraseText: 6
+- inputText: "9"
+- inputText: "9"
+- inputText: "9"
+- inputText: "9"
+- inputText: "9"
+# The field keeps three digits, so 99999 becomes 999 (a valid limit) — it must not become 99999.
+- assertVisible:
+    id: "new-game-limit-input"
+    text: "999"
+- assertNotVisible: "99999"
+- takeScreenshot: c03-limit-99999-capped-to-999
+- eraseText: 6
+- inputText: "50"
+- hideKeyboard
+- tapOn:
+    id: "new-game-type-next"
+# F3 fixed (PR 19): the message is pinned above the Next bar, so it must be on screen with no scroll.
+- assertVisible:
+    id: "new-game-problem"
+- assertVisible: ".*whole number from 51 to 999.*"
+- assertVisible: "Game type"
+- takeScreenshot: c03-limit-50-refused
+- back
+- extendedWaitUntil:
+    visible: "Add by initials"
+    timeout: 15000
+# Initials cells: a symbol and an emoji must not become a player.
+- tapOn: "Add by initials"
+- extendedWaitUntil:
+    visible: "Row 1 first initial"
+    timeout: 15000
+- tapOn: "Row 1 first initial"
+- inputText: "#"
+- inputText: "😀"
+- inputText: "1"
+- hideKeyboard
+- assertVisible: "Done adding players"
+- assertNotVisible: "Something went wrong"
+- takeScreenshot: c03-initials-symbols
+- tapOn: "Done adding players"
+- extendedWaitUntil:
+    visible: "Add by initials"
+    timeout: 15000
+- assertNotVisible: "Something went wrong"
+- back

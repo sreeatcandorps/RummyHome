@@ -1,0 +1,827 @@
+# EZ Score CI — unit tests + TypeScript, a throw-away local Supabase database with pgTAP and
+# concurrency checks, and one readable report per run (job summary + "test-report-*" artifact).
+#
+# Runs on every push and pull request (any branch) and nightly at 09:00 UTC
+# (1 AM Pacific standard time / 2 AM daylight time) against the PR 7 branch and main.
+# Nothing here touches the production Supabase project: the database is `supabase start`
+# on the runner, destroyed when the job ends. No secrets are needed.
+#
+# How to read the result: open the run → "Summary" → scroll to "EZ Score test report".
+# Or download the "test-report-<branch>" artifact and open report.md.
+#
+# Device UI tests (PR 17): the "select" job reads the change and picks the plan — per PR the smoke gate
+# plus the deeper flows for the touched area, nightly every suite (full, chaos, roles, two-device,
+# monkey) on the reference phone and smoke on three other devices, pre-release everything plus volume.
+# "apk" builds the app once (Gradle, pointed at the runner's throw-away local Supabase), the "ui"
+# matrix drives it on emulators with Maestro (rummy-home3/e2e), "dashboard" publishes screenshots,
+# videos and history to the gh-pages branch and files bugs as issues. Details: rummy-home3/e2e/README.md,
+# docs/test-plan/automation.md and docs/testing-strategy.md.
+
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or full 40-character commit SHA to test (blank = the branch this is run from)
+        required: false
+        default: ''
+      tier:
+        description: Device tier — nightly (every suite on the reference phone, smoke elsewhere) or prerelease (everything + volume + monkey 20k)
+        required: false
+        default: nightly
+        type: choice
+        options: [nightly, prerelease, pr]
+
+permissions:
+  contents: read
+
+# Nightly: the top of the PR stack and the APK-ready branch (main does not carry the stack yet).
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' }}
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  unit:
+    name: Unit tests + tsc (${{ matrix.ref || github.head_ref || github.ref_name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "cursor/pr17-test-infra-0a03"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
+    steps:
+      # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
+      # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
+      # (rummy-home3/) is taken from matrix.ref instead, so PR 7 and main can be tested before they
+      # carry the tooling themselves.
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        if: matrix.ref != ''
+        with:
+          ref: ${{ matrix.ref }}
+          path: .target
+      - name: Put the app under test in place
+        if: matrix.ref != ''
+        run: |
+          rm -rf rummy-home3
+          mv .target/rummy-home3 rummy-home3
+          git checkout -- rummy-home3/supabase/config.toml rummy-home3/supabase/seed.sql rummy-home3/supabase/tests
+          git -C .target log --oneline -1
+
+      - id: meta
+        name: Name this run
+        run: |
+          REF="${{ matrix.ref || github.head_ref || github.ref_name }}"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "slug=$(echo "$REF" | tr '/' '-')" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git -C .target rev-parse HEAD 2>/dev/null || git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: rummy-home3/package-lock.json
+
+      - name: Install app dependencies
+        working-directory: rummy-home3
+        run: npm ci --no-audit --no-fund
+
+      - name: node:test
+        working-directory: rummy-home3
+        run: |
+          mkdir -p ../ci/out/unit
+          set +e
+          node --import tsx --test \
+            --test-reporter=spec --test-reporter-destination=stdout \
+            --test-reporter=../ci/report/node-test-json-reporter.mjs --test-reporter-destination=../ci/out/unit/tests.jsonl \
+            tests/*.test.ts
+          echo $? > ../ci/out/unit/tests.status
+
+      - name: tsc --noEmit
+        working-directory: rummy-home3
+        run: |
+          set +e
+          npx tsc --noEmit 2>&1 | tee ../ci/out/unit/tsc.txt
+          echo "${PIPESTATUS[0]}" > ../ci/out/unit/tsc.status
+
+      - name: Save results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-results-${{ steps.meta.outputs.slug }}
+          path: ci/out/unit
+          if-no-files-found: error
+
+      - name: Fail the job if anything failed
+        run: |
+          echo "node:test exit $(cat ci/out/unit/tests.status), tsc exit $(cat ci/out/unit/tsc.status)"
+          [ "$(cat ci/out/unit/tests.status)" = 0 ] && [ "$(cat ci/out/unit/tsc.status)" = 0 ]
+
+  db:
+    name: Database tests on local Supabase (${{ matrix.ref || github.head_ref || github.ref_name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "cursor/pr17-test-infra-0a03"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
+    env:
+      # Supabase CLI defaults for the local stack started below; never the hosted project.
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
+      # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
+      # (rummy-home3/) is taken from matrix.ref instead, so PR 7 and main can be tested before they
+      # carry the tooling themselves.
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        if: matrix.ref != ''
+        with:
+          ref: ${{ matrix.ref }}
+          path: .target
+      - name: Put the app under test in place
+        if: matrix.ref != ''
+        run: |
+          rm -rf rummy-home3
+          mv .target/rummy-home3 rummy-home3
+          git checkout -- rummy-home3/supabase/config.toml rummy-home3/supabase/seed.sql rummy-home3/supabase/tests
+          git -C .target log --oneline -1
+
+      - id: meta
+        name: Name this run
+        run: |
+          REF="${{ matrix.ref || github.head_ref || github.ref_name }}"
+          echo "slug=$(echo "$REF" | tr '/' '-')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ci/package-lock.json
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+
+      - name: Start a throw-away local Supabase (Postgres only, no Studio/mail/edge)
+        working-directory: rummy-home3
+        run: |
+          supabase --version
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector 2>&1 | grep -viE 'key|secret|token' || true
+          psql "$DB_URL" -tAc "select version()"
+
+      - name: Migrations 001–022 + seed from empty (supabase db reset)
+        working-directory: rummy-home3
+        run: |
+          mkdir -p ../ci/out/db
+          set +e
+          supabase db reset 2>&1 | tee ../ci/out/db/migrations.txt
+          echo "${PIPESTATUS[0]}" > ../ci/out/db/migrations.status
+          psql "$DB_URL" -tAc "select count(*) || ' migrations recorded' from supabase_migrations.schema_migrations" | tee -a ../ci/out/db/migrations.txt
+          psql "$DB_URL" -tAc "select count(*) || ' seeded profiles' from public.profiles" | tee -a ../ci/out/db/migrations.txt
+
+      - name: Rollbacks 022→013 then re-apply 013–022
+        run: |
+          set +e
+          DB_PSQL="psql $DB_URL" ci/db/replay-rollbacks.sh | tee ci/out/db/rollbacks.tap
+          echo "${PIPESTATUS[0]}" > ci/out/db/rollbacks.status
+
+      - name: pgTAP (RLS, profile privacy + role lock 019, bundles 020, email uniqueness 021, initials 022, save_round, seat removal 016, seat takeover 017, public scorecard)
+        run: |
+          set +e
+          DB_PSQL="psql $DB_URL" OUT=ci/out/db/pgtap ci/db/run-pgtap.sh
+          echo $? > ci/out/db/pgtap.status
+
+      - name: Two-client concurrency (save_round and friends)
+        working-directory: ci
+        run: |
+          npm ci --no-audit --no-fund
+          set +e
+          node db/concurrency-save-round.mjs | tee out/db/concurrency.tap
+          echo "${PIPESTATUS[0]}" > out/db/concurrency.status
+
+      - name: Save results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-results-${{ steps.meta.outputs.slug }}
+          path: ci/out/db
+          if-no-files-found: error
+
+      - name: Stop the local Supabase
+        if: always()
+        working-directory: rummy-home3
+        run: supabase stop --no-backup || true
+
+      - name: Fail the job if anything failed
+        run: |
+          for s in migrations rollbacks pgtap concurrency; do echo "$s: exit $(cat ci/out/db/$s.status 2>/dev/null || echo missing)"; done
+          for s in migrations rollbacks pgtap concurrency; do [ "$(cat ci/out/db/$s.status 2>/dev/null)" = 0 ] || exit 1; done
+
+  report:
+    name: Test report (${{ matrix.ref || github.head_ref || github.ref_name }})
+    needs: [unit, db]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "cursor/pr17-test-infra-0a03"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
+    steps:
+      # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
+      # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
+      # (rummy-home3/) is taken from matrix.ref instead, so PR 7 and main can be tested before they
+      # carry the tooling themselves.
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        if: matrix.ref != ''
+        with:
+          ref: ${{ matrix.ref }}
+          path: .target
+      - name: Put the app under test in place
+        if: matrix.ref != ''
+        run: |
+          rm -rf rummy-home3
+          mv .target/rummy-home3 rummy-home3
+          git checkout -- rummy-home3/supabase/config.toml rummy-home3/supabase/seed.sql rummy-home3/supabase/tests
+          git -C .target log --oneline -1
+
+      - id: meta
+        name: Name this run
+        run: |
+          REF="${{ matrix.ref || github.head_ref || github.ref_name }}"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "slug=$(echo "$REF" | tr '/' '-')" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git -C .target rev-parse HEAD 2>/dev/null || git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: unit-results-${{ steps.meta.outputs.slug }}
+          path: ci/out/unit
+        continue-on-error: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: db-results-${{ steps.meta.outputs.slug }}
+          path: ci/out/db
+        continue-on-error: true
+
+      - name: Build the report (job summary + report.md)
+        env:
+          REPORT_REF: ${{ steps.meta.outputs.ref }}
+          REPORT_SHA: ${{ steps.meta.outputs.sha }}
+        run: node ci/report/build-report.mjs ci/out
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ steps.meta.outputs.slug }}
+          path: |
+            ci/out/report.md
+            ci/out/report.json
+            ci/out/unit
+            ci/out/db
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------------------------------------
+  # Device UI tests (PR 17): the real Android app on emulators, driven by Maestro flows (rummy-home3/e2e).
+  #
+  #   select     reads the change (PR: base...head file list, commit-message tags) or the tier
+  #              (nightly / prerelease) and emits the device × suite matrix — ci/select-tests.mjs.
+  #   apk        builds the release APK once per run, pointed at the runner's local Supabase
+  #              (10.0.2.2 is the host as seen from the emulator); the device jobs download it.
+  #   ui         one job per matrix row: local Supabase + seeds, emulator, suite, gallery, artifact.
+  #   volume     load against the local database (pre-release tier) — ci/volume/run-volume.mjs (size
+  #              ladder) and ci/volume/run-stress.mjs (latency budgets, guard, concurrency).
+  #   dashboard  gathers every ui artifact, publishes screenshots / videos / history to the gh-pages
+  #              branch (the page Sree watches), comments on the PR and files found bugs as issues.
+  #
+  # Nothing here reaches the production project; no secrets are used. The APK is not a release and is
+  # not uploaded anywhere but the run's own artifacts. Tags in the head commit message: [ui-all] runs
+  # every suite on a PR, [tier:nightly] / [tier:prerelease] run that tier on a PR, [file-bugs] lets a
+  # PR run open issues (nightly and pre-release always do).
+  # ------------------------------------------------------------------------------------------------
+  select:
+    name: Pick the device plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tier: ${{ steps.plan.outputs.tier }}
+      ui: ${{ steps.plan.outputs.ui }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      volume: ${{ steps.plan.outputs.volume }}
+      file_bugs: ${{ steps.plan.outputs.file_bugs }}
+      publish: ${{ steps.plan.outputs.publish }}
+      reason: ${{ steps.plan.outputs.reason }}
+      checkout_ref: ${{ steps.plan.outputs.checkout_ref }}
+      slug: ${{ steps.plan.outputs.slug }}
+    env:
+      # Schedules only fire from the default branch, which does not carry this tooling yet; a nightly
+      # run checks out the top of the PR stack and tests that.
+      NIGHTLY_REF: cursor/pr17-test-infra-0a03
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          INPUT_TIER: ${{ inputs.tier }}
+          INPUT_REF: ${{ inputs.ref }}
+        run: |
+          FILES=""; MESSAGE=""
+          if [ "$EVENT" = pull_request ]; then
+            FILES="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || true)"
+            MESSAGE="$(git log -1 --format=%B "$HEAD_SHA" || true)"
+          fi
+          TIER="$INPUT_TIER"
+          case "$MESSAGE" in *"[tier:prerelease]"*) TIER=prerelease ;; *"[tier:nightly]"*) TIER=nightly ;; esac
+          REF="${{ github.sha }}"
+          [ "$EVENT" = schedule ] && REF="$NIGHTLY_REF"
+          [ "$EVENT" = workflow_dispatch ] && [ -n "$INPUT_REF" ] && REF="$INPUT_REF"
+          NAME="${{ github.head_ref || github.ref_name }}"
+          [ "$EVENT" = schedule ] && NAME="$NIGHTLY_REF"
+          echo "checkout_ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "slug=$(echo "$NAME" | tr '/' '-')" >> "$GITHUB_OUTPUT"
+          SELECT_EVENT="$EVENT" SELECT_TIER="$TIER" SELECT_FILES="$FILES" SELECT_MESSAGE="$MESSAGE" node ci/select-tests.mjs
+          {
+            echo "### Device plan"; echo
+            echo "\`$(grep -m1 '^tier=' "$GITHUB_OUTPUT" | cut -d= -f2)\` — $(grep -m1 '^reason=' "$GITHUB_OUTPUT" | cut -d= -f2-)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  apk:
+    name: Build the test APK
+    needs: select
+    if: needs.select.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      anon_sha: ${{ steps.keys.outputs.anon_sha }}
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: http://10.0.2.2:54321
+      CI: 1
+      EXPO_NO_TELEMETRY: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.select.outputs.checkout_ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: rummy-home3/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+
+      # The local anon key is the same on every runner (the CLI's fixed demo JWT), so the APK built here
+      # talks to the local Supabase of every device job. Each device job checks the hash before using it.
+      - id: keys
+        name: Read the local anon key (never printed)
+        working-directory: rummy-home3
+        run: |
+          # Same three-attempt start as the device jobs: a runner has had host port 54322 taken (Nov 15, PR 17
+          # pull_request run), and one failed start here leaves every device job unbuilt.
+          show_log() { sed -E 's/((key|secret|token)[^:=]*[:=] *)[^ ]+/\1[masked]/I' /tmp/supabase-start.log | tail -5; }
+          started=0
+          for attempt in 1 2 3; do
+            if supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1; then
+              started=1; break
+            fi
+            echo "::warning::supabase start failed (attempt $attempt)"; show_log
+            supabase stop --no-backup || true; sleep 10
+          done
+          [ "$started" -eq 1 ] || { echo "::error::supabase start failed three times"; show_log; exit 1; }
+          eval "$(supabase status -o env | grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=')"
+          KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          [ -n "$KEY" ] || { echo "no anon key from supabase status"; exit 1; }
+          echo "::add-mask::$KEY"
+          echo "anon=$KEY" >> "$GITHUB_OUTPUT"
+          echo "anon_sha=$(printf '%s' "$KEY" | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+          supabase stop --no-backup || true
+
+      - name: Install app dependencies
+        working-directory: rummy-home3
+        run: npm ci --no-audit --no-fund
+
+      - name: expo prebuild (android)
+        working-directory: rummy-home3
+        env:
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.keys.outputs.anon }}
+        run: |
+          npx expo prebuild --platform android --no-install
+          # Plain http to the local Supabase: release builds block cleartext unless the manifest allows it.
+          sed -i 's|<application |<application android:usesCleartextTraffic="true" |' android/app/src/main/AndroidManifest.xml
+          grep -c usesCleartextTraffic android/app/src/main/AndroidManifest.xml
+          # One ABI (the emulator's) and a bigger heap: halves the build time on the runner.
+          printf '\nreactNativeArchitectures=x86_64\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g\n' >> android/gradle.properties
+
+      - name: gradlew assembleRelease
+        working-directory: rummy-home3/android
+        env:
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ steps.keys.outputs.anon }}
+        run: |
+          ./gradlew assembleRelease --no-daemon --console=plain -q
+          ls -la app/build/outputs/apk/release/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: test-apk-${{ github.run_id }}
+          path: rummy-home3/android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 3
+          if-no-files-found: error
+
+  ui:
+    name: ui-${{ matrix.device }}-${{ matrix.suite }}
+    needs: [select, apk]
+    if: needs.select.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      CI: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.select.outputs.checkout_ref }}
+
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+
+      # ---- database: migrations + the UI fixtures + the break-the-app roster -----------------------
+      - name: Start a throw-away local Supabase, seed it
+        working-directory: rummy-home3
+        run: |
+          # No mail container either (the UI tests send nothing); its host port has clashed on a runner before.
+          # The step runs under bash -e, so a bare `cmd; rc=$?` aborts before rc is read (run 5 died here
+          # after 59 s with nothing printed): test the command directly and print the start log with the
+          # secret values masked rather than dropping those lines.
+          show_log() { sed -E 's/((key|secret|token)[^:=]*[:=] *)[^ ]+/\1[masked]/I' /tmp/supabase-start.log; }
+          started=0
+          for attempt in 1 2 3; do
+            if supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket > /tmp/supabase-start.log 2>&1; then
+              started=1; show_log; break
+            fi
+            echo "::warning::supabase start failed (attempt $attempt)"; show_log
+            docker ps -a --format '{{.Names}} {{.Status}}' || true
+            supabase stop --no-backup || true; sleep 10
+          done
+          [ "$started" -eq 1 ] || { echo "::error::supabase start failed three times"; exit 1; }
+          psql "$DB_URL" -tAc "select version()"
+          set -o pipefail
+          supabase db reset 2>&1 | tail -3
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-break.sql
+          psql "$DB_URL" -tAc "select count(*) || ' games seeded for the UI tests' from public.games"
+
+      - name: Check this runner's anon key is the one baked into the APK
+        working-directory: rummy-home3
+        env:
+          EXPECTED: ${{ needs.apk.outputs.anon_sha }}
+        run: |
+          eval "$(supabase status -o env | grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=')"
+          KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          echo "::add-mask::$KEY"
+          HERE="$(printf '%s' "$KEY" | sha256sum | cut -c1-16)"
+          [ "$HERE" = "$EXPECTED" ] || { echo "local anon key differs from the APK's (hash $HERE vs $EXPECTED): the CLI versions diverged between jobs"; exit 1; }
+          echo "anon key matches the APK"
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: test-apk-${{ github.run_id }}
+          path: ci/out/apk
+
+      - name: "Realtime probe (is the local Realtime delivering postgres_changes at all?)"
+        if: matrix.suite == 'two-device'
+        working-directory: rummy-home3
+        run: |
+          # Same subscription shape as the app, from the runner. Green here + red T1 on the phones =
+          # the app; red here = the local stack (then the Realtime container log is attached).
+          set -o pipefail
+          eval "$(supabase status -o env | grep -E '^(ANON_KEY|PUBLISHABLE_KEY)=')"
+          export SUPABASE_ANON_KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          echo "::add-mask::$SUPABASE_ANON_KEY"
+          mkdir -p ../ci/out/ui/two-device
+          # The ui job installs no node_modules (it only runs the APK), so the probe gets its one dependency here.
+          # ESM ignores NODE_PATH, so the script runs from a folder that owns the dependency.
+          mkdir -p /tmp/probe && cp scripts/realtime-probe.mjs /tmp/probe/ \
+            && (cd /tmp/probe && npm init -y >/dev/null && npm i --no-audit --no-fund --silent @supabase/supabase-js@2)
+          if node /tmp/probe/realtime-probe.mjs 2>&1 | tee ../ci/out/ui/two-device/realtime-probe.txt; then
+            echo "realtime probe green"
+          else
+            echo "::warning title=Realtime probe red::the local Realtime did not deliver a games change to a subscribed client — T1 will say nothing about the app"
+            docker logs "$(docker ps --format '{{.Names}}' | grep -m1 realtime)" 2>&1 | tail -150 > ../ci/out/ui/two-device/realtime-container.log || true
+          fi
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+
+      # ---- emulator: snapshot cached per device ---------------------------------------------------
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api }}-${{ matrix.arch }}-${{ matrix.target }}-${{ matrix.profile }}-v3
+
+      - name: Create the AVD and a boot snapshot (cache miss only)
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: ${{ matrix.arch }}
+          target: ${{ matrix.target }}
+          profile: ${{ matrix.profile }}
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run ${{ matrix.suite }} on ${{ matrix.label }}
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          SUITE: ${{ matrix.suite }}
+          FLOW_FILTER: ${{ matrix.flows }}
+          DEVICE_ROTATION: ${{ matrix.rotation }}
+          DEVICE_FONT_SCALE: ${{ matrix.font }}
+          MONKEY_EVENTS: ${{ matrix.monkeyEvents }}
+          EMULATOR_SYSTEM_IMAGE: system-images;android-${{ matrix.api }};${{ matrix.target }};${{ matrix.arch }}
+          EMULATOR_PROFILE: ${{ matrix.profile }}
+          MAESTRO_CLI_NO_ANALYTICS: 1
+        with:
+          api-level: ${{ matrix.api }}
+          arch: ${{ matrix.arch }}
+          target: ${{ matrix.target }}
+          profile: ${{ matrix.profile }}
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # The action runs each script line in its own shell, so the whole suite lives in one script.
+          script: ci/ui/run-suite.sh "$SUITE" ci/out/apk/app-release.apk
+
+      - name: Gallery + job summary
+        if: always()
+        run: node ci/ui/build-gallery.mjs ci/out
+
+      - name: Upload screenshots, videos and Maestro output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-${{ needs.select.outputs.slug }}-${{ matrix.device }}-${{ matrix.suite }}
+          path: ci/out/ui
+          if-no-files-found: warn
+
+      - name: Stop the local Supabase
+        if: always()
+        working-directory: rummy-home3
+        run: supabase stop --no-backup || true
+
+      - name: Fail the job if a blocking set failed
+        env:
+          TIER: ${{ needs.select.outputs.tier }}
+          SUITE: ${{ matrix.suite }}
+        run: |
+          # On a PR only the gate (smoke; full when selected) blocks; chaos / roles / two-device / monkey
+          # findings go to the dashboard and the PR comment. Nightly and pre-release: everything blocks.
+          case "$TIER" in pr) SETS="smoke full" ;; *) SETS="smoke full chaos roles two-device monkey" ;; esac
+          rc=0
+          for s in $SETS; do
+            [ -f "ci/out/ui/$s.status" ] || continue
+            echo "$s: exit $(cat "ci/out/ui/$s.status")"
+            [ "$(cat "ci/out/ui/$s.status")" = 0 ] || rc=1
+          done
+          for s in chaos roles two-device monkey; do
+            [ -f "ci/out/ui/$s.status" ] && [ "$(cat "ci/out/ui/$s.status")" != 0 ] && [ "$TIER" = pr ] && echo "::warning title=$s found something::$s is red on this PR run (not blocking on a PR) — see the dashboard comment"
+          done
+          exit $rc
+
+  volume:
+    name: Volume on local Supabase
+    needs: select
+    if: needs.select.outputs.volume == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.select.outputs.checkout_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ci/package-lock.json
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+      - name: Start a throw-away local Supabase, seed it
+        working-directory: rummy-home3
+        run: |
+          supabase start -x studio,imgproxy,edge-runtime,logflare,vector,inbucket 2>&1 | grep -viE 'key|secret|token' || true
+          supabase db reset 2>&1 | tail -2
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-break.sql
+      - name: Run the stress checks (latency budgets, 500-round guard, 8 clients)
+        working-directory: ci
+        run: |
+          npm ci --no-audit --no-fund
+          mkdir -p out/volume
+          set +e
+          VOLUME_OUT=out/volume node volume/run-stress.mjs | tee out/volume/stress.tap
+          echo "${PIPESTATUS[0]}" > out/volume/stress.status
+      - name: Run the size ladder (docs/volume-testing.md)
+        working-directory: ci
+        run: |
+          set +e
+          OUT=out/volume node volume/run-volume.mjs | tee out/volume/volume.tap
+          echo "${PIPESTATUS[0]}" > out/volume/volume.status
+          cat out/volume/results.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: volume-${{ needs.select.outputs.slug }}
+          path: ci/out/volume
+      - name: Stop the local Supabase
+        if: always()
+        working-directory: rummy-home3
+        run: supabase stop --no-backup || true
+      - run: '[ "$(cat ci/out/volume/stress.status)" = 0 ] && [ "$(cat ci/out/volume/volume.status)" = 0 ]'
+
+  dashboard:
+    name: Dashboard, PR comment, bug filing
+    needs: [select, apk, ui, volume]
+    if: always() && needs.select.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.select.outputs.checkout_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ui-${{ needs.select.outputs.slug }}-*
+          path: ci/out/ui-all
+        continue-on-error: true
+
+      - name: Fetch the current dashboard (gh-pages) for history
+        run: |
+          if git fetch --depth 1 origin gh-pages 2>/dev/null; then
+            git worktree add site FETCH_HEAD
+          else
+            mkdir site
+          fi
+          ls site | head
+
+      - id: pages
+        name: Is GitHub Pages enabled?
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if URL="$(gh api "repos/${{ github.repository }}/pages" --jq .html_url 2>/dev/null)"; then
+            echo "url=$URL" >> "$GITHUB_OUTPUT"; echo "enabled=true" >> "$GITHUB_OUTPUT"; echo "Pages: $URL"
+          else
+            echo "url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> "$GITHUB_OUTPUT"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=GitHub Pages is not enabled::Settings → Pages → Source 'Deploy from a branch' → gh-pages / (root). The dashboard is published to the gh-pages branch either way."
+          fi
+
+      - name: Build the dashboard
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SELECT_TIER: ${{ needs.select.outputs.tier }}
+          SELECT_REASON: ${{ needs.select.outputs.reason }}
+        run: node ci/ui/build-dashboard.mjs ci/out/ui-all site
+
+      - name: "Publish to gh-pages (one orphan commit, so the branch never grows)"
+        if: needs.select.outputs.publish == 'true'
+        run: |
+          cd site
+          [ -e .git ] || git init -q
+          git checkout -q --orphan publish
+          git add -A
+          git -c user.name=ezscore-ci -c user.email=ezscore-ci@users.noreply.github.com commit -q -m "dashboard: run ${{ github.run_number }} (${{ needs.select.outputs.slug }})"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:gh-pages
+          echo "published run ${{ github.run_id }} to gh-pages"
+
+      - name: File found bugs as issues
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          FILE_BUGS: ${{ needs.select.outputs.file_bugs }}
+          PAGES_URL: ${{ steps.pages.outputs.url }}
+        run: node ci/report/file-bugs.mjs ci/out/ui-all
+
+      - name: Comment on the pull request
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.url }}
+          PAGES_ENABLED: ${{ steps.pages.outputs.enabled }}
+          REASON: ${{ needs.select.outputs.reason }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- ezscore-ui-tests -->';
+            let runs = [];
+            try { runs = JSON.parse(fs.readFileSync('site/runs.json', 'utf8')); } catch {}
+            const me = runs.find((r) => String(r.id) === String(context.runId));
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const pages = process.env.PAGES_URL.replace(/\/$/, '');
+            const lines = [marker, '## Device tests', '', `_${process.env.REASON}_`, ''];
+            if (me) {
+              lines.push(`**${me.passed}/${me.total} flows passed**${me.crashes ? ` · **${me.crashes} crash/ANR**` : ''}`, '');
+              lines.push('| Job | Result |', '|---|---|');
+              for (const j of me.jobs) lines.push(`| ${j.device} · ${j.suite} | ${j.ok ? 'green' : '**red**'} |`);
+              lines.push('');
+            } else {
+              lines.push('_No device results were collected (see the run)._', '');
+            }
+            lines.push(`[Dashboard for this run](${pages}/runs/${context.runId}/) · [All runs](${pages}/) · [GitHub run](${runUrl})`);
+            if (process.env.PAGES_ENABLED !== 'true') lines.push('', '> GitHub Pages is not enabled yet, so the dashboard links 404 until Settings → Pages → *Deploy from a branch* → `gh-pages` / root is set once. The content is already on the `gh-pages` branch.');
+            if (fs.existsSync('ci/out/ui-all/bugs.md')) lines.push('', fs.readFileSync('ci/out/ui-all/bugs.md', 'utf8'));
+            const body = lines.join('\n');
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: context.issue.number, per_page: 100 });
+            const mine = comments.find((c) => c.body && c.body.startsWith(marker));
+            if (mine) await github.rest.issues.updateComment({ ...context.repo, comment_id: mine.id, body });
+            else await github.rest.issues.createComment({ ...context.repo, issue_number: context.issue.number, body });
+
+      - name: Job summary
+        if: always()
+        env:
+          PAGES_URL: ${{ steps.pages.outputs.url }}
+        run: |
+          echo "### Dashboard" >> "$GITHUB_STEP_SUMMARY"
+          echo "${PAGES_URL%/}/runs/${{ github.run_id }}/ (all runs: ${PAGES_URL})" >> "$GITHUB_STEP_SUMMARY"

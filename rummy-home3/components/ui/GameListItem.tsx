@@ -1,133 +1,188 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Card, Icon, Text, TouchableRipple, useTheme } from 'react-native-paper';
+import { Icon, Text, TouchableRipple } from 'react-native-paper';
 import { Game } from '@/types/game';
-import { radius, spacing } from '@/constants/theme';
-import { formatGameDateTime, gameIdLabel, gameTypeLabel, gameTypeTint } from '@/utils/gameDisplay';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { formatGameDateTime, gameNumberLabel, gameStatusLabel, gameTypeLabel, gameTypeTint, GAME_STATUS_ICON, GAME_STATUS_TONE } from '@/utils/gameDisplay';
+import { Tag } from '@/components/ui/Tag';
+import { ACCESS_ICON, ACCESS_TONE, gameAccessLabel, viewerManagesGame, visibleRoleTag } from '@/utils/gameAccess';
+import { poolStatusLabel } from '@/utils/pool';
+import { MultiplierChip } from '@/components/game/MultiplierStrip';
+import { pointsGameMultiplier } from '@/utils/multiplier';
 
 type GameListItemProps = {
   game: Game;
   onPress: () => void;
+  /** A11: kept for callers; the game square is yellow on every list, status lives in the tag. */
+  selected?: boolean;
+  /** When given, the card says what the game is to this person: Creator, Admin, Player or View only. */
+  viewerId?: string | null;
+  /** Results picker: a checkbox on the right instead of the chevron. */
+  checked?: boolean;
+  /** Results picker: listed but not pickable (the person is not an admin). Tapping still fires onPress so the screen can explain. */
+  locked?: boolean;
+  /** Why it is locked when it is not about being an admin ("Give awards first"). */
+  lockedNote?: string;
 };
 
-export function GameListItem({ game, onPress }: GameListItemProps) {
-  const theme = useTheme();
-  const isComplete = game.isComplete;
-  const tint = gameTypeTint(game.gameType);
-
+export function GameListItem({ game, onPress, viewerId, checked, locked = false, lockedNote }: GameListItemProps) {
+  const theme = useAppTheme();
+  const tint = gameTypeTint(game.gameType, theme.gameTypes);
   const dateLabel = formatGameDateTime(game.date);
+  const playerCount = game.players?.length ?? 0;
+  const gNumber = gameNumberLabel(game);
+  const status = gameStatusLabel(game);
+  const statusTone = GAME_STATUS_TONE[status];
+  const statusIcon = GAME_STATUS_ICON[status];
+  const access = viewerId ? gameAccessLabel(game, viewerId) : null;
+  const roleTag = visibleRoleTag(access, viewerManagesGame(game, viewerId));
+  const pickable = checked !== undefined;
+  const on = pickable && checked && !locked;
+  // Pool (D10): the award state rides with the status; "Awards pending" is the thing to do next.
+  const awards = poolStatusLabel(game);
 
   return (
-    <Card mode="outlined" style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        // A01: a picked game is game-yellow (results are green); the ON state shows in the rule and the checkbox.
+        { backgroundColor: on ? theme.colors.secondaryContainer : theme.colors.surface, borderColor: on ? theme.colors.secondary : theme.colors.outlineVariant },
+        locked && styles.locked,
+      ]}
+    >
       <TouchableRipple
         onPress={onPress}
         borderless
         style={styles.ripple}
-        accessibilityRole="button"
-        accessibilityLabel={`${dateLabel}, ${isComplete ? 'completed' : 'active'}`}
+        accessibilityRole={pickable ? 'checkbox' : 'button'}
+        accessibilityState={pickable ? { checked: Boolean(on), disabled: locked } : undefined}
+        testID={`game-card-${game.shareCode ?? game.id}`}
+        accessibilityLabel={`${gameTypeLabel(game.gameType)} game${gNumber ? ` ${gNumber}` : ''}, ${dateLabel}, ${status.toLowerCase()}${awards ? `, ${awards.toLowerCase()}` : ''}${access ? `, ${access.toLowerCase()}` : ''}${locked ? (lockedNote ? `, ${lockedNote.toLowerCase()}` : ', not an admin') : ''}`}
       >
         <View style={styles.row}>
-          <View style={[styles.accent, { backgroundColor: tint.accent }]} />
+          {gNumber ? (
+            <View style={[styles.numberBadge, { backgroundColor: tint.container }]}>
+              <Text style={[styles.numberText, { color: tint.on }]}>
+                {gNumber}
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.typeIcon, { backgroundColor: tint.container }]}>
+              <Icon
+                source={game.gameType === 'pool' ? 'trophy-outline' : 'numeric'}
+                size={22}
+                color={tint.on}
+              />
+            </View>
+          )}
 
           <View style={styles.body}>
             <Text variant="titleMedium" style={styles.title} numberOfLines={1}>
               {dateLabel}
             </Text>
-
-            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-              Game ID {gameIdLabel(game)}
-            </Text>
-
             <View style={styles.metaRow}>
-              <View style={[styles.typeBadge, { backgroundColor: tint.container }]}>
-                <Text variant="labelSmall" style={[styles.typeBadgeText, { color: tint.on }]}>
-                  {gameTypeLabel(game.gameType)}
-                </Text>
-              </View>
-
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor: isComplete
-                      ? theme.colors.surfaceVariant
-                      : theme.colors.primaryContainer,
-                  },
-                ]}
+              <Tag
+                label={status}
+                tone={statusTone}
+                icon={statusIcon}
+                style={styles.statusTag}
+              />
+              {awards && !game.closedAt ? <Tag label={awards} tone={awards === 'Awarded' ? 'positive' : 'warning'} icon="trophy-outline" style={styles.statusTag} /> : null}
+              {roleTag ? <Tag label={roleTag} tone={ACCESS_TONE[roleTag]} icon={ACCESS_ICON[roleTag]} /> : null}
+              {/* PR 14: the multiplier chip, only past ×1 (M18). */}
+              <MultiplierChip multiplier={pointsGameMultiplier(game)} testID={`game-card-multiplier-${game.shareCode ?? game.id}`} />
+              <Text
+                variant="bodySmall"
+                style={[styles.metaText, { color: theme.colors.onSurfaceVariant }]}
+                numberOfLines={1}
               >
-                <Text
-                  variant="labelSmall"
-                  style={{
-                    color: isComplete
-                      ? theme.colors.onSurfaceVariant
-                      : theme.colors.onPrimaryContainer,
-                  }}
-                >
-                  {isComplete ? 'Completed' : 'Active'}
-                </Text>
-              </View>
-
+                {gameTypeLabel(game.gameType)}
+              </Text>
               <View style={styles.playersMeta}>
-                <Icon source="account-group-outline" size={14} color={theme.colors.onSurfaceVariant} />
-                <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                  {game.players?.length ?? 0}
+                <Icon source="account-multiple-outline" size={14} color={theme.colors.onSurfaceVariant} />
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  {playerCount}
                 </Text>
               </View>
             </View>
           </View>
 
-          <Icon source="chevron-right" size={24} color={theme.colors.onSurfaceVariant} />
+          {locked && lockedNote ? (
+            <View style={styles.lockedNote}>
+              <Icon source="trophy-outline" size={18} color={theme.colors.onSurfaceVariant} />
+              <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }} numberOfLines={2}>{lockedNote}</Text>
+            </View>
+          ) : locked ? (
+            <Icon source="lock-outline" size={22} color={theme.colors.onSurfaceVariant} />
+          ) : pickable ? (
+            <Icon source={on ? 'checkbox-marked' : 'checkbox-blank-outline'} size={24} color={on ? theme.colors.primary : theme.colors.onSurfaceVariant} testID={on ? `game-card-checked-${game.shareCode ?? game.id}` : undefined} />
+          ) : (
+            <Icon source="chevron-right" size={22} color={theme.colors.onSurfaceVariant} />
+          )}
         </View>
       </TouchableRipple>
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth * 2,
     overflow: 'hidden',
   },
+  locked: { opacity: 0.6 },
+  lockedNote: { width: 64, alignItems: 'center', gap: 2 },
   ripple: {
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingRight: spacing.md,
-    minHeight: 92,
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.sm,
+    minHeight: 76,
   },
-  accent: {
-    width: 4,
-    alignSelf: 'stretch',
+  typeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  numberBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  numberText: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   body: {
     flex: 1,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    minWidth: 0,
     gap: spacing.xs,
   },
   title: {
-    fontWeight: '600',
+    fontWeight: '700',
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.xs,
+    flexWrap: 'wrap',
   },
-  typeBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
+  statusTag: {
+    flexShrink: 0,
   },
-  typeBadgeText: {
-    fontWeight: '700',
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
+  metaText: {
+    flexShrink: 1,
   },
   playersMeta: {
     flexDirection: 'row',

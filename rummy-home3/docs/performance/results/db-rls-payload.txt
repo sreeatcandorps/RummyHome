@@ -1,0 +1,412 @@
+Pager usage is off.
+GRANT
+Test game score rows: 150
+                                                set_config                                                 
+-----------------------------------------------------------------------------------------------------------
+ {"sub" : "b04e1a05-9a06-49d9-b383-39365833327c", "email" : "user1@example.com", "role" : "authenticated"}
+(1 row)
+
+################ A. scores for one game, NO RLS (owner role) — raw cost
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=0.85..741.45 rows=87 width=112) (actual time=0.019..0.296 rows=150 loops=1)
+   Buffers: shared hit=606
+   ->  Index Scan using scores_game_idx on scores s  (cost=0.43..10.95 rows=87 width=80) (actual time=0.006..0.023 rows=150 loops=1)
+         Index Cond: (game_id = 'bb64ce2a-53ae-4da1-b4b4-139798509d33'::uuid)
+         Buffers: shared hit=6
+   ->  Index Scan using rounds_pkey on rounds rr  (cost=0.42..8.39 rows=1 width=48) (actual time=0.001..0.001 rows=1 loops=150)
+         Index Cond: (id = s.round_id)
+         Buffers: shared hit=600
+ Planning:
+   Buffers: shared hit=91
+ Planning Time: 0.252 ms
+ Execution Time: 0.322 ms
+(12 rows)
+
+SET
+################ B. same query WITH RLS as written (is_app_admin() OR is_game_member(game_id) per row)
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=0.85..483.69 rows=48 width=112) (actual time=1.055..4.252 rows=150 loops=1)
+   Buffers: shared hit=3117
+   ->  Index Scan using scores_game_idx on scores s  (cost=0.43..54.45 rows=48 width=80) (actual time=0.836..2.326 rows=150 loops=1)
+         Index Cond: (game_id = 'bb64ce2a-53ae-4da1-b4b4-139798509d33'::uuid)
+         Filter: (is_app_admin() OR is_game_member(game_id))
+         Buffers: shared hit=1465
+   ->  Index Scan using rounds_pkey on rounds rr  (cost=0.42..8.94 rows=1 width=48) (actual time=0.012..0.012 rows=1 loops=150)
+         Index Cond: (id = s.round_id)
+         Filter: (is_app_admin() OR is_game_member(game_id))
+         Buffers: shared hit=1652
+ Planning:
+   Buffers: shared hit=28
+ Planning Time: 0.108 ms
+ Execution Time: 4.270 ms
+(14 rows)
+
+RESET
+BEGIN
+DROP POLICY
+CREATE POLICY
+SET
+################ C. same query, policy rewritten with (select ...) wrappers
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=1.11..615.10 rows=65 width=112) (actual time=0.412..3.041 rows=150 loops=1)
+   Buffers: shared hit=2263
+   InitPlan 1 (returns $0)
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.102..0.102 rows=1 loops=1)
+           Buffers: shared hit=4
+   ->  Index Scan using scores_game_idx on scores s  (cost=0.43..33.57 rows=65 width=80) (actual time=0.239..1.162 rows=150 loops=1)
+         Index Cond: (game_id = 'bb64ce2a-53ae-4da1-b4b4-139798509d33'::uuid)
+         Filter: ($0 OR (SubPlan 2))
+         Buffers: shared hit=611
+         SubPlan 2
+           ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.007..0.007 rows=1 loops=150)
+                 Buffers: shared hit=601
+   ->  Index Scan using rounds_pkey on rounds rr  (cost=0.42..8.94 rows=1 width=48) (actual time=0.012..0.012 rows=1 loops=150)
+         Index Cond: (id = s.round_id)
+         Filter: (is_app_admin() OR is_game_member(game_id))
+         Buffers: shared hit=1652
+ Planning:
+   Buffers: shared hit=24
+ Planning Time: 0.157 ms
+ Execution Time: 3.062 ms
+(20 rows)
+
+RESET
+ROLLBACK
+################ D. PAYLOAD: bytes PostgREST would return for getGame's three requests + listGamePlayers
+ games_bytes | game_players_bytes | scores_select_star_bytes | scores_minimal_bytes | list_game_players_bytes 
+-------------+--------------------+--------------------------+----------------------+-------------------------
+         619 |               1790 |                    48904 |                12921 |                    1891
+(1 row)
+
+################ E. PAYLOAD: Home list — games select * with game_players embed, 50 games
+ home_games_bytes | games 
+------------------+-------
+            18395 |    15
+(1 row)
+
+################ F. A compact get_game_bundle equivalent: one query, scores as per-player arrays
+                                                                          QUERY PLAN                                                                           
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using games_pkey on games g  (cost=0.29..819.67 rows=1 width=32) (actual time=0.367..0.369 rows=1 loops=1)
+   Index Cond: (id = 'bb64ce2a-53ae-4da1-b4b4-139798509d33'::uuid)
+   Buffers: shared hit=638
+   SubPlan 1
+     ->  Aggregate  (cost=65.37..65.38 rows=1 width=32) (actual time=0.056..0.057 rows=1 loops=1)
+           Buffers: shared hit=26
+           ->  Sort  (cost=65.33..65.34 rows=5 width=63) (actual time=0.028..0.029 rows=6 loops=1)
+                 Sort Key: gp.player_order
+                 Sort Method: quicksort  Memory: 25kB
+                 Buffers: shared hit=26
+                 ->  Nested Loop  (cost=4.74..65.27 rows=5 width=63) (actual time=0.008..0.021 rows=6 loops=1)
+                       Buffers: shared hit=23
+                       ->  Bitmap Heap Scan on game_players gp  (cost=4.46..23.77 rows=5 width=25) (actual time=0.005..0.007 rows=6 loops=1)
+                             Recheck Cond: (game_id = g.id)
+                             Heap Blocks: exact=2
+                             Buffers: shared hit=5
+                             ->  Bitmap Index Scan on game_players_game_idx  (cost=0.00..4.46 rows=5 width=0) (actual time=0.003..0.003 rows=6 loops=1)
+                                   Index Cond: (game_id = g.id)
+                                   Buffers: shared hit=3
+                       ->  Index Scan using profiles_pkey on profiles pr  (cost=0.28..8.30 rows=1 width=54) (actual time=0.002..0.002 rows=1 loops=6)
+                             Index Cond: (id = gp.profile_id)
+                             Buffers: shared hit=18
+   SubPlan 2
+     ->  Aggregate  (cost=745.97..745.98 rows=1 width=32) (actual time=0.274..0.274 rows=1 loops=1)
+           Buffers: shared hit=609
+           ->  GroupAggregate  (cost=744.04..745.75 rows=85 width=48) (actual time=0.221..0.259 rows=6 loops=1)
+                 Group Key: s.profile_id
+                 Buffers: shared hit=609
+                 ->  Sort  (cost=744.04..744.25 rows=87 width=24) (actual time=0.210..0.216 rows=150 loops=1)
+                       Sort Key: s.profile_id, r.round_number
+                       Sort Method: quicksort  Memory: 32kB
+                       Buffers: shared hit=609
+                       ->  Nested Loop  (cost=0.85..741.23 rows=87 width=24) (actual time=0.007..0.172 rows=150 loops=1)
+                             Buffers: shared hit=606
+                             ->  Index Scan using scores_game_idx on scores s  (cost=0.43..10.95 rows=87 width=36) (actual time=0.003..0.017 rows=150 loops=1)
+                                   Index Cond: (game_id = g.id)
+                                   Buffers: shared hit=6
+                             ->  Index Scan using rounds_pkey on rounds r  (cost=0.42..8.39 rows=1 width=20) (actual time=0.001..0.001 rows=1 loops=150)
+                                   Index Cond: (id = s.round_id)
+                                   Filter: (undone_at IS NULL)
+                                   Buffers: shared hit=600
+ Planning:
+   Buffers: shared hit=46
+ Planning Time: 0.259 ms
+ Execution Time: 0.395 ms
+(45 rows)
+
+ bundle_bytes 
+--------------
+         2524
+(1 row)
+
+################ G. WRITE: save_round RPC as authenticated (rolled back)
+SET
+BEGIN
+                                                                                                                                                                   QUERY PLAN                                                                                                                                                                    
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=117.99..118.25 rows=1 width=16) (actual time=4.190..4.191 rows=1 loops=1)
+   Buffers: shared hit=640 read=12 dirtied=9
+   InitPlan 5 (returns $4)
+     ->  Aggregate  (cost=117.98..117.99 rows=1 width=32) (actual time=0.211..0.212 rows=1 loops=1)
+           Buffers: shared hit=49
+           ->  Index Scan using game_players_game_idx on game_players  (cost=0.42..117.97 rows=2 width=16) (actual time=0.140..0.195 rows=6 loops=1)
+                 Index Cond: (game_id = 'bb64ce2a-53ae-4da1-b4b4-139798509d33'::uuid)
+                 Filter: (seated AND (is_app_admin() OR is_game_member(game_id) OR (SubPlan 1) OR is_app_admin() OR is_game_admin(game_id) OR (SubPlan 3)) AND (role <> 'spectator'::game_member_role))
+                 Buffers: shared hit=49
+                 SubPlan 1
+                   ->  Index Scan using games_pkey on games  (cost=0.29..8.85 rows=1 width=0) (never executed)
+                         Index Cond: (id = game_players.game_id)
+                         Filter: ((created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) AND (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access))
+                 SubPlan 3
+                   ->  Index Scan using games_pkey on games games_1  (cost=0.29..8.85 rows=1 width=0) (never executed)
+                         Index Cond: (id = game_players.game_id)
+                         Filter: ((created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) AND (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access))
+ Planning:
+   Buffers: shared hit=7
+ Planning Time: 0.208 ms
+ Execution Time: 4.212 ms
+(21 rows)
+
+ROLLBACK
+RESET
+################ H. profiles RLS: can_see_profile per row when the game has guest (managed) seats
+game used for profiles RLS check: bb64ce2a-53ae-4da1-b4b4-139798509d33
+SET
+                                                                                                 QUERY PLAN                                                                                                  
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=0.70..144.73 rows=5 width=48) (actual time=0.227..0.312 rows=6 loops=1)
+   Buffers: shared hit=69
+   ->  Index Only Scan using game_players_game_id_profile_id_key on game_players gp  (cost=0.42..101.96 rows=5 width=16) (actual time=0.168..0.226 rows=6 loops=1)
+         Index Cond: (game_id = 'bb64ce2a-53ae-4da1-b4b4-139798509d33'::uuid)
+         Filter: (is_app_admin() OR is_game_member(game_id) OR (hashed SubPlan 2) OR is_app_admin() OR is_game_admin(game_id) OR (hashed SubPlan 4))
+         Heap Fetches: 0
+         Buffers: shared hit=48
+         SubPlan 2
+           ->  Bitmap Heap Scan on games  (cost=4.42..69.32 rows=8 width=16) (never executed)
+                 Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                 Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+                 ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (never executed)
+                       Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+         SubPlan 4
+           ->  Bitmap Heap Scan on games games_1  (cost=4.42..69.32 rows=8 width=16) (never executed)
+                 Recheck Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+                 Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+                 ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.42 rows=15 width=0) (never executed)
+                       Index Cond: (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid)
+   ->  Index Scan using profiles_pkey on profiles pr  (cost=0.28..8.55 rows=1 width=48) (actual time=0.013..0.013 rows=1 loops=6)
+         Index Cond: (id = gp.profile_id)
+         Filter: can_see_profile(pr.*)
+         Buffers: shared hit=21
+ Planning:
+   Buffers: shared hit=20
+ Planning Time: 0.291 ms
+ Execution Time: 0.338 ms
+(27 rows)
+
+RESET
+################ I. Index check: which indexes exist on the hot tables
+     tablename     |               indexname                |                                                                                          indexdef                                                                                          
+-------------------+----------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ creator_notices   | creator_notices_pkey                   | CREATE UNIQUE INDEX creator_notices_pkey ON public.creator_notices USING btree (id)
+ game_players      | game_players_game_id_player_order_key  | CREATE UNIQUE INDEX game_players_game_id_player_order_key ON public.game_players USING btree (game_id, player_order)
+ game_players      | game_players_game_id_profile_id_key    | CREATE UNIQUE INDEX game_players_game_id_profile_id_key ON public.game_players USING btree (game_id, profile_id)
+ game_players      | game_players_game_idx                  | CREATE INDEX game_players_game_idx ON public.game_players USING btree (game_id)
+ game_players      | game_players_pkey                      | CREATE UNIQUE INDEX game_players_pkey ON public.game_players USING btree (id)
+ game_players      | game_players_profile_idx               | CREATE INDEX game_players_profile_idx ON public.game_players USING btree (profile_id)
+ game_result_games | game_result_games_game_idx             | CREATE INDEX game_result_games_game_idx ON public.game_result_games USING btree (game_id)
+ game_result_games | game_result_games_pkey                 | CREATE UNIQUE INDEX game_result_games_pkey ON public.game_result_games USING btree (result_id, game_id)
+ game_results      | game_results_declared_at_idx           | CREATE INDEX game_results_declared_at_idx ON public.game_results USING btree (declared_at DESC)
+ game_results      | game_results_pkey                      | CREATE UNIQUE INDEX game_results_pkey ON public.game_results USING btree (id)
+ games             | games_closed_at_idx                    | CREATE INDEX games_closed_at_idx ON public.games USING btree (closed_at) WHERE (closed_at IS NOT NULL)
+ games             | games_created_by_idx                   | CREATE INDEX games_created_by_idx ON public.games USING btree (created_by)
+ games             | games_created_by_number_idx            | CREATE INDEX games_created_by_number_idx ON public.games USING btree (created_by, game_number)
+ games             | games_demo_creator_idx                 | CREATE INDEX games_demo_creator_idx ON public.games USING btree (created_by) WHERE is_demo
+ games             | games_pkey                             | CREATE UNIQUE INDEX games_pkey ON public.games USING btree (id)
+ games             | games_share_code_key                   | CREATE UNIQUE INDEX games_share_code_key ON public.games USING btree (share_code)
+ games             | games_view_token_key                   | CREATE UNIQUE INDEX games_view_token_key ON public.games USING btree (view_token)
+ my_players        | my_players_pkey                        | CREATE UNIQUE INDEX my_players_pkey ON public.my_players USING btree (owner_id, player_id)
+ player_links      | player_links_email_pending             | CREATE INDEX player_links_email_pending ON public.player_links USING btree (email) WHERE (status = 'pending'::text)
+ player_links      | player_links_one_live_link             | CREATE UNIQUE INDEX player_links_one_live_link ON public.player_links USING btree (player_id) WHERE ((status = 'pending'::text) AND (kind = 'link'::text))
+ player_links      | player_links_one_request_per_requester | CREATE UNIQUE INDEX player_links_one_request_per_requester ON public.player_links USING btree (player_id, requester_id) WHERE ((status = 'pending'::text) AND (kind = 'id_request'::text))
+ player_links      | player_links_pkey                      | CREATE UNIQUE INDEX player_links_pkey ON public.player_links USING btree (id)
+ player_links      | player_links_requester_recent          | CREATE INDEX player_links_requester_recent ON public.player_links USING btree (requester_id, invited_at) WHERE (kind = 'id_request'::text)
+ player_links      | player_links_token_hash_key            | CREATE UNIQUE INDEX player_links_token_hash_key ON public.player_links USING btree (token_hash) WHERE (token_hash IS NOT NULL)
+ profiles          | profiles_demo_owner_idx                | CREATE INDEX profiles_demo_owner_idx ON public.profiles USING btree (demo_owner_id) WHERE is_demo
+ profiles          | profiles_email_idx                     | CREATE INDEX profiles_email_idx ON public.profiles USING btree (email)
+ profiles          | profiles_email_key                     | CREATE UNIQUE INDEX profiles_email_key ON public.profiles USING btree (email)
+ profiles          | profiles_email_normalized_key          | CREATE UNIQUE INDEX profiles_email_normalized_key ON public.profiles USING btree (lower(btrim(email))) WHERE ((email IS NOT NULL) AND (managed_by IS NULL))
+ profiles          | profiles_managed_by_idx                | CREATE INDEX profiles_managed_by_idx ON public.profiles USING btree (managed_by) WHERE (managed_by IS NOT NULL)
+ profiles          | profiles_pkey                          | CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
+ profiles          | profiles_player_code_key               | CREATE UNIQUE INDEX profiles_player_code_key ON public.profiles USING btree (player_code)
+ profiles          | profiles_public_player_no_key          | CREATE UNIQUE INDEX profiles_public_player_no_key ON public.profiles USING btree (public_player_no)
+ rounds            | rounds_game_id_round_number_key        | CREATE UNIQUE INDEX rounds_game_id_round_number_key ON public.rounds USING btree (game_id, round_number)
+ rounds            | rounds_game_idx                        | CREATE INDEX rounds_game_idx ON public.rounds USING btree (game_id)
+ rounds            | rounds_pkey                            | CREATE UNIQUE INDEX rounds_pkey ON public.rounds USING btree (id)
+ scores            | scores_game_idx                        | CREATE INDEX scores_game_idx ON public.scores USING btree (game_id)
+ scores            | scores_pkey                            | CREATE UNIQUE INDEX scores_pkey ON public.scores USING btree (id)
+ scores            | scores_round_idx                       | CREATE INDEX scores_round_idx ON public.scores USING btree (round_id)
+(38 rows)
+
+################ J. Table sizes per 1000 users (extrapolation base)
+      relname      | n_live_tup |  total  
+-------------------+------------+---------
+ scores            |    2255058 | 374 MB
+ rounds            |     447074 | 95 MB
+ game_players      |     150071 | 42 MB
+ my_players        |     118395 | 16 MB
+ games             |      30000 | 32 MB
+ game_result_games |      18000 | 2840 kB
+ game_results      |       6000 | 7344 kB
+ profiles          |       6000 | 5016 kB
+ demo_admin_emails |          1 | 32 kB
+ token_ledger      |          0 | 24 kB
+ player_links      |          0 | 56 kB
+ prize_entries     |          0 | 24 kB
+(12 rows)
+
+################ K. RESULTS PAGE: scores for every visible game (listGamesForCurrentUser includeScores) vs server-side totals
+SELECT 50
+GRANT
+SET
+-- K1. scores select *, rounds(round_number, undone_at) where game_id in (<all visible ids, limit 50>) — what results/index.tsx downloads
+                                                                QUERY PLAN                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=33.98..98486.86 rows=89601 width=112) (actual time=0.460..92.091 rows=4018 loops=1)
+   Buffers: shared hit=72578, local hit=1
+   ->  Nested Loop  (cost=33.55..11577.62 rows=89601 width=80) (actual time=0.292..43.446 rows=4018 loops=1)
+         Buffers: shared hit=28378, local hit=1
+         ->  HashAggregate  (cost=33.12..35.12 rows=200 width=16) (actual time=0.018..0.029 rows=50 loops=1)
+               Group Key: t_vis.id
+               Batches: 1  Memory Usage: 40kB
+               Buffers: local hit=1
+               ->  Seq Scan on t_vis  (cost=0.00..28.50 rows=1850 width=16) (actual time=0.004..0.007 rows=50 loops=1)
+                     Buffers: local hit=1
+         ->  Index Scan using scores_game_idx on scores s  (cost=0.43..57.23 rows=48 width=80) (actual time=0.022..0.857 rows=80 loops=50)
+               Index Cond: (game_id = t_vis.id)
+               Filter: (is_app_admin() OR is_game_member(game_id))
+               Buffers: shared hit=28378
+   ->  Index Scan using rounds_pkey on rounds rr  (cost=0.42..0.97 rows=1 width=48) (actual time=0.012..0.012 rows=1 loops=4018)
+         Index Cond: (id = s.round_id)
+         Filter: (is_app_admin() OR is_game_member(game_id))
+         Buffers: shared hit=44200
+ Planning:
+   Buffers: shared hit=20
+ Planning Time: 0.244 ms
+ Execution Time: 92.277 ms
+(22 rows)
+
+ score_rows | scores_bytes 
+------------+--------------
+       4018 |      1365484
+(1 row)
+
+-- K2. the same information as per-game per-player totals computed in SQL (what a list_result_candidates RPC would return)
+                                                                                                      QUERY PLAN                                                                                                       
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=502143.72..502629.74 rows=16673 width=48) (actual time=239.238..239.625 rows=50 loops=1)
+   Group Key: g.id
+   Buffers: shared hit=73048, local hit=1
+   ->  Sort  (cost=502143.72..502213.12 rows=27761 width=48) (actual time=239.197..239.209 rows=261 loops=1)
+         Sort Key: g.id
+         Sort Method: quicksort  Memory: 43kB
+         Buffers: shared hit=73048, local hit=1
+         ->  Nested Loop  (cost=517.63..500094.85 rows=27761 width=48) (actual time=149.104..239.150 rows=261 loops=1)
+               Buffers: shared hit=73048, local hit=1
+               ->  Nested Loop  (cost=33.41..1489.69 rows=1028 width=16) (actual time=147.071..147.867 rows=50 loops=1)
+                     Buffers: shared hit=470, local hit=1
+                     ->  HashAggregate  (cost=33.12..35.12 rows=200 width=16) (actual time=146.687..146.699 rows=50 loops=1)
+                           Group Key: t_vis.id
+                           Batches: 1  Memory Usage: 40kB
+                           Buffers: local hit=1
+                           ->  Seq Scan on t_vis  (cost=0.00..28.50 rows=1850 width=16) (actual time=0.005..0.010 rows=50 loops=1)
+                                 Buffers: local hit=1
+                     ->  Index Scan using games_pkey on games g  (cost=0.29..7.62 rows=1 width=16) (actual time=0.023..0.023 rows=1 loops=50)
+                           Index Cond: (id = t_vis.id)
+                           Filter: (is_app_admin() OR (created_by = (((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid) OR is_game_member(id) OR spectator_access)
+                           Buffers: shared hit=470
+               ->  GroupAggregate  (cost=484.21..484.75 rows=27 width=32) (actual time=1.819..1.825 rows=5 loops=50)
+                     Group Key: s.profile_id
+                     Buffers: shared hit=72578
+                     ->  Sort  (cost=484.21..484.28 rows=27 width=20) (actual time=1.817..1.819 rows=80 loops=50)
+                           Sort Key: s.profile_id
+                           Sort Method: quicksort  Memory: 32kB
+                           Buffers: shared hit=72578
+                           ->  Nested Loop  (cost=0.85..483.57 rows=27 width=20) (actual time=0.033..1.806 rows=80 loops=50)
+                                 Buffers: shared hit=72578
+                                 ->  Index Scan using scores_game_idx on scores s  (cost=0.43..54.45 rows=48 width=36) (actual time=0.017..0.856 rows=80 loops=50)
+                                       Index Cond: (game_id = g.id)
+                                       Filter: (is_app_admin() OR is_game_member(game_id))
+                                       Buffers: shared hit=28378
+                                 ->  Index Scan using rounds_pkey on rounds r  (cost=0.42..8.94 rows=1 width=16) (actual time=0.012..0.012 rows=1 loops=4018)
+                                       Index Cond: (id = s.round_id)
+                                       Filter: ((undone_at IS NULL) AND (is_app_admin() OR is_game_member(game_id)))
+                                       Buffers: shared hit=44200
+ Planning:
+   Buffers: shared hit=17
+ Planning Time: 0.263 ms
+ JIT:
+   Functions: 36
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 1.101 ms, Inlining 15.172 ms, Optimization 76.677 ms, Emission 54.838 ms, Total 147.788 ms
+ Execution Time: 240.822 ms
+(46 rows)
+
+ totals_bytes 
+--------------
+        24892
+(1 row)
+
+RESET
+-- K3. K2 as a SECURITY DEFINER RPC would run it: visibility checked once up front (t_vis), no per-row RLS
+                                                                         QUERY PLAN                                                                          
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=787.09..1384437.08 rows=30000 width=48) (actual time=97.998..106.234 rows=50 loops=1)
+   Group Key: g.id
+   Buffers: shared hit=16506, local hit=1
+   ->  Nested Loop  (cost=787.09..1382882.71 rows=157250 width=48) (actual time=97.749..105.791 rows=261 loops=1)
+         Buffers: shared hit=16506, local hit=1
+         ->  Merge Join  (cost=43.06..1663.06 rows=1850 width=16) (actual time=97.640..99.822 rows=50 loops=1)
+               Merge Cond: (g.id = t_vis.id)
+               Buffers: shared hit=184, local hit=1
+               ->  Index Only Scan using games_pkey on games g  (cost=0.29..1542.29 rows=30000 width=16) (actual time=0.008..1.341 rows=18715 loops=1)
+                     Heap Fetches: 34
+                     Buffers: shared hit=184
+               ->  Sort  (cost=42.77..43.27 rows=200 width=16) (actual time=0.050..0.054 rows=50 loops=1)
+                     Sort Key: t_vis.id
+                     Sort Method: quicksort  Memory: 26kB
+                     Buffers: local hit=1
+                     ->  HashAggregate  (cost=33.12..35.12 rows=200 width=16) (actual time=0.028..0.033 rows=50 loops=1)
+                           Group Key: t_vis.id
+                           Batches: 1  Memory Usage: 40kB
+                           Buffers: local hit=1
+                           ->  Seq Scan on t_vis  (cost=0.00..28.50 rows=1850 width=16) (actual time=0.009..0.012 rows=50 loops=1)
+                                 Buffers: local hit=1
+         ->  GroupAggregate  (cost=744.04..745.76 rows=85 width=32) (actual time=0.112..0.119 rows=5 loops=50)
+               Group Key: s.profile_id
+               Buffers: shared hit=16322
+               ->  Sort  (cost=744.04..744.25 rows=87 width=20) (actual time=0.110..0.113 rows=80 loops=50)
+                     Sort Key: s.profile_id
+                     Sort Method: quicksort  Memory: 29kB
+                     Buffers: shared hit=16322
+                     ->  Nested Loop  (cost=0.85..741.23 rows=87 width=20) (actual time=0.005..0.101 rows=80 loops=50)
+                           Buffers: shared hit=16322
+                           ->  Index Scan using scores_game_idx on scores s  (cost=0.43..10.95 rows=87 width=36) (actual time=0.003..0.011 rows=80 loops=50)
+                                 Index Cond: (game_id = g.id)
+                                 Buffers: shared hit=250
+                           ->  Index Scan using rounds_pkey on rounds r  (cost=0.42..8.39 rows=1 width=16) (actual time=0.001..0.001 rows=1 loops=4018)
+                                 Index Cond: (id = s.round_id)
+                                 Filter: (undone_at IS NULL)
+                                 Buffers: shared hit=16072
+ Planning:
+   Buffers: shared hit=17
+ Planning Time: 0.216 ms
+ JIT:
+   Functions: 28
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 0.541 ms, Inlining 9.603 ms, Optimization 47.638 ms, Emission 40.325 ms, Total 98.107 ms
+ Execution Time: 106.848 ms
+(45 rows)
+

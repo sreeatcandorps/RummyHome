@@ -1,0 +1,18 @@
+appId: com.mindweavetech.rummyhome
+# Two-device realtime, device B (a1): add one round to BREAKP1 while device A watches.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: a1@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP1
+- tapOn: "Add round"
+- runFlow: ../lib/fill-round-bp1.yaml
+- tapOn: "Save round"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- takeScreenshot: t1-b-added-round

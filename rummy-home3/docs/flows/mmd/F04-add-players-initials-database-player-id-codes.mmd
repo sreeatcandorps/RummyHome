@@ -1,0 +1,72 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  s10["S10 New game · Players picker / Add players to this game"]:::screen
+  s12["S12 Add by initials"]:::screen
+  s13["S13 Find in database"]:::screen
+  s05["S05 My players"]:::screen
+  p60(["P60 Initials clash sentence (stored form)"]):::popup
+  p48(["P48 Unsaved letters"]):::popup
+  p05(["P05 Initials for {name} (shared editor)"]):::popup
+  w15[/"W15 Initials format line / Change the letters to save"/]:::warning
+  w16[/"W16 Registration tags (Unregistered · Pending registration · Link p…"/]:::warning
+  w27[/"W27 My players search-full note + 1,000 limit"/]:::warning
+  w28[/"W28 Guardrail refusals (GRD01: 20 seats, 500 rounds, 10 live games,…"/]:::warning
+  how{"Add how?"}:::decision
+  free{"Typed initials free in My players?"}:::decision
+  pick("Tap row → seated (yellow ring)"):::step
+  p10(["P10 Link {name} to Player ID"]):::popup
+  p11(["P11 Request sent (link request)"]):::popup
+  e05[["E05 Link request (Yes / No)"]]:::email
+  s27["S27 Web · link request Yes / No"]:::screen
+  p01(["P01 Linked (link complete notice)"]):::popup
+  s24["S24 Claim link landing (remembers token → sign up / Home)"]:::screen
+  p02(["P02 One quick check (join / claim requests)"]):::popup
+  p13(["P13 Player detail (initials, Close / Remove)"]):::gap
+  p08(["P08 Remove {name} from My players?"]):::popup
+  p15(["P15 Removed · UNDO (My players)"]):::popup
+  w17[/"W17 Can’t link yet (conflict names each game)"/]:::warning
+  w07[/"W07 Empty states (no live games · no players · no results)"/]:::warning
+  p46(["P46 Can’t remove this player (picker)"]):::gap
+  live{"In a live game?"}:::decision
+  s10 --> how
+  how -->|"from My players"| pick
+  how -->|"Add new players"| s12
+  how -->|"From database"| s13
+  s12 -->|"letter + letters/digits"| free
+  free -->|"yes: saved"| s10
+  free -->|"no"| p60
+  p60 -->|"stored SK2"| s10
+  s12 -->|"Edit"| p05
+  p05 -->|"invalid"| w15
+  s12 -->|"Back with letters"| p48
+  p48 --> s10
+  s13 -->|"search name / initials / #ID → Add"| s10
+  s13 -->|"roster at 1,000"| w27
+  s10 -->|"21st seat"| w28
+  s05 -->|"tags"| w16
+  s05 -->|"⋮ Link to Player ID"| p10
+  p10 -->|"Send request"| p11
+  p11 --> e05
+  e05 -->|"Yes / No by token"| s27
+  s27 -->|"Yes → Linked"| p01
+  s24 -->|"claim link opened"| p02
+  p02 -->|"accepted"| s05
+  s05 -->|"empty"| w07
+  s05 -->|"tap row"| p13
+  p13 -->|"Edit initials"| p05
+  p13 -->|"Remove"| live
+  live -->|"yes: refused"| s05
+  live -->|"no"| p08
+  p08 -->|"Remove"| p15
+  p15 -->|"Undo"| s05
+  p10 -->|"conflict"| w17
+  s10 -->|"× on a seat with scores"| p46
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px

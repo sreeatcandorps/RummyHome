@@ -1,0 +1,24 @@
+<!-- Supabase → Authentication → Email Templates → "Reset Password".
+     Subject: "Your EZ Score: Rummy OTP"
+     App-only reset: the app verifies {{ .Token }} (verifyOtp type=recovery). There is no browser
+     link on purpose; builds 5+ never need one. -->
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F6F1E8;padding:24px 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1F2A24;">
+  <tr><td align="center">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFDF8;border-radius:16px;padding:28px 28px 24px;">
+      <tr><td style="font-size:12px;letter-spacing:1px;color:#1B5E3F;font-weight:700;text-transform:uppercase;">EZ Score: Rummy</td></tr>
+      <tr><td style="font-size:22px;font-weight:700;padding-top:6px;">Your OTP</td></tr>
+      <tr><td style="font-size:15px;line-height:22px;padding-top:12px;">
+        Someone asked to change the 6-digit passcode for this email. In the app, type this OTP in the <strong>OTP</strong> box, then choose your new passcode.
+      </td></tr>
+      <tr><td align="center" style="padding:20px 0 8px;">
+        <span style="display:inline-block;font-size:34px;letter-spacing:10px;font-weight:800;color:#1B5E3F;background:#E6F2EB;border-radius:12px;padding:12px 18px 12px 28px;">{{ .Token }}</span>
+      </td></tr>
+      <tr><td style="font-size:13px;line-height:20px;color:#5B665F;padding-top:8px;">
+        The OTP works once and expires in 15 minutes. If you did not ask for it, you can ignore this email; your passcode stays as it is.
+      </td></tr>
+      <tr><td style="font-size:12px;color:#8A948E;padding-top:20px;border-top:1px solid #EDE6DA;margin-top:12px;">
+        EZ Score: Rummy by MindWeave · This is an account message, not marketing.
+      </td></tr>
+    </table>
+  </td></tr>
+</table>

@@ -1,0 +1,30 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# C16-4 Offline: a balanced round is filled in online; the runner then turns wifi and data off right
+# after the first screenshot (file name hook "--net-off"), and Save is tapped with no network. The app
+# must say so (Could not save round) and must not crash or pretend it saved. BREAKP6 starts at Round 1
+# and must still be at Round 1 afterwards (c06 checks, with the network back).
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP6
+- assertVisible: "Round 1"
+- tapOn: "Add round"
+- runFlow: ../lib/fill-round-4.yaml
+# First screenshot of the flow → the runner drops the network ~0.7 s later. Give it a few seconds.
+- takeScreenshot: c05-offline-before-save
+- extendedWaitUntil:
+    visible: "zz-never-shown"
+    timeout: 6000
+    optional: true
+- tapOn: "Save round"
+- extendedWaitUntil:
+    visible: "Could not save round"
+    timeout: 60000
+- assertNotVisible: "Round 2"
+- takeScreenshot: c05-offline-save-refused

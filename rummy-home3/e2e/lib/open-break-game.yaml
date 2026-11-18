@@ -1,0 +1,21 @@
+appId: com.mindweavetech.rummyhome
+# From Home, open the game card with this share code (seed-break.sql) and wait for the scorecard.
+# The caller passes CODE (no env defaults here — see sign-in-as.yaml for why):
+#   - runFlow:
+#       file: ../lib/open-break-game.yaml
+#       env:
+#         CODE: BREAKP1
+---
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "game-card-${CODE}"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "game-card-${CODE}"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000

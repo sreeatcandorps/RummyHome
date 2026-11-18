@@ -1,0 +1,470 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# PR 24 Order of players (was PR 21 Seating order, X21-8): the 20-player pass. Game F (20 players × 30
+# rounds, Sree creator) → ⋮ → Order of players: twenty rows, prefilled (everyone numbered, arrows on
+# every row), the "30 rounds played" note, the green "deals next" seat (round 30's dealer was seat 10,
+# so seat 11 deals next); Clear, then tap Test Uniform first (seat 1, moves to the top) and the rest in
+# order → Done → column 1 reads TU and the Log has an important Seating row listing all twenty seats.
+# The flow then puts TU back at seat 20 so game F reads as before for full/20, 21, 50.
+# Second half, as c3 on the pool BQ1 (6 seats, Player Five out in round 3, Player Six re-entered): the
+# subline counts the outs, an out player is movable like anyone else (▲ on seat 5), Cancel saves nothing.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEF1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEF1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-seating"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible: "Mid-game · admins only · logged"
+- assertVisible: "30 rounds played.*"
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
+- assertVisible:
+    id: "seat-name-1"
+    text: "Sree Test"
+- assertVisible:
+    id: "seat-up-1"
+- takeScreenshot: 51-order-20p-top
+# Seat 11 (Test Juliet) deals next: round 30's dealer sat at 10.
+- scrollUntilVisible:
+    element:
+      id: "seat-row-11"
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: "seat-deals-next"
+- takeScreenshot: 51b-order-20p-deals-next
+- scrollUntilVisible:
+    element:
+      id: "seat-row-20"
+    direction: DOWN
+    timeout: 15000
+- assertVisible:
+    id: "seat-name-20"
+    text: "Test Uniform"
+# Clear, then number Test Uniform first: seat 1, straight to the top; the other nineteen follow in order.
+- tapOn:
+    id: "seating-clear"
+- assertVisible:
+    id: "order-counter"
+    text: "0 of 20 numbered"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-20"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-20"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-1"
+    direction: UP
+    timeout: 15000
+- assertVisible:
+    id: "seat-name-1"
+    text: "Test Uniform"
+- assertVisible:
+    id: "seat-name-2"
+    text: "Sree Test"
+- takeScreenshot: 51c-order-20p-uniform-first
+- scrollUntilVisible:
+    element:
+      id: "seat-row-2"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-2"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-3"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-3"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-4"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-4"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-5"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-5"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-6"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-6"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-7"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-7"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-8"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-8"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-9"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-9"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-10"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-10"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-11"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-11"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-12"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-12"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-13"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-13"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-14"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-14"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-15"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-15"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-16"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-16"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-17"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-17"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-18"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-18"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-19"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-19"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-20"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-20"
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
+- tapOn:
+    id: "seating-done"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-sheet"
+    timeout: 120000
+- assertVisible:
+    id: "score-header-initials-1"
+    text: "TU"
+- assertVisible:
+    id: "score-header-initials-2"
+    text: "ST"
+- takeScreenshot: 51d-scorecard-20p-uniform-first
+# The Log: an important Seating row that names all twenty seats.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*Seating changed · 1 TU · 2 ST · 3 TA.*"
+- tapOn:
+    id: "game-log-filter-important"
+- assertVisible:
+    text: ".*Seating changed · 1 TU.*"
+- takeScreenshot: 51e-log-seating-20p
+- back
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 15000
+# Put TU back at seat 20 so game F is unchanged for the other nightly flows: Clear, then number rows
+# 2..20 in turn (TU slides down one row per tap) and TU last.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-seating"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- tapOn:
+    id: "seating-clear"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-2"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-2"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-3"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-3"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-4"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-4"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-5"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-5"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-6"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-6"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-7"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-7"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-8"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-8"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-9"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-9"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-10"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-10"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-11"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-11"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-12"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-12"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-13"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-13"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-14"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-14"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-15"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-15"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-16"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-16"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-17"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-17"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-18"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-18"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-19"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-19"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-20"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-20"
+- scrollUntilVisible:
+    element:
+      id: "seat-row-20"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "seat-row-20"
+- assertVisible:
+    id: "seat-name-20"
+    text: "Test Uniform"
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
+- tapOn:
+    id: "seating-done"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-sheet"
+    timeout: 120000
+- assertVisible:
+    id: "score-header-initials-1"
+    text: "ST"
+- assertVisible:
+    id: "score-header-initials-20"
+    text: "TU"
+- takeScreenshot: 51f-scorecard-20p-restored
+# Pool: BQ1 as its creator c3. Out and re-entered seats show as such, and an out player moves like anyone else.
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c3@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKQ1
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-seating"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible: "Pool · 6 seats · 1 out"
+- assertVisible: "3 rounds played.*"
+- assertVisible:
+    id: "seat-name-5"
+    text: "Player Five"
+- takeScreenshot: 51g-order-pool-outs
+- tapOn:
+    id: "seat-up-5"
+- assertVisible:
+    id: "seat-name-4"
+    text: "Player Five"
+- assertVisible:
+    id: "seat-name-5"
+    text: "Player Four"
+- tapOn:
+    id: "seating-cancel"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-sheet"
+    timeout: 5000
+# Reopen: Player Five is still seat 5.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-seating"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible:
+    id: "seat-name-5"
+    text: "Player Five"
+- takeScreenshot: 51h-pool-unchanged
+- tapOn:
+    id: "seating-cancel"

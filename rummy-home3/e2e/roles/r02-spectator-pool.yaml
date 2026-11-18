@@ -1,0 +1,33 @@
+appId: com.mindweavetech.rummyhome
+tags: [roles]
+# R16-2 A spectator (s1 on BREAKP1 and on the pool BREAKQ1) opens the game read-only and is not in the
+# header; a game s1 has no seat in (BREAKP5) must not be on the home list at all.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: s1@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP1
+- assertVisible: "View only"
+- assertNotVisible: "Add round"
+- assertNotVisible: "Sita Spectator"
+- takeScreenshot: r02-spectator-scorecard
+- back
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 15000
+- assertVisible:
+    id: "game-card-BREAKQ1"
+- assertNotVisible:
+    id: "game-card-BREAKP5"
+- takeScreenshot: r02-spectator-home
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKQ1
+- assertVisible: "View only"
+- assertNotVisible: "Add round"
+- takeScreenshot: r02-spectator-pool-scorecard

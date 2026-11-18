@@ -1,0 +1,15 @@
+appId: com.mindweavetech.rummyhome
+# Two-device race, step 1 (run on BOTH emulators with --shard-all 2, each with its own EMAIL):
+# sign in, open BREAKP1, open Add round, enter a balanced round, stop short of Save.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: ${EMAIL}
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP1
+- tapOn: "Add round"
+- runFlow: ../lib/fill-round-bp1.yaml
+- takeScreenshot: t2-ready-${WHO}

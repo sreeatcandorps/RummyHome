@@ -1,107 +1,144 @@
 import React, { useEffect, useState } from 'react';
-import { Tabs } from 'expo-router';
-import { useTheme } from 'react-native-paper';
-import { Ionicons } from '@expo/vector-icons';
-import { Avatar, TouchableRipple } from 'react-native-paper';
-import { router } from 'expo-router';
+import { Image, StyleSheet, View } from 'react-native';
+import { router, Tabs, usePathname } from 'expo-router';
+import { IconButton, Text } from 'react-native-paper';
+import { HelpButton } from '@/components/ui/HelpButton';
+import { PillTabBar } from '@/components/ui/TabBarButtons';
+import { HELP } from '@/constants/help';
 import { authService } from '@/services/auth';
-import { Player } from '@/types/player';
-import { MIN_TOUCH_TARGET, radius, spacing } from '@/constants/theme';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { useLayout } from '@/hooks/useLayout';
+/** The logo and the name, nothing else (final batch item 11: no version number beside the icon). The version is at the foot of Profile. */
+function BrandTitle() {
+  const theme = useAppTheme();
+  return (
+    <View style={styles.brand}>
+      <View style={[styles.brandDisc, { backgroundColor: theme.colors.secondaryContainer }]}>
+        <Image source={require('../../assets/icon-small.png')} style={styles.brandLogo} />
+      </View>
+      <Text variant="titleLarge" numberOfLines={1} style={[styles.brandText, { color: theme.colors.onSurface }]}>
+        EZ Score: Rummy
+      </Text>
+    </View>
+  );
+}
 
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof Ionicons>['name'];
-  color: string;
-}) {
-  return <Ionicons size={24} {...props} />;
+/** The signed-in person's initials, refreshed on every tab change so a renamed profile shows up. */
+function useMyName() {
+  const path = usePathname();
+  const [name, setName] = useState('?');
+  useEffect(() => {
+    authService.getCurrentPlayer().then((player) => setName(player?.name ?? '?')).catch(() => {});
+  }, [path]);
+  return name;
+}
+
+function HeaderTools() {
+  const path = usePathname();
+  const text = path.includes('/players')
+    ? HELP.players
+    : path.includes('/me')
+      ? HELP.me
+      : HELP.home;
+
+  // Tab pages already carry the account chip in the bottom bar; the header keeps only Help.
+  return (
+    <View style={styles.headerRight}>
+      <HelpButton text={text} />
+    </View>
+  );
+}
+
+/** The My players page is reached from Home (PR 5), so its header carries a back arrow to Home. */
+function BackToHome() {
+  const theme = useAppTheme();
+  return <IconButton icon="arrow-left" iconColor={theme.colors.onSurface} onPress={() => router.navigate('/(tabs)')} accessibilityLabel="Back to Home" style={styles.back} />;
 }
 
 export default function TabLayout() {
-  const theme = useTheme();
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const theme = useAppTheme();
+  const { isShort } = useLayout();
+  const myName = useMyName();
 
-  useEffect(() => {
-    loadCurrentPlayer();
-  }, []);
-
-  const loadCurrentPlayer = async () => {
-    const player = await authService.getCurrentPlayer();
-    setCurrentPlayer(player);
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
-  const HeaderRight = () => (
-    <TouchableRipple
-      onPress={() => router.push('/profile')}
-      borderless
-      style={{
-        marginRight: spacing.sm,
-        width: MIN_TOUCH_TARGET,
-        height: MIN_TOUCH_TARGET,
-        borderRadius: radius.full,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-      accessibilityRole="button"
-      accessibilityLabel="Open profile"
-    >
-      <Avatar.Text
-        size={36}
-        label={currentPlayer ? getInitials(currentPlayer.name) : '?'}
-        style={{
-          backgroundColor: currentPlayer?.role === 'admin'
-            ? theme.colors.error
-            : theme.colors.primary,
-        }}
-      />
-    </TouchableRipple>
-  );
-
+  // PR 5: two bottom buttons (Home, Profile). The players route stays (href null) and is opened
+  // from the My players button on Home, which carries the count badge.
   return (
     <Tabs
+      tabBar={(props) => (
+        <PillTabBar
+          {...props}
+          compact={isShort}
+          items={{
+            index: { kind: 'icon', icon: 'home-variant', label: 'Home' },
+            me: { kind: 'avatar', name: myName, label: 'Your profile' },
+          }}
+        />
+      )}
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: theme.colors.surface },
+        headerStyle: { backgroundColor: theme.colors.background },
         headerTintColor: theme.colors.onSurface,
-        headerTitleStyle: { fontSize: 22, fontWeight: '600' },
+        headerTitleStyle: { fontSize: 22, fontWeight: '700' },
         headerShadowVisible: false,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-        tabBarStyle: {
-          backgroundColor: theme.colors.elevation.level2,
-          borderTopColor: theme.colors.outlineVariant,
-          height: 64,
-          paddingBottom: spacing.sm,
-          paddingTop: spacing.sm,
-        },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '500' },
-        tabBarItemStyle: { minHeight: MIN_TOUCH_TARGET },
-        headerRight: HeaderRight,
+        sceneStyle: { backgroundColor: theme.colors.background },
+        headerRight: () => <HeaderTools />,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          headerTitle: 'Rummy Home',
-          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+          headerTitle: () => <BrandTitle />,
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="players"
         options={{
-          title: 'Settings',
-          headerTitle: 'Settings',
-          tabBarIcon: ({ color }) => <TabBarIcon name="settings" color={color} />,
+          title: 'My players',
+          href: null,
+          headerLeft: () => <BackToHome />,
+        }}
+      />
+      <Tabs.Screen
+        name="me"
+        options={{
+          title: 'Profile',
+          tabBarAccessibilityLabel: 'Your profile',
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  brandDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandLogo: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.full,
+  },
+  brandText: {
+    flexShrink: 1,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+    lineHeight: 24,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  back: {
+    marginLeft: spacing.xs,
+  },
+});

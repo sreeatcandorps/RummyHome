@@ -12,5 +12,6 @@
     "resolveJsonModule": true,
     "skipLibCheck": true
   },
-  "extends": "expo/tsconfig.base"
+  "extends": "expo/tsconfig.base",
+  "exclude": ["supabase/functions", "node_modules"]
 }

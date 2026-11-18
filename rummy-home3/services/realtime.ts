@@ -1,23 +1,42 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/services/supabase';
+import { debounceTrailing } from '@/utils/debounce';
 
 export type GameRealtimeHandlers = {
   onChange: () => void;
 };
 
+/**
+ * A saved round arrives as one `rounds` event, one `scores` event per player and
+ * one `games` event within a few milliseconds. The screen reloads once for the
+ * burst, after this quiet period, instead of once per event.
+ */
+export const REALTIME_DEBOUNCE_MS = 400;
+
+/** The debounced reload per channel, so unsubscribe() can drop a reload still waiting. */
+const pending = new WeakMap<RealtimeChannel, { cancel: () => void }>();
+
 export const realtimeService = {
+  /**
+   * Every write that changes a scorecard touches `games`, `game_players` or `rounds`
+   * (save_round inserts the round and advances the game; an undo or edit retires the
+   * round; a join inserts the seat), so those three tables are enough to follow it.
+   */
   subscribeToGame(gameId: string, handlers: GameRealtimeHandlers): RealtimeChannel {
-    return supabase
+    const onChange = debounceTrailing(handlers.onChange, REALTIME_DEBOUNCE_MS);
+    const channel = supabase
       .channel(`game:${gameId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, handlers.onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, handlers.onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'rounds', filter: `game_id=eq.${gameId}` }, handlers.onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'scores', filter: `game_id=eq.${gameId}` }, handlers.onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'token_ledger', filter: `game_id=eq.${gameId}` }, handlers.onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'rounds', filter: `game_id=eq.${gameId}` }, onChange)
       .subscribe();
+    pending.set(channel, onChange);
+    return channel;
   },
 
   unsubscribe(channel: RealtimeChannel) {
+    pending.get(channel)?.cancel();
+    pending.delete(channel);
     supabase.removeChannel(channel);
   },
 };

@@ -1,310 +1,282 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Linking, Alert, Platform, ActivityIndicator } from 'react-native';
-import { Text, TextInput, Button, Avatar, HelperText, Icon, useTheme } from 'react-native-paper';
-import { router } from 'expo-router';
-import * as SMS from 'expo-sms';
-import { playersService } from '@/services/players';
+import React, { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Icon, Portal, Text } from 'react-native-paper';
+import { SearchField } from '@/components/ui/SearchField';
+import { Button } from '@/components/ui/AppButton';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
+import { authService } from '@/services/auth';
+import { playersService } from '@/services/players';
 import { isSupabaseConfigured } from '@/services/supabase';
+import { storage } from '@/utils/storage';
+import { formatSupabaseError } from '@/utils/supabaseErrors';
+import { playerSearchMode } from '@/utils/playerSearch';
+import { orderDatabaseResults, playerIdBadge } from '@/utils/myPlayersList';
+import { shareInvite } from '@/utils/invite';
+import { newGameDraft } from '@/utils/newGameDraft';
+import { HELP } from '@/constants/help';
+import { HelpButton } from '@/components/ui/HelpButton';
 import { Screen } from '@/components/ui/Screen';
-import { SectionCard } from '@/components/ui/SectionCard';
-import { MIN_TOUCH_TARGET, radius, spacing } from '@/constants/theme';
+import { BoldName } from '@/components/ui/BoldName';
+import { InitialsDialog } from '@/components/players/InitialsDialog';
+import { assignInitials, defaultInitials } from '@/utils/initials';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { ADD_NEW_PLAYERS, FIND_IN_DATABASE, FROM_DATABASE_ACCESSIBILITY } from '@/utils/addPlayers';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const INVITE_MESSAGE =
-  'Join me on Rummy Home! Create an account with your email, then I can add you when we start a game.';
-
-function digitsOnly(phone: string) {
-  return phone.replace(/\D/g, '');
-}
-
+/**
+ * Two jobs, one screen. From My players it adds people to your list.
+ * From New game (`from=new-game`) it also seats them in the game being set up.
+ */
 export default function FindPlayersScreen() {
-  const theme = useTheme();
-  const [searchQuery, setSearchQuery] = useState('');
+  const { colors } = useAppTheme();
+  const navigation = useNavigation();
+  const params = useLocalSearchParams<{ from?: string; seated?: string }>();
+  const fromNewGame = params.from === 'new-game';
+  const seatedIds = React.useMemo(() => new Set((params.seated ?? '').split(',').filter(Boolean)), [params.seated]);
+  const [addedHere, setAddedHere] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState<Player[]>([]);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [invitePhone, setInvitePhone] = useState('');
-  const [error, setError] = useState('');
-  const [inviteError, setInviteError] = useState('');
+  const [myIds, setMyIds] = useState<Set<string>>(new Set());
+  const [mine, setMine] = useState<Player[]>([]);
+  /** Players added on this screen whose initials came out as three letters (a clash in My players). */
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [editInitials, setEditInitials] = useState<Player | null>(null);
+  const [savingInitials, setSavingInitials] = useState(false);
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    setError('');
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      title: FIND_IN_DATABASE,
+      headerRight: () => <HelpButton text={fromNewGame ? HELP.addToGame : HELP.find} />,
+    });
+  }, [navigation, fromNewGame]);
 
-    if (!isSupabaseConfigured) {
-      setError('Supabase is not configured on this device.');
+  useEffect(() => {
+    const loadOwner = async () => {
+      const id = isSupabaseConfigured ? await authService.getCurrentUserId() : await storage.getCurrentPlayer();
+      setOwnerId(id);
+      if (!id) return;
+      const cached = await playersService.readMyPlayers(id).catch(() => [] as Player[]);
+      setMyIds(new Set(cached.map((player) => player.id)));
+      setMine(cached);
+      playersService.listMyPlayers(id)
+        .then((fresh) => { setMyIds(new Set(fresh.map((player) => player.id))); setMine(fresh); })
+        .catch(() => {});
+    };
+    loadOwner();
+  }, []);
+
+  useEffect(() => {
+    const mode = playerSearchMode(query);
+    if (mode === 'none') {
       setResults([]);
-      return;
-    }
-
-    if (query.trim().length < 3) {
-      setResults([]);
-      return;
-    }
-
-    setSearching(true);
-    try {
-      const players = await playersService.searchPlayers(query);
-      setResults(players);
-    } catch (err: any) {
-      console.error('Player search failed:', err);
-      setError(err?.message ?? 'Search failed');
-      setResults([]);
-    } finally {
       setSearching(false);
-    }
-  };
-
-  const sendEmailInvite = async () => {
-    setInviteError('');
-    const email = inviteEmail.trim();
-    if (!EMAIL_REGEX.test(email)) {
-      setInviteError('Enter a valid email address to send an email invite.');
       return;
     }
-
-    const subject = encodeURIComponent('Join me on Rummy Home');
-    const body = encodeURIComponent(INVITE_MESSAGE);
-    try {
-      await Linking.openURL(`mailto:${email}?subject=${subject}&body=${body}`);
-    } catch {
-      Alert.alert('Could not open email', 'Copy this message and send it yourself.');
-    }
-  };
-
-  const sendWhatsAppInvite = async () => {
-    setInviteError('');
-    const phone = digitsOnly(invitePhone);
-    if (phone.length < 8) {
-      setInviteError('Enter a phone number with country code for WhatsApp (digits only is fine).');
-      return;
-    }
-
-    const text = encodeURIComponent(INVITE_MESSAGE);
-    // The whatsapp:// scheme opens the standard app directly; wa.me links let
-    // Android offer WhatsApp Business as well.
-    const appUrl = `whatsapp://send?phone=${phone}&text=${text}`;
-    const webUrl = `https://wa.me/${phone}?text=${text}`;
-
-    try {
-      if (await Linking.canOpenURL(appUrl)) {
-        await Linking.openURL(appUrl);
-        return;
+    setSearching(true);
+    const handle = setTimeout(async () => {
+      try {
+        setError(null);
+        const found = await playersService.searchPlayers(query);
+        setResults(found);
+      } catch (err) {
+        setResults([]);
+        setError(formatSupabaseError(err));
+      } finally {
+        setSearching(false);
       }
-      await Linking.openURL(webUrl);
-    } catch {
-      Alert.alert('Could not open WhatsApp', 'Try Text or Email instead.');
-    }
-  };
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [query]);
 
-  const sendTextInvite = async () => {
-    setInviteError('');
-    const phone = invitePhone.trim();
-    if (digitsOnly(phone).length < 8) {
-      setInviteError('Enter a phone number to send a text invite.');
+  const add = useCallback(async (player: Player) => {
+    if (!ownerId) {
+      setError('Not signed in.');
       return;
     }
-
+    setBusy((current) => ({ ...current, [player.id]: true }));
     try {
-      const isAvailable = await SMS.isAvailableAsync();
-      if (isAvailable) {
-        await SMS.sendSMSAsync([phone], INVITE_MESSAGE);
-        return;
+      // The organiser is never a roster row of their own; adding "you" only seats you in the new game.
+      if (player.id !== ownerId) {
+        await playersService.addMyPlayer(ownerId, player);
+        setMyIds((current) => new Set([...current, player.id]));
+        // The database gave them unique initials; say so when the short form was already someone else's.
+        const fresh = await playersService.listMyPlayers(ownerId, { fresh: true }).catch(() => null);
+        if (fresh) {
+          setMine(fresh);
+          const labels = assignInitials(fresh.map((row) => ({ id: row.id, name: row.name, initials: row.initials, addedAt: row.addedAt })));
+          const label = labels.get(player.id);
+          const short = defaultInitials(player.name);
+          if (label && label !== short) {
+            const holder = fresh.find((row) => row.id !== player.id && labels.get(row.id) === short);
+            setNotes((current) => ({ ...current, [player.id]: holder ? `${short} is ${holder.name}, so ${player.name.split(' ')[0]} is ${label} on your scorecards.` : `${player.name.split(' ')[0]} is ${label} on your scorecards.` }));
+          }
+        }
       }
+      if (fromNewGame) {
+        newGameDraft.add({ id: player.id, name: player.name, playerCode: player.playerCode });
+        setAddedHere((current) => new Set([...current, player.id]));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : formatSupabaseError(err));
+    } finally {
+      setBusy((current) => ({ ...current, [player.id]: false }));
+    }
+  }, [ownerId, fromNewGame]);
 
-      // Fallback: open the platform SMS composer via URL
-      const separator = Platform.OS === 'ios' ? '&' : '?';
-      await Linking.openURL(`sms:${phone}${separator}body=${encodeURIComponent(INVITE_MESSAGE)}`);
-    } catch {
-      Alert.alert('Could not open Messages', 'Try WhatsApp or Email instead.');
+  const initialsOf = assignInitials(mine.map((row) => ({ id: row.id, name: row.name, initials: row.initials, addedAt: row.addedAt })));
+  const saveInitials = async (value: string) => {
+    if (!editInitials || !ownerId) return;
+    setSavingInitials(true);
+    try {
+      await playersService.setInitials(ownerId, editInitials.id, value);
+      const fresh = await playersService.listMyPlayers(ownerId, { fresh: true }).catch(() => null);
+      if (fresh) setMine(fresh);
+      setNotes((current) => { const next = { ...current }; delete next[editInitials.id]; return next; });
+      setEditInitials(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : formatSupabaseError(err));
+      setEditInitials(null);
+    } finally {
+      setSavingInitials(false);
     }
   };
 
-  const showNoMatches = searchQuery.trim().length >= 3 && !searching && results.length === 0;
+  // From New game the question is "already seated?", not "already in My players?".
+  const ordered = orderDatabaseResults(results, fromNewGame ? new Set([...seatedIds, ...addedHere]) : myIds);
+  const nothing = playerSearchMode(query) !== 'none' && !searching && results.length === 0;
 
   return (
     <Screen>
-      <SectionCard
-        title="Search registered players"
-        supportingText="Look someone up by their exact email, phone number, or player ID."
-      >
-        <TextInput
-          mode="outlined"
-          value={searchQuery}
-          onChangeText={handleSearch}
-          label="Email, phone, or player ID"
-          autoCapitalize="characters"
-          autoCorrect={false}
-          left={<TextInput.Icon icon="account-search" />}
-        />
-
-        <View style={styles.privacyNote}>
-          <Icon source="shield-check-outline" size={16} color={theme.colors.onSurfaceVariant} />
-          <Text variant="bodySmall" style={[styles.privacyText, { color: theme.colors.onSurfaceVariant }]}>
-            Names aren’t searchable on purpose. Everyone can find their own player ID under Profile
-            and share it with you.
-          </Text>
-        </View>
-        {error ? (
-          <HelperText type="error" visible>
-            {error}
-          </HelperText>
-        ) : null}
-
-        {searching ? (
-          <View style={styles.searchingRow}>
-            <ActivityIndicator size="small" />
-            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-              Searching…
-            </Text>
-          </View>
-        ) : null}
-
-        {results.length > 0 ? (
-          <View style={styles.results}>
-            {results.map((player) => (
-              <View key={player.id} style={styles.resultRow}>
-                <Avatar.Text
-                  size={40}
-                  label={(player.name?.[0] ?? '?').toUpperCase()}
-                  style={{ backgroundColor: theme.colors.secondaryContainer }}
-                  color={theme.colors.onSecondaryContainer}
-                />
-                <View style={styles.resultText}>
-                  <Text variant="bodyLarge" numberOfLines={1}>
-                    {player.name}
-                  </Text>
-                  <Text
-                    variant="bodySmall"
-                    style={{ color: theme.colors.onSurfaceVariant }}
-                    numberOfLines={1}
-                  >
-                    {player.playerCode ? `Player ID ${player.playerCode}` : 'Registered player'}
-                  </Text>
+      <SearchField
+        value={query}
+        onChangeText={setQuery}
+        style={styles.search}
+        accessibilityLabel={fromNewGame ? FROM_DATABASE_ACCESSIBILITY : FIND_IN_DATABASE}
+        autoFocus
+        testID="find-search"
+      />
+      {error ? <Text variant="bodyMedium" style={{ color: colors.error }}>{error}</Text> : null}
+      <View style={styles.list}>
+      {ordered.map((player) => {
+        const badge = playerIdBadge(player);
+        const isMe = player.id === ownerId;
+        const inList = player.inMyPlayers;
+        return (
+          <View key={player.id} style={[styles.row, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]}>
+            <View style={styles.text}>
+              <BoldName name={player.name} variant="titleMedium" numberOfLines={2} style={styles.name} />
+              {badge ? (
+                <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{badge}</Text>
+              ) : null}
+              {notes[player.id] ? (
+                <View style={styles.note}>
+                  <Text variant="labelSmall" style={[styles.flex, { color: colors.onSurfaceVariant }]}>{notes[player.id]}</Text>
+                  <Button compact mode="text" onPress={() => setEditInitials(player)} accessibilityLabel={`Edit initials for ${player.name}`}>Edit</Button>
                 </View>
+              ) : null}
+            </View>
+            {isMe && !fromNewGame ? (
+              <View style={[styles.inList, { backgroundColor: colors.surfaceVariant }]} accessibilityLabel="This is you">
+                <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>This is you</Text>
               </View>
-            ))}
+            ) : inList ? (
+              <View
+                style={[styles.inList, { backgroundColor: colors.surfaceVariant }]}
+                accessibilityLabel={fromNewGame ? `${player.name} is in this game` : `${player.name} is in your player list`}
+              >
+                <Icon source="check" size={16} color={colors.onSurfaceVariant} />
+                <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>{fromNewGame ? 'In this game' : 'In your player list'}</Text>
+              </View>
+            ) : (
+              <Button
+                mode="contained"
+                compact
+                onPress={() => add(player)}
+                loading={!!busy[player.id]}
+                disabled={!!busy[player.id]}
+                accessibilityLabel={fromNewGame ? (isMe ? 'Add yourself to this game' : `Add ${player.name} to this game`) : `Add ${player.name} to My players`}
+              >
+                {fromNewGame ? (isMe ? '+ Add me' : '+ Add') : '+ My players'}
+              </Button>
+            )}
           </View>
+        );
+      })}
+      </View>
+      {nothing ? (
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+          No registered player matches that. Not in the database? Go back and use {ADD_NEW_PLAYERS}.
+        </Text>
+      ) : null}
+      {!nothing && results.length === 0 ? (
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+          {fromNewGame ? `${FROM_DATABASE_ACCESSIBILITY}. ` : ''}Type at least two letters of a name, or a player ID such as 42.
+        </Text>
+      ) : null}
+      <Portal>
+        {editInitials ? (
+          <InitialsDialog
+            name={editInitials.name}
+            current={initialsOf.get(editInitials.id)}
+            taken={new Map(mine.filter((row) => row.id !== editInitials.id).map((row) => [initialsOf.get(row.id) ?? '', row.name] as const).filter(([label]) => label))}
+            scope="my-players"
+            busy={savingInitials}
+            onDismiss={() => setEditInitials(null)}
+            onSave={saveInitials}
+          />
         ) : null}
-
-        {showNoMatches ? (
-          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, lineHeight: 18 }}>
-            Nothing matched “{searchQuery}”. Check the spelling, or invite them below if they haven’t
-            signed up yet.
-          </Text>
-        ) : null}
-      </SectionCard>
-
-      <SectionCard
-        title="Invite someone new"
-        supportingText="They register in the app, then appear in the player list when you start a game."
-      >
-        <TextInput
-          mode="outlined"
-          label="Email"
-          value={inviteEmail}
-          onChangeText={setInviteEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          left={<TextInput.Icon icon="email-outline" />}
-        />
-        <Button
-          mode="contained"
-          icon="email-fast-outline"
-          onPress={sendEmailInvite}
-          contentStyle={styles.buttonContent}
-        >
-          Invite by email
+      </Portal>
+      {fromNewGame ? (
+        <Button mode="outlined" icon="arrow-left" onPress={() => router.back()} style={styles.back}>
+          Back to new game
         </Button>
-
-        <TextInput
-          mode="outlined"
-          label="Phone with country code"
-          value={invitePhone}
-          onChangeText={setInvitePhone}
-          keyboardType="phone-pad"
-          left={<TextInput.Icon icon="phone-outline" />}
-        />
-        <View style={styles.inviteRow}>
-          <Button
-            mode="contained-tonal"
-            icon="whatsapp"
-            onPress={sendWhatsAppInvite}
-            style={styles.inviteButton}
-            contentStyle={styles.buttonContent}
-          >
-            WhatsApp
-          </Button>
-          <Button
-            mode="contained-tonal"
-            icon="message-text-outline"
-            onPress={sendTextInvite}
-            style={styles.inviteButton}
-            contentStyle={styles.buttonContent}
-          >
-            Text
-          </Button>
-        </View>
-
-        {inviteError ? (
-          <HelperText type="error" visible>
-            {inviteError}
-          </HelperText>
-        ) : null}
-      </SectionCard>
-
-      <Button
-        mode="outlined"
-        icon="cards-playing-outline"
-        onPress={() => router.push('/(screens)/games/new')}
-        contentStyle={styles.buttonContent}
-      >
-        Go to New Game
-      </Button>
+      ) : (
+        <Button mode="text" icon="share-variant" onPress={() => shareInvite().catch(() => {})} style={styles.back}>
+          Invite someone new
+        </Button>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  searchingRow: {
+  search: {
+    marginBottom: 0,
+  },
+  list: {
+    gap: spacing.sm,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-  },
-  privacyNote: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  privacyText: {
-    flex: 1,
-    lineHeight: 18,
-  },
-  results: {
-    gap: spacing.xs,
-  },
-  resultRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    minHeight: 64,
     paddingVertical: spacing.sm,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.sm,
+    borderWidth: 1,
+    borderRadius: radius.lg,
   },
-  resultText: {
+  text: {
     flex: 1,
-    gap: 2,
+    minWidth: 0,
   },
-  inviteRow: {
+  name: {
+    lineHeight: 20,
+  },
+  inList: {
     flexDirection: 'row',
-    gap: spacing.md,
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: radius.full,
   },
-  inviteButton: {
-    flex: 1,
+  back: {
+    marginTop: spacing.sm,
   },
-  buttonContent: {
-    height: MIN_TOUCH_TARGET,
-  },
+  note: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  flex: { flex: 1 },
 });

@@ -1,0 +1,48 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# Volume on a device: BREAKP2 is 20 players × 60 rounds (1,200 cells). The scorecard must open within
+# 10 s, the far columns must be reachable, Add round must draw its three columns. Nothing is saved.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "game-card-BREAKP2"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "game-card-BREAKP2"
+- extendedWaitUntil:
+    visible: "Round 61"
+    timeout: 10000
+- assertVisible: "20 players"
+- takeScreenshot: c09-20x60-open
+- swipe:
+    direction: LEFT
+    duration: 400
+- swipe:
+    direction: LEFT
+    duration: 400
+- swipe:
+    direction: LEFT
+    duration: 400
+- takeScreenshot: c09-20x60-swiped-right
+- scroll
+- scroll
+- takeScreenshot: c09-20x60-scrolled-down
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 20000
+- assertVisible: "Round 61"
+- takeScreenshot: c09-20x60-add-round
+- back
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 15000
+- assertNotVisible: "Something went wrong"

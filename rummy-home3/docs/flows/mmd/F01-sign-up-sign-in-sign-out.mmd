@@ -1,0 +1,50 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  open("Open app"):::step
+  signed{"Session on phone?"}:::decision
+  s01["S01 Sign in"]:::screen
+  s02["S02 Create account"]:::screen
+  s03["S03 Forgot passcode (OTP → new passcode)"]:::screen
+  w01[/"W01 Sign-in error (wrong passcode · cannot reach server · locked)"/]:::warning
+  w02[/"W02 An account with this email already exists"/]:::warning
+  w03[/"W03 OTP / passcode validation (6 digits, mismatch)"/]:::warning
+  p16(["P16 Account created"]):::popup
+  p17(["P17 Country picker (phone code)"]):::gap
+  e01[["E01 Welcome"]]:::email
+  e02[["E02 OTP / passcode reset"]]:::email
+  s04["S04 Home (Live · Recent · bottom bar)"]:::screen
+  s06["S06 Me (profile)"]:::screen
+  out("Log out"):::step
+  dead("Session revoked / expired"):::step
+  open --> signed
+  signed -->|"yes"| s04
+  signed -->|"no"| s01
+  s01 -->|"email + passcode ok"| s04
+  s01 -->|"wrong / offline"| w01
+  w01 --> s01
+  s01 -->|"Create account"| s02
+  s02 -->|"country"| p17
+  p17 --> s02
+  s02 -->|"ok"| p16
+  p16 --> e01
+  p16 --> s04
+  s02 -->|"email known"| w02
+  w02 -->|"Sign in"| s01
+  s01 -->|"Forgot passcode"| s03
+  s03 -->|"send OTP"| e02
+  e02 -->|"type OTP + new passcode"| s03
+  s03 -->|"bad OTP"| w03
+  s03 -->|"done"| s01
+  s04 --> s06
+  s06 --> out
+  out --> s01
+  dead -->|"F1 fix: back to Sign in"| s01
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px

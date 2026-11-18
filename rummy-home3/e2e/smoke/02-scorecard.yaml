@@ -1,0 +1,52 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Scorecard of seeded game A (4 players, rounds 1-2 saved): header strip, columns, totals, bottom bar.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEA1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 15000
+- assertVisible: "Points"
+- assertVisible:
+    text: "Round \\d+"
+- assertVisible: "Add round"
+- assertVisible: "Undo round"
+- assertVisible: "Complete game"
+- assertVisible: "DEALS"
+# PR 4: initials and DEALS fit in the header; the strip counts the seats; the footer names the creator
+# on its own line and shows the 6-character Unique game ID (the share code). PR 24: the footer sits
+# inside the scorecard under the last round row (small italics), so it scrolls with the rounds.
+- assertVisible: "HT"
+- assertVisible: "4 players"
+- scrollUntilVisible:
+    element:
+      id: "game-id-footer"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    text: "Creator:.*"
+- assertVisible:
+    text: "Unique game ID: GAMEA1"
+# PR 10a layout gate on the fitting case too: column 2's header and a score cell under it.
+- assertVisible:
+    id: "score-header-2"
+- assertVisible:
+    id: "score-cell-2-.*"
+- takeScreenshot: 02-scorecard-4p
+- tapOn: "Help"
+- extendedWaitUntil:
+    visible:
+      text: "Help"
+      index: 1
+    timeout: 5000
+- takeScreenshot: 02b-scorecard-help
+# Android back closes the help note (the Close button can sit below the fold on long notes).
+- back
+- assertVisible: "Add round"

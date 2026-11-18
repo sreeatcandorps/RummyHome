@@ -1,0 +1,409 @@
+import { ScoreType } from '@/types/database';
+import { distributeRummyWinnings } from '@/utils/rummyDistribution';
+
+/**
+ * State for the Add round screen, kept free of React so the rules can be
+ * tested on their own.
+ *
+ * Flow: tap one or more players, then type a number or tap a preset. Rummy
+ * players get the balancing points, split evenly, so the round adds to 0.
+ */
+
+export type PresetKind = 'drop' | 'middle_drop' | 'count';
+
+export type PresetValues = {
+  drop: number;
+  middle_drop: number;
+  count: number;
+};
+
+export type ConfirmedEntry = {
+  value: number;
+  scoreType: ScoreType;
+};
+
+export type Draft = {
+  /** Digits typed so far, no sign. */
+  digits: string;
+  /** Minus is the default sign. */
+  negative: boolean;
+  /**
+   * A digit was pressed in this draft. False right after a filled cell is
+   * opened for editing, so the first digit replaces the prefilled value.
+   */
+  typed: boolean;
+  /**
+   * The user changed something (a digit or the sign). Moving away then
+   * writes the number; leaving a prefilled value untouched does not.
+   */
+  edited: boolean;
+};
+
+export type RoundEntryState = {
+  /** Confirmed, non-Rummy scores. */
+  entries: Record<string, ConfirmedEntry>;
+  /** Players who share the Rummy points, in the order they were tapped. */
+  rummyIds: string[];
+  /** Players the next number or preset applies to, in tap order. */
+  selectedIds: string[];
+  draft: Draft;
+  /** Players whose score was just written; the screen flashes these cells. */
+  lastSavedIds: string[];
+  /**
+   * Pool (PR 13): hands are plus points, Rummy means 0 (no split), there is no sign and no
+   * balance; Save needs every player still in scored and at least one 0.
+   */
+  pool?: boolean;
+};
+
+export const MAX_DIGITS = 4;
+
+export const emptyDraft = (negative = true): Draft => ({ digits: '', negative, typed: false, edited: false });
+
+/** A fresh draft for this state's kind: minus by default for Points, plus for a pool. */
+const blank = (state: Pick<RoundEntryState, 'pool'>): Draft => emptyDraft(!state.pool);
+
+export const initialRoundEntryState = (): RoundEntryState => ({
+  entries: {},
+  rummyIds: [],
+  selectedIds: [],
+  draft: emptyDraft(),
+  lastSavedIds: [],
+});
+
+export const initialPoolEntryState = (): RoundEntryState => ({
+  ...initialRoundEntryState(),
+  draft: emptyDraft(false),
+  pool: true,
+});
+
+/** True when the typed number would be written if the user moved on. */
+export function hasPendingEntry(state: RoundEntryState): boolean {
+  return state.selectedIds.length > 0 && state.draft.edited && state.draft.digits !== '';
+}
+
+export function draftValue(draft: Draft): number | undefined {
+  if (draft.digits === '') return undefined;
+  const magnitude = parseInt(draft.digits, 10);
+  if (Number.isNaN(magnitude)) return undefined;
+  // A typed 0 is a real score (the player neither won nor lost), never -0.
+  if (magnitude === 0) return 0;
+  return draft.negative ? -magnitude : magnitude;
+}
+
+/** Rummy points per player for the current confirmed entries. */
+export function rummyShares(state: RoundEntryState): Record<string, number> {
+  // Pool: the winner scores 0; nothing is split.
+  if (state.pool) return Object.fromEntries(state.rummyIds.map((id) => [id, 0]));
+  const total = Object.values(state.entries).reduce((sum, entry) => sum + entry.value, 0);
+  return distributeRummyWinnings(total, state.rummyIds);
+}
+
+/** The score a player holds right now, confirmed or from the Rummy split. */
+export function confirmedValue(state: RoundEntryState, playerId: string): number | undefined {
+  if (state.rummyIds.includes(playerId)) return rummyShares(state)[playerId];
+  return state.entries[playerId]?.value;
+}
+
+/** Sum of everything on the sheet. Save round needs this to be 0. */
+export function balance(state: RoundEntryState): number {
+  const entriesTotal = Object.values(state.entries).reduce((sum, entry) => sum + entry.value, 0);
+  const shares = rummyShares(state);
+  const rummyTotal = state.rummyIds.reduce((sum, id) => sum + (shares[id] ?? 0), 0);
+  return entriesTotal + rummyTotal;
+}
+
+/**
+ * Save round is allowed only when the round is balanced and someone has lost
+ * points. A sheet of nothing but zeros is not a round.
+ */
+export function canSaveRound(state: RoundEntryState, requiredIds?: string[]): boolean {
+  const effective = commitPending(state);
+  if (state.pool) {
+    const values = { ...Object.fromEntries(Object.entries(effective.entries).map(([id, e]) => [id, e.value])), ...rummyShares(effective) };
+    const scored = Object.keys(values);
+    const everyone = (requiredIds ?? scored).every((id) => id in values);
+    const hasWinner = Object.values(values).some((v) => v === 0);
+    const someoneLost = Object.values(values).some((v) => v > 0);
+    return everyone && scored.length > 0 && hasWinner && someoneLost;
+  }
+  const someoneLost = Object.values(effective.entries).some((entry) => entry.value < 0);
+  return balance(effective) === 0 && someoneLost;
+}
+
+/** The round as the scorecard stores it. */
+export function toRoundScores(state: RoundEntryState): { playerId: string; value: number; scoreType: ScoreType }[] {
+  const shares = rummyShares(state);
+  return [
+    ...Object.entries(state.entries).map(([playerId, entry]) => ({
+      playerId,
+      value: entry.value,
+      scoreType: entry.scoreType,
+    })),
+    ...state.rummyIds.map((playerId) => ({
+      playerId,
+      value: shares[playerId] ?? 0,
+      scoreType: 'rummy' as ScoreType,
+    })),
+  ];
+}
+
+function withoutIds<T>(record: Record<string, T>, ids: string[]): Record<string, T> {
+  if (ids.length === 0) return record;
+  const next = { ...record };
+  ids.forEach((id) => {
+    delete next[id];
+  });
+  return next;
+}
+
+function writeEntries(state: RoundEntryState, ids: string[], entry: ConfirmedEntry): RoundEntryState {
+  const entries = { ...state.entries };
+  ids.forEach((id) => {
+    entries[id] = entry;
+  });
+  return {
+    ...state,
+    entries,
+    rummyIds: state.rummyIds.filter((id) => !ids.includes(id)),
+    selectedIds: [],
+    draft: blank(state),
+    lastSavedIds: ids,
+  };
+}
+
+/** Writes the typed number to every selected player. No-op without digits. */
+export function saveScore(state: RoundEntryState): RoundEntryState {
+  const value = draftValue(state.draft);
+  if (value === undefined || state.selectedIds.length === 0) return state;
+  // Points: a typed positive number is a hand-entered win; everything else is a loss. Pool: every typed hand is a count.
+  const scoreType: ScoreType = !state.pool && value > 0 ? 'rummy' : 'count';
+  return writeEntries(state, state.selectedIds, { value: state.pool ? Math.abs(value) : value, scoreType });
+}
+
+/** Auto-save: writes a typed number the user never confirmed with Save score. */
+export function commitPending(state: RoundEntryState): RoundEntryState {
+  return hasPendingEntry(state) ? saveScore(state) : state;
+}
+
+/** Drop, Middle drop, or Full count for every selected player. */
+export function applyPreset(state: RoundEntryState, kind: PresetKind, values: PresetValues): RoundEntryState {
+  if (state.selectedIds.length === 0) return state;
+  return writeEntries(state, state.selectedIds, { value: values[kind], scoreType: kind });
+}
+
+/**
+ * Every selected player becomes a Rummy winner. Winners split the points the
+ * rest of the table lost; see `distributeRummyWinnings` for uneven splits.
+ */
+export function applyRummy(state: RoundEntryState): RoundEntryState {
+  if (state.selectedIds.length === 0) return state;
+  const added = state.selectedIds.filter((id) => !state.rummyIds.includes(id));
+  return {
+    ...state,
+    entries: withoutIds(state.entries, state.selectedIds),
+    rummyIds: [...state.rummyIds, ...added],
+    selectedIds: [],
+    draft: blank(state),
+    lastSavedIds: state.selectedIds,
+  };
+}
+
+/** X on a cell: drops the player's score and any number being typed for them. */
+export function clearPlayer(state: RoundEntryState, playerId: string): RoundEntryState {
+  const stillSelected = state.selectedIds.filter((id) => id !== playerId);
+  return {
+    ...state,
+    entries: withoutIds(state.entries, [playerId]),
+    rummyIds: state.rummyIds.filter((id) => id !== playerId),
+    selectedIds: stillSelected,
+    draft: stillSelected.length === 0 ? blank(state) : state.draft,
+    lastSavedIds: [],
+  };
+}
+
+/** Opens one filled cell for editing with its value prefilled. */
+function prefilledDraft(value: number | undefined, negative: boolean, pool = false): Draft {
+  if (value === undefined) return { ...emptyDraft(), negative };
+  return { digits: String(Math.abs(value)), negative: pool ? false : value <= 0, typed: false, edited: false };
+}
+
+/**
+ * Tapping a cell.
+ *
+ * - With a typed number waiting, the tap first auto-saves it to the current
+ *   selection. If the tapped cell was part of that selection the tap was a
+ *   confirm and nothing stays selected; otherwise the tapped player becomes
+ *   the new selection.
+ * - Otherwise the tap toggles the player in the selection. A lone selected
+ *   player with a score opens for editing (value prefilled, first digit
+ *   replaces it). Growing to two or more players drops the prefill.
+ */
+export function tapPlayer(state: RoundEntryState, playerId: string): RoundEntryState {
+  if (hasPendingEntry(state)) {
+    const saved = saveScore(state);
+    if (state.selectedIds.includes(playerId)) return saved;
+    return {
+      ...saved,
+      selectedIds: [playerId],
+      draft: prefilledDraft(confirmedValue(saved, playerId), !state.pool, state.pool),
+    };
+  }
+
+  const alreadySelected = state.selectedIds.includes(playerId);
+  const selectedIds = alreadySelected
+    ? state.selectedIds.filter((id) => id !== playerId)
+    : [...state.selectedIds, playerId];
+
+  // The sign chosen before tapping anyone is kept, so "+ then 41" works too.
+  const draft = selectedIds.length === 1
+    ? prefilledDraft(confirmedValue(state, selectedIds[0]), state.draft.negative, state.pool)
+    : { ...emptyDraft(), negative: state.draft.negative };
+
+  return { ...state, selectedIds, draft, lastSavedIds: [] };
+}
+
+/** Keypad digit. Ignored with nothing selected; a lone 0 never starts a number. */
+export function pressDigit(state: RoundEntryState, digit: string): RoundEntryState {
+  if (state.selectedIds.length === 0) return state;
+  if (!/^\d$/.test(digit)) return state;
+
+  const base = state.draft.typed ? state.draft.digits : '';
+  // "0" is a real entry (an explicit zero). A digit after a lone 0 replaces it: 0 → 5, not 05.
+  if (base === '0') {
+    return { ...state, draft: { ...state.draft, digits: digit, typed: true, edited: true }, lastSavedIds: [] };
+  }
+  if (base.length >= MAX_DIGITS) return state;
+
+  return { ...state, draft: { ...state.draft, digits: base + digit, typed: true, edited: true }, lastSavedIds: [] };
+}
+
+/** The +/- toggle. Flipping the sign on a prefilled value counts as an edit. */
+export function setNegative(state: RoundEntryState, negative: boolean): RoundEntryState {
+  if (state.pool) return state;
+  if (state.draft.negative === negative) return state;
+  return { ...state, draft: { ...state.draft, negative, edited: true } };
+}
+
+export type CellStatus = 'empty' | 'selected' | 'pending' | 'confirmed';
+
+export type CellTone = 'neutral' | 'selected' | 'confirmed';
+
+/**
+ * Colour family for a cell: beige while nothing is entered, light yellow while
+ * the player is selected (or a number is being typed for them), light green
+ * once a score is confirmed for this round.
+ */
+export function cellTone(status: CellStatus): CellTone {
+  if (status === 'selected' || status === 'pending') return 'selected';
+  if (status === 'confirmed') return 'confirmed';
+  return 'neutral';
+}
+
+/**
+ * The Add round palette, as theme colour names so the screen and the tests agree (PR 3, Nov 13):
+ * the cell you are working on is marigold yellow (`secondaryContainer`), every saved cell sits on
+ * light green (`positiveContainer`) — "green = done" (PR 10b, Q10.11; a saved minus or 0 used to
+ * stay white, which read as still editing) — the number keeps its own colour (green win, red big
+ * loss, plain otherwise), and empty cells rest on the sunken beige. The layout itself is unchanged.
+ */
+export type EntryFill = 'cellNeutral' | 'primaryContainer' | 'secondaryContainer' | 'positiveContainer' | 'tertiaryContainer' | 'surface';
+
+export const CELL_FILL: Record<CellTone, EntryFill> = {
+  neutral: 'cellNeutral',
+  selected: 'secondaryContainer',
+  confirmed: 'positiveContainer',
+};
+
+/** The fill of a cell given its tone: every saved cell is the light green, whatever the score. */
+export function cellFill(tone: CellTone, _value: number | undefined): EntryFill {
+  return CELL_FILL[tone];
+}
+
+/** Add round grid columns (PR 10b, Q10.12): three in portrait from 13 players so 14 fit without scrolling. */
+export const THREE_COLUMN_PLAYERS = 13;
+export function gridColumns(players: number, landscape: boolean): number {
+  if (landscape) return 2;
+  return players >= THREE_COLUMN_PLAYERS ? 3 : 2;
+}
+
+/**
+ * How many cells sit below the fold of a scrolling grid, for the "N more ▾" cue. Rows are
+ * `pitch` tall (cell + gap); a cell counts as hidden when its bottom edge is past the viewport.
+ */
+export function hiddenCells(total: number, columns: number, pitch: number, scrollY: number, viewportHeight: number, paddingTop = 0): number {
+  if (total <= 0 || columns <= 0 || pitch <= 0 || viewportHeight <= 0) return 0;
+  const bottom = scrollY + viewportHeight - paddingTop;
+  let hidden = 0;
+  for (let index = 0; index < total; index += 1) {
+    const row = Math.floor(index / columns);
+    if ((row + 1) * pitch - 4 > bottom) hidden += 1;
+  }
+  return hidden;
+}
+
+export type ActionKind = 'sign' | 'preset' | 'rummy';
+
+/** Fill of a key on the action row. The active sign is the same yellow as the selected cell; Rummy is always blue; presets rest on surface and flash green when tapped. */
+export function actionFill(kind: ActionKind, active = false): EntryFill {
+  if (kind === 'sign') return active ? 'secondaryContainer' : 'surface';
+  if (kind === 'rummy') return 'tertiaryContainer';
+  return 'surface';
+}
+
+export type CountWarning = 'none' | 'half' | 'full';
+
+/**
+ * How far a typed number is from the game's Full count (PR 3, Sree): at or past half of it
+ * ("40 of 80") the screen shows a soft warning, at or past the Full count itself a strong one.
+ * Sign does not matter: a typed +120 is as unusual as -120. Without a Full count there is no
+ * warning. Presets are exactly the settings values, so Drop / Middle drop never warn and the
+ * Full count key reads as 'full' — the screen only confirms a number typed PAST it.
+ */
+export function countWarning(value: number | undefined, fullCount: number | null | undefined): CountWarning {
+  if (value === undefined) return 'none';
+  const full = Math.abs(Number(fullCount) || 0);
+  if (full === 0) return 'none';
+  const size = Math.abs(value);
+  if (size >= full) return 'full';
+  if (size >= Math.ceil(full / 2)) return 'half';
+  return 'none';
+}
+
+/** True when a typed number is beyond the Full count (the once-per-cell confirm, D3.1). */
+export function exceedsMaxCount(value: number | undefined, fullCount: number | null | undefined): boolean {
+  if (value === undefined) return false;
+  const full = Math.abs(Number(fullCount) || 0);
+  return full > 0 && Math.abs(value) > full;
+}
+
+/** The warning line under the grid for the number being typed. */
+export function countWarningText(value: number, fullCount: number | null | undefined, warning: CountWarning): string | null {
+  const full = Math.abs(Number(fullCount) || 0);
+  const size = Math.abs(value);
+  if (warning === 'half') return `${size} is ${size === Math.ceil(full / 2) ? 'half' : 'more than half'} the Full count (${full}).`;
+  if (warning === 'full') return size === full ? `${size} is the Full count.` : `${size} is more than the Full count (${full}).`;
+  return null;
+}
+
+/** How long a tapped preset glows green before settling. */
+export const PRESET_FLASH_MS = 420;
+export const PRESET_FLASH_FILL: EntryFill = 'positiveContainer';
+
+/**
+ * What a cell shows: a confirmed score (green), the number being typed for it
+ * (pending), just a selection ring, or nothing.
+ */
+export function cellView(state: RoundEntryState, playerId: string): { status: CellStatus; value?: number } {
+  const selected = state.selectedIds.includes(playerId);
+  const confirmed = confirmedValue(state, playerId);
+
+  if (selected) {
+    const typed = state.draft.edited ? draftValue(state.draft) : undefined;
+    if (typed !== undefined) return { status: 'pending', value: typed };
+    return { status: 'selected', value: confirmed };
+  }
+
+  if (confirmed !== undefined) return { status: 'confirmed', value: confirmed };
+  return { status: 'empty' };
+}

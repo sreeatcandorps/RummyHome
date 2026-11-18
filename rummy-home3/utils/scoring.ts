@@ -9,7 +9,7 @@ export type RoundScoreInput = {
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileDefaults = {
   gameType: 'stake',
-  expenseEnabled: true,
+  expenseEnabled: false,
   expenseAmount: -10,
   stakeDrop: -10,
   stakeMiddleDrop: -30,
@@ -27,7 +27,7 @@ export const settingsForGameType = (gameType: GameType): ProfileDefaults => ({
 
 export const legacySettingsForGameType = (
   gameType: GameType,
-  expenseEnabled = true,
+  expenseEnabled = false,
   expenseAmount = DEFAULT_PROFILE_SETTINGS.expenseAmount,
 ): GameSettings => ({
   expense: expenseEnabled,
@@ -47,6 +47,16 @@ export const getMiddleDropValue = (gameType: GameType, settings: ProfileDefaults
 export const getRoundTotal = (scores: RoundScoreInput[]) =>
   scores.reduce((total, score) => total + score.value, 0);
 
+/** Pool (041): plus points, at least one 0 (the winner), someone who lost. The server checks who is in. */
+export const validatePoolRoundScores = (scores: RoundScoreInput[]) => {
+  if (scores.length === 0) return { valid: false, error: 'At least one score is required.' };
+  if (scores.some((score) => score.scoreType === 'expense' || !score.playerId)) return { valid: false, error: 'Every score belongs to a player.' };
+  if (scores.some((score) => score.value < 0)) return { valid: false, error: 'Pool scores are plus points. Type the hand as a positive number; the winner is 0.' };
+  if (!scores.some((score) => score.value === 0)) return { valid: false, error: 'Every round has a winner at 0. Tap the winner, then Rummy.' };
+  if (!scores.some((score) => score.value > 0)) return { valid: false, error: 'Nobody lost this round. Type the hands before saving.' };
+  return { valid: true, error: null };
+};
+
 export const validateRoundScores = (scores: RoundScoreInput[]) => {
   if (scores.length === 0) {
     return { valid: false, error: 'At least one score is required.' };
@@ -62,18 +72,19 @@ export const validateRoundScores = (scores: RoundScoreInput[]) => {
     return { valid: false, error: 'At least one rummy score is required to balance the round.' };
   }
 
+  if (scores.some((score) => score.scoreType === 'expense' || !score.playerId)) {
+    return { valid: false, error: 'Every score belongs to a player.' };
+  }
+
   const invalidNegative = scores.find(
-    (score) => ['drop', 'middle_drop', 'count', 'expense'].includes(score.scoreType) && score.value > 0,
+    (score) => ['drop', 'middle_drop', 'count'].includes(score.scoreType) && score.value > 0,
   );
   if (invalidNegative) {
-    return { valid: false, error: 'Drop, middle drop, count, and expense scores must be zero or negative.' };
+    return { valid: false, error: 'Drop, middle drop, and count scores must be zero or negative.' };
   }
 
-  const invalidRummy = rummyScores.find((score) => score.value < 0);
-  if (invalidRummy) {
-    return { valid: false, error: 'Rummy scores must be zero or positive.' };
-  }
-
+  // 037: a Rummy share may be negative when the other players add up to a plus; the
+  // sum-to-0 rule above is what keeps the round honest.
   return { valid: true, error: null };
 };
 

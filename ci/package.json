@@ -1,0 +1,13 @@
+{
+  "name": "ezscore-ci",
+  "private": true,
+  "description": "Test tooling for CI: database concurrency script and report builder. Not part of the app.",
+  "type": "module",
+  "scripts": {
+    "concurrency": "node db/concurrency-save-round.mjs",
+    "report": "node report/build-report.mjs"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}

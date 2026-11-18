@@ -1,0 +1,37 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# C16-7 Log out with a dead session: the runner deletes c1's server-side sessions right after the first
+# screenshot (file name hook "--revoke-session"); the phone still holds its tokens, as after a long sleep
+# or a sign-out elsewhere. Log out must still land on the login screen — logging out can never fail.
+# Finding on 2026-11-15 (F1, confirmed in run 4): the app showed "Couldn't log out — Auth session
+# missing!" and stayed on Profile. Fixed in PR 19: authService.signOut falls back to a local sign-out
+# and never throws, so Log out always lands on the login screen.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- tapOn: "Your profile"
+- extendedWaitUntil:
+    visible: "Profile"
+    timeout: 15000
+- scrollUntilVisible:
+    element: "Log out"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: c12-profile-before-revoke
+- extendedWaitUntil:
+    visible: "zz-never-shown"
+    timeout: 6000
+    optional: true
+- scrollUntilVisible:
+    element: "Log out"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Log out"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 20000
+- assertNotVisible: "Couldn’t log out"
+- takeScreenshot: c12-logged-out

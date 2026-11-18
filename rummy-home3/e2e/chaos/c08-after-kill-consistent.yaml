@@ -1,0 +1,52 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# C16-5 After the kill: relaunch, open BREAKP7. Either the round landed (Round 2, Log "Round 1 added") or it
+# did not (Round 1, no Log row) — never a half-saved round, never an error dialog on open.
+---
+# Relaunch WITHOUT clearing state: the point is what the app shows after being killed.
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "New game|Sign in"
+    timeout: 30000
+- runFlow:
+    when:
+      visible:
+        id: "login-email"
+    commands:
+      - tapOn:
+          id: "login-email"
+      - inputText: c1@test.local
+      - hideKeyboard
+      - tapOn:
+          id: "login-passcode"
+      - inputText: "123456"
+      - hideKeyboard
+      - tapOn:
+          id: "login-submit"
+      - extendedWaitUntil:
+          visible: "New game"
+          timeout: 30000
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP7
+- extendedWaitUntil:
+    visible:
+      text: "Round 1|Round 2"
+    timeout: 15000
+- assertNotVisible: "Round 3"
+- assertNotVisible: "Something went wrong"
+- assertNotVisible: "Could not load game"
+- takeScreenshot: c08-after-kill-scorecard
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      text: "Log · .*"
+    timeout: 15000
+- assertNotVisible:
+    text: ".*Round 2 added.*"
+- takeScreenshot: c08-after-kill-log
+- back

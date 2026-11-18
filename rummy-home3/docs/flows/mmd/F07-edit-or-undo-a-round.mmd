@@ -1,0 +1,39 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  s14["S14 Scorecard (Points / Pool)"]:::screen
+  p18(["P18 Scorecard ⋮ menu (Players · Admins, Seating, Edit round, Reopen…"]):::popup
+  p19(["P19 Edit which round?"]):::popup
+  p20(["P20 Remove the last round? (Undo)"]):::popup
+  s15["S15 Enter Scores (Add round / Edit round)"]:::screen
+  p34(["P34 Round notice (Round N already saved · scorecard refreshed · vie…"]):::popup
+  s17["S17 Log (game log)"]:::screen
+  w24[/"W24 Changed after sharing · removed / deleted notes · History"/]:::warning
+  which{"Edit or Undo?"}:::decision
+  retire("Old row retired at 1000+N, new row saved"):::step
+  undo("undo_last_round: mark undone, current_round back"):::step
+  next("Next Add round reuses number N"):::step
+  inresult{"Game in a saved result?"}:::decision
+  s14 --> which
+  which -->|"Edit"| p18
+  p18 -->|"Edit round"| p19
+  p19 -->|"pick round"| s15
+  s15 -->|"Save"| retire
+  retire --> s14
+  which -->|"Undo round"| p20
+  p20 -->|"Remove"| undo
+  undo --> next
+  next --> s14
+  s15 -->|"round undone meanwhile"| p34
+  s14 -->|"Log: edited was→now / undone"| s17
+  retire --> inresult
+  undo --> inresult
+  inresult -->|"yes: result_changed"| w24
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px

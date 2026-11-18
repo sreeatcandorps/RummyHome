@@ -1,0 +1,30 @@
+appId: com.mindweavetech.rummyhome
+# Two-device race, step 3 (each emulator): the scorecard shows exactly one new round and the Log has one
+# "Round N added" row for it. EXPECT_ROUND is the round number that must now be current.
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 30000
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP1
+- extendedWaitUntil:
+    visible: "Round ${EXPECT_ROUND}"
+    timeout: 20000
+- assertNotVisible: "Round ${OVER_ROUND}"
+- takeScreenshot: t2-verify-round-${EXPECT_ROUND}-${WHO}
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*Round ${SAVED_ROUND} added.*"
+- assertNotVisible:
+    text: ".*Round ${EXPECT_ROUND} added.*"
+- takeScreenshot: t2-verify-log-${WHO}
+- back

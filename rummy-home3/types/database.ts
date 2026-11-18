@@ -37,6 +37,8 @@ export type Database = {
           avatar_url: string | null;
           role: AppRole;
           default_settings: ProfileDefaults;
+          is_demo: boolean;
+          demo_owner_id: string | null;
         };
         Insert: {
           id: string;
@@ -49,6 +51,8 @@ export type Database = {
           avatar_url?: string | null;
           role?: AppRole;
           default_settings?: ProfileDefaults;
+          is_demo?: boolean;
+          demo_owner_id?: string | null;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
       };
@@ -65,6 +69,13 @@ export type Database = {
           share_code: string;
           spectator_access: boolean;
           completed_at: string | null;
+          is_demo: boolean;
+          view_token: string;
+          prize: number | null;
+          prize_shares: Json | null;
+          awarded_at?: string | null;
+          awarded_by?: string | null;
+          award_note?: Json | null;
         };
         Insert: {
           id?: string;
@@ -76,6 +87,10 @@ export type Database = {
           share_code: string;
           spectator_access?: boolean;
           completed_at?: string | null;
+          is_demo?: boolean;
+          view_token?: string;
+          prize?: number | null;
+          prize_shares?: Json | null;
         };
         Update: Partial<Database['public']['Tables']['games']['Insert']>;
       };
@@ -90,6 +105,11 @@ export type Database = {
           color_code: string | null;
           role: GameMemberRole;
           is_active: boolean;
+          seated?: boolean;
+          out_round?: number | null;
+          reentered_round?: number | null;
+          reentry_score?: number | null;
+          entries?: number;
         };
         Insert: {
           id?: string;
@@ -100,6 +120,7 @@ export type Database = {
           color_code?: string | null;
           role?: GameMemberRole;
           is_active?: boolean;
+          seated?: boolean;
         };
         Update: Partial<Database['public']['Tables']['game_players']['Insert']>;
       };
@@ -170,6 +191,116 @@ export type Database = {
           created_by: string;
         };
         Update: Partial<Database['public']['Tables']['token_ledger']['Insert']>;
+      };
+    };
+    Functions: {
+      undo_last_round: {
+        Args: { p_game_id: string };
+        Returns: Json;
+      };
+      reenter_player: {
+        Args: { p_game_id: string; p_profile_id: string };
+        Returns: Json;
+      };
+      set_pool_awards: {
+        Args: { p_game_id: string; p_awards: Json; p_note?: Json };
+        Returns: Json;
+      };
+      create_game: {
+        Args: { p_game_type: string; p_settings: Json; p_player_ids: string[]; p_labels?: Json; p_share_code?: string | null; p_id?: string | null };
+        Returns: string;
+      };
+      add_seated_player: {
+        Args: { p_game_id: string; p_profile_id: string; p_label?: string | null };
+        Returns: undefined;
+      };
+      list_game_log: {
+        Args: { p_game_id: string; p_level?: string | null; p_before?: number | null; p_limit?: number };
+        Returns: Json;
+      };
+      list_result_history: {
+        Args: { p_result_id: string };
+        Returns: Json;
+      };
+      public_result_note: {
+        Args: { p_id: string };
+        Returns: Json;
+      };
+      public_scorecard_changes: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      is_demo_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      clear_demo_data: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
+      apply_demo_seed: {
+        Args: { payload: Json };
+        Returns: undefined;
+      };
+      list_visible_game_ids: {
+        Args: Record<string, never>;
+        Returns: string[];
+      };
+      public_scorecard: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      create_prize_session: {
+        Args: { p_game_ids: string[] };
+        Returns: string;
+      };
+      add_prize_entry: {
+        Args: { p_session_id: string; p_legs: Json; p_note: string };
+        Returns: Json;
+      };
+      get_prize_session: {
+        Args: { p_session_id: string };
+        Returns: Json;
+      };
+      list_prize_sessions: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      search_players: {
+        Args: { p_query: string };
+        Returns: { id: string; display_name: string; player_code: string | null }[];
+      };
+      list_my_players: {
+        Args: Record<string, never>;
+        Returns: { id: string; display_name: string; player_code: string | null; games_together: number }[];
+      };
+      add_my_player: {
+        Args: { p_player_id: string };
+        Returns: undefined;
+      };
+      remove_my_player: {
+        Args: { p_player_id: string };
+        Returns: undefined;
+      };
+      touch_my_players: {
+        Args: { p_ids: string[] };
+        Returns: undefined;
+      };
+      update_prize_entry: {
+        Args: { p_entry_id: string; p_legs: Json; p_note: string };
+        Returns: Json;
+      };
+      declare_game_result: {
+        Args: { p_game_ids: string[] };
+        Returns: Json;
+      };
+      get_game_result: {
+        Args: { p_id: string };
+        Returns: Json;
+      };
+      list_game_results: {
+        Args: Record<string, never>;
+        Returns: Json;
       };
     };
   };

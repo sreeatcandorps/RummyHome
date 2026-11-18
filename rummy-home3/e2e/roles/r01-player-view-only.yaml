@@ -1,0 +1,19 @@
+appId: com.mindweavetech.rummyhome
+tags: [roles]
+# R16-1 A plain player (p01, seated in BREAKP1) sees the scorecard as View only: no Add round, Undo or
+# Complete, and the home card is there.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: p01@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP1
+- assertVisible: "View only"
+- assertNotVisible: "Add round"
+- assertNotVisible: "Undo round"
+- assertNotVisible: "Complete game"
+- takeScreenshot: r01-player-view-only
+- back

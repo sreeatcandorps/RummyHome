@@ -1,0 +1,53 @@
+%%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  e01[["E01 Welcome"]]:::email
+  e02[["E02 OTP / passcode reset"]]:::email
+  e03[["E03 Game started (live link)"]]:::email
+  e04[["E04 Result saved (/r/ link)"]]:::email
+  e05[["E05 Link request (Yes / No)"]]:::email
+  e06[["E06 Restore requested"]]:::email
+  e07[["E07 Scorecard by email"]]:::email
+  s28["S28 Web · unsubscribe"]:::screen
+  s27["S27 Web · link request Yes / No"]:::screen
+  s26["S26 Web · result page"]:::screen
+  s25["S25 Web · live scorecard page"]:::screen
+  s06["S06 Me (profile)"]:::screen
+  w05[/"W05 Link requests card (Yes / No)"/]:::warning
+  w06[/"W06 Claim requests card"/]:::warning
+  event("App event"):::step
+  outbox("email_outbox (idempotent event_key)"):::step
+  pref{"Recipient preference on?"}:::decision
+  cap{"Daily cap 90 left?"}:::decision
+  flush("send-email flush (Resend, Idempotency-Key)"):::step
+  defer("Deferred with backoff, never dropped"):::step
+  event --> outbox
+  outbox --> pref
+  pref -->|"yes"| cap
+  pref -->|"no: skipped"| outbox
+  cap -->|"yes"| flush
+  cap -->|"no"| defer
+  defer --> flush
+  flush --> e03
+  flush --> e04
+  flush --> e05
+  flush --> e06
+  e01 --> flush
+  e07 --> flush
+  e02 -->|"Supabase Auth template"| s06
+  e03 --> s25
+  e04 --> s26
+  e05 --> s27
+  e05 -->|"also on Home"| w05
+  w06 --> s06
+  e03 -->|"unsubscribe link"| s28
+  e04 --> s28
+  s06 -->|"checkboxes"| pref
+  classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
+  classDef warning fill:#f3e5f5,stroke:#6a1b9a,color:#2e0b40
+  classDef email fill:#e8f5e9,stroke:#2e7d32,color:#0b3d12
+  classDef step fill:#ffffff,stroke:#616161,color:#212121
+  classDef decision fill:#fafafa,stroke:#616161,color:#212121
+  classDef stop fill:#eeeeee,stroke:#424242,color:#212121
+  classDef flow fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
+  classDef gap fill:#fde2e2,stroke:#c62828,color:#7f0000,stroke-width:2px

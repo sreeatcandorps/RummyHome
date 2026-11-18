@@ -1,0 +1,14 @@
+typed,taken,expected,note
+SK,,SK,free letters are stored as typed
+SK,SK,SK2,the typed form is someone's: first digit form
+SK,SK;SK2,SK3,next digit
+SK,SK;SK2;SK3;SK4;SK5;SK6;SK7;SK8;SK9,S10,digits 2-9 used: two-digit form
+SKR,,SKR,three letters typed are stored as typed
+SKR,SKR,SK2,three letters taken: digit form on the first two letters
+SKR,SKR;SK2,SK3,next digit after a three-letter clash
+HT,HT,HT2,Harish Test holds HT
+HT,HT;HT2,HT3,HT and HT2 held
+SK2,,SK2,a digit may be typed when the first character is a letter
+SK2,SK2,SK3,a typed digit form that is taken moves to the next digit
+S1,S1,S2,two characters with a digit: next digit keeps two characters
+AB,SK,AB,an unrelated label does not matter

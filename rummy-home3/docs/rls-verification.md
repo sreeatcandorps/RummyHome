@@ -34,3 +34,14 @@ Use two normal player accounts and one app admin account.
 - Game members can read entries for their game.
 - Only game admins or app admins can insert ledger entries.
 - Token balances are derived from ledger sums.
+
+## Results (after 013_results_privacy.sql)
+
+Use four accounts: a seated player, the game creator who did not play (non-playing admin), the person who declared the result, and a brand-new account with no games.
+
+- The new account opens Results and sees **no** past results; `list_game_results_page` returns `[]`.
+- The new account calling `get_game_result` with a real result id gets `null`, not the result and not an error.
+- The seated player, the non-playing creator and the declarer each see that result in the list and can open it.
+- Someone who only watched a game through the public live link (spectator access) does not see its result.
+- Sign out of a participant account and sign in as the new account on the same phone: the Results list is empty (no stale list from the previous account).
+- A combined result (two games) is visible to anyone connected to at least one of the games.

@@ -1,0 +1,68 @@
+import React from 'react';
+import { StyleSheet, View, ViewStyle } from 'react-native';
+import { Icon, Text } from 'react-native-paper';
+import { radius, seatColor, useAppTheme } from '@/constants/theme';
+import { fitInitialsFontSize } from '@/utils/scorecardLayout';
+
+export const nameInitials = (name: string) =>
+  (name || '?')
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2) || '?';
+
+type SeatAvatarProps = {
+  name: string;
+  /** Overrides the computed initials, e.g. the scoreboard's de-duplicated labels. */
+  label?: string;
+  color?: string;
+  size?: number;
+  icon?: string;
+  /** Muted treatment, e.g. an unselected player. */
+  muted?: boolean;
+  style?: ViewStyle;
+};
+
+export function SeatAvatar({ name, label, color, size = 40, icon, muted, style }: SeatAvatarProps) {
+  const theme = useAppTheme();
+  // Seat 1 teal by default: the button green is for buttons only.
+  const background = muted ? theme.colors.surfaceVariant : color ?? seatColor(0, { onDark: theme.dark });
+  const foreground = muted ? theme.colors.onSurfaceVariant : '#FFFFFF';
+  const text = label ?? nameInitials(name);
+  // F13.22: three characters are never clipped by the circle — the font steps down to fit the chord
+  // the text sits on (the line is ~0.4 r tall, so the chord is ~0.9 of the diameter), with the
+  // native shrink as a safety net.
+  const fontSize = fitInitialsFontSize(text, size * 0.9, Math.round(size * (text.length > 2 ? 0.34 : 0.4)));
+
+  return (
+    <View
+      style={[
+        styles.avatar,
+        { width: size, height: size, borderRadius: radius.full, backgroundColor: background },
+        style,
+      ]}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    >
+      {icon ? (
+        <Icon source={icon} size={Math.round(size * 0.5)} color={foreground} />
+      ) : (
+        <Text style={[styles.text, { color: foreground, fontSize, lineHeight: fontSize * 1.2, letterSpacing: text.length > 2 ? 0 : 0.3 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+          {text}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  avatar: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    fontWeight: '700',
+  },
+});

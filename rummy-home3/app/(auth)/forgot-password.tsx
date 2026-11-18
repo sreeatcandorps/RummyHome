@@ -1,147 +1,119 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { TextInput, Button, Text, HelperText, Card, Icon, useTheme } from 'react-native-paper';
-import { router } from 'expo-router';
-import { supabase } from '../../services/supabase';
-import { MIN_TOUCH_TARGET, radius, spacing } from '../../constants/theme';
-import 'react-native-url-polyfill/auto'
+import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { HelperText, Text, TextInput } from 'react-native-paper';
+import { Button } from '@/components/ui/AppButton';
+import { router, useLocalSearchParams } from 'expo-router';
+import { OtpField } from '@/components/ui/OtpField';
+import { PasscodeField } from '@/components/ui/PasscodeField';
+import { AuthShell } from '@/components/ui/AuthShell';
+import { HELP } from '@/constants/help';
+import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
+import { isSupabaseConfigured } from '@/services/supabase';
+import { passcodeClient } from '@/services/auth';
+import { passcodeRecovery } from '@/utils/authFlow';
+import { RESEND_COOLDOWN_S } from '@/utils/passcode';
+import { completePasscodeReset, requestPasscodeCode } from '@/utils/passcodeFlow';
+import 'react-native-url-polyfill/auto';
 
-export default function ForgotPasswordScreen() {
-  const theme = useTheme();
-  const [email, setEmail] = useState('');
+type Step = 'email' | 'code';
+
+export const PASSCODE_UPDATED_NOTICE = 'Passcode updated. Sign in with your new 6-digit passcode.';
+
+/**
+ * Forgot passcode, all inside the app: email → 6-digit OTP from the email + new passcode →
+ * back to Sign in with the new passcode. No browser page, no link needed.
+ */
+export default function ForgotPasscodeScreen() {
+  const theme = useAppTheme();
+  const params = useLocalSearchParams<{ email?: string }>();
+  const [step, setStep] = useState<Step>('email');
+  const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
+  const [code, setCode] = useState('');
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [info, setInfo] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const verified = useRef(false);
 
-  const clearFields = () => {
-    setEmail('');
+  useEffect(() => {
+    passcodeRecovery.begin();
+    return () => passcodeRecovery.end();
+  }, []);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((value) => value - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  const sendCode = async () => {
     setError('');
-    setSuccess(false);
-  };
-
-  const handleResetPassword = async () => {
-    if (!email) {
-      setError('Please enter your email address');
+    setInfo('');
+    if (!isSupabaseConfigured) {
+      setError('Passcode recovery needs the online account service. It isn’t set up in this build.');
       return;
     }
-
-    if (!email.includes('@')) {
-      setError('Please enter a valid email address');
-      return;
-    }
-
     setLoading(true);
-    setError('');
-
     try {
-      // Send password reset email with the hosted GitHub Pages URL
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: 'https://sreeatcandorps.github.io/Games/',
-      });
-
-      if (resetError) {
-        // Check if it's a "user not found" error
-        if (resetError.message.includes('User not found') || 
-            resetError.message.includes('No user found') ||
-            resetError.message.includes('does not exist') ||
-            resetError.message.includes('Invalid login credentials')) {
-          setError(`Email "${email.trim()}" does not exist in our system. Please check the email address carefully or create a new account.`);
-          return;
-        }
-        throw resetError;
+      const outcome = await requestPasscodeCode(passcodeClient, email);
+      if (!outcome.ok) {
+        setError(outcome.message);
+        return;
       }
-
-      setSuccess(true);
-      
-      Alert.alert(
-        'Passcode Reset Email Sent',
-        'If an account with this email exists, you will receive a passcode reset link. Please check your email and spam folder. Click the link in your email to reset your 6-digit passcode.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back()
-          }
-        ]
-      );
-
-    } catch (err: any) {
-      console.error('Password reset error:', err);
-      setError(err.message || 'Failed to send reset email. Please try again.');
+      verified.current = false;
+      setCode('');
+      setStep('code');
+      setCooldown(RESEND_COOLDOWN_S);
+      setInfo(`If ${email.trim()} has an account, a 6-digit OTP is on its way. It works once and expires in 15 minutes.`);
     } finally {
       setLoading(false);
     }
   };
 
+  const setNewPasscode = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const outcome = await completePasscodeReset(passcodeClient, {
+        email,
+        code,
+        next,
+        confirm,
+        verified: verified.current,
+      });
+      if (!outcome.ok) {
+        verified.current = Boolean(outcome.verified);
+        setError(outcome.message);
+        if (outcome.field === 'code' && !outcome.verified) setCode('');
+        return;
+      }
+      router.replace({ pathname: '/(auth)/login', params: { email: email.trim(), notice: PASSCODE_UPDATED_NOTICE } });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const changeEmail = () => {
+    verified.current = false;
+    setStep('email');
+    setCode('');
+    setNext('');
+    setConfirm('');
+    setError('');
+    setInfo('');
+  };
+
   return (
-    <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: theme.colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <View style={[styles.badge, { backgroundColor: theme.colors.secondaryContainer }]}>
-            <Icon source="lock-reset" size={32} color={theme.colors.onSecondaryContainer} />
-          </View>
-          <Text variant="headlineSmall" style={styles.title}>
-            Forgot passcode?
-          </Text>
-          <Text variant="bodyMedium" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
-            Enter your email and we'll send a link to reset your 6-digit passcode.
-          </Text>
-        </View>
-
-        <Card mode="elevated" style={styles.card}>
-          <Card.Content style={styles.cardContent}>
-            <TextInput
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              mode="outlined"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              disabled={loading}
-              left={<TextInput.Icon icon="email-outline" />}
-              right={email ? <TextInput.Icon icon="close" onPress={() => setEmail('')} /> : undefined}
-            />
-
-            {error ? (
-              <HelperText type="error" visible={!!error}>
-                {error}
-              </HelperText>
-            ) : null}
-
-            {success ? (
-              <HelperText type="info" visible={!!success}>
-                Passcode reset email sent successfully.
-              </HelperText>
-            ) : null}
-
-            <Button
-              mode="contained"
-              onPress={handleResetPassword}
-              loading={loading}
-              disabled={loading}
-              contentStyle={styles.primaryContent}
-              labelStyle={styles.primaryLabel}
-            >
-              Send reset link
-            </Button>
-
-            <Button
-              mode="text"
-              onPress={clearFields}
-              disabled={loading}
-              contentStyle={styles.secondaryContent}
-            >
-              Clear
-            </Button>
-          </Card.Content>
-        </Card>
-
-        <Text variant="bodySmall" style={[styles.note, { color: theme.colors.onSurfaceVariant }]}>
-          For security, we send a reset link even if the email isn't registered.
-        </Text>
-
+    <AuthShell
+      title="Forgot passcode"
+      subtitle={step === 'email'
+        ? 'We’ll email you a 6-digit OTP. Type it here, then choose a new passcode. No web page needed.'
+        : `Type the 6-digit OTP we emailed to ${email.trim()}, then choose your new passcode.`}
+      help={HELP.reset}
+      icon="lock-reset"
+      footer={
         <View style={styles.footerActions}>
           <Button
             mode="outlined"
@@ -151,79 +123,107 @@ export default function ForgotPasswordScreen() {
             contentStyle={styles.secondaryContent}
             style={styles.footerButton}
           >
-            Back to login
+            Back to sign in
           </Button>
-          <Button
-            mode="text"
-            onPress={() => router.push('/(auth)/register')}
-            disabled={loading}
-            contentStyle={styles.secondaryContent}
-            style={styles.footerButton}
-          >
-            Create account
-          </Button>
+          {step === 'email' ? (
+            <Button
+              mode="text"
+              onPress={() => router.push('/(auth)/register')}
+              disabled={loading}
+              contentStyle={styles.secondaryContent}
+              style={styles.footerButton}
+            >
+              Create account
+            </Button>
+          ) : null}
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      }
+    >
+      {step === 'email' ? (
+        <>
+          <TextInput
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            mode="outlined"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            disabled={loading}
+            left={<TextInput.Icon icon="email-outline" />}
+            accessibilityLabel="Email"
+          />
+          <HelperText type="error" visible={Boolean(error)}>{error}</HelperText>
+          <Button
+            mode="contained"
+            onPress={sendCode}
+            loading={loading}
+            disabled={loading}
+            style={styles.pill}
+            contentStyle={styles.primaryContent}
+            labelStyle={styles.primaryLabel}
+            accessibilityLabel="Email me a code"
+          >
+            Email me a code
+          </Button>
+          <Text variant="bodySmall" style={[styles.note, { color: theme.colors.onSurfaceVariant }]}>
+            For privacy, the same message shows whether or not the email has an account.
+          </Text>
+        </>
+      ) : (
+        <>
+          <Text variant="titleSmall" style={styles.fieldTitle}>Step 1 · OTP from the email</Text>
+          <OtpField value={code} onChangeText={setCode} disabled={loading || verified.current} autoFocus />
+          {info ? <HelperText type="info" visible>{info}</HelperText> : null}
+
+          <Text variant="titleSmall" style={styles.fieldTitle}>Step 2 · Your new passcode</Text>
+
+          <PasscodeField value={next} onChangeText={setNext} disabled={loading} label="New 6-digit passcode" />
+          <PasscodeField value={confirm} onChangeText={setConfirm} disabled={loading} label="Type it again" />
+
+          <HelperText type="error" visible={Boolean(error)}>{error}</HelperText>
+
+          <Button
+            mode="contained"
+            onPress={setNewPasscode}
+            loading={loading}
+            disabled={loading}
+            style={styles.pill}
+            contentStyle={styles.primaryContent}
+            labelStyle={styles.primaryLabel}
+            accessibilityLabel="Set new passcode"
+          >
+            Set new passcode
+          </Button>
+
+          <View style={styles.row}>
+            <Button
+              mode="text"
+              onPress={sendCode}
+              disabled={loading || cooldown > 0}
+              contentStyle={styles.secondaryContent}
+              accessibilityLabel="Send a new code"
+            >
+              {cooldown > 0 ? `Send a new OTP (${cooldown}s)` : 'Send a new OTP'}
+            </Button>
+            <Button mode="text" onPress={changeEmail} disabled={loading} contentStyle={styles.secondaryContent}>
+              Different email
+            </Button>
+          </View>
+        </>
+      )}
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.xl,
-    gap: spacing.lg,
-  },
-  header: {
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  badge: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  title: {
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  subtitle: {
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 320,
-  },
-  card: {
-    borderRadius: radius.lg,
-  },
-  cardContent: {
-    paddingVertical: spacing.lg,
-    gap: spacing.md,
-  },
-  primaryContent: {
-    height: 56,
-  },
-  primaryLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryContent: {
-    height: MIN_TOUCH_TARGET,
-  },
-  note: {
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  footerActions: {
-    gap: spacing.sm,
-  },
-  footerButton: {
-    width: '100%',
-  },
+  pill: { borderRadius: radius.full },
+  primaryContent: { height: 56 },
+  primaryLabel: { fontSize: 16, fontWeight: '700' },
+  secondaryContent: { height: MIN_TOUCH_TARGET },
+  note: { textAlign: 'center', lineHeight: 18, marginTop: spacing.sm },
+  footerActions: { gap: spacing.sm },
+  footerButton: { width: '100%' },
+  row: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap' },
+  fieldTitle: { fontWeight: '700', marginTop: spacing.sm },
 });

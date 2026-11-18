@@ -1,0 +1,132 @@
+import assert from 'node:assert/strict';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import test from 'node:test';
+// The planner lives with the CI tooling (ci/select-tests.mjs); this test keeps its map honest (T16-8).
+import * as plannerModule from '../../ci/select-tests.mjs';
+
+type Job = { device: string; suite: string; flows: string; monkeyEvents?: number; api?: number; arch?: string; target?: string; profile?: string };
+type Plan = { tier: string; ui: boolean; jobs: Job[]; volume: boolean; fileBugs: boolean; publish: boolean; reason: string };
+const { AREA_FLOWS, DEVICES, select, toMatrix } = plannerModule as unknown as {
+  AREA_FLOWS: { area: string; flows: Record<string, string[]> }[];
+  DEVICES: Record<string, unknown>;
+  select: (input: { event?: string; tier?: string; files?: string[]; message?: string }) => Plan;
+  toMatrix: (plan: Plan) => { include: (Job & { monkeyEvents: number })[] };
+};
+
+const E2E = path.join(__dirname, '..', 'e2e');
+const flowsIn = (set: string) => (existsSync(path.join(E2E, set)) ? readdirSync(path.join(E2E, set)).filter((f) => f.endsWith('.yaml')).map((f) => f.replace(/\.yaml$/, '')) : []);
+
+test('PR 17 T16-8: a docs-only change runs nothing on a device', () => {
+  const plan = select({ event: 'pull_request', files: ['rummy-home3/docs/test-plan/README.md', 'README.md'] });
+  assert.equal(plan.ui, false);
+  assert.equal(plan.jobs.length, 0);
+});
+
+test('PR 17 T16-8: a plain push runs no device job (the PR run counts)', () => {
+  const plan = select({ event: 'push', files: ['rummy-home3/app/index.tsx'] });
+  assert.equal(plan.ui, false);
+  assert.equal(plan.publish, false);
+});
+
+test('PR 17 T16-8: an app change runs the smoke gate plus the flows for its area, by name', () => {
+  const plan = select({ event: 'pull_request', files: ['rummy-home3/app/(screens)/score-entry.tsx'] });
+  assert.equal(plan.ui, true);
+  const suites = plan.jobs.map((j) => `${j.device}:${j.suite}`);
+  assert.deepEqual(suites, ['pixel6:smoke', 'pixel6:full', 'pixel6:chaos']);
+  assert.equal(plan.jobs[0].flows, '', 'the smoke set runs whole');
+  assert.equal(plan.jobs[1].flows, '80-add-round-count-warnings');
+  assert.equal(plan.jobs[2].flows, 'c01-rapid-save-taps,c04-huge-numbers');
+  assert.equal(plan.fileBugs, false, 'a PR run files no issues unless asked');
+});
+
+test('PR 17 T16-8: a save-round change adds the offline / kill / two-device checks', () => {
+  const plan = select({ event: 'pull_request', files: ['rummy-home3/services/games.ts'] });
+  const suites = plan.jobs.map((j) => j.suite);
+  assert.ok(suites.includes('chaos'));
+  assert.ok(suites.includes('two-device'));
+  assert.ok(plan.jobs.find((j) => j.suite === 'chaos')!.flows.includes('c05-offline-save--net-off'));
+});
+
+test('PR 17 T16-8: an unmapped app change runs smoke only', () => {
+  const plan = select({ event: 'pull_request', files: ['rummy-home3/app.json'] });
+  assert.deepEqual(plan.jobs.map((j) => j.suite), ['smoke']);
+});
+
+test('PR 17 T16-8: a test-infrastructure change runs every suite once on the reference phone', () => {
+  const plan = select({ event: 'pull_request', files: ['ci/ui/run-flows.sh', 'rummy-home3/docs/x.md'] });
+  assert.deepEqual(plan.jobs.map((j) => j.suite), ['smoke', 'chaos', 'roles', 'two-device', 'monkey']);
+  assert.ok(plan.jobs.every((j) => j.device === 'pixel6'));
+  assert.equal(plan.jobs.find((j) => j.suite === 'monkey')!.monkeyEvents, 1500);
+});
+
+test('PR 17 T16-8: commit-message tags — [ui-all] widens a PR, [file-bugs] lets it open issues', () => {
+  const plan = select({ event: 'pull_request', files: ['rummy-home3/app.json'], message: 'fix thing [ui-all] [file-bugs]' });
+  assert.equal(plan.jobs.length, 5);
+  assert.equal(plan.fileBugs, true);
+});
+
+test('PR 17 T16-8: nightly = every suite on the reference phone, smoke on the other devices, 5k monkey; issues filed', () => {
+  const plan = select({ event: 'schedule' });
+  assert.equal(plan.tier, 'nightly');
+  const byDevice = new Map<string, string[]>();
+  for (const j of plan.jobs) byDevice.set(j.device, [...(byDevice.get(j.device) ?? []), j.suite]);
+  assert.deepEqual(byDevice.get('pixel6'), ['full', 'chaos', 'roles', 'two-device', 'monkey']);
+  assert.deepEqual(byDevice.get('pixel4a'), ['smoke']);
+  assert.deepEqual(byDevice.get('pixel7pro'), ['smoke']);
+  assert.deepEqual(byDevice.get('tablet'), ['smoke']);
+  assert.equal(plan.jobs.find((j) => j.suite === 'monkey')!.monkeyEvents, 5000);
+  assert.equal(plan.volume, false);
+  assert.equal(plan.fileBugs, true);
+});
+
+test('PR 17 T16-8: pre-release = full everywhere, 20k monkey, volume', () => {
+  const plan = select({ event: 'workflow_dispatch', tier: 'prerelease' });
+  assert.equal(plan.tier, 'prerelease');
+  for (const d of ['pixel4a', 'pixel7pro', 'tablet']) assert.ok(plan.jobs.some((j) => j.device === d && j.suite === 'full'), `${d} runs full`);
+  assert.equal(plan.jobs.find((j) => j.suite === 'monkey')!.monkeyEvents, 20000);
+  assert.equal(plan.volume, true);
+});
+
+test('PR 17 T16-8: every flow the map names exists on disk, and the matrix carries the emulator fields', () => {
+  for (const rule of AREA_FLOWS) {
+    for (const [set, flows] of Object.entries(rule.flows)) {
+      for (const flow of flows as string[]) assert.ok(flowsIn(set).includes(flow), `${rule.area}: e2e/${set}/${flow}.yaml exists`);
+    }
+  }
+  const matrix = toMatrix(select({ event: 'schedule' }));
+  for (const row of matrix.include) {
+    assert.ok(row.api && row.arch && row.target && row.profile, `${row.device} has emulator fields`);
+    assert.ok(Object.keys(DEVICES).includes(row.device));
+    assert.equal(typeof row.flows, 'string');
+    assert.equal(typeof row.monkeyEvents, 'number');
+  }
+});
+
+test('PR 17: the device matrix in the workflow comes from the planner, and the runner knows every suite', () => {
+  const ci = readFileSync(path.join(__dirname, '..', '..', '.github', 'workflows', 'ci.yml'), 'utf8');
+  assert.ok(ci.includes('node ci/select-tests.mjs'));
+  assert.ok(ci.includes('matrix: ${{ fromJSON(needs.select.outputs.matrix) }}'));
+  const suite = readFileSync(path.join(__dirname, '..', '..', 'ci', 'ui', 'run-suite.sh'), 'utf8');
+  for (const s of ['smoke', 'full', 'chaos', 'roles', 'two-device', 'monkey']) assert.ok(new RegExp(`\\b${s}\\)`).test(suite), `run-suite.sh handles ${s}`);
+  const flows = readFileSync(path.join(__dirname, '..', '..', 'ci', 'ui', 'run-flows.sh'), 'utf8');
+  for (const hook of ['--net-off', '--kill-after', 'FLOW_FILTER', 'crashes.csv', 'screenrecord']) assert.ok(flows.includes(hook), `run-flows.sh has ${hook}`);
+});
+
+test('PR 17: the break-the-app seed has the roster and every game the chaos / roles flows open', () => {
+  const seed = readFileSync(path.join(__dirname, '..', 'supabase', 'seed-break.sql'), 'utf8');
+  for (const code of ['BREAKP1', 'BREAKP2', 'BREAKP4', 'BREAKP5', 'BREAKP6', 'BREAKP7', 'BREAKQ1', 'BREAKQ2', 'BREAKQ3']) assert.ok(seed.includes(`'${code}'`) || seed.includes(`${code}'`), `${code} seeded`);
+  for (const email of ['c1@test.local', 'a1@test.local', 'a2@test.local', 'p01@test.local', 's1@test.local', 'o1@test.local']) {
+    assert.ok(seed.includes(email) || /lpad|format\(/.test(seed), `${email} (or a generator for it) in the seed`);
+  }
+  // Every game a flow opens is in the seed.
+  const opened = new Set<string>();
+  for (const set of ['chaos', 'roles', 'two-device']) {
+    for (const flow of flowsIn(set)) {
+      const text = readFileSync(path.join(E2E, set, `${flow}.yaml`), 'utf8');
+      for (const m of text.matchAll(/CODE: (BREAK[A-Z0-9]+)|game-card-(BREAK[A-Z0-9]+)/g)) opened.add(m[1] ?? m[2]);
+    }
+  }
+  assert.ok(opened.size >= 5);
+  for (const code of opened) assert.ok(seed.includes(code), `flow opens ${code}, which the seed creates`);
+});

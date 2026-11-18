@@ -1,9 +1,9 @@
-# Nightly device run (PR 17). Schedules only fire from the default branch, and main does not carry the
-# CI tooling yet (it lives in the PR stack). This file is the one piece that has to be on main: at
-# 09:00 UTC it asks the CI workflow to run the nightly tier on the top of the stack. GITHUB_TOKEN may
-# start workflow_dispatch runs (that event is exempt from the "no runs from the token" rule).
+# Nightly device run (PR 17). Since the Nov 18 merge of the PR stack, main carries the app and the
+# CI tooling, so the nightly tier runs on main itself. At 09:00 UTC this asks the CI workflow to run
+# the nightly tier on TARGET_REF. GITHUB_TOKEN may start workflow_dispatch runs (that event is exempt
+# from the "no runs from the token" rule).
 #
-# To change which branch is tested nightly, edit TARGET_REF — or run CI by hand: Actions → CI →
+# To test another branch nightly, edit TARGET_REF — or run CI by hand: Actions → CI →
 # Run workflow → tier nightly / prerelease, branch of your choice.
 name: Nightly trigger
 
@@ -21,7 +21,7 @@ permissions:
   actions: write
 
 env:
-  TARGET_REF: cursor/pr20-going-rogue-build-0a03
+  TARGET_REF: main
 
 jobs:
   kick:

@@ -1,0 +1,35 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Home after sign-in: the three top actions, the Live list with the seeded active game, the bottom bar.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- assertVisible: "New game"
+- assertVisible: "Results"
+- assertNotVisible: "Settle"
+# PR 5: My players is a Home button beside Results with its count badge; the bottom bar is Home and Profile.
+- assertVisible:
+    id: "home-my-players"
+- assertVisible:
+    id: "home-my-players-badge"
+- assertVisible:
+    text: "Live.*"
+- assertVisible: "Home"
+- assertVisible: "Your profile"
+# PR 10b layout gate: Results and My players are pills (the screenshot is the visual check); Recent is
+# titled plainly (no "· N") on the grey card. With four live games Recent starts below the fold, so
+# scroll to it before the check.
+- takeScreenshot: 01-home
+- scrollUntilVisible:
+    element:
+      text: "Recent"
+    direction: DOWN
+    timeout: 15000
+- assertNotVisible:
+    text: "Recent · .*"
+- takeScreenshot: 01b-home-recent
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 01c-home-scrolled

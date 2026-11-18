@@ -1,0 +1,21 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# C16-5 Kill mid-save: the flow taps Save round and ends at once; the runner force-stops the app the
+# moment Maestro returns (file name hook "--kill-after"). c08 then checks the game is consistent.
+# BREAKP7 starts at Round 1.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP7
+- assertVisible: "Round 1"
+- tapOn: "Add round"
+- runFlow: ../lib/fill-round-4.yaml
+- takeScreenshot: c07-about-to-save-then-die
+- tapOn:
+    text: "Save round"
+    waitToSettleTimeoutMs: 1

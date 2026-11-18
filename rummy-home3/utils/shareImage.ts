@@ -1,0 +1,407 @@
+import { Platform, Share, View } from 'react-native';
+import { ShareCard, ShareLine } from '@/utils/shareCard';
+import { placeLine, ScorecardSheet } from '@/utils/scorecardSheet';
+import { FINAL_SCORES_FILE, FinalScoresSheet } from '@/utils/finalScoresSheet';
+import { SHARE_IMAGE_WIDTH, sharePalette } from '@/components/share/ShareCardView';
+
+export const IMAGE_READY = 'Image ready.';
+
+/** The web canvas is laid out in 720 px units and scaled to SHARE_IMAGE_WIDTH, like the phone capture. */
+const CARD_W = 720;
+const CARD_PAD = 24;
+const INNER_PAD = 28;
+const INK = '#17201B';
+const MUTED = '#4E5752';
+const LINE = '#DCDDD5';
+const NEG = '#A8201A';
+const ON_NOTE = '#3F2D00';
+const MEDAL: Record<1 | 2 | 3, { bg: string; fg: string }> = {
+  1: { bg: '#F6C84C', fg: '#3F2D00' },
+  2: { bg: '#D9DCE0', fg: '#2B3036' },
+  3: { bg: '#D99A66', fg: '#3B1D08' },
+};
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = '';
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (ctx.measureText(next).width <= maxWidth || !current) {
+      current = next;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+  });
+  if (current) lines.push(current);
+  if (lines.length > maxLines) {
+    const kept = lines.slice(0, maxLines);
+    kept[maxLines - 1] = `${kept[maxLines - 1].replace(/…$/, '')}…`;
+    return kept;
+  }
+  return lines;
+}
+
+/** Height of one scores line: one name line (ellipsis past the width), plus the sub line. */
+function lineHeight(line: ShareLine): number {
+  return 12 + 26 + (line.sub ? 18 : 0);
+}
+
+/**
+ * Web twin of ShareCardView: the tone's frame (green results, marigold game), white card,
+ * every player in two columns with drawn medals, the games line, who generated it, and
+ * the ID line in the frame's foot. Drawn at 720 units, output SHARE_IMAGE_WIDTH px wide.
+ */
+export function drawShareCard(card: ShareCard): HTMLCanvasElement {
+  if (typeof document === 'undefined') throw new Error('Could not make the image.');
+  const palette = sharePalette(card.tone);
+  const scale = SHARE_IMAGE_WIDTH / CARD_W;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not make the image.');
+  canvas.width = SHARE_IMAGE_WIDTH;
+
+  const cardX = CARD_PAD;
+  const cardW = CARD_W - CARD_PAD * 2;
+  const colGap = 20;
+  // PR 14: one full-width column once a total runs to eight digits, so the numbers never collide with the names.
+  const colW = card.layout === 'single' ? cardW - INNER_PAD * 2 : (cardW - INNER_PAD * 2 - colGap) / 2;
+  const nameWidth = colW - 96;
+
+  // Measure first so the canvas is exactly as tall as the content.
+  ctx.font = '600 14px sans-serif';
+  const noteLines = (card.notes ?? []).map((note) => wrapText(ctx, note, cardW - INNER_PAD * 2 - 20, 3));
+  const notesH = noteLines.reduce((sum, lines) => sum + lines.length * 18 + 16, 0);
+  const colH = (lines: ShareLine[]) => (lines.length === 0 ? 34 : lines.reduce((sum, line) => sum + lineHeight(line), 0));
+  const columnsH = card.layout === 'single' ? colH(card.positive) : Math.max(colH(card.positive), colH(card.negative));
+  ctx.font = '600 16px sans-serif';
+  const gamesLines = card.gamesLine ? wrapText(ctx, card.gamesLine, cardW - INNER_PAD * 2, 3) : [];
+  const tailH = (card.evenLine ? 24 : 0) + (gamesLines.length ? gamesLines.length * 22 + 10 : 0) + (card.generatedBy ? 22 : 0);
+  const headH = 56;
+  const cardTop = headH;
+  const cardH = INNER_PAD + 40 + (card.summary ? 30 : 0) + notesH + 12 + columnsH + 12 + tailH + INNER_PAD;
+  const footH = card.footer ? 44 : 20;
+  const totalH = Math.max(360, cardTop + cardH + footH + CARD_PAD);
+  canvas.height = Math.round(totalH * scale);
+  ctx.scale(scale, scale);
+
+  const paint = (text: string, x: number, y: number, color: string, font: string, align: CanvasTextAlign = 'left') => {
+    ctx.fillStyle = color;
+    ctx.font = font;
+    ctx.textAlign = align;
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText(text, x, y);
+    ctx.textAlign = 'left';
+  };
+  const roundRect = (x: number, y: number, w: number, h: number, r: number, fill: string) => {
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  // Frame and header.
+  ctx.fillStyle = palette.frame;
+  ctx.fillRect(0, 0, CARD_W, totalH);
+  paint(card.brand, CARD_PAD + 6, 36, palette.onFrame, '800 24px sans-serif');
+  if (card.date) {
+    ctx.font = '600 16px sans-serif';
+    const dateText = ctx.measureText(card.date).width > cardW / 2 ? wrapText(ctx, card.date, cardW / 2, 1)[0] : card.date;
+    paint(dateText, CARD_W - CARD_PAD - 6, 36, palette.onFrameMuted, '600 16px sans-serif', 'right');
+  }
+
+  // Card.
+  roundRect(cardX, cardTop, cardW, cardH, 18, '#FFFFFF');
+  let y = cardTop + INNER_PAD + 30;
+  const left = cardX + INNER_PAD;
+  paint(card.title, left, y, INK, '800 34px sans-serif');
+  y += 10;
+  if (card.summary) {
+    y += 26;
+    paint(card.summary, left, y, INK, '700 20px sans-serif');
+    y += 4;
+  }
+  noteLines.forEach((lines) => {
+    y += 8;
+    const h = lines.length * 18 + 8;
+    roundRect(left, y, cardW - INNER_PAD * 2, h, 8, palette.note);
+    lines.forEach((line, index) => paint(line, left + 10, y + 18 + index * 18, ON_NOTE, '600 14px sans-serif'));
+    y += h;
+  });
+  y += 12;
+
+  const drawColumn = (lines: ShareLine[], x: number) => {
+    let cy = y;
+    if (lines.length === 0) {
+      paint('None', x, cy + 22, MUTED, '600 16px sans-serif');
+      return;
+    }
+    lines.forEach((line) => {
+      const h = lineHeight(line);
+      ctx.font = '700 22px sans-serif';
+      const names = wrapText(ctx, line.name, nameWidth - (line.medal ? 30 : 0), 1);
+      let nameX = x;
+      let textY = cy + 26;
+      if (line.medal) {
+        const medal = MEDAL[line.medal];
+        ctx.fillStyle = medal.bg;
+        ctx.beginPath();
+        ctx.arc(x + 12, textY - 8, 12, 0, Math.PI * 2);
+        ctx.fill();
+        paint(String(line.medal), x + 12, textY - 3, medal.fg, '800 14px sans-serif', 'center');
+        nameX = x + 30;
+      }
+      names.forEach((name, index) => paint(name, nameX, textY + index * 26, INK, '700 22px sans-serif'));
+      const middle = cy + h / 2 + 9;
+      paint(line.points, x + colW, middle, line.points.startsWith('-') ? NEG : INK, '800 26px sans-serif', 'right');
+      if (line.sub) paint(line.sub, x, textY + (names.length - 1) * 26 + 18, MUTED, '600 14px sans-serif');
+      cy += h;
+      ctx.fillStyle = LINE;
+      ctx.fillRect(x, cy - 1, colW, 1);
+    });
+  };
+  drawColumn(card.positive, left);
+  if (card.layout !== 'single') drawColumn(card.negative, left + colW + colGap);
+  y += columnsH + 12;
+
+  const centre = cardX + cardW / 2;
+  if (card.evenLine) { y += 18; paint(card.evenLine, left, y, MUTED, '600 15px sans-serif'); y += 6; }
+  if (gamesLines.length) {
+    y += 10;
+    gamesLines.forEach((line) => { y += 20; paint(line, centre, y, MUTED, '600 16px sans-serif', 'center'); });
+    y += 2;
+  }
+  if (card.generatedBy) { y += 20; paint(card.generatedBy, centre, y, MUTED, '600 15px sans-serif', 'center'); }
+
+  if (card.footer) paint(card.footer, centre, cardTop + cardH + 30, palette.onFrame, '700 16px sans-serif', 'center');
+  return canvas;
+}
+
+async function shareWeb(card: ShareCard): Promise<string> {
+  const url = drawShareCard(card).toDataURL('image/png');
+  const nav = typeof navigator === 'undefined' ? undefined : navigator;
+  if (nav && typeof nav.share === 'function') {
+    try {
+      const blob = await (await fetch(url)).blob();
+      const file = new File([blob], 'ez-score-results.png', { type: 'image/png' });
+      const data: ShareData = { files: [file], title: 'EZ Score: Rummy', text: card.title };
+      if (!nav.canShare || nav.canShare(data)) {
+        await nav.share(data);
+        return IMAGE_READY;
+      }
+    } catch (error) {
+      const name = (error as { name?: string }).name;
+      if (name === 'AbortError') return IMAGE_READY;
+    }
+  }
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'ez-score-results.png';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  return IMAGE_READY;
+}
+
+/** Pixel size of the capture: fixed SHARE_IMAGE_WIDTH wide so every phone sends the same picture. */
+export type CaptureSize = { width: number; height: number };
+
+async function shareNative(view: View | null, card: ShareCard, size?: CaptureSize): Promise<string> {
+  if (!view) throw new Error('Could not make the image.');
+  const { captureRef } = await import('react-native-view-shot');
+  const uri = await captureRef(view, { format: 'png', quality: 1, result: 'tmpfile', ...(size ?? {}) });
+  const Sharing = await import('expo-sharing');
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: card.brand, UTI: 'public.png' });
+    return IMAGE_READY;
+  }
+  await Share.share({ url: uri, title: card.brand });
+  return IMAGE_READY;
+}
+
+function drawScorecard(sheet: ScorecardSheet): string {
+  if (typeof document === 'undefined') throw new Error('Could not make the image.');
+  const colW = 96;
+  const labelW = 64;
+  const pad = 28;
+  const width = Math.max(680, pad * 2 + labelW + sheet.columns.length * colW);
+  const headerH = 148;
+  const rowH = 42;
+  const height = headerH + 16 + rowH + sheet.rounds.length * rowH + 36 + sheet.places.length * 40 + 32;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = Math.max(height, 420);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not make the image.');
+
+  ctx.fillStyle = '#F7F1E6';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#14382A';
+  ctx.fillRect(0, 0, canvas.width, headerH);
+  ctx.fillStyle = '#E3B341';
+  ctx.fillRect(pad, 78, 72, 3);
+
+  ctx.fillStyle = '#E3B341';
+  ctx.font = '700 16px sans-serif';
+  ctx.fillText('EZ SCORE: RUMMY', pad, 58);
+  ctx.fillStyle = '#FBF1E1';
+  ctx.font = '800 40px sans-serif';
+  ctx.fillText(sheet.heading.slice(0, 18), pad, 118);
+  ctx.font = '600 18px sans-serif';
+  ctx.fillText(`${sheet.when}  ·  ${sheet.status}`.slice(0, 48), pad + 180, 112);
+
+  const tableX = pad;
+  const tableY = headerH + 16;
+  const tableW = labelW + sheet.columns.length * colW;
+  const tableH = rowH + sheet.rounds.length * rowH;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(tableX, tableY, tableW, tableH);
+  ctx.strokeStyle = '#E7E0D4';
+  ctx.strokeRect(tableX, tableY, tableW, tableH);
+
+  const paint = (text: string, x: number, y: number, color: string, weight: string, align: CanvasTextAlign = 'center') => {
+    ctx.fillStyle = color;
+    ctx.font = `${weight} 16px sans-serif`;
+    ctx.textAlign = align;
+    ctx.fillText(text, x, y);
+    ctx.textAlign = 'left';
+  };
+
+  paint('Rnd', tableX + labelW / 2, tableY + 26, '#5C6560', '700');
+  sheet.columns.forEach((column, index) => {
+    const x = tableX + labelW + index * colW + colW / 2;
+    paint(column.label, x, tableY + 18, '#14382A', '800');
+    paint(column.totalText, x, tableY + 36, column.total < 0 ? '#8C2F2F' : '#0E7A43', '800');
+  });
+
+  sheet.rounds.forEach((round, rowIndex) => {
+    const y = tableY + rowH + rowIndex * rowH;
+    if (rowIndex % 2 === 0) {
+      ctx.fillStyle = '#FBF8F2';
+      ctx.fillRect(tableX + 1, y, tableW - 2, rowH);
+    }
+    paint(String(round.round), tableX + labelW / 2, y + 26, '#1B1F1C', '700');
+    round.cells.forEach((cell, index) => {
+      const x = tableX + labelW + index * colW + colW / 2;
+      const color = cell.sign === 'pos' ? '#0E7A43' : cell.sign === 'neg' ? '#8C2F2F' : '#1B1F1C';
+      paint(cell.text, x, y + 26, color, '700');
+    });
+  });
+
+  let y = tableY + tableH + 36;
+  ctx.fillStyle = '#E3B341';
+  ctx.fillRect(pad, y - 18, 48, 3);
+  sheet.places.forEach((place) => {
+    ctx.fillStyle = '#14382A';
+    ctx.font = '800 22px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(placeLine(place), pad, y);
+    y += 40;
+  });
+  ctx.fillStyle = '#5C6560';
+  ctx.font = '600 14px sans-serif';
+  ctx.fillText(sheet.totalSum === 0 ? 'Totals add to 0' : `Totals add to ${sheet.totalSum}`, pad, y);
+
+  return canvas.toDataURL('image/png');
+}
+
+async function shareDrawnImage(dataUrl: string, filename: string, title: string): Promise<string> {
+  const nav = typeof navigator === 'undefined' ? undefined : navigator;
+  if (nav && typeof nav.share === 'function') {
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], filename, { type: 'image/png' });
+      const data: ShareData = { files: [file], title, text: title };
+      if (!nav.canShare || nav.canShare(data)) {
+        await nav.share(data);
+        return IMAGE_READY;
+      }
+    } catch (error) {
+      const name = (error as { name?: string }).name;
+      if (name === 'AbortError') return IMAGE_READY;
+    }
+  }
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  return IMAGE_READY;
+}
+
+/** Opens the device share sheet with the public scorecard link. */
+export async function shareLiveScorecard(url: string): Promise<'shared' | 'copied'> {
+  try {
+    await Share.share({ title: 'EZ Score: Rummy', message: url, url });
+    return 'shared';
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (/cancel|abort|dismiss/i.test(message)) return 'shared';
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+      return 'copied';
+    }
+    throw error instanceof Error ? error : new Error('Could not share the link.');
+  }
+}
+
+/** A picture of the whole scorecard. Web draws it. The phone captures the same layout. */
+export async function shareScorecardImage(sheet: ScorecardSheet, view: View | null): Promise<string> {
+  try {
+    if (Platform.OS === 'web') return await shareDrawnImage(drawScorecard(sheet), 'ez-score-rummy.png', sheet.brand);
+    if (!view) throw new Error('Could not make the image.');
+    const { captureRef } = await import('react-native-view-shot');
+    const uri = await captureRef(view, { format: 'png', quality: 1, result: 'tmpfile' });
+    const Sharing = await import('expo-sharing');
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: sheet.brand, UTI: 'public.png' });
+      return IMAGE_READY;
+    }
+    await Share.share({ url: uri, title: sheet.brand });
+    return IMAGE_READY;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (/cancel|abort|dismiss/i.test(message)) return IMAGE_READY;
+    throw error instanceof Error ? error : new Error('Could not make the image.');
+  }
+}
+
+/** A picture for WhatsApp or a text. Web draws the card. The phone captures the off-screen fixed-width card. */
+export async function shareCardImage(view: View | null, card: ShareCard, size?: CaptureSize): Promise<string> {
+  try {
+    if (Platform.OS === 'web') return await shareWeb(card);
+    return await shareNative(view, card, size);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (/cancel|abort|dismiss/i.test(message)) return IMAGE_READY;
+    throw error instanceof Error ? error : new Error('Could not make the image.');
+  }
+}
+
+/** The "Final scores" picture of one game: standings only (PR 8). Web draws the card; the phone captures the off-screen ShareCardView. */
+export async function shareFinalScoresImage(sheet: FinalScoresSheet, view: View | null, size?: CaptureSize): Promise<string> {
+  try {
+    if (Platform.OS === 'web') return await shareDrawnImage(drawShareCard(sheet.card).toDataURL('image/png'), FINAL_SCORES_FILE, sheet.heading);
+    if (!view) throw new Error('Could not make the image.');
+    const { captureRef } = await import('react-native-view-shot');
+    const uri = await captureRef(view, { format: 'png', quality: 1, result: 'tmpfile', ...(size ?? {}) });
+    const Sharing = await import('expo-sharing');
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: sheet.heading, UTI: 'public.png' });
+      return IMAGE_READY;
+    }
+    await Share.share({ url: uri, title: sheet.heading });
+    return IMAGE_READY;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (/cancel|abort|dismiss/i.test(message)) return IMAGE_READY;
+    throw error instanceof Error ? error : new Error('Could not make the image.');
+  }
+}

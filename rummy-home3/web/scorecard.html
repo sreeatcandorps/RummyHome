@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rummy scorecard</title>
+  <style>
+    :root { color-scheme: light; --ink: #17201B; --muted: #4E5752; --line: #DCDDD5; --green: #15803D; --edge: #0E5A2A; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; }
+    body { margin: 0; font-family: -apple-system, Roboto, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--ink); font-size: 16px; }
+    header { background: var(--green); color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    header h1 { margin: 0; font-size: 20px; font-weight: 800; }
+    button.help { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); border-radius: 999px; width: 32px; height: 32px; font-weight: 700; cursor: pointer; }
+    dialog { border: 0; border-radius: 12px; max-width: 420px; }
+    dialog p { margin: 0 0 12px; }
+    .meta { margin-top: 4px; font-size: 14px; opacity: 0.95; }
+    main { padding: 12px 12px 24px; max-width: 430px; margin: 0 auto; }
+    /* Blocks of five players (same as the results PDF): one table per block, totals in the header, so nothing scrolls sideways. */
+    .block { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px; margin-bottom: 12px; }
+    .block .bt { color: var(--muted); font-size: 12px; font-weight: 700; margin: 0 0 4px 4px; }
+    table { border-collapse: collapse; width: 100%; table-layout: fixed; font-variant-numeric: tabular-nums; }
+    th, td { padding: 4px 5px; text-align: right; border: 1px solid var(--line); font-size: 15px; }
+    th { background: var(--head); text-align: center; vertical-align: bottom; }
+    th .ini { display: block; font-weight: 800; }
+    th .total { display: block; font-size: 16px; font-weight: 800; }
+    th .total.neg { color: var(--neg); }
+    /* Pool (PR 13): out is struck and grey, re-entered is blue, cells before a re-entry or after an out are blank. */
+    th.isout .ini, th.isout .total { text-decoration: line-through; color: var(--muted); }
+    th.isre .ini, th.isre .total { color: #2B5FBF; }
+    th .mark { display: block; font-size: 10px; font-weight: 800; letter-spacing: .4px; }
+    th .mark.out { color: var(--neg); }
+    th .mark.re { color: #2B5FBF; }
+    td.gone { color: var(--muted); }
+    .standings { margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+    .standings h2 { margin: 0 0 4px; font-size: 15px; }
+    .standings .sub { margin: 0 0 6px; color: var(--muted); font-size: 12px; }
+    .standings p { margin: 2px 0; display: flex; gap: 8px; align-items: baseline; }
+    .standings p.isout { color: var(--muted); text-decoration: line-through; }
+    .standings .st { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .standings .st2 { min-width: 120px; text-align: right; color: var(--muted); font-size: 12px; }
+    th.rn, td.rn { width: 40px; text-align: left; color: var(--muted); }
+    td.pos { background: var(--win); font-weight: 700; }
+    td.big { color: #A8201A; }
+    tr.rotation td { border-top: 2px solid var(--green); }
+    .sum { color: var(--muted); font-size: 13px; margin: 0 4px; }
+    .legend { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 4px 4px 0; }
+    .changes { margin: 16px 4px 0; padding: 10px 12px; border: 1px solid rgba(0,0,0,0.12); border-radius: 10px; }
+    .changes h2 { font-size: 14px; margin: 0 0 6px; }
+    .changes p { margin: 4px 0; font-size: 13px; line-height: 1.4; }
+    .changes .t { color: var(--muted); margin-right: 6px; font-variant-numeric: tabular-nums; }
+    .changes .more { color: var(--muted); font-size: 12px; margin-top: 6px; }
+    .legend b { color: var(--ink); }
+    .msg { padding: 24px; color: var(--muted); }
+    @media (min-width: 900px) { main { max-width: 1100px; } .blocks { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; } .block { flex: 1 1 420px; margin-bottom: 0; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>EZ Score: Rummy</h1>
+      <div class="meta" id="meta">Loading…</div>
+    </div>
+    <button class="help" type="button" aria-label="Help" onclick="document.getElementById('help').showModal()">?</button>
+  </header>
+  <dialog id="help">
+    <p>This page updates on its own. It shows the game number, the start time, every round, and the totals, five players to a block. No login. Anyone with the link can watch.</p>
+    <form method="dialog"><button>Close</button></form>
+  </dialog>
+  <main id="board"></main>
+  <section id="changes"></section>
+  <script>
+    // Filled in at deploy. The repo keeps these tokens. Never commit a real key.
+    const PROJECT = '__SUPABASE_URL__';
+    const ANON_KEY = '__SUPABASE_ANON_KEY__';
+    const params = new URLSearchParams(location.search);
+    const token = params.get('t') || '';
+
+    function injected(value) {
+      return typeof value === 'string' && value.length > 0 && value.indexOf('__') === -1;
+    }
+    function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+
+    // Same rule as utils/playerInitials.ts in the app: first keeps HY, later duplicates read H2, H3, in seat order.
+    function initials(names) {
+      const base = names.map((name) => {
+        const words = (name || '').trim().split(/\s+/).filter(Boolean);
+        if (!words.length) return '?';
+        if (words.length === 1) return words[0].slice(0, 2).toUpperCase().padEnd(2, '?');
+        return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+      });
+      const taken = new Set(base);
+      const seen = new Set();
+      return base.map((label) => {
+        if (!seen.has(label)) { seen.add(label); return label; }
+        let n = 2;
+        while (taken.has(label[0] + n)) n += 1;
+        const next = label[0] + n;
+        taken.add(next); seen.add(next);
+        return next;
+      });
+    }
+
+    function render(card) {
+      const players = card.players || [];
+      const names = players.map((player) => player.name);
+      const labels = initials(names);
+      const byName = new Map(players.map((player, index) => [player.name, index]));
+      const rounds = new Set();
+      const grid = players.map(() => ({}));
+      (card.scores || []).forEach((score) => {
+        if (!score.name || score.type === 'expense') return;
+        rounds.add(score.round);
+        const index = byName.get(score.name);
+        if (index == null) return;
+        grid[index][score.round] = (grid[index][score.round] || 0) + score.value;
+      });
+      const roundList = [...rounds].sort((a, b) => a - b);
+      // Pool (041): a re-entered player's total restarts at the re-entry score; a player who is out keeps the total they went out at.
+      const pool = card.gameType === 'pool';
+      const totals = grid.map((row, i) => {
+        const seat = players[i] || {};
+        if (pool && seat.reenteredRound) {
+          return (seat.reentryScore || 0) + roundList.filter((round) => round >= seat.reenteredRound).reduce((sum, round) => sum + (row[round] || 0), 0);
+        }
+        return roundList.reduce((sum, round) => sum + (row[round] || 0), 0);
+      });
+      const limit = pool ? Number(card.poolLimit) || 101 : null;
+      const started = new Date(card.startedAt);
+      const when = Number.isNaN(started.getTime()) ? card.startedAt : started.toLocaleString();
+      // 028: the game label (S3 / P1) comes with the card; older links carried a bare number.
+      const fromCard = typeof card.gameLabel === 'string' && /^[SPG]\d+$/.test(card.gameLabel) ? 'Game ' + card.gameLabel : '';
+      const linkParam = params.get('g') || '';
+      const fromLink = /^[SPG]\d+$/.test(linkParam) ? 'Game ' + linkParam : /^\d+$/.test(linkParam) ? 'Game ' + linkParam : '';
+      const gameNo = fromCard || fromLink;
+      const status = card.status === 'completed' ? (pool ? (card.awarded ? 'Completed · Awarded' : 'Completed · Awards pending') : 'Completed') : 'Live';
+      document.getElementById('meta').textContent = [gameNo, pool ? 'Pool · limit ' + limit : '', multiplier > 1 ? '×' + multiplier.toLocaleString('en-US') : '', 'Started ' + when, status].filter(Boolean).join(' · ');
+      // The scorecard standard: a win green, a penalty of more than half the Full count red text, the rest plain.
+      const maxCount = Math.abs(Number(card.maxCount) || 0);
+      const bigLoss = maxCount ? Math.floor(maxCount / 2) + 1 : null;
+      // 031: a divider above each round where the first dealer deals again (one full rotation done).
+      const dealers = card.dealers || {};
+      const firstDealer = roundList.length ? dealers[String(roundList[0])] : null;
+      // PR 14 multiplier: the card carries the entered scores and the ×N; this page shows actual points, short (K / M) in cells, exact on hover and in the list below.
+      const multiplier = pool ? 1 : Math.max(1, Math.trunc(Number(card.multiplier) || 1));
+      const exact = (value) => (value > 0 ? '+' : '') + Math.trunc(value).toLocaleString('en-US');
+      const short = (value) => {
+        const abs = Math.abs(value);
+        if (abs < 10000) return exact(value);
+        const unit = abs >= 1e9 ? [1e9, 'B'] : abs >= 1e6 ? [1e6, 'M'] : [1e3, 'K'];
+        let text = (abs / unit[0]).toFixed(1).replace(/\.0$/, '');
+        if (text.length > 3) text = String(Math.round(abs / unit[0]));
+        if (unit[1] === 'K' && text.length > 3) return short(Math.sign(value) * 1e6);
+        return (value < 0 ? '-' : '+') + text + unit[1];
+      };
+      const fmt = (value) => (pool ? String(value) : multiplier > 1 ? short(value * multiplier) : exact(value));
+      const hover = (value) => (multiplier > 1 ? ' title="' + exact(value * multiplier) + '"' : '');
+      // Blocks of five players, totals in the header (PR 8 design, same as the results PDF).
+      const BLOCK = 5;
+      const blocks = [];
+      for (let start = 0; start < players.length; start += BLOCK) blocks.push(players.map((_, i) => i).slice(start, start + BLOCK));
+      const tables = blocks.map((idx, b) => {
+        const head = idx.map((i) => {
+          const seat = players[i] || {};
+          const out = pool && seat.outRound;
+          const re = pool && seat.reenteredRound && !out;
+          const mark = out ? '<span class="mark out">OUT R' + seat.outRound + '</span>' : re ? '<span class="mark re">↺ R' + seat.reenteredRound + '</span>' : '';
+          return '<th class="' + (out ? 'isout' : re ? 'isre' : '') + '"><span class="ini">' + esc(labels[i]) + '</span><span class="total' + (!pool && totals[i] < 0 ? ' neg' : '') + '"' + hover(totals[i]) + '>' + fmt(totals[i]) + '</span>' + mark + '</th>';
+        }).join('');
+        const body = roundList.map((round, index) => {
+          const cells = idx.map((i) => {
+            const seat = players[i] || {};
+            // Pool: no cell after the round a player went out, none before a re-entry; 0 is the win, at or past the Full count is red.
+            if (pool && ((seat.outRound && round > seat.outRound) || (seat.reenteredRound && round < seat.reenteredRound && !(round in grid[i])))) return '<td class="gone">·</td>';
+            const value = grid[i][round] || 0;
+            const cls = pool ? (value === 0 ? 'pos' : (maxCount && value >= maxCount) ? 'big' : '') : value > 0 ? 'pos' : (bigLoss !== null && value <= -bigLoss) ? 'big' : '';
+            return '<td class="' + cls + '"' + hover(value) + '>' + fmt(value) + '</td>';
+          }).join('');
+          const rotation = index > 0 && firstDealer && dealers[String(round)] === firstDealer ? ' class="rotation"' : '';
+          return '<tr' + rotation + '><td class="rn">' + round + '</td>' + cells + '</tr>';
+        }).join('') || '<tr><td class="msg" colspan="' + (idx.length + 1) + '">No rounds yet.</td></tr>';
+        const title = blocks.length > 1 ? '<p class="bt">Players ' + (b * BLOCK + 1) + '–' + (b * BLOCK + idx.length) + ' of ' + players.length + '</p>' : '';
+        return '<div class="block">' + title + '<table><thead><tr><th class="rn">Rnd</th>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
+      }).join('');
+      const sum = totals.reduce((total, value) => total + value, 0);
+      const legend = '<p class="legend">' + labels.map((label, i) => '<span><b>' + esc(label) + '</b> ' + esc(names[i]) + '</span>').join(' · ') + '</p>';
+      let standings = '';
+      if (multiplier > 1) {
+        // Exact points: the same list as the app's sheet (entered × multiplier, with thousands separators).
+        const rows = players.map((_, i) => i).sort((a, b) => totals[b] - totals[a]);
+        standings = '<div class="standings"><h2>Exact points</h2><p class="sub">×' + multiplier.toLocaleString('en-US') + ' · entered points × ' + multiplier.toLocaleString('en-US') + '</p>'
+          + rows.map((i) => '<p><b>' + esc(labels[i]) + '</b> ' + esc(names[i]) + ' <span class="st">' + exact(totals[i] * multiplier) + '</span><span class="st2">entered ' + exact(totals[i]) + '</span></p>').join('') + '</div>';
+      }
+      if (pool) {
+        // Standings (D5): players in, lowest first, with points and drops left; then the outs.
+        const drop = Math.abs(Number(card.dropAmount) || 25);
+        const rows = players.map((seat, i) => ({ i, total: totals[i], out: Boolean(seat.outRound), outRound: seat.outRound || 0 }))
+          .sort((a, b) => (a.out !== b.out ? (a.out ? 1 : -1) : a.out ? a.outRound - b.outRound : a.total - b.total));
+        const inCount = rows.filter((r) => !r.out).length;
+        standings = '<div class="standings"><h2>Standings</h2><p class="sub">Limit ' + limit + ' · ' + (limit - 1) + ' in, ' + limit + ' out · ' + inCount + ' of ' + players.length + ' in</p>'
+          + rows.map((r) => {
+            const left = Math.max(0, limit - r.total);
+            const right = r.out ? 'OUT R' + r.outRound : left + ' left · ' + Math.ceil(left / drop) + (Math.ceil(left / drop) === 1 ? ' drop' : ' drops');
+            return '<p class="' + (r.out ? 'isout' : '') + '"><b>' + esc(labels[r.i]) + '</b> ' + esc(names[r.i]) + ' <span class="st">' + r.total + '</span><span class="st2">' + right + '</span></p>';
+          }).join('') + '</div>';
+      }
+      document.getElementById('board').innerHTML = '<div class="blocks">' + (tables || '<p class="msg">No players yet.</p>') + '</div>'
+        + '<p class="sum">' + (roundList.length === 1 ? '1 round' : roundList.length + ' rounds') + (pool ? '' : ' · Totals add to ' + exact(sum * multiplier)) + '</p>' + standings + legend;
+    }
+
+    // 036: the last 10 important changes (round added / edited / undone, players, settings…); the full log is in the app.
+    function renderChanges(rows) {
+      const box = document.getElementById('changes');
+      if (!Array.isArray(rows) || rows.length === 0) { box.innerHTML = ''; return; }
+      const lines = rows.map((row) => {
+        const at = new Date(row.at);
+        const time = Number.isNaN(at.getTime()) ? '' : at.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        return '<p><span class="t">' + esc(time) + '</span><b>' + esc(row.actorName || 'System') + '</b> · ' + esc(row.summary) + '</p>';
+      }).join('');
+      box.innerHTML = '<div class="changes"><h2>Changes</h2>' + lines + '<p class="more">Last ' + rows.length + ' important changes · full log in the app</p></div>';
+    }
+
+    async function loadChanges() {
+      try {
+        const response = await fetch(PROJECT.replace(/\/$/, '') + '/rest/v1/rpc/public_scorecard_changes', {
+          method: 'POST',
+          headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_token: token }),
+        });
+        if (!response.ok) return;
+        renderChanges(await response.json());
+      } catch (e) {
+        // Before 036 there is no changes list; the scorecard itself is unaffected.
+      }
+    }
+
+    async function load() {
+      if (!/^[0-9a-f]{48}$/.test(token)) {
+        document.getElementById('meta').textContent = 'This scorecard link is not valid.';
+        document.getElementById('board').innerHTML = '';
+        return;
+      }
+      if (!injected(PROJECT) || !injected(ANON_KEY)) {
+        document.getElementById('meta').textContent = "This scorecard isn't available right now.";
+        document.getElementById('board').innerHTML = '';
+        return;
+      }
+      const response = await fetch(PROJECT.replace(/\/$/, '') + '/rest/v1/rpc/public_scorecard', {
+        method: 'POST',
+        headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_token: token }),
+      });
+      const card = await response.json();
+      if (card && card.deleted === true) {
+        document.getElementById('meta').textContent = 'This game was deleted.';
+        document.getElementById('board').innerHTML = '';
+        return;
+      }
+      if (!card || card.gameId == null) {
+        document.getElementById('meta').textContent = 'This scorecard link is not valid.';
+        return;
+      }
+      render(card);
+      loadChanges();
+    }
+
+    load().catch(() => {
+      document.getElementById('meta').textContent = 'Could not load the scorecard.';
+    });
+    setInterval(load, 8000);
+  </script>
+</body>
+</html>

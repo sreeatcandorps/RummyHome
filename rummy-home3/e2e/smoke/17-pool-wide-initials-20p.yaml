@@ -1,0 +1,58 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# F13.22 (Sree, Nov 14): initials are NEVER cut off. Game W (supabase/seed-e2e.sql) is a completed 20-seat
+# pool whose placeholders carry the widest three-letter labels there are (WWW, MMM, WMW …). The header
+# columns, the Standings card and the Awards screen must show every label in full — the screenshots are
+# the visual check; the assertions make sure the labels are on screen as text (a clipped label is still
+# "visible" to Maestro, so the unit test in tests/initials-fit.test.ts guards the width math itself).
+# Few commands on purpose: every step on a 20-column screen is a slow hierarchy read.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEW1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEW1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertVisible: "20 players"
+# PR 24 portrait pool: the round grid takes the top ~70% (header initials WWW / MMM in full), the Awards
+# card and Standings sit in their own pane underneath, each scrolling on its own. Awards first while
+# the card is at the top of the pane, then swipe the pane up to bring Standings into it.
+- assertVisible:
+    id: "pool-standings-pane"
+- assertVisible:
+    id: "give-awards"
+- assertVisible:
+    id: "score-header-initials-2"
+    text: "WWW"
+- assertVisible:
+    id: "score-header-initials-3"
+    text: "MMM"
+- takeScreenshot: 17-pool-wide-initials-portrait
+- tapOn:
+    id: "give-awards"
+- extendedWaitUntil:
+    visible: "Winner takes all"
+    timeout: 15000
+- assertVisible: "20 entries (a re-entry counts twice) · pool 2000 points"
+- takeScreenshot: 17-pool-wide-initials-awards
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 15000
+- swipe:
+    from:
+      id: "pool-standings-pane"
+    direction: UP
+- extendedWaitUntil:
+    visible:
+      id: "pool-standings"
+    timeout: 5000
+- assertVisible: "WWW"
+- assertVisible: "MMM"
+- takeScreenshot: 17-pool-wide-initials-standings
+- back

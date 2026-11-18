@@ -1,0 +1,66 @@
+import React from 'react';
+import { StyleSheet, View, ViewStyle } from 'react-native';
+import { Icon, Text } from 'react-native-paper';
+import { radius, spacing, useAppTheme } from '@/constants/theme';
+
+export type TagTone = 'neutral' | 'primary' | 'positive' | 'leader' | 'danger' | 'stake' | 'pool' | 'info' | 'results' | 'warning';
+
+type TagProps = {
+  label: string;
+  tone?: TagTone;
+  icon?: string;
+  style?: ViewStyle;
+  /** Let a long label ("Pending registration") break onto a second line in narrow cards. */
+  wrap?: boolean;
+  /** Kept for callers; tags are one size now (docs/design/02-design-system.md §5.2). */
+  small?: boolean;
+  testID?: string;
+};
+
+/** Rounded 32 px label for game type, status and metadata: tinted fill, never button green. */
+export function Tag({ label, tone = 'neutral', icon, style, wrap = false, testID }: TagProps) {
+  const theme = useAppTheme();
+  const { colors, gameTypes } = theme;
+
+  const palette: Record<TagTone, { bg: string; fg: string }> = {
+    neutral: { bg: colors.surfaceVariant, fg: colors.onSurfaceVariant },
+    primary: { bg: colors.primaryContainer, fg: colors.onPrimaryContainer },
+    positive: { bg: colors.positiveContainer, fg: colors.onPositiveContainer },
+    leader: { bg: colors.leaderContainer, fg: colors.onLeaderContainer },
+    danger: { bg: colors.errorContainer, fg: colors.onErrorContainer },
+    info: { bg: colors.tertiaryContainer, fg: colors.onTertiaryContainer },
+    // A01: results are green everywhere (games are yellow).
+    results: { bg: colors.primaryContainer, fg: colors.onPrimaryContainer },
+    // Something still to do ("Awards pending"): the marigold of a selected cell, not an error red.
+    warning: { bg: colors.secondaryContainer, fg: colors.onSecondaryContainer },
+    stake: { bg: gameTypes.stake.container, fg: gameTypes.stake.on },
+    pool: { bg: gameTypes.pool.container, fg: gameTypes.pool.on },
+  };
+  const { bg, fg } = palette[tone];
+
+  return (
+    <View style={[styles.tag, { backgroundColor: bg }, style]} testID={testID}>
+      {icon ? <Icon source={icon} size={16} color={fg} /> : null}
+      <Text variant="labelMedium" numberOfLines={wrap ? 2 : 1} style={[styles.label, wrap && styles.wrapLabel, { color: fg }]}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: 10,
+    minHeight: 32,
+    borderRadius: radius.full,
+    flexShrink: 1,
+  },
+  label: {
+    fontWeight: '700',
+    flexShrink: 1,
+  },
+  wrapLabel: { lineHeight: 16 },
+});

@@ -1,0 +1,8 @@
+appId: com.mindweavetech.rummyhome
+# Two-device realtime, device A, step 3: the scorecard was left open by t1-a-open; after device B saved,
+# "Round ${EXPECT_ROUND}" must appear here within a minute, with no tap or relaunch (realtime).
+---
+- extendedWaitUntil:
+    visible: "Round ${EXPECT_ROUND}"
+    timeout: 60000
+- takeScreenshot: t1-a-saw-new-round

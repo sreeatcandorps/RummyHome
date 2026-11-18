@@ -1,0 +1,26 @@
+appId: com.mindweavetech.rummyhome
+tags: [chaos]
+# C16-4 Reconnect: network is back (default hook state). The offline attempt in c05 must have left no
+# round behind; saving again must work exactly once. BREAKP6: Round 1 → Round 2.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP6
+- extendedWaitUntil:
+    visible: "Round 1"
+    timeout: 15000
+- assertNotVisible: "Round 2"
+- takeScreenshot: c06-still-round-1-after-offline
+- tapOn: "Add round"
+- runFlow: ../lib/fill-round-4.yaml
+- tapOn: "Save round"
+- extendedWaitUntil:
+    visible: "Round 2"
+    timeout: 20000
+- assertNotVisible: "Round 3"
+- takeScreenshot: c06-reconnect-saved-once

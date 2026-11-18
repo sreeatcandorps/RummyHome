@@ -1,0 +1,35 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# Log out, try a wrong passcode (stays on the login screen with an error), then sign in again.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "Your profile"
+- scrollUntilVisible:
+    element: "Log out"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Log out"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 20000
+- takeScreenshot: 10-sign-in-screen
+- tapOn:
+    id: "login-email"
+- inputText: "sree@test.local"
+- hideKeyboard
+- tapOn:
+    id: "login-passcode"
+- inputText: "000000"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible:
+      text: ".*(passcode|Invalid|wrong|incorrect).*"
+    timeout: 20000
+- assertVisible:
+    id: "login-submit"
+- takeScreenshot: 10b-sign-in-wrong-passcode
+- runFlow: ../lib/sign-in.yaml
+- assertVisible: "New game"

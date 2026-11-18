@@ -1,0 +1,50 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Game F: 20 players x 30 rounds (supabase/seed-e2e.sql): the table renders, the header does not clip,
+# the rounds scroll. Reaching the last column by swiping is full/20 (nightly): every command on this
+# screen costs Maestro a 600-cell hierarchy read, too slow and too variable for the PR gate.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEF1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEF1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertVisible: "Round 31"
+- assertVisible: "20 players"
+- assertVisible: "TA"
+# PR 10a layout gate: the second column's header AND one of its score cells are on screen together.
+# When the header collapsed into a stack (APK 9), the cells were pushed below the fold, so this fails.
+- assertVisible:
+    id: "score-header-2"
+- assertVisible:
+    id: "score-cell-2-.*"
+- takeScreenshot: 10-scorecard-20p
+- scroll
+- takeScreenshot: 10c-scorecard-20p-scrolled-down
+# PR 10b (Q10.12): Add round with 20 players draws three columns in portrait; whatever does not fit
+# is announced by the "N more ▾" pill, which scrolls the rest into view. Nothing is saved.
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 20000
+- takeScreenshot: 10d-add-round-20p-three-columns
+- runFlow:
+    when:
+      visible:
+        id: "add-round-more"
+    commands:
+      - assertVisible:
+          text: ".* more ▾"
+      - tapOn:
+          id: "add-round-more"
+      - takeScreenshot: 10e-add-round-20p-after-more
+- back
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 15000

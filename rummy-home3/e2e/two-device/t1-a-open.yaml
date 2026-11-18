@@ -1,0 +1,13 @@
+appId: com.mindweavetech.rummyhome
+# Two-device realtime, device A (c1), step 1: sign in and sit on the BREAKP1 scorecard. Device B then
+# adds a round (t1-realtime-add.yaml) and t1-a-expect.yaml checks it arrived here without a tap.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP1
+- takeScreenshot: t1-a-watching

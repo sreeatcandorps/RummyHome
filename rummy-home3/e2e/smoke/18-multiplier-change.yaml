@@ -1,0 +1,100 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# PR 14 Multiplier (X14-10): on game E (1 round saved) Game settings → Multiplier 10 → Save asks
+# "Change the multiplier?" naming the round; Cancel keeps ×1 (no chip); Save → Apply to whole game
+# re-prices the scorecard: the ×10 chip, the Actual points toggle and the Exact points sheet appear.
+# The flow then puts the multiplier back to ×1 so game E reads the same for smoke/13 and full/30, 70.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    id: "game-card-GAMEE1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 15000
+- assertNotVisible:
+    id: "multiplier-chip"
+- tapOn: "Scorecard menu"
+- tapOn: "Game settings"
+- extendedWaitUntil:
+    visible: "Multiplier"
+    timeout: 5000
+- assertVisible:
+    id: "game-settings-multiplier-example"
+- tapOn:
+    id: "game-settings-multiplier"
+- eraseText
+- inputText: "10"
+- hideKeyboard
+- assertVisible: "A 30 is 300 .*"
+- takeScreenshot: 18-game-settings-x10
+- tapOn:
+    id: "game-settings-save"
+- extendedWaitUntil:
+    visible: "Change the multiplier?"
+    timeout: 5000
+- assertVisible: "1 round already played.*"
+- assertVisible: "Apply to whole game"
+- assertVisible: "Start a new game instead"
+- takeScreenshot: 18b-whole-game-confirm
+- tapOn:
+    id: "multiplier-confirm-cancel"
+- assertVisible: "Multiplier"
+- tapOn:
+    id: "game-settings-save"
+- extendedWaitUntil:
+    visible: "Change the multiplier?"
+    timeout: 5000
+- tapOn:
+    id: "multiplier-apply-whole-game"
+- extendedWaitUntil:
+    visible:
+      id: "multiplier-chip"
+    timeout: 15000
+- assertVisible:
+    text: "×10"
+- assertVisible: "Actual points"
+- takeScreenshot: 18c-scorecard-x10
+# The toggle is per phone: Entered points shows the banner; back to Actual hides it.
+- tapOn:
+    id: "actual-toggle"
+- assertVisible: "Entered points"
+- assertVisible:
+    id: "entered-banner"
+- tapOn:
+    id: "actual-toggle"
+- assertVisible: "Actual points"
+- assertNotVisible:
+    id: "entered-banner"
+# The chip opens the Exact points sheet.
+- tapOn:
+    id: "multiplier-chip"
+- extendedWaitUntil:
+    visible: "Exact points"
+    timeout: 5000
+- assertVisible:
+    id: "exact-totals-line"
+- takeScreenshot: 18d-exact-points
+- tapOn: "Done"
+# Back to ×1 so game E is unchanged for the other flows (the Log keeps both lines).
+- tapOn: "Scorecard menu"
+- tapOn: "Game settings"
+- extendedWaitUntil:
+    visible: "Multiplier"
+    timeout: 5000
+- tapOn:
+    id: "game-settings-multiplier"
+- eraseText
+- inputText: "1"
+- hideKeyboard
+- tapOn:
+    id: "game-settings-save"
+- extendedWaitUntil:
+    visible: "Change the multiplier?"
+    timeout: 5000
+- tapOn:
+    id: "multiplier-apply-whole-game"
+- extendedWaitUntil:
+    notVisible:
+      id: "multiplier-chip"
+    timeout: 15000
+- assertVisible: "Add round"

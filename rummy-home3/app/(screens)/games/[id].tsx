@@ -1,48 +1,102 @@
+import { gameLabelOf, screenTitle } from '@/utils/gameLabel';
+import { dealerForRound, nextDealer, rotationStarts } from '@/utils/dealerRotation';
 import React from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
-import { Button, Text, Card, Dialog, Divider, Portal, useTheme } from 'react-native-paper';
-import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import { View, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { Text, Dialog, IconButton, Menu, Portal } from 'react-native-paper';
+import { ShareSheet } from '@/components/share/ShareSheet';
+import { Toast } from '@/components/ui/Toast';
+import { Button } from '@/components/ui/AppButton';
+import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Game } from '@/types/game';
 import { Player } from '@/types/player';
-import { EXPENSE_PLAYER_ID, gamesService } from '@/services/games';
+import { gamesService } from '@/services/games';
+import { archiveService, HoldingResult } from '@/services/archive';
 import { authService } from '@/services/auth';
+import { DELETE_GAME_BODY, DELETE_GAME_TITLE, deleteGameWarning, deletedBody, GAME_DELETED_TITLE, HIDE_GAME_NOTE, restoreGameNote } from '@/utils/archive';
+import { ASKED_TOAST } from '@/utils/deletedGames';
+import { DeletedGameBanner } from '@/components/game/DeletedGameBanner';
 import { isSupabaseConfigured } from '@/services/supabase';
 import { realtimeService } from '@/services/realtime';
-import { radius, spacing } from '@/constants/theme';
-import { formatGameDateTime, gameIdLabel, gameTypeLabel, gameTypeTint } from '@/utils/gameDisplay';
-import { buildPlayerInitials } from '@/utils/playerInitials';
+import { storage } from '@/utils/storage';
+import { PLAYERS_ADMINS_TITLE } from '@/utils/gameAdmins';
+import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
+import { gameTypeLabel } from '@/utils/gameDisplay';
+import { seatLabels } from '@/utils/initials';
+import { scorecardUrl } from '@/utils/shareLink';
+import { canShareResults } from '@/utils/scorecardSheet';
+import { shareLiveScorecard } from '@/utils/shareImage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-
-/** Columns flex to fill the width so even 10 players fit without side-scrolling. */
-const ROUND_COLUMN_FLEX = 1.5;
-const TOTAL_COLUMN_FLEX = 1.2;
-
-const scoreFontSize = (playerCount: number) => {
-  if (playerCount <= 5) return 15;
-  if (playerCount <= 7) return 13;
-  if (playerCount <= 10) return 11;
-  return 10;
-};
+import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
+import { settleEnabled } from '@/constants/features';
+import { HELP } from '@/constants/help';
+import { HelpButton } from '@/components/ui/HelpButton';
+import { useLayout } from '@/hooks/useLayout';
+import { useMenuThenShare } from '@/hooks/useMenuThenShare';
+import { ScoreColumn, ScoreTable } from '@/components/game/ScoreTable';
+import { BottomBar } from '@/components/ui/BottomBar';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { StackedAction } from '@/components/ui/StackedAction';
+import { editableRounds } from '@/utils/editRound';
+import { Tag } from '@/components/ui/Tag';
+import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
+import { SeatingSheet } from '@/components/game/SeatingSheet';
+import { canChangeSeating, SEATING_MENU_ITEM } from '@/utils/seating';
+import { GameIdFooter } from '@/components/game/GameIdFooter';
+import { playersChipLabel, PORTRAIT_STANDINGS_FLEX, PORTRAIT_TABLE_FLEX, portraitPaneHeights } from '@/utils/scorecardLayout';
+import { gameSettingsMenuTitle, rulesFromGame } from '@/utils/gameSettings';
+import { canReopenGame } from '@/utils/gameStatus';
+import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
+import { PoolAwardsCard } from '@/components/game/PoolAwardsCard';
+import { MultiplierChip, ActualToggle, ExactPointsSheet } from '@/components/game/MultiplierStrip';
+import { useActualToggle } from '@/hooks/useActualToggle';
+import { actual, anyShortened, exactLines, pointsGameMultiplier } from '@/utils/multiplier';
+import { newGameDraft } from '@/utils/newGameDraft';
+import { PointsRules } from '@/utils/gameSettings';
+import { isPoolGame, lastPlayerStanding, playersIn, poolLimitOf, poolStandings, poolStatusLabel, poolTotal, reentryBlock, REENTRY_BLOCK_TEXT, seatOf } from '@/utils/pool';
 
 export default function GameScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const theme = useTheme();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
-  const [game, setGame] = useState<Game | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
-  const [showCompleteResult, setShowCompleteResult] = useState(false);
-  const [completing, setCompleting] = useState(false);
+  const theme = useAppTheme();
+  const { colors } = theme;
+  const { isShort, insets, gutterLeft, gutterRight } = useLayout();
+  // Seed from the last-known copy so returning from Add round shows the new row at once; the fresh load follows.
+  const cachedGame = gamesService.peekGame(typeof id === 'string' ? id : null);
+  const cachedSeats = gamesService.peekSeats(typeof id === 'string' ? id : null);
+  const [game, setGame] = useState<Game | null>(cachedGame);
+  // PR 24 portrait pool: the body is measured once and the two panes get explicit heights (70 / 30).
+  const [portraitBody, setPortraitBody] = useState(0);
+  const panes = portraitPaneHeights(portraitBody);
+  const [players, setPlayers] = useState<Player[]>(() => (cachedSeats ?? []).filter((p) => p.seatRole !== 'spectator' && p.seated !== false && p.id !== 'EX'));
+  const [members, setMembers] = useState<Player[]>(cachedSeats ?? []);
+  const [loading, setLoading] = useState(!(cachedGame && cachedSeats));
+  const [showUndoConfirm, setShowUndoConfirm] = useState(false);
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false);
+  const [reopening, setReopening] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [canScore, setCanScore] = useState(true);
+  const [canManage, setCanManage] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [holding, setHolding] = useState<HoldingResult[] | null>(null);
+  const [archiving, setArchiving] = useState(false);
+  const { open: menuOpen, setOpen: setMenuOpen, menuKey, run: afterMenu } = useMenuThenShare();
+  // A04: one share sheet from the header icon (live link · final scores); the ⋮ keeps the game actions.
+  const [shareOpen, setShareOpen] = useState(false);
+  const [gameSettingsOpen, setGameSettingsOpen] = useState(false);
+  const [editRoundOpen, setEditRoundOpen] = useState(false);
+  const [linkNote, setLinkNote] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reentering, setReentering] = useState<string | null>(null);
+  // PR 14: the multiplier view toggle (per phone) and the Exact points sheet.
+  const [showActual, setShowActual] = useActualToggle();
+  const [exactOpen, setExactOpen] = useState(false);
+  // PR 21 / PR 24: the Order of players sheet, any time from the ⋮ menu. The once-per-game pop-up is gone —
+  // a new game sets its order as a step before Start.
+  const [seating, setSeating] = useState(false);
 
-  useEffect(() => {
-    loadGameData();
-  }, [id]);
-
+  // Mount is covered by useFocusEffect below (it fires on focus, which includes the first mount): one load, not two.
   useEffect(() => {
     if (!isSupabaseConfigured || typeof id !== 'string') return;
     const channel = realtimeService.subscribeToGame(id, { onChange: loadGameData });
@@ -62,32 +116,59 @@ export default function GameScreen() {
     if (typeof id !== 'string') return;
 
     try {
-      const [currentGame, gamePlayers] = await Promise.all([
+      const userId = isSupabaseConfigured
+        ? await authService.getCurrentUserId()
+        : await storage.getCurrentPlayer();
+      const [currentGame, gamePlayers] = await withTimeout(Promise.all([
         gamesService.getGame(id),
-        gamesService.listGamePlayers(id)
-      ]);
+        gamesService.listGamePlayers(id),
+      ]), REQUEST_TIMEOUT_MS, 'Couldn’t open this game.');
+      const access = await gamesService.accessFor(id, userId, { game: currentGame, seats: gamePlayers });
+      setUserId(userId);
 
       if (currentGame) {
+        const seated = gamePlayers.filter((player) => player.seatRole !== 'spectator' && player.seated !== false);
         setGame(currentGame);
-        setPlayers(
-          currentGame.settings?.expense
-            ? [...gamePlayers, { id: EXPENSE_PLAYER_ID, name: 'Expenses', role: 'player' } as Player]
-            : gamePlayers,
-        );
+        setCanScore(access.canScore);
+        setCanManage(access.isCreator || access.seatRole === 'game_admin');
+        setLoadError(null);
+        setPlayers(seated.filter((player) => player.id !== 'EX'));
+        setMembers(gamePlayers);
       }
+    } catch (error) {
+      console.error('Error loading game:', error);
+      setLoadError(formatSupabaseError(error));
     } finally {
       setLoading(false);
     }
   };
 
+  const pool = isPoolGame(game);
+
   const getPlayerTotal = (playerId: string): number => {
     if (!game?.scores) return 0;
+    // Pool: a re-entered player's total starts again at their re-entry score (D4).
+    if (pool) return poolTotal(game.scores[playerId], seatOf(game, playerId));
     return Object.values(game.scores[playerId] || []).reduce((sum, score) => sum + score, 0);
+  };
+
+  const reenter = async (playerId: string) => {
+    if (!game) return;
+    setReentering(playerId);
+    try {
+      const next = await gamesService.reenterPlayer(game.id, playerId);
+      if (next) setGame(next);
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    } finally {
+      setReentering(null);
+    }
   };
 
   const getRoundTotal = (roundIndex: number): number => {
     if (!game?.scores) return 0;
-    return Object.values(game.scores).reduce((sum, playerScores) => {
+    return Object.entries(game.scores).reduce((sum, [playerId, playerScores]) => {
+      if (playerId === 'EX') return sum;
       return sum + (playerScores[roundIndex] || 0);
     }, 0);
   };
@@ -97,449 +178,580 @@ export default function GameScreen() {
     return Math.max(...Object.values(game.scores).map(scores => scores.length), 0);
   };
 
-  const handleUndoLastRound = async () => {
+  const handleUndoLastRound = () => {
+    if (!game || getMaxRounds() === 0) return;
+    setShowUndoConfirm(true);
+  };
+
+  const confirmUndoLastRound = async () => {
     if (!game) return;
-
-    const maxRounds = getMaxRounds();
-
-    if (maxRounds > 0) {
-      try {
-        const currentUserId = isSupabaseConfigured
-          ? await authService.getCurrentUserId()
-          : null;
-        const nextGame = await gamesService.undoLastRound(game.id, currentUserId ?? 'local-admin');
-        if (nextGame) setGame(nextGame);
-      } catch (error) {
-        setActionError(formatSupabaseError(error));
-      }
+    setShowUndoConfirm(false);
+    try {
+      const currentUserId = isSupabaseConfigured ? await authService.getCurrentUserId() : null;
+      const nextGame = await gamesService.undoLastRound(game.id, currentUserId ?? 'local-admin');
+      if (nextGame) setGame(nextGame);
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
     }
   };
 
-  const handleCompleteGame = async () => {
+  const confirmReopen = async () => {
     if (!game) return;
-
-    setCompleting(true);
+    setReopening(true);
     try {
-      const updatedGame = await gamesService.completeGame(game.id);
-      if (updatedGame) setGame(updatedGame);
-      setShowCompleteConfirm(false);
-      setShowCompleteResult(true);
+      const nextGame = await gamesService.reopenGame(game.id);
+      if (nextGame) setGame(nextGame);
+      setShowReopenConfirm(false);
     } catch (error) {
-      console.error('Error completing game:', error);
-      setShowCompleteConfirm(false);
+      setShowReopenConfirm(false);
       setActionError(formatSupabaseError(error));
     } finally {
-      setCompleting(false);
+      setReopening(false);
     }
   };
 
-  if (loading || !game || !players.length) {
+  const playingSeats = () => players;
+
+  const openComplete = () => {
+    if (!game) return;
+    router.push({ pathname: '/(screens)/games/complete', params: { id: game.id } });
+  };
+
+  const shareLive = () => afterMenu(async () => {
+    if (!game) return;
+    setLinkNote(null);
+    try {
+      const token = game.viewToken ?? await gamesService.ensureViewToken(game.id);
+      const url = scorecardUrl(token, game.gameNumber);
+      const result = await shareLiveScorecard(url);
+      if (result === 'copied') setLinkNote('Link copied.');
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    }
+  });
+
+  const shareFinalScores = () => {
+    if (!game) return;
+    setMenuOpen(false);
+    router.push({ pathname: '/(screens)/games/final-scores', params: { id: game.id } });
+  };
+
+  const openPlayers = () => {
+    if (!game) return;
+    setMenuOpen(false);
+    router.push({ pathname: '/(screens)/games/players', params: { id: game.id } });
+  };
+
+  const openLog = () => {
+    if (!game) return;
+    setMenuOpen(false);
+    router.push({ pathname: '/(screens)/games/log', params: { id: game.id } });
+  };
+
+  const hideGame = async () => {
+    if (!game) return;
+    setMenuOpen(false);
+    try {
+      await archiveService.hideGame(game.id, userId);
+      setLinkNote(HIDE_GAME_NOTE);
+      setTimeout(() => router.back(), 900);
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    }
+  };
+
+  // The warning names every saved result the game sits in; the list loads while the dialog opens.
+  const openDelete = async () => {
+    if (!game) return;
+    setMenuOpen(false);
+    setHolding(null);
+    setDeleteOpen(true);
+    try {
+      setHolding(await archiveService.resultsHoldingGame(game.id));
+    } catch {
+      setHolding([]);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!game) return;
+    setArchiving(true);
+    try {
+      await archiveService.deleteGame(game.id, userId);
+      setDeleteOpen(false);
+      router.back();
+    } catch (error) {
+      setDeleteOpen(false);
+      setActionError(formatSupabaseError(error));
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const restoreGame = async () => {
+    if (!game) return;
+    setArchiving(true);
+    try {
+      const { removedFromResults } = await archiveService.restoreGame(game.id, userId);
+      setLinkNote(restoreGameNote(removedFromResults.length));
+      setLoading(true);
+      await loadGameData();
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  // 045: a scored player asks the creator and the admins to bring the game back (one ask per person per game).
+  const askRestore = async () => {
+    if (!game) return;
+    setArchiving(true);
+    try {
+      await archiveService.requestRestore(game.id);
+      setLinkNote(ASKED_TOAST);
+      await loadGameData();
+    } catch (error) {
+      setActionError(formatSupabaseError(error));
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <View style={[styles.loading, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" />
-        <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
           Loading game…
         </Text>
       </View>
     );
   }
 
+  // A deleted game from a database before 045 (or one this person may not read in full): the stamp only.
+  // Since 045 the creator, admins and scored players get the whole scorecard read-only, drawn below.
+  if (game?.deletedAt && !(game.deletion && players.length > 0)) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ headerShown: true, title: screenTitle('Scorecard', game) }} />
+        <EmptyState
+          icon="delete-outline"
+          title={GAME_DELETED_TITLE}
+          message={deletedBody('game', Boolean(game.canRestore))}
+          actionLabel={game.canRestore ? 'Restore' : undefined}
+          onAction={game.canRestore ? restoreGame : undefined}
+        />
+        <Portal>
+          <Dialog visible={!!actionError} onDismiss={() => setActionError(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
+            <Dialog.Title style={styles.dialogTitle}>Something went wrong</Dialog.Title>
+            <Dialog.Content><Text variant="bodyMedium" style={styles.dialogBody}>{actionError}</Text></Dialog.Content>
+            <Dialog.Actions style={styles.dialogActions}><Button mode="contained" onPress={() => setActionError(null)}>OK</Button></Dialog.Actions>
+          </Dialog>
+          <Toast message={linkNote} onDismiss={() => setLinkNote(null)} />
+        </Portal>
+      </View>
+    );
+  }
+
+  if (!game || !players.length) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <EmptyState
+          icon="cards-playing-outline"
+          title="Couldn't open this game"
+          message={loadError ?? 'It may have been removed, or the connection dropped. Try again in a moment.'}
+          actionLabel="Try again"
+          onAction={() => {
+            setLoading(true);
+            loadGameData();
+          }}
+        />
+      </View>
+    );
+  }
+
   const maxRounds = getMaxRounds();
-  const tint = gameTypeTint(game.gameType);
+  // 045: a deleted game is read-only for everyone — the banner carries the one action (Ask / Restore game).
+  const deleted = Boolean(game.deletedAt && game.deletion);
+  const canScoreNow = canScore && !deleted;
+  const canManageNow = canManage && !deleted;
 
-  // Landscape has width to spare and little height, so trade padding for rows.
-  const fontSize = isLandscape
-    ? Math.min(15, scoreFontSize(players.length) + 3)
-    : scoreFontSize(players.length);
-  const rowHeight = isLandscape ? 34 : players.length > 7 ? 40 : 44;
+  // Stored seat labels (022) first; a seat without one gets a letter form nobody else in this game has.
+  const labelById = seatLabels(players);
+  const initialsFor = (playerId: string) => labelById.get(playerId) ?? '?';
 
-  const initials = buildPlayerInitials(players.map((player) => player.name));
-  const initialsFor = (playerId: string) => initials[players.findIndex((p) => p.id === playerId)] ?? '?';
+  const seats = players;
+  // 031: the deal follows the actual rotation (stored per round); a player added mid-game lengthens the next rotation.
+  const rotation = { players: seats.map((seat) => seat.id), dealerIds: game.dealerIds };
+  const dealerIdForRound = (roundIndex: number) => dealerForRound(rotation, roundIndex);
+  const nextDealerId = game.isComplete ? undefined : nextDealer(rotation, maxRounds);
+  const rotationStartRounds = rotationStarts(rotation, maxRounds);
 
-  // Expenses never deal, so the rotation only counts real seats.
-  const seats = players.filter((player) => player.id !== EXPENSE_PLAYER_ID);
-  const dealerIdForRound = (roundIndex: number) =>
-    seats.length ? seats[roundIndex % seats.length]?.id : undefined;
-  const nextDealerId = game.isComplete ? undefined : dealerIdForRound(maxRounds);
+  const colorFor = (playerId: string) => seatColor(seats.findIndex((seat) => seat.id === playerId));
 
+  // Points: the highest total leads. Pool: the lowest total among players still in.
+  const inIds = pool ? new Set(playersIn(game)) : null;
   const standings = [...players]
-    .filter((player) => player.id !== EXPENSE_PLAYER_ID)
+    .filter((player) => !inIds || inIds.has(player.id))
     .map((player) => ({ player, total: getPlayerTotal(player.id) }))
-    .sort((a, b) => b.total - a.total);
+    .sort((a, b) => (pool ? a.total - b.total : b.total - a.total));
 
-  const cellStyle = {
-    height: rowHeight,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: theme.colors.outlineVariant,
-    paddingHorizontal: 2,
+  const bestTotal = standings[0]?.total;
+  const hasLeader = maxRounds > 0 && standings.length > 0;
+  const leaderIds = hasLeader ? standings.filter((entry) => entry.total === bestTotal).map((entry) => entry.player.id) : [];
+
+  const columns: ScoreColumn[] = players.map((player) => {
+    const seat = pool ? seatOf(game, player.id) : null;
+    return {
+      id: player.id,
+      label: initialsFor(player.id),
+      color: colorFor(player.id),
+      // Pool header (D5): player number, initials, score; OUT and re-entry marks.
+      ...(seat ? { number: player.playerNo ?? null, outRound: seat.outRound, reenteredRound: seat.reenteredRound, reentryScore: seat.reentryScore } : {}),
+    };
+  });
+
+  const poolRows: PoolStandingRow[] = pool
+    ? poolStandings(game).map((row) => {
+        const player = players.find((p) => p.id === row.playerId);
+        const block = reentryBlock(game, row.playerId);
+        return {
+          ...row,
+          name: player?.name ?? '?',
+          label: initialsFor(row.playerId),
+          number: player?.playerNo ?? null,
+          canReenter: block === null && canScoreNow,
+          reentryHint: block && block !== 'in' ? REENTRY_BLOCK_TEXT[block] : null,
+        };
+      })
+    : [];
+  const poolOver = pool && maxRounds > 0 && !game.isComplete && lastPlayerStanding(game);
+
+  const totals = Object.fromEntries(players.map((player) => [player.id, getPlayerTotal(player.id)]));
+  const roundTotals = Array.from({ length: maxRounds }, (_, roundIndex) => getRoundTotal(roundIndex));
+  const grandTotal = players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0);
+  // PR 14: one multiplier per Points game; the grid shows entered × multiplier while the toggle is on.
+  const multiplier = pool ? 1 : pointsGameMultiplier(game);
+  const exact = exactLines({ players: players.map((p) => ({ id: p.id, name: p.name, label: initialsFor(p.id) })), totals, multiplier });
+  const exactShortened = anyShortened([...Object.values(totals), ...Object.values(game.scores).flat()].map((v) => actual(Number(v) || 0, multiplier)));
+  /** "Start a new game instead" (M22): New game with these players and the new rules prefilled; this game is left as it is. */
+  const startNewGameWith = (rules: PointsRules) => {
+    newGameDraft.set(players.map((p) => ({ id: p.id, name: p.name, playerCode: p.playerCode })));
+    newGameDraft.setRules(rules);
+    router.push('/(screens)/games/new');
   };
 
-  const typeBadge = (
-    <View style={[styles.badge, { backgroundColor: tint.container }]}>
-      <Text variant="labelSmall" style={[styles.badgeText, { color: tint.on }]}>
-        {gameTypeLabel(game.gameType)}
-      </Text>
+  // The 028 label (S14 / P15), never the bare G-number (final batch item 2).
+  const gameLabel = gameLabelOf(game);
+  const numberBadge = gameLabel ? (
+    <View style={[styles.numberBadge, { backgroundColor: theme.gameTypes[game.gameType === 'pool' ? 'pool' : 'stake'].container }]} accessibilityLabel={`Game ${gameLabel}`}>
+      <Text style={[styles.numberText, { color: theme.gameTypes[game.gameType === 'pool' ? 'pool' : 'stake'].on }]}>{gameLabel}</Text>
     </View>
+  ) : null;
+  const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : settleEnabled ? 'cash-multiple' : 'numeric'} />;
+  const awardsLabel = poolStatusLabel(game);
+  const statusTag = deleted ? (
+    <Tag label="Deleted" tone="danger" icon="delete-outline" testID="status-tag" />
+  ) : game.isComplete ? (
+    <Tag label={awardsLabel ?? 'Completed'} tone={awardsLabel === 'Awards pending' ? 'warning' : 'info'} icon={awardsLabel === 'Awarded' ? 'trophy-outline' : 'flag-checkered'} testID="status-tag" />
+  ) : (
+    // Who deals is shown once, as the DEALS badge on that player's column header.
+    <Tag label={`Round ${maxRounds + 1}`} tone="primary" icon="cards-outline" />
   );
 
-  const statusBadge = (
-    <View
-      style={[
-        styles.badge,
-        {
-          backgroundColor: game.isComplete
-            ? theme.colors.surfaceVariant
-            : theme.colors.primaryContainer,
-        },
-      ]}
-    >
-      <Text
-        variant="labelSmall"
-        style={{
-          color: game.isComplete ? theme.colors.onSurfaceVariant : theme.colors.onPrimaryContainer,
-        }}
-      >
-        {game.isComplete
-          ? 'Completed'
-          : nextDealerId
-            ? `Round ${game.currentRound} · ${initialsFor(nextDealerId)} deals`
-            : `Round ${game.currentRound}`}
-      </Text>
-    </View>
+  // PR 24: inside the table card, right under the last round row: creator, admins, unique game id (PR 4).
+  const idFooter = <GameIdFooter game={game} members={members} compact={isShort} />;
+  const playersTag = <Tag label={playersChipLabel(players.length)} icon="account-group-outline" />;
+
+  // Pool (D5): Standings under the grid; on a completed pool the awards block (P19/P30) too.
+  // PR 24: the card no longer scrolls inside itself — portrait gives it its own pane under the
+  // 70% scorecard; landscape puts it in the table's scroller.
+  const poolBelow = pool ? (
+    <>
+      {game.isComplete ? (
+        <PoolAwardsCard
+          game={game}
+          names={Object.fromEntries(players.map((p) => [p.id, p.name]))}
+          labels={Object.fromEntries(players.map((p) => [p.id, initialsFor(p.id)]))}
+          canManage={canManageNow}
+          compact={isShort}
+          onGiveAwards={() => router.push({ pathname: '/(screens)/games/award', params: { id: game.id } })}
+        />
+      ) : null}
+      <PoolStandings
+        rows={poolRows}
+        limit={poolLimitOf(game.settings)}
+        compact={isShort}
+        onReenter={game.isComplete || deleted ? undefined : reenter}
+        busyId={reentering}
+        scroll={false}
+      />
+    </>
+  ) : null;
+
+  const openEditRound = (roundNumber: number) => {
+    setEditRoundOpen(false);
+    router.push({ pathname: '/(screens)/score-entry', params: { gameId: game.id, round: String(roundNumber) } });
+  };
+
+  const table = (
+    <ScoreTable
+      columns={columns}
+      scores={game.scores}
+      roundCount={maxRounds}
+      totals={totals}
+      roundTotals={roundTotals}
+      grandTotal={grandTotal}
+      dealerLabelForRound={(roundIndex) => {
+        const dealerId = dealerIdForRound(roundIndex);
+        return dealerId ? initialsFor(dealerId) : undefined;
+      }}
+      nextDealerId={nextDealerId}
+      rotationStarts={rotationStartRounds}
+      leaderIds={leaderIds}
+      compact={isShort}
+      fullCount={game.settings?.maxCount}
+      pool={pool}
+      multiplier={multiplier}
+      showActual={showActual}
+      onTotalPress={pool ? undefined : () => setExactOpen(true)}
+      emptyMessage={game.isComplete ? 'This game was closed with no rounds.' : 'No rounds yet. Tap Add round to score the first hand.'}
+      footer={idFooter}
+      // PR 24: a tap on a round number edits that round (the re-entry round too); the menu's Edit round stays.
+      onRoundPress={canScoreNow && !game.isComplete && !deleted ? openEditRound : undefined}
+      // Landscape pool (PR 24): the table keeps the full width (8+ players on one screen) and the
+      // standings follow the last round row in the same scroller — never side by side.
+      below={isShort ? poolBelow : undefined}
+    />
   );
 
-  const startedOn = formatGameDateTime(game.date);
+  const openScoreEntry = () =>
+    router.push({
+      pathname: '/(screens)/score-entry',
+      params: { gameId: game.id },
+    });
+
+  const barHeight = isShort ? 44 : 52;
+
+  // Undo and Complete are outlined; Add round is the everyday tap, so it is the one filled green
+  // button in the bar and the widest. Complete keeps its flag so it still reads as "end the game".
+  const undoButton = (
+    <StackedAction
+      icon="undo-variant"
+      label="Undo"
+      onPress={handleUndoLastRound}
+      disabled={maxRounds === 0}
+      height={barHeight}
+      accessibilityLabel="Undo round"
+    />
+  );
+
+  const completeButton = (
+    <StackedAction
+      icon="flag-checkered"
+      label="Complete"
+      onPress={openComplete}
+      height={barHeight}
+      style={styles.completeAction}
+      filled={poolOver}
+      emphasis={poolOver}
+      accessibilityLabel="Complete game"
+    />
+  );
+
+  const addRoundButton = (
+    <StackedAction
+      icon="plus"
+      label="Add round"
+      onPress={openScoreEntry}
+      height={barHeight}
+      filled
+      emphasis
+      style={styles.addRound}
+      accessibilityLabel="Add round"
+    />
+  );
+
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {isLandscape ? (
-        <View style={styles.compactInfo}>
-          <Text variant="bodyMedium" numberOfLines={1} style={styles.compactInfoText}>
-            Game started on {startedOn}
-          </Text>
-          {typeBadge}
-          {statusBadge}
-          <Text variant="bodySmall" numberOfLines={1} style={{ color: theme.colors.onSurfaceVariant }}>
-            Game ID {gameIdLabel(game)}
-          </Text>
-        </View>
-      ) : (
-        <Card mode="contained" style={[styles.infoCard, { backgroundColor: theme.colors.elevation.level2 }]}>
-          <Card.Content style={styles.infoContent}>
-            <View>
-              <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                Game started on
-              </Text>
-              <Text variant="titleMedium" style={styles.infoTitle} numberOfLines={1}>
-                {startedOn}
-              </Text>
-            </View>
-
-            <View style={styles.metaRow}>
-              {typeBadge}
-              {statusBadge}
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                Game ID {gameIdLabel(game)}
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
-      )}
-
-      {/* A plain View, not a Card: Paper wraps card children in a flexShrink-only
-          container, which collapses the scrollable table to zero height. */}
-      <View
-        style={[
-          styles.tableCard,
-          { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant },
-        ]}
-      >
-        {/* Rendered above the ScrollView rather than as a sticky child: RN moves a
-            sticky header's style onto its own wrapper and replaces the child style
-            with flex:1, which drops flexDirection and stacks the columns. */}
-        <View style={[styles.row, { backgroundColor: theme.colors.surfaceVariant }]}>
-          <View style={[cellStyle, { flex: ROUND_COLUMN_FLEX }]}>
-            <Text
-              numberOfLines={1}
-              style={[styles.headerText, { fontSize: fontSize - 2, color: theme.colors.onSurfaceVariant }]}
-            >
-              Rd
-            </Text>
-          </View>
-          <View style={[cellStyle, { flex: TOTAL_COLUMN_FLEX }]}>
-            <Text
-              numberOfLines={1}
-              style={[styles.headerText, { fontSize: fontSize - 2, color: theme.colors.onSurfaceVariant }]}
-            >
-              Tot
-            </Text>
-          </View>
-          {players.map((player, index) => {
-            const dealsNext = player.id === nextDealerId;
-
-            return (
-              <View
-                key={player.id}
-                style={[
-                  cellStyle,
-                  { flex: 1 },
-                  dealsNext && { backgroundColor: theme.colors.primary },
-                ]}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: screenTitle('Scorecard', game),
+          headerStyle: { backgroundColor: colors.background },
+          headerRight: () => (
+            <View style={styles.headerActions}>
+              {deleted ? null : <IconButton icon="share-variant" size={22} onPress={() => setShareOpen(true)} accessibilityLabel="Share" testID="scorecard-share-icon" />}
+              <HelpButton text={HELP.scorecard} />
+              <Menu
+                key={menuKey}
+                visible={menuOpen}
+                onDismiss={() => setMenuOpen(false)}
+                anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu"> </Button>}
               >
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.headerText,
-                    {
-                      fontSize: fontSize - 2,
-                      color: dealsNext ? theme.colors.onPrimary : theme.colors.onSurfaceVariant,
-                    },
-                  ]}
-                >
-                  {initials[index]}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-
-        <ScrollView style={styles.tableScroll} showsVerticalScrollIndicator={false}>
-          {maxRounds === 0 ? (
-            <View style={styles.emptyTable}>
-              <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                No rounds yet. Tap Add Round to score the first hand.
-              </Text>
+                <Menu.Item leadingIcon={pool && maxRounds > 0 ? 'lock-outline' : 'cog-outline'} onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title={gameSettingsMenuTitle(pool, maxRounds)} testID="game-menu-settings" />
+                {deleted ? null : <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title={PLAYERS_ADMINS_TITLE} />}
+                {canChangeSeating(game, canScoreNow) ? (
+                  <Menu.Item leadingIcon="seat-outline" title={SEATING_MENU_ITEM} onPress={() => { setMenuOpen(false); setSeating(true); }} testID="game-menu-seating" />
+                ) : null}
+                {canScoreNow && !game.isComplete ? (
+                  <Menu.Item leadingIcon="pencil-outline" title="Edit round" disabled={maxRounds === 0} onPress={() => { setMenuOpen(false); setEditRoundOpen(true); }} />
+                ) : null}
+                {canScoreNow && canReopenGame(game) ? (
+                  <Menu.Item leadingIcon="lock-open-variant-outline" title="Reopen game" onPress={() => { setMenuOpen(false); setShowReopenConfirm(true); }} />
+                ) : null}
+                <Menu.Item leadingIcon="history" onPress={openLog} title="Log" testID="game-menu-log" />
+                {deleted ? null : <Menu.Item leadingIcon="eye-off-outline" onPress={hideGame} title="Hide game" />}
+                {canManageNow ? (
+                  <Menu.Item leadingIcon="delete-outline" onPress={openDelete} title="Delete game" titleStyle={{ color: colors.error }} />
+                ) : null}
+              </Menu>
             </View>
-          ) : (
-            Array.from({ length: maxRounds }, (_, roundIndex) => {
-              const roundNumber = roundIndex + 1;
-              const roundTotal = getRoundTotal(roundIndex);
-              const dealerId = dealerIdForRound(roundIndex);
-              const dealer = dealerId ? initialsFor(dealerId) : '';
+          ),
+        }}
+      />
 
-              return (
-                <View
-                  key={roundIndex}
-                  style={[
-                    styles.row,
-                    {
-                      backgroundColor: theme.colors.surface,
-                      borderBottomWidth: StyleSheet.hairlineWidth,
-                      borderBottomColor: theme.colors.outlineVariant,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      cellStyle,
-                      { flex: ROUND_COLUMN_FLEX, backgroundColor: theme.colors.elevation.level1 },
-                    ]}
-                  >
-                    <Text style={[styles.roundText, { fontSize, color: theme.colors.onSurface }]}>
-                      {roundNumber}
-                    </Text>
-                    {dealer ? (
-                      <Text
-                        numberOfLines={1}
-                        style={{ fontSize: fontSize - 4, color: theme.colors.onSurfaceVariant }}
-                      >
-                        D: {dealer}
-                      </Text>
-                    ) : null}
-                  </View>
-
-                  <View
-                    style={[
-                      cellStyle,
-                      { flex: TOTAL_COLUMN_FLEX, backgroundColor: theme.colors.elevation.level1 },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.totalText,
-                        { fontSize, color: roundTotal === 0 ? theme.colors.onSurfaceVariant : theme.colors.error },
-                      ]}
-                    >
-                      {roundTotal}
-                    </Text>
-                  </View>
-
-                  {players.map((player) => {
-                    const score = game.scores[player.id]?.[roundIndex] || 0;
-                    return (
-                      <View key={player.id} style={[cellStyle, { flex: 1 }]}>
-                        <Text
-                          numberOfLines={1}
-                          style={[
-                            styles.scoreText,
-                            { fontSize, color: theme.colors.onSurfaceVariant },
-                            score > 0 && { color: theme.colors.primary, fontWeight: '700' },
-                          ]}
-                        >
-                          {score !== 0 ? score : '–'}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              );
-            })
-          )}
-        </ScrollView>
-
-        <View
-          style={[
-            styles.row,
-            styles.totalsRow,
-            {
-              backgroundColor: theme.colors.secondaryContainer,
-              borderTopColor: theme.colors.outline,
-            },
-          ]}
-        >
-          <View style={[cellStyle, { flex: ROUND_COLUMN_FLEX }]}>
-            <Text style={[styles.headerText, { fontSize: fontSize - 2, color: theme.colors.onSecondaryContainer }]}>
-              TOTAL
-            </Text>
-          </View>
-          <View style={[cellStyle, { flex: TOTAL_COLUMN_FLEX }]}>
-            <Text style={[styles.totalText, { fontSize, color: theme.colors.onSecondaryContainer }]}>
-              {players.reduce((sum, player) => sum + getPlayerTotal(player.id), 0)}
-            </Text>
-          </View>
-          {players.map((player) => {
-            const total = getPlayerTotal(player.id);
-            return (
-              <View key={player.id} style={[cellStyle, { flex: 1 }]}>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.totalText, { fontSize, color: theme.colors.onSecondaryContainer }]}
-                >
-                  {total}
-                </Text>
-              </View>
-            );
-          })}
+      <View style={[styles.infoStrip, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
+        {deleted && game.deletion ? (
+          <DeletedGameBanner deletion={game.deletion} viewerId={userId} busy={archiving} onAsk={askRestore} onRestore={restoreGame} />
+        ) : null}
+        <View style={styles.metaRow}>
+          {numberBadge}
+          {typeTag}
+          {playersTag}
+          {statusTag}
+          <MultiplierChip multiplier={multiplier} onPress={() => setExactOpen(true)} testID="multiplier-chip" />
+          {!canScoreNow && !game.isComplete && !deleted ? <Tag label="View only" icon="eye-outline" /> : null}
         </View>
+        <ActualToggle multiplier={multiplier} on={showActual} onChange={setShowActual} />
+        {game.isComplete && !deleted ? (
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+            {pool ? (game.awardedAt ? 'Completed and awarded.' : 'Completed. Give awards to add this pool to a result.') : 'Completed.'}
+          </Text>
+        ) : poolOver ? (
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="pool-over-hint">
+            One player is left in. Complete the pool, or re-enter someone below.
+          </Text>
+        ) : null}
       </View>
 
-      {!game.isComplete && (
-        <View style={isLandscape ? styles.actionBarCompact : styles.actionBar}>
-          <View style={styles.actionBarInner}>
-            <Button
-              mode="outlined"
-              onPress={handleUndoLastRound}
-              disabled={maxRounds === 0}
-              style={styles.sideAction}
-              contentStyle={isLandscape ? styles.actionContentCompact : styles.sideActionContent}
-              labelStyle={styles.sideActionLabel}
-            >
-              Undo Round
-            </Button>
-
-            <Button
-              mode="contained"
-              onPress={() => router.push({
-                pathname: '/(screens)/score-entry',
-                params: { gameId: game.id }
-              })}
-              icon="plus"
-              style={styles.primaryAction}
-              contentStyle={isLandscape ? styles.actionContentCompact : styles.primaryActionContent}
-              labelStyle={styles.primaryActionLabel}
-            >
-              Add Round
-            </Button>
-
-            <Button
-              mode="outlined"
-              onPress={() => setShowCompleteConfirm(true)}
-              style={styles.sideAction}
-              contentStyle={isLandscape ? styles.actionContentCompact : styles.sideActionContent}
-              labelStyle={styles.sideActionLabel}
-            >
-              Complete Game
-            </Button>
+      {isShort ? (
+        <View
+          style={[
+            styles.landscapeBody,
+            { paddingLeft: gutterLeft, paddingRight: gutterRight },
+          ]}
+        >
+          {table}
+        </View>
+      ) : (
+        <View
+          style={[
+            styles.portraitTable,
+            { paddingLeft: insets.left + spacing.sm, paddingRight: insets.right + spacing.sm },
+            (game.isComplete || !canScoreNow) && { paddingBottom: insets.bottom + spacing.md },
+          ]}
+        >
+          {/* PR 24: portrait pool — scorecard about 70%, standings about 30%, each scrolling on its own. */}
+          <View style={pool ? styles.portraitPanes : styles.flex} onLayout={pool ? (e) => setPortraitBody(Math.round(e.nativeEvent.layout.height)) : undefined}>
+            <View style={pool ? (panes.table ? { height: panes.table } : styles.portraitTablePane) : styles.flex} testID={pool ? 'pool-table-pane' : undefined}>{table}</View>
+            {pool ? (
+              <ScrollView style={panes.standings ? { height: panes.standings, flexGrow: 0 } : styles.portraitStandingsPane} contentContainerStyle={styles.portraitStandingsContent} showsVerticalScrollIndicator testID="pool-standings-pane">
+                {poolBelow}
+              </ScrollView>
+            ) : null}
           </View>
         </View>
       )}
+      {!game.isComplete && canScoreNow ? (
+        <BottomBar fullWidth>
+          {undoButton}
+          {addRoundButton}
+          {completeButton}
+        </BottomBar>
+      ) : null}
 
       <Portal>
+        <Dialog visible={editRoundOpen} onDismiss={() => setEditRoundOpen(false)} style={styles.dialog}>
+          <Dialog.Title>Edit which round?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+              The round opens in Add round with its scores filled in. Save changes to replace it.
+            </Text>
+            <View style={styles.roundPicker}>
+              {editableRounds(game.scores).map((n) => (
+                <Button
+                  key={n}
+                  mode={n === maxRounds ? 'contained' : 'outlined'}
+                  compact
+                  onPress={() => openEditRound(n)}
+                  style={styles.roundChip}
+                  accessibilityLabel={`Edit round ${n}`}
+                >
+                  {`Round ${n}`}
+                </Button>
+              ))}
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setEditRoundOpen(false)}>Cancel</Button>
+          </Dialog.Actions>
+        </Dialog>
         <Dialog
-          visible={showCompleteConfirm}
-          onDismiss={() => setShowCompleteConfirm(false)}
-          style={styles.dialog}
+          visible={showUndoConfirm}
+          onDismiss={() => setShowUndoConfirm(false)}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
         >
-          <Dialog.Icon icon="flag-checkered" />
-          <Dialog.Title style={styles.dialogTitle}>Complete this game?</Dialog.Title>
+          <Dialog.Title>Remove the last round?</Dialog.Title>
+          <Dialog.Actions>
+            <Button onPress={() => setShowUndoConfirm(false)}>Cancel</Button>
+            <Button mode="contained" onPress={confirmUndoLastRound}>Remove</Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog
+          visible={deleteOpen}
+          onDismiss={() => archiving || setDeleteOpen(false)}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
+        >
+          <Dialog.Title>{DELETE_GAME_TITLE}</Dialog.Title>
           <Dialog.Content style={styles.dialogContent}>
-            <Text variant="bodyMedium" style={styles.dialogBody}>
-              {maxRounds === 0
-                ? 'No rounds have been scored yet. You can still close the game, but it will have no results.'
-                : `${maxRounds} ${maxRounds === 1 ? 'round' : 'rounds'} will be locked in and no more rounds can be added.`}
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>{DELETE_GAME_BODY}</Text>
+            {holding === null ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : deleteGameWarning(holding) ? (
+              <View style={[styles.warning, { backgroundColor: colors.errorContainer }]}>
+                <Text variant="bodyMedium" style={{ color: colors.onErrorContainer, fontWeight: '700' }}>{deleteGameWarning(holding)}</Text>
+              </View>
+            ) : null}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteOpen(false)} disabled={archiving}>Cancel</Button>
+            <Button mode="contained" buttonColor={colors.error} textColor={colors.onError} onPress={confirmDelete} loading={archiving} disabled={archiving || holding === null}>Delete</Button>
+          </Dialog.Actions>
+        </Dialog>
+        <Dialog
+          visible={showReopenConfirm}
+          onDismiss={() => reopening || setShowReopenConfirm(false)}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
+        >
+          <Dialog.Title>Reopen this game?</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+              It goes back to Active so rounds can be added or edited. Scores stay as they are. Use this when Complete game was pressed too early.
             </Text>
           </Dialog.Content>
-          <Dialog.Actions style={styles.dialogActions}>
-            <Button onPress={() => setShowCompleteConfirm(false)}>Keep playing</Button>
-            <Button
-              mode="contained"
-              onPress={handleCompleteGame}
-              loading={completing}
-              disabled={completing}
-            >
-              Complete game
-            </Button>
+          <Dialog.Actions>
+            <Button onPress={() => setShowReopenConfirm(false)} disabled={reopening}>Cancel</Button>
+            <Button mode="contained" onPress={confirmReopen} loading={reopening} disabled={reopening}>Reopen</Button>
           </Dialog.Actions>
         </Dialog>
-
         <Dialog
-          visible={showCompleteResult}
-          onDismiss={() => setShowCompleteResult(false)}
-          style={styles.dialog}
+          visible={!!actionError}
+          onDismiss={() => setActionError(null)}
+          style={[styles.dialog, { backgroundColor: colors.surface }]}
         >
-          <Dialog.Icon icon="trophy-outline" />
-          <Dialog.Title style={styles.dialogTitle}>Game complete</Dialog.Title>
-          <Dialog.Content style={styles.dialogContent}>
-            {standings.length > 0 ? (
-              <View style={styles.standings}>
-                {standings.map((entry, index) => (
-                  <View key={entry.player.id}>
-                    {index > 0 ? <Divider /> : null}
-                    <View style={styles.standingRow}>
-                      <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-                        {index + 1}
-                      </Text>
-                      <Text variant="bodyLarge" style={styles.standingName} numberOfLines={1}>
-                        {entry.player.name}
-                      </Text>
-                      <Text
-                        variant="titleMedium"
-                        style={{
-                          color: entry.total > 0 ? theme.colors.primary : theme.colors.onSurfaceVariant,
-                          fontWeight: '700',
-                        }}
-                      >
-                        {entry.total}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : (
-              <Text variant="bodyMedium">This game was closed with no scores.</Text>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions style={styles.dialogActions}>
-            <Button onPress={() => setShowCompleteResult(false)}>Stay here</Button>
-            <Button mode="contained" onPress={() => { setShowCompleteResult(false); router.back(); }}>
-              Done
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-
-        <Dialog visible={!!actionError} onDismiss={() => setActionError(null)} style={styles.dialog}>
           <Dialog.Icon icon="alert-circle-outline" />
           <Dialog.Title style={styles.dialogTitle}>Something went wrong</Dialog.Title>
           <Dialog.Content>
@@ -548,12 +760,59 @@ export default function GameScreen() {
             </Text>
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
-            <Button mode="contained" onPress={() => setActionError(null)}>
-              Got it
+            <Button mode="contained" onPress={() => setActionError(null)} contentStyle={styles.dialogButtonContent}>
+              OK
             </Button>
           </Dialog.Actions>
         </Dialog>
+
+        <Toast message={linkNote} onDismiss={() => setLinkNote(null)} aboveBar />
+        <ShareSheet
+          visible={shareOpen}
+          onDismiss={() => setShareOpen(false)}
+          options={[
+            { key: 'live', icon: 'link-variant', label: 'Live scorecard link', detail: 'Anyone with the link watches the scores update.', onPress: shareLive, testID: 'share-live-link' },
+            ...(canShareResults(game.isComplete)
+              ? [{ key: 'final', icon: 'image', label: 'Share final scores', detail: 'The standings picture, or the full details as a PDF.', onPress: shareFinalScores, testID: 'share-final-scores-option' }]
+              : []),
+          ]}
+        />
       </Portal>
+      <ExactPointsSheet
+        visible={exactOpen}
+        multiplier={multiplier}
+        lines={exact}
+        sum={actual(grandTotal, multiplier)}
+        shortened={exactShortened}
+        onDismiss={() => setExactOpen(false)}
+        onSharePdf={() => { setExactOpen(false); shareFinalScores(); }}
+      />
+      <SeatingSheet
+        visible={seating}
+        players={seats.map((seat) => ({ id: seat.id, name: seat.name, label: initialsFor(seat.id), playerCode: seat.playerCode, out: pool && Boolean(seatOf(game, seat.id)?.outRound), reentered: pool && Boolean(seatOf(game, seat.id)?.reenteredRound) }))}
+        pool={pool}
+        dealerIds={game.dealerIds}
+        roundCount={maxRounds}
+        onDismiss={() => setSeating(false)}
+        onSave={async (order) => {
+          const updated = await gamesService.setSeatingOrder(game.id, order);
+          if (updated) setGame(updated);
+          await loadGameData();
+        }}
+      />
+      <GameSettingsDialog
+        visible={gameSettingsOpen}
+        rules={rulesFromGame(game.settings, game.gameType)}
+        readOnly={!canScoreNow}
+        lockValues={pool && maxRounds > 0}
+        roundCount={maxRounds}
+        onStartNewGame={canScoreNow && !pool ? startNewGameWith : undefined}
+        onDismiss={() => setGameSettingsOpen(false)}
+        onSave={async (rules) => {
+          const updated = await gamesService.updateGameRules(game.id, rules);
+          if (updated) setGame(updated);
+        }}
+      />
     </View>
   );
 }
@@ -562,158 +821,113 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loading: {
+  flex: {
+    flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
+    padding: spacing.xl,
   },
-  infoCard: {
-    margin: spacing.md,
-    marginBottom: spacing.sm,
-    borderRadius: radius.md,
+  headerTitle: {
+    fontWeight: '800',
   },
-  compactInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  infoStrip: {
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
-  },
-  compactInfoText: {
-    fontWeight: '700',
-    marginRight: spacing.xs,
-  },
-  infoContent: {
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  infoTitle: {
-    fontWeight: '700',
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    // Four tags (P15 · Pool · Round 17 · View only) wrap on a narrow phone instead of being cut to "Po…".
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm,
-  },
-  badgeText: {
-    fontWeight: '700',
-  },
-  tableCard: {
-    flex: 1,
-    marginHorizontal: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  tableScroll: {
-    flex: 1,
-  },
-  row: {
+  compactTopBar: {
     flexDirection: 'row',
-  },
-  totalsRow: {
-    borderTopWidth: 2,
-  },
-  emptyTable: {
-    padding: spacing.xl,
     alignItems: 'center',
+    gap: spacing.sm,
+    paddingBottom: spacing.xs,
   },
-  headerText: {
-    fontWeight: '700',
-    textAlign: 'center',
+  backButton: {
+    margin: 0,
   },
-  roundText: {
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  scoreText: {
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  totalText: {
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  // Floats clear of the rounded bottom edge instead of sitting flush against it.
-  actionBar: {
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  actionBarCompact: {
-    paddingTop: spacing.sm,
+  portraitTable: {
+    flex: 1,
     paddingBottom: spacing.sm,
   },
-  actionContentCompact: {
-    height: 40,
-  },
-  actionBarInner: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  primaryAction: {
-    flex: 1.4,
-    borderRadius: radius.full,
-  },
-  primaryActionContent: {
-    height: 52,
-  },
-  primaryActionLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginHorizontal: spacing.xs,
-  },
-  sideAction: {
+  portraitPanes: {
     flex: 1,
-    borderRadius: radius.full,
+  },
+  portraitTablePane: {
+    flex: PORTRAIT_TABLE_FLEX,
+  },
+  portraitStandingsPane: {
+    flex: PORTRAIT_STANDINGS_FLEX,
+  },
+  portraitStandingsContent: {
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+  },
+  landscapeBody: {
+    flex: 1,
+  },
+  completeAction: {
+    flex: 1.25,
+  },
+  addRound: {
+    flex: 1.45,
+  },
+  numberBadge: {
+    minWidth: 48,
+    height: 32,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  sideActionContent: {
-    height: 52,
+  numberText: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
-  sideActionLabel: {
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: 'center',
-    marginHorizontal: spacing.xs,
-    marginVertical: 0,
-  },
+  roundPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  warning: { padding: spacing.md, borderRadius: radius.md },
+  roundChip: { minWidth: 96 },
   dialog: {
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
+    maxWidth: 480,
+    width: '90%',
+    alignSelf: 'center',
   },
   dialogTitle: {
     textAlign: 'center',
+    fontWeight: '700',
   },
   dialogContent: {
     gap: spacing.md,
   },
   dialogBody: {
     lineHeight: 20,
+    textAlign: 'center',
   },
   dialogActions: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     gap: spacing.sm,
   },
-  standings: {
-    gap: spacing.xs,
+  dialogButtonContent: {
+    paddingHorizontal: spacing.sm,
   },
-  standingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  standingName: {
-    flex: 1,
+  prizeInput: {
+    width: 96,
+    backgroundColor: 'transparent',
   },
 });

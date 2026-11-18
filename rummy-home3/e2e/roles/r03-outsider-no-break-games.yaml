@@ -1,0 +1,19 @@
+appId: com.mindweavetech.rummyhome
+tags: [roles]
+# R16-3 A registered user in no game (o1) sees an empty home: none of the BREAK games leak through RLS.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: o1@test.local
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000
+- assertNotVisible:
+    id: "game-card-BREAKP1"
+- assertNotVisible:
+    id: "game-card-BREAKQ1"
+- assertNotVisible:
+    id: "game-card-BREAKP2"
+- assertNotVisible: "Chandra Creator"
+- takeScreenshot: r03-outsider-home

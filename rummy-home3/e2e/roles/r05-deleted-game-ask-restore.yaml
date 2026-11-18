@@ -1,0 +1,89 @@
+appId: com.mindweavetech.rummyhome
+tags: [roles]
+# X20-7 (PR 20 Going rogue, migration 045): a1 (admin on BREAKP1) deletes the game → p01 (scored
+# player) finds it on Home under Deleted games, opens it read-only (red banner, no Add round), taps
+# "Ask an admin to restore" and the button turns into "Asked · …" → c1 (creator) sees "Player One asked
+# to restore it" on Home and taps Restore game → the card is back on Home. The flow ends with BREAKP1
+# restored, so the roles flows after it find the game where seed-break.sql put it.
+---
+# 1. the admin deletes the game
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: a1@test.local
+- runFlow:
+    file: ../lib/open-break-game.yaml
+    env:
+      CODE: BREAKP1
+- tapOn: "Scorecard menu"
+- tapOn: "Delete game"
+- extendedWaitUntil:
+    visible: "Delete this game?"
+    timeout: 10000
+- assertVisible: "Nothing is lost for 30 days.*"
+- takeScreenshot: r05-delete-confirm-30-days
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000
+
+# 2. the scored player finds it, opens it read-only, asks
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: p01@test.local
+# scroll to the Ask button at the foot of the card so the whole card is on screen, not just its title
+- scrollUntilVisible:
+    element:
+      id: "deleted-game-ask-00000000-0000-4000-8000-00000000b001"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Deleted games.*"
+- assertVisible: "Deleted by Arun Admin.*hidden for good on .*"
+- assertVisible: "Ask an admin to restore"
+- takeScreenshot: r05-home-deleted-games-player
+- tapOn:
+    id: "deleted-game-00000000-0000-4000-8000-00000000b001"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertVisible: "This game was deleted"
+- assertVisible: "Read-only.*"
+- assertNotVisible: "Add round"
+- assertNotVisible: "Undo round"
+- takeScreenshot: r05-deleted-game-read-only
+- tapOn:
+    id: "deleted-game-ask"
+- extendedWaitUntil:
+    visible: "Asked · .*"
+    timeout: 15000
+- assertVisible: "You asked to restore it"
+- takeScreenshot: r05-deleted-game-asked
+- back
+
+# 3. the creator sees the ask and restores
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: c1@test.local
+- scrollUntilVisible:
+    element:
+      id: "deleted-game-restore-00000000-0000-4000-8000-00000000b001"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Player One asked to restore it"
+- takeScreenshot: r05-home-deleted-games-admin
+- tapOn:
+    id: "deleted-game-restore-00000000-0000-4000-8000-00000000b001"
+- extendedWaitUntil:
+    visible: "Game restored.*"
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: "Deleted games.*"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "game-card-BREAKP1"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: r05-home-restored

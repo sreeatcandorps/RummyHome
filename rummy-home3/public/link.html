@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>EZ Score · Link a player to your account</title>
+  <style>
+    body { margin: 0; font-family: "Segoe UI", sans-serif; background: #FBF1E1; color: #1B1F1C; }
+    header { background: #17402F; color: #FBF1E1; padding: 16px 18px 14px; }
+    header h1 { margin: 0; font-size: 22px; }
+    main { padding: 20px; max-width: 520px; margin: 0 auto; }
+    section { background: #fff; border-radius: 12px; padding: 16px; }
+    button { background: #17402F; color: #FBF1E1; border: 0; border-radius: 8px; padding: 10px 16px; font-size: 15px; cursor: pointer; margin: 6px 8px 0 0; }
+    button.alt { background: #E7E0D4; color: #1B1F1C; }
+    button:disabled { opacity: .6; cursor: default; }
+    .note { color: #5A5F5B; font-size: 13px; margin-top: 12px; }
+    .warn { background: #FDECEA; color: #7A1C14; border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header><h1>EZ Score: Link a player</h1></header>
+  <main>
+    <section>
+      <p id="text">Loading…</p>
+      <div id="warn" class="warn" hidden></div>
+      <div id="actions"></div>
+      <p class="note">Nothing moves until you tap Yes. You can also answer on the Home screen of the app.</p>
+    </section>
+  </main>
+  <script>
+    // Filled in at deploy (scripts/inject-scorecard-config.mjs). Never commit a real key.
+    const PROJECT = '__SUPABASE_URL__';
+    const ANON_KEY = '__SUPABASE_ANON_KEY__';
+    const params = new URLSearchParams(location.search);
+    const token = params.get('t') || '';
+    const answer = params.get('a') === 'no' ? 'no' : 'yes';
+    const textEl = document.getElementById('text');
+    const warnEl = document.getElementById('warn');
+    const actions = document.getElementById('actions');
+
+    function injected(value) { return typeof value === 'string' && value.length > 0 && value.indexOf('__') === -1; }
+
+    async function rpc(name, body) {
+      const response = await fetch(PROJECT.replace(/\/$/, '') + '/rest/v1/rpc/' + name, {
+        method: 'POST',
+        headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return response.json();
+    }
+
+    function label(req) { return req.playerName + (req.playerInitials ? ' (' + req.playerInitials + ')' : ''); }
+
+    async function respond(accept) {
+      Array.from(actions.querySelectorAll('button')).forEach((b) => { b.disabled = true; });
+      const result = await rpc('answer_link_request_by_token', { p_token: token, p_accept: accept });
+      actions.innerHTML = '';
+      warnEl.hidden = true;
+      if (!result || result.ok !== true) {
+        textEl.textContent = (result && result.message) || 'This link is not valid any more.';
+        return;
+      }
+      textEl.textContent = accept
+        ? 'Done. ' + result.playerName + ' is now linked to your account. Their scores show under your name in the app.'
+        : 'Okay. Nothing was moved. ' + result.playerName + ' stays unregistered with the organiser.';
+    }
+
+    async function show() {
+      if (!token || !injected(PROJECT) || !injected(ANON_KEY)) { textEl.textContent = 'This link is not valid.'; return; }
+      const req = await rpc('peek_link_request', { p_token: token });
+      if (!req) { textEl.textContent = 'This link was already used, cancelled or has expired.'; return; }
+      const games = Array.isArray(req.gameLabels) && req.gameLabels.length ? ' (' + req.gameLabels.join(', ') + ')' : '';
+      textEl.textContent = req.requesterName + ' asked to link their player "' + label(req) + '" to your Player ID #' + req.playerNo
+        + '. Yes moves ' + req.playerName + "'s seats and scores" + games + ' to your account.';
+      if (req.conflictMessage) { warnEl.textContent = req.conflictMessage; warnEl.hidden = false; }
+      const yes = document.createElement('button'); yes.textContent = 'Yes, that is me'; yes.onclick = () => respond(true);
+      const no = document.createElement('button'); no.className = 'alt'; no.textContent = 'No'; no.onclick = () => respond(false);
+      if (answer === 'no') { actions.appendChild(no); actions.appendChild(yes); } else { actions.appendChild(yes); actions.appendChild(no); }
+      if (req.conflictMessage) yes.disabled = true;
+    }
+    show().catch(() => { textEl.textContent = 'Could not load this request. Try again in a moment.'; });
+  </script>
+</body>
+</html>

@@ -1,0 +1,425 @@
+Pager usage is off.
+Timing is off.
+SELECT 1
+SELECT 1
+GRANT
+                                                set_config                                                 
+-----------------------------------------------------------------------------------------------------------
+ {"sub" : "52ede447-570e-42da-9837-c1e9ee5a5a68", "email" : "user1@example.com", "role" : "authenticated"}
+(1 row)
+
+SET
+################ HOME: list_visible_game_ids()
+                                                        QUERY PLAN                                                        
+--------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_visible_game_ids  (cost=0.25..10.25 rows=1000 width=16) (actual time=1.537..1.542 rows=74 loops=1)
+   Buffers: shared hit=407 read=10
+ Planning Time: 0.016 ms
+ Execution Time: 1.577 ms
+(4 rows)
+
+################ HOME: games + game_players embed (PostgREST shape), in(<visible ids>) order created_at desc limit 50
+                                                                            QUERY PLAN                                                                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=88859.20..88859.32 rows=50 width=311) (actual time=5.969..5.981 rows=50 loops=1)
+   Buffers: shared hit=2586 read=4
+   InitPlan 1 (returns $0)
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.177..0.177 rows=1 loops=1)
+           Buffers: shared hit=58
+   InitPlan 2 (returns $1)
+     ->  Result  (cost=0.00..0.03 rows=1 width=16) (actual time=0.002..0.002 rows=1 loops=1)
+   ->  Sort  (cost=88858.91..88860.78 rows=750 width=311) (actual time=5.968..5.976 rows=50 loops=1)
+         Sort Key: g.created_at DESC
+         Sort Method: quicksort  Memory: 99kB
+         Buffers: shared hit=2586 read=4
+         ->  Nested Loop Left Join  (cost=124.56..88834.00 rows=750 width=311) (actual time=1.290..5.909 rows=74 loops=1)
+               Buffers: shared hit=2586 read=4
+               ->  Nested Loop  (cost=8.05..1441.80 rows=750 width=279) (actual time=1.003..2.015 rows=74 loops=1)
+                     Buffers: shared hit=696
+                     ->  HashAggregate  (cost=7.77..9.77 rows=200 width=16) (actual time=0.676..0.687 rows=74 loops=1)
+                           Group Key: list_visible_game_ids()
+                           Batches: 1  Memory Usage: 40kB
+                           Buffers: shared hit=179
+                           ->  ProjectSet  (cost=0.00..5.27 rows=1000 width=16) (actual time=0.612..0.665 rows=74 loops=1)
+                                 Buffers: shared hit=179
+                                 ->  Result  (cost=0.00..0.01 rows=1 width=0) (actual time=0.000..0.001 rows=1 loops=1)
+                     ->  Index Scan using games_pkey on games g  (cost=0.29..7.39 rows=1 width=279) (actual time=0.018..0.018 rows=1 loops=74)
+                           Index Cond: (id = (list_visible_game_ids()))
+                           Filter: ($0 OR (created_by = $1) OR (SubPlan 3) OR spectator_access)
+                           Buffers: shared hit=517
+                           SubPlan 3
+                             ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.013..0.013 rows=1 loops=59)
+                                   Buffers: shared hit=237
+               ->  Aggregate  (cost=116.50..116.51 rows=1 width=32) (actual time=0.052..0.052 rows=1 loops=74)
+                     Buffers: shared hit=1890 read=4
+                     InitPlan 4 (returns $4)
+                       ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.061..0.062 rows=1 loops=1)
+                             Buffers: shared hit=4
+                     InitPlan 16 (returns $16)
+                       ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                     ->  Index Scan using game_players_game_idx on game_players x  (cost=0.42..115.96 rows=5 width=25) (actual time=0.016..0.044 rows=5 loops=74)
+                           Index Cond: (game_id = g.id)
+                           Filter: ($4 OR (SubPlan 5) OR (hashed SubPlan 15) OR $16 OR (SubPlan 17) OR (hashed SubPlan 27))
+                           Buffers: shared hit=1886 read=2
+                           SubPlan 5
+                             ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.007..0.007 rows=1 loops=378)
+                                   Buffers: shared hit=1513
+                           SubPlan 15
+                             ->  Bitmap Heap Scan on games  (cost=4.72..65.49 rows=11 width=16) (never executed)
+                                   Recheck Cond: (created_by = $12)
+                                   Filter: ($13 OR (created_by = $14) OR (SubPlan 14) OR spectator_access)
+                                   InitPlan 11 (returns $12)
+                                     ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                                   InitPlan 12 (returns $13)
+                                     ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                                   InitPlan 13 (returns $14)
+                                     ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                                   ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.40 rows=15 width=0) (never executed)
+                                         Index Cond: (created_by = $12)
+                                   SubPlan 14
+                                     ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                           SubPlan 17
+                             ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                           SubPlan 27
+                             ->  Bitmap Heap Scan on games games_1  (cost=4.72..65.49 rows=11 width=16) (never executed)
+                                   Recheck Cond: (created_by = $24)
+                                   Filter: ($25 OR (created_by = $26) OR (SubPlan 26) OR spectator_access)
+                                   InitPlan 23 (returns $24)
+                                     ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                                   InitPlan 24 (returns $25)
+                                     ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                                   InitPlan 25 (returns $26)
+                                     ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                                   ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.40 rows=15 width=0) (never executed)
+                                         Index Cond: (created_by = $24)
+                                   SubPlan 26
+                                     ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+ Planning:
+   Buffers: shared hit=68 read=5
+ Planning Time: 0.556 ms
+ Execution Time: 6.163 ms
+(77 rows)
+
+################ HOME/EVERY SCREEN: my_profile select * where id = me (getCurrentProfile; 019 column grants route own-row reads through the view)
+                                                                                 QUERY PLAN                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=0.28..8.30 rows=1 width=527) (actual time=0.015..0.015 rows=1 loops=1)
+   One-Time Filter: ((((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text))::uuid = '52ede447-570e-42da-9837-c1e9ee5a5a68'::uuid)
+   Buffers: shared hit=3
+   ->  Index Scan using profiles_pkey on profiles p  (cost=0.28..8.30 rows=1 width=527) (actual time=0.006..0.006 rows=1 loops=1)
+         Index Cond: (id = '52ede447-570e-42da-9837-c1e9ee5a5a68'::uuid)
+         Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=51 read=3
+ Planning Time: 0.155 ms
+ Execution Time: 0.032 ms
+(10 rows)
+
+################ SCORECARD getGame 1/3: games select * where id
+                                                     QUERY PLAN                                                     
+--------------------------------------------------------------------------------------------------------------------
+ Index Scan using games_pkey on games  (cost=0.57..8.86 rows=1 width=279) (actual time=0.097..0.097 rows=1 loops=1)
+   Index Cond: (id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+   Filter: ($0 OR (created_by = $1) OR (SubPlan 3) OR spectator_access)
+   Buffers: shared hit=7
+   InitPlan 1 (returns $0)
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.084..0.084 rows=1 loops=1)
+           Buffers: shared hit=4
+   InitPlan 2 (returns $1)
+     ->  Result  (cost=0.00..0.03 rows=1 width=16) (actual time=0.005..0.005 rows=1 loops=1)
+   SubPlan 3
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+ Planning:
+   Buffers: shared hit=1
+ Planning Time: 0.084 ms
+ Execution Time: 0.111 ms
+(15 rows)
+
+################ SCORECARD getGame 2/3: game_players select * where game_id order player_order
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using game_players_game_id_player_order_key on game_players  (cost=0.94..116.48 rows=5 width=102) (actual time=0.204..0.229 rows=4 loops=1)
+   Index Cond: (game_id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+   Filter: ($0 OR (SubPlan 2) OR (hashed SubPlan 12) OR $12 OR (SubPlan 14) OR (hashed SubPlan 24))
+   Buffers: shared hit=23 read=3
+   InitPlan 1 (returns $0)
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.069..0.069 rows=1 loops=1)
+           Buffers: shared hit=4
+   InitPlan 13 (returns $12)
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+   SubPlan 2
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.032..0.032 rows=1 loops=4)
+           Buffers: shared hit=17
+   SubPlan 12
+     ->  Bitmap Heap Scan on games  (cost=4.72..65.49 rows=11 width=16) (never executed)
+           Recheck Cond: (created_by = $8)
+           Filter: ($9 OR (created_by = $10) OR (SubPlan 11) OR spectator_access)
+           InitPlan 8 (returns $8)
+             ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+           InitPlan 9 (returns $9)
+             ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+           InitPlan 10 (returns $10)
+             ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+           ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.40 rows=15 width=0) (never executed)
+                 Index Cond: (created_by = $8)
+           SubPlan 11
+             ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+   SubPlan 14
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+   SubPlan 24
+     ->  Bitmap Heap Scan on games games_1  (cost=4.72..65.49 rows=11 width=16) (never executed)
+           Recheck Cond: (created_by = $20)
+           Filter: ($21 OR (created_by = $22) OR (SubPlan 23) OR spectator_access)
+           InitPlan 20 (returns $20)
+             ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+           InitPlan 21 (returns $21)
+             ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+           InitPlan 22 (returns $22)
+             ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+           ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.40 rows=15 width=0) (never executed)
+                 Index Cond: (created_by = $20)
+           SubPlan 23
+             ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+ Planning:
+   Buffers: shared hit=20
+ Planning Time: 0.217 ms
+ Execution Time: 0.261 ms
+(46 rows)
+
+################ SCORECARD getGame 3/3: scores select *, rounds(round_number, undone_at) where game_id
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=6.03..916.19 rows=64 width=112) (actual time=0.368..0.760 rows=24 loops=1)
+   Buffers: shared hit=295 read=7
+   InitPlan 1 (returns $0)
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.097..0.097 rows=1 loops=1)
+           Buffers: shared hit=4
+   InitPlan 3 (returns $2)
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.046..0.046 rows=1 loops=1)
+           Buffers: shared hit=4
+   ->  Bitmap Heap Scan on scores s  (cost=5.09..358.71 rows=64 width=80) (actual time=0.222..0.366 rows=24 loops=1)
+         Recheck Cond: (game_id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+         Filter: ($0 OR (SubPlan 2))
+         Heap Blocks: exact=1
+         Buffers: shared hit=103 read=2
+         ->  Bitmap Index Scan on scores_game_idx  (cost=0.00..5.07 rows=86 width=0) (actual time=0.011..0.011 rows=24 loops=1)
+               Index Cond: (game_id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+               Buffers: shared hit=2 read=1
+         SubPlan 2
+           ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.010..0.010 rows=1 loops=24)
+                 Buffers: shared hit=97
+   ->  Index Scan using rounds_pkey on rounds rr  (cost=0.42..8.70 rows=1 width=48) (actual time=0.016..0.016 rows=1 loops=24)
+         Index Cond: (id = s.round_id)
+         Filter: ($2 OR (SubPlan 4))
+         Buffers: shared hit=192 read=5
+         SubPlan 4
+           ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.010..0.010 rows=1 loops=24)
+                 Buffers: shared hit=97
+ Planning:
+   Buffers: shared hit=132 read=9
+ Planning Time: 0.312 ms
+ Execution Time: 0.783 ms
+(30 rows)
+
+################ SCORECARD listGamePlayers: game_players + profiles embed where game_id
+                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop Left Join  (cost=1.22..159.25 rows=5 width=57) (actual time=0.269..0.341 rows=4 loops=1)
+   Buffers: shared hit=44
+   InitPlan 1 (returns $0)
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.087..0.087 rows=1 loops=1)
+           Buffers: shared hit=4
+   InitPlan 13 (returns $12)
+     ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+   ->  Index Scan using game_players_game_id_player_order_key on game_players gp  (cost=0.42..115.96 rows=5 width=25) (actual time=0.197..0.228 rows=4 loops=1)
+         Index Cond: (game_id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+         Filter: ($0 OR (SubPlan 2) OR (hashed SubPlan 12) OR $12 OR (SubPlan 14) OR (hashed SubPlan 24))
+         Buffers: shared hit=26
+         SubPlan 2
+           ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.032..0.032 rows=1 loops=4)
+                 Buffers: shared hit=17
+         SubPlan 12
+           ->  Bitmap Heap Scan on games  (cost=4.72..65.49 rows=11 width=16) (never executed)
+                 Recheck Cond: (created_by = $8)
+                 Filter: ($9 OR (created_by = $10) OR (SubPlan 11) OR spectator_access)
+                 InitPlan 8 (returns $8)
+                   ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                 InitPlan 9 (returns $9)
+                   ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                 InitPlan 10 (returns $10)
+                   ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                 ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.40 rows=15 width=0) (never executed)
+                       Index Cond: (created_by = $8)
+                 SubPlan 11
+                   ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+         SubPlan 14
+           ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+         SubPlan 24
+           ->  Bitmap Heap Scan on games games_1  (cost=4.72..65.49 rows=11 width=16) (never executed)
+                 Recheck Cond: (created_by = $20)
+                 Filter: ($21 OR (created_by = $22) OR (SubPlan 23) OR spectator_access)
+                 InitPlan 20 (returns $20)
+                   ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                 InitPlan 21 (returns $21)
+                   ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                 InitPlan 22 (returns $22)
+                   ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                 ->  Bitmap Index Scan on games_created_by_idx  (cost=0.00..4.40 rows=15 width=0) (never executed)
+                       Index Cond: (created_by = $20)
+                 SubPlan 23
+                   ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+   ->  Index Scan using profiles_pkey on profiles pr  (cost=0.28..8.55 rows=1 width=48) (actual time=0.026..0.026 rows=1 loops=4)
+         Index Cond: (id = gp.profile_id)
+         Filter: can_see_profile(pr.*)
+         Buffers: shared hit=18
+ Planning:
+   Buffers: shared hit=20
+ Planning Time: 0.343 ms
+ Execution Time: 0.412 ms
+(52 rows)
+
+################ NEW GAME: list_new_game_candidates(100)
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_new_game_candidates  (cost=0.25..10.25 rows=1000 width=124) (actual time=3.213..3.215 rows=56 loops=1)
+   Buffers: shared hit=1092 read=2
+ Planning Time: 0.008 ms
+ Execution Time: 3.223 ms
+(4 rows)
+
+################ MY PLAYERS: list_my_players()
+                                                     QUERY PLAN                                                     
+--------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_my_players  (cost=0.25..10.25 rows=1000 width=84) (actual time=0.661..0.663 rows=56 loops=1)
+   Buffers: shared hit=189 read=45
+ Planning Time: 0.014 ms
+ Execution Time: 0.670 ms
+(4 rows)
+
+################ MY PLAYERS: list_my_unregistered_players(null)
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_my_unregistered_players  (cost=0.25..10.25 rows=1000 width=224) (actual time=1.059..1.060 rows=2 loops=1)
+   Buffers: shared hit=194 read=11
+ Planning Time: 0.011 ms
+ Execution Time: 1.065 ms
+(4 rows)
+
+################ MY PLAYERS: list_claim_requests() (ClaimRequestsCard on the tab)
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_claim_requests  (cost=0.25..10.25 rows=1000 width=248) (actual time=0.299..0.299 rows=0 loops=1)
+   Buffers: shared hit=14
+ Planning Time: 0.008 ms
+ Execution Time: 0.304 ms
+(4 rows)
+
+################ FIND: search_players('Player 12')
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Function Scan on search_players  (cost=0.25..10.25 rows=1000 width=80) (actual time=3.929..3.931 rows=20 loops=1)
+   Buffers: shared hit=533 read=9
+ Planning Time: 0.016 ms
+ Execution Time: 3.938 ms
+(4 rows)
+
+################ RESULTS list: list_game_results_page(5, 0)
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=7.811..7.812 rows=1 loops=1)
+   Buffers: shared hit=4049 read=8
+ Planning Time: 0.007 ms
+ Execution Time: 7.817 ms
+(4 rows)
+
+################ RESULTS detail: get_game_result(first visible)
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=8.216..8.216 rows=1 loops=1)
+   Buffers: shared hit=3059
+ Planning Time: 0.006 ms
+ Execution Time: 8.221 ms
+(4 rows)
+
+################ HOME: list_claim_requests(), take_creator_notices() (called on every Home focus)
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Function Scan on list_claim_requests  (cost=0.25..10.25 rows=1000 width=248) (actual time=0.045..0.045 rows=0 loops=1)
+ Planning Time: 0.012 ms
+ Execution Time: 0.050 ms
+(3 rows)
+
+BEGIN
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Function Scan on take_creator_notices  (cost=0.25..10.25 rows=1000 width=48) (actual time=0.232..0.232 rows=0 loops=1)
+   Buffers: shared hit=54 read=6
+ Planning Time: 0.006 ms
+ Execution Time: 0.235 ms
+(4 rows)
+
+ROLLBACK
+################ PUBLIC LIVE SCORECARD: public_scorecard(token)
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=0.760..0.760 rows=1 loops=1)
+   Buffers: shared hit=185 read=3 dirtied=1
+ Planning Time: 0.005 ms
+ Execution Time: 0.763 ms
+(4 rows)
+
+################ WRITE: save_round RPC (new round) — run inside a rolled-back transaction
+BEGIN
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=116.51..116.77 rows=1 width=16) (actual time=4.027..4.031 rows=1 loops=1)
+   Buffers: shared hit=433 read=38 dirtied=20
+   InitPlan 25 (returns $24)
+     ->  Aggregate  (cost=116.50..116.51 rows=1 width=32) (actual time=0.200..0.203 rows=1 loops=1)
+           Buffers: shared hit=26
+           InitPlan 1 (returns $0)
+             ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.070..0.070 rows=1 loops=1)
+                   Buffers: shared hit=4
+           InitPlan 13 (returns $12)
+             ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+           ->  Index Scan using game_players_game_idx on game_players  (cost=0.42..115.97 rows=2 width=16) (actual time=0.165..0.189 rows=4 loops=1)
+                 Index Cond: (game_id = '8c799486-cfc8-4f9d-a567-755c2a1ecd2f'::uuid)
+                 Filter: (seated AND ($0 OR (SubPlan 2) OR (SubPlan 7) OR $12 OR (SubPlan 14) OR (SubPlan 19)) AND (role <> 'spectator'::game_member_role))
+                 Buffers: shared hit=26
+                 SubPlan 2
+                   ->  Result  (cost=0.00..0.26 rows=1 width=1) (actual time=0.027..0.027 rows=1 loops=4)
+                         Buffers: shared hit=17
+                 SubPlan 7
+                   ->  Index Scan using games_pkey on games  (cost=0.60..8.88 rows=1 width=0) (never executed)
+                         Index Cond: (id = game_players.game_id)
+                         Filter: ((created_by = $2) AND ($4 OR (created_by = $5) OR (SubPlan 6) OR spectator_access))
+                         InitPlan 3 (returns $2)
+                           ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                         InitPlan 4 (returns $4)
+                           ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                         InitPlan 5 (returns $5)
+                           ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                         SubPlan 6
+                           ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                 SubPlan 14
+                   ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                 SubPlan 19
+                   ->  Index Scan using games_pkey on games games_1  (cost=0.60..8.88 rows=1 width=0) (never executed)
+                         Index Cond: (id = game_players.game_id)
+                         Filter: ((created_by = $14) AND ($16 OR (created_by = $17) OR (SubPlan 18) OR spectator_access))
+                         InitPlan 15 (returns $14)
+                           ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                         InitPlan 16 (returns $16)
+                           ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+                         InitPlan 17 (returns $17)
+                           ->  Result  (cost=0.00..0.03 rows=1 width=16) (never executed)
+                         SubPlan 18
+                           ->  Result  (cost=0.00..0.26 rows=1 width=1) (never executed)
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.206 ms
+ Execution Time: 4.078 ms
+(47 rows)
+
+ROLLBACK
+RESET

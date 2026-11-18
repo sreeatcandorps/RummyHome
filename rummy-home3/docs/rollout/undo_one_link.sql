@@ -1,0 +1,16 @@
+-- Manual reversal of ONE link_seat_to_player call. Read-only until you uncomment the updates.
+-- Fill in the three ids. Run the SELECTs first; they show exactly which rows would move back.
+-- :game_id   the game the seat belongs to
+-- :target    the registered profile that received the seat
+-- :seat      the unregistered placeholder profile that gave it up
+--
+-- select * from public.game_players where game_id = :'game_id' and profile_id = :'target';
+-- select count(*) from public.scores where game_id = :'game_id' and profile_id = :'target';
+-- select id, player_status from public.profiles where id = :'seat';
+--
+-- update public.game_players set profile_id = :'seat' where game_id = :'game_id' and profile_id = :'target';
+-- update public.scores set profile_id = :'seat' where game_id = :'game_id' and profile_id = :'target';
+-- update public.rounds set dealer_profile_id = :'seat' where game_id = :'game_id' and dealer_profile_id = :'target';
+-- update public.profiles set player_status = 'unregistered' where id = :'seat' and player_status = 'merged';
+-- Note: my_players.games_together for the target was incremented by 1 and the owner's my_players row for
+-- the placeholder may have been deleted; restore those by hand only if the organiser asks.

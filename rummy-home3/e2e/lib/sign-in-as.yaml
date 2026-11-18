@@ -1,0 +1,33 @@
+appId: com.mindweavetech.rummyhome
+# Sign in as a specific seeded account (supabase/seed-break.sql roster; passcode 123456 for all).
+# Clears the app's state first, so whoever was signed in before (on this emulator) is gone and the
+# login screen is guaranteed — no Log out path, no stale session. Every chaos / roles / two-device
+# flow starts here. No `env:` defaults on purpose: a sub-flow's own env block beats the caller's
+# values in Maestro, so the caller MUST pass EMAIL:
+#   - runFlow:
+#       file: ../lib/sign-in-as.yaml
+#       env:
+#         EMAIL: c1@test.local
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 30000
+- tapOn:
+    id: "login-email"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn:
+    id: "login-passcode"
+- inputText: "123456"
+- hideKeyboard
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: "Loading your games"
+    timeout: 20000

@@ -1,0 +1,29 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# My players (opened from the Home button since PR 5): the roster with A-Z sections, search, the action tiles in their own bar (A08);
+# the header's back arrow returns to Home.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    text: "My players.*"
+- extendedWaitUntil:
+    visible: "Harish Test"
+    timeout: 15000
+- assertVisible: "Back to Home"
+- assertVisible: "Add by initials"
+- assertVisible: "Find in database"
+# DC15-5 (A08): the action tiles sit in their own bar above the tab bar, never under it.
+- assertVisible:
+    id: "my-players-actions"
+- assertVisible: "Unregistered · .*"
+- takeScreenshot: 08-my-players
+- tapOn: "Search name, initials or #ID"
+- inputText: "Pri"
+- assertVisible: "Priya Test"
+- assertNotVisible: "Harish Test"
+- takeScreenshot: 08b-my-players-search
+- hideKeyboard
+- tapOn: "Back to Home"
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 15000
