@@ -9,8 +9,9 @@ import { signedPoints } from '@/utils/poolAwards';
 
 /**
  * The awards block on a completed pool's scorecard (P19 / P30): the saved awards per player with
- * the preset and the given-out line, or "Awards pending" with Give awards for an admin. Awards are
- * points from the pool; the word money never appears (D9, D12).
+ * the preset and the given-out line, or "Awards" with Give awards for an admin (Nov 18: no "pending"
+ * nag — the pool is Completed; the awards are an errand). Awards are points from the pool; the word
+ * money never appears (D9, D12).
  */
 export function PoolAwardsCard({ game, names, labels, canManage, compact = false, onGiveAwards }: {
   game: Game;
@@ -33,7 +34,7 @@ export function PoolAwardsCard({ game, names, labels, canManage, compact = false
       <View style={styles.head}>
         <View style={styles.titleRow}>
           <Icon source="trophy-outline" size={18} color={awarded ? colors.onSurface : colors.onSurfaceVariant} />
-          <Text variant="titleSmall" style={{ color: colors.onSurface }}>{awarded ? 'Awards' : 'Awards pending'}</Text>
+          <Text variant="titleSmall" style={{ color: colors.onSurface }}>Awards</Text>
         </View>
         {canManage && !closed ? (
           <Button compact mode={awarded ? 'outlined' : 'contained'} icon={awarded ? 'pencil-outline' : 'trophy-outline'} onPress={onGiveAwards} testID="give-awards">
@@ -64,7 +65,7 @@ export function PoolAwardsCard({ game, names, labels, canManage, compact = false
         </>
       ) : (
         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          {canManage ? 'Choose how the pool is shared out. The pool joins a result only once awards are given.' : 'An admin gives the awards; then the pool can join a result.'}
+          {canManage ? 'Not given yet. Choose how the pool is shared out.' : 'Not given yet. An admin gives the awards.'}
         </Text>
       )}
     </View>

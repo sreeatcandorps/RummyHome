@@ -27,7 +27,7 @@ export const REQUIREMENTS = [
   { id: 'R22', text: 'Pool: a player at or over the limit is out; Round saved sheet says who', source: doc('pool-design.md#3-screens-p01p30'), items: ['P32', 'W35'] },
   { id: 'R23', text: 'Re-entry at the highest live total; Unlimited or Limited N (042)', source: doc('pool-design.md#0-srees-decisions-nov-14-and-what-changed'), items: ['W35', 'W10'] },
   { id: 'R24', text: 'Pool settings locked after round 1 (PT423)', source: doc('pool-design.md#4-data-and-rpcs--migration-041_poolsql-applied-to-live-nov-14--042_pool_reentries_and_limit_locksql-applied-to-live-by-sree-nov-15'), items: ['W19', 'P26'] },
-  { id: 'R25', text: 'Complete page with a second confirmation; Final scores share', source: pr(7), items: ['S18', 'P40', 'P41', 'S20', 'W08'] },
+  { id: 'R25', text: 'Complete is one dialog on the scorecard (Nov 18; the Complete page is gone); the Final screen is Share + Done, Done = Home', source: pr(7), items: ['P40', 'P41', 'S20', 'W08'] },
   { id: 'R26', text: 'Awards for a completed pool; a pool joins a result only through its awards', source: doc('pool-design.md#3-screens-p01p30'), items: ['S19', 'P42', 'P43', 'P44', 'W20', 'W36', 'P50'] },
   { id: 'R27', text: 'Save result moves games to Closed and lists each change', source: pr(7), items: ['S22', 'P53', 'W22', 'W23', 'E04'] },
   { id: 'R28', text: 'Share picture (summary, generated-by initials) and phone-page PDF per the approved design (034)', source: pr(14), items: ['P24', 'P58'] },

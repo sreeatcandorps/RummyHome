@@ -500,7 +500,7 @@ test('13.9b colours: every game (Points and Pool) is yellow, results green', () 
 
 test('13.10 complete / award / result: a completed pool needs awards before it can be picked; awards are what it contributes', () => {
   const done = { ...game(), isComplete: true } as Game;
-  assert.equal(poolStatusLabel(done), 'Awards pending');
+  assert.equal(poolStatusLabel(done), null, 'Nov 18: a completed pool without awards is just Completed — no "Awards pending" nag');
   assert.equal(poolNeedsAwards(done), true);
   const awarded = { ...done, awardedAt: '2026-11-14T12:00:00Z', prizeShares: { [A]: 600, [B]: -100, [C]: -100, [D]: -100, [E]: -200, [F]: -100 } } as Game;
   assert.equal(poolStatusLabel(awarded), 'Awarded');
@@ -524,9 +524,10 @@ test('13.10 complete / award / result: a completed pool needs awards before it c
   const picker = src('app/(screens)/results/index.tsx');
   assert.match(picker, /locked=\{!canPickForResults\(game, userId\) \|\| poolNeedsAwards\(game\)\}/);
   assert.match(picker, /lockedNote=\{canPickForResults\(game, userId\) && poolNeedsAwards\(game\) \? GIVE_AWARDS_FIRST : undefined\}/);
-  const complete = src('app/(screens)/games/complete.tsx');
-  assert.match(complete, /testID="complete-give-awards"/);
-  assert.match(complete, /\{game\.awardedAt \? 'Add to Results' : GIVE_AWARDS_FIRST\}/);
+  const scorecard = src('app/(screens)/games/[id].tsx');
+  assert.match(scorecard, /<Tag label=\{awardsLabel \?\? 'Completed'\} tone="info"/, 'the status tag is Completed or Awarded, never a warning');
+  assert.match(src('components/game/PoolAwardsCard.tsx'), /'Not given yet\. Choose how the pool is shared out\.'/);
+  assert.doesNotMatch(src('components/game/PoolAwardsCard.tsx'), /Awards pending/);
   const award = src('app/(screens)/games/award.tsx');
   assert.match(award, /testID="award-save-anyway"/);
   assert.match(award, /gamesService\.setPoolAwards\(/);
@@ -583,6 +584,6 @@ test('13.12 log labels for the pool kinds; help explains Complete → Award → 
   assert.match(HELP.gameType, /Re-entries: .*Unlimited, or Limited/);
   assert.match(HELP.scoreEntryPool, /0/);
   assert.match(HELP.awards, /award/i);
-  assert.match(HELP.complete, /award/i);
+  assert.match(HELP.awards, /Not now leaves the pool Completed without awards/);
   assert.match(HELP.results, /Give awards first/);
 });

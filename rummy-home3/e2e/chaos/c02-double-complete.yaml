@@ -14,12 +14,9 @@ tags: [chaos]
       CODE: BREAKP5
 - tapOn: "Complete game"
 - extendedWaitUntil:
-    visible: "Game admins"
-    timeout: 15000
-- tapOn: "Complete game"
-- extendedWaitUntil:
     visible: "Complete this game?"
     timeout: 5000
+- assertVisible: "No rounds were played. The game will be completed with no scores."
 - takeScreenshot: c02-confirm-dialog
 # First tap on the real button (bottom right of the dialog), then three more on the same spot.
 - tapOn: "Confirm complete game"
@@ -29,17 +26,14 @@ tags: [chaos]
       - tapOn:
           point: "77%,57%"
           waitToSettleTimeoutMs: 50
+# Nov 18: a completed Points game lands on the Final screen; the header arrow returns to the scorecard.
 - extendedWaitUntil:
-    visible: "Completed"
+    visible: "Final scores · .*"
     timeout: 20000
 - assertNotVisible: "Something went wrong"
 - assertNotVisible: "Could not complete"
 - takeScreenshot: c02-completed-once
-- runFlow:
-    when:
-      visible: "Complete · .*"
-    commands:
-      - back
+- back
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000

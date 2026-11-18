@@ -72,7 +72,7 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 91 |
 | S16 | Players · Admins | `app/(screens)/games/players.tsx` | 51 |
 | P14 | Player ⋮ menu (Invite · Link · Edit initials · Edit name · Admin · Remove) | `components/players/PlayerActionMenu.tsx` | 5 |
 | P39 | Add non-playing admin (by Player ID) | `app/(screens)/games/players.tsx` | 4 |
@@ -82,6 +82,6 @@ flowchart TD
 | P09 | Invite {name} to register | `components/players/InviteToRegisterDialog.tsx` | 2 |
 | P10 | Link {name} to Player ID | `components/players/LinkPlayerDialog.tsx` | 4 |
 | W16 | Registration tags (Unregistered · Pending registration · Link pending) | `utils/myPlayersList.ts` | 15 |
-| W40 | Role tags on Home cards (Creator · Admin · Player · View only) | `components/ui/GameListItem.tsx` | 8 |
-| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 71 |
+| W40 | Role tags on Home cards (Creator · Admin · Player · View only) | `components/ui/GameListItem.tsx` | 9 |
+| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 73 |
 | P38 | Something went wrong (Players · Admins) | `app/(screens)/games/players.tsx` | 9 |

@@ -18,7 +18,7 @@ section 0. This file is the build contract for PR 13; the earlier open questions
 | 7 | **Multiplier principle (PR 14):** users always enter actual points; the multiplier computes the saved total shown on the scorecard. PR 13 removes the high-number warning and keeps only the "more than Full count?" confirm. PR 13 stores points ×1. | P06 formulas, `score-entry.tsx` |
 | 8 | **Awards:** categories the admin taps to preview each player's award, table sorted by pool points left: (a) **Winner takes all**, (b) **By points left** (proportional to points left over everyone's points left), (c) **50/50** even split (replaces 70/30), (d) **One entry per drop left, winner gets the rest**, (e) **Custom**, edited inline on the same screen. The separate "type points / split the pool" screen (old P18) is gone. | P15–P18, `games/award.tsx`, `utils/poolAwards.ts` |
 | 9 | **Awards may be saved even if they don't add up.** Warning: "X points weren't given out. Save awards anyway?" Never mention expenses or money. | P18, `set_pool_awards` (no sum check) |
-| 10 | **Results** mix Points and Pool games. A pool game is selectable only once awarded; a Completed-but-not-awarded pool is greyed out with "Give awards first". Only admins create results (as today). No separate New result screen (the existing picker). Pool flow = **Complete → Award → Result**; Closed only after the result. | P21, `results/index.tsx`, `declare_game_result` |
+| 10 | **Results** mix Points and Pool games. A pool game is selectable only once awarded; a Completed-but-not-awarded pool is greyed out with "Give awards first". Only admins create results (as today). No separate New result screen (the existing picker). **Nov 18 (Sree):** the end of a game is **Complete → Awards → Final screen → Done (Home)**; Results is a separate errand from Home, never nudged in the end flow. A completed pool without awards just reads **Completed** (no "Awards pending"); the picker says "Give awards first" only when it is picked. Closed only after the result. | P21, `results/index.tsx`, `declare_game_result`, `utils/endFlow.ts` |
 | 11 | **Colours:** games (all types) use **yellow**, including the Pool column header in results; results are always **green**. | P20, P22, `constants/theme.ts` `gameTypes.stake` → yellow |
 | 12 | **Wording:** "stake" and "prize" removed everywhere in the app; only **awards**, **results**, **winners**. A unit test greps the UI strings. | P28, `tests/pool-wording.test.ts` |
 | 13 | **Kept as designed:** header states and formulas, landscape, P19 (completed + awarded keeps showing out players' scores), P20 home cards (leader and creator tags), live link, game settings, help, log. | — |
@@ -104,8 +104,10 @@ mix. Complete → Award → Result; the game is Closed only after the result.
   ![P10-after-save-out-and-reentry-eligible](pool-mockups/P10-after-save-out-and-reentry-eligible.png)
   ![P11-re-entry-sheet](pool-mockups/P11-re-entry-sheet.png)
 - **Complete (P12–P14).** After the save that leaves one player: "Only X is still in — Complete pool?" (Undo still
-  possible). Complete early at any time (split). Completed state shows **Awards pending**, a **Give awards** button,
-  and the final pool scores.
+  possible). Complete early at any time (split). **Nov 18:** Complete is one dialog on the scorecard (the Complete
+  page is gone) and goes straight on to Awards (Not now / Save awards), then the Final screen (Share + Done). The
+  completed scorecard shows the **Awards** card with a **Give awards** button for an admin and the final pool scores;
+  the status reads **Completed** until awards are given, then **Awarded**.
   ![P12-last-player-standing](pool-mockups/P12-last-player-standing.png)
   ![P13-complete-early-split](pool-mockups/P13-complete-early-split.png)
   ![P14-completed-awards-pending](pool-mockups/P14-completed-awards-pending.png)
@@ -124,7 +126,7 @@ mix. Complete → Award → Result; the game is Closed only after the result.
   ![P19-completed-awarded](pool-mockups/P19-completed-awarded.png)
   ![P30-awards-locked-when-closed](pool-mockups/P30-awards-locked-when-closed.png)
 - **Home + Results (P20–P22).** Every game badge is yellow (S and P); results stay green. Pool cards add the limit,
-  out count and the award state (**Awards pending** / **Awarded**). The existing Results picker mixes S and P; an
+  out count and **Awarded** once the awards are given (Nov 18: no "Awards pending"). The existing Results picker mixes S and P; an
   unawarded pool is greyed with **Give awards first** and cannot be ticked. Results table: every game column header
   yellow, legend "pool: the awards count, not the pool scores".
   ![P20-home-game-cards](pool-mockups/P20-home-game-cards.png)
@@ -248,7 +250,7 @@ validation, confirm), `app/(screens)/games/complete.tsx` (pool wording, Give awa
 - **F13.8** Custom limit 51–999; a Full count above the limit is allowed (one full hand puts you out).
 - **F13.9** Pool round scores are stored positive with a pool-only trigger; Points storage is untouched.
 - **F13.10** The scorecard corner's running sum and the round-row "off by" markers are hidden for a pool (no balance).
-- **F13.11** Home / Results status words: "Awards pending", "Awarded", "Give awards first".
+- **F13.11** Home / Results status words: "Awarded", "Give awards first" (Nov 18: "Awards pending" dropped — a pool without awards is "Completed").
 - **F13.12** The Points header stays initials · total (no player number) until the later PR Sree noted.
 - **F13.22** (decided by Sree, Nov 14, 8:40 PM — see §0 row 15) Initials never clip: the header label and the avatar
   label step their font down to fit the width they have (estimated per glyph, W and M widest; `adjustsFontSizeToFit`

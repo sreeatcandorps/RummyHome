@@ -71,9 +71,9 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 71 |
+| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 73 |
 | S06 | Me (profile) | `app/(tabs)/me.tsx` | 27 |
-| S07 | User settings (game defaults) | `app/(screens)/settings.tsx` | 28 |
+| S07 | User settings (game defaults) | `app/(screens)/settings.tsx` | 29 |
 | P05 | Initials for {name} (shared editor) | `components/players/InitialsDialog.tsx` | 2 |
 | P06 | Change passcode | `components/auth/ChangePasscodeDialog.tsx` | 3 |
 | P07 | Delete your account? | `components/account/DeleteAccountDialog.tsx` | 1 |

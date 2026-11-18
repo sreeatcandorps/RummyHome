@@ -497,3 +497,18 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   the start and ⋮ mid-game. Migration `047_reentry_and_late_entry_score.sql` (server-side +1 rules, Log labels) with
   rollback, pgTAP 38 and the replay hook is **written, not applied** to live. Decisions recorded in
   `pool-design.md` §0 rows 18–27.
+
+### 2026-11-18 — PR stack merged to `main`; end flow rebuilt (PR A of the Nov 18 batch, no migration)
+- The 30-PR stack (#7 → #82) was merged into `main` in one merge commit; from here every PR and migration starts from
+  `main`, and `nightly.yml` targets `main`. The merged-but-still-open PRs are closed as housekeeping.
+- Sree's end-of-game rules became the code: **Complete** is one dialog on the scorecard (`CompleteGameDialog`; the
+  Complete page, its route and Help entry are gone), a Points game goes straight to the **Final screen**, a pool goes
+  to **Awards** (Not now / Save awards) and then the Final screen. The Final screen's bar is **Share + Done**: Share
+  offers the picture or the full-details PDF only; **Done always goes Home** (`router.navigate('/(tabs)')`); the header
+  arrow returns to the completed scorecard. No Results nudge anywhere in the end flow (Results is its own errand from
+  Home; a one-game result reads "Show results · 1 game"). A completed pool without awards is just **Completed** — no
+  "Awards pending" — and the Results picker asks for awards only when it is picked. Info sheets close with **Close**
+  (Round saved, Exact points), so Done means one thing. The full-details PDF now carries the pool: limit and drops,
+  every player's pool score, entries, put in, gets, award and out round, re-entries, and the rounds with "out" / ↺
+  cells (`utils/endFlow.ts`, `utils/finalScoresSheet.ts` `pdfSections`). PR B (pool portrait 5-line card, landscape
+  without standings) and PR C (decisions log, PR template) follow as separate PRs.

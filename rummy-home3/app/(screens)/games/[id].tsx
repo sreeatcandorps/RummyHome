@@ -48,6 +48,8 @@ import { gameSettingsMenuTitle, rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame } from '@/utils/gameStatus';
 import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
 import { PoolAwardsCard } from '@/components/game/PoolAwardsCard';
+import { CompleteGameDialog } from '@/components/game/CompleteGameDialog';
+import { afterCompleteRoute, AWARD_ROUTE } from '@/utils/endFlow';
 import { MultiplierChip, ActualToggle, ExactPointsSheet } from '@/components/game/MultiplierStrip';
 import { useActualToggle } from '@/hooks/useActualToggle';
 import { actual, anyShortened, exactLines, pointsGameMultiplier } from '@/utils/multiplier';
@@ -95,6 +97,8 @@ export default function GameScreen() {
   // PR 21 / PR 24: the Order of players sheet, any time from the ⋮ menu. The once-per-game pop-up is gone —
   // a new game sets its order as a step before Start.
   const [seating, setSeating] = useState(false);
+  // Nov 18 end flow: Complete is a dialog here, not a page.
+  const [completeOpen, setCompleteOpen] = useState(false);
 
   // Mount is covered by useFocusEffect below (it fires on focus, which includes the first mount): one load, not two.
   useEffect(() => {
@@ -214,7 +218,19 @@ export default function GameScreen() {
 
   const openComplete = () => {
     if (!game) return;
-    router.push({ pathname: '/(screens)/games/complete', params: { id: game.id } });
+    setCompleteOpen(true);
+  };
+
+  // Points → the Final screen; Pool → Awards (then the Final screen). Pushed, so the header arrow on
+  // those screens returns to this, now completed, scorecard; Done on the Final screen goes Home.
+  const onCompleted = (updated: Game) => {
+    setGame(updated);
+    router.push(afterCompleteRoute(updated));
+  };
+
+  const openAwards = () => {
+    if (!game) return;
+    router.push({ pathname: AWARD_ROUTE, params: { id: game.id } });
   };
 
   const shareLive = () => afterMenu(async () => {
@@ -454,7 +470,7 @@ export default function GameScreen() {
   const statusTag = deleted ? (
     <Tag label="Deleted" tone="danger" icon="delete-outline" testID="status-tag" />
   ) : game.isComplete ? (
-    <Tag label={awardsLabel ?? 'Completed'} tone={awardsLabel === 'Awards pending' ? 'warning' : 'info'} icon={awardsLabel === 'Awarded' ? 'trophy-outline' : 'flag-checkered'} testID="status-tag" />
+    <Tag label={awardsLabel ?? 'Completed'} tone="info" icon={awardsLabel === 'Awarded' ? 'trophy-outline' : 'flag-checkered'} testID="status-tag" />
   ) : (
     // Who deals is shown once, as the DEALS badge on that player's column header.
     <Tag label={`Round ${maxRounds + 1}`} tone="primary" icon="cards-outline" />
@@ -476,7 +492,7 @@ export default function GameScreen() {
           labels={Object.fromEntries(players.map((p) => [p.id, initialsFor(p.id)]))}
           canManage={canManageNow}
           compact={isShort}
-          onGiveAwards={() => router.push({ pathname: '/(screens)/games/award', params: { id: game.id } })}
+          onGiveAwards={openAwards}
         />
       ) : null}
       <PoolStandings
@@ -627,8 +643,8 @@ export default function GameScreen() {
         </View>
         <ActualToggle multiplier={multiplier} on={showActual} onChange={setShowActual} />
         {game.isComplete && !deleted ? (
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            {pool ? (game.awardedAt ? 'Completed and awarded.' : 'Completed. Give awards to add this pool to a result.') : 'Completed.'}
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="completed-line">
+            {pool && game.awardedAt ? 'Completed and awarded.' : 'Completed.'}
           </Text>
         ) : poolOver ? (
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="pool-over-hint">
@@ -778,6 +794,16 @@ export default function GameScreen() {
           ]}
         />
       </Portal>
+      {canScoreNow && !game.isComplete ? (
+        <CompleteGameDialog
+          visible={completeOpen}
+          game={game}
+          players={players}
+          onDismiss={() => setCompleteOpen(false)}
+          onEditRound={openEditRound}
+          onCompleted={onCompleted}
+        />
+      ) : null}
       <ExactPointsSheet
         visible={exactOpen}
         multiplier={multiplier}

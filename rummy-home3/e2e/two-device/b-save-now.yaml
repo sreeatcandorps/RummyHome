@@ -10,9 +10,10 @@ appId: com.mindweavetech.rummyhome
 - takeScreenshot: t2-after-save-${WHO}
 - runFlow:
     when:
-      visible: "Complete · .*"
+      visible: "Complete this game?"
     commands:
-      - back
+      - tapOn:
+          id: "complete-cancel"
 - runFlow:
     when:
       visible: "OK"

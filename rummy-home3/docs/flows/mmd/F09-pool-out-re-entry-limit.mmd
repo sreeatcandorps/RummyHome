@@ -7,7 +7,7 @@ flowchart TD
   w10[/"W10 Pool over hint (everyone out / limit reached)"/]:::warning
   p31(["P31 Over the Full count / Are you sure? (pool)"]):::popup
   w19[/"W19 Game settings error / locked note"/]:::warning
-  s18["S18 Complete (game / pool)"]:::screen
+  p40(["P40 Complete this game? / Complete this pool? (Nov 18: one dialog; …"]):::popup
   over{"Total ≥ pool limit?"}:::decision
   reentry{"Re-entries left (Unlimited / Limited N)?"}:::decision
   reenter("Re-enter at the highest live total"):::step
@@ -25,7 +25,7 @@ flowchart TD
   reentry -->|"no: limit reached"| w10
   s14 --> left
   left -->|"yes: everyone out"| w10
-  w10 -->|"Complete"| s18
+  w10 -->|"Complete"| p40
   s14 -->|"settings locked after round 1"| w19
   classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
   classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00

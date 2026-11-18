@@ -15,7 +15,7 @@ flowchart TD
   p28(["P28 Exact points (multiplier totals)"]):::popup
   s17["S17 Log (game log)"]:::screen
   w19[/"W19 Game settings error / locked note"/]:::warning
-  s20["S20 Final scores (single game share)"]:::screen
+  s20["S20 Final screen (final scores / awards · Share + Done)"]:::screen
   s23["S23 Results · saved result"]:::screen
   rounds{"Rounds exist?"}:::decision
   high{"≥ ×1,000?"}:::decision
@@ -62,13 +62,13 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 91 |
 | P18 | Scorecard ⋮ menu (Players · Admins, Seating, Edit round, Reopen, Log, Hide, Delete, Settings) | `app/(screens)/games/[id].tsx` | 15 |
-| P26 | Game settings (Full count, multiplier, pool rules) | `components/game/GameSettingsDialog.tsx` | 8 |
+| P26 | Game settings (Full count, multiplier, pool rules) | `components/game/GameSettingsDialog.tsx` | 9 |
 | P27 | Change the multiplier? / Large multiplier | `components/game/GameSettingsDialog.tsx` | 3 |
 | W11 | Multiplier chip + entered-points banner | `components/game/MultiplierStrip.tsx` | 2 |
-| P28 | Exact points (multiplier totals) | `components/game/MultiplierStrip.tsx` | 3 |
+| P28 | Exact points (multiplier totals) | `components/game/MultiplierStrip.tsx` | 4 |
 | S17 | Log (game log) | `app/(screens)/games/log.tsx` | 24 |
 | W19 | Game settings error / locked note | `components/game/GameSettingsDialog.tsx` | 3 |
-| S20 | Final scores (single game share) | `app/(screens)/games/final-scores.tsx` | 9 |
-| S23 | Results · saved result | `app/(screens)/results/[id].tsx` | 34 |
+| S20 | Final screen (final scores / awards · Share + Done) | `app/(screens)/games/final-scores.tsx` | 11 |
+| S23 | Results · saved result | `app/(screens)/results/[id].tsx` | 35 |

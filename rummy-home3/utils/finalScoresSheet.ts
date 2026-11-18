@@ -1,9 +1,9 @@
 import { LabelledGame, gameLabelOf, gameTitle, screenTitle } from '@/utils/gameLabel';
 import { formatPoints } from '@/utils/results';
 import { exactSubline, multiplierLabel, multiplyScores } from '@/utils/multiplier';
-import { buildRoundTable, ResultsRoundTable } from '@/utils/resultsDetails';
+import { buildRoundTable, PdfSection, ResultsRoundTable } from '@/utils/resultsDetails';
 import { buildScoresCard, ShareCard } from '@/utils/shareCard';
-import { PoolSeat } from '@/types/game';
+import { AwardNote, PoolSeat } from '@/types/game';
 import { EMPTY_SEAT, isOut, poolTotal } from '@/utils/pool';
 
 import { formatWhen } from '@/utils/formatWhen';
@@ -60,6 +60,8 @@ export type FinalScoresSheet = {
   multiplier?: number;
   /** "×100 · exact points" under the heading when the multiplier is above 1. */
   multiplierLine?: string;
+  /** Nov 18: the full-details PDF above the rounds — pool limit and drops, the players (pool score, entries, put in, gets, award, out round), re-entries. Points: totals. */
+  pdfSections: PdfSection[];
 };
 
 /** Pool (PR 13) inputs: seats for totals, the limit, and the awards once given. */
@@ -68,7 +70,71 @@ export type FinalScoresPool = {
   fullCount: number;
   seats: Record<string, PoolSeat | undefined>;
   awards?: Record<string, number> | null;
+  /** Points per drop, for the PDF's pool line. */
+  drop?: number;
+  /** What the awards were based on (entry, pool total, given out), for the PDF. */
+  awardNote?: AwardNote | null;
 };
+
+/** Pool round cell in the PDF: "—" before a late entry, "↺106" on the re-entry round, "101 out" on the out round, "·" once gone. */
+export function poolRoundCellText(seat: PoolSeat, roundIndex: number, value: number | null | undefined): string {
+  const round = roundIndex + 1;
+  if (seat.reenteredRound && round === seat.reenteredRound) return `↺${seat.reentryScore ?? value ?? 0}`;
+  if (seat.outRound && round > seat.outRound) return '·';
+  if (value == null) return '—';
+  if (seat.outRound && round === seat.outRound) return `${value} out`;
+  return String(value);
+}
+
+/** The PDF's pool blocks: limit/drops, every player's pool numbers (with the awards once given), re-entries. */
+export function poolPdfSections(input: {
+  pool: FinalScoresPool;
+  players: { id: string; name: string; total: number }[];
+  order: string[];
+}): PdfSection[] {
+  const { pool, players, order } = input;
+  const awards = pool.awards ?? null;
+  const note = pool.awardNote ?? null;
+  const entry = note?.entry;
+  const byId = new Map(players.map((player) => [player.id, player]));
+  const sorted = order.map((id) => byId.get(id)).filter((player): player is { id: string; name: string; total: number } => Boolean(player));
+  const inCount = sorted.filter((player) => !isOut(pool.seats[player.id])).length;
+
+  const poolLines = [
+    `Limit ${pool.limit}${pool.drop ? ` · drop ${pool.drop}` : ''}`,
+    `${inCount} in · ${sorted.length - inCount} out`,
+    awards
+      ? `Awards given${note?.presetLabel ? ` · ${note.presetLabel}` : ''}${entry != null ? ` · entry ${entry}` : ''}${note?.poolTotal != null ? ` · pool ${note.poolTotal}` : ''}${note?.givenOut != null ? ` · given out ${note.givenOut}` : ''}`
+      : 'Awards not given yet',
+  ];
+
+  const heads = ['Player', 'Pool score', 'Entries', 'Out', ...(awards ? ['Put in', 'Gets', 'Award'] : [])];
+  const rows = sorted.map((player) => {
+    const seat = pool.seats[player.id] ?? EMPTY_SEAT;
+    const award = awards?.[player.id] ?? 0;
+    const putIn = entry != null ? seat.entries * entry : null;
+    return [
+      player.name,
+      String(player.total),
+      String(seat.entries),
+      seat.outRound ? `Round ${seat.outRound}` : '—',
+      ...(awards ? [putIn == null ? '—' : String(putIn), putIn == null ? '—' : String(award + putIn), formatPoints(award)] : []),
+    ];
+  });
+
+  const reentries = sorted
+    .filter((player) => (pool.seats[player.id]?.reenteredRound ?? 0) > 0)
+    .map((player) => {
+      const seat = pool.seats[player.id] ?? EMPTY_SEAT;
+      return `${player.name}: ${seat.entries > 1 ? 'came back' : 'joined'} in round ${seat.reenteredRound} at ${seat.reentryScore ?? 0}`;
+    });
+
+  return [
+    { title: 'Pool', lines: poolLines },
+    { title: awards ? 'Players and awards' : 'Players', table: { heads, rows } },
+    ...(reentries.length > 0 ? [{ title: 'Re-entries', lines: reentries }] : []),
+  ];
+}
 
 export function chunk<T>(items: T[], size: number): T[][] {
   if (size <= 0) return [items];
@@ -159,7 +225,18 @@ export function buildFinalScoresSheet(input: {
     { id: input.game.id, name: input.game.shareCode ?? label, label, date: input.game.date, scores: totals, rounds: scores, roundCount, multiplier: multiplier > 1 ? multiplier : undefined },
     0,
     input.players,
+    undefined,
+    pool
+      ? {
+          cell: (playerId, roundIndex, value) => poolRoundCellText(pool.seats[playerId] ?? EMPTY_SEAT, roundIndex, value),
+          total: (playerId, total) => `${total}${isOut(pool.seats[playerId]) ? ' out' : ''}`,
+        }
+      : {},
   );
+  const totalSum = players.reduce((sum, player) => sum + player.total, 0);
+  const pdfSections: PdfSection[] = pool
+    ? poolPdfSections({ pool, players, order: summary.map((row) => row.id) })
+    : [{ title: 'Totals', lines: [totalsLine(totalSum), ...(multiplier > 1 ? [`${multiplierLabel(multiplier)}: every number here is the actual points.`] : [])] }];
   const card = buildScoresCard({
     title: awards ? `Awards · ${finalScoresHeading(input.game).replace(/^Final scores · /, '')}` : finalScoresHeading(input.game),
     tone: 'game',
@@ -180,7 +257,7 @@ export function buildFinalScoresSheet(input: {
     roundCount,
     summary,
     players,
-    totalSum: players.reduce((sum, player) => sum + player.total, 0),
+    totalSum,
     footer: finalScoresFooter(input.game),
     adminLines: input.admins && input.admins.length > 0 ? [`Game admins: ${input.admins.join(', ')}`] : [],
     table,
@@ -189,5 +266,6 @@ export function buildFinalScoresSheet(input: {
     showsAwards: Boolean(awards),
     multiplier: multiplier > 1 ? multiplier : undefined,
     multiplierLine: exactSubline(multiplier) ?? undefined,
+    pdfSections,
   };
 }

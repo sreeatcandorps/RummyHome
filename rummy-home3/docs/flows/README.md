@@ -6,14 +6,14 @@ One Mermaid flowchart per flow (boxes = screens / steps, diamonds = decisions, e
 
 | | Count | Touched by a flow | Touched by a test |
 | --- | --- | --- | --- |
-| Screens | 32 | 32 (100%) | 32 (100%) |
+| Screens | 31 | 31 (100%) | 31 (100%) |
 | Pop-ups | 60 | 60 (100%) | 55 (92%) |
-| Warnings | 40 | 40 (100%) | 40 (100%) |
+| Warnings | 40 | 40 (100%) | 39 (98%) |
 | Emails | 7 | 7 (100%) | 7 (100%) |
 | Requirements | 51 | — | 50 (98%) |
-| Scenarios | 145 | 17 flows | 131 (90%) |
+| Scenarios | 147 | 17 flows | 133 (90%) |
 
-Redirect-only routes (not counted): 8. Test corpus scanned: 167 files (unit 71, pgTAP 37, concurrency 1, smoke 19, full 15, roles 5, chaos 12, two-device 6, monkey 1).
+Redirect-only routes (not counted): 8. Test corpus scanned: 171 files (unit 73, pgTAP 38, concurrency 1, smoke 20, full 15, roles 5, chaos 12, two-device 6, monkey 1).
 
 "Touched by a test" = some test file names one of the item's signals (testID, copy, helper); a pop-up or warning touched also counts for its host screen. It says a test *reaches* the item, not that every branch is asserted — the scenario GAP list below is the stricter view.
 
@@ -91,25 +91,26 @@ flowchart TD
 | [F07](flows/F07-edit-or-undo-a-round.md) Edit or undo a round | 4 | 2 |  | 1 | 1 | 1 |  |  |  |  | 7 | 1 |
 | [F08](flows/F08-change-the-multiplier.md) Change the multiplier | 2 | 1 |  | 1 | 1 |  |  |  |  |  | 6 |  |
 | [F09](flows/F09-pool-out-re-entry-limit.md) Pool: out, re-entry, limit | 3 | 2 |  | 2 |  | 1 | 1 |  |  |  | 7 | 1 |
-| [F10](flows/F10-complete-awards-result.md) Complete → Awards → Result | 4 | 3 |  | 3 |  | 1 | 1 |  |  |  | 9 | 1 |
-| [F11](flows/F11-share-picture-pdf-link-live-page-email.md) Share: picture, PDF, link, live page, email | 5 | 5 |  | 2 | 1 |  |  |  |  |  | 10 | 2 |
+| [F10](flows/F10-complete-awards-final-screen-done-home.md) Complete → (Awards →) Final screen → Done = Home | 6 | 3 |  | 3 |  | 1 | 1 |  |  |  | 11 | 1 |
+| [F11](flows/F11-share-picture-pdf-link-live-page-email.md) Share: picture, PDF, link, live page, email | 6 | 5 |  | 2 | 1 |  |  |  |  |  | 10 | 2 |
 | [F12](flows/F12-admins-and-roles.md) Admins and roles | 3 | 4 |  |  | 2 | 4 |  |  |  |  | 9 | 1 |
 | [F13](flows/F13-delete-hide-restore-deleted-games.md) Delete, hide, restore, Deleted games | 3 | 4 |  |  |  | 1 |  |  |  |  | 10 | 1 |
 | [F14](flows/F14-offline-and-sync.md) Offline and sync | 5 | 1 |  |  |  |  | 5 |  |  |  | 8 | 1 |
 | [F15](flows/F15-notifications-and-emails.md) Notifications and emails | 4 | 5 |  |  |  |  |  |  |  |  | 8 | 1 |
 | [F16](flows/F16-help.md) Help | 6 |  |  | 1 | 1 |  |  |  |  |  | 3 |  |
 | [F17](flows/F17-results-pick-save-past-delete-history.md) Results: pick, save, past, delete, history | 6 | 5 |  | 3 | 2 |  |  |  |  |  | 11 |  |
-| **Total** | 51 | 35 | 0 | 15 | 13 | 5 | 12 | 4 | 0 | 0 | 145 | 14 |
+| **Total** | 53 | 35 | 0 | 15 | 13 | 5 | 12 | 4 | 0 | 0 | 147 | 14 |
 
 ## GAP list
 
-### Screens / pop-ups / warnings no test touches (5)
+### Screens / pop-ups / warnings no test touches (6)
 
 - <span style="color:#c62828">**GAP**</span> P13 Player detail (initials, Close / Remove) — `app/(tabs)/players.tsx` — flows: F04
 - <span style="color:#c62828">**GAP**</span> P17 Country picker (phone code) — `app/(auth)/register.tsx` — flows: F01
 - <span style="color:#c62828">**GAP**</span> P29 Link copied (scorecard) — `app/(screens)/games/[id].tsx` — flows: F11
 - <span style="color:#c62828">**GAP**</span> P46 Can’t remove this player (picker) — `app/(screens)/games/new.tsx` — flows: F04
 - <span style="color:#c62828">**GAP**</span> P57 Link copied (result) — `app/(screens)/results/[id].tsx` — flows: F17
+- <span style="color:#c62828">**GAP**</span> W08 Game status tag (Active · Completed · Closed · Deleted) — `app/(screens)/games/[id].tsx` — flows: F10
 
 ### In no flow (0)
 
@@ -147,7 +148,7 @@ flowchart TD
 - [F07 Edit or undo a round](flows/F07-edit-or-undo-a-round.md) — 7 scenarios, 8 nodes, no red · [PNG](png/F07-edit-or-undo-a-round.png)
 - [F08 Change the multiplier](flows/F08-change-the-multiplier.md) — 6 scenarios, 10 nodes, no red · [PNG](png/F08-change-the-multiplier.png)
 - [F09 Pool: out, re-entry, limit](flows/F09-pool-out-re-entry-limit.md) — 7 scenarios, 8 nodes, no red · [PNG](png/F09-pool-out-re-entry-limit.png)
-- [F10 Complete → Awards → Result](flows/F10-complete-awards-result.md) — 9 scenarios, 16 nodes, no red · [PNG](png/F10-complete-awards-result.png)
+- [F10 Complete → (Awards →) Final screen → Done = Home](flows/F10-complete-awards-final-screen-done-home.md) — 11 scenarios, 18 nodes, 1 red · [PNG](png/F10-complete-awards-final-screen-done-home.png)
 - [F11 Share: picture, PDF, link, live page, email](flows/F11-share-picture-pdf-link-live-page-email.md) — 10 scenarios, 16 nodes, 1 red · [PNG](png/F11-share-picture-pdf-link-live-page-email.png)
 - [F12 Admins and roles](flows/F12-admins-and-roles.md) — 9 scenarios, 13 nodes, no red · [PNG](png/F12-admins-and-roles.png)
 - [F13 Delete, hide, restore, Deleted games](flows/F13-delete-hide-restore-deleted-games.md) — 10 scenarios, 15 nodes, no red · [PNG](png/F13-delete-hide-restore-deleted-games.png)

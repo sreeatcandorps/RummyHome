@@ -100,7 +100,7 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S10 | New game · Players picker / Add players to this game | `app/(screens)/games/new.tsx` | 39 |
+| S10 | New game · Players picker / Add players to this game | `app/(screens)/games/new.tsx` | 41 |
 | S12 | Add by initials | `app/(screens)/players/add.tsx` | 37 |
 | S13 | Find in database | `app/(screens)/players/new.tsx` | 25 |
 | S05 | My players | `app/(tabs)/players.tsx` | 39 |

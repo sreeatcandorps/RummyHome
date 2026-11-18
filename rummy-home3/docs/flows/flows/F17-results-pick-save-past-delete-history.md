@@ -89,7 +89,7 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 71 |
+| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 73 |
 | S21 | Results · pick games + Past results | `app/(screens)/results/index.tsx` | 38 |
 | W21 | Results picker count + locked (non-admin) cards | `app/(screens)/results/index.tsx` | 2 |
 | P51 | Not an admin (locked card) | `app/(screens)/results/index.tsx` | 5 |
@@ -99,7 +99,7 @@ flowchart TD
 | W22 | Not saved yet. This result may change. | `app/(screens)/results/view.tsx` | 2 |
 | W23 | Result warnings (Active game · already in a previous result) | `components/results/ResultWarnings.tsx` | 3 |
 | P53 | Result saved (status changes) | `app/(screens)/results/view.tsx` | 5 |
-| S23 | Results · saved result | `app/(screens)/results/[id].tsx` | 34 |
+| S23 | Results · saved result | `app/(screens)/results/[id].tsx` | 35 |
 | P54 | Result ⋮ menu (History · Copy link · Delete result) | `app/(screens)/results/[id].tsx` | 5 |
 | W25 | Delete consequence line (games go back to Completed) | `app/(screens)/results/[id].tsx` | 2 |
 | P55 | Delete a shared result? | `app/(screens)/results/[id].tsx` | 2 |
