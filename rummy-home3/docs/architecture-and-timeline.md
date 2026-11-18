@@ -339,7 +339,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Auth (email/passcode, session refresh, app-only OTP recovery) | Done in the app; OTP email live via Resend since Nov 9. Phone pass pending |
 | Profiles / Player ID + share | Done |
 | Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
-| New game (Points / Pool, my players) | Done. Two screens: Players (Next) then Game type with this game's settings prefilled from Settings. Creator is not pre-seated; Add players (full screen) / Add player from database |
+| New game (Points / Pool, my players) | Done. Four steps (PR 24): Players (Next) → Game type with this game's settings prefilled from Settings (Next) → Order of players (tap to number) → Co-admin → Start game. Creator is not pre-seated; Add players (full screen) / Add player from database |
 | Game table + score entry | Done, portrait + landscape. Add round: grid, presets, keypad, Balance gate, explicit 0, big losses in red. Complete game, Final scores, and Players are their own pages. Apply `014_save_round_atomic.sql` for the one-transaction save |
 | Home | Done. Results → every live game → Recent (every Completed/Closed game, newest first, no filter). History screen redirects home |
 | In-app help | Help pages per screen + index with search + Why? links + ⓘ mini helps (PR 11, Nov 18). Screenshots regenerate from a CI smoke run |
@@ -348,7 +348,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Performance (020) | `020_performance_rpcs_and_indexes.sql` written, scratch-verified, **not applied**: index-driven visibility RPCs, policy wrappers, bundle RPCs. App works on both pre- and post-020 databases; see `docs/performance/RESULTS.md` |
 | CI (GitHub Actions) | Done on PR 7: unit + tsc, local Supabase DB suite (migrations, rollbacks, pgTAP, concurrency), report per run. Device UI tests (PR 1, Nov 13): Maestro flows on an Android emulator against a runner-built APK. PR 17 (Nov 15): change-based plan, four devices × six suites (chaos, roles, two-device, monkey added), volume job, gh-pages dashboard, auto-filed bugs. Nightly needs `nightly.yml` on `main` (it dispatches CI on the stack top) and Pages switched on once. See `docs/testing-strategy.md` |
 | Game admins | Done in the app. Players/Admins page: Add admin by Player ID (non-player, open or completed games), Game admins on Complete game and the final-scores picture |
-| Pool games | Done in the app (PR 13): plus-only scores, outs and re-entry, Standings, Complete → Award → Result. `041_pool.sql` (Nov 14) and `042_pool_reentries_and_limit_lock.sql` (Nov 15) are on the live database; waits for the next APK |
+| Pool games | Done in the app (PR 13): plus-only scores, outs and re-entry, Standings, Complete → Award → Result. `041_pool.sql` (Nov 14) and `042_pool_reentries_and_limit_lock.sql` (Nov 15) are on the live database. PR 24 (Nov 17): Points-style header, footer inside the card, 70 / 30 portrait, stacked landscape, ↺ re-entry cells, Re-entry score / Late entry rules; `047_reentry_and_late_entry_score.sql` written, **not applied** |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; Clubhouse green design system (Nov 12). Appearance follows the phone by default; Profile › Appearance overrides it |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
@@ -486,7 +486,49 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   now says "hidden for good — nothing is erased" (APK v11 still carries the old words until the next build). pgTAP 37
   (X22-1…4), pgTAP 36's X20-3 rewritten, unit X22-5/6, rollback 046 (leaves the purge job off), replay hook.
 
-### 2026-11-18 — PR 11 Help built (stacked PR on #68; no migration)
+### 2026-11-17 — PR 24 v11 pool and seating feedback built (stacked PR; migration 047 written, not applied)
+- Sree's walk-through of APK v11 turned into one focused PR on the pool scorecard and seating. The pool header now
+  uses the Points typography (one small line taller for the #number), the Creator / Admin / Unique game ID footer moved
+  inside the card under the last round at 70 % italic, portrait pool is a 70 / 30 split (scorecard pane, standings
+  pane, independent scrollers) and landscape pool is the full-width table with the standings below it. Re-entry cells
+  show the re-entry score with ↺ and grey the cells above. Re-entry settings gained "Re-entry score" and a separate
+  "Late entry" section (Highest score / Highest score + 1, default + 1); Limited re-entries start with an empty count.
+  New game became four steps (Players → Game type → Order of players → Co-admin → Start game) and the PR 21 seating
+  pop-up is gone; **Order of players** is tap-to-number (undo last, arrows on numbered rows, Clear / Done) for both
+  the start and ⋮ mid-game. Migration `047_reentry_and_late_entry_score.sql` (server-side +1 rules, Log labels) with
+  rollback, pgTAP 38 and the replay hook is **written, not applied** to live. Decisions recorded in
+  `pool-design.md` §0 rows 18–27.
+
+### 2026-11-18 — PR stack merged to `main`; end flow rebuilt (PR A of the Nov 18 batch, no migration)
+- The 30-PR stack (#7 → #82) was merged into `main` in one merge commit; from here every PR and migration starts from
+  `main`, and `nightly.yml` targets `main`. The merged-but-still-open PRs are closed as housekeeping.
+- Sree's end-of-game rules became the code: **Complete** is one dialog on the scorecard (`CompleteGameDialog`; the
+  Complete page, its route and Help entry are gone), a Points game goes straight to the **Final screen**, a pool goes
+  to **Awards** (Not now / Save awards) and then the Final screen. The Final screen's bar is **Share + Done**: Share
+  offers the picture or the full-details PDF only; **Done always goes Home** (`router.navigate('/(tabs)')`); the header
+  arrow returns to the completed scorecard. No Results nudge anywhere in the end flow (Results is its own errand from
+  Home; a one-game result reads "Show results · 1 game"). A completed pool without awards is just **Completed** — no
+  "Awards pending" — and the Results picker asks for awards only when it is picked. Info sheets close with **Close**
+  (Round saved, Exact points), so Done means one thing. The full-details PDF now carries the pool: limit and drops,
+  every player's pool score, entries, put in, gets, award and out round, re-entries, and the rounds with "out" / ↺
+  cells (`utils/endFlow.ts`, `utils/finalScoresSheet.ts` `pdfSections`). PR B (pool portrait 5-line card, landscape
+  without standings) and PR C (decisions log, PR template) follow as separate PRs.
+
+### 2026-11-18 — Pool portrait five-row card, landscape without standings (PR B of the Nov 18 batch, no migration)
+- Sree's 5-line rule replaces PR 24's 70 / 30 split: the pool card in portrait hugs its rounds (a placeholder row at 0
+  rounds), one empty row and the Creator / Admin / ID lines, capped at five round-row heights, with the newest round
+  anchored at the bottom of the card; the Standings take the rest. Landscape pool is the full-width table alone, like
+  Points — the standings pane and the `below` slot are gone; an admin reaches Give / Change awards from the strip.
+  `pool-design.md` §0 rows 21–22 rewritten. Maestro 17 / 20 updated.
+
+### 2026-11-18 — Decision register, PR template, agent rules (PR C of the Nov 18 batch, docs only)
+- `docs/decisions.md` is the one dated list of what Sree decided and whether it still holds (D-ids, status active /
+  superseded / deferred), seeded from pool-design §0, help-design, design-audit and the Nov 18 batch. The root
+  `.github/PULL_REQUEST_TEMPLATE.md` carries the design-review checklist as checkboxes plus the screenshot matrix;
+  `AGENTS.md` gained the branching rules (trunk-based from `main`), the authority table (merge / migration / APK only
+  on Sree's explicit yes) and the relay rule (Build Bot relays verbatim; the builder asks its own questions).
+
+### 2026-11-18 — PR 11 Help built (#81, rebased on `main`; no migration)
 - Help moved from one dialog per screen (`constants/help.ts` `HELP`) to one **help page per screen**: `constants/helpTopics.ts`
   (19 topics: purpose · Need to know · annotated screenshot · Full guide · the ⋮ table · Tricky cases · Also see), rendered by
   `app/(screens)/help/[topic].tsx`; a **help index with local search** (`help/index.tsx`, reachable from Me and from every
@@ -495,5 +537,6 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   `scripts/help-callouts.json` — regenerate from the branch's own CI smoke artifact. Mini helps (Sree, Nov 17): an `InfoTip` ⓘ
   beside a section title opens a short pop-up (Got it / Full guide) and replaces the paragraphs under it; approved on
   New game · Game type and then applied to every screen (`SectionCard` grew a `tip` slot). Help copy already describes
-  PR 24's four-step New game, Order of players, ↺ re-entry rows and in-card footer (#82, not merged here). No new
-  dependency, no hosting change.
+  PR 24's four-step New game, Order of players, ↺ re-entry rows and in-card footer. Rebased on `main` after the
+  Nov 18 batch: the `complete` help topic now describes the Complete dialog, the Final screen page says Share + Done,
+  the Awards page has no Add to Results. No new dependency, no hosting change.

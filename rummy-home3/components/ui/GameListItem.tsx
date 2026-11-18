@@ -38,7 +38,7 @@ export function GameListItem({ game, onPress, viewerId, checked, locked = false,
   const roleTag = visibleRoleTag(access, viewerManagesGame(game, viewerId));
   const pickable = checked !== undefined;
   const on = pickable && checked && !locked;
-  // Pool (D10): the award state rides with the status; "Awards pending" is the thing to do next.
+  // Pool (D10, Nov 18): "Awarded" rides with the status once given; before that the pool is simply Completed.
   const awards = poolStatusLabel(game);
 
   return (

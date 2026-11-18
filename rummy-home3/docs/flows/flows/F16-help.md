@@ -51,9 +51,9 @@ flowchart TD
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
 | P30 | Help | `components/ui/HelpButton.tsx` | 17 |
-| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 71 |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
-| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 58 |
+| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 73 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 91 |
+| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 64 |
 | S21 | Results · pick games + Past results | `app/(screens)/results/index.tsx` | 38 |
 | S16 | Players · Admins | `app/(screens)/games/players.tsx` | 51 |
-| S19 | Awards (pool) | `app/(screens)/games/award.tsx` | 20 |
+| S19 | Awards (pool) | `app/(screens)/games/award.tsx` | 21 |

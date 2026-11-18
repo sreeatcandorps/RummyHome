@@ -16,6 +16,7 @@ import {
   effectiveFontScale,
   fitInitialsFontSize,
   initialsWidthIn,
+  newestRoundOffset,
   TABLE_MAX_FONT_SCALE,
 } from '@/utils/scorecardLayout';
 
@@ -64,7 +65,26 @@ type ScoreTableProps = {
   showActual?: boolean;
   /** PR 14: tapping a header total opens the Exact points sheet. */
   onTotalPress?: (columnId: string) => void;
+  /**
+   * PR 24: rendered inside the card, right under the last round row, full width (never sideways) —
+   * the Creator / Admin / Unique game ID lines. Scrolls with the rounds.
+   */
+  footer?: React.ReactNode;
+  /** PR 24: tapping a round number opens that round for editing (admins, live game) — the re-entry round included. */
+  onRoundPress?: (roundNumber: number) => void;
+  /**
+   * Pool portrait (Nov 18, Sree's 5-line rule): the card hugs its content — the round rows (one
+   * placeholder row at 0 rounds), one empty row, then the Creator / Admin / Unique game ID lines —
+   * and stops growing at this many round-row heights; from there the rounds scroll with the newest
+   * round at the bottom of the card and the empty row + footer below it. The standings take the rest
+   * of the screen. Unset: the card fills its parent (Points, landscape).
+   */
+  hugRows?: number;
 };
+
+
+/** Pool (PR 24): the re-entry round shows the start score with this mark beside it; the typed score is saved, not shown. */
+export const REENTRY_MARK = '↺';
 
 /** Totals and the header read a size up from the cells; every number carries its sign. */
 export const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
@@ -127,27 +147,32 @@ const ScoreRow = React.memo(function ScoreRow({ columns, roundNumber, cells, isL
           const big = hasScore && full > 0 && score >= full;
           const reentryHere = column.reenteredRound === roundNumber && typeof column.reentryScore === 'number';
           const outHere = column.outRound === roundNumber;
+          // PR 24: the rounds before a re-entry are that player's earlier life — greyed, no win pill, no red.
+          const beforeReentry = column.reenteredRound != null && roundNumber < column.reenteredRound;
           return (
             <View
               key={column.id}
               testID={`score-cell-${index + 1}-${roundNumber}`}
               style={[styles.cell, { width: columnWidth, height: rowHeight, borderRightColor: colors.hairline }]}
             >
-              <View style={[styles.scorePill, win && { backgroundColor: colors.winContainer }]}>
+              <View style={[styles.scorePill, win && !beforeReentry && { backgroundColor: colors.winContainer }]}>
                 <Text
                   numberOfLines={1}
                   adjustsFontSizeToFit
                   maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
+                  testID={reentryHere ? `score-reentry-${index + 1}` : undefined}
                   style={[
                     styles.scoreText,
                     tabularNums,
-                    { fontSize: reentryHere ? Math.max(10, fontSize - 3) : fontSize },
-                    win ? { color: colors.onWinContainer, fontWeight: '800' } : big ? { color: colors.loss, fontWeight: '700' } : { color: colors.onSurface },
+                    { fontSize },
+                    beforeReentry ? { color: colors.onSurfaceVariant }
+                      : reentryHere ? { color: colors.reentry, fontWeight: '700' }
+                      : win ? { color: colors.onWinContainer, fontWeight: '800' } : big ? { color: colors.loss, fontWeight: '700' } : { color: colors.onSurface },
                     outHere && { textDecorationLine: 'line-through' },
                   ]}
-                  accessibilityLabel={!hasScore ? undefined : reentryHere ? `Re-entered at ${column.reentryScore}, then ${score}` : outHere ? `${score}, out` : undefined}
+                  accessibilityLabel={!hasScore ? undefined : reentryHere ? `Re-entered at ${column.reentryScore}; typed ${score}` : outHere ? `${score}, out` : beforeReentry ? `${score}, before re-entry` : undefined}
                 >
-                  {!hasScore ? '–' : reentryHere ? `↺${column.reentryScore}+${score}` : `${score}${outHere ? ' ✕' : ''}`}
+                  {!hasScore ? '–' : reentryHere ? `${REENTRY_MARK}${column.reentryScore}` : `${score}${outHere ? ' ✕' : ''}`}
                 </Text>
               </View>
             </View>
@@ -237,6 +262,9 @@ export function ScoreTable({
   multiplier = 1,
   showActual = true,
   onTotalPress,
+  footer,
+  onRoundPress,
+  hugRows,
 }: ScoreTableProps) {
   // Pools never multiply; Points multiply while the view toggle is on.
   const factor = !pool && showActual && multiplier > 1 ? multiplier : 1;
@@ -254,7 +282,7 @@ export function ScoreTable({
 
   const fontSize = cellFontSize(columnWidth);
   const rowHeight = rowHeightFor(columnWidth, columns.length, compact, fontScale);
-  const headerH = headerHeight(columnWidth, compact, fontScale);
+  const headerH = headerHeight(columnWidth, compact, fontScale, pool);
   const type = headerType(columnWidth);
   const onDark = theme.dark;
 
@@ -269,13 +297,20 @@ export function ScoreTable({
     if (width !== tableWidth) setTableWidth(width);
   };
 
-  // Follow the newest round so the latest hand is always on screen.
+  // Follow the newest round so the latest hand is always on screen. A hugging card (pool portrait)
+  // stops with the newest round at the bottom of the viewport — scrollToEnd would park on the footer
+  // and hide it; a full-height card scrolls to the end as before (the footer is a few lines).
+  const viewportHeight = useRef(0);
   const handleContentSizeChange = () => {
     if (roundCount > shownRounds.current) {
-      verticalRef.current?.scrollToEnd({ animated: shownRounds.current > 0 });
+      const animated = shownRounds.current > 0;
+      if (hugRows) verticalRef.current?.scrollTo({ y: newestRoundOffset(roundCount, rowHeight, viewportHeight.current), animated });
+      else verticalRef.current?.scrollToEnd({ animated });
     }
     shownRounds.current = roundCount;
   };
+  const hugging = Boolean(hugRows);
+  const maxBodyHeight = hugRows ? hugRows * rowHeight : undefined;
 
   const isLeader = (id: string) => leaderIds.includes(id);
 
@@ -417,9 +452,14 @@ export function ScoreTable({
     const isLatest = roundIndex === roundCount - 1;
     const rotationStart = rotationStartSet.has(roundIndex);
     return (
-      <View
+      <Pressable
         key={roundIndex}
-        accessibilityLabel={rotationStart ? `Round ${roundIndex + 1}, new rotation` : undefined}
+        onPress={onRoundPress ? () => onRoundPress(roundIndex + 1) : undefined}
+        disabled={!onRoundPress}
+        accessibilityRole={onRoundPress ? 'button' : undefined}
+        accessibilityHint={onRoundPress ? 'Edits this round' : undefined}
+        accessibilityLabel={rotationStart ? `Round ${roundIndex + 1}, new rotation` : onRoundPress ? `Round ${roundIndex + 1}` : undefined}
+        testID={`score-round-${roundIndex + 1}`}
         style={[
           styles.cell,
           styles.roundCell,
@@ -445,19 +485,18 @@ export function ScoreTable({
             {dealer}
           </Text>
         ) : null}
-      </View>
+      </Pressable>
     );
   });
 
+  // PR 24: the card border is split so the pinned header carries the top edge and the scrolling body the bottom.
+  const edge = { borderColor: colors.outlineVariant };
   return (
-    <View
-      style={[styles.table, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}
-      onLayout={handleLayout}
-    >
+    <View style={hugging ? styles.tableHug : styles.table} onLayout={handleLayout} testID="score-table">
       {tableWidth > 0 ? (
         <>
           {/* Pinned header: the corner stays put; the header cells follow the rows' sideways offset on the UI thread. */}
-          <View style={[styles.row, styles.headerRow, { backgroundColor: colors.tableHeader, borderBottomColor: colors.outlineVariant }]}>
+          <View style={[styles.row, styles.headerRow, styles.cardTop, edge, { backgroundColor: colors.tableHeader, borderBottomColor: colors.outlineVariant }]}>
             {cornerCell}
             <View style={[styles.flex, styles.clip]}>
               <Animated.View style={[styles.row, { width: contentWidth }, followColumns]} testID="score-table-header">
@@ -468,71 +507,121 @@ export function ScoreTable({
 
           <ScrollView
             ref={verticalRef}
-            style={roundCount > 0 ? styles.flex : styles.none}
+            style={hugging ? [styles.none, { maxHeight: maxBodyHeight }] : styles.flex}
             onContentSizeChange={handleContentSizeChange}
             showsVerticalScrollIndicator={roundCount > 0}
             scrollEnabled={roundCount > 0}
+            onLayout={(e) => { viewportHeight.current = e.nativeEvent.layout.height; }}
+            testID="score-table-rows"
           >
-            <View style={styles.row}>
-              {/* Frozen round column: scrolls with the rows, never sideways. */}
-              <View style={{ width: roundColumnWidth }}>{roundCells}</View>
+            <View style={[styles.cardBottom, edge, { backgroundColor: colors.surface }]}>
+              <View style={styles.row}>
+                {/* Frozen round column: scrolls with the rows, never sideways. */}
+                <View style={{ width: roundColumnWidth }}>{roundCells}</View>
 
-              <Animated.ScrollView
-                horizontal
-                style={styles.flex}
-                scrollEnabled={scrollsSideways}
-                showsHorizontalScrollIndicator={scrollsSideways}
-                onScroll={onSidewaysScroll}
-                scrollEventThrottle={16}
-                directionalLockEnabled
-                bounces={false}
-                nestedScrollEnabled
-                testID="score-table-scroller"
-              >
-                <View style={{ width: contentWidth }}>
-                  {Array.from({ length: roundCount }, (_, roundIndex) => (
-                    <ScoreRow
-                      key={roundIndex}
-                      columns={columns}
-                      roundNumber={roundIndex + 1}
-                      cells={columns.map((column) => scores[column.id]?.[roundIndex])}
-                      isLatest={roundIndex === roundCount - 1}
-                      stripe={roundIndex % 2 === 1}
-                      rotationStart={rotationStartSet.has(roundIndex)}
-                      columnWidth={columnWidth}
-                      rowHeight={rowHeight}
-                      fontSize={fontSize}
-                      fullCount={fullCount}
-                      colors={colors}
-                      pool={pool}
-                      factor={factor}
-                    />
-                  ))}
+                <Animated.ScrollView
+                  horizontal
+                  style={styles.flex}
+                  scrollEnabled={scrollsSideways}
+                  showsHorizontalScrollIndicator={scrollsSideways}
+                  onScroll={onSidewaysScroll}
+                  scrollEventThrottle={16}
+                  directionalLockEnabled
+                  bounces={false}
+                  nestedScrollEnabled
+                  testID="score-table-scroller"
+                >
+                  <View style={{ width: contentWidth }}>
+                    {Array.from({ length: roundCount }, (_, roundIndex) => (
+                      <ScoreRow
+                        key={roundIndex}
+                        columns={columns}
+                        roundNumber={roundIndex + 1}
+                        cells={columns.map((column) => scores[column.id]?.[roundIndex])}
+                        isLatest={roundIndex === roundCount - 1}
+                        stripe={roundIndex % 2 === 1}
+                        rotationStart={rotationStartSet.has(roundIndex)}
+                        columnWidth={columnWidth}
+                        rowHeight={rowHeight}
+                        fontSize={fontSize}
+                        fullCount={fullCount}
+                        colors={colors}
+                        pool={pool}
+                        factor={factor}
+                      />
+                    ))}
+                  </View>
+                </Animated.ScrollView>
+              </View>
+
+              {roundCount === 0 && hugging ? (
+                // The placeholder round row (Sree's line 1 of 5): round 1's cell, dimmed, and the empty note beside it.
+                <View style={[styles.row, { height: rowHeight, borderBottomColor: colors.hairline, borderBottomWidth: StyleSheet.hairlineWidth }]} testID="score-table-placeholder-row">
+                  <View style={[styles.cell, styles.roundCell, { width: roundColumnWidth, height: rowHeight, borderRightColor: colors.outlineVariant, borderBottomWidth: 0, backgroundColor: colors.tableHeader }]}>
+                    <Text style={[styles.roundText, tabularNums, { fontSize: fontSize - 1, color: colors.onSurfaceVariant }]} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>1</Text>
+                  </View>
+                  <View style={[styles.flex, styles.placeholderCell]}>
+                    <Text variant="bodySmall" numberOfLines={2} style={{ color: colors.onSurfaceVariant }}>{emptyMessage}</Text>
+                  </View>
                 </View>
-              </Animated.ScrollView>
+              ) : roundCount === 0 ? (
+                <View style={styles.emptyTable}>
+                  <Icon source="cards-playing-outline" size={32} color={colors.onSurfaceVariant} />
+                  <Text variant="bodyMedium" style={[styles.emptyText, { color: colors.onSurfaceVariant }]}>
+                    {emptyMessage}
+                  </Text>
+                </View>
+              ) : null}
+
+              {/* Sree's empty row between the last round and the footer (one round-row height). */}
+              {hugging ? <View style={{ height: rowHeight }} testID="score-table-spacer-row" /> : null}
+
+              {/* PR 24: the footer is part of the card, directly under the last round row. */}
+              {footer ? <View style={styles.footer} testID="score-table-footer">{footer}</View> : null}
             </View>
           </ScrollView>
-
-          {roundCount === 0 ? (
-            <View style={styles.emptyTable}>
-              <Icon source="cards-playing-outline" size={32} color={colors.onSurfaceVariant} />
-              <Text variant="bodyMedium" style={[styles.emptyText, { color: colors.onSurfaceVariant }]}>
-                {emptyMessage}
-              </Text>
-            </View>
-          ) : null}
         </>
       ) : null}
     </View>
   );
 }
 
+const EDGE = StyleSheet.hairlineWidth * 2;
+
 const styles = StyleSheet.create({
   table: {
     flex: 1,
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth * 2,
+  },
+  // Pool portrait: the card takes only what its rows need (capped by the body's maxHeight); the standings fill the rest.
+  tableHug: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  placeholderCell: {
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  // The card's top: the pinned header carries the top edge and corners.
+  cardTop: {
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    borderTopWidth: EDGE,
+    borderLeftWidth: EDGE,
+    borderRightWidth: EDGE,
     overflow: 'hidden',
+  },
+  // The card's body: rows, the empty note and the footer, closed by the bottom edge and corners.
+  cardBottom: {
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+    borderBottomWidth: EDGE,
+    borderLeftWidth: EDGE,
+    borderRightWidth: EDGE,
+    overflow: 'hidden',
+  },
+  footer: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   flex: {
     flex: 1,
@@ -571,12 +660,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 1,
     maxWidth: '100%',
+    overflow: 'hidden',
   },
   headerText: {
     fontWeight: '800',
     textAlign: 'center',
     letterSpacing: 0.2,
-    flexShrink: 1,
+    // Never the line that gives way: a header a pixel short pushes the bottom label row, not the initials.
+    flexShrink: 0,
     includeFontPadding: false,
   },
   headerTotal: {

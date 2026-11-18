@@ -580,7 +580,19 @@ What 044 does (rollback: `supabase/rollback/rollback_044_seating_order.sql`; pgT
   seen never logs "Changed game settings".
 - Rollback relabels `seating_changed` rows to `settings_changed`, restores the 041 kind list and the 043 `event_log_games`.
 
-045 (Going rogue, PR 20) is spec-only and not yet written.
+045 (Going rogue, PR 20) and 046 (No permanent delete, PR 22) are covered in `architecture-and-timeline.md` (045 applied Nov 15; 046 written, not applied).
+
+PR 24 v11 pool feedback (Nov 17), **written, not applied — never run against live without Sree's OK**:
+
+25. `supabase/migrations/047_reentry_and_late_entry_score.sql`
+
+What 047 does (rollback: `supabase/rollback/rollback_047_reentry_and_late_entry_score.sql`; pgTAP: `supabase/tests/38_reentry_plus_047.sql`, 25 checks; replay hook `HAS_047` in `ci/db/replay-rollbacks.sh`):
+
+- `pool_entry_plus(settings, key)`: reads `settings.reentryPlus` / `settings.lateEntryPlus` (0 = "Highest score", 1 = "Highest score + 1"; absent or anything else → 0, so games from before this keep the 041 rule).
+- `reenter_player`: the 042 body plus `+ pool_entry_plus(settings, 'reentryPlus')` on the highest total still in.
+- `add_seated_player`: the 041 body plus `+ pool_entry_plus(settings, 'lateEntryPlus')` for a player added once rounds exist.
+- `event_log_games`: the 044 body plus the labels "Re-entry score" / "Late entry score" with the words "Highest score" / "Highest score + 1" (`entry_plus_text`).
+- Adds no column, changes no row; functions only. Until it runs, the app writes `reentryPlus: 1` / `lateEntryPlus: 1` on new pools and shows the stored re-entry score, but the server still re-enters at the highest (041), so the +1 rules take effect on live only once 047 is applied.
 
 Read-only checks that go with 021 (nothing is changed):
 

@@ -26,9 +26,10 @@ export type TypeStepPick = { id: string; name: string; label?: string };
 /**
  * New game, step 2 (D1): Points or Pool, the settings for this game (prefilled from the user's
  * saved defaults for that kind, editable here for this game only), the picked players, Back and
- * Start. Pure presentation: the New game screen owns the draft, the defaults and the create call.
+ * Next (PR 24: Order of players follows; only the last step says Start). Pure presentation: the
+ * New game screen owns the draft, the defaults and the create call.
  */
-export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, onBack, onStart, creating, error }: {
+export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, onBack, onNext, creating, error }: {
   kind: GameKind;
   rules: PointsRules;
   /** The user's saved defaults for a kind, so switching kinds prefills that kind's numbers. */
@@ -36,7 +37,7 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
   picks: TypeStepPick[];
   onKindChange: (kind: GameKind, rules: PointsRules) => void;
   onBack: () => void;
-  onStart: (rules: PointsRules) => void;
+  onNext: (rules: PointsRules) => void;
   creating: boolean;
   error: string | null;
 }) {
@@ -54,13 +55,13 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
     onKindChange(next, nextRules);
   };
 
-  const start = () => {
+  const next = () => {
     const parsed = rulesFromDraft(draft);
     if (!parsed.rules) { setProblem(parsed.error); return; }
     setProblem(null);
     const high = parsed.rules.gameKind === 'points' ? highMultiplierConfirm(parsed.rules.multiplier ?? 1, parsed.rules.fullCount) : null;
     if (high) { setHighConfirm({ rules: parsed.rules, text: high }); return; }
-    onStart(parsed.rules);
+    onNext(parsed.rules);
   };
 
   const pool = kind === 'pool';
@@ -108,8 +109,8 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
 
       </Screen>
 
-      {/* F3 (chaos c03): pinned above the Start bar, outside the scroller, so a refused limit is never
-          below the fold — on a Pixel 6 it used to render under the players card and Start looked dead. */}
+      {/* F3 (chaos c03): pinned above the Next bar, outside the scroller, so a refused limit is never
+          below the fold — on a Pixel 6 it used to render under the players card and the button looked dead. */}
       {problem || error ? (
         <View style={[styles.problem, { backgroundColor: colors.errorContainer }]} testID="new-game-problem" accessibilityLiveRegion="polite">
           <Icon source="alert-circle-outline" size={20} color={colors.onErrorContainer} />
@@ -123,7 +124,7 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
           <Dialog.Content><Text variant="bodyMedium">{highConfirm?.text ?? ''}</Text></Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setHighConfirm(null)}>Change</Button>
-            <Button mode="contained" onPress={() => { const r = highConfirm?.rules; setHighConfirm(null); if (r) onStart(r); }} testID="multiplier-high-keep">Keep it</Button>
+            <Button mode="contained" onPress={() => { const r = highConfirm?.rules; setHighConfirm(null); if (r) onNext(r); }} testID="multiplier-high-keep">Keep it</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -132,8 +133,8 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
         <Button mode="outlined" onPress={onBack} disabled={creating} icon="arrow-left" contentStyle={styles.barContent} style={styles.back} accessibilityLabel="Back to players">
           Back
         </Button>
-        <Button mode="contained" onPress={start} loading={creating} disabled={creating} icon="play" contentStyle={styles.barContent} labelStyle={styles.startLabel} style={styles.start} accessibilityLabel="Start game" testID="start-game">
-          {`Start ${pool ? 'pool' : 'game'} · ${picks.length} players`}
+        <Button mode="contained" onPress={next} loading={creating} disabled={creating} icon="arrow-right" contentStyle={styles.barContent} labelStyle={styles.startLabel} style={styles.start} accessibilityLabel="Next: order of players" testID="new-game-type-next">
+          Next
         </Button>
       </BottomBar>
     </View>

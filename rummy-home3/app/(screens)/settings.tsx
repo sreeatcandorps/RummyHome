@@ -6,7 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { authService } from '@/services/auth';
 import { userSettingsService } from '@/services/userSettings';
 import { DEFAULT_POINTS_RULES, DEFAULT_POOL_RULES, GameKind } from '@/utils/gameSettings';
-import { reentryLimitLabel } from '@/utils/pool';
+import { entryPlusLabel, reentryLimitLabel } from '@/utils/pool';
 import { draftFromRules, RulesDraft, RulesForm, rulesFromDraft } from '@/components/game/RulesForm';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
@@ -51,7 +51,7 @@ export default function UserSettings() {
     try {
       await userSettingsService.saveAll(userId, { startsAs, points: p.rules, pool: q.rules });
       setNotice({
-        text: `Saved. Points: Drop ${p.rules.drop}, Middle drop ${p.rules.middleDrop}, Full count ${p.rules.fullCount}, Multiplier ×${p.rules.multiplier ?? 1}. Pool: limit ${q.rules.poolLimit}, Drop ${q.rules.drop}, Middle drop ${q.rules.middleDrop}, Full count ${q.rules.fullCount}, Re-entries ${reentryLimitLabel(q.rules.reentryLimit ?? null)}. New games start with these.`,
+        text: `Saved. Points: Drop ${p.rules.drop}, Middle drop ${p.rules.middleDrop}, Full count ${p.rules.fullCount}, Multiplier ×${p.rules.multiplier ?? 1}. Pool: limit ${q.rules.poolLimit}, Drop ${q.rules.drop}, Middle drop ${q.rules.middleDrop}, Full count ${q.rules.fullCount}, Re-entries ${reentryLimitLabel(q.rules.reentryLimit ?? null)}, Re-entry score ${entryPlusLabel(q.rules.reentryPlus ?? 1)}, Late entry ${entryPlusLabel(q.rules.lateEntryPlus ?? 1)}. New games start with these.`,
         tone: 'saved',
       });
     } catch (e) { problem(e instanceof Error ? e.message : 'Couldn’t save.'); }

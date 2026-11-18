@@ -201,7 +201,6 @@ test('HL11-7 mini helps on every screen: each section keeps its title plus a ⓘ
     { file: 'app/(tabs)/me.tsx', tips: ['me-phone-tip', 'me-email-tip', 'me-demo-tip', 'me-account-tip'], keep: [/EMAIL_TIP/, /testID="me-help-index"/] },
     { file: 'app/(screens)/results/index.tsx', tips: ['results-picker-tip', 'past-results-tip', 'deleted-results-note-tip'], keep: [/DELETED_SECTION_NOTE/, /<WhyLink why="giveAwardsFirst"/] },
     { file: 'app/(screens)/games/award.tsx', tips: ['award-split-tip'], gone: [/testID="award-hint"/], keep: [/SPLIT_TIP/, /AWARD_PRESETS\.map\(\(p\) => `\*\*\$\{p\.label\}\*\*: \$\{p\.hint\}`\)/] },
-    { file: 'app/(screens)/games/complete.tsx', tips: ['complete-next-tip', 'complete-locks-tip'], gone: [/: 'Completing locks the scores\./], keep: [/COMPLETE_POOL_TIP : COMPLETE_POINTS_TIP/, /Scores are locked\. Reopen from the scorecard menu/] },
     { file: 'app/(screens)/games/final-scores.tsx', tips: ['final-scores-picture-tip'] },
     { file: 'app/(screens)/games/players.tsx', tips: ['players-playing-tip'], keep: [/PLAYING_TIP/] },
     { file: 'app/(screens)/players/add.tsx', tips: ['add-players-tip'], keep: [/EDIT_NOTE/] },

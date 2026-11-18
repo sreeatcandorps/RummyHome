@@ -20,6 +20,31 @@ export const DEFAULT_POOL_VALUES = { drop: 25, middleDrop: 50, fullCount: 130 } 
 /** Re-entries per player (042): null = Unlimited (the default), N = Limited to N, 0 = none. */
 export const DEFAULT_POOL_REENTRY_LIMIT: number | null = null;
 export const POOL_REENTRY_LIMIT_MAX = 99;
+
+/**
+ * PR 24 (Sree, Nov 17): where a player who comes back starts. 0 = the highest score still in,
+ * 1 = that score + 1. EZ Score's default for new games is +1, for a re-entry and for a late entry
+ * alike; each is its own setting (user defaults → this game). A game saved before this build has
+ * no key and keeps the 041 rule (the highest score), so nothing changes under a pool in progress.
+ */
+export type EntryPlus = 0 | 1;
+export const DEFAULT_REENTRY_PLUS: EntryPlus = 1;
+export const DEFAULT_LATE_ENTRY_PLUS: EntryPlus = 1;
+
+const plusOf = (value: unknown): EntryPlus | null => (value === 1 || value === 0 ? value : value === true ? 1 : value === false ? 0 : null);
+
+/** The re-entry rule a game plays with (absent → 0, the 041 rule). */
+export const reentryPlusOf = (settings: Pick<GameSettings, 'reentryPlus'> | null | undefined): EntryPlus => plusOf(settings?.reentryPlus) ?? 0;
+/** The late-entry rule a game plays with (absent → 0, the 041 rule). */
+export const lateEntryPlusOf = (settings: Pick<GameSettings, 'lateEntryPlus'> | null | undefined): EntryPlus => plusOf(settings?.lateEntryPlus) ?? 0;
+/** A saved user default (absent → the EZ Score default, +1). */
+export const entryPlusDefault = (value: unknown, fallback: EntryPlus): EntryPlus => plusOf(value) ?? fallback;
+
+export const ENTRY_PLUS_LABELS: Record<EntryPlus, string> = { 0: 'Highest score', 1: 'Highest score + 1' };
+export const entryPlusLabel = (plus: EntryPlus) => ENTRY_PLUS_LABELS[plus];
+
+/** The score a player comes back at under a rule: the highest score still in, plus 0 or 1. */
+export const entryScoreUnder = (highest: number, plus: EntryPlus) => highest + plus;
 /** What one entry into the pool is worth on the Awards screen (editable there, F13.4). */
 export const DEFAULT_POOL_ENTRY = 100;
 
@@ -115,10 +140,20 @@ export function poolStandings(game: Pick<Game, 'players' | 'scores' | 'settings'
 export const playersIn = (game: Pick<Game, 'players' | 'poolSeats'>) => game.players.filter((id) => !isOut(seatOf(game, id)));
 export const playersOut = (game: Pick<Game, 'players' | 'poolSeats'>) => game.players.filter((id) => isOut(seatOf(game, id)));
 
-/** The score a re-entering player would start at: the highest among those still in. */
-export function reentryScore(game: Pick<Game, 'players' | 'scores' | 'poolSeats'>): number {
+/** The highest total among the players still in (0 when nobody is). */
+export function highestIn(game: Pick<Game, 'players' | 'scores' | 'poolSeats'>): number {
   const totals = playersIn(game).map((id) => poolTotal(game.scores[id], seatOf(game, id)));
   return totals.length ? Math.max(...totals) : 0;
+}
+
+/** The score a re-entering player would start at: the highest among those still in, plus the game's re-entry rule (PR 24). */
+export function reentryScore(game: Pick<Game, 'players' | 'scores' | 'poolSeats'> & { settings?: Pick<GameSettings, 'reentryPlus'> | null }): number {
+  return entryScoreUnder(highestIn(game), reentryPlusOf(game.settings));
+}
+
+/** The score a late joiner starts at (F13.2) under the game's late-entry rule (PR 24). */
+export function lateEntryScore(game: Pick<Game, 'players' | 'scores' | 'poolSeats'> & { settings?: Pick<GameSettings, 'lateEntryPlus'> | null }): number {
+  return entryScoreUnder(highestIn(game), lateEntryPlusOf(game.settings));
 }
 
 export type ReentryBlock = 'in' | 'off' | 'used' | 'nobody' | 'completed';
@@ -199,10 +234,14 @@ export function afterRound(before: Pick<Game, 'players' | 'poolSeats'>, after: P
   };
 }
 
-/** Pool status words on the scorecard and the home cards (F13.11). */
-export function poolStatusLabel(game: Pick<Game, 'gameType' | 'isComplete' | 'closedAt' | 'awardedAt'>): 'Awards pending' | 'Awarded' | null {
+/**
+ * Pool status words on the scorecard and the home cards (F13.11; Nov 18): "Awarded" once the awards
+ * are given, otherwise null — a completed pool without awards is just "Completed". The Results picker
+ * says "Give awards first" when such a pool is picked; nothing nags before that.
+ */
+export function poolStatusLabel(game: Pick<Game, 'gameType' | 'isComplete' | 'closedAt' | 'awardedAt'>): 'Awarded' | null {
   if (!isPoolGame(game) || !game.isComplete) return null;
-  return game.awardedAt ? 'Awarded' : 'Awards pending';
+  return game.awardedAt ? 'Awarded' : null;
 }
 
 export const GIVE_AWARDS_FIRST = 'Give awards first';

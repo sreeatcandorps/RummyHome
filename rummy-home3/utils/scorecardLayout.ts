@@ -88,13 +88,19 @@ export const headerPadding = (compact: boolean) => (compact ? 3 : 4);
 /**
  * Header height = the three line heights at the effective font scale + the dealer bar + padding.
  * Nothing is clipped at any font size because the box is sized from the text, not the other way round.
+ * PR 24: a pool header carries a fourth line (the player's #number above the initials); before, the
+ * four texts shared a three-line box, so the initials shrank to fit (Sree: "tiny gray"). The box now
+ * counts that line, so pool initials, total and DEALS set at exactly the Points sizes.
  */
-export function headerHeight(columnWidth: number, compact: boolean, fontScale = 1): number {
+export function headerHeight(columnWidth: number, compact: boolean, fontScale = 1, pool = false): number {
   const scale = effectiveFontScale(fontScale);
   const type = headerType(columnWidth);
-  const lines = (type.initials.lineHeight + type.total.lineHeight + type.deals.lineHeight) * scale;
-  return Math.ceil(lines + DEALER_BAR + headerPadding(compact) * 2);
+  const lines = (type.initials.lineHeight + type.total.lineHeight + type.deals.lineHeight + (pool ? type.deals.lineHeight : 0)) * scale;
+  // Pool: a fourth line of native text rounding, plus the dealer bar drawn inside the dealer's cell,
+  // left that one column a pixel short and its initials shrank (CI run 1); POOL_HEADER_SLACK covers it.
+  return Math.ceil(lines + DEALER_BAR + headerPadding(compact) * 2 + (pool ? POOL_HEADER_SLACK : 0));
 }
+export const POOL_HEADER_SLACK = DEALER_BAR;
 
 /** A score row is one line of cell text plus breathing room; it grows with the font scale and never clips. */
 export function rowHeight(columnWidth: number, columnCount: number, compact: boolean, fontScale = 1): number {
@@ -147,3 +153,35 @@ export function scorecardFooterLines(
 
 /** Landscape has no room for four lines: the same pieces joined on one line. */
 export const footerOneLine = (lines: FooterLine[]) => lines.map((line) => `${line.label}: ${line.value}`).join(' · ');
+
+/**
+ * PR 24 (Sree, Nov 17): the footer sits inside the scorecard, right under the last round row, and is
+ * quiet — 70% of the labelLarge it used to be (14 → 10), italic, never bold — in both orientations
+ * and for both kinds. It scrolls with the rounds.
+ */
+export const FOOTER_SCALE = 0.7;
+const FOOTER_BASE_FONT = 14;
+export const footerType = (): TextMetrics & { fontStyle: 'italic'; fontWeight: '400' } => ({
+  fontSize: Math.round(FOOTER_BASE_FONT * FOOTER_SCALE),
+  lineHeight: Math.ceil(FOOTER_BASE_FONT * FOOTER_SCALE * 1.4),
+  fontStyle: 'italic',
+  fontWeight: '400',
+});
+
+/**
+ * Pool portrait (Nov 18, Sree): the card is not a fixed share of the screen (PR 24's 70 / 30 is gone).
+ * It hugs its content — round rows (one placeholder row at 0 rounds), one empty row, the footer lines —
+ * and is capped at `maxRows` round-row heights; the standings take the rest. Returns the card body
+ * height for a content height, or the cap.
+ */
+export function poolCardBodyHeight(contentHeight: number, rowHeight: number, maxRows: number): number {
+  return Math.min(Math.max(0, contentHeight), maxRows * rowHeight);
+}
+
+/** Sree (Nov 18): the pool card in portrait is at most five round rows tall; at 0 rounds it is five lines (row · empty row · Creator · Admin · ID). */
+export const POOL_CARD_MAX_ROWS = 5;
+
+/** How far the hugging card scrolls so the newest round sits at the bottom of its viewport (the empty row and footer stay below). */
+export function newestRoundOffset(roundCount: number, rowHeight: number, viewportHeight: number): number {
+  return Math.max(0, roundCount * rowHeight - viewportHeight);
+}

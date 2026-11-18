@@ -245,7 +245,7 @@ export const FLOWS = [
   {
     id: 'F09', name: 'Pool: out, re-entry, limit', requirements: ['R22', 'R23', 'R24'],
     nodes: [
-      { k: 's14', ref: 'S14' }, { k: 's15', ref: 'S15' }, { k: 'p32', ref: 'P32' }, { k: 'w35', ref: 'W35' }, { k: 'w10', ref: 'W10' }, { k: 'p31', ref: 'P31' }, { k: 'w19', ref: 'W19' }, { k: 's18', ref: 'S18' },
+      { k: 's14', ref: 'S14' }, { k: 's15', ref: 'S15' }, { k: 'p32', ref: 'P32' }, { k: 'w35', ref: 'W35' }, { k: 'w10', ref: 'W10' }, { k: 'p31', ref: 'P31' }, { k: 'w19', ref: 'W19' }, { k: 'p40', ref: 'P40' },
       { k: 'over', label: 'Total ≥ pool limit?', type: 'decision' },
       { k: 'reentry', label: 'Re-entries left (Unlimited / Limited N)?', type: 'decision' },
       { k: 'reenter', label: 'Re-enter at the highest live total', type: 'step' },
@@ -254,7 +254,7 @@ export const FLOWS = [
     edges: [
       ['s14', 's15', 'Add round (pool)'], ['s15', 'p31', 'value ≥ limit: Are you sure?'], ['s15', 'over', 'Save'], ['over', 'p32', 'yes: who is out'], ['over', 's14', 'no'],
       ['p32', 's14'], ['s14', 'w35', 'OUT · eligible · re-entered'], ['w35', 'reentry', 'Re-enter'], ['reentry', 'reenter', 'yes'], ['reenter', 's14'], ['reentry', 'w10', 'no: limit reached'],
-      ['s14', 'left'], ['left', 'w10', 'yes: everyone out'], ['w10', 's18', 'Complete'], ['s14', 'w19', 'settings locked after round 1'],
+      ['s14', 'left'], ['left', 'w10', 'yes: everyone out'], ['w10', 'p40', 'Complete'], ['s14', 'w19', 'settings locked after round 1'],
     ],
     scenarios: [
       { id: 'F09-1', kind: 'happy', text: 'Pool round: player crosses the limit → Round saved sheet says who is out → OUT chip', tests: [e2e('smoke/16-pool-game'), unit('pool-pr13'), pg('32_pool_041')] },
@@ -267,25 +267,28 @@ export const FLOWS = [
     ],
   },
   {
-    id: 'F10', name: 'Complete → Awards → Result', requirements: ['R25', 'R26', 'R27'],
+    id: 'F10', name: 'Complete → (Awards →) Final screen → Done = Home', requirements: ['R25', 'R26', 'R27'],
     nodes: [
-      { k: 's14', ref: 'S14' }, { k: 's18', ref: 'S18' }, { k: 'p40', ref: 'P40' }, { k: 'p41', ref: 'P41' }, { k: 's19', ref: 'S19' }, { k: 'p42', ref: 'P42' }, { k: 'p43', ref: 'P43' }, { k: 'w20', ref: 'W20' }, { k: 'w36', ref: 'W36' }, { k: 's20', ref: 'S20' }, { k: 's21', ref: 'S21' }, { k: 'p50', ref: 'P50' }, { k: 'p22', ref: 'P22' }, { k: 'p44', ref: 'P44' }, { k: 'w08', ref: 'W08' }, { k: 'w32', ref: 'W32' },
+      { k: 's14', ref: 'S14' }, { k: 's15', ref: 'S15' }, { k: 'p40', ref: 'P40' }, { k: 'p41', ref: 'P41' }, { k: 's19', ref: 'S19' }, { k: 'p42', ref: 'P42' }, { k: 'p43', ref: 'P43' }, { k: 'w20', ref: 'W20' }, { k: 'w36', ref: 'W36' }, { k: 's20', ref: 'S20' }, { k: 's21', ref: 'S21' }, { k: 'p50', ref: 'P50' }, { k: 'p22', ref: 'P22' }, { k: 'p44', ref: 'P44' }, { k: 'w08', ref: 'W08' }, { k: 'w32', ref: 'W32' }, { k: 's04', ref: 'S04' }, { k: 'p24', ref: 'P24' },
       { k: 'pool', label: 'Pool?', type: 'decision' },
       { k: 'given', label: 'Whole pot given out?', type: 'decision' },
       { k: 'completed', label: 'Status Completed · number freed', type: 'step' },
     ],
     edges: [
-      ['s14', 's18', 'Complete'], ['s18', 'p40'], ['p40', 'completed', 'Yes'], ['p40', 'p41', 'RPC failed'], ['completed', 'pool'],
-      ['pool', 's20', 'no: Final scores / share'], ['pool', 's19', 'yes: Give awards'], ['s19', 'w20'], ['s19', 'given', 'Save awards'], ['given', 'p42', 'no'], ['p42', 's14', 'save anyway'], ['given', 's14', 'yes'],
-      ['s19', 'p43', 'preset does not fit'], ['s14', 'w36', 'awards card'], ['s14', 's21', 'Results'], ['s21', 'p50', 'pool without awards'],
-      ['completed', 'p22', 'Reopen (admin, not Closed)'], ['p22', 's14', 'Active again'], ['s19', 'p44', 'RPC failed'], ['completed', 'w08', 'Completed tag'], ['s20', 'w32'],
+      ['s14', 'p40', 'Complete game'], ['s15', 'p40', 'Round saved → Complete'], ['p40', 'completed', 'Complete'], ['p40', 's15', 'Points round off: Fix round N first → Edit round'], ['p40', 'p41', 'RPC failed'], ['completed', 'pool'],
+      ['pool', 's20', 'no'], ['pool', 's19', 'yes (next=final)'], ['s19', 'w20'], ['s19', 'given', 'Save awards'], ['given', 'p42', 'no'], ['p42', 's20', 'save anyway'], ['given', 's20', 'yes'], ['s19', 's20', 'Not now (pool stays Completed, no awards)'],
+      ['s19', 'p43', 'preset does not fit'], ['s20', 'p24', 'Share: picture · full PDF'], ['s20', 's04', 'Done'], ['s20', 's14', 'header arrow'],
+      ['s14', 'w36', 'awards card · Give awards (later)'], ['w36', 's19', 'Give awards'], ['s19', 's14', 'Save / Cancel (opened from the scorecard)'], ['s21', 'p50', 'pool without awards picked'],
+      ['completed', 'p22', 'Reopen (admin, not Closed)'], ['p22', 's14', 'Active again'], ['s19', 'p44', 'RPC failed'], ['completed', 'w08', 'Completed · Awarded tag'], ['s20', 'w32'],
     ],
     scenarios: [
-      { id: 'F10-1', kind: 'happy', text: 'Complete a Points game → Completed tag → Final scores', tests: [e2e('smoke/05-complete-game'), unit('final-scores'), pg('02_games_visibility')] },
-      { id: 'F10-2', kind: 'happy', text: 'Complete a pool → Give awards → preset / custom → saved → card on scorecard', tests: [e2e('smoke/16-pool-game'), unit('pool-pr13'), pg('32_pool_041')] },
+      { id: 'F10-1', kind: 'happy', text: 'Complete a Points game → one dialog → Final screen (Share + Done) → Done = Home; header arrow = completed scorecard', tests: [e2e('smoke/05-complete-game'), unit('final-scores'), unit('nov18-end-flow'), pg('02_games_visibility')] },
+      { id: 'F10-2', kind: 'happy', text: 'Complete a pool → Awards (Not now / Save awards) → Final screen with the Awards card → Done = Home', tests: [e2e('smoke/16-pool-game'), unit('pool-pr13'), unit('nov18-end-flow'), pg('32_pool_041')] },
       { id: 'F10-3', kind: 'edge', text: 'Not all given out → save anyway; preset not viable → Not for this pool', tests: [e2e('smoke/16-pool-game'), unit('pool-pr13')] },
       { id: 'F10-4', kind: 'edge', text: 'Double Complete taps → one completion', tests: [e2e('chaos/c02-double-complete')] },
-      { id: 'F10-5', kind: 'happy', text: 'Pool without awards cannot join a result (Give awards first)', tests: [e2e('smoke/16-pool-game'), unit('pool-pr13'), pg('32_pool_041')] },
+      { id: 'F10-5', kind: 'happy', text: 'A pool without awards is "Completed" (no nag); the Results picker says Give awards first when it is picked', tests: [unit('pool-pr13'), unit('nov18-end-flow'), pg('32_pool_041')] },
+      { id: 'F10-10', kind: 'happy', text: 'Full-details PDF carries the pool: limit, drops, pool scores, entries, put in, gets, awards, out rounds, re-entries, every round', tests: [unit('nov18-end-flow')] },
+      { id: 'F10-11', kind: 'edge', text: 'Points round does not add to 0 → "Fix round N first" → Edit round', tests: [unit('design-tokens')] },
       { id: 'F10-6', kind: 'happy', text: 'Reopen a Completed (not Closed) game as admin', tests: [unit('archive'), pg('13_hide_delete_023')] },
       { id: 'F10-7', kind: 'misuse', text: 'Non-admin cannot complete or reopen', tests: [e2e('roles/r01-player-view-only'), pg('02_games_visibility')] },
       { id: 'F10-8', kind: 'edge', text: 'Complete with 20 players: Standings fit (F6)', tests: [unit('test-findings-pr19'), e2e('smoke/17-pool-wide-initials-20p')] },
@@ -302,7 +305,7 @@ export const FLOWS = [
       { k: 'marker', label: 'Shared-from-this-phone marker stored', type: 'step' },
     ],
     edges: [
-      ['s14', 'p24', 'share icon'], ['s20', 'p24'], ['s23', 'p24'], ['s14', 'p35', 'Enter Scores ⋮ → Share live scorecard'], ['p35', 'p24'],
+      ['s14', 'p24', 'share icon'], ['s20', 'p24', 'Share (picture · full PDF only)'], ['s23', 'p24'], ['s14', 'p35', 'Enter Scores ⋮ → Share live scorecard'], ['p35', 'p24'],
       ['p24', 'what'], ['what', 'p58', 'Picture'], ['p58', 'os'], ['what', 'os', 'PDF (phone pages)'], ['what', 'p29', 'Copy link'], ['what', 'e07', 'Email'],
       ['p29', 's25', 'live scorecard link'], ['p29', 's26', '/r/ result link'], ['s26', 'w33'], ['s25', 'w34'], ['os', 'marker'], ['marker', 'p55', 'later Delete asks'], ['s26', 'site'], ['s25', 'site'], ['site', 's31', '/get'], ['site', 's29', '/privacy'], ['site', 's32', 'unknown path'],
     ],
@@ -314,7 +317,7 @@ export const FLOWS = [
       { id: 'F11-5', kind: 'edge', text: 'Deleted / edited result → /r/ banner and version links', tests: [pg('24_results_design_034'), pg('30_results_delete')] },
       { id: 'F11-6', kind: 'misuse', text: 'Anon can call only the allow-listed RPCs', tests: [pg('23_security_033'), unit('security-033')] },
       { id: 'F11-7', kind: 'edge', text: 'Share before Save carries the "Not saved yet" banner on picture and PDF', tests: [unit('results-share-unsaved'), e2e('smoke/06-results')] },
-      { id: 'F11-8', kind: 'happy', text: 'Final scores share (yellow sheet, Game N Final Scores)', tests: [e2e('smoke/05-complete-game'), unit('final-scores')] },
+      { id: 'F11-8', kind: 'happy', text: 'Final screen Share: the picture (final scores, or the awards for an awarded pool) or the full-details PDF; nothing else', tests: [e2e('smoke/05-complete-game'), unit('final-scores'), unit('nov18-end-flow')] },
       { id: 'F11-9', kind: 'edge', text: 'Email a scorecard (send-email kind scorecard) end to end', tests: [] },
       { id: 'F11-10', kind: 'edge', text: 'Web pages in a real browser (Playwright) — /r/, scorecard.html, link.html, unsubscribe.html', tests: [] },
     ],

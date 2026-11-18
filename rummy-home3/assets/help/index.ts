@@ -12,7 +12,6 @@ export const HELP_SCREENSHOTS: Partial<Record<string, ImageSourcePropType>> = {
   'scorecard': require('./scorecard.png'),
   'add-round': require('./add-round.png'),
   'final-scores': require('./final-scores.png'),
-  'complete': require('./complete.png'),
   'awards': require('./awards.png'),
   'game-log': require('./game-log.png'),
   'results': require('./results.png'),

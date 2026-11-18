@@ -64,6 +64,8 @@ import { rummyShareNeedsConfirm } from '../../utils/rummyDistribution';
 import { overMaxConfirm, poolOverFullConfirm, rummyShareConfirm } from '../../utils/roundConfirms';
 import { afterRound, AfterRound, isPoolGame, overFullCount, playersIn, poolTotal, seatOf } from '../../utils/pool';
 import { gameSettingsMenuTitle } from '@/utils/gameSettings';
+import { CompleteGameDialog } from '../../components/game/CompleteGameDialog';
+import { afterCompleteRoute } from '@/utils/endFlow';
 
 type Participant = {
   id: string;
@@ -109,6 +111,9 @@ export default function ScoreEntryScreen() {
   const nameOf = (id: string) => seatNames[id] ?? participants.find((p) => p.id === id)?.name ?? 'a player';
   /** Pool: shown once after a save — who went out, who may re-enter (D4). */
   const [afterSave, setAfterSave] = useState<AfterRound | null>(null);
+  // Nov 18 end flow: the after-save sheet's Complete opens the one Complete dialog here, then replaces this
+  // screen with the Awards page (the scorecard stays under it).
+  const [completeOpen, setCompleteOpen] = useState(false);
   const [reentering, setReentering] = useState<string | null>(null);
   const [scorerName, setScorerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(!seeded);
@@ -745,12 +750,13 @@ export default function ScoreEntryScreen() {
               </Button>
             ))}
             {afterSave?.lastStanding ? (
-              <Button mode="outlined" icon="flag-checkered" disabled={Boolean(reentering)} onPress={() => { setAfterSave(null); router.replace({ pathname: '/(screens)/games/complete', params: { id: game.id } }); }}>
+              <Button mode="outlined" icon="flag-checkered" disabled={Boolean(reentering)} onPress={() => { setAfterSave(null); setCompleteOpen(true); }} testID="after-complete">
                 Complete
               </Button>
             ) : null}
+            {/* A05 / Nov 18: this returns to the scorecard, so it is Close. Done is kept for ending a game (it goes Home). */}
             <Button mode="contained" disabled={Boolean(reentering)} onPress={() => { setAfterSave(null); router.back(); }} contentStyle={styles.dialogButtonContent} testID="after-done">
-              Done
+              Close
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -789,6 +795,15 @@ export default function ScoreEntryScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      <CompleteGameDialog
+        visible={completeOpen}
+        game={game}
+        players={game.players.map((id) => ({ id }))}
+        onDismiss={() => setCompleteOpen(false)}
+        onEditRound={() => setCompleteOpen(false)}
+        onCompleted={(updated) => router.replace(afterCompleteRoute(updated))}
+      />
 
       <GameSettingsDialog
         visible={settingsOpen}

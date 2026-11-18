@@ -78,11 +78,11 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 91 |
 | P18 | Scorecard ⋮ menu (Players · Admins, Seating, Edit round, Reopen, Log, Hide, Delete, Settings) | `app/(screens)/games/[id].tsx` | 15 |
 | P21 | Delete this game? | `app/(screens)/games/[id].tsx` | 4 |
 | P23 | Something went wrong (scorecard action error) | `app/(screens)/games/[id].tsx` | 7 |
-| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 71 |
+| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 73 |
 | W04 | Deleted games card (read-only, hidden for good on …, Ask / Restore) | `components/home/DeletedGamesCard.tsx` | 6 |
 | W09 | Deleted game banner (Deleted by …, Ask to restore / Restore) | `components/game/DeletedGameBanner.tsx` | 3 |
 | W39 | Deleted game read-only (no Add round / Undo / Share) | `app/(screens)/games/[id].tsx` | 3 |

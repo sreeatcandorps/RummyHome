@@ -78,10 +78,46 @@ tags: [smoke]
       id: "settings-pool-reentries-count"
     direction: DOWN
     timeout: 10000
+# PR 24: switching to Limited leaves the count empty (the hint under the field asks for it) instead of
+# guessing a number. The hint sits under the field, so scroll to it rather than assume it is on screen.
+- scrollUntilVisible:
+    element:
+      text: "Type how many re-entries each player gets (0–99)."
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "settings-pool-reentries-count"
+- assertNotVisible:
+    id: "settings-pool-reentries-count"
+    text: "[0-9]+"
 - takeScreenshot: 07e-settings-pool-defaults-limited
 - tapOn:
     id: "settings-pool-reentries-unlimited"
 - assertNotVisible:
     id: "settings-pool-reentries-count"
 - takeScreenshot: 07e-settings-pool-defaults
+# PR 24: Re-entry score (inside the Re-entries block) and Late entry (its own section), both default
+# to Highest score + 1; the other choice is Highest score. Nothing is saved.
+# Each hint sits under its radios, so scroll to the hint and the radios above it are on screen too.
+- scrollUntilVisible:
+    element:
+      text: "Where a re-entering player starts."
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Re-entry score"
+- assertVisible:
+    id: "settings-pool-reentry-score-highest"
+- assertVisible:
+    id: "settings-pool-reentry-score-plus-one"
+- scrollUntilVisible:
+    element:
+      text: "Where a player added after round 1 starts."
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Late entry"
+- assertVisible:
+    id: "settings-pool-late-entry-score-highest"
+- assertVisible:
+    id: "settings-pool-late-entry-score-plus-one"
+- takeScreenshot: 07f-settings-late-entry-section
 - back

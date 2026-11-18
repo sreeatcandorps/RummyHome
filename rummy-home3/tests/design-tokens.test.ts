@@ -6,6 +6,7 @@ import { UNDO_DELETE_MS } from '../utils/resultsDelete';
 import { UNDO_REMOVE_MS } from '../utils/removeMyPlayer';
 import { ADD_NEW_PLAYERS, FIND_IN_DATABASE, SEARCH_PLACEHOLDER } from '../utils/addPlayers';
 import { HELP } from './_helpLegacy';
+import { blockedDialogTitle, completeDialogBody } from '../utils/endFlow';
 
 // Design audit PR 15b (docs/design-audit.md §1, §3, §4): the token test (A15, DC15-1) and source checks for the
 // mechanical half — A04 share sheet, A07 SearchField, A09 dialogs, A12 Tag/Chip, A13 Toast, A16, A17, A19, A20, A21.
@@ -170,15 +171,18 @@ test('A21: "Add by initials" / "Find in database" everywhere — tiles, titles, 
 
 // ---- A16 / A19 ----
 
-test('A16: the Complete page uses the scorecard strip pattern — type, players and status tags left to right, the date as a caption', () => {
-  const complete = src('app/(screens)/games/complete.tsx');
-  const row = complete.slice(complete.indexOf('<View style={styles.headerRow}>'), complete.indexOf('</View>', complete.indexOf('<View style={styles.headerRow}>')));
-  assert.match(row, /<Tag label=\{gameTypeLabel\(game\.gameType\)\} tone=\{game\.gameType\}/);
-  assert.match(row, /<Tag label=\{playersChipLabel\(players\.length\)\} icon="account-group-outline" \/>/);
-  assert.match(row, /testID="complete-status-tag"/);
-  assert.doesNotMatch(row, /formatGameDateTime/, 'the date is no longer the right-hand item of the row');
-  assert.match(complete, /headerRow: \{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing\.xs \}/);
-  assert.match(complete, /<Text variant="bodySmall" style=\{\{ color: colors\.onSurfaceVariant \}\}>\{formatGameDateTime\(game\.date\)\}<\/Text>/, 'the date is a caption under the tags');
+test('A16 (Nov 18): Complete is one dialog on the scorecard; its body says what will be locked and what comes next', () => {
+  const dialog = src('components/game/CompleteGameDialog.tsx');
+  assert.match(dialog, /<Dialog\.Title>\{pool \? 'Complete this pool\?' : 'Complete this game\?'\}<\/Dialog\.Title>/);
+  assert.match(dialog, /testID="complete-body"/);
+  assert.equal(completeDialogBody({ pool: false, roundCount: 0, inCount: 0, outCount: 0 }), 'No rounds were played. The game will be completed with no scores.');
+  assert.match(completeDialogBody({ pool: false, roundCount: 6, inCount: 0, outCount: 0 }), /^6 rounds will be locked\. Every round adds to 0\. You can reopen the game later from the ⋮ menu\.$/);
+  assert.match(completeDialogBody({ pool: true, roundCount: 8, inCount: 1, outCount: 5 }), /^8 rounds will be locked\. 1 player in, 5 out\. Next you give the awards\./);
+  assert.match(completeDialogBody({ pool: true, roundCount: 8, inCount: 3, outCount: 3 }), /More than one player is still in\./);
+  assert.equal(blockedDialogTitle([4]), 'Fix round 4 first');
+  assert.match(src('app/(screens)/games/[id].tsx'), /<CompleteGameDialog/, 'the scorecard opens it');
+  assert.match(src('app/(screens)/score-entry.tsx'), /<CompleteGameDialog/, 'so does Round saved → Complete');
+  assert.match(src('app/(screens)/score-entry.tsx'), /onCompleted=\{\(updated\) => router\.replace\(afterCompleteRoute\(updated\)\)\}/, 'then on to Awards (pool) or the Final screen (points)');
 });
 
 test('A19: EmptyState everywhere — no plain "None yet" text', () => {

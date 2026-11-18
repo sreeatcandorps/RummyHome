@@ -314,7 +314,7 @@ test('13.6 pool limits 101 / 201 / 251 / Custom (51–999); 100 in, 101 out; def
   assert.equal(parsePoolLimit('50'), null);
   assert.equal(parsePoolLimit('1000'), null);
   assert.equal(parsePoolLimit(''), null);
-  assert.deepEqual(DEFAULT_POOL_RULES, { gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: null }, 'Re-entries default Unlimited (042)');
+  assert.deepEqual(DEFAULT_POOL_RULES, { gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: null, reentryPlus: 1, lateEntryPlus: 1 }, 'Re-entries default Unlimited (042); re-entry and late entry at Highest + 1 (PR 24)');
   assert.equal(parseRuleInput('25', 'pool'), 25, 'pool values are stored positive');
   assert.equal(parseRuleInput('25', 'points'), -25);
   assert.equal(validateRules({ gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: null }), null);
@@ -327,13 +327,13 @@ test('13.6b profile defaults hold both kinds and which one a new game starts as'
   const all = allRulesFromProfileDefaults({ stakeDrop: -10, stakeMiddleDrop: -30, maxCount: -80, poolLimit: 201, poolDrop: 20, poolMiddleDrop: 40, poolFullCount: 100, poolReentryLimit: 2, gameKind: 'pool' });
   assert.equal(all.startsAs, 'pool');
   assert.deepEqual(all.points, { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80, multiplier: 1 });
-  assert.deepEqual(all.pool, { gameKind: 'pool', drop: 20, middleDrop: 40, fullCount: 100, poolLimit: 201, reentryLimit: 2 });
+  assert.deepEqual(all.pool, { gameKind: 'pool', drop: 20, middleDrop: 40, fullCount: 100, poolLimit: 201, reentryLimit: 2, reentryPlus: 1, lateEntryPlus: 1 }, 'PR 24: a profile saved before the entry rules reads as Highest + 1');
   assert.equal(rulesFromProfileDefaults({ poolReentry: false }, 'pool').reentryLimit, 0, 'an old saved switch off reads as none');
   assert.equal(rulesFromProfileDefaults({ poolReentry: true }, 'pool').reentryLimit, null, 'an old saved switch on reads as Unlimited');
   assert.deepEqual(rulesFromProfileDefaults(null), { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80, multiplier: 1 }, 'no defaults: Points, as before (×1)');
   assert.deepEqual(rulesFromProfileDefaults(null, 'pool'), DEFAULT_POOL_RULES);
-  assert.deepEqual(rulesToProfileDefaults(DEFAULT_POOL_RULES), { poolLimit: 101, poolDrop: 25, poolMiddleDrop: 50, poolFullCount: 130, poolReentryLimit: null });
-  assert.deepEqual(rulesFromGame(settings, 'pool'), { gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: null });
+  assert.deepEqual(rulesToProfileDefaults(DEFAULT_POOL_RULES), { poolLimit: 101, poolDrop: 25, poolMiddleDrop: 50, poolFullCount: 130, poolReentryLimit: null, poolReentryPlus: 1, poolLateEntryPlus: 1 });
+  assert.deepEqual(rulesFromGame(settings, 'pool'), { gameKind: 'pool', drop: 25, middleDrop: 50, fullCount: 130, poolLimit: 101, reentryLimit: null, reentryPlus: 0, lateEntryPlus: 0 }, 'PR 24: a game without the keys keeps the 041 rule (Highest score)');
   assert.equal(rulesFromGame({ ...settings, reentryLimit: 1 }, 'pool').reentryLimit, 1);
   assert.equal(rulesFromGame({ ...settings, dropAmount: -10, mdAmount: -30, maxCount: -80 }).gameKind, 'points');
 });
@@ -354,7 +354,7 @@ test('13.7 RulesForm draft: chips for the three limits, Custom for anything else
   assert.deepEqual(draftFromRules({ ...DEFAULT_POOL_RULES, reentryLimit: 3 }), { ...draft, reentryMode: 'limited', reentryCount: '3' });
   const bad = rulesFromDraft({ ...draft, poolLimit: '12' });
   assert.match(bad.error!, /51 to 999/);
-  const points = rulesFromDraft({ gameKind: 'points', drop: '-10', middleDrop: '-30', fullCount: '-80', poolLimit: '101', customLimit: false, reentryMode: 'unlimited', reentryCount: '1', multiplier: '' });
+  const points = rulesFromDraft({ gameKind: 'points', drop: '-10', middleDrop: '-30', fullCount: '-80', poolLimit: '101', customLimit: false, reentryMode: 'unlimited', reentryCount: '', reentryPlus: 1, lateEntryPlus: 1, multiplier: '' });
   assert.deepEqual(points.rules, { gameKind: 'points', drop: -10, middleDrop: -30, fullCount: -80, multiplier: 1 });
 
   const form = src('components/game/RulesForm.tsx');
@@ -376,7 +376,7 @@ test('13.7 RulesForm draft: chips for the three limits, Custom for anything else
 
 test('13.7b New game is two screens: Players (Next) then Game type (Points / Pool, prefilled, players at the bottom, Back, Start)', () => {
   const screen = src('app/(screens)/games/new.tsx');
-  assert.match(screen, /useState<'players' \| 'type'>\('players'\)/, 'a step, not a second route');
+  assert.match(screen, /useState<'players' \| 'type' \| 'order' \| 'coadmin'>\('players'\)/, 'steps, not routes (PR 24: Order of players and Co-admin follow)');
   assert.match(screen, /testID="new-game-next"/);
   assert.match(screen, /userSettingsService\.getAll\(/, 'both default blocks are loaded');
   assert.match(screen, /<GameTypeStep/);
@@ -385,7 +385,8 @@ test('13.7b New game is two screens: Players (Next) then Game type (Points / Poo
   assert.match(step, /testID: 'game-type-pool'/);
   assert.match(step, /SETTINGS_LINK = 'You can also set these defaults in Settings\.'/);
   assert.match(step, /testIDPrefix="new-game"/);
-  assert.match(step, /testID="start-game"/);
+  assert.match(step, /testID="new-game-type-next"/, 'PR 24: the type step says Next; only the last step says Start');
+  assert.ok(!step.includes('testID="start-game"'));
   assert.match(step, /Back/);
 });
 
@@ -499,7 +500,7 @@ test('13.9b colours: every game (Points and Pool) is yellow, results green', () 
 
 test('13.10 complete / award / result: a completed pool needs awards before it can be picked; awards are what it contributes', () => {
   const done = { ...game(), isComplete: true } as Game;
-  assert.equal(poolStatusLabel(done), 'Awards pending');
+  assert.equal(poolStatusLabel(done), null, 'Nov 18: a completed pool without awards is just Completed — no "Awards pending" nag');
   assert.equal(poolNeedsAwards(done), true);
   const awarded = { ...done, awardedAt: '2026-11-14T12:00:00Z', prizeShares: { [A]: 600, [B]: -100, [C]: -100, [D]: -100, [E]: -200, [F]: -100 } } as Game;
   assert.equal(poolStatusLabel(awarded), 'Awarded');
@@ -523,9 +524,10 @@ test('13.10 complete / award / result: a completed pool needs awards before it c
   const picker = src('app/(screens)/results/index.tsx');
   assert.match(picker, /locked=\{!canPickForResults\(game, userId\) \|\| poolNeedsAwards\(game\)\}/);
   assert.match(picker, /lockedNote=\{canPickForResults\(game, userId\) && poolNeedsAwards\(game\) \? GIVE_AWARDS_FIRST : undefined\}/);
-  const complete = src('app/(screens)/games/complete.tsx');
-  assert.match(complete, /testID="complete-give-awards"/);
-  assert.match(complete, /\{game\.awardedAt \? 'Add to Results' : GIVE_AWARDS_FIRST\}/);
+  const scorecard = src('app/(screens)/games/[id].tsx');
+  assert.match(scorecard, /<Tag label=\{awardsLabel \?\? 'Completed'\} tone="info"/, 'the status tag is Completed or Awarded, never a warning');
+  assert.match(src('components/game/PoolAwardsCard.tsx'), /'Not given yet\. Choose how the pool is shared out\.'/);
+  assert.doesNotMatch(src('components/game/PoolAwardsCard.tsx'), /Awards pending/);
   const award = src('app/(screens)/games/award.tsx');
   assert.match(award, /testID="award-save-anyway"/);
   assert.match(award, /gamesService\.setPoolAwards\(/);
@@ -582,6 +584,6 @@ test('13.12 log labels for the pool kinds; help explains Complete → Award → 
   assert.match(HELP.gameType, /Re-entries: .*Unlimited \(the default\), or Limited/);
   assert.match(HELP.scoreEntryPool, /Pool/);
   assert.match(HELP.awards, /award/i);
-  assert.match(HELP.complete, /award/i);
+  assert.match(HELP.awards, /Not now leaves the pool Completed without awards/);
   assert.match(HELP.results, /Give awards first/);
 });

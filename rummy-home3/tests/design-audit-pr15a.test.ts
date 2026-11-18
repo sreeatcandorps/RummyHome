@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { formatWhen, formatWhenDay, formatWhenTime } from '../utils/formatWhen';
 import { formatWhen as sheetFormatWhen, finalScoresHeading } from '../utils/finalScoresSheet';
@@ -45,24 +45,23 @@ test('DC15-2: every game screen title is "Screen · S3" via screenTitle; a game 
   assert.equal(finalScoresHeading(game), 'Final scores · S3');
   assert.equal(screenTitle('Scorecard', null), 'Scorecard');
   assert.equal(screenTitle('Scorecard', { id: 'x' } as unknown as Game), 'Scorecard');
-  for (const title of ['Scorecard · S3', 'Complete · S3', 'Final scores · S3', 'Players · Admins · S3', 'Awards · P1', 'Log']) {
+  for (const title of ['Scorecard · S3', 'Final scores · S3', 'Players · Admins · S3', 'Awards · P1', 'Log']) {
     assert.match(title, /^[A-Z][a-z]+( · [A-Z][a-z]+| [a-z]+)*( · [SP]\d+)?$/, title);
   }
 });
 
 test('DC15-2: the screens use screenTitle, none sets headerTitleAlign, and the stack defaults carry no alignment', () => {
   assert.match(src('app/(screens)/games/[id].tsx'), /title: screenTitle\('Scorecard', game\)/);
-  assert.match(src('app/(screens)/games/complete.tsx'), /screenTitle\('Complete', game\)/);
   assert.match(src('app/(screens)/games/award.tsx'), /screenTitle\('Awards', game\)/);
   assert.match(src('app/(screens)/games/log.tsx'), /screenTitle\('Log', game\)/);
   assert.match(src('app/(screens)/games/players.tsx'), /screenTitle\(PLAYERS_ADMINS_TITLE, game\)/);
-  assert.match(src('app/(screens)/games/final-scores.tsx'), /title: sheet \? sheet\.heading : 'Final scores'/);
+  assert.match(src('app/(screens)/games/final-scores.tsx'), /title: sheet \? sheet\.card\.title : 'Final scores'/, 'Nov 18: the Final screen is titled by its card (Final scores · S3, or Awards · P1)');
   for (const file of screenFiles()) {
     assert.doesNotMatch(src(file), /headerTitleAlign/, `${file} sets headerTitleAlign (A02: every title centred, the default)`);
   }
   const layout = src('app/(screens)/_layout.tsx');
   assert.match(layout, /title: 'Scorecard'/);
-  assert.match(layout, /title: 'Complete'/);
+  assert.doesNotMatch(layout, /games\/complete/, 'Nov 18: the Complete page is gone');
   assert.match(layout, /title: 'Players · Admins'/);
   assert.doesNotMatch(layout, /Players\/Admins|Players & Admins/);
 });
@@ -147,7 +146,7 @@ test('A08: ActionBar — two actions at most, primary filled right, secondary ou
   assert.match(bar, /<BottomBar style=\{style\} insetBottom=\{insetBottom\}>/);
   assert.match(src('components/ui/BottomBar.tsx'), /insetBottom\?: boolean/);
   assert.match(src('components/ui/BottomBar.tsx'), /\(insetBottom \? insets\.bottom : 0\)/);
-  for (const file of ['app/(screens)/games/complete.tsx', 'app/(screens)/games/final-scores.tsx', 'app/(screens)/games/award.tsx']) {
+  for (const file of ['app/(screens)/games/final-scores.tsx', 'app/(screens)/games/award.tsx']) {
     assert.match(src(file), /<ActionBar/, `${file} uses the ActionBar`);
   }
   assert.equal(nextLabel(0), 'Next · pick 2+ players');
@@ -182,10 +181,14 @@ test('A05: Cancel on every confirm, the confirming verb repeats the title, notic
   assert.match(results, /<Dialog\.Title>Deselect games\?<\/Dialog\.Title>[\s\S]*?testID="deselect-confirm">Deselect<\/Button>/, 'the verb repeats the title');
   assert.match(results, /accessibilityLabel="Keep the selection">Cancel<\/Button>/);
   assert.match(results, /<Button onPress=\{\(\) => setNeedsAwards\(null\)\}>Not now<\/Button>/, '"Not now" stays only where the other button leaves the screen');
-  const complete = src('app/(screens)/games/complete.tsx');
-  assert.match(complete, /disabled=\{completing\}>Cancel<\/Button>/);
-  assert.match(complete, /secondary=\{\{ label: 'Cancel'/, 'the Complete bar pairs Cancel with Complete game');
+  // Nov 18: Complete is one dialog on the scorecard (the Complete page is gone); Cancel + Complete.
+  assert.equal(existsSync(path.join(process.cwd(), 'app/(screens)/games/complete.tsx')), false, 'the Complete page is deleted');
+  const complete = src('components/game/CompleteGameDialog.tsx');
+  assert.match(complete, /testID="complete-cancel">Cancel<\/Button>/);
+  assert.match(complete, /accessibilityLabel="Confirm complete game"[^>]*testID="complete-confirm">\s*Complete\s*<\/Button>/, 'the verb repeats the title');
   assert.doesNotMatch(complete, /Back to scorecard/);
+  assert.match(src('components/game/MultiplierStrip.tsx'), />Close<\/Button>/, 'the Exact sheet is an info sheet: Close');
+  assert.match(src('app/(screens)/score-entry.tsx'), /testID="after-done">\s*Close\s*<\/Button>/, 'Round saved returns to the scorecard: Close, so Done always means Home on a finished game');
   const players = src('app/(screens)/games/players.tsx');
   assert.doesNotMatch(players, /Back to scorecard/, 'Players · Admins: the header arrow is the way back');
   assert.match(players, /testID="players-add-new">\s*Add new player\s*<\/Button>/);
@@ -216,12 +219,20 @@ test('Q11.12: the ⋮ item says "Game settings · locked" once a pool has saved 
   assert.match(src('app/(screens)/score-entry.tsx'), /title=\{gameSettingsMenuTitle\(pool, nextRoundNumber\(game\) - 1\)\}/);
 });
 
-test('Q11.14: once the awards are saved and unchanged, the Awards bar is Cancel + "Add to Results"; with edits it is Cancel + Save', () => {
+test('Nov 18 (replaces Q11.14): the Awards bar is Not now + Save awards the first time, Cancel + Save changes after; no Results button in the end flow', () => {
   const award = src('app/(screens)/games/award.tsx');
-  assert.match(award, /game\.awardedAt && sameAwards\(sheet, game\.prizeShares\)/);
-  assert.match(award, /label: 'Add to Results', icon: 'format-list-numbered'[\s\S]*?testID: 'award-add-to-results'/);
-  assert.match(award, /router\.push\('\/\(screens\)\/results'\)/);
+  assert.doesNotMatch(award, /Add to Results|format-list-numbered|\/\(screens\)\/results/, 'Results is its own errand from Home');
+  assert.match(award, /label: 'Not now', icon: 'clock-outline', onPress: leave[\s\S]*?testID: 'award-not-now'/);
+  assert.match(award, /label: game\.awardedAt \? 'Save changes' : 'Save awards'/);
   assert.match(award, /testID: 'award-save'/);
+  assert.match(award, /afterAwardsRoute\(game, next\)/, 'Save and Not now go on to the Final screen when opened from Complete, else back');
+  const flow = src('utils/endFlow.ts');
+  assert.match(flow, /HOME_ROUTE = '\/\(tabs\)'/);
+  assert.match(flow, /params: \{ id: game\.id, next: AWARD_NEXT_FINAL \}/, 'pool: Complete → Awards (next=final) → Final');
+  const final = src('app/(screens)/games/final-scores.tsx');
+  assert.match(final, /label: 'Done', icon: 'check', onPress: done/, 'the Final screen bar is Share + Done');
+  assert.match(final, /const done = \(\) => router\.navigate\(HOME_ROUTE\)/, 'Done always goes Home');
+  assert.doesNotMatch(final, /Go to Results|Add to Results|\/\(screens\)\/results/, 'no Results nudge on the Final screen');
   const sheet = { shares: [{ playerId: 'a', share: 60 }, { playerId: 'b', share: 40 }] } as unknown as Parameters<typeof sameAwards>[0];
   assert.equal(typeof sameAwards(sheet, null), 'boolean');
   assert.equal(sameAwards(sheet, null), false, 'nothing saved yet → not the same');

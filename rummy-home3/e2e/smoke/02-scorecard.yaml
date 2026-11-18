@@ -21,9 +21,15 @@ tags: [smoke]
 - assertVisible: "Complete game"
 - assertVisible: "DEALS"
 # PR 4: initials and DEALS fit in the header; the strip counts the seats; the footer names the creator
-# on its own line and shows the 6-character Unique game ID (the share code).
+# on its own line and shows the 6-character Unique game ID (the share code). PR 24: the footer sits
+# inside the scorecard under the last round row (small italics), so it scrolls with the rounds.
 - assertVisible: "HT"
 - assertVisible: "4 players"
+- scrollUntilVisible:
+    element:
+      id: "game-id-footer"
+    direction: DOWN
+    timeout: 10000
 - assertVisible:
     text: "Creator:.*"
 - assertVisible:

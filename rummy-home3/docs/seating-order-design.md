@@ -1,6 +1,8 @@
 # Seating order — design spec (PR 21, review first; nothing built)
 
 Status: **built** (Nov 15; approved by Sree at 1:34 AM PT with every Q21.x recommendation). Migration `044_seating_order.sql` is written and **not applied**; Going rogue's migration moved to 045. Build notes: the pop-up flag is written `false` by Start and the sheet only pops while it is exactly `false`, so games started before this build (and the demo seed) never pop — §3.2; the ▲ ▼ on Players · Admins now work mid-game through the same RPC; the Log line falls back to the scorecard's default initials (022 `initials_candidates`) when a seat has no stored label.
+
+**PR 24 (Nov 17, Sree's v11 feedback) reshaped the feature; the table in [`pool-design.md` §0 rows 26–27](pool-design.md) is the contract now.** The sheet is called **Order of players**. The once-per-game pop-up is gone: the order is step 3 of New game (Players → Game type → Order of players → Co-admin → Start game). Tap-to-number replaces tap-to-place: nobody is numbered at the start, each tap gives the next number and lifts the player, tapping the last-numbered player takes it back, numbered rows carry ▲ ▼, Clear and Done. The Players chips column, "Picked up — choose a seat" and "Keep this order" were removed. Mid-game from ⋮ the same component opens prefilled. S01–S08 below show the PR 21 shape and are kept for history.
 Mockups: [`seating-order-mockups/`](seating-order-mockups/) (S01–S08, same style as the Pool / Multiplier / Going rogue
 sets; 390 dp, light theme, caption strip on each). Section 7 lists the questions with a recommendation on each; section 8
 the test rows; section 9 the place in the queue.

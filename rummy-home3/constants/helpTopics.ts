@@ -240,7 +240,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         bullets: [
           'The limit decides who is out: at 101, a score of 100 is still in and 101 is out. Defaults 25, 50, 130 for Drop, Middle drop, Full count.',
           '**Re-entry score** (a player who comes back) and **Late entry** (a player added after round 1): **Highest score** still in, or **Highest score + 1** — the default, so the newcomer never ties the leader.',
-          'When a pool is [Completed], an admin gives awards (who gets what from the pool); the awards are what the pool adds to Results.',
+          'When a pool is [Completed], an admin gives awards (who gets what from the pool); the awards are what the pool counts for if it is ever added to Results.',
         ],
       },
       {
@@ -278,7 +278,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         'Header: each player\u2019s initials and total; the dealer marker on the seat that deals next.',
         'The rounds, newest at the bottom. Tap a cell to see the exact points.',
         '**Add round** (admins) opens the round sheet; **Undo** removes the last round.',
-        'Share icon: the live link, and once complete the final scores picture or PDF.',
+        'Share icon: the live link, and once complete **Share final scores** (the picture, or the full details as a PDF).',
         '⋮ menu: Game settings, Players · Admins, Order of players, Edit round, Log, Hide, Delete.',
         'Foot, inside the card under the last round: creator, admins and the Unique game ID (tap to copy). It scrolls with the rounds.',
       ],
@@ -311,8 +311,8 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         bullets: [
           'The limit line under the title (**Limit 101 · 100 in, 101 out**) and the number out. A player at or past the limit is [OUT]; **Re-enter** (admins) brings them back at the re-entry score — the highest score still in, or that plus 1 (the game\u2019s **Re-entry score** setting).',
           'The re-entry round shows that score with ↺ beside it (105 → ↺106); the typed score is kept but not shown. That player\u2019s cells in the rounds above turn grey; the ↺ row and everything after keep their normal colours. Tap a round number to edit that round.',
-          '**Standings** list everyone by points left; drops left count down from the Full count. In portrait the table takes about two thirds of the screen and Standings scroll on their own below; in landscape Standings follow the last round in the same scroller.',
-          'When the pool is complete, **Give awards** appears; the Completed scorecard shows the Awards block.',
+          '**Standings** list everyone by points left; drops left count down from the Full count. Portrait: the table is a card of at most five round rows, newest at the bottom (swipe inside it for earlier rounds); Standings take the rest. Landscape: the full table alone.',
+          '**Complete** asks once in a dialog; a pool then goes to **Awards** and on to the Final screen. The Completed scorecard shows the Awards block (or **Give awards** while they are not given; in landscape the button sits in the strip).',
         ],
       },
       {
@@ -418,17 +418,17 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     icon: 'podium-gold',
     purpose: 'The finished game as a picture to share, plus every round.',
     needToKnow: [
-      'This is the sharing page for a [Completed] game: the standings card at the top is exactly what **Share final scores** sends.',
-      '**Round by round** lists every round under the card; **Share full details** sends all of it as a PDF.',
+      'This is the Final screen of a [Completed] game: the card at the top is exactly what **Share** sends as a picture (the final scores, or the awards for an awarded pool).',
+      '**Round by round** lists every round under the card; **Share › Share full details** sends everything as a PDF — for a pool also the awards, entries, pool scores, limit, who went out when and the re-entries.',
       'Nothing here changes scores. To fix a round, go back to the scorecard: ⋮ › **Reopen game**, then **Edit round**.',
-      'A Points game can be picked for Results straight away; a pool first needs awards.',
+      '**Done** goes Home. The arrow at the top goes back to the completed scorecard. Results is a separate errand from Home.',
     ],
     screenshot: {
       file: 'final-scores',
       legend: [
         'The final standings card — the shared picture.',
         '**Round by round**: every round, in order.',
-        '**Share full details** (PDF) and **Share final scores** (picture).',
+        '**Share** (the picture, or the full details as a PDF) and **Done** (Home).',
       ],
     },
     sections: [
@@ -442,7 +442,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'What comes next',
         bullets: [
-          'Points: Home › **Results**, tick this game, **Show results**, **Save result**. Pool: **Give awards** on the scorecard first.',
+          'Nothing — the game is done. When you want a standings sheet across games: Home › **Results**, tick the games, **Show results**, **Save result**. A pool needs its awards first.',
         ],
       },
     ],
@@ -450,7 +450,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       { id: 'wrong-total', q: 'A total is wrong — can I change it here?', a: 'No. Scorecard ⋮ › **Reopen game** (unless the game is already in a saved result), then ⋮ › **Edit round**. Complete again and the picture updates.' },
     ],
     alsoSee: ['complete', 'after-last-round', 'results', 'scorecard'],
-    aliases: ['share final scores', 'share full details', 'pdf', 'picture'],
+    aliases: ['final screen', 'share final scores', 'share full details', 'pdf', 'picture', 'done'],
   },
 
   complete: {
@@ -458,27 +458,23 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     group: 'Playing',
     family: 'games',
     icon: 'flag-checkered',
-    purpose: 'Lock the scores; a pool then goes on to awards.',
+    purpose: 'One dialog locks the scores; then the Final screen (a pool gives its awards first).',
     needToKnow: [
-      'Completing the game locks the scores. In a Points game every round must add to 0 first.',
-      'A Points game can then be picked for Results. A pool goes on to **Awards**; it can be picked for Results once the awards are given.',
-      'Pressed too early? **Reopen game** from the scorecard ⋮ menu until it is added to Results.',
+      '**Complete** on the scorecard (or on the Round saved sheet) opens one dialog: how many rounds will be locked, who is in and out for a pool, and that you can reopen later. In a Points game every round must add to 0 first.',
+      'Points: the dialog goes straight to the **Final screen** (Share + Done). Pool: first **Awards** (Save awards, or Not now), then the Final screen.',
+      'Pressed too early? **Reopen game** from the scorecard ⋮ menu, until the game is part of a saved result.',
     ],
-    screenshot: {
-      file: 'complete',
-      legend: ['The final totals, as they will be locked.', '**Complete game** asks once more, then locks.', 'Afterwards: **Final scores**, and for a pool **Give awards**.'],
-    },
     sections: [
       {
         title: 'After completing',
         bullets: [
-          'The scorecard shows [Completed]; Add round and Undo disappear. **Final scores** opens the sharing page.',
-          'Pool: the scorecard offers **Give awards**; until they are saved the game shows [Awards pending] in Results.',
+          'The scorecard shows [Completed]; Add round and Undo disappear. The share icon offers **Share final scores** as well as the live link.',
+          'Pool: a pool without awards is just [Completed]; the scorecard offers **Give awards** and Results asks for them only when you pick that pool.',
         ],
       },
     ],
     tricky: [
-      { id: 'unbalanced', q: 'Why can I not complete the game?', a: 'A Points round does not add to 0. The page names the round; ⋮ › **Edit round** fixes it.' },
+      { id: 'unbalanced', q: 'Why can I not complete the game?', a: 'A Points round does not add to 0. The dialog names the round and offers **Edit round**.' },
       { id: 'reopen', q: 'I completed too early.', a: 'Scorecard ⋮ › **Reopen game**. It is blocked only once the game is [Closed] (in a saved result) — delete that result first.' },
     ],
     alsoSee: ['after-last-round', 'final-scores', 'awards', 'results'],
@@ -494,12 +490,12 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     needToKnow: [
       'The pool is worth one entry per entry made (a re-entry counts twice). Tap a preset to see who gets what; players are sorted by points left.',
       '**Winner takes all** · **By points left** · **50/50** · **Entry per drop left** · **Custom** (type each player\u2019s share).',
-      '**Award** = what a player gets minus their entries. The awards are what this pool adds to Results.',
+      '**Award** = what a player gets minus their entries. The awards are what this pool counts for if it is ever added to Results.',
       '**Save** works even when the pool is not fully given out; the app asks \u201cSave awards anyway?\u201d first. Awards can be edited until the pool is in a saved result.',
     ],
     screenshot: {
       file: 'awards',
-      legend: ['The presets; the chosen one is filled.', 'Each player: entries, what they get, the award.', '**Save awards**, then **Add to Results**.'],
+      legend: ['The presets; the chosen one is filled.', 'Each player: entries, what they get, the award.', '**Not now** or **Save awards**; either goes on to the Final screen.'],
     },
     sections: [
       {
@@ -511,9 +507,15 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         ],
       },
       {
+        title: 'Not now',
+        bullets: [
+          'Not now leaves the pool Completed without awards and goes on to the Final screen. Give them later from the scorecard (**Give awards**); Results asks for them only when you pick that pool.',
+        ],
+      },
+      {
         title: 'After saving',
         bullets: [
-          'The scorecard shows the Awards block. Home › **Results** can now tick the pool: it counts its awards, not its scores.',
+          'The Final screen opens with the awards picture to share; the scorecard shows the Awards block. Home › **Results** can now tick the pool: it counts its awards, not its scores.',
           'Edit the awards from the same screen until the pool is part of a saved result; then the result has to be deleted first.',
         ],
       },
@@ -942,8 +944,8 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     icon: 'ray-start-arrow',
     purpose: 'The steps after the last round, for a Points game and for a pool.',
     needToKnow: [
-      '**Points**: Complete (locks the scores) → Home › Results, tick the game, Show results → **Save result** (the game becomes [Closed]).',
-      '**Pool**: Complete → **Give awards** (who gets what from the pool) → Results, tick the pool (it counts its awards) → Save result.',
+      '**Points**: Complete (one dialog, locks the scores) → Final screen (Share, Done = Home). Later, when you want a standings sheet: Home › Results, tick the game, Show results → **Save result** (the game becomes [Closed]).',
+      '**Pool**: Complete → **Awards** (who gets what from the pool; Save awards or Not now) → Final screen. Later: Results, tick the pool (it counts its awards) → Save result.',
       '**Final scores** is for sharing a finished game and changes nothing. **Reopen game** undoes Complete until the game is in a saved result.',
     ],
     sections: [
@@ -1034,7 +1036,6 @@ export const ROUTE_TOPIC: Record<string, HelpTopicKey> = {
   '(screens)/games/[id]': 'scorecard',
   '(screens)/score-entry': 'add-round',
   '(screens)/games/final-scores': 'final-scores',
-  '(screens)/games/complete': 'complete',
   '(screens)/games/award': 'awards',
   '(screens)/games/log': 'game-log',
   '(screens)/games/players': 'players-admins',

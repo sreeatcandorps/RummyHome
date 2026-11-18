@@ -1,7 +1,8 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
-# PR 13 Pool, end to end on the seed: New game is two screens (Players → Next → Game type: Pool,
-# settings prefilled 101 / 25 / 50 / 130 / Re-entries Unlimited → Start); the pool scorecard (Standings
+# PR 13 Pool, end to end on the seed: New game is four steps (Players → Next → Game type: Pool,
+# settings prefilled 101 / 25 / 50 / 130 / Re-entries Unlimited → Next → Order of players → Next →
+# co-admin → Start game; PR 24); the pool scorecard (Standings
 # card, OUT column, Re-enter); Add round in a pool (plus points, Rummy = 0, "Are you sure?" past the
 # Full count, the after-save sheet naming who is out); Complete → Give awards (presets, Custom,
 # Save anyway) → the Completed scorecard with the Awards block. Runs last in the smoke set and deletes
@@ -52,27 +53,41 @@ tags: [smoke]
 - assertVisible: "Sree Test"
 - takeScreenshot: 16d-game-type-pool-players
 - tapOn:
-    id: "start-game"
-# Harish and Priya are registered, so the co-admin nudge asks once; Skip starts without one.
+    id: "new-game-type-next"
+# PR 24: Order of players is a step before Start; number everyone in pick order (Sree first).
 - extendedWaitUntil:
-    visible: "Skip"
+    visible: "Order of players"
     timeout: 15000
-- tapOn: "Skip"
+- assertVisible:
+    id: "order-counter"
+    text: "0 of 4 numbered"
+- tapOn:
+    id: "seat-row-1"
+- tapOn:
+    id: "seat-row-2"
+- tapOn:
+    id: "seat-row-3"
+- tapOn:
+    id: "seat-row-4"
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
+- takeScreenshot: 16d2-pool-order-of-players
+- tapOn:
+    id: "new-game-order-next"
+# Harish and Priya are registered, so the co-admin step asks once; Start game without one.
+- extendedWaitUntil:
+    visible:
+      id: "co-admin-choices"
+    timeout: 15000
+- tapOn:
+    id: "start-game"
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 20000
-# PR 21: a fresh game asks who sits where, once; the pool subline counts the seats. Keep this order closes it.
-- extendedWaitUntil:
-    visible:
-      id: "seating-sheet"
-    timeout: 15000
-- assertVisible: "Pool · 4 seats · 0 out"
-- tapOn:
-    id: "seating-cancel"
-- extendedWaitUntil:
-    notVisible:
-      id: "seating-sheet"
-    timeout: 5000
+# No pop-up: the order was set before Start.
+- assertNotVisible:
+    id: "seating-sheet"
 - assertVisible: "Pool"
 - assertVisible:
     id: "pool-standings"
@@ -116,6 +131,7 @@ tags: [smoke]
 - assertVisible: "Zed Zero is out at 135 (limit 101)."
 - assertVisible: "Re-enter Zed"
 - takeScreenshot: 16h-pool-after-save-out
+# Nov 18: the Round saved sheet closes with Close (Done means Home on a finished game).
 - tapOn:
     id: "after-done"
 - extendedWaitUntil:
@@ -124,38 +140,43 @@ tags: [smoke]
 - assertVisible: "OUT R1"
 - takeScreenshot: 16i-pool-scorecard-out
 
-# Re-enter Zed from Standings: he comes back at 50 (the highest score still in) and reads blue.
+# Re-enter Zed from Standings: a new pool's Re-entry score is Highest score + 1 (PR 24), so he comes
+# back at 51 (the highest still in is 50) and reads blue. The Re-enter button sits in the standings
+# pane under the players still in, so swipe that pane up first (the table pane above scrolls on its own).
+- swipe:
+    from:
+      id: "pool-standings-pane"
+    direction: UP
+- extendedWaitUntil:
+    visible:
+      id: "reenter-00000000-0000-4000-8000-000000000008"
+    timeout: 5000
+- takeScreenshot: 16i2-pool-standings-pane-reenter
 - tapOn:
     id: "reenter-00000000-0000-4000-8000-000000000008"
 - extendedWaitUntil:
     notVisible: "OUT R1"
     timeout: 15000
-- assertVisible: "ZZ Zed Zero, 50, 51 left, 3 drops, re-entered"
+- assertVisible: "ZZ Zed Zero, 51, 50 left, 2 drops, re-entered"
 - takeScreenshot: 16j-pool-reentered
 
-# Complete the pool (early split) → Give awards.
-- tapOn: "Complete game"
-- extendedWaitUntil:
-    visible: "Game admins"
-    timeout: 15000
-- assertVisible: "1 round · 4 players in, 0 out. The pool usually ends when one player is left."
-- takeScreenshot: 16k-pool-complete-page
+# Complete the pool (early split): one dialog on the scorecard, then straight on to Awards (Nov 18).
 - tapOn: "Complete game"
 - extendedWaitUntil:
     visible: "Complete this pool?"
     timeout: 5000
+- assertVisible: "1 round will be locked. 4 players in, 0 out. More than one player is still in. Next you give the awards. You can reopen the pool later from the ⋮ menu."
+- takeScreenshot: 16k-pool-complete-dialog
 - tapOn: "Confirm complete game"
 - extendedWaitUntil:
-    visible: "Give awards"
-    timeout: 20000
-- assertVisible: "Give awards first"
-- takeScreenshot: 16l-pool-completed-give-awards
-- tapOn:
-    id: "complete-give-awards"
-- extendedWaitUntil:
     visible: "Winner takes all"
-    timeout: 15000
-- assertVisible: "Awards pending"
+    timeout: 20000
+- assertVisible: "Awards · .*"
+- assertVisible: "Completed"
+- assertVisible: "Not now"
+- assertNotVisible: "Awards pending"
+- assertNotVisible: "Results"
+- takeScreenshot: 16l-pool-awards-from-complete
 - assertVisible: "5 entries (a re-entry counts twice) · pool 500 points"
 - assertVisible: "Pool 500 · all given out"
 - takeScreenshot: 16m-awards-winner-takes-all
@@ -200,16 +221,23 @@ tags: [smoke]
 - takeScreenshot: 16q-awards-save-anyway
 - tapOn:
     id: "award-save-anyway-yes"
+# Save from Complete → Awards goes on to the Final screen: the Awards card, Share + Done, no Results.
 - extendedWaitUntil:
-    visible: "Change awards"
+    visible: "Awards · .*"
     timeout: 20000
-- assertVisible: "Add to Results"
-- takeScreenshot: 16r-pool-awarded-complete-page
+- assertVisible:
+    id: "final-done"
+- assertVisible:
+    id: "final-share"
+- assertNotVisible: "Results"
+- takeScreenshot: 16r-pool-final-screen-awards
+# The header arrow returns to the completed scorecard (Awards replaced Complete under the Final screen).
 - back
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertVisible: "Awarded"
+- assertVisible: "Change awards"
 - assertVisible:
     id: "pool-awards"
 - assertVisible: "Custom · entry 100 · pool 500 · 400 given out"

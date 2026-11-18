@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–046) applied, check the function state after each, then re-apply the forward
+# has every migration (001–047) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -24,7 +24,18 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
-# 046 (no permanent delete: games.archived_at, archive_deleted_games, purge_deleted_games made harmless; rolled back first)
+# 047 (re-entry / late-entry score rules: pool_entry_plus, reenter_player + add_seated_player add the rule, Log labels; rolled back first)
+HAS_047=f
+if [ -f "$RB/rollback_047_reentry_and_late_entry_score.sql" ]; then
+  HAS_047=t
+  if apply "$RB/rollback_047_reentry_and_late_entry_score.sql"; then tap ok "rollback_047 applies"; else tap fail "rollback_047 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists pool_entry_plus)" = f ] && [ "$(fn_exists entry_plus_text)" = f ] && [ "$(fn_has reenter_player pool_entry_plus)" = f ] \
+    && [ "$(fn_has add_seated_player pool_entry_plus)" = f ] && [ "$(fn_has event_log_games 'Re-entry score')" = f ] && [ "$(fn_has event_log_games 'seatingPrompted')" = t ] \
+    && tap ok "after rollback_047 pool_entry_plus is gone and reenter_player / add_seated_player / event_log_games are 042 / 041 / 044 again" \
+    || tap fail "after rollback_047 pool_entry_plus should be gone and reenter_player / add_seated_player / event_log_games back to 042 / 041 / 044"
+fi
+
+# 046 (no permanent delete: games.archived_at, archive_deleted_games, purge_deleted_games made harmless)
 HAS_046=f
 if [ -f "$RB/rollback_046_no_permanent_delete.sql" ]; then
   HAS_046=t
@@ -454,6 +465,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_044" = t ] && FORWARD="$FORWARD 044_seating_order"
 [ "$HAS_045" = t ] && FORWARD="$FORWARD 045_going_rogue"
 [ "$HAS_046" = t ] && FORWARD="$FORWARD 046_no_permanent_delete"
+[ "$HAS_047" = t ] && FORWARD="$FORWARD 047_reentry_and_late_entry_score"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -613,6 +625,11 @@ if [ "$HAS_046" = t ]; then
   [ "$(fn_exists archive_deleted_games)" = t ] && [ "$(fn_has purge_deleted_games 'delete from public.games')" = f ] && [ "$(fn_has can_read_deleted_game archived_at)" = t ] \
     && [ "$(q "select exists(select 1 from information_schema.columns where table_name='games' and column_name='archived_at')")" = t ] \
     && tap ok "046 restored (archived_at, archive_deleted_games, purge_deleted_games deletes nothing)" || tap fail "046 restored"
+fi
+if [ "$HAS_047" = t ]; then
+  [ "$(fn_exists pool_entry_plus)" = t ] && [ "$(fn_has reenter_player pool_entry_plus)" = t ] && [ "$(fn_has add_seated_player pool_entry_plus)" = t ] \
+    && [ "$(fn_has event_log_games 'Re-entry score')" = t ] \
+    && tap ok "047 restored (pool_entry_plus; reenter_player, add_seated_player and the Log read the entry rules)" || tap fail "047 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

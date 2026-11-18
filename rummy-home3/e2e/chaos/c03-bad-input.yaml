@@ -31,7 +31,7 @@ tags: [chaos]
 - tapOn:
     id: "new-game-limit-custom"
 # The red banner renders under the settings card, below the fold on a Pixel 6 (finding: the user sees
-# nothing happen on Start until they scroll), so each attempt scrolls down to it and back up to the field.
+# nothing happen on Next until they scroll), so each attempt scrolls down to it and back up to the field.
 - scrollUntilVisible:
     element:
       id: "new-game-limit-input"
@@ -43,8 +43,8 @@ tags: [chaos]
 - inputText: "abc"
 - hideKeyboard
 - tapOn:
-    id: "start-game"
-# F3 fixed (PR 19): the message is pinned above the Start bar, so it must be on screen with no scroll.
+    id: "new-game-type-next"
+# F3 fixed (PR 19): the message is pinned above the Next bar, so it must be on screen with no scroll.
 - assertVisible:
     id: "new-game-problem"
 - assertVisible: ".*whole number from 51 to 999.*"
@@ -61,8 +61,8 @@ tags: [chaos]
 - inputText: "0"
 - hideKeyboard
 - tapOn:
-    id: "start-game"
-# F3 fixed (PR 19): the message is pinned above the Start bar, so it must be on screen with no scroll.
+    id: "new-game-type-next"
+# F3 fixed (PR 19): the message is pinned above the Next bar, so it must be on screen with no scroll.
 - assertVisible:
     id: "new-game-problem"
 - assertVisible: ".*whole number from 51 to 999.*"
@@ -90,8 +90,8 @@ tags: [chaos]
 - inputText: "50"
 - hideKeyboard
 - tapOn:
-    id: "start-game"
-# F3 fixed (PR 19): the message is pinned above the Start bar, so it must be on screen with no scroll.
+    id: "new-game-type-next"
+# F3 fixed (PR 19): the message is pinned above the Next bar, so it must be on screen with no scroll.
 - assertVisible:
     id: "new-game-problem"
 - assertVisible: ".*whole number from 51 to 999.*"

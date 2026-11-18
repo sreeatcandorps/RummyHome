@@ -19,25 +19,20 @@ tags: [smoke]
     visible: "Scorecard( · .*)?"
     timeout: 20000
 - assertVisible: "20 players"
-# A completed pool shows the Awards card and Standings first; the round grid sits below them.
+# Pool portrait (Nov 18): the round grid hugs its rounds (five rows at most; header initials WWW / MMM in
+# full), the Awards card and Standings sit in the pane underneath, which scrolls on its own. Awards first
+# while the card is at the top of the pane, then swipe the pane up to bring Standings into it.
 - assertVisible:
-    id: "pool-standings"
-- assertVisible: "WWW"
-- assertVisible: "MMM"
-- takeScreenshot: 17-pool-wide-initials-standings
-- scrollUntilVisible:
-    element:
-      id: "score-header-initials-2"
-    direction: DOWN
-    timeout: 15000
-- assertVisible: "WWW"
-- assertVisible: "MMM"
-- takeScreenshot: 17-pool-wide-initials-header
-- scrollUntilVisible:
-    element:
-      id: "give-awards"
-    direction: UP
-    timeout: 10000
+    id: "pool-standings-pane"
+- assertVisible:
+    id: "give-awards"
+- assertVisible:
+    id: "score-header-initials-2"
+    text: "WWW"
+- assertVisible:
+    id: "score-header-initials-3"
+    text: "MMM"
+- takeScreenshot: 17-pool-wide-initials-portrait
 - tapOn:
     id: "give-awards"
 - extendedWaitUntil:
@@ -45,8 +40,21 @@ tags: [smoke]
     timeout: 15000
 - assertVisible: "20 entries (a re-entry counts twice) · pool 2000 points"
 - takeScreenshot: 17-pool-wide-initials-awards
-- tapOn: "Cancel"
+# Nov 18: first-time Awards bar is Not now + Save awards; Not now leaves the pool Completed without awards.
+- tapOn:
+    id: "award-not-now"
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000
+- swipe:
+    from:
+      id: "pool-standings-pane"
+    direction: UP
+- extendedWaitUntil:
+    visible:
+      id: "pool-standings"
+    timeout: 5000
+- assertVisible: "WWW"
+- assertVisible: "MMM"
+- takeScreenshot: 17-pool-wide-initials-standings
 - back

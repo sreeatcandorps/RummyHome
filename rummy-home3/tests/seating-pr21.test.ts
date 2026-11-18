@@ -6,20 +6,14 @@ import {
   canChangeSeating,
   EVERY_PLAYER_NEEDS_A_SEAT,
   isPermutation,
-  KEEP_THIS_ORDER,
   midGameSeatingNote,
   nextDealerFor,
-  pickedCounter,
-  pickedUpText,
   placeAt,
   sameOrder,
   SEATING_MENU_SUBLINE,
-  SEATING_POPUP_SUBLINE,
   seatingSubline,
   seatRowHeight,
   seatRowLabel,
-  shouldPromptSeating,
-  showsPlayerChips,
   stepSeat,
 } from '../utils/seating';
 import { withStoredPointsRules } from '../utils/gameSettings';
@@ -70,33 +64,22 @@ test('sameOrder and isPermutation', () => {
   assert.equal(EVERY_PLAYER_NEEDS_A_SEAT, 'Every player needs a seat.');
 });
 
-test('row sizes: 40 dp to 8 players, 32 to 16, 30 at 17–20; chips on wide layouts', () => {
+test('row sizes: 40 dp to 8 players, 32 to 16, 30 at 17–20', () => {
   assert.equal(seatRowHeight(4), 40);
   assert.equal(seatRowHeight(8), 40);
   assert.equal(seatRowHeight(9), 32);
   assert.equal(seatRowHeight(16), 32);
   assert.equal(seatRowHeight(20), 30);
-  const phone = { width: 360, height: 780 };
-  assert.ok(!showsPlayerChips(4, phone), 'four players on a phone: rows only');
-  assert.ok(showsPlayerChips(8, phone), 'eight players: the Players column');
-  assert.ok(showsPlayerChips(20, phone));
-  assert.ok(showsPlayerChips(4, { width: 780, height: 360 }), 'landscape');
-  assert.ok(showsPlayerChips(4, { width: 800, height: 1200 }), 'tablet');
 });
 
-// ---------- X21-2: when the pop-up shows ----------
-test('the pop-up: once per game, admins, ≥ 2 seats, no rounds, the flag still false', () => {
-  const fresh = { isComplete: false, settings: { seatingPrompted: false } };
-  assert.ok(shouldPromptSeating({ game: fresh, canScore: true, seatCount: 4, roundCount: 0 }));
-  assert.ok(!shouldPromptSeating({ game: fresh, canScore: false, seatCount: 4, roundCount: 0 }), 'a player or viewer never sees it');
-  assert.ok(!shouldPromptSeating({ game: fresh, canScore: true, seatCount: 1, roundCount: 0 }), 'one seat has nothing to order');
-  assert.ok(!shouldPromptSeating({ game: fresh, canScore: true, seatCount: 4, roundCount: 1 }), 'a saved round closes the window');
-  assert.ok(!shouldPromptSeating({ game: { ...fresh, settings: { seatingPrompted: true } }, canScore: true, seatCount: 4, roundCount: 0 }), 'answered once');
-  assert.ok(!shouldPromptSeating({ game: { isComplete: false, settings: {} }, canScore: true, seatCount: 4, roundCount: 0 }), 'older games (no flag) never pop');
-  assert.ok(!shouldPromptSeating({ game: { isComplete: false, settings: null }, canScore: true, seatCount: 4, roundCount: 0 }));
-  assert.ok(!shouldPromptSeating({ game: { ...fresh, isComplete: true }, canScore: true, seatCount: 4, roundCount: 0 }), 'completed');
-  assert.ok(!shouldPromptSeating({ game: { ...fresh, deletedAt: '2026-11-15' }, canScore: true, seatCount: 4, roundCount: 0 }), 'deleted');
-  assert.ok(!shouldPromptSeating({ game: null, canScore: true, seatCount: 4, roundCount: 0 }));
+// ---------- X21-2 (PR 24): the once-per-game pop-up is gone; the order is a New game step ----------
+test('no pop-up: the scorecard never prompts, new games carry seatingPrompted true, the gate is gone', () => {
+  const seating = read('utils/seating.ts');
+  assert.ok(!seating.includes('shouldPromptSeating'), 'PR 24: no pop-up gate');
+  assert.ok(!seating.includes('showsPlayerChips'), 'PR 24: no Players chip column');
+  const games = read('services/games.ts');
+  assert.match(games, /seatingPrompted: true/, 'a new game owes no pop-up: its order was set before Start');
+  assert.ok(!games.includes('markSeatingPrompted'), 'nothing flips the flag any more');
 });
 
 test('the menu item: admins on Active games only (Q21.7)', () => {
@@ -108,20 +91,16 @@ test('the menu item: admins on Active games only (Q21.7)', () => {
   assert.ok(!canChangeSeating(null, true));
 });
 
-test('copy: sublines, the mid-game note, picked-up text, row labels', () => {
-  assert.equal(seatingSubline({ pool: false, seatCount: 4, outCount: 0, fromMenu: false }), SEATING_POPUP_SUBLINE);
-  assert.equal(seatingSubline({ pool: false, seatCount: 4, outCount: 0, fromMenu: true }), SEATING_MENU_SUBLINE);
-  assert.equal(seatingSubline({ pool: true, seatCount: 6, outCount: 1, fromMenu: true }), 'Pool · 6 seats · 1 out');
-  assert.equal(seatingSubline({ pool: true, seatCount: 20, outCount: 19, fromMenu: false }), 'Pool · 20 seats · 19 out');
+test('copy: sublines, the mid-game note, row labels', () => {
+  assert.equal(seatingSubline({ pool: false, seatCount: 4, outCount: 0 }), SEATING_MENU_SUBLINE);
+  assert.equal(seatingSubline({ pool: true, seatCount: 6, outCount: 1 }), 'Pool · 6 seats · 1 out');
+  assert.equal(seatingSubline({ pool: true, seatCount: 20, outCount: 19 }), 'Pool · 20 seats · 19 out');
   assert.equal(midGameSeatingNote(0), null);
   assert.match(midGameSeatingNote(1)!, /^1 round played\./);
   assert.match(midGameSeatingNote(30)!, /^30 rounds played\. Saved rounds keep their dealers/);
-  assert.equal(pickedUpText('Zed Zero'), 'Zed Zero picked up — choose a seat');
-  assert.equal(pickedCounter(false, 8), 'Picked up 0 · Seated 8');
-  assert.equal(pickedCounter(true, 8), 'Picked up 1 · Seated 7');
   assert.equal(seatRowLabel({ seat: 3, name: 'Harish Gadupudi', dealsNext: true, out: true }), 'Seat 3, Harish Gadupudi, deals next, out');
-  assert.equal(seatRowLabel({ seat: 1, name: 'Sree', dealsNext: false, picked: true }), 'Seat 1, Sree, picked up');
-  assert.equal(KEEP_THIS_ORDER, 'Keep this order');
+  assert.equal(seatRowLabel({ seat: null, name: 'Sree', dealsNext: false }), 'Not numbered, Sree');
+  assert.ok(!read('utils/seating.ts').includes('Keep this order'), 'PR 24: no "Keep this order"');
 });
 
 // ---------- X21-3: who deals next under the new order ----------
@@ -142,35 +121,37 @@ test('nextDealerFor in a pool skips players who are out (041 save_round)', () =>
   assert.equal(nextDealerFor(four, [], 0, new Set(four)), undefined, 'everyone out: nobody deals');
 });
 
-test('withStoredPointsRules carries seatingPrompted from the stored settings (the gate reads game.settings)', () => {
+test('withStoredPointsRules carries seatingPrompted from the stored settings (bookkeeping the Log ignores)', () => {
   const base = withStoredPointsRules(DEFAULT_POINTS_SETTINGS, { dropAmount: -10, mdAmount: -30, maxCount: -80, seatingPrompted: false });
-  assert.equal(base.seatingPrompted, false, 'a fresh game keeps false');
+  assert.equal(base.seatingPrompted, false, 'a game from the PR 21 build keeps false');
   assert.equal(withStoredPointsRules(DEFAULT_POINTS_SETTINGS, { seatingPrompted: true }).seatingPrompted, true);
   assert.equal(withStoredPointsRules(DEFAULT_POINTS_SETTINGS, { dropAmount: -10 }).seatingPrompted, undefined, 'older games have no key');
-  assert.ok(shouldPromptSeating({ game: { isComplete: false, settings: base }, canScore: true, seatCount: 4, roundCount: 0 }), 'so the pop-up gate opens for a fresh game');
 });
 
 // ---------- the wiring ----------
-test('createGame writes seatingPrompted false, and the RPC path is set_seating_order', () => {
+test('createGame seats players in the Order of players, and the RPC path is set_seating_order', () => {
   const games = read('services/games.ts');
-  assert.match(games, /seatingPrompted: false/, 'new games carry the pop-up flag');
   assert.match(games, /supabase\.rpc\('set_seating_order'/, 'the sheet and the arrows go through the RPC');
-  assert.match(games, /async markSeatingPrompted\(gameId: string\)/);
   assert.match(games, /async setSeatingOrder\(gameId: string, order: string\[\]\)/);
+  assert.match(read('app/(screens)/games/new.tsx'), /newGameSeats\(displayOrder\(order\)\)/, 'PR 24: the seats are the order built on the step');
   assert.ok(!/from\('game_players'\)\s*\.update\(\{\s*player_order/.test(games), 'no client-side player_order writes remain');
 });
 
-test('the scorecard: pop-up gating, the ⋮ item, the sheet; Players · Admins arrows mid-game', () => {
+test('the scorecard: the ⋮ item and the sheet, no pop-up; Players · Admins arrows mid-game', () => {
   const scorecard = read('app/(screens)/games/[id].tsx');
-  assert.match(scorecard, /shouldPromptSeating\(/);
+  assert.ok(!scorecard.includes('shouldPromptSeating'), 'PR 24: no pop-up');
   assert.match(scorecard, /testID="game-menu-seating"/);
   assert.match(scorecard, /<SeatingSheet/);
-  assert.match(scorecard, /markSeatingPrompted\(/);
+  assert.ok(!scorecard.includes('markSeatingPrompted'));
   const players = read('app/(screens)/games/players.tsx');
   assert.ok(!/every\(\(column\) => \(column\?\.length \?\? 0\) === 0\)/.test(players), 'the arrows no longer need zero rounds');
   const sheet = read('components/game/SeatingSheet.tsx');
-  for (const id of ['seating-sheet', 'seating-done', 'seating-cancel', 'seat-deals-next', 'seating-chips']) assert.match(sheet, new RegExp(`testID="${id}"`), id);
-  for (const id of ['seat-row-', 'seat-name-', 'seat-up-', 'seat-down-', 'seat-chip-']) assert.match(sheet, new RegExp(`testID={\`${id}`), id);
+  for (const id of ['seating-sheet', 'seating-done', 'seating-cancel', 'seating-clear']) assert.match(sheet, new RegExp(`testID="${id}"`), id);
+  assert.ok(!sheet.includes('seating-chips') && !sheet.includes('seat-chip-'), 'PR 24: the Players chip column is gone');
+  assert.ok(!sheet.includes('Keep this order'));
+  const list = read('components/game/OrderOfPlayers.tsx');
+  for (const id of ['-row-', '-name-', '-no-', '-up-', '-down-', '-label-', '-code-']) assert.match(list, new RegExp(`testID={\`\\$\\{testIDPrefix\\}${id}`), id);
+  assert.match(list, /testID=\{`\$\{testIDPrefix\}-deals-next`\}/);
 });
 
 test('the Log knows the new kind and the migration ignores the pop-up flag', () => {

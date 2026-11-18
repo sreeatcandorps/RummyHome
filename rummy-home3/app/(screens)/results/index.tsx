@@ -47,6 +47,8 @@ import {
   planFilterSwitch,
   resultReusedNote,
   selectedCountLine,
+  showResultsLabel,
+  ONE_GAME_RESULT_NOTE,
   winnerInitials,
   MAKE_RESULT_FOLD_NOTE,
 } from '@/utils/resultsSave';
@@ -344,14 +346,18 @@ export default function ResultsScreen() {
         ))}
       </View>
       {tooMany ? <Text style={{ color: colors.error }}>{RESULTS_PLAYER_LIMIT}</Text> : null}
+      {selected.length === 1 && !tooMany ? (
+        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="one-game-note">{ONE_GAME_RESULT_NOTE}</Text>
+      ) : null}
       <Button
         mode="contained"
         icon="view-list"
         onPress={show}
         disabled={selected.length === 0 || tooMany}
         accessibilityLabel="Show results"
+        testID="show-results"
       >
-        Show results
+        {showResultsLabel(selected.length)}
       </Button>
     </>
   );

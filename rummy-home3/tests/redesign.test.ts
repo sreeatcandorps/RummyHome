@@ -48,7 +48,7 @@ test('only an admin of the game can settle it', () => {
 test('settle stays hidden and results talk about places', () => {
   assert.equal(settleEnabled, false);
   assert.equal(pointsGameLabel(), 'Points');
-  const shown = [HELP.home, HELP.newGame, HELP.scorecard, HELP.complete, HELP.scoreEntry, HELP.players, HELP.me, HELP.results].join('\n');
+  const shown = [HELP.home, HELP.newGame, HELP.scorecard, HELP.scoreEntry, HELP.players, HELP.me, HELP.results].join('\n');
   assert.doesNotMatch(shown, /settle|prize|stake|coins|ledger|payment|money/i);
   assert.match(HELP.home, /Results/);
   assert.match(HELP.results, /place/);

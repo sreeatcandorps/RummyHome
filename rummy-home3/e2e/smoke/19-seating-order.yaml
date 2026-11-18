@@ -1,12 +1,13 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
-# PR 21 Seating order (X21-7), end to end on the seed: a fresh Points game (Sree, Harish, Priya, Zed) →
-# Start → Skip → the Seating order sheet pops up once with the players in the order they were picked;
-# tap Zed, then seat 1 (tap-to-place) → Zed deals round 1 (green seat 1) → Done → the scorecard columns
-# follow the seats and the Log has a routine "Seating changed" row. Then ⋮ → Seating order (mid-game
-# path, no rounds yet so no "rounds played" note) → ▼ on seat 1 swaps Zed and Sree → Done → columns move
-# again and the Log has a second Seating row. Cancel from the menu changes nothing. Runs after smoke/16
-# (deletes its game at the end, so no other flow sees an extra game); no round is saved, no result.
+# PR 24 Order of players (was PR 21 Seating order), end to end on the seed: a fresh Points game (Sree,
+# Harish, Priya, Zed) → Next → Game type → Next → Order of players: nobody numbered, no arrows; tapping
+# Zed gives seat 1 and moves them up; tapping Zed again takes the number back (undo last); numbering
+# everyone enables Next → the co-admin step (Harish and Priya are registered) → Start game → the
+# scorecard columns follow the order (Zed is column 1). Then ⋮ → Order of players (mid-game path:
+# prefilled, arrows) → ▼ on seat 1 swaps Zed and Sree → Done → columns move and the Log has a Seating
+# row. Clear empties the numbers; Cancel changes nothing. Runs after smoke/16 (deletes its game at the
+# end, so no other flow sees an extra game); no round is saved, no result.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "New game"
@@ -23,28 +24,19 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "Game type"
     timeout: 15000
+- assertNotVisible:
+    id: "start-game"
 - scrollUntilVisible:
     element:
-      id: "start-game"
+      id: "new-game-type-next"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "start-game"
-# Harish and Priya are registered, so the co-admin nudge asks once; Skip starts without one.
+    id: "new-game-type-next"
+# Step 3: Order of players. Nobody numbered, rows in pick order, no arrows, Next off.
 - extendedWaitUntil:
-    visible: "Skip"
+    visible: "Order of players"
     timeout: 15000
-- tapOn: "Skip"
-- extendedWaitUntil:
-    visible: "Scorecard( · .*)?"
-    timeout: 20000
-# The pop-up: once per game, seats in pick order, seat 1 deals round 1.
-- extendedWaitUntil:
-    visible:
-      id: "seating-sheet"
-    timeout: 15000
-- assertVisible: "Seating order"
-- assertVisible: "Pops up once, right after Start. Admins only."
 - assertVisible:
     id: "seat-name-1"
     text: "Sree Test"
@@ -52,16 +44,54 @@ tags: [smoke]
     id: "seat-name-4"
     text: "Zed Zero"
 - assertVisible:
+    id: "order-counter"
+    text: "0 of 4 numbered"
+- assertNotVisible:
+    id: "seat-up-1"
+- assertNotVisible:
     id: "seat-deals-next"
-- assertVisible: "Keep this order"
-- takeScreenshot: 19-seating-popup
-# Tap-to-place: pick Zed up, drop them on seat 1; everyone else shifts down one seat.
+- takeScreenshot: 19-order-start-empty
+# Tap Zed: seat 1, moves to the top, deals round 1.
 - tapOn:
     id: "seat-row-4"
-- assertVisible: "Zed Zero picked up — choose a seat"
-- takeScreenshot: 19b-seating-picked-up
+- assertVisible:
+    id: "seat-name-1"
+    text: "Zed Zero"
+- assertVisible:
+    id: "seat-number-1"
+    text: "1"
+- assertVisible:
+    id: "seat-deals-next"
+- assertVisible:
+    id: "order-counter"
+    text: "1 of 4 numbered"
+- takeScreenshot: 19b-order-zed-first
+# Tap Zed again: the last number comes back off and Zed drops below the unnumbered players.
 - tapOn:
     id: "seat-row-1"
+- assertVisible:
+    id: "order-counter"
+    text: "0 of 4 numbered"
+- assertVisible:
+    id: "seat-name-4"
+    text: "Zed Zero"
+- takeScreenshot: 19c-order-undo-last
+# Number everyone: Zed, Sree, Harish, Priya. Arrows appear on numbered rows only.
+- tapOn:
+    id: "seat-row-4"
+- tapOn:
+    id: "seat-row-2"
+- assertVisible:
+    id: "seat-up-2"
+- assertNotVisible:
+    id: "seat-up-3"
+- tapOn:
+    id: "seat-row-3"
+- tapOn:
+    id: "seat-row-4"
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
 - assertVisible:
     id: "seat-name-1"
     text: "Zed Zero"
@@ -71,38 +101,48 @@ tags: [smoke]
 - assertVisible:
     id: "seat-name-4"
     text: "Priya Test"
-- assertNotVisible: "Zed Zero picked up — choose a seat"
-- takeScreenshot: 19c-seating-zed-first
+# Clear empties the numbers; number them again the same way.
 - tapOn:
-    id: "seating-done"
+    id: "new-game-order-clear"
+- assertVisible:
+    id: "order-counter"
+    text: "0 of 4 numbered"
+- tapOn:
+    id: "seat-row-4"
+- tapOn:
+    id: "seat-row-2"
+- tapOn:
+    id: "seat-row-3"
+- tapOn:
+    id: "seat-row-4"
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
+- takeScreenshot: 19d-order-everyone-numbered
+- tapOn:
+    id: "new-game-order-next"
+# Step 4: co-admin (Harish and Priya are registered). Start without one.
 - extendedWaitUntil:
-    notVisible:
-      id: "seating-sheet"
+    visible:
+      id: "co-admin-choices"
     timeout: 15000
-# The scorecard columns follow the seats: Zed is column 1 now, Sree column 2.
+- takeScreenshot: 19e-coadmin-step
+- tapOn:
+    id: "start-game"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertNotVisible:
+    id: "seating-sheet"
+# The scorecard columns follow the order: Zed is column 1, Sree column 2.
 - assertVisible:
     id: "score-header-initials-1"
     text: "ZZ"
 - assertVisible:
     id: "score-header-initials-2"
     text: "ST"
-- takeScreenshot: 19d-scorecard-zed-first
-# The Log: a routine Seating row with the new order by initials.
-- tapOn: "Scorecard menu"
-- tapOn:
-    id: "game-menu-log"
-- extendedWaitUntil:
-    visible:
-      id: "game-log-first-row"
-    timeout: 15000
-- assertVisible:
-    text: ".*Seating changed · 1 ZZ · 2 ST.*"
-- takeScreenshot: 19e-log-seating-row
-- back
-- extendedWaitUntil:
-    visible: "Scorecard( · .*)?"
-    timeout: 15000
-# Mid-game path from ⋮ (no rounds yet, so no "rounds played" note); Done is off until something moves.
+- takeScreenshot: 19f-scorecard-zed-first
+# Mid-game path from ⋮: prefilled (everyone numbered), arrows work, no "rounds played" note yet.
 - tapOn: "Scorecard menu"
 - tapOn:
     id: "game-menu-seating"
@@ -110,14 +150,17 @@ tags: [smoke]
     visible:
       id: "seating-sheet"
     timeout: 15000
+- assertVisible: "Order of players"
 - assertVisible: "Mid-game · admins only · logged"
-- assertNotVisible: "Keep this order"
 - assertNotVisible:
     text: ".*rounds? played.*"
 - assertVisible:
     id: "seat-name-1"
     text: "Zed Zero"
-- takeScreenshot: 19f-seating-from-menu
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
+- takeScreenshot: 19g-order-from-menu
 # ▼ on seat 1 swaps Zed and Sree.
 - tapOn:
     id: "seat-down-1"
@@ -139,8 +182,8 @@ tags: [smoke]
 - assertVisible:
     id: "score-header-initials-2"
     text: "ZZ"
-- takeScreenshot: 19g-scorecard-sree-first-again
-# Cancel from the menu changes nothing.
+- takeScreenshot: 19h-scorecard-sree-first-again
+# Clear then Cancel from the menu changes nothing.
 - tapOn: "Scorecard menu"
 - tapOn:
     id: "game-menu-seating"
@@ -149,10 +192,16 @@ tags: [smoke]
       id: "seating-sheet"
     timeout: 15000
 - tapOn:
-    id: "seat-up-3"
+    id: "seating-clear"
 - assertVisible:
-    id: "seat-name-2"
+    id: "order-counter"
+    text: "0 of 4 numbered"
+- tapOn:
+    id: "seat-row-3"
+- assertVisible:
+    id: "seat-name-1"
     text: "Harish Test"
+- takeScreenshot: 19i-order-cleared-one-tap
 - tapOn:
     id: "seating-cancel"
 - extendedWaitUntil:
@@ -162,7 +211,7 @@ tags: [smoke]
 - assertVisible:
     id: "score-header-initials-2"
     text: "ZZ"
-# The Log now has two Seating rows, newest first.
+# The Log has the mid-game Seating row.
 - tapOn: "Scorecard menu"
 - tapOn:
     id: "game-menu-log"
@@ -172,9 +221,7 @@ tags: [smoke]
     timeout: 15000
 - assertVisible:
     text: ".*Seating changed · 1 ST · 2 ZZ.*"
-- assertVisible:
-    text: ".*Seating changed · 1 ZZ · 2 ST.*"
-- takeScreenshot: 19h-log-two-seating-rows
+- takeScreenshot: 19j-log-seating-row
 - back
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"

@@ -24,7 +24,7 @@ tags: [chaos]
       - tapOn:
           point: "65%,89%"
           waitToSettleTimeoutMs: 50
-# Whatever the mash opened (Add round again, the Complete page), come back to the scorecard.
+# Whatever the mash opened (Add round again, the Complete dialog), come back to the scorecard.
 - runFlow:
     when:
       visible: "Save round"
@@ -32,9 +32,10 @@ tags: [chaos]
       - back
 - runFlow:
     when:
-      visible: "Complete · .*"
+      visible: "Complete this game?"
     commands:
-      - back
+      - tapOn:
+          id: "complete-cancel"
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000

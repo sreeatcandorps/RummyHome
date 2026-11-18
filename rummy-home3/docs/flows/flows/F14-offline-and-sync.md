@@ -62,9 +62,9 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 71 |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
-| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 58 |
+| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 73 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 91 |
+| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 64 |
 | W29 | Offline / network copy (cannot reach server · saved on this phone) | `utils/supabaseErrors.ts` | 6 |
 | W37 | Toast errors (formatSupabaseError) on every write | `utils/supabaseErrors.ts` | 3 |
 | P34 | Round notice (Round N already saved · scorecard refreshed · view only) | `app/(screens)/score-entry.tsx` | 8 |

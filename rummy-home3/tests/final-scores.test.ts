@@ -72,19 +72,21 @@ test('completion check: balanced rounds pass, an unbalanced round names itself, 
   assert.equal(empty.roundCount, 0);
 });
 
-test('single-game share never says Results; the scorecard share sheet offers Share final scores (A04); the full details go out as a PDF (PR 8, PR 10b buttons)', () => {
+test('single-game share never says Results; the Final screen bar is Share + Done and its sheet offers the picture and the full PDF (A04, Nov 18)', () => {
   const scorecard = readFileSync(path.join(process.cwd(), 'app/(screens)/games/[id].tsx'), 'utf8');
   assert.match(scorecard, /label: 'Share final scores'/);
   assert.doesNotMatch(scorecard, /Share results/);
   const page = readFileSync(path.join(process.cwd(), 'app/(screens)/games/final-scores.tsx'), 'utf8');
   assert.doesNotMatch(page, />\s*Share results\s*</i);
-  assert.match(page, /label: 'Share final scores'/, 'the image button keeps its name (Maestro 05 waits for it)');
-  assert.match(page, /label: 'Share full details'/, 'the PDF button is "Share full details" (10.11)');
+  assert.match(page, /label: 'Share', icon: 'share-variant'[\s\S]*?testID: 'final-share'/, 'one Share button opens the sheet');
+  assert.match(page, /label: sheet\.showsAwards \? 'Share awards picture' : 'Share final scores'[\s\S]*?testID: 'share-final-scores'/, 'the image row keeps its name (Maestro 05 waits for it)');
+  assert.match(page, /label: 'Share full details'[\s\S]*?testID: 'share-rounds'/, 'the PDF row is "Share full details" (10.11)');
+  assert.match(page, /secondary=\{showsDone\(game\) \? \{ label: 'Done', icon: 'check', onPress: done/, 'Done only once the game is complete');
   assert.doesNotMatch(page, />Back<\/Button>/, 'the header arrow is the only Back');
   assert.match(page, /shareFinalScoresPdf\(sheet\)/);
   assert.match(page, /<ShareCardView card=\{sheet\.card\} \/>/, 'the standings card is previewed on screen');
   assert.match(page, /<OffscreenShareCard card=\{sheet\.card\} cardRef=\{capture\.ref\} onHeight=\{capture\.onHeight\} \/>/, 'and captured from the fixed-width off-screen copy');
-  assert.match(page, /title: sheet \? sheet\.heading : 'Final scores'/, 'the screen title is "Final scores · S10"');
+  assert.match(page, /title: sheet \? sheet\.card\.title : 'Final scores'/, 'the screen title is "Final scores · S10", or "Awards · P1" for an awarded pool');
   assert.match(page, /\[styles\.bold, \{ color: colors\.negative \}\]/, 'a non-zero totals line reads red');
 });
 

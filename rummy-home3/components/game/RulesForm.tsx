@@ -4,7 +4,7 @@ import { RadioButton, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { InfoTip } from '@/components/ui/InfoTip';
 import { HelpTopicKey } from '@/constants/helpTopics';
-import { limitHint, parsePoolLimit, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_LIMITS, POOL_REENTRY_LIMIT_MAX } from '@/utils/pool';
+import { ENTRY_PLUS_LABELS, EntryPlus, limitHint, parsePoolLimit, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_LIMITS, POOL_REENTRY_LIMIT_MAX } from '@/utils/pool';
 import { parseReentryLimit } from '@/utils/rulesDraft';
 import { multiplierExample, multiplierFieldInput, MULTIPLIER_RANGE_TEXT, parseMultiplierInput } from '@/utils/multiplier';
 import { RulesDraft } from '@/utils/rulesDraft';
@@ -28,11 +28,17 @@ export const POOL_LOCK_NOTE = 'Rounds have been saved, so the pool limit is lock
 /** Mini help (ⓘ) beside the pool limit chips. */
 export const POOL_LIMIT_TIP = 'The limit decides who is out: at 101, a score of 100 is still in and 101 is out. 101, 201 and 251 are the usual limits; Custom takes any number.';
 /** Mini help (ⓘ) beside Re-entries; the line under the radios stays and tracks the choice. */
-export const REENTRIES_TIP = 'A player who is out may come back at the highest score still in. Unlimited lets them come back as often as they like; Limited caps it per player.';
+export const REENTRIES_TIP = 'A player who is out may come back; how many times per player? Unlimited lets them come back as often as they like; Limited caps it per player. Re-entry score says where they start: the highest score still in, or that plus 1.';
 /** The title above Drop, Middle drop and Full count; its ⓘ carries the kind's note. */
 export const VALUES_TITLE = 'Drop · Middle drop · Full count';
 /** Under the Pool limit title once rounds exist and the limit is locked (Q14.23). */
 export const LOCKED_TAG = 'Locked';
+/** PR 24: the Re-entries block groups how many and where a re-entry starts; Late entry is its own block. The "how many" question lives in the ⓘ (PR 11). */
+export const REENTRY_SCORE_TITLE = 'Re-entry score';
+export const REENTRY_SCORE_HINT = 'Where a re-entering player starts.';
+export const LATE_ENTRY_TITLE = 'Late entry';
+export const LATE_ENTRY_HINT = 'Where a player added after round 1 starts.';
+export const REENTRY_COUNT_EMPTY_HINT = 'Type how many re-entries each player gets (0–99).';
 
 /**
  * Drop, Middle drop and Full count for either kind; a pool also has its limit (101 / 201 / 251 /
@@ -163,7 +169,7 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
         </View>
       ) : null}
       {pool ? (
-        <View style={styles.block}>
+        <View style={styles.block} testID={`${testIDPrefix}-reentries-block`}>
           <View style={styles.titleRow}>
             <Text variant="titleSmall">Re-entries</Text>
             <InfoTip title="Re-entries" text={REENTRIES_TIP} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-reentries`} />
@@ -182,17 +188,39 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
               disabled={disabled}
               value={draft.reentryCount}
               onChangeText={(t) => onChange({ ...draft, reentryCount: t.replace(/[^0-9]/g, '').slice(0, 2) })}
-              error={reentryLimit === -1}
+              error={reentryLimit === -1 && draft.reentryCount !== ''}
               style={styles.limitInput}
               testID={`${testIDPrefix}-reentries-count`}
             />
           ) : null}
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            {draft.reentryMode === 'unlimited' ? 'Out players may re-enter as often as they like while someone is still in.' : reentryLimit === 0 ? 'No re-entries: out is out.' : reentryLimit === 1 ? 'Once per player.' : reentryLimit && reentryLimit > 0 ? `Up to ${reentryLimit} times per player.` : 'Type a whole number.'}
+            {draft.reentryMode === 'unlimited' ? 'Out players may re-enter as often as they like while someone is still in.' : reentryLimit === 0 ? 'No re-entries: out is out.' : reentryLimit === 1 ? 'Once per player.' : reentryLimit && reentryLimit > 0 ? `Up to ${reentryLimit} times per player.` : draft.reentryCount === '' ? REENTRY_COUNT_EMPTY_HINT : 'Type a whole number.'}
           </Text>
+          <Text variant="labelLarge" style={styles.subTitle}>{REENTRY_SCORE_TITLE}</Text>
+          <EntryPlusRadios value={draft.reentryPlus} onChange={(v) => onChange({ ...draft, reentryPlus: v })} disabled={disabled} testID={`${testIDPrefix}-reentry-score`} what="Re-entry score" />
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{REENTRY_SCORE_HINT}</Text>
+        </View>
+      ) : null}
+      {pool ? (
+        <View style={styles.block} testID={`${testIDPrefix}-late-entry-block`}>
+          <Text variant="titleSmall">{LATE_ENTRY_TITLE}</Text>
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{LATE_ENTRY_HINT}</Text>
+          <EntryPlusRadios value={draft.lateEntryPlus} onChange={(v) => onChange({ ...draft, lateEntryPlus: v })} disabled={disabled} testID={`${testIDPrefix}-late-entry-score`} what="Late entry score" />
         </View>
       ) : null}
     </View>
+  );
+}
+
+/** PR 24: "Highest score" / "Highest score + 1" for the re-entry and late-entry rules. */
+function EntryPlusRadios({ value, onChange, disabled, testID, what }: { value: EntryPlus; onChange: (v: EntryPlus) => void; disabled: boolean; testID: string; what: string }) {
+  return (
+    <RadioButton.Group value={String(value)} onValueChange={(v) => onChange(v === '1' ? 1 : 0)}>
+      <View style={styles.radios}>
+        <RadioButton.Item label={ENTRY_PLUS_LABELS[0]} value="0" disabled={disabled} position="leading" labelVariant="bodyMedium" style={styles.radio} testID={`${testID}-highest`} accessibilityLabel={`${what}: ${ENTRY_PLUS_LABELS[0]}`} />
+        <RadioButton.Item label={ENTRY_PLUS_LABELS[1]} value="1" disabled={disabled} position="leading" labelVariant="bodyMedium" style={styles.radio} testID={`${testID}-plus-one`} accessibilityLabel={`${what}: ${ENTRY_PLUS_LABELS[1]}`} />
+      </View>
+    </RadioButton.Group>
   );
 }
 
@@ -209,4 +237,5 @@ const styles = StyleSheet.create({
   example: { borderRadius: radius.md, paddingVertical: 8, paddingHorizontal: 12, gap: 2 },
   radios: { flexDirection: 'row', flexWrap: 'wrap' },
   radio: { paddingHorizontal: 0, paddingVertical: 0, marginRight: spacing.md },
+  subTitle: { marginTop: spacing.xs },
 });

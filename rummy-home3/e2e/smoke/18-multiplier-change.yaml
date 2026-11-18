@@ -74,7 +74,7 @@ tags: [smoke]
 - assertVisible:
     id: "exact-totals-line"
 - takeScreenshot: 18d-exact-points
-- tapOn: "Done"
+- tapOn: "Close"
 # Back to ×1 so game E is unchanged for the other flows (the Log keeps both lines).
 - tapOn: "Scorecard menu"
 - tapOn: "Game settings"

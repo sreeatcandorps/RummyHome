@@ -16,7 +16,8 @@ import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { DEFAULT_POOL_ENTRY, DEFAULT_POOL_VALUES, isPoolGame, poolLimitOf, poolStandings } from '@/utils/pool';
-import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsPayload, buildAwardSheet, getsFromAwards, givenOutText, presetGets, sameAwards, saveAnywayText, signedPoints, viablePresets, winnerGetsMost } from '@/utils/poolAwards';
+import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsPayload, buildAwardSheet, getsFromAwards, givenOutText, presetGets, saveAnywayText, signedPoints, viablePresets, winnerGetsMost } from '@/utils/poolAwards';
+import { afterAwardsRoute } from '@/utils/endFlow';
 import { seatLabels } from '@/utils/initials';
 import { screenTitle } from '@/utils/gameLabel';
 
@@ -24,15 +25,19 @@ import { screenTitle } from '@/utils/gameLabel';
  * Awards for a Completed pool (D8, D9): tap a category to preview every player's award, edit
  * "Gets" inline under Custom, and Save, with "X points weren't given out. Save awards anyway?"
  * when the numbers do not add up. Points only, never money (D12).
+ *
+ * Nov 18 end flow: opened from Complete (`next=final`) the page goes on to the Final screen after
+ * Save or Not now; opened from the scorecard or the Results picker it returns to its caller. No
+ * Results button here — Results is its own errand from Home.
  */
 /** Mini help (PR 11): the five presets and the formula, once beside the chips instead of under them. */
 export const SPLIT_TIP = [
   ...AWARD_PRESETS.map((p) => `**${p.label}**: ${p.hint}`),
-  'Award = Gets − Put in. The awards are what this pool counts for in Results.',
+  'Award = Gets − Put in. The awards are what this pool counts for if it is ever added to Results.',
 ];
 
 export default function AwardScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, next } = useLocalSearchParams<{ id: string; next?: string }>();
   const router = useRouter();
   const { colors } = useAppTheme();
   const { insets } = useLayout();
@@ -103,6 +108,14 @@ export default function AwardScreen() {
     setGets((cur) => ({ ...cur, [playerId]: parseInt(digits, 10) || 0 }));
   };
 
+  // After Save (or Not now): the Final screen when we came from Complete, otherwise back to the caller.
+  const leave = () => {
+    const onward = game ? afterAwardsRoute(game, next) : null;
+    if (onward) router.replace(onward);
+    else if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)');
+  };
+
   const save = async (force = false) => {
     if (!game || saving) return;
     const warning = saveAnywayText(sheet);
@@ -116,7 +129,7 @@ export default function AwardScreen() {
       const updated = await gamesService.setPoolAwards(game.id, awards, note as unknown as Record<string, unknown>);
       if (updated) setGame(updated);
       setConfirm(null);
-      router.back();
+      leave();
     } catch (caught) {
       setConfirm(null);
       setFailure(formatSupabaseError(caught));
@@ -163,7 +176,7 @@ export default function AwardScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.headerRow}>
-          <Tag label={game.awardedAt ? 'Awarded' : 'Awards pending'} tone={game.awardedAt ? 'info' : 'warning'} icon="trophy-outline" />
+          <Tag label={game.awardedAt ? 'Awarded' : 'Completed'} tone="info" icon={game.awardedAt ? 'trophy-outline' : 'flag-checkered'} />
           <View style={styles.entryBox}>
             <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>Entry per player</Text>
             <TextInput
@@ -262,18 +275,13 @@ export default function AwardScreen() {
         {blocked ? <Text variant="bodyMedium" style={{ color: colors.error }} testID="award-blocked">{blocked}</Text> : null}
       </ScrollView>
 
-      {/* Q11.14: once the awards are saved and unchanged, the last step is Add to Results (Complete → Award → Result). */}
-      {game.awardedAt && sameAwards(sheet, game.prizeShares) ? (
-        <ActionBar
-          secondary={{ label: 'Cancel', onPress: () => router.back(), disabled: saving, testID: 'award-cancel' }}
-          primary={{ label: 'Add to Results', icon: 'format-list-numbered', onPress: () => router.push('/(screens)/results'), accessibilityLabel: 'Add to Results', testID: 'award-add-to-results' }}
-        />
-      ) : (
-        <ActionBar
-          secondary={{ label: 'Cancel', onPress: () => router.back(), disabled: saving, testID: 'award-cancel' }}
-          primary={{ label: game.awardedAt ? 'Save changes' : 'Save awards', icon: 'trophy-outline', onPress: () => save(false), disabled: Boolean(blocked) || saving, loading: saving, accessibilityLabel: 'Save awards', testID: 'award-save' }}
-        />
-      )}
+      {/* First awards: Not now leaves the pool Completed without awards (give them later from the scorecard). Editing: Cancel + Save changes. */}
+      <ActionBar
+        secondary={game.awardedAt
+          ? { label: 'Cancel', onPress: () => router.back(), disabled: saving, testID: 'award-cancel' }
+          : { label: 'Not now', icon: 'clock-outline', onPress: leave, disabled: saving, accessibilityLabel: 'Not now, give awards later', testID: 'award-not-now' }}
+        primary={{ label: game.awardedAt ? 'Save changes' : 'Save awards', icon: 'trophy-outline', onPress: () => save(false), disabled: Boolean(blocked) || saving, loading: saving, accessibilityLabel: 'Save awards', testID: 'award-save' }}
+      />
 
       <Portal>
         <Dialog visible={Boolean(confirm)} onDismiss={() => saving || setConfirm(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>

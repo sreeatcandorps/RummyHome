@@ -36,7 +36,6 @@ export default function ScreensLayout() {
       />
       <Stack.Screen name="games/history" options={{ title: 'Home' }} />
       <Stack.Screen name="games/[id]" options={{ title: 'Scorecard' }} />
-      <Stack.Screen name="games/complete" options={{ title: 'Complete' }} />
       <Stack.Screen name="games/award" options={{ title: 'Awards' }} />
       <Stack.Screen name="games/players" options={{ title: 'Players · Admins' }} />
       <Stack.Screen name="games/log" options={{ title: 'Log' }} />
