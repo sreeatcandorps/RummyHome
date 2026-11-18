@@ -20,10 +20,14 @@ export type PoolStandingRow = PoolStanding & {
  * The grid itself shows none of this.
  *
  * F6 (run 6, flow 17): the card sits under the grid in a fixed column, so with 20 players its rows
- * used to take the whole screen and squeeze the grid to nothing. The rows now scroll inside the
- * card, which never grows past `maxHeight` (the screen passes a share of the window height).
+ * used to take the whole screen and squeeze the grid to nothing. The rows scroll inside the card,
+ * which never grows past `maxHeight` (the screen passes a share of the window height).
+ *
+ * PR 24: with `scroll={false}` the card lays its rows out in full and leaves the scrolling to the
+ * region it sits in — the portrait standings pane (its own scroller under the 70% scorecard) and the
+ * landscape scroller, where the card follows the last round row.
  */
-export function PoolStandings({ rows, limit, compact = false, onReenter, busyId, maxHeight }: {
+export function PoolStandings({ rows, limit, compact = false, onReenter, busyId, maxHeight, scroll = true }: {
   rows: PoolStandingRow[];
   limit: number;
   compact?: boolean;
@@ -31,12 +35,16 @@ export function PoolStandings({ rows, limit, compact = false, onReenter, busyId,
   busyId?: string | null;
   /** Cap on the card's height; the rows scroll inside it when they need more. */
   maxHeight?: number;
+  /** False: no inner scroller — the card shows every row and the surrounding region scrolls (PR 24). */
+  scroll?: boolean;
 }) {
   const { colors } = useAppTheme();
   const inRows = rows.filter((r) => !r.out);
   const outRows = rows.filter((r) => r.out);
+  const Rows = scroll ? ScrollView : View;
+  const rowsProps = scroll ? { style: styles.rows, nestedScrollEnabled: true, showsVerticalScrollIndicator: rows.length > 8 } : {};
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }, compact && styles.cardCompact, maxHeight != null && { maxHeight }]} testID="pool-standings">
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }, compact && styles.cardCompact, scroll && maxHeight != null && { maxHeight }]} testID="pool-standings">
       <View style={styles.head}>
         <Text variant="titleSmall" style={{ color: colors.onSurface }}>Standings</Text>
         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{`Limit ${limit} · ${limit - 1} in, ${limit} out`}</Text>
@@ -47,7 +55,7 @@ export function PoolStandings({ rows, limit, compact = false, onReenter, busyId,
         <Text style={[styles.colHead, styles.num, { color: colors.onSurfaceVariant }]}>Left</Text>
         <Text style={[styles.colHead, styles.num, { color: colors.onSurfaceVariant }]}>Drops</Text>
       </View>
-      <ScrollView style={styles.rows} nestedScrollEnabled showsVerticalScrollIndicator={rows.length > 8} testID="pool-standings-rows">
+      <Rows {...rowsProps} testID="pool-standings-rows">
       {inRows.map((r, index) => {
         const leader = index === 0 && inRows.length > 1;
         return (
@@ -95,7 +103,7 @@ export function PoolStandings({ rows, limit, compact = false, onReenter, busyId,
           ))}
         </>
       ) : null}
-      </ScrollView>
+      </Rows>
     </View>
   );
 }

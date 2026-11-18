@@ -98,7 +98,7 @@ test('A4-6 / PR 10a: header pinned above one vertical scroller, rows in one side
   const table = src('components/game/ScoreTable.tsx');
   assert.doesNotMatch(table, /scrollSync|createScrollSync/, 'the two-ScrollView JS sync is gone (D4.2)');
   assert.doesNotMatch(table, /headerHeight = compact \? 58 : 68|rowHeight = compact \? 34/, 'no fixed header or row height');
-  assert.match(table, /headerHeight\(columnWidth, compact, fontScale\)/);
+  assert.match(table, /headerHeight\(columnWidth, compact, fontScale, pool\)/, 'PR 24: the pool header counts its #number line');
   // PR 10a: the PR 4 nesting (vertical scroller with a sticky header inside the sideways scroller) collapsed
   // the header into one column on Android once the columns were wider than the screen.
   assert.doesNotMatch(table, /stickyHeaderIndices/, 'no sticky-header trick: the header row sits above the vertical scroller');
@@ -117,6 +117,7 @@ test('A4-6 / PR 10a: header pinned above one vertical scroller, rows in one side
   assert.match(footer, /scorecardFooterLines\(game, members, creatorName\)/);
   assert.match(footer, /footerOneLine\(lines\)/, 'landscape: one line');
   const screen = src('app/(screens)/games/[id].tsx');
-  assert.match(screen, /<GameIdFooter game=\{game\} members=\{members\} compact=\{isShort\} \/>/, 'the footer sits under the table card, outside the scrollers');
-  assert.doesNotMatch(screen, /footer=\{idFooter\}/);
+  assert.match(screen, /<GameIdFooter game=\{game\} members=\{members\} compact=\{isShort\} \/>/);
+  // PR 24 (Sree, Nov 17): the footer moved inside the card, directly under the last round row, so it scrolls with the rounds.
+  assert.match(screen, /footer=\{idFooter\}/, 'the footer is the table card\'s footer slot');
 });

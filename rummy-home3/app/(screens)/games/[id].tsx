@@ -1,7 +1,7 @@
 import { gameLabelOf, screenTitle } from '@/utils/gameLabel';
 import { dealerForRound, nextDealer, rotationStarts } from '@/utils/dealerRotation';
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Text, Dialog, IconButton, Menu, Portal } from 'react-native-paper';
 import { ShareSheet } from '@/components/share/ShareSheet';
 import { Toast } from '@/components/ui/Toast';
@@ -43,7 +43,7 @@ import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
 import { SeatingSheet } from '@/components/game/SeatingSheet';
 import { canChangeSeating, SEATING_MENU_ITEM, shouldPromptSeating } from '@/utils/seating';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
-import { playersChipLabel } from '@/utils/scorecardLayout';
+import { playersChipLabel, PORTRAIT_STANDINGS_FLEX, PORTRAIT_TABLE_FLEX } from '@/utils/scorecardLayout';
 import { gameSettingsMenuTitle, rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame } from '@/utils/gameStatus';
 import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
@@ -60,7 +60,7 @@ export default function GameScreen() {
   const router = useRouter();
   const theme = useAppTheme();
   const { colors } = theme;
-  const { isShort, insets, gutterLeft, gutterRight, height: windowHeight } = useLayout();
+  const { isShort, insets, gutterLeft, gutterRight } = useLayout();
   // Seed from the last-known copy so returning from Add round shows the new row at once; the fresh load follows.
   const cachedGame = gamesService.peekGame(typeof id === 'string' ? id : null);
   const cachedSeats = gamesService.peekSeats(typeof id === 'string' ? id : null);
@@ -465,9 +465,40 @@ export default function GameScreen() {
     <Tag label={`Round ${maxRounds + 1}`} tone="primary" icon="cards-outline" />
   );
 
-  // Under the table card, outside the scrollers: creator, admins, unique game id (PR 4).
+  // PR 24: inside the table card, right under the last round row: creator, admins, unique game id (PR 4).
   const idFooter = <GameIdFooter game={game} members={members} compact={isShort} />;
   const playersTag = <Tag label={playersChipLabel(players.length)} icon="account-group-outline" />;
+
+  // Pool (D5): Standings under the grid; on a completed pool the awards block (P19/P30) too.
+  // PR 24: the card no longer scrolls inside itself — portrait gives it its own pane under the
+  // 70% scorecard; landscape puts it in the table's scroller.
+  const poolBelow = pool ? (
+    <>
+      {game.isComplete ? (
+        <PoolAwardsCard
+          game={game}
+          names={Object.fromEntries(players.map((p) => [p.id, p.name]))}
+          labels={Object.fromEntries(players.map((p) => [p.id, initialsFor(p.id)]))}
+          canManage={canManageNow}
+          compact={isShort}
+          onGiveAwards={() => router.push({ pathname: '/(screens)/games/award', params: { id: game.id } })}
+        />
+      ) : null}
+      <PoolStandings
+        rows={poolRows}
+        limit={poolLimitOf(game.settings)}
+        compact={isShort}
+        onReenter={game.isComplete || deleted ? undefined : reenter}
+        busyId={reentering}
+        scroll={false}
+      />
+    </>
+  ) : null;
+
+  const openEditRound = (roundNumber: number) => {
+    setEditRoundOpen(false);
+    router.push({ pathname: '/(screens)/score-entry', params: { gameId: game.id, round: String(roundNumber) } });
+  };
 
   const table = (
     <ScoreTable
@@ -491,33 +522,14 @@ export default function GameScreen() {
       showActual={showActual}
       onTotalPress={pool ? undefined : () => setExactOpen(true)}
       emptyMessage={game.isComplete ? 'This game was closed with no rounds.' : 'No rounds yet. Tap Add round to score the first hand.'}
+      footer={idFooter}
+      // PR 24: a tap on a round number edits that round (the re-entry round too); the menu's Edit round stays.
+      onRoundPress={canScoreNow && !game.isComplete && !deleted ? openEditRound : undefined}
+      // Landscape pool (PR 24): the table keeps the full width (8+ players on one screen) and the
+      // standings follow the last round row in the same scroller — never side by side.
+      below={isShort ? poolBelow : undefined}
     />
   );
-
-  // Pool (D5): Standings under the grid; on a completed pool the awards block (P19/P30) too.
-  const poolBelow = pool ? (
-    <>
-      {game.isComplete ? (
-        <PoolAwardsCard
-          game={game}
-          names={Object.fromEntries(players.map((p) => [p.id, p.name]))}
-          labels={Object.fromEntries(players.map((p) => [p.id, initialsFor(p.id)]))}
-          canManage={canManageNow}
-          compact={isShort}
-          onGiveAwards={() => router.push({ pathname: '/(screens)/games/award', params: { id: game.id } })}
-        />
-      ) : null}
-      <PoolStandings
-        rows={poolRows}
-        limit={poolLimitOf(game.settings)}
-        compact={isShort}
-        onReenter={game.isComplete || deleted ? undefined : reenter}
-        busyId={reentering}
-        // F6: never more than this share of the screen, so the grid above keeps room at 20 players.
-        maxHeight={Math.round(windowHeight * (isShort ? 0.45 : 0.38))}
-      />
-    </>
-  ) : null;
 
   const openScoreEntry = () =>
     router.push({
@@ -566,10 +578,6 @@ export default function GameScreen() {
     />
   );
 
-  const openEditRound = (roundNumber: number) => {
-    setEditRoundOpen(false);
-    router.push({ pathname: '/(screens)/score-entry', params: { gameId: game.id, round: String(roundNumber) } });
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -641,11 +649,7 @@ export default function GameScreen() {
             { paddingLeft: gutterLeft, paddingRight: gutterRight },
           ]}
         >
-          <View style={styles.flex}>
-            {table}
-            {poolBelow}
-            {idFooter}
-          </View>
+          {table}
         </View>
       ) : (
         <View
@@ -655,9 +659,13 @@ export default function GameScreen() {
             (game.isComplete || !canScoreNow) && { paddingBottom: insets.bottom + spacing.md },
           ]}
         >
-          {table}
-          {poolBelow}
-          {idFooter}
+          {/* PR 24: portrait pool — scorecard about 70%, standings about 30%, each scrolling on its own. */}
+          <View style={pool ? styles.portraitTablePane : styles.flex}>{table}</View>
+          {pool ? (
+            <ScrollView style={styles.portraitStandingsPane} contentContainerStyle={styles.portraitStandingsContent} showsVerticalScrollIndicator testID="pool-standings-pane">
+              {poolBelow}
+            </ScrollView>
+          ) : null}
         </View>
       )}
       {!game.isComplete && canScoreNow ? (
@@ -865,10 +873,17 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: spacing.sm,
   },
+  portraitTablePane: {
+    flex: PORTRAIT_TABLE_FLEX,
+  },
+  portraitStandingsPane: {
+    flex: PORTRAIT_STANDINGS_FLEX,
+  },
+  portraitStandingsContent: {
+    paddingBottom: spacing.xs,
+  },
   landscapeBody: {
     flex: 1,
-    flexDirection: 'row',
-    gap: spacing.sm,
   },
   completeAction: {
     flex: 1.25,

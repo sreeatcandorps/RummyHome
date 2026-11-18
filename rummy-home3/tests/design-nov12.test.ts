@@ -134,8 +134,10 @@ test('design: role tags — plain players see Creator; creators and admins also 
 
 test('design: scorecard — G badge, tinted dealer column, signed near-black totals, owners inside the table card', () => {
   const table = src('components/game/ScoreTable.tsx');
-  // PR 4: the owner lines sit under the table card (outside the scrollers) instead of inside it.
-  assert.doesNotMatch(table, /footer\?: React\.ReactNode/);
+  // PR 4 put the owner lines under the card; PR 24 (Sree, Nov 17) brings them back inside it, as the
+  // card's `footer` slot right under the last round row, in quiet 70% italic type.
+  assert.match(table, /footer\?: React\.ReactNode/);
+  assert.match(table, /testID="score-table-footer"/);
   assert.match(table, /dealsNext && \{ backgroundColor: colors\.primaryContainer, borderBottomWidth: DEALER_BAR/);
   assert.ok(!/dealsNext && \{ backgroundColor: colors\.primary \}/.test(table), 'the dealer column is no longer filled button green');
   assert.match(table, /\{pool \? String\(total\) : shownTotal\(total\)\}/);
@@ -147,7 +149,9 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
   assert.match(table, /color: colors\[text\.colorKey\], fontWeight: text\.fontWeight/);
 
   const scorecard = src('app/(screens)/games/[id].tsx');
-  assert.match(scorecard, /\{table\}\s+\{poolBelow\}\s+\{idFooter\}/, 'the footer is drawn right under the table (a pool puts its Standings between, PR 13)');
+  // PR 24: the footer is part of the table card (its `footer` slot), right under the last round row.
+  assert.match(scorecard, /footer=\{idFooter\}/, 'the footer is drawn inside the table card, under the last round row (PR 24)');
+  assert.doesNotMatch(scorecard, /\{table\}\s+\{poolBelow\}\s+\{idFooter\}/, 'no longer a sibling under the card');
   assert.match(scorecard, /\{gameLabel\}<\/Text>/, 'the badge is the S/P label (028), not a G-number');
   assert.doesNotMatch(scorecard, /`G\$\{game\.gameNumber\}`/);
   const footer = src('components/game/GameIdFooter.tsx');

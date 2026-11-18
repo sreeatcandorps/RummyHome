@@ -33,12 +33,16 @@ test('F2 (chaos c11): a network failure is told apart from being signed out', ()
   assert.match(signedOutBlock.slice(0, 200), /message="Sign in to see your games\."/, 'the signed-out screen no longer carries the network error text');
 });
 
-test('F6 (smoke 17): a 20-player Standings card is height-capped and scrolls inside, so the grid keeps room', () => {
+test('F6 (smoke 17): a 20-player Standings card never squeezes the grid — PR 24: its own 30% pane in portrait, under the rows in landscape', () => {
   const standings = src('components/game/PoolStandings.tsx');
   assert.match(standings, /maxHeight\?: number/);
-  assert.match(standings, /maxHeight != null && \{ maxHeight \}/, 'the card itself is capped');
-  assert.match(standings, /<ScrollView style=\{styles\.rows\} nestedScrollEnabled/, 'rows scroll inside the card');
+  assert.match(standings, /scroll && maxHeight != null && \{ maxHeight \}/, 'the card itself is capped when it scrolls inside');
+  assert.match(standings, /scroll\?: boolean/, 'PR 24: a non-scrolling mode for a pane that scrolls on its own');
   assert.match(standings, /rows: \{ flexGrow: 0, flexShrink: 1 \}/, 'the scroller shrinks instead of pushing the card past the cap');
   const scorecard = src('app/(screens)/games/[id].tsx');
-  assert.match(scorecard, /maxHeight=\{Math\.round\(windowHeight \* \(isShort \? 0\.45 : 0\.38\)\)\}/, 'a share of the window, not a fixed number');
+  assert.match(scorecard, /scroll=\{false\}/, 'the scorecard screen lets the pane scroll');
+  assert.match(scorecard, /flex: PORTRAIT_TABLE_FLEX/, 'portrait: the table takes 7 shares');
+  assert.match(scorecard, /flex: PORTRAIT_STANDINGS_FLEX/, '… the standings 3');
+  assert.match(scorecard, /below=\{isShort \? poolBelow : undefined\}/, 'landscape: the standings follow the rows in the table scroller');
+  assert.doesNotMatch(scorecard, /windowHeight \* \(isShort/, 'no window-share cap: each region has its own scroller');
 });

@@ -88,11 +88,14 @@ export const headerPadding = (compact: boolean) => (compact ? 3 : 4);
 /**
  * Header height = the three line heights at the effective font scale + the dealer bar + padding.
  * Nothing is clipped at any font size because the box is sized from the text, not the other way round.
+ * PR 24: a pool header carries a fourth line (the player's #number above the initials); before, the
+ * four texts shared a three-line box, so the initials shrank to fit (Sree: "tiny gray"). The box now
+ * counts that line, so pool initials, total and DEALS set at exactly the Points sizes.
  */
-export function headerHeight(columnWidth: number, compact: boolean, fontScale = 1): number {
+export function headerHeight(columnWidth: number, compact: boolean, fontScale = 1, pool = false): number {
   const scale = effectiveFontScale(fontScale);
   const type = headerType(columnWidth);
-  const lines = (type.initials.lineHeight + type.total.lineHeight + type.deals.lineHeight) * scale;
+  const lines = (type.initials.lineHeight + type.total.lineHeight + type.deals.lineHeight + (pool ? type.deals.lineHeight : 0)) * scale;
   return Math.ceil(lines + DEALER_BAR + headerPadding(compact) * 2);
 }
 
@@ -147,3 +150,21 @@ export function scorecardFooterLines(
 
 /** Landscape has no room for four lines: the same pieces joined on one line. */
 export const footerOneLine = (lines: FooterLine[]) => lines.map((line) => `${line.label}: ${line.value}`).join(' · ');
+
+/**
+ * PR 24 (Sree, Nov 17): the footer sits inside the scorecard, right under the last round row, and is
+ * quiet — 70% of the labelLarge it used to be (14 → 10), italic, never bold — in both orientations
+ * and for both kinds. It scrolls with the rounds.
+ */
+export const FOOTER_SCALE = 0.7;
+const FOOTER_BASE_FONT = 14;
+export const footerType = (): TextMetrics & { fontStyle: 'italic'; fontWeight: '400' } => ({
+  fontSize: Math.round(FOOTER_BASE_FONT * FOOTER_SCALE),
+  lineHeight: Math.ceil(FOOTER_BASE_FONT * FOOTER_SCALE * 1.4),
+  fontStyle: 'italic',
+  fontWeight: '400',
+});
+
+/** Portrait (PR 24): the scorecard takes about 70% of the height, the standings the rest; each scrolls on its own. */
+export const PORTRAIT_TABLE_FLEX = 7;
+export const PORTRAIT_STANDINGS_FLEX = 3;
