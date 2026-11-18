@@ -37,6 +37,13 @@ const VERSION_LABEL = shortVersionLabel(readAppVersion());
 
 type PhoneState = { kind: 'idle' } | { kind: 'saved' } | { kind: 'error'; message: string };
 
+/** Mini help (PR 11) for the Email card: what each switch sends. */
+export const EMAIL_TIP = [
+  'Sent to the address you signed up with. Each email has an unsubscribe link.',
+  '**Game started**: when a game you are in starts, with a link to follow the scores live.',
+  '**Results**: when a result you are in is saved, with a link to the result page.',
+];
+
 export default function MeScreen() {
   const { colors } = useAppTheme();
   const navigation = useNavigation();
@@ -338,7 +345,7 @@ export default function MeScreen() {
         </View>
       </View>
 
-      <SectionCard title="Phone" icon="phone-outline" supportingText="Optional. Never texted, never shown to other players.">
+      <SectionCard title="Phone" icon="phone-outline" tip={{ text: 'Optional. Never texted, never shown to other players.', topic: 'me', anchor: 'account', testID: 'me-phone-tip' }}>
         {editingPhone ? (
           <View style={styles.gap}>
             <TextInput
@@ -384,13 +391,12 @@ export default function MeScreen() {
         )}
       </SectionCard>
 
-      <SectionCard title="Email" icon="email-outline" supportingText="Sent to the address you signed up with. Each email has an unsubscribe link.">
+      <SectionCard title="Email" icon="email-outline" tip={{ text: EMAIL_TIP, topic: 'me', anchor: 'account', testID: 'me-email-tip' }}>
         <TouchableRipple onPress={() => toggleEmail('gameStarted')} accessibilityRole="checkbox" accessibilityState={{ checked: emailPrefs.gameStarted }} accessibilityLabel="Email me when a game starts, with the live score link">
           <View style={styles.checkRow}>
             <Checkbox status={emailPrefs.gameStarted ? 'checked' : 'unchecked'} onPress={() => toggleEmail('gameStarted')} />
             <View style={styles.flex}>
               <Text variant="bodyLarge">Game started (live link)</Text>
-              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>When a game you are in starts, with a link to follow the scores live.</Text>
             </View>
           </View>
         </TouchableRipple>
@@ -399,7 +405,6 @@ export default function MeScreen() {
             <Checkbox status={emailPrefs.results ? 'checked' : 'unchecked'} onPress={() => toggleEmail('results')} />
             <View style={styles.flex}>
               <Text variant="bodyLarge">Results</Text>
-              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>When a result you are in is saved, with a link to the result page.</Text>
             </View>
           </View>
         </TouchableRipple>
@@ -479,7 +484,7 @@ export default function MeScreen() {
       />
 
       {showDemo ? (
-        <SectionCard title="Demo data" icon="flask-outline" supportingText="Sample players and games for this account.">
+        <SectionCard title="Demo data" icon="flask-outline" tip={{ text: 'Sample players and games for this account. Load adds them; Clear removes them.', testID: 'me-demo-tip' }}>
           <View style={styles.demo}>
             <Button mode="contained" loading={demoBusy === 'load'} onPress={() => runDemo('load')}>Load</Button>
             <Button mode="outlined" loading={demoBusy === 'clear'} onPress={() => runDemo('clear')}>Clear</Button>
@@ -491,7 +496,7 @@ export default function MeScreen() {
         Log out
       </Button>
 
-      <SectionCard title="Account" icon="shield-account-outline" supportingText="Your data: email, name, Player ID, phone if you added one, and the games you play.">
+      <SectionCard title="Account" icon="shield-account-outline" tip={{ text: 'Your data: email, name, Player ID, phone if you added one, and the games you play.', topic: 'me', anchor: 'account', testID: 'me-account-tip' }}>
         <View style={styles.gap}>
           <Button mode="outlined" icon="file-document-outline" onPress={() => Linking.openURL(PRIVACY_PAGE_URL).catch(() => {})} contentStyle={styles.action} accessibilityLabel="Privacy policy">
             Privacy policy

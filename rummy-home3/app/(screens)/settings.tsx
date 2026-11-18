@@ -11,6 +11,7 @@ import { draftFromRules, RulesDraft, RulesForm, rulesFromDraft } from '@/compone
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { SettingsPriority } from '@/components/ui/SettingsPriority';
+import { SETTINGS_PRIORITY } from '@/constants/help';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 /**
@@ -59,7 +60,7 @@ export default function UserSettings() {
 
   return (
     <Screen contentStyle={styles.content}>
-      <SectionCard title="New game starts as" icon="cards-playing-outline" supportingText="You can still switch on the Game type screen when you start a game.">
+      <SectionCard title="New game starts as" icon="cards-playing-outline" tip={{ text: 'You can still switch on the Game type screen when you start a game.', topic: 'settings', testID: 'settings-starts-tip' }}>
         <SegmentedButtons
           value={startsAs}
           onValueChange={(v) => { setStartsAs(v as GameKind); clearSaved(); }}
@@ -69,16 +70,16 @@ export default function UserSettings() {
           ]}
         />
       </SectionCard>
-      <SectionCard title="Points defaults" icon="numeric" supportingText="Every new Points game starts with these, including the multiplier (×1 unless you set one). Change one game from its ⋮ menu > Game settings.">
+      <SectionCard title="Points defaults" icon="numeric" tip={{ text: ['Every new Points game starts with these, including the multiplier (×1 unless you set one).', 'Change one game from its ⋮ menu › **Game settings**.'], topic: 'settings', testID: 'settings-points-tip' }}>
         <RulesForm draft={points} onChange={(next) => { setPoints(next); clearSaved(); }} testIDPrefix="settings-points" helpTopic="settings" />
       </SectionCard>
-      <SectionCard title="Pool defaults" icon="pool" supportingText="Every new Pool game starts with these. The limit and the values lock once a round is saved; Re-entry can change any time.">
+      <SectionCard title="Pool defaults" icon="pool" tip={{ text: ['Every new Pool game starts with these.', 'In a game, the limit locks once a round is saved; Drop, Middle drop, Full count and Re-entries can change any time.'], topic: 'settings', testID: 'settings-pool-tip' }}>
         <RulesForm draft={pool} onChange={(next) => { setPool(next); clearSaved(); }} testIDPrefix="settings-pool" helpTopic="settings" />
       </SectionCard>
-      <SectionCard title="Which setting wins" icon="sort-variant" mode="outlined">
+      <SectionCard title="Which setting wins" icon="sort-variant" mode="outlined" tip={{ text: SETTINGS_PRIORITY.map((s) => `**${s.title}** (${s.level.toLowerCase()}): ${s.detail}.`), topic: 'settings', testID: 'settings-priority-tip' }}>
         <SettingsPriority highlight="Settings" showTitle={false} />
       </SectionCard>
-      <SectionCard title="Hidden & deleted" icon="eye-off-outline" mode="outlined" supportingText="Games you hid from Home, and games or results you deleted. Unhide or restore them here.">
+      <SectionCard title="Hidden & deleted" icon="eye-off-outline" mode="outlined" tip={{ text: 'Games you hid from Home, and games or results you deleted. Unhide or restore them here.', topic: 'hidden-deleted', testID: 'settings-hidden-tip' }}>
         <Button mode="outlined" icon="chevron-right" contentStyle={styles.openRow} onPress={() => router.push('/(screens)/hidden-deleted')} accessibilityLabel="Open Hidden and deleted">
           Open Hidden & deleted
         </Button>
