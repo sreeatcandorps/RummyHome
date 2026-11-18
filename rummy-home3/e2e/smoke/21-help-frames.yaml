@@ -1,0 +1,111 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Help screenshots (PR 11 follow-up, Sree Nov 18: "go ahead with 3"): the three help pages that had no
+# picture — Players · Admins, Hidden & deleted, Sign in. scripts/help-screenshots.mjs turns these
+# frames into assets/help/*.png, so each frame is taken in the state the legend describes.
+# Fixtures: game E (GAMEE1) for Players · Admins; game H (GAMEH1) is hidden and unhidden again so
+# Hidden & deleted shows one row; the sign-in screen comes from a real Log out, then sign-in.yaml
+# puts the session back for whatever runs next. Nothing else changes.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+
+# 1. Players · Admins of a live game, from the scorecard ⋮.
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEE1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEE1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 15000
+- tapOn: "Scorecard menu"
+- extendedWaitUntil:
+    visible: "Players · Admins"
+    timeout: 5000
+- tapOn: "Players · Admins"
+- extendedWaitUntil:
+    visible: "Add admin by Player ID"
+    timeout: 15000
+- assertVisible: "Harish Test"
+- assertVisible: "Add new player"
+- takeScreenshot: 21-players-admins
+- back
+- extendedWaitUntil:
+    visible: "Add round"
+    timeout: 15000
+- back
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 15000
+
+# 2. Hidden & deleted with one hidden game: hide game H, open Settings › Hidden & deleted, unhide.
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEH1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEH1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 15000
+- tapOn: "Scorecard menu"
+- extendedWaitUntil:
+    visible: "Hide game"
+    timeout: 5000
+- tapOn: "Hide game"
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 15000
+- tapOn: "Your profile"
+- extendedWaitUntil:
+    visible: "Appearance"
+    timeout: 15000
+- scrollUntilVisible:
+    element: "Game type, Drop, Middle drop, Full count"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Game type, Drop, Middle drop, Full count"
+- extendedWaitUntil:
+    visible: "New game starts as"
+    timeout: 15000
+- scrollUntilVisible:
+    element: "Open Hidden & deleted"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Open Hidden & deleted"
+- extendedWaitUntil:
+    visible: "Games I hid · 1"
+    timeout: 15000
+- assertVisible: "Unhide"
+- assertVisible: "Deleted games · .*"
+- assertVisible: "Deleted results · .*"
+- takeScreenshot: 21b-hidden-deleted
+- tapOn: "Unhide"
+- extendedWaitUntil:
+    visible: "Back on your Home."
+    timeout: 15000
+- assertVisible: "Games I hid · 0"
+- back
+- back
+- extendedWaitUntil:
+    visible: "Appearance"
+    timeout: 15000
+
+# 3. The sign-in screen, then sign in again so the session is back for the next flow.
+- scrollUntilVisible:
+    element: "Log out"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Log out"
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 20000
+- assertVisible: "Forgot passcode?"
+- assertVisible: "Create account"
+- takeScreenshot: 21c-sign-in
+- runFlow: ../lib/sign-in.yaml
+- assertVisible: "New game"

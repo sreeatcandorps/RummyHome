@@ -11,5 +11,8 @@
   "my-players": { "source": "08-my-players", "badges": [[1000, 300], [60, 580], [1000, 580], [1000, 1840], [60, 1840]] },
   "add-players": { "source": "09b-add-new-players", "badges": [[60, 425], [60, 715], [540, 2065]] },
   "me": { "source": "07-profile", "badges": [[1000, 300], [1000, 1020], [1000, 1170], [1000, 1460]] },
-  "settings": { "source": "07d-settings-points-defaults", "badges": [[1000, 300], [1000, 630], [1000, 1580]] }
+  "settings": { "source": "07d-settings-points-defaults", "badges": [[1000, 300], [1000, 630], [1000, 1580]] },
+  "players-admins": { "source": "21-players-admins", "badges": [[1000, 330], [60, 330], [1000, 1700], [540, 2075]] },
+  "hidden-deleted": { "source": "21b-hidden-deleted", "badges": [[1000, 330], [1000, 700], [1000, 1000], [540, 1500]] },
+  "sign-in": { "source": "21c-sign-in", "badges": [[540, 700], [540, 1000], [540, 1300], [540, 1650]] }
 }

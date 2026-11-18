@@ -17,9 +17,9 @@ tags: [nightly]
 - assertNotVisible: "RK"
 - tapOn: "Scorecard menu"
 - extendedWaitUntil:
-    visible: "Players/Admins"
+    visible: "Players · Admins"
     timeout: 5000
-- tapOn: "Players/Admins"
+- tapOn: "Players · Admins"
 - extendedWaitUntil:
     visible: "Add admin by Player ID"
     timeout: 15000
@@ -53,9 +53,9 @@ tags: [nightly]
 - takeScreenshot: 32d-scorecard-5-columns
 - tapOn: "Scorecard menu"
 - extendedWaitUntil:
-    visible: "Players/Admins"
+    visible: "Players · Admins"
     timeout: 5000
-- tapOn: "Players/Admins"
+- tapOn: "Players · Admins"
 - extendedWaitUntil:
     visible: "Add admin by Player ID"
     timeout: 15000

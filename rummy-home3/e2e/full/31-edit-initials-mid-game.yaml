@@ -13,9 +13,9 @@ tags: [nightly]
 - assertVisible: "ZZ"
 - tapOn: "Scorecard menu"
 - extendedWaitUntil:
-    visible: "Players/Admins"
+    visible: "Players · Admins"
     timeout: 5000
-- tapOn: "Players/Admins"
+- tapOn: "Players · Admins"
 - extendedWaitUntil:
     visible: "Add admin by Player ID"
     timeout: 15000
@@ -47,7 +47,7 @@ tags: [nightly]
 - assertVisible: "ZZ2"
 - takeScreenshot: 31b-scorecard-after-edit
 - tapOn: "Scorecard menu"
-- tapOn: "Players/Admins"
+- tapOn: "Players · Admins"
 - extendedWaitUntil:
     visible: "Add admin by Player ID"
     timeout: 15000

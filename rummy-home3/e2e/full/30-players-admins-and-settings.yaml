@@ -11,10 +11,10 @@ tags: [nightly]
     timeout: 15000
 - tapOn: "Scorecard menu"
 - extendedWaitUntil:
-    visible: "Players/Admins"
+    visible: "Players · Admins"
     timeout: 5000
 - takeScreenshot: 30-scorecard-menu
-- tapOn: "Players/Admins"
+- tapOn: "Players · Admins"
 - extendedWaitUntil:
     visible: "Add admin by Player ID"
     timeout: 15000
