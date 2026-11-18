@@ -23,7 +23,6 @@ import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { playerIdBadge } from '@/utils/myPlayersList';
 import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
 import { SelectedPlayersStrip } from '@/components/players/SelectedPlayersStrip';
-import { HELP } from '@/constants/help';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
@@ -131,7 +130,7 @@ export default function AddPlayersScreen() {
       // Q11.18: a Back arrow that behaves like Done (rows save on their own).
       headerLeft: () => <IconButton icon="arrow-left" onPress={() => doneRef.current()} accessibilityLabel="Done adding players, back" testID="add-players-back" />,
       gestureEnabled: true,
-      headerRight: () => <HelpButton text={HELP.addPlayers} />,
+      headerRight: () => <HelpButton topic="add-players" />,
     });
   }, [navigation]);
 

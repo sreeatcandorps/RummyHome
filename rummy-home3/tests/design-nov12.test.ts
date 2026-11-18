@@ -7,7 +7,7 @@ import { appearanceFromSettings, APPEARANCE_OPTIONS, resolveDarkMode } from '../
 import { ACCESS_TONE, gameAccessLabel, viewerManagesGame, visibleRoleTag } from '../utils/gameAccess';
 import { GAME_STATUS_TONE } from '../utils/gameStatus';
 import { REGISTRATION_ICON, REGISTRATION_TONE } from '../utils/myPlayersList';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const src = (path: string) => readFileSync(join(root, path), 'utf8');

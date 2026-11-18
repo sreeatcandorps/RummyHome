@@ -107,7 +107,7 @@ export function GameSettingsDialog({ visible, rules, title = 'Game settings', on
             <RulesForm draft={draft} onChange={setDraft} disabled={readOnly} lockValues={lockValues} roundCount={roundCount} testIDPrefix="game-settings" />
             {readOnly ? (
               <Text style={{ color: colors.onSurfaceVariant, marginTop: 8 }} accessibilityLabel="Only a game admin can save changes">
-                You can see this game’s settings, but only a game admin (the organizer or someone they made admin) can save changes. They apply to this game only and win over your User settings.
+                You can see this game’s settings, but only a game admin (the organizer or someone they made admin) can save changes. They apply to this game only and win over your Settings.
               </Text>
             ) : null}
             {error ? <Text style={{ color: colors.error, marginTop: 8 }} testID="game-settings-error">{error}</Text> : null}

@@ -44,9 +44,10 @@ import {
 import { MAX_CONTENT_WIDTH, radius, spacing, tabularNums, useAppTheme } from '../../constants/theme';
 import { useLayout } from '../../hooks/useLayout';
 import { useMenuThenShare } from '../../hooks/useMenuThenShare';
-import { HELP } from '../../constants/help';
+import { openHelp } from '@/components/help/HelpPage';
+import { WhyLink } from '@/components/help/WhyLink';
+import { HELP_WHY } from '@/constants/helpTopics';
 import { entryFromRound, nextRoundNumber } from '../../utils/editRound';
-import { HelpText } from '../../components/ui/HelpText';
 import { BottomBar } from '../../components/ui/BottomBar';
 import { SeatAvatar } from '../../components/ui/SeatAvatar';
 import { ScoreCell } from '../../components/game/ScoreCell';
@@ -69,7 +70,7 @@ type Participant = {
   name: string;
 };
 
-type Notice = { title: string; body: string; icon: string; onClose?: () => void };
+type Notice = { title: string; body: string; icon: string; onClose?: () => void; why?: keyof typeof HELP_WHY };
 
 const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 
@@ -311,6 +312,7 @@ export default function ScoreEntryScreen() {
           title: 'Round already saved',
           body: roundConflictMessage(error),
           icon: 'refresh',
+          why: 'scorecardChanged',
           onClose: editRound ? undefined : closeScreen,
         });
         return;
@@ -423,7 +425,7 @@ export default function ScoreEntryScreen() {
         <Menu.Item
           leadingIcon="help-circle-outline"
           title="Help"
-          onPress={() => { setMenuOpen(false); setNotice({ title: 'Add round', body: pool ? HELP.scoreEntryPool : HELP.scoreEntry, icon: 'help-circle-outline' }); }}
+          onPress={() => { setMenuOpen(false); openHelp('add-round', pool ? 'pool' : 'points'); }}
         />
       </Menu>
     </View>
@@ -775,13 +777,10 @@ export default function ScoreEntryScreen() {
           <Dialog.Icon icon={notice?.icon ?? 'information-outline'} />
           <Dialog.Title style={styles.dialogTitle}>{notice?.title}</Dialog.Title>
           <Dialog.Content>
-            {notice?.body.startsWith('•') ? (
-              <HelpText text={notice.body} color={colors.onSurfaceVariant} />
-            ) : (
-              <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
-                {notice?.body}
-              </Text>
-            )}
+            <Text variant="bodyMedium" style={[styles.dialogBody, { color: colors.onSurfaceVariant }]}>
+              {notice?.body}
+            </Text>
+            {notice?.why ? <WhyLink why={notice.why} before={dismissNotice} /> : null}
           </Dialog.Content>
           <Dialog.Actions style={styles.dialogActions}>
             <Button mode="contained" onPress={dismissNotice} contentStyle={styles.dialogButtonContent}>

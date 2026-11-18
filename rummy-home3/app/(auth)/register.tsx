@@ -15,7 +15,6 @@ import { formatAuthError } from '../../utils/authErrors';
 import { AuthShell } from '../../components/ui/AuthShell';
 import { PasscodeField } from '@/components/ui/PasscodeField';
 import { sendWelcomeEmail } from '@/services/mail';
-import { HELP } from '@/constants/help';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 // import * as Location from 'expo-location';
 
@@ -165,7 +164,7 @@ export default function RegisterScreen() {
 
   if (checkEmail) {
     return (
-      <AuthShell title="Check your email" subtitle={`We sent a confirmation link to ${checkEmail}.`} help={HELP.createAccount}>
+      <AuthShell title="Check your email" subtitle={`We sent a confirmation link to ${checkEmail}.`} help="sign-in" helpAnchor="create-account">
         <Text variant="bodyMedium">
           Open the link to confirm your email, then sign in with your email and 6-digit passcode. If you opened a link from a friend, you will be asked “Is this you?” the first time you sign in.
         </Text>
@@ -185,7 +184,8 @@ export default function RegisterScreen() {
     <AuthShell
       title="Create account"
       subtitle="You'll use your email and a 6-digit passcode to sign in."
-      help={HELP.createAccount}
+      help="sign-in"
+      helpAnchor="create-account"
       footer={
         <View style={styles.footerRow}>
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>

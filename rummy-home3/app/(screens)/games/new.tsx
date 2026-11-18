@@ -28,7 +28,6 @@ import { FixInitialsScreen } from '@/components/players/FixInitialsScreen';
 import { ConflictChoices } from '@/components/players/InitialsConflictList';
 import { findInitialsConflicts, InitialsConflict, InitialsRow, resolveInitials, seatLabels } from '@/utils/initials';
 import { MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
-import { HELP } from '@/constants/help';
 import { Screen } from '@/components/ui/Screen';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { LoadingRows } from '@/components/ui/LoadingRows';
@@ -455,7 +454,7 @@ export default function NewGame() {
     const taken = new Map([...labels].map(([id, label]) => [label, fix.rows.find((row) => row.id === id)?.name ?? '']));
     return (
       <>
-        <Stack.Screen options={{ title: 'Fix initials', headerRight: () => <HelpButton text={HELP.initials} /> }} />
+        <Stack.Screen options={{ title: 'Fix initials', headerRight: () => <HelpButton topic="new-game" anchor="initials-clash" /> }} />
         <FixInitialsScreen
           conflicts={fix.conflicts}
           choices={choices}
@@ -475,7 +474,7 @@ export default function NewGame() {
   if (step === 'type' && typeLabels) {
     return (
       <>
-        <Stack.Screen options={{ title: 'Game type', headerRight: () => <HelpButton text={HELP.gameType} /> }} />
+        <Stack.Screen options={{ title: 'Game type', headerRight: () => <HelpButton topic="game-type" /> }} />
         <GameTypeStep
           kind={rules.gameKind}
           rules={rules}
@@ -522,7 +521,7 @@ export default function NewGame() {
           title: addMode ? ADD_PLAYERS_TITLE : 'New game',
           headerRight: () => (
             <View style={styles.headerActions}>
-              <HelpButton text={addMode ? HELP.addPlayersToGame : HELP.newGame} />
+              <HelpButton topic="new-game" anchor={addMode ? 'adding-mid-game' : undefined} />
             </View>
           ),
         }}

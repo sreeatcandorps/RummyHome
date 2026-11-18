@@ -14,7 +14,7 @@ import { SettingsPriority } from '@/components/ui/SettingsPriority';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 /**
- * User settings (D1): which kind a new game starts as, and the Points and Pool defaults every new
+ * Settings (D1): which kind a new game starts as, and the Points and Pool defaults every new
  * game is prefilled with. Each game can still change its own on the Game type screen or later.
  */
 export default function UserSettings() {
@@ -76,7 +76,7 @@ export default function UserSettings() {
         <RulesForm draft={pool} onChange={(next) => { setPool(next); clearSaved(); }} testIDPrefix="settings-pool" />
       </SectionCard>
       <SectionCard title="Which setting wins" icon="sort-variant" mode="outlined">
-        <SettingsPriority highlight="User settings" showTitle={false} />
+        <SettingsPriority highlight="Settings" showTitle={false} />
       </SectionCard>
       <SectionCard title="Hidden & deleted" icon="eye-off-outline" mode="outlined" supportingText="Games you hid from Home, and games or results you deleted. Unhide or restore them here.">
         <Button mode="outlined" icon="chevron-right" contentStyle={styles.openRow} onPress={() => router.push('/(screens)/hidden-deleted')} accessibilityLabel="Open Hidden and deleted">

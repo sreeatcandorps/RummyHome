@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 import { isWithinLastDays, splitHomeGames } from '../utils/homeGames';
 import {
   myPlayersGridHeight,

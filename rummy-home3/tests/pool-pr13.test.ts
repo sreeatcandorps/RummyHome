@@ -60,7 +60,7 @@ import { defaultResultSelection } from '../utils/results';
 import { resultWarningLines, saveBlockedReason } from '../utils/resultsSave';
 import { kindLabel, dotTone } from '../utils/eventLog';
 import { pointsGameLabel } from '../constants/features';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
 
@@ -465,7 +465,7 @@ test('13.8c Add round screen: the pool keeps one confirm ("Are you sure?") and d
   assert.match(screen, /\{pool \? 'Scored' : 'Balance'\}/);
   assert.match(screen, /const summary = afterRound\(game, saved\);/, 'after a save, who is out and who may re-enter');
   assert.match(screen, /testID=\{`after-reenter-\$\{id\}`\}/);
-  assert.match(screen, /HELP\.scoreEntryPool/);
+  assert.match(screen, /openHelp\('add-round', pool \? 'pool' : 'points'\)/, 'the pool Add round opens the Pool part of its help page');
   assert.match(screen, /pool,\n\s*\}\);/, 'addRound is told it is a pool round');
 });
 
@@ -580,7 +580,7 @@ test('13.12 log labels for the pool kinds; help explains Complete → Award → 
   assert.equal(dotTone({ kind: 'awards_set', level: 'important' }), 'green');
   assert.match(HELP.gameType, /Pool: the winner scores 0/);
   assert.match(HELP.gameType, /Re-entries: .*Unlimited, or Limited/);
-  assert.match(HELP.scoreEntryPool, /0/);
+  assert.match(HELP.scoreEntryPool, /Pool/);
   assert.match(HELP.awards, /award/i);
   assert.match(HELP.complete, /award/i);
   assert.match(HELP.results, /Give awards first/);

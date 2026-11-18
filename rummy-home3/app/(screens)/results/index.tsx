@@ -50,6 +50,7 @@ import {
   MAKE_RESULT_FOLD_NOTE,
 } from '@/utils/resultsSave';
 import { GIVE_AWARDS_FIRST, poolNeedsAwards } from '@/utils/pool';
+import { WhyLink } from '@/components/help/WhyLink';
 import {
   DELETED_SECTION_NOTE,
   DELETED_SECTION_TITLE,
@@ -410,7 +411,10 @@ export default function ResultsScreen() {
         <Dialog visible={Boolean(needsAwards)} onDismiss={() => setNeedsAwards(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Icon icon="trophy-outline" />
           <Dialog.Title>{GIVE_AWARDS_FIRST}</Dialog.Title>
-          <Dialog.Content><Text variant="bodyMedium">A pool joins a result through its awards. Open the pool, give the awards, then pick it here.</Text></Dialog.Content>
+          <Dialog.Content>
+            <Text variant="bodyMedium">A pool joins a result through its awards. Open the pool, give the awards, then pick it here.</Text>
+            <WhyLink why="giveAwardsFirst" before={() => setNeedsAwards(null)} />
+          </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setNeedsAwards(null)}>Not now</Button>
             <Button mode="contained" onPress={() => { const g = needsAwards; setNeedsAwards(null); if (g) router.push({ pathname: '/(screens)/games/award', params: { id: g.id } }); }}>Give awards</Button>

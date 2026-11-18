@@ -116,6 +116,6 @@ test('9.6 Past results: no Delete chip on the rows (PR 10b — Delete lives on t
 test('9.7 docs and help: results-delete.md exists with the decisions; the Results help names the button, Undo and the 30 days', () => {
   const doc = read('docs/results-delete.md');
   for (const needle of ['D9.1', 'D9.2', 'D9.3', 'sync_closed_at', 'can_manage_result', '30 days', 'sharedResults', '/r/']) assert.match(doc, new RegExp(needle.replace(/[/.]/g, '\\$&')), needle);
-  const help = read('constants/help.ts');
-  assert.match(help, /Delete this result \(at the foot of a result, below History\) sends its games back to Completed \(from Closed\)\. Undo for 10 seconds; admins can restore it for 30 days from Settings › Hidden & deleted\./);
+  const help = read('constants/helpTopics.ts');
+  assert.match(help, /\*\*Delete this result\*\* \(at the foot, below History\) sends its games back to \[Completed\]\. Undo for 10 seconds; admins can restore it for 30 days from Settings › Hidden & deleted\./);
 });

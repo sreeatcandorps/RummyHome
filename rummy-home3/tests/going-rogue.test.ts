@@ -8,7 +8,7 @@ import {
 } from '../utils/deletedGames';
 import { DELETE_GAME_BODY } from '../utils/archive';
 import { dotTone, kindLabel } from '../utils/eventLog';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 
 // PR 20 Going rogue (docs/going-rogue-design.md §6 items 2 + 3, Q20.1 purge): X20-6 — the Home bundle's
 // deleted_games rows map to cards, the "hidden for good on" date math, the Ask button states, the banner

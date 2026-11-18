@@ -8,7 +8,6 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { Screen } from '@/components/ui/Screen';
 import { LogRow } from '@/components/log/LogRow';
-import { HELP } from '@/constants/help';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { eventLogService } from '@/services/eventLog';
 import { gamesService } from '@/services/games';
@@ -130,7 +129,7 @@ export default function GameLogScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={{ title, headerRight: () => <HelpButton text={HELP.gameLog} /> }} />
+      <Stack.Screen options={{ title, headerRight: () => <HelpButton topic="game-log" /> }} />
       <View style={styles.filterRow} testID="game-log-filters">
         <FilterChip label="All" on={filter === 'all'} onPress={() => changeFilter('all')} testID="game-log-filter-all" />
         <FilterChip label="Important" on={filter === 'important'} onPress={() => changeFilter('important')} testID="game-log-filter-important" />

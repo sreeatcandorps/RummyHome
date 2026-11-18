@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
-import { HELP } from '../constants/help';
+import { HELP } from './_helpLegacy';
 import { DELETE_GAME_BODY } from '../utils/archive';
 import { DELETED_GAMES_SUPPORTING, hiddenForGoodLabel, SUPPORT_CARD_BODY } from '../utils/deletedGames';
 import { dotTone, kindLabel } from '../utils/eventLog';

@@ -4,7 +4,6 @@ import { Dialog, Icon, Portal, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { HELP } from '@/constants/help';
 import { useGameRoster } from '@/hooks/useGameRoster';
 import { useLayout } from '@/hooks/useLayout';
 import { gamesService } from '@/services/games';
@@ -101,7 +100,7 @@ export default function CompleteGameScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ title, headerRight: () => <HelpButton text={HELP.complete} /> }} />
+      <Stack.Screen options={{ title, headerRight: () => <HelpButton topic="complete" /> }} />
       <ScrollView contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}>
         {/* A16: the scorecard's strip pattern — tags left to right, the date as the caption. */}
         <View style={styles.headerRow}>

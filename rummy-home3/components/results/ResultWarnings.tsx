@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
+import { WhyLink } from '@/components/help/WhyLink';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 export type WarningLine = { kind: 'active' | 'reused' | 'closed' | 'pool'; text: string; gameId?: string };
@@ -17,6 +18,7 @@ export function ResultWarnings({ warnings }: { warnings: WarningLine[] }) {
         <View key={warning.gameId ? `${warning.kind}-${warning.gameId}` : `${warning.kind}-${index}`} style={[styles.warn, { backgroundColor: colors.secondaryContainer }]} accessibilityRole="alert">
           <Icon source={ICON[warning.kind]} size={20} color={colors.onSecondaryContainer} />
           <Text variant="bodyMedium" style={[styles.text, { color: colors.onSecondaryContainer }]}>{warning.text}</Text>
+          {warning.kind === 'reused' || warning.kind === 'closed' ? <WhyLink why="countedAgain" testID={`why-counted-again-${index}`} /> : null}
         </View>
       ))}
     </View>

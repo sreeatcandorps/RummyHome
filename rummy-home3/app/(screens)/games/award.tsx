@@ -4,13 +4,13 @@ import { Dialog, Icon, Portal, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
-import { HELP } from '@/constants/help';
 import { useGameRoster } from '@/hooks/useGameRoster';
 import { useLayout } from '@/hooks/useLayout';
 import { gamesService } from '@/services/games';
 import { ActionBar } from '@/components/ui/ActionBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
+import { WhyLink } from '@/components/help/WhyLink';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
@@ -150,7 +150,7 @@ export default function AwardScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ title, headerRight: () => <HelpButton text={HELP.awards} /> }} />
+      <Stack.Screen options={{ title, headerRight: () => <HelpButton topic="awards" /> }} />
       <ScrollView
         contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}
         keyboardShouldPersistTaps="handled"
@@ -279,6 +279,7 @@ export default function AwardScreen() {
           <Dialog.Title style={styles.dialogTitle}>Not all given out</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, textAlign: 'center' }} testID="award-save-anyway">{confirm}</Text>
+            <WhyLink why="saveAwardsAnyway" before={() => setConfirm(null)} />
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setConfirm(null)} disabled={saving}>Change</Button>

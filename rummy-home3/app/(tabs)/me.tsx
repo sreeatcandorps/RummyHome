@@ -411,12 +411,12 @@ export default function MeScreen() {
           style={[styles.settingsButton, { backgroundColor: colors.secondaryContainer }]}
           borderless
           accessibilityRole="button"
-          accessibilityLabel="User settings: game type, Drop, Middle drop, Full count"
+          accessibilityLabel="Game type, Drop, Middle drop, Full count"
         >
           <View style={styles.settingsInner}>
             <Icon source="tune-variant" size={18} color={colors.onSecondaryContainer} />
             <Text variant="labelLarge" style={[styles.flex, { color: colors.onSecondaryContainer }]}>
-              User settings: game type, Drop, Middle drop, Full count
+              Game type, Drop, Middle drop, Full count
             </Text>
             <Icon source="chevron-right" size={18} color={colors.onSecondaryContainer} />
           </View>

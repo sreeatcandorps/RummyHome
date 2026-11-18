@@ -4,7 +4,6 @@ import { Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper'
 import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { radius, seatColor, spacing, useAppTheme } from '@/constants/theme';
-import { HELP } from '@/constants/help';
 import { useGameRoster } from '@/hooks/useGameRoster';
 import { useLayout } from '@/hooks/useLayout';
 import { authService } from '@/services/auth';
@@ -182,7 +181,7 @@ export default function GamePlayersScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ title: screenTitle(PLAYERS_ADMINS_TITLE, game), headerRight: () => <HelpButton text={HELP.playersSheet} /> }} />
+      <Stack.Screen options={{ title: screenTitle(PLAYERS_ADMINS_TITLE, game), headerRight: () => <HelpButton topic="players-admins" /> }} />
       <ScrollView contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}>
         <Text variant="titleSmall" style={styles.section}>Playing · {playing.length}</Text>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>

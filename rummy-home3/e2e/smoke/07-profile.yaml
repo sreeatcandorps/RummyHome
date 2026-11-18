@@ -42,10 +42,10 @@ tags: [smoke]
 # PR 13: Settings holds "New game starts as", the Points defaults and the Pool defaults (limit chips,
 # 25 / 50 / 130, Re-entries Unlimited / Limited). Nothing is saved.
 - scrollUntilVisible:
-    element: "User settings: game type, Drop, Middle drop, Full count"
+    element: "Game type, Drop, Middle drop, Full count"
     direction: UP
     timeout: 10000
-- tapOn: "User settings: game type, Drop, Middle drop, Full count"
+- tapOn: "Game type, Drop, Middle drop, Full count"
 - extendedWaitUntil:
     visible: "New game starts as"
     timeout: 15000

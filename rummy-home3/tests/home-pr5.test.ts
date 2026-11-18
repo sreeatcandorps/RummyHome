@@ -63,7 +63,7 @@ test('H5-4 appearance opens Light by default from one constant; Phone and Dark s
 });
 
 test('H5-5 the help text describes the two-button bar and the badge', () => {
-  const help = src('constants/help.ts');
+  const help = src('constants/helpTopics.ts');
   assert.match(help, /Two buttons: Home \(this page\) and your initials/);
   assert.match(help, /The number on the button is how many are in it\./);
 });

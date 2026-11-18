@@ -5,15 +5,15 @@ import { SETTINGS_PRIORITY } from '@/constants/help';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 /**
- * Three steps, highest on top: Game settings beat User settings beat Game
+ * Three steps, highest on top: Game settings beat Settings beat Game
  * defaults. The bar on the left is widest for the step that wins.
  */
-export function SettingsPriority({ highlight, showTitle = true }: { highlight?: 'Game settings' | 'User settings' | 'Game defaults'; showTitle?: boolean }) {
+export function SettingsPriority({ highlight, showTitle = true }: { highlight?: 'Game settings' | 'Settings' | 'Game defaults'; showTitle?: boolean }) {
   const { colors } = useAppTheme();
   const fills = [colors.primary, colors.secondary, colors.outline];
   const widths = [40, 28, 16];
   return (
-    <View style={styles.root} accessibilityRole="summary" accessibilityLabel="Which setting wins: Game settings first, then User settings, then Game defaults">
+    <View style={styles.root} accessibilityRole="summary" accessibilityLabel="Which setting wins: Game settings first, then Settings, then Game defaults">
       {showTitle ? <Text variant="labelLarge" style={{ color: colors.onSurfaceVariant }}>Which setting wins</Text> : null}
       {SETTINGS_PRIORITY.map((step, index) => {
         const on = step.title === highlight;

@@ -63,8 +63,8 @@ test('My players: three actions side by side, the registered-only note lives in 
   assert.doesNotMatch(tab, /numColumns/, 'one row per player');
   assert.match(tab, /<PlayerActionMenu/, 'the unified ⋮ menu on each row');
   assert.doesNotMatch(tab, /PLAYERS_NOTE/, 'the banner above the list is gone');
-  const help = read('constants/help.ts');
-  assert.match(help, /players: bullets\([\s\S]*PLAYERS_NOTE,/, 'the note is a My players help bullet');
+  const help = read('constants/helpTopics.ts');
+  assert.match(help, /'my-players': \{[\s\S]*?own list, not everyone in the EZ Score database/, 'the note is a My players help bullet');
   const add = read('app/(screens)/players/add.tsx');
   assert.doesNotMatch(add, /Add a row/);
   assert.match(add, /firstInputs\.current\[rows\[0\]\?\.key\]\?\.focus\(\)/, 'cursor in the first field by default');

@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { HelpButton } from '@/components/ui/HelpButton';
+import { HelpTopicKey } from '@/constants/helpTopics';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 
@@ -13,13 +14,15 @@ type AuthShellProps = {
   children: React.ReactNode;
   /** Rendered under the form card, e.g. "Create account" links. */
   footer?: React.ReactNode;
-  help?: string;
+  /** The help page the ? opens (sign-in pages share one). */
+  help?: HelpTopicKey;
+  helpAnchor?: string;
 };
 
 const FORM_MAX_WIDTH = 460;
 
 /** Shared chrome for sign-in screens: felt brand panel plus a form card. Side by side in landscape. */
-export function AuthShell({ title, subtitle, icon, children, footer, help }: AuthShellProps) {
+export function AuthShell({ title, subtitle, icon, children, footer, help, helpAnchor }: AuthShellProps) {
   const { colors } = useAppTheme();
   const { insets, isShort, gutterLeft, gutterRight } = useLayout();
 
@@ -55,7 +58,7 @@ export function AuthShell({ title, subtitle, icon, children, footer, help }: Aut
 
   const helpButton = help ? (
     <View style={[styles.help, { top: insets.top + spacing.xs, right: spacing.sm }]}>
-      <HelpButton text={help} color={isShort ? colors.onSurface : colors.onFelt} />
+      <HelpButton topic={help} anchor={helpAnchor} color={isShort ? colors.onSurface : colors.onFelt} />
     </View>
   ) : null;
 

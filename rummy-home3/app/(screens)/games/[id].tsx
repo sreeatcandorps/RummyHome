@@ -29,7 +29,6 @@ import { shareLiveScorecard } from '@/utils/shareImage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { settleEnabled } from '@/constants/features';
-import { HELP } from '@/constants/help';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { useLayout } from '@/hooks/useLayout';
 import { useMenuThenShare } from '@/hooks/useMenuThenShare';
@@ -581,7 +580,7 @@ export default function GameScreen() {
           headerRight: () => (
             <View style={styles.headerActions}>
               {deleted ? null : <IconButton icon="share-variant" size={22} onPress={() => setShareOpen(true)} accessibilityLabel="Share" testID="scorecard-share-icon" />}
-              <HelpButton text={HELP.scorecard} />
+              <HelpButton topic="scorecard" />
               <Menu
                 key={menuKey}
                 visible={menuOpen}
