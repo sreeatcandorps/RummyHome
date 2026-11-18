@@ -540,3 +540,12 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   PR 24's four-step New game, Order of players, ↺ re-entry rows and in-card footer. Rebased on `main` after the
   Nov 18 batch: the `complete` help topic now describes the Complete dialog, the Final screen page says Share + Done,
   the Awards page has no Add to Results. No new dependency, no hosting change.
+
+### 2026-11-18 — #81 and #89 merged to `main` (Help module done; two-device suite green; no migration)
+- Sree: "Merge eighty one, Merge eighty nine." #81 (Help) and #89 (two-device realtime) merged in that order after full
+  device CI on each. #89 added a `[realtime]` status log line per game channel, a 20 s foreground poll plus a reload on
+  app resume on the scorecard (Realtime stays primary; the poll is the safety net for the subscribe window), probe
+  stage 2 (`save_round` through RPC), and `ci/report/file-bugs.mjs` closing `found-by-tests` issues whose set/flow is
+  green again. Two-device suite 9/9 on the merged head. Migrations 046/047 still **not applied** to live (the builder's
+  Supabase connection does not reach `gngcrplcldfiubvhcdin`; Build Bot or Sree runs them). No APK built — Sree wants the
+  pending list first. No new dependency, no hosting change.
