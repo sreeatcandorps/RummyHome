@@ -98,23 +98,26 @@ tags: [smoke]
 - takeScreenshot: 07e-settings-pool-defaults
 # PR 24: Re-entry score (inside the Re-entries block) and Late entry (its own section), both default
 # to Highest score + 1; the other choice is Highest score. Nothing is saved.
+# Each hint sits under its radios, so scroll to the hint and the radios above it are on screen too.
 - scrollUntilVisible:
     element:
-      id: "settings-pool-reentry-score-plus-one"
+      text: "Where a re-entering player starts."
     direction: DOWN
     timeout: 10000
 - assertVisible: "Re-entry score"
-- assertVisible: "Where a re-entering player starts."
 - assertVisible:
     id: "settings-pool-reentry-score-highest"
+- assertVisible:
+    id: "settings-pool-reentry-score-plus-one"
 - scrollUntilVisible:
     element:
-      id: "settings-pool-late-entry-score-plus-one"
+      text: "Where a player added after round 1 starts."
     direction: DOWN
     timeout: 10000
 - assertVisible: "Late entry"
-- assertVisible: "Where a player added after round 1 starts."
 - assertVisible:
     id: "settings-pool-late-entry-score-highest"
+- assertVisible:
+    id: "settings-pool-late-entry-score-plus-one"
 - takeScreenshot: 07f-settings-late-entry-section
 - back

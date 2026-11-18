@@ -45,15 +45,19 @@ tags: [smoke]
 - assertVisible: "WWW"
 - assertVisible: "MMM"
 - takeScreenshot: 17-pool-wide-initials-header
-# Back up the pane to the Awards card.
-- swipe:
-    from:
-      id: "pool-standings-pane"
-    direction: DOWN
-- extendedWaitUntil:
-    visible:
-      id: "give-awards"
-    timeout: 5000
+# Back up the pane to the Awards card: twenty standings rows take more than one swipe.
+- repeat:
+    times: 6
+    while:
+      notVisible:
+        id: "give-awards"
+    commands:
+      - swipe:
+          from:
+            id: "pool-standings-pane"
+          direction: DOWN
+- assertVisible:
+    id: "give-awards"
 - tapOn:
     id: "give-awards"
 - extendedWaitUntil:
