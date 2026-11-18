@@ -546,6 +546,7 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   device CI on each. #89 added a `[realtime]` status log line per game channel, a 20 s foreground poll plus a reload on
   app resume on the scorecard (Realtime stays primary; the poll is the safety net for the subscribe window), probe
   stage 2 (`save_round` through RPC), and `ci/report/file-bugs.mjs` closing `found-by-tests` issues whose set/flow is
-  green again. Two-device suite 9/9 on the merged head. Migrations 046/047 still **not applied** to live (the builder's
-  Supabase connection does not reach `gngcrplcldfiubvhcdin`; Build Bot or Sree runs them). No APK built — Sree wants the
-  pending list first. No new dependency, no hosting change.
+  green again. Two-device suite 9/9 on the merged head. Correction (Build Bot, 21:14 UTC): 046 and 047 **were already on
+  live** — `schema_migrations` has 046 (2026-11-15 23:31 UTC), 047 (2026-11-18 07:20 UTC) and a `047b_event_log_games_exact_fix`
+  (07:21 UTC) that has no file in the repo; functions matched the files by hash, row counts unchanged. Nothing applied
+  today. No APK built — Sree wants the pending list first. No new dependency, no hosting change.
