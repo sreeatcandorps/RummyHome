@@ -16,6 +16,7 @@ import {
   effectiveFontScale,
   fitInitialsFontSize,
   initialsWidthIn,
+  newestRoundOffset,
   TABLE_MAX_FONT_SCALE,
 } from '@/utils/scorecardLayout';
 
@@ -72,11 +73,15 @@ type ScoreTableProps = {
   /** PR 24: tapping a round number opens that round for editing (admins, live game) — the re-entry round included. */
   onRoundPress?: (roundNumber: number) => void;
   /**
-   * PR 24 (landscape pool): rendered under the card in the same vertical scroller, so the standings
-   * are reached by scrolling down past the rounds instead of squeezing the table sideways.
+   * Pool portrait (Nov 18, Sree's 5-line rule): the card hugs its content — the round rows (one
+   * placeholder row at 0 rounds), one empty row, then the Creator / Admin / Unique game ID lines —
+   * and stops growing at this many round-row heights; from there the rounds scroll with the newest
+   * round at the bottom of the card and the empty row + footer below it. The standings take the rest
+   * of the screen. Unset: the card fills its parent (Points, landscape).
    */
-  below?: React.ReactNode;
+  hugRows?: number;
 };
+
 
 /** Pool (PR 24): the re-entry round shows the start score with this mark beside it; the typed score is saved, not shown. */
 export const REENTRY_MARK = '↺';
@@ -259,7 +264,7 @@ export function ScoreTable({
   onTotalPress,
   footer,
   onRoundPress,
-  below,
+  hugRows,
 }: ScoreTableProps) {
   // Pools never multiply; Points multiply while the view toggle is on.
   const factor = !pool && showActual && multiplier > 1 ? multiplier : 1;
@@ -292,18 +297,20 @@ export function ScoreTable({
     if (width !== tableWidth) setTableWidth(width);
   };
 
-  // Follow the newest round so the latest hand is always on screen. With `below` in the scroller
-  // (landscape standings) the end is past the rounds, so stop at the bottom of the card instead.
-  const cardHeight = useRef(0);
+  // Follow the newest round so the latest hand is always on screen. A hugging card (pool portrait)
+  // stops with the newest round at the bottom of the viewport — scrollToEnd would park on the footer
+  // and hide it; a full-height card scrolls to the end as before (the footer is a few lines).
   const viewportHeight = useRef(0);
   const handleContentSizeChange = () => {
     if (roundCount > shownRounds.current) {
       const animated = shownRounds.current > 0;
-      if (below) verticalRef.current?.scrollTo({ y: Math.max(0, cardHeight.current - viewportHeight.current), animated });
+      if (hugRows) verticalRef.current?.scrollTo({ y: newestRoundOffset(roundCount, rowHeight, viewportHeight.current), animated });
       else verticalRef.current?.scrollToEnd({ animated });
     }
     shownRounds.current = roundCount;
   };
+  const hugging = Boolean(hugRows);
+  const maxBodyHeight = hugRows ? hugRows * rowHeight : undefined;
 
   const isLeader = (id: string) => leaderIds.includes(id);
 
@@ -482,11 +489,10 @@ export function ScoreTable({
     );
   });
 
-  // PR 24: the card border is split so the footer sits inside it under the last row while `below`
-  // (landscape standings) rides in the same scroller outside it.
+  // PR 24: the card border is split so the pinned header carries the top edge and the scrolling body the bottom.
   const edge = { borderColor: colors.outlineVariant };
   return (
-    <View style={styles.table} onLayout={handleLayout} testID="score-table">
+    <View style={hugging ? styles.tableHug : styles.table} onLayout={handleLayout} testID="score-table">
       {tableWidth > 0 ? (
         <>
           {/* Pinned header: the corner stays put; the header cells follow the rows' sideways offset on the UI thread. */}
@@ -501,14 +507,14 @@ export function ScoreTable({
 
           <ScrollView
             ref={verticalRef}
-            style={styles.flex}
+            style={hugging ? [styles.none, { maxHeight: maxBodyHeight }] : styles.flex}
             onContentSizeChange={handleContentSizeChange}
             showsVerticalScrollIndicator={roundCount > 0}
-            scrollEnabled={roundCount > 0 || Boolean(below)}
+            scrollEnabled={roundCount > 0}
             onLayout={(e) => { viewportHeight.current = e.nativeEvent.layout.height; }}
             testID="score-table-rows"
           >
-            <View style={[styles.cardBottom, edge, { backgroundColor: colors.surface }]} onLayout={(e) => { cardHeight.current = e.nativeEvent.layout.height; }}>
+            <View style={[styles.cardBottom, edge, { backgroundColor: colors.surface }]}>
               <View style={styles.row}>
                 {/* Frozen round column: scrolls with the rows, never sideways. */}
                 <View style={{ width: roundColumnWidth }}>{roundCells}</View>
@@ -548,7 +554,17 @@ export function ScoreTable({
                 </Animated.ScrollView>
               </View>
 
-              {roundCount === 0 ? (
+              {roundCount === 0 && hugging ? (
+                // The placeholder round row (Sree's line 1 of 5): round 1's cell, dimmed, and the empty note beside it.
+                <View style={[styles.row, { height: rowHeight, borderBottomColor: colors.hairline, borderBottomWidth: StyleSheet.hairlineWidth }]} testID="score-table-placeholder-row">
+                  <View style={[styles.cell, styles.roundCell, { width: roundColumnWidth, height: rowHeight, borderRightColor: colors.outlineVariant, borderBottomWidth: 0, backgroundColor: colors.tableHeader }]}>
+                    <Text style={[styles.roundText, tabularNums, { fontSize: fontSize - 1, color: colors.onSurfaceVariant }]} maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}>1</Text>
+                  </View>
+                  <View style={[styles.flex, styles.placeholderCell]}>
+                    <Text variant="bodySmall" numberOfLines={2} style={{ color: colors.onSurfaceVariant }}>{emptyMessage}</Text>
+                  </View>
+                </View>
+              ) : roundCount === 0 ? (
                 <View style={styles.emptyTable}>
                   <Icon source="cards-playing-outline" size={32} color={colors.onSurfaceVariant} />
                   <Text variant="bodyMedium" style={[styles.emptyText, { color: colors.onSurfaceVariant }]}>
@@ -557,11 +573,12 @@ export function ScoreTable({
                 </View>
               ) : null}
 
+              {/* Sree's empty row between the last round and the footer (one round-row height). */}
+              {hugging ? <View style={{ height: rowHeight }} testID="score-table-spacer-row" /> : null}
+
               {/* PR 24: the footer is part of the card, directly under the last round row. */}
               {footer ? <View style={styles.footer} testID="score-table-footer">{footer}</View> : null}
             </View>
-
-            {below ? <View style={styles.below}>{below}</View> : null}
           </ScrollView>
         </>
       ) : null}
@@ -574,6 +591,15 @@ const EDGE = StyleSheet.hairlineWidth * 2;
 const styles = StyleSheet.create({
   table: {
     flex: 1,
+  },
+  // Pool portrait: the card takes only what its rows need (capped by the body's maxHeight); the standings fill the rest.
+  tableHug: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  placeholderCell: {
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
   },
   // The card's top: the pinned header carries the top edge and corners.
   cardTop: {
@@ -596,9 +622,6 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-  },
-  below: {
-    paddingTop: spacing.sm,
   },
   flex: {
     flex: 1,

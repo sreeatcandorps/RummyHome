@@ -1,13 +1,14 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
 # PR 24 pool feedback on game V (supabase/seed-e2e.sql): a live 13-seat pool, 6 rounds, two re-entries.
-# Portrait: the scorecard takes ~70% with the big initials of the Points header (TA, TB … never cut off),
-# the Standings pane sits under it and scrolls on its own, the Creator / Unique game ID footer is INSIDE
-# the card under round 6 (small italics). The re-entry cells show the re-entry score with the ↺ mark:
+# Portrait (Nov 18, Sree's 5-line rule): the card hugs its rounds, at most five round rows tall, with the
+# big initials of the Points header (TA, TB … never cut off); the newest round sits at the bottom of the
+# card, the Creator / Unique game ID footer is INSIDE the card under it (small italics) and the Standings
+# pane takes the rest of the screen, scrolling on its own. The re-entry cells show the re-entry score with the ↺ mark:
 # Test Alpha came back for round 3 at the highest (↺20, rule "Highest score" at the time) and Test Bravo
 # for round 5 at the highest + 1 (↺41); their cells in the rounds above are grey. A tap on a round
-# number opens Edit round. Landscape: the full-width table with the standings BELOW it (scroll down),
-# never side by side. Nothing is saved.
+# number opens Edit round. Landscape: the full-width table alone, like Points — no standings (turn the
+# phone back for them). Nothing is saved.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - scrollUntilVisible:
@@ -65,7 +66,7 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000
-# Landscape: the table keeps the whole width (all 13 columns, TL last); the standings follow the rounds in the same scroller.
+# Landscape: the table keeps the whole width (all 13 columns, TL last); no standings in landscape (Nov 18).
 - setOrientation: LANDSCAPE_LEFT
 - extendedWaitUntil:
     visible:
@@ -79,16 +80,18 @@ tags: [smoke]
     text: "TL"
 - assertNotVisible:
     id: "pool-standings-pane"
+- assertNotVisible:
+    id: "pool-standings"
 - takeScreenshot: 20d-pool-13p-landscape
-- scrollUntilVisible:
-    element:
-      id: "pool-standings"
-    direction: DOWN
+- setOrientation: PORTRAIT
+# Back in portrait the standings are there again, under the five-row card.
+- extendedWaitUntil:
+    visible:
+      id: "pool-standings-pane"
     timeout: 15000
 - assertVisible:
-    id: "pool-standings"
-- takeScreenshot: 20e-pool-13p-landscape-standings-below
-- setOrientation: PORTRAIT
+    id: "score-table-footer"
+- takeScreenshot: 20e-pool-13p-portrait-five-rows
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000

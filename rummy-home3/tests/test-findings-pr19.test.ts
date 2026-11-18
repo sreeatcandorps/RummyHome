@@ -33,7 +33,7 @@ test('F2 (chaos c11): a network failure is told apart from being signed out', ()
   assert.match(signedOutBlock.slice(0, 200), /message="Sign in to see your games\."/, 'the signed-out screen no longer carries the network error text');
 });
 
-test('F6 (smoke 17): a 20-player Standings card never squeezes the grid — PR 24: its own 30% pane in portrait, under the rows in landscape', () => {
+test('F6 (smoke 17): a 20-player Standings card never squeezes the grid — its own pane under the five-row card in portrait; landscape has no standings (Nov 18)', () => {
   const standings = src('components/game/PoolStandings.tsx');
   assert.match(standings, /maxHeight\?: number/);
   assert.match(standings, /scroll && maxHeight != null && \{ maxHeight \}/, 'the card itself is capped when it scrolls inside');
@@ -41,8 +41,8 @@ test('F6 (smoke 17): a 20-player Standings card never squeezes the grid — PR 2
   assert.match(standings, /rows: \{ flexGrow: 0, flexShrink: 1 \}/, 'the scroller shrinks instead of pushing the card past the cap');
   const scorecard = src('app/(screens)/games/[id].tsx');
   assert.match(scorecard, /scroll=\{false\}/, 'the scorecard screen lets the pane scroll');
-  assert.match(scorecard, /flex: PORTRAIT_TABLE_FLEX/, 'portrait: the table takes 7 shares');
-  assert.match(scorecard, /flex: PORTRAIT_STANDINGS_FLEX/, '… the standings 3');
-  assert.match(scorecard, /below=\{isShort \? poolBelow : undefined\}/, 'landscape: the standings follow the rows in the table scroller');
+  assert.match(scorecard, /poolTablePane: \{\s*flexGrow: 0,\s*flexShrink: 1,/, 'portrait: the card takes only what its rows need');
+  assert.match(scorecard, /<ScrollView style=\{styles\.flex\} contentContainerStyle=\{styles\.portraitStandingsContent\}[^>]*testID="pool-standings-pane"/, '… the standings fill the rest');
+  assert.doesNotMatch(scorecard, /below=\{/, 'landscape: no standings (Nov 18)');
   assert.doesNotMatch(scorecard, /windowHeight \* \(isShort/, 'no window-share cap: each region has its own scroller');
 });
