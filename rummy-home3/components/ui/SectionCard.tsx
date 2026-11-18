@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
+import { InfoTip, InfoTipProps } from '@/components/ui/InfoTip';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 type SectionCardProps = {
@@ -9,6 +10,11 @@ type SectionCardProps = {
   icon?: string;
   /** Rendered at the right of the title row, e.g. a text button. */
   right?: React.ReactNode;
+  /**
+   * Mini help (PR 11): a small ⓘ beside the title that opens a short pop-up. Takes the place of a
+   * `supportingText` paragraph; `tip.title` defaults to the card title.
+   */
+  tip?: Omit<InfoTipProps, 'title'> & { title?: string };
   children?: React.ReactNode;
   style?: ViewStyle;
   /** `outlined` is a quieter treatment for secondary/informational groupings. */
@@ -26,12 +32,14 @@ export function SectionCard({
   supportingText,
   icon,
   right,
+  tip,
   children,
   style,
   mode = 'elevated',
   part = 'whole',
 }: SectionCardProps) {
   const theme = useAppTheme();
+  const tipNode = tip && title ? <InfoTip {...tip} title={tip.title ?? title.replace(/ · \d+$/, '')} /> : null;
 
   return (
     <View
@@ -63,6 +71,7 @@ export function SectionCard({
             ) : null}
           </View>
           {right}
+          {tipNode}
         </View>
       ) : null}
       {children}

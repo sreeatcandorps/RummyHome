@@ -70,11 +70,11 @@ export function InfoTip({ title, text, topic, anchor, color, testID = 'info-tip'
 }
 
 /** A section title with its ⓘ on the same line. */
-export function TitleWithTip({ title, tip, variant = 'titleSmall' }: { title: string; tip: Omit<InfoTipProps, 'title'>; variant?: 'titleSmall' | 'titleMedium' }) {
+export function TitleWithTip({ title, tip, variant = 'titleSmall' }: { title: string; tip: Omit<InfoTipProps, 'title'> & { title?: string }; variant?: 'titleSmall' | 'titleMedium' }) {
   return (
     <View style={styles.titleRow}>
       <Text variant={variant} style={styles.titleText}>{title}</Text>
-      <InfoTip title={title} {...tip} />
+      <InfoTip {...tip} title={tip.title ?? title} />
     </View>
   );
 }
