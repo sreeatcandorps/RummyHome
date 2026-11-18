@@ -493,6 +493,7 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   help page); two rules pages; "Why?" links from five puzzling dialogs to the matching Tricky case. The screenshots are
   real smoke-run frames halved and badged by `scripts/help-screenshots.mjs` (pngjs only), positions in
   `scripts/help-callouts.json` — regenerate from the branch's own CI smoke artifact. Mini helps (Sree, Nov 17): an `InfoTip` ⓘ
-  beside a section title opens a short pop-up (Got it / Full guide) and replaces the paragraphs under it; first applied to
-  New game · Game type and the shared `RulesForm` (so Game settings and Settings get them too), pending Sree's approval of
-  the approach before the other screens. No new dependency, no hosting change.
+  beside a section title opens a short pop-up (Got it / Full guide) and replaces the paragraphs under it; approved on
+  New game · Game type and then applied to every screen (`SectionCard` grew a `tip` slot). Help copy already describes
+  PR 24's four-step New game, Order of players, ↺ re-entry rows and in-card footer (#82, not merged here). No new
+  dependency, no hosting change.

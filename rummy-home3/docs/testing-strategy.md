@@ -315,9 +315,11 @@ Pass when Home has New game, Results, and Recent, and none of Settle, Active, Hi
 | HL11-4 | U | same | index lists every topic once in Home order; search by alias, phrase, hyphenated word, empty; family colours from theme tokens; index reachable from Me and every help page |
 | HL11-5 | U | same | mini helps: Game type keeps only live feedback; `InfoTip` reads "About <title>", Got it / Full guide, tap outside closes; `RulesForm` has limit / values / multiplier / re-entries ⓘ with the lock note folded in; Game settings ⓘ → scorecard help |
 | HL11-6 | U | same | Why? links in the five dialogs (Give awards first · Save awards anyway · The scorecard changed · counted again · Settings locked) |
-| HL11-7 | S | `smoke/02`, `06`, `16` | `?` on the scorecard and Results opens "Help · Scorecard" / "Help · Results" (screenshots 02b, 06c); the Re-entries ⓘ opens and Got it closes (16c2) |
-| HL11-8 | N | `full/50-help-notes.yaml` | `?` on Home, New game, My players, Me, Results opens its page; the index and search (screenshots 50*) |
-| HL11-9 | M | emulator | read-through of every page against the spec; dark theme |
+| HL11-7 | U | same | mini helps on every screen (Home, Deleted games, Settings, Hidden & deleted, Me, Results, Awards, Complete, Final scores, Players · Admins, Add players, Fix initials, New game): each section keeps its title plus a ⓘ, the paragraph is gone from the screen but its constant stays, every ⓘ topic#anchor resolves; `SectionCard` `tip` slot |
+| HL11-8 | U | same | help copy matches PR 24 (#82): four-step New game (Next / Start game), Order of players (tap to number, undo, arrows, Clear / Done), ↺ re-entry score with grey cells above, footer inside the scorecard, Re-entry score / Late entry; no "Seating order", "Skip" or "asks who sits where" |
+| HL11-9 | S | `smoke/01`, `02`, `06`, `12`, `16` | `?` on the scorecard and Results opens "Help · Scorecard" / "Help · Results" (02b, 06c); the Live ⓘ (01d), the Re-entries ⓘ (16c2) and the Deleted-results ⓘ (12h) open and Got it closes |
+| HL11-10 | N | `full/50-help-notes.yaml`, `full/40` | `?` on Home, New game, My players, Me, Results opens its page; the index and search (screenshots 50*); the Deleted-results ⓘ (40h) |
+| HL11-11 | M | emulator | read-through of every page against the spec; dark theme |
 
 Legacy help tests (`HELP.*` strings in build3/build4/pool-pr13/…) read the same copy through `tests/_helpLegacy.ts`, which flattens a topic back to the old bullet text.
 
