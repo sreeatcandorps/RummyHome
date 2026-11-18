@@ -98,7 +98,7 @@ export const clearOrder = (draft: OrderDraft): OrderDraft => ({ ...draft, number
 /** Whether Done would change anything (mid-game: Done stays off until it would). */
 export const orderChanged = (draft: OrderDraft) => !sameOrder(draft.base, displayOrder(draft));
 
-/** The player ID (#42) joins the row only where it fits: a row 360 dp wide or more (landscape, tablet). */
+/** The player ID (#42) joins the row only where it fits: a row 330 dp wide or more (a phone row inside the card is ~347 dp). */
 export const showsPlayerCode = (rowWidth: number) => rowWidth >= 330;
 
 /** The sheet's menu item and Done exist only while the game is Active (Q21.7). */
