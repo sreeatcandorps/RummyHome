@@ -10,6 +10,7 @@ import { gamesService } from '@/services/games';
 import { ActionBar } from '@/components/ui/ActionBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
+import { TitleWithTip } from '@/components/ui/InfoTip';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { formatGameDateTime, gameTypeLabel } from '@/utils/gameDisplay';
@@ -157,6 +158,7 @@ export default function CompleteGameScreen() {
 
         {done && pool ? (
           <View style={styles.next}>
+            <TitleWithTip title="Next" tip={{ title: 'What comes next', text: ['Complete, then Award, then Result: the pool joins a result once its awards are given.', 'Share final scores works at any point.'], topic: 'complete', anchor: 'after-completing', testID: 'complete-next-tip' }} />
             {canScore ? (
               <Button mode="contained" icon="trophy-outline" onPress={() => router.push({ pathname: '/(screens)/games/award', params: { id: game.id } })} accessibilityLabel={game.awardedAt ? 'Change awards' : 'Give awards'} testID="complete-give-awards">
                 {game.awardedAt ? 'Change awards' : 'Give awards'}
@@ -168,21 +170,16 @@ export default function CompleteGameScreen() {
             <Button mode="outlined" icon="format-list-numbered" disabled={!game.awardedAt} onPress={() => router.push('/(screens)/results')} accessibilityLabel="Go to Results">
               {game.awardedAt ? 'Add to Results' : GIVE_AWARDS_FIRST}
             </Button>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-              Complete, then Award, then Result: the pool joins a result once its awards are given.
-            </Text>
           </View>
         ) : done ? (
           <View style={styles.next}>
+            <TitleWithTip title="Next" tip={{ title: 'What comes next', text: ['Results combines completed games into one standings sheet and closes them.', 'Share final scores works at any point.'], topic: 'complete', anchor: 'after-completing', testID: 'complete-next-tip' }} />
             <Button mode="contained" icon="share-variant" onPress={() => router.push({ pathname: '/(screens)/games/final-scores', params: { id: game.id } })} accessibilityLabel="Share final scores">
               Share final scores
             </Button>
             <Button mode="outlined" icon="format-list-numbered" onPress={() => router.push('/(screens)/results')} accessibilityLabel="Go to Results">
               Add to Results
             </Button>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-              Results combines completed games into one standings sheet and closes them.
-            </Text>
           </View>
         ) : null}
       </ScrollView>

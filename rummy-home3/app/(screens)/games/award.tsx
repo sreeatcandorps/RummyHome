@@ -10,6 +10,7 @@ import { gamesService } from '@/services/games';
 import { ActionBar } from '@/components/ui/ActionBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
+import { TitleWithTip } from '@/components/ui/InfoTip';
 import { WhyLink } from '@/components/help/WhyLink';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
@@ -24,6 +25,12 @@ import { screenTitle } from '@/utils/gameLabel';
  * "Gets" inline under Custom, and Save, with "X points weren't given out. Save awards anyway?"
  * when the numbers do not add up. Points only, never money (D12).
  */
+/** Mini help (PR 11): the five presets and the formula, once beside the chips instead of under them. */
+export const SPLIT_TIP = [
+  ...AWARD_PRESETS.map((p) => `**${p.label}**: ${p.hint}`),
+  'Award = Gets − Put in. The awards are what this pool counts for in Results.',
+];
+
 export default function AwardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -176,6 +183,7 @@ export default function AwardScreen() {
           {`${sheet.rows.reduce((n, r) => n + r.entries, 0)} entries (a re-entry counts twice) · pool ${sheet.poolTotal} points`}
         </Text>
 
+        <TitleWithTip title="How to split the pool" tip={{ text: SPLIT_TIP, topic: 'awards', anchor: 'the-presets', testID: 'award-split-tip' }} />
         <View style={styles.chips}>
           {AWARD_PRESETS.map((p) => (
             <Button
@@ -193,9 +201,6 @@ export default function AwardScreen() {
             </Button>
           ))}
         </View>
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="award-hint">
-          {AWARD_PRESETS.find((p) => p.key === preset)?.hint}
-        </Text>
         {customCheck && !customCheck.ok ? (
           <View style={styles.warnRow}>
             <Icon source="alert-outline" size={16} color={colors.loss} />
@@ -255,9 +260,6 @@ export default function AwardScreen() {
         </View>
 
         {blocked ? <Text variant="bodyMedium" style={{ color: colors.error }} testID="award-blocked">{blocked}</Text> : null}
-        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-          Award = Gets − Put in. The awards are what this pool counts for in Results.
-        </Text>
       </ScrollView>
 
       {/* Q11.14: once the awards are saved and unchanged, the last step is Add to Results (Complete → Award → Result). */}

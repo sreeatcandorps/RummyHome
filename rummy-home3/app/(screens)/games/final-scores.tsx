@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
+import { TitleWithTip } from '@/components/ui/InfoTip';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { spacing, useAppTheme } from '@/constants/theme';
 import { useGameRoster } from '@/hooks/useGameRoster';
@@ -88,9 +89,7 @@ export default function FinalScoresScreen() {
       ) : (
         <>
           <ScrollView contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}>
-            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-              This is the picture that will be shared: the scores of this game. The rounds below go out as a separate file.
-            </Text>
+            <TitleWithTip variant="titleMedium" title="The picture" tip={{ text: 'This is the picture that will be shared: the scores of this game. The rounds below go out as a separate file (**Share full details**).', topic: 'final-scores', anchor: 'sharing', testID: 'final-scores-picture-tip' }} />
             <ShareCardView card={sheet.card} />
             <OffscreenShareCard card={sheet.card} cardRef={capture.ref} onHeight={capture.onHeight} />
             <Text variant="titleMedium" style={[styles.heading, { color: colors.onSurface }]} accessibilityRole="header">Round by round</Text>
