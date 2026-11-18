@@ -145,6 +145,11 @@ test('Nov 18 two-device: the T2 flow accepts the "Scorecard · S1" title and the
   const scorecard = readFileSync(path.join(__dirname, '..', 'app', '(screens)', 'games', '[id].tsx'), 'utf8');
   assert.match(scorecard, /AppState\.addEventListener\('change', \(state\) => \{ if \(state === 'active'\) loadGameData\(\); \}\)/, 'reload when the app comes back to the front');
   assert.match(scorecard, /setInterval\(\(\) => \{ if \(AppState\.currentState === 'active'\) loadGameData\(\); \}, LIVE_POLL_MS\)/, 'poll an active game while it is on screen');
+  // A reload behind an open dialog must not wipe what is being typed (smoke 18 caught the poll doing exactly that).
+  const settings = readFileSync(path.join(__dirname, '..', 'components', 'game', 'GameSettingsDialog.tsx'), 'utf8');
+  assert.match(settings, /\}, \[visible, rulesKey\]\);/, 'Game settings resets its draft on open or when the stored rules change, not on every render');
+  const seating = readFileSync(path.join(__dirname, '..', 'components', 'game', 'SeatingSheet.tsx'), 'utf8');
+  assert.match(seating, /\}, \[visible, baseKey\]\);/, 'Order of players keeps its taps across a reload');
   const filer = readFileSync(path.join(__dirname, '..', '..', 'ci', 'report', 'file-bugs.mjs'), 'utf8');
   assert.match(filer, /state: 'closed', state_reason: 'completed'/, 'a green flow closes its open issue');
   assert.match(filer, /if \(!ACT\) \{ console\.log\(`would close/, 'never on a dry run');
