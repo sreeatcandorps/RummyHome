@@ -23,8 +23,7 @@ on:
   push:
     branches: ['**']
   pull_request:
-  schedule:
-    - cron: '0 9 * * *'
+  # The 09:00 UTC nightly is nightly.yml, which dispatches this workflow on main with tier=nightly.
   workflow_dispatch:
     inputs:
       ref:
@@ -41,11 +40,9 @@ on:
 permissions:
   contents: read
 
-# Nightly: the top of the PR stack and the APK-ready branch (main does not carry the stack yet).
-
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'schedule' }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: 22
@@ -58,12 +55,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "cursor/pr17-test-infra-0a03"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
+        ref: ${{ fromJSON(format('["{0}"]', inputs.ref || '')) }}
     steps:
       # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
-      # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
-      # (rummy-home3/) is taken from matrix.ref instead, so PR 7 and main can be tested before they
-      # carry the tooling themselves.
+      # commit this workflow runs from. For a manual run with `ref`, the app under test (rummy-home3/)
+      # is taken from that ref instead, so any branch can be tested with main's tooling.
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         if: matrix.ref != ''
@@ -134,7 +130,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "cursor/pr17-test-infra-0a03"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
+        ref: ${{ fromJSON(format('["{0}"]', inputs.ref || '')) }}
     env:
       # Supabase CLI defaults for the local stack started below; never the hosted project.
       DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
@@ -238,7 +234,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ref: ${{ github.event_name == 'schedule' && fromJSON('["cursor/ezscore-apk-ready", "cursor/pr17-test-infra-0a03"]') || fromJSON(format('["{0}"]', inputs.ref || '')) }}
+        ref: ${{ fromJSON(format('["{0}"]', inputs.ref || '')) }}
     steps:
       # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
       # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
@@ -332,10 +328,6 @@ jobs:
       reason: ${{ steps.plan.outputs.reason }}
       checkout_ref: ${{ steps.plan.outputs.checkout_ref }}
       slug: ${{ steps.plan.outputs.slug }}
-    env:
-      # Schedules only fire from the default branch, which does not carry this tooling yet; a nightly
-      # run checks out the top of the PR stack and tests that.
-      NIGHTLY_REF: cursor/pr17-test-infra-0a03
     steps:
       - uses: actions/checkout@v4
         with:
@@ -359,10 +351,8 @@ jobs:
           TIER="$INPUT_TIER"
           case "$MESSAGE" in *"[tier:prerelease]"*) TIER=prerelease ;; *"[tier:nightly]"*) TIER=nightly ;; esac
           REF="${{ github.sha }}"
-          [ "$EVENT" = schedule ] && REF="$NIGHTLY_REF"
           [ "$EVENT" = workflow_dispatch ] && [ -n "$INPUT_REF" ] && REF="$INPUT_REF"
           NAME="${{ github.head_ref || github.ref_name }}"
-          [ "$EVENT" = schedule ] && NAME="$NIGHTLY_REF"
           echo "checkout_ref=$REF" >> "$GITHUB_OUTPUT"
           echo "slug=$(echo "$NAME" | tr '/' '-')" >> "$GITHUB_OUTPUT"
           SELECT_EVENT="$EVENT" SELECT_TIER="$TIER" SELECT_FILES="$FILES" SELECT_MESSAGE="$MESSAGE" node ci/select-tests.mjs
