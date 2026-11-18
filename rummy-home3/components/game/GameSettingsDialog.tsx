@@ -40,7 +40,10 @@ export function GameSettingsDialog({ visible, rules, title = 'Game settings', on
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
-  useEffect(() => { if (visible) { setDraft(draftFromRules(rules)); setError(null); setPending(null); } }, [visible, rules]);
+  // Reset on open, or when the stored rules really change (another admin saved) — not on every reload of
+  // the scorecard behind the dialog (Realtime, the 20 s poll), which would wipe what is being typed.
+  const rulesKey = JSON.stringify(rules);
+  useEffect(() => { if (visible) { setDraft(draftFromRules(rules)); setError(null); setPending(null); } }, [visible, rulesKey]);
 
   const commit = async (next: PointsRules) => {
     setSaving(true);

@@ -46,10 +46,12 @@ export function SeatingSheet({ visible, players, pool, dealerIds, roundCount, on
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Each opening starts from the current order, fully numbered.
+  // Each opening starts from the current order, fully numbered. Keyed on the ids, not the array: a
+  // scorecard reload behind the sheet (Realtime, the 20 s poll) must not undo the taps so far.
+  const baseKey = base.join(',');
   useEffect(() => {
     if (visible) { setDraft(startOrder(base, true)); setError(null); }
-  }, [visible, base]);
+  }, [visible, baseKey]);
 
   const outIds = useMemo(() => new Set(players.filter((player) => player.out).map((player) => player.id)), [players]);
   const dealsNext = draft.numbered.length ? nextDealerFor(displayOrder(draft), dealerIds, roundCount, outIds) : undefined;

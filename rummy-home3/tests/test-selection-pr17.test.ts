@@ -130,3 +130,27 @@ test('PR 17: the break-the-app seed has the roster and every game the chaos / ro
   assert.ok(opened.size >= 5);
   for (const code of opened) assert.ok(seed.includes(code), `flow opens ${code}, which the seed creates`);
 });
+
+test('Nov 18 two-device: the T2 flow accepts the "Scorecard · S1" title and the Close button; the probe mirrors the scorecard channel; the filer heals green flows', () => {
+  const save = readFileSync(path.join(E2E, 'two-device', 'b-save-now.yaml'), 'utf8');
+  assert.match(save, /Scorecard\( · \.\*\)\?\|Round saved\|Round already saved/, 'the scorecard title carries the game number since PR 24');
+  assert.match(save, /visible: "Close"/, 'the Round saved sheet closes with Close (D34)');
+  const probe = readFileSync(path.join(__dirname, '..', 'scripts', 'realtime-probe.mjs'), 'utf8');
+  for (const table of ['games', 'game_players', 'rounds']) assert.match(probe, new RegExp(`table: '${table}'`), `probe subscribes to ${table} like services/realtime.ts`);
+  assert.match(probe, /rpc\('save_round'/, 'stage 2 saves a round the way device B does');
+  const realtime = readFileSync(path.join(__dirname, '..', 'services', 'realtime.ts'), 'utf8');
+  assert.match(realtime, /console\.log\(`\[realtime\] game \$\{gameId\}: \$\{status\}/, 'the channel status reaches logcat');
+  const runner = readFileSync(path.join(__dirname, '..', '..', 'ci', 'ui', 'run-two-device.sh'), 'utf8');
+  assert.match(runner, /debug\/t1-a-open\/\*\/\*\/logs\/device-logcat\.txt[\s\S]*grep -F '\[realtime\]' > "\$ABS_OUT\/realtime-device-a\.txt"/, 'the runner keeps device A\'s channel lines from the per-flow logcat Maestro saved');
+  const scorecard = readFileSync(path.join(__dirname, '..', 'app', '(screens)', 'games', '[id].tsx'), 'utf8');
+  assert.match(scorecard, /AppState\.addEventListener\('change', \(state\) => \{ if \(state === 'active'\) loadGameData\(\); \}\)/, 'reload when the app comes back to the front');
+  assert.match(scorecard, /setInterval\(\(\) => \{ if \(AppState\.currentState === 'active'\) loadGameData\(\); \}, LIVE_POLL_MS\)/, 'poll an active game while it is on screen');
+  // A reload behind an open dialog must not wipe what is being typed (smoke 18 caught the poll doing exactly that).
+  const settings = readFileSync(path.join(__dirname, '..', 'components', 'game', 'GameSettingsDialog.tsx'), 'utf8');
+  assert.match(settings, /\}, \[visible, rulesKey\]\);/, 'Game settings resets its draft on open or when the stored rules change, not on every render');
+  const seating = readFileSync(path.join(__dirname, '..', 'components', 'game', 'SeatingSheet.tsx'), 'utf8');
+  assert.match(seating, /\}, \[visible, baseKey\]\);/, 'Order of players keeps its taps across a reload');
+  const filer = readFileSync(path.join(__dirname, '..', '..', 'ci', 'report', 'file-bugs.mjs'), 'utf8');
+  assert.match(filer, /state: 'closed', state_reason: 'completed'/, 'a green flow closes its open issue');
+  assert.match(filer, /if \(!ACT\) \{ console\.log\(`would close/, 'never on a dry run');
+});

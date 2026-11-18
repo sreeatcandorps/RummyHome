@@ -9,7 +9,8 @@
  *
  * Reads every  <dir>/** /<set>/results.csv and crashes.csv  (the layout run-flows.sh writes; the
  * artifact folder name carries device + suite: ui-<slug>-<device>-<suite>). The known-bugs set is
- * skipped: it is quarantined on purpose. Nothing is filed unless FILE_BUGS=true.
+ * skipped: it is quarantined on purpose. Nothing is filed unless FILE_BUGS=true. An open found-by-tests
+ * issue whose flow passed on every device in this run is closed again (and reopened by the next failure).
  *
  * Env: GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_SERVER_URL, GITHUB_SHA, GITHUB_REF_NAME,
  *      FILE_BUGS (true to act; anything else = dry run that prints what it would file),
@@ -51,6 +52,8 @@ function context(file) {
 }
 
 const findings = [];
+/** "<set>/<flow>" of every flow that passed somewhere in this run (a green flow heals its open issue). */
+const passed = new Set();
 for (const file of walk(ROOT)) {
   const { set, device, suite, artifact } = context(file);
   if (SKIP_SETS.has(set)) continue;
@@ -58,6 +61,7 @@ for (const file of walk(ROOT)) {
   if (file.endsWith('results.csv')) {
     for (const l of lines) {
       const [flow, result, secs] = l.split(',');
+      if (result === 'pass') passed.add(`${set}/${flow}`);
       if (result !== 'fail') continue;
       const screensDir = path.join(path.dirname(file), 'screens');
       const shots = fs.existsSync(screensDir) ? fs.readdirSync(screensDir).filter((s) => s.startsWith(flow) || s.includes('FAILED')) : [];
@@ -82,12 +86,9 @@ for (const f of findings) {
   else prev.devices.add(f.device);
 }
 const unique = [...byKey.values()];
+for (const f of unique) passed.delete(`${f.set}/${f.flow}`);
 
-if (unique.length === 0) {
-  console.log('file-bugs: nothing failed outside the quarantined set — no issues to file');
-  process.exit(0);
-}
-console.log(`file-bugs: ${unique.length} finding(s)${ACT ? '' : ' (dry run: FILE_BUGS is not true)'}`);
+console.log(`file-bugs: ${unique.length} finding(s), ${passed.size} flow(s) green${ACT ? '' : ' (dry run: FILE_BUGS is not true)'}`);
 
 // ---------- GitHub ---------------------------------------------------------------------------------
 async function gh(method, url, body) {
@@ -171,6 +172,37 @@ async function addToProject(issueNodeId) {
 
 const summary = [];
 let projectOk = null;
+
+// Heal: an open found-by-tests issue whose flow passed in this run (and failed nowhere) is closed with the
+// run link, so the bug list only carries what is red today. The filer reopens it if it fails again.
+async function healFixed() {
+  if (passed.size === 0) return;
+  if (!ACT) { console.log(`would close the open found-by-tests issue of any of ${passed.size} green flow(s)`); return; }
+  let page = 1;
+  const open = [];
+  for (;;) {
+    const batch = await gh('GET', `/repos/${REPO}/issues?state=open&labels=found-by-tests&per_page=100&page=${page}`);
+    open.push(...batch);
+    if (batch.length < 100) break;
+    page += 1;
+  }
+  for (const issue of open) {
+    const m = issue.title.match(/^\[found-by-tests\] (\S+\/\S+) (failed|crashed|froze \(ANR\))$/);
+    if (!m || !passed.has(m[1])) continue;
+    await gh('POST', `/repos/${REPO}/issues/${issue.number}/comments`, { body: `Passed again: \`${m[1]}\` was green on every device in ${RUN_URL}. Closing; the filer reopens this if it fails again.` });
+    await gh('PATCH', `/repos/${REPO}/issues/${issue.number}`, { state: 'closed', state_reason: 'completed' });
+    console.log(`closed #${issue.number}: ${issue.title}`);
+    summary.push(`- #${issue.number} closed (green again): ${m[1]}`);
+  }
+}
+
+try {
+  await healFixed();
+} catch (e) {
+  console.log(`file-bugs: could not close healed issues: ${e.message}`);
+  summary.push(`- could not close healed issues (${e.message})`);
+}
+
 for (const f of unique) {
   const t = title(f);
   if (!ACT) { console.log(`would file: ${t} (${[...f.devices].join(', ')})`); summary.push(`- (dry run) ${t}`); continue; }
@@ -212,7 +244,7 @@ for (const f of unique) {
   }
 }
 
-const md = ['### Bugs filed from this run', '', ...summary, '', projectOk === false ? `_The workflow token cannot add items to ${PROJECT_URL}; issues carry the \`found-by-tests\` label instead._` : ''].join('\n');
+const md = ['### Bugs filed from this run', '', ...(summary.length ? summary : ['- nothing failed outside the quarantined set — no issues to file']), '', projectOk === false ? `_The workflow token cannot add items to ${PROJECT_URL}; issues carry the \`found-by-tests\` label instead._` : ''].join('\n');
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md + '\n');
 fs.mkdirSync(path.dirname(path.join(ROOT, 'bugs.md')), { recursive: true });
 fs.writeFileSync(path.join(ROOT, 'bugs.md'), md);

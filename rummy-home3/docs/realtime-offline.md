@@ -2,15 +2,22 @@
 
 ## Realtime
 
-Active game screens subscribe through `services/realtime.ts` to:
+The scorecard subscribes through `services/realtime.ts` to one channel per game:
 
-- `games`
-- `game_players`
-- `rounds`
-- `scores`
-- `token_ledger`
+- `games` (the row, by id)
+- `game_players` (by game)
+- `rounds` (by game)
 
-Any change reloads the current game view from the service layer. This keeps the first realtime implementation simple and avoids partial client-side merge bugs.
+A saved round touches all three within milliseconds; the screen reloads once per burst (400 ms trailing
+debounce) from the service layer. This keeps the realtime implementation simple and avoids partial
+client-side merge bugs. The channel's status (`SUBSCRIBED`, `CHANNEL_ERROR`, `TIMED_OUT`, `CLOSED`) is
+logged as `[realtime] game <id>: <status>` — `adb logcat -s ReactNativeJS` on a release build shows it.
+
+**Safety net (Nov 18).** Realtime is not the only way a round arrives. The scorecard also reloads when
+the app returns to the foreground (the socket dies while the phone sleeps or the share sheet is up),
+and while an **active** game is on screen it polls every 20 s (`LIVE_POLL_MS`) as long as the app is in
+front. Completed and deleted games do not poll. So the other phone's round shows within about a second
+when Realtime works and within 20 s when it does not.
 
 ## Local Storage
 
