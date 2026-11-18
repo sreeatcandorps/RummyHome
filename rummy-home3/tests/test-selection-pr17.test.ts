@@ -141,7 +141,7 @@ test('Nov 18 two-device: the T2 flow accepts the "Scorecard · S1" title and the
   const realtime = readFileSync(path.join(__dirname, '..', 'services', 'realtime.ts'), 'utf8');
   assert.match(realtime, /console\.log\(`\[realtime\] game \$\{gameId\}: \$\{status\}/, 'the channel status reaches logcat');
   const runner = readFileSync(path.join(__dirname, '..', '..', 'ci', 'ui', 'run-two-device.sh'), 'utf8');
-  assert.match(runner, /grep -F '\[realtime\]' > "\$ABS_OUT\/realtime-device-a\.txt"/, 'the runner keeps device A\'s channel lines');
+  assert.match(runner, /debug\/t1-a-open\/\*\/\*\/logs\/device-logcat\.txt[\s\S]*grep -F '\[realtime\]' > "\$ABS_OUT\/realtime-device-a\.txt"/, 'the runner keeps device A\'s channel lines from the per-flow logcat Maestro saved');
   const scorecard = readFileSync(path.join(__dirname, '..', 'app', '(screens)', 'games', '[id].tsx'), 'utf8');
   assert.match(scorecard, /AppState\.addEventListener\('change', \(state\) => \{ if \(state === 'active'\) loadGameData\(\); \}\)/, 'reload when the app comes back to the front');
   assert.match(scorecard, /setInterval\(\(\) => \{ if \(AppState\.currentState === 'active'\) loadGameData\(\); \}, LIVE_POLL_MS\)/, 'poll an active game while it is on screen');
