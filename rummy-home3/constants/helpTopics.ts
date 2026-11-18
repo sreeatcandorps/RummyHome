@@ -814,9 +814,9 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     screenshot: {
       file: 'settings',
       legend: [
-        'The priority ladder: Game settings › Settings › Game defaults.',
+        '**New game starts as**: Points or Pool is picked for you on Game type.',
         'Points defaults, with the Multiplier.',
-        'Pool defaults: limit, values, Re-entries, Re-entry score, Late entry. **Hidden & deleted** is at the foot.',
+        'Pool defaults: limit, values, Re-entries, Re-entry score, Late entry. Below them the priority ladder (Game settings › Settings › Game defaults) and **Hidden & deleted**.',
       ],
     },
     sections: [
