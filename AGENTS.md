@@ -1,13 +1,35 @@
 # Agent Guidelines
 
-This file provides guidance for AI agents working on the EZ Score codebase.
+This file provides guidance for AI agents working on the EZ Score codebase (app in `rummy-home3/`).
 
-## Required Reading
+## Required reading
 
 Before suggesting a design, writing a spec, or building any UI change:
 
-- **[Design Review Checklist](rummy-home3/docs/design-review-checklist.md)** — mandatory checklist approved by Sree (Nov 17 2026)
+- **[Design review checklist](rummy-home3/docs/design-review-checklist.md)** — mandatory, approved by Sree (Nov 17 2026). Its seven items are also the checkboxes in the [PR template](.github/PULL_REQUEST_TEMPLATE.md).
+- **[Decisions](rummy-home3/docs/decisions.md)** — one dated line per decision Sree made, with status (active / superseded / deferred). Read the section for your area first. Add a line in the same PR whenever a decision is made or overturned.
+- The spec for the area: `rummy-home3/docs/pool-design.md` (§0 is the decision table), `help-design.md`, `seating-order-design.md`, `multiplier-design.md`, `design-audit.md`, and `architecture-and-timeline.md` for how the pieces fit.
 
-## Documentation
+## Branching and PRs
 
-Project documentation lives in `rummy-home3/docs/`. Review relevant specs and approved decisions before proposing changes.
+- `main` is the product. Every branch starts from `main`; a stack is at most two PRs deep and short-lived.
+- One PR per feature, opened with the PR template. A UI PR is not done until its **screenshot matrix** (0 / 1 / 5 rounds × 4 / 13 players × portrait / landscape) is in the body.
+- Run `npm run typecheck` and `npm test` in `rummy-home3/` before pushing; update the Maestro flows in `rummy-home3/e2e/` that your change breaks.
+- Update `rummy-home3/docs/architecture-and-timeline.md` when tooling, distribution or a major module changes (see `.cursor/rules/architecture-timeline.mdc`).
+
+## Authority (what needs Sree's explicit yes)
+
+| Action | Who may do it |
+| --- | --- |
+| Open or update a PR, push a branch, run CI | any agent |
+| Merge to `main` | only after Sree says yes to **that** merge |
+| Apply a migration to the live Supabase project | only after Sree says yes to **that** migration, and only from merged `main` after the local-DB CI suite passed |
+| Build or publish an APK / store build | only after Sree says yes to **that** build |
+
+"Finish it", "go ahead" on a different question, or silence is **not** a yes. When in doubt, ask one question with a default and wait.
+
+## Talking to Sree
+
+- Build Bot relays Sree word for word and adds nothing. The builder asks its own questions, few, each with the default it will use if there is no answer.
+- Quote Sree's words in the spec or PR body beside the interpretation, so a misread is visible.
+- Show, then build: a mockup or flowchart before code for anything a user will see.

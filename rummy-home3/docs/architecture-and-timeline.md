@@ -519,3 +519,10 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   anchored at the bottom of the card; the Standings take the rest. Landscape pool is the full-width table alone, like
   Points — the standings pane and the `below` slot are gone; an admin reaches Give / Change awards from the strip.
   `pool-design.md` §0 rows 21–22 rewritten. Maestro 17 / 20 updated.
+
+### 2026-11-18 — Decision register, PR template, agent rules (PR C of the Nov 18 batch, docs only)
+- `docs/decisions.md` is the one dated list of what Sree decided and whether it still holds (D-ids, status active /
+  superseded / deferred), seeded from pool-design §0, help-design, design-audit and the Nov 18 batch. The root
+  `.github/PULL_REQUEST_TEMPLATE.md` carries the design-review checklist as checkboxes plus the screenshot matrix;
+  `AGENTS.md` gained the branching rules (trunk-based from `main`), the authority table (merge / migration / APK only
+  on Sree's explicit yes) and the relay rule (Build Bot relays verbatim; the builder asks its own questions).
