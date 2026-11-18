@@ -339,7 +339,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Auth (email/passcode, session refresh, app-only OTP recovery) | Done in the app; OTP email live via Resend since Nov 9. Phone pass pending |
 | Profiles / Player ID + share | Done |
 | Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
-| New game (Points / Pool, my players) | Done. Two screens: Players (Next) then Game type with this game's settings prefilled from Settings. Creator is not pre-seated; Add players (full screen) / Add player from database |
+| New game (Points / Pool, my players) | Done. Four steps (PR 24): Players (Next) → Game type with this game's settings prefilled from Settings (Next) → Order of players (tap to number) → Co-admin → Start game. Creator is not pre-seated; Add players (full screen) / Add player from database |
 | Game table + score entry | Done, portrait + landscape. Add round: grid, presets, keypad, Balance gate, explicit 0, big losses in red. Complete game, Final scores, and Players are their own pages. Apply `014_save_round_atomic.sql` for the one-transaction save |
 | Home | Done. Results → every live game → Recent (every Completed/Closed game, newest first, no filter). History screen redirects home |
 | Results | Done in the app. Status chips (with deselect warning), every game listed and admin-only ticks, Show results then explicit Save result (closes games, status popup), share after save, totals and table with Player IDs, banded share image, full-details PDF. `008` and `013` are live; `018_results_reuse_and_player_ids.sql` (reused flag, Player IDs) is written, not applied |
@@ -347,7 +347,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Performance (020) | `020_performance_rpcs_and_indexes.sql` written, scratch-verified, **not applied**: index-driven visibility RPCs, policy wrappers, bundle RPCs. App works on both pre- and post-020 databases; see `docs/performance/RESULTS.md` |
 | CI (GitHub Actions) | Done on PR 7: unit + tsc, local Supabase DB suite (migrations, rollbacks, pgTAP, concurrency), report per run. Device UI tests (PR 1, Nov 13): Maestro flows on an Android emulator against a runner-built APK. PR 17 (Nov 15): change-based plan, four devices × six suites (chaos, roles, two-device, monkey added), volume job, gh-pages dashboard, auto-filed bugs. Nightly needs `nightly.yml` on `main` (it dispatches CI on the stack top) and Pages switched on once. See `docs/testing-strategy.md` |
 | Game admins | Done in the app. Players/Admins page: Add admin by Player ID (non-player, open or completed games), Game admins on Complete game and the final-scores picture |
-| Pool games | Done in the app (PR 13): plus-only scores, outs and re-entry, Standings, Complete → Award → Result. `041_pool.sql` (Nov 14) and `042_pool_reentries_and_limit_lock.sql` (Nov 15) are on the live database; waits for the next APK |
+| Pool games | Done in the app (PR 13): plus-only scores, outs and re-entry, Standings, Complete → Award → Result. `041_pool.sql` (Nov 14) and `042_pool_reentries_and_limit_lock.sql` (Nov 15) are on the live database. PR 24 (Nov 17): Points-style header, footer inside the card, 70 / 30 portrait, stacked landscape, ↺ re-entry cells, Re-entry score / Late entry rules; `047_reentry_and_late_entry_score.sql` written, **not applied** |
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; Clubhouse green design system (Nov 12). Appearance follows the phone by default; Profile › Appearance overrides it |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
@@ -484,3 +484,16 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   `purge-deleted-games`. Every "erased" / "gone for good" line in the app, Help, the Log label and the restore e-mail
   now says "hidden for good — nothing is erased" (APK v11 still carries the old words until the next build). pgTAP 37
   (X22-1…4), pgTAP 36's X20-3 rewritten, unit X22-5/6, rollback 046 (leaves the purge job off), replay hook.
+
+### 2026-11-17 — PR 24 v11 pool and seating feedback built (stacked PR; migration 047 written, not applied)
+- Sree's walk-through of APK v11 turned into one focused PR on the pool scorecard and seating. The pool header now
+  uses the Points typography (one small line taller for the #number), the Creator / Admin / Unique game ID footer moved
+  inside the card under the last round at 70 % italic, portrait pool is a 70 / 30 split (scorecard pane, standings
+  pane, independent scrollers) and landscape pool is the full-width table with the standings below it. Re-entry cells
+  show the re-entry score with ↺ and grey the cells above. Re-entry settings gained "Re-entry score" and a separate
+  "Late entry" section (Highest score / Highest score + 1, default + 1); Limited re-entries start with an empty count.
+  New game became four steps (Players → Game type → Order of players → Co-admin → Start game) and the PR 21 seating
+  pop-up is gone; **Order of players** is tap-to-number (undo last, arrows on numbered rows, Clear / Done) for both
+  the start and ⋮ mid-game. Migration `047_reentry_and_late_entry_score.sql` (server-side +1 rules, Log labels) with
+  rollback, pgTAP 38 and the replay hook is **written, not applied** to live. Decisions recorded in
+  `pool-design.md` §0 rows 18–27.
