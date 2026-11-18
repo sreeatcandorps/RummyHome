@@ -19,6 +19,15 @@ tags: [smoke]
 # titled plainly (no "· N") on the grey card. With four live games Recent starts below the fold, so
 # scroll to it before the check.
 - takeScreenshot: 01-home
+# PR 11 mini help: the Live card keeps its title plus a ⓘ; the status legend lives in the pop-up.
+- tapOn: "About Live"
+- extendedWaitUntil:
+    visible: "Got it"
+    timeout: 5000
+- assertVisible: "Full guide"
+- takeScreenshot: 01d-home-live-tip
+- tapOn: "Got it"
+- assertNotVisible: "Got it"
 - scrollUntilVisible:
     element:
       text: "Recent"

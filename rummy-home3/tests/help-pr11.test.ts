@@ -8,6 +8,7 @@ import {
   HELP_TOPIC_KEYS,
   HELP_TOPICS,
   HELP_WHY,
+  type HelpTopicKey,
   helpIndex,
   helpTopicText,
   ROUTE_TOPIC,
@@ -83,7 +84,10 @@ test('HL11-1 every route has a help topic; every topic has a purpose, 3–5 Need
 
 test('HL11-2 the ⋮ tables in help list the Menu.Item titles the code renders, in on-screen order', () => {
   const scorecard = HELP_TOPICS.scorecard.menu!;
-  assert.deepEqual(scorecard.rows.map((r) => r.item), ['Game settings', PLAYERS_ADMINS_TITLE, SEATING_MENU_ITEM, 'Edit round', 'Reopen game', 'Log', 'Hide game', 'Delete game']);
+  // PR 24 (#82) renames the ⋮ item to "Order of players"; the help text already says so, so the
+  // table is checked against the renamed label until #82 lands and SEATING_MENU_ITEM catches up.
+  const PR24_MENU_LABEL: Record<string, string> = { 'Seating order': 'Order of players' };
+  assert.deepEqual(scorecard.rows.map((r) => r.item), ['Game settings', PLAYERS_ADMINS_TITLE, PR24_MENU_LABEL[SEATING_MENU_ITEM] ?? SEATING_MENU_ITEM, 'Edit round', 'Reopen game', 'Log', 'Hide game', 'Delete game']);
   const code = src('app/(screens)/games/[id].tsx');
   for (const item of ['Edit round', 'Reopen game', 'Log', 'Hide game', 'Delete game']) assert.match(code, new RegExp(`title="${item}"`), `scorecard ⋮ renders ${item}`);
   assert.match(code, /title=\{gameSettingsMenuTitle\(pool, maxRounds\)\}/);
@@ -185,6 +189,75 @@ test('HL11-5 mini helps (ⓘ): the Game type screen keeps only live feedback; ea
   assert.match(form, /LOCKED_TAG/, 'and a Locked tag shows beside the title');
   const settings = src('components/game/GameSettingsDialog.tsx');
   assert.match(settings, /helpTopic="scorecard" helpAnchor="game-settings"/, 'Game settings ⓘ Full guide → scorecard help, Game settings part');
+});
+
+test('HL11-7 mini helps on every screen: each section keeps its title plus a ⓘ; the paragraphs moved into the pop-up; every pop-up deep-links to a real anchor', () => {
+  // screen → the ⓘ testIDs it renders and the explanatory copy that must no longer sit on screen.
+  const screens: { file: string; tips: string[]; gone?: RegExp[]; keep?: RegExp[] }[] = [
+    { file: 'app/(tabs)/index.tsx', tips: ['home-live-tip', 'home-recent-tip'], gone: [/supportingText=\{recentSupporting\}/], keep: [/recentSupporting/] },
+    { file: 'components/home/DeletedGamesCard.tsx', tips: ['home-deleted-tip'], gone: [/supportingText=\{DELETED_GAMES_SUPPORTING\}/] },
+    { file: 'app/(screens)/settings.tsx', tips: ['settings-starts-tip', 'settings-points-tip', 'settings-pool-tip', 'settings-priority-tip', 'settings-hidden-tip'], keep: [/SETTINGS_PRIORITY\.map/, /helpTopic="settings"/] },
+    { file: 'app/(screens)/hidden-deleted.tsx', tips: ['hidden-games-tip', 'deleted-games-tip', 'deleted-results-tip'], keep: [/SUPPORT_CARD_BODY/] },
+    { file: 'app/(tabs)/me.tsx', tips: ['me-phone-tip', 'me-email-tip', 'me-demo-tip', 'me-account-tip'], keep: [/EMAIL_TIP/, /testID="me-help-index"/] },
+    { file: 'app/(screens)/results/index.tsx', tips: ['results-picker-tip', 'past-results-tip', 'deleted-results-note-tip'], keep: [/DELETED_SECTION_NOTE/, /<WhyLink why="giveAwardsFirst"/] },
+    { file: 'app/(screens)/games/award.tsx', tips: ['award-split-tip'], gone: [/testID="award-hint"/], keep: [/SPLIT_TIP/, /AWARD_PRESETS\.map\(\(p\) => `\*\*\$\{p\.label\}\*\*: \$\{p\.hint\}`\)/] },
+    { file: 'app/(screens)/games/complete.tsx', tips: ['complete-next-tip'] },
+    { file: 'app/(screens)/games/final-scores.tsx', tips: ['final-scores-picture-tip'] },
+    { file: 'app/(screens)/games/players.tsx', tips: ['players-playing-tip'], keep: [/PLAYING_TIP/] },
+    { file: 'app/(screens)/players/add.tsx', tips: ['add-players-tip'], keep: [/EDIT_NOTE/] },
+    { file: 'components/players/FixInitialsScreen.tsx', tips: ['fix-initials-tip'] },
+    { file: 'app/(screens)/games/new.tsx', tips: ['new-game-playing-tip', 'new-game-list-tip'], keep: [/Order of players/] },
+  ];
+  for (const screen of screens) {
+    const code = src(screen.file);
+    for (const id of screen.tips) assert.match(code, new RegExp(`testID[:=]\\s*['"]${id}['"]`), `${screen.file} renders ⓘ ${id}`);
+    for (const re of screen.gone ?? []) assert.doesNotMatch(code, re, `${screen.file}: ${re} moved into the ⓘ`);
+    for (const re of screen.keep ?? []) assert.match(code, re, `${screen.file}: ${re} stays (nothing removed, only moved)`);
+  }
+  // Every topic/anchor pair a ⓘ points at exists, in either attribute order.
+  const pairs = /topic[:=]\s*['"]([a-z-]+)['"],?\s*anchor[:=]\s*['"]([a-z-]+)['"]|anchor[:=]\s*['"]([a-z-]+)['"],?\s*topic[:=]\s*['"]([a-z-]+)['"]/g;
+  let checked = 0;
+  for (const screen of screens) {
+    for (const m of src(screen.file).matchAll(pairs)) {
+      const topic = (m[1] ?? m[4]) as HelpTopicKey;
+      const anchor = m[2] ?? m[3];
+      const t = HELP_TOPICS[topic];
+      assert.ok(t, `${screen.file}: topic ${topic} exists`);
+      const known = [...t.tricky.map((x) => x.id), ...t.sections.map((s) => slug(s.title)), 'menu', 'tricky'];
+      assert.ok(known.includes(anchor), `${screen.file}: ${topic}#${anchor} exists`);
+      checked += 1;
+    }
+  }
+  assert.ok(checked >= 15, `anchored ⓘ pop-ups found (${checked})`);
+  // SectionCard grew a `tip` slot so a card keeps its title and gets the ⓘ beside it.
+  assert.match(src('components/ui/SectionCard.tsx'), /tip\?: Omit<InfoTipProps, 'title'> & \{ title\?: string \}/);
+  assert.match(src('components/ui/SectionCard.tsx'), /title\.replace\(\/ · \\d\+\$\/, ''\)/, 'the pop-up title drops the " · N" count');
+});
+
+test('HL11-8 help copy matches PR 24 (#82): four-step New game, Order of players, ↺ re-entry rows, footer inside the scorecard', () => {
+  const newGame = plainHelpText(helpTopicText('new-game'));
+  assert.match(newGame, /Then Order of players .* and, when a registered player was added, a co-admin\. Only the last step says Start game\./);
+  assert.match(newGame, /\nOrder of players\n/);
+  assert.match(newGame, /the first tap is seat 1.*Tap the most recently numbered player again to take the number back/);
+  assert.match(newGame, /▲ ▼ arrows.*Clear removes every number.*Every player needs a seat before Next \(or Start game/);
+  assert.match(newGame, /\nCo-admin and Start\n/);
+  assert.match(newGame, /There is no pop-up after Start/);
+  assert.doesNotMatch(newGame, /asks who sits where|\bSkip\b|two-step/);
+  const scorecard = plainHelpText(helpTopicText('scorecard'));
+  assert.match(scorecard, /re-entry score with ↺ in that round, and their cells above it turn grey/);
+  assert.match(scorecard, /\(105 → ↺106\)/);
+  assert.match(scorecard, /Order of players: set before Start/);
+  assert.match(scorecard, /Foot, inside the card under the last round/);
+  assert.match(scorecard, /inside the scorecard card right under the last round row and scrolls with the rounds/);
+  assert.doesNotMatch(scorecard, /Seating order/);
+  assert.equal(HELP_TOPICS.scorecard.menu!.rows.find((r) => r.does.startsWith('Rearrange'))!.item, 'Order of players');
+  const gameType = plainHelpText(helpTopicText('game-type'));
+  assert.match(gameType, /Unlimited \(the default\)/);
+  assert.match(gameType, /Re-entry score .* and Late entry .*: Highest score still in, or Highest score \+ 1/);
+  assert.doesNotMatch(gameType, /Start pool · N players/);
+  assert.match(plainHelpText(helpTopicText('home')), /players, game type, order of players, then a co-admin/);
+  assert.match(plainHelpText(helpTopicText('settings')), /Re-entry score and Late entry default to Highest score \+ 1/);
+  assert.match(plainHelpText(helpTopicText('game-log')), /order of players/);
 });
 
 test('HL11-6 Why? links: the five puzzling dialogs link to their Tricky case', () => {
