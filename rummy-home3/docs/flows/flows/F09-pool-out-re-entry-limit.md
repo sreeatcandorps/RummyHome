@@ -14,7 +14,7 @@ flowchart TD
   w10[/"W10 Pool over hint (everyone out / limit reached)"/]:::warning
   p31(["P31 Over the Full count / Are you sure? (pool)"]):::popup
   w19[/"W19 Game settings error / locked note"/]:::warning
-  s18["S18 Complete (game / pool)"]:::screen
+  p40(["P40 Complete this game? / Complete this pool? (Nov 18: one dialog; …"]):::popup
   over{"Total ≥ pool limit?"}:::decision
   reentry{"Re-entries left (Unlimited / Limited N)?"}:::decision
   reenter("Re-enter at the highest live total"):::step
@@ -32,7 +32,7 @@ flowchart TD
   reentry -->|"no: limit reached"| w10
   s14 --> left
   left -->|"yes: everyone out"| w10
-  w10 -->|"Complete"| s18
+  w10 -->|"Complete"| p40
   s14 -->|"settings locked after round 1"| w19
   classDef screen fill:#e3f2fd,stroke:#1565c0,color:#0d2c54
   classDef popup fill:#fff8e1,stroke:#f9a825,color:#4e3a00
@@ -61,11 +61,11 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
-| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 58 |
-| P32 | Round saved (pool: out · eligible · re-enter) | `app/(screens)/score-entry.tsx` | 2 |
-| W35 | Pool standings (OUT · re-entry eligible · re-entered · limit) | `components/game/PoolStandings.tsx` | 4 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 91 |
+| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 64 |
+| P32 | Round saved (pool: out · eligible · re-enter) | `app/(screens)/score-entry.tsx` | 4 |
+| W35 | Pool standings (OUT · re-entry eligible · re-entered · limit) | `components/game/PoolStandings.tsx` | 6 |
 | W10 | Pool over hint (everyone out / limit reached) | `app/(screens)/games/[id].tsx` | 1 |
 | P31 | Over the Full count / Are you sure? (pool) | `app/(screens)/score-entry.tsx` | 4 |
 | W19 | Game settings error / locked note | `components/game/GameSettingsDialog.tsx` | 3 |
-| S18 | Complete (game / pool) | `app/(screens)/games/complete.tsx` | 24 |
+| P40 | Complete this game? / Complete this pool? (Nov 18: one dialog; Fix round N first when a Points round is off) | `components/game/CompleteGameDialog.tsx` | 8 |

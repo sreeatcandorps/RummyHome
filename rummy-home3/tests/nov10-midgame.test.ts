@@ -21,10 +21,6 @@ test('final scores are sorted highest first; ties keep seat order', () => {
   assert.deepEqual(sortFinalScores([]), []);
 });
 
-test('Complete game screen renders totals through sortFinalScores', () => {
-  const page = read('app/(screens)/games/complete.tsx');
-  assert.match(page, /sortFinalScores\(/);
-});
 
 test('an invited (pending) seat reads "Pending registration" everywhere', () => {
   assert.equal(registrationLabel({ status: 'pending' }), 'Pending registration');

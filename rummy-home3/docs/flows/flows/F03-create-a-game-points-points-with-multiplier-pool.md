@@ -73,14 +73,14 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 71 |
-| S10 | New game · Players picker / Add players to this game | `app/(screens)/games/new.tsx` | 39 |
-| S09 | New game · Game type (Points / Pool, rules, multiplier) | `app/(screens)/games/new.tsx + components/game/GameTypeStep.tsx` | 28 |
+| S04 | Home (Live · Recent · bottom bar) | `app/(tabs)/index.tsx` | 73 |
+| S10 | New game · Players picker / Add players to this game | `app/(screens)/games/new.tsx` | 41 |
+| S09 | New game · Game type (Points / Pool, rules, multiplier) | `app/(screens)/games/new.tsx + components/game/GameTypeStep.tsx` | 29 |
 | S11 | Fix initials (before Start) | `components/players/FixInitialsScreen.tsx` | 17 |
 | W14 | New game problem line (players, Full count, multiplier range) | `components/game/GameTypeStep.tsx, components/game/RulesForm.tsx` | 3 |
 | P47 | Large multiplier (Game type) | `components/game/GameTypeStep.tsx` | 1 |
-| P45 | Add a co-admin? | `components/game/CoAdminNudge.tsx` | 1 |
+| P45 | Add a co-admin? | `components/game/CoAdminNudge.tsx` | 2 |
 | W28 | Guardrail refusals (GRD01: 20 seats, 500 rounds, 10 live games, 50 games/day, 100 players/day, 20 pending links) | `utils/guardrails.ts` | 5 |
 | E03 | Game started (live link) | `supabase/functions/send-email/index.ts (game_started)` | 7 |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
-| P25 | Seating order sheet | `components/game/SeatingSheet.tsx` | 4 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 91 |
+| P25 | Seating order sheet | `components/game/SeatingSheet.tsx` | 5 |

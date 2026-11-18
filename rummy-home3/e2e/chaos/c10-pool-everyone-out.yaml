@@ -15,23 +15,16 @@ tags: [chaos]
 - takeScreenshot: c10-pool-19-out
 - tapOn: "Complete game"
 - extendedWaitUntil:
-    visible: "Final scores so far"
-    timeout: 15000
-- assertVisible: "OUT"
-- takeScreenshot: c10-pool-complete-page
-- tapOn: "Complete game"
-- extendedWaitUntil:
     visible: "Complete this pool?"
     timeout: 5000
+- assertVisible:
+    text: ".*1 player in, 19 out.*"
+- takeScreenshot: c10-pool-complete-dialog
 - tapOn: "Confirm complete game"
-- extendedWaitUntil:
-    visible: "Give awards"
-    timeout: 20000
-- tapOn:
-    id: "complete-give-awards"
+# Nov 18: Complete goes straight on to Awards.
 - extendedWaitUntil:
     visible: "Winner takes all"
-    timeout: 15000
+    timeout: 20000
 - tapOn:
     id: "award-preset-winner"
 - takeScreenshot: c10-awards-20-rows
@@ -42,9 +35,15 @@ tags: [chaos]
 - takeScreenshot: c10-awards-20-rows-bottom
 - tapOn:
     id: "award-save"
+# Save from Complete → Awards lands on the Final screen (the Awards card); the arrow returns to the scorecard.
+- extendedWaitUntil:
+    visible: "Awards · .*"
+    timeout: 20000
+- assertNotVisible: "Could not save awards"
+- takeScreenshot: c10-pool-final-screen
+- back
 - extendedWaitUntil:
     visible:
       text: "Awarded|Change awards"
     timeout: 20000
-- assertNotVisible: "Could not save awards"
 - takeScreenshot: c10-pool-awarded

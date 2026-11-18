@@ -30,7 +30,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | R22 | Pool: a player at or over the limit is out; Round saved sheet says who | [pool-design.md](../pool-design.md#3-screens-p01p30) | P32 W35 |  |
 | R23 | Re-entry at the highest live total; Unlimited or Limited N (042) | [pool-design.md](../pool-design.md#0-srees-decisions-nov-14-and-what-changed) | W35 W10 |  |
 | R24 | Pool settings locked after round 1 (PT423) | [pool-design.md](../pool-design.md#4-data-and-rpcs--migration-041_poolsql-applied-to-live-nov-14--042_pool_reentries_and_limit_locksql-applied-to-live-by-sree-nov-15) | W19 P26 |  |
-| R25 | Complete page with a second confirmation; Final scores share | [link](https://github.com/sreeatcandorps/RummyHome/pull/7) | S18 P40 P41 S20 W08 |  |
+| R25 | Complete is one dialog on the scorecard (Nov 18; the Complete page is gone); the Final screen is Share + Done, Done = Home | [link](https://github.com/sreeatcandorps/RummyHome/pull/7) | P40 P41 S20 W08 | <span style="color:#c62828">W08</span> |
 | R26 | Awards for a completed pool; a pool joins a result only through its awards | [pool-design.md](../pool-design.md#3-screens-p01p30) | S19 P42 P43 P44 W20 W36 P50 |  |
 | R27 | Save result moves games to Closed and lists each change | [link](https://github.com/sreeatcandorps/RummyHome/pull/7) | S22 P53 W22 W23 E04 |  |
 | R28 | Share picture (summary, generated-by initials) and phone-page PDF per the approved design (034) | [link](https://github.com/sreeatcandorps/RummyHome/pull/14) | P24 P58 |  |
@@ -50,7 +50,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | R42 | Help on every screen, ≤ 7 bullets | [help-design.md](../help-design.md#1-what-exists-today) | P30 |  |
 | R43 | Delete this result visible, 10-second Undo, Deleted list for 30 days (D9.1–D9.3) | [results-delete.md](../results-delete.md) | P56 W25 W26 P52 P54 P49 P51 W21 |  |
 | R44 | Result history: versions, "Changed after sharing", result_* log rows (036) | [link](https://github.com/sreeatcandorps/RummyHome/pull/16) | W24 |  |
-| R45 | Scorecard: header sized from type, one scroller, 20 players portrait and landscape (PR 4 / 10a) | [link](https://github.com/sreeatcandorps/RummyHome/pull/24) | S14 W08 |  |
+| R45 | Scorecard: header sized from type, one scroller, 20 players portrait and landscape (PR 4 / 10a) | [link](https://github.com/sreeatcandorps/RummyHome/pull/24) | S14 W08 | <span style="color:#c62828">W08</span> |
 | R46 | Home: two bottom buttons, My players badge, Light default; game numbers reused (038) | [link](https://github.com/sreeatcandorps/RummyHome/pull/19) | S04 S05 W07 W40 |  |
 | R47 | Remove from My players is a soft remove with Undo; refused during a live game (027) | [link](https://github.com/sreeatcandorps/RummyHome/pull/7) | P08 P15 P13 | <span style="color:#c62828">P13</span> |
 | R48 | Invite to register; registration tags | [players-and-identity.md](../players-and-identity.md#player-statuses) | P09 P12 W16 |  |
@@ -65,7 +65,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | S01 | Sign in | x |  |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |  |
 | S02 | Create account | x |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | S03 | Forgot passcode (OTP → new passcode) | x |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| S04 | Home (Live · Recent · bottom bar) | x | x | x |  |  |  |  |  |  |  |  | x | x | x |  | x | x |  |
+| S04 | Home (Live · Recent · bottom bar) | x | x | x |  |  |  |  |  |  | x |  | x | x | x |  | x | x |  |
 | S05 | My players |  |  |  | x |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | S06 | Me (profile) | x | x |  |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |
 | S07 | User settings (game defaults) |  | x |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
@@ -76,12 +76,11 @@ CSV twins in `csv/`. Red = no flow / no test.
 | S12 | Add by initials |  |  |  | x |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | S13 | Find in database |  |  |  | x |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | S14 | Scorecard (Points / Pool) |  |  | x |  | x | x | x | x | x | x | x | x | x | x |  | x |  |  |
-| S15 | Enter Scores (Add round / Edit round) |  |  |  |  |  | x | x |  | x |  |  |  |  | x |  | x |  |  |
+| S15 | Enter Scores (Add round / Edit round) |  |  |  |  |  | x | x |  | x | x |  |  |  | x |  | x |  |  |
 | S16 | Players · Admins |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  | x |  |  |
 | S17 | Log (game log) |  |  |  |  | x |  | x | x |  |  |  |  | x |  |  |  |  |  |
-| S18 | Complete (game / pool) |  |  |  |  |  |  |  |  | x | x |  |  |  |  |  |  |  |  |
 | S19 | Awards (pool) |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  | x |  |  |
-| S20 | Final scores (single game share) |  |  |  |  |  |  |  | x |  | x | x |  |  |  |  |  |  |  |
+| S20 | Final screen (final scores / awards · Share + Done) |  |  |  |  |  |  |  | x |  | x | x |  |  |  |  |  |  |  |
 | S21 | Results · pick games + Past results |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  | x | x |  |
 | S22 | Results · view (unsaved) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  | x |  |
 | S23 | Results · saved result |  |  |  |  |  |  |  | x |  |  | x |  |  |  |  |  | x |  |
@@ -117,7 +116,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | P21 | Delete this game? |  |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |
 | P22 | Reopen this game? |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |  |  |  |
 | P23 | Something went wrong (scorecard action error) |  |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |
-| P24 | Share sheet (picture · PDF · link) |  |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |  |  |
+| P24 | Share sheet (picture · PDF · link) |  |  |  |  |  |  |  |  |  | x | x |  |  |  |  |  |  |  |
 | P25 | Seating order sheet |  |  | x |  | x |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | P26 | Game settings (Full count, multiplier, pool rules) |  |  |  |  |  |  |  | x |  |  |  |  |  |  |  |  |  |  |
 | P27 | Change the multiplier? / Large multiplier |  |  |  |  |  |  |  | x |  |  |  |  |  |  |  |  |  |  |
@@ -133,7 +132,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | P37 | Remove from game (blocked: player has a score) |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |  |
 | P38 | Something went wrong (Players · Admins) |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |  |
 | P39 | Add non-playing admin (by Player ID) |  |  |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |  |
-| P40 | Complete this game? / Complete this pool? |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |  |  |  |
+| P40 | Complete this game? / Complete this pool? (Nov 18: one dialog; Fix round N first when a Points round is off) |  |  |  |  |  |  |  |  | x | x |  |  |  |  |  |  |  |  |
 | P41 | Could not complete |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |  |  |  |
 | P42 | Not all given out (save awards anyway?) |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |  |  |  |
 | P43 | Not for this pool |  |  |  |  |  |  |  |  |  | x |  |  |  |  |  |  |  |  |
@@ -202,26 +201,25 @@ CSV twins in `csv/`. Red = no flow / no test.
 | S01 | Sign in | 6 |  |  |  | 1 |  | 5 |  |  |  | 12 |  |
 | S02 | Create account | 4 |  |  |  |  |  |  |  |  |  | 4 |  |
 | S03 | Forgot passcode (OTP → new passcode) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
-| S04 | Home (Live · Recent · bottom bar) | 29 | 7 |  | 13 | 13 | 5 | 4 |  |  |  | 71 |  |
+| S04 | Home (Live · Recent · bottom bar) | 30 | 7 |  | 14 | 13 | 5 | 4 |  |  |  | 73 |  |
 | S05 | My players | 28 | 4 |  | 5 | 2 |  |  |  |  |  | 39 |  |
 | S06 | Me (profile) | 21 |  |  | 3 | 2 |  | 1 |  |  |  | 27 |  |
-| S07 | User settings (game defaults) | 20 | 1 |  | 5 | 2 |  |  |  |  |  | 28 |  |
+| S07 | User settings (game defaults) | 21 | 1 |  | 5 | 2 |  |  |  |  |  | 29 |  |
 | S08 | Hidden & deleted | 17 | 3 |  | 3 | 1 |  |  |  |  |  | 24 |  |
-| S09 | New game · Game type (Points / Pool, rules, multiplier) | 18 | 2 | 1 | 4 | 2 |  | 1 |  |  |  | 28 |  |
-| S10 | New game · Players picker / Add players to this game | 27 | 4 | 1 | 4 | 2 |  | 1 |  |  |  | 39 |  |
+| S09 | New game · Game type (Points / Pool, rules, multiplier) | 19 | 2 | 1 | 4 | 2 |  | 1 |  |  |  | 29 |  |
+| S10 | New game · Players picker / Add players to this game | 29 | 4 | 1 | 4 | 2 |  | 1 |  |  |  | 41 |  |
 | S11 | Fix initials (before Start) | 14 |  |  | 2 | 1 |  |  |  |  |  | 17 |  |
 | S12 | Add by initials | 21 | 6 |  | 6 | 3 |  | 1 |  |  |  | 37 |  |
 | S13 | Find in database | 18 |  |  | 4 | 3 |  |  |  |  |  | 25 |  |
-| S14 | Scorecard (Points / Pool) | 38 | 7 | 1 | 12 | 10 | 4 | 11 | 4 |  |  | 87 |  |
-| S15 | Enter Scores (Add round / Edit round) | 34 | 6 | 1 | 7 | 5 |  | 4 | 1 |  |  | 58 |  |
+| S14 | Scorecard (Points / Pool) | 40 | 7 | 1 | 14 | 10 | 4 | 11 | 4 |  |  | 91 |  |
+| S15 | Enter Scores (Add round / Edit round) | 36 | 6 | 1 | 8 | 5 |  | 7 | 1 |  |  | 64 |  |
 | S16 | Players · Admins | 34 | 7 | 1 | 5 | 4 |  |  |  |  |  | 51 |  |
 | S17 | Log (game log) | 14 |  |  | 4 | 3 |  | 2 | 1 |  |  | 24 |  |
-| S18 | Complete (game / pool) | 15 |  |  | 5 | 1 | 1 | 2 |  |  |  | 24 |  |
-| S19 | Awards (pool) | 14 | 1 |  | 3 | 1 |  | 1 |  |  |  | 20 |  |
-| S20 | Final scores (single game share) | 6 |  |  | 1 | 1 |  | 1 |  |  |  | 9 |  |
-| S21 | Results · pick games + Past results | 23 | 4 |  | 5 | 3 | 3 |  |  |  |  | 38 |  |
+| S19 | Awards (pool) | 15 | 1 |  | 3 | 1 |  | 1 |  |  |  | 21 |  |
+| S20 | Final screen (final scores / awards · Share + Done) | 7 |  |  | 2 | 1 |  | 1 |  |  |  | 11 |  |
+| S21 | Results · pick games + Past results | 24 | 4 |  | 4 | 3 | 3 |  |  |  |  | 38 |  |
 | S22 | Results · view (unsaved) | 18 | 2 |  | 3 | 2 |  |  |  |  |  | 25 |  |
-| S23 | Results · saved result | 24 | 3 |  | 4 | 3 |  |  |  |  |  | 34 |  |
+| S23 | Results · saved result | 24 | 3 |  | 5 | 3 |  |  |  |  |  | 35 |  |
 | S24 | Claim link landing (remembers token → sign up / Home) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
 | S25 | Web · live scorecard page | 10 | 11 |  |  |  |  |  |  |  |  | 21 |  |
 | S26 | Web · result page | 6 | 8 |  |  |  |  |  |  |  |  | 14 |  |
@@ -249,20 +247,20 @@ CSV twins in `csv/`. Red = no flow / no test.
 | P16 | Account created | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
 | P17 | Country picker (phone code) |  |  |  |  |  |  |  |  |  |  | 0 | <span style="color:#c62828">**GAP**</span> |
 | P18 | Scorecard ⋮ menu (Players · Admins, Seating, Edit round, Reopen, Log, Hide, Delete, Settings) | 4 | 1 |  | 3 | 2 | 1 | 3 | 1 |  |  | 15 |  |
-| P19 | Edit which round? | 2 | 2 |  |  | 1 |  |  |  |  |  | 5 |  |
+| P19 | Edit which round? | 2 | 2 |  | 1 | 1 |  |  |  |  |  | 6 |  |
 | P20 | Remove the last round? (Undo) | 2 | 3 | 1 | 2 | 1 | 2 | 1 |  |  |  | 12 |  |
 | P21 | Delete this game? | 1 |  |  | 2 |  | 1 |  |  |  |  | 4 |  |
 | P22 | Reopen this game? | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
 | P23 | Something went wrong (scorecard action error) |  |  |  |  |  |  | 6 | 1 |  |  | 7 |  |
-| P24 | Share sheet (picture · PDF · link) | 2 |  |  |  | 1 |  |  |  |  |  | 3 |  |
-| P25 | Seating order sheet | 1 |  |  | 2 | 1 |  |  |  |  |  | 4 |  |
-| P26 | Game settings (Full count, multiplier, pool rules) | 3 | 2 |  | 1 | 2 |  |  |  |  |  | 8 |  |
+| P24 | Share sheet (picture · PDF · link) | 3 |  |  | 1 | 1 |  |  |  |  |  | 5 |  |
+| P25 | Seating order sheet | 2 |  |  | 2 | 1 |  |  |  |  |  | 5 |  |
+| P26 | Game settings (Full count, multiplier, pool rules) | 4 | 2 |  | 1 | 2 |  |  |  |  |  | 9 |  |
 | P27 | Change the multiplier? / Large multiplier | 1 |  |  | 1 | 1 |  |  |  |  |  | 3 |  |
-| P28 | Exact points (multiplier totals) | 1 |  |  | 1 | 1 |  |  |  |  |  | 3 |  |
+| P28 | Exact points (multiplier totals) | 2 |  |  | 1 | 1 |  |  |  |  |  | 4 |  |
 | P29 | Link copied (scorecard) |  |  |  |  |  |  |  |  |  |  | 0 | <span style="color:#c62828">**GAP**</span> |
 | P30 | Help | 14 |  |  | 2 | 1 |  |  |  |  |  | 17 |  |
 | P31 | Over the Full count / Are you sure? (pool) | 1 |  |  | 1 | 1 |  | 1 |  |  |  | 4 |  |
-| P32 | Round saved (pool: out · eligible · re-enter) | 1 |  |  | 1 |  |  |  |  |  |  | 2 |  |
+| P32 | Round saved (pool: out · eligible · re-enter) | 3 |  |  | 1 |  |  |  |  |  |  | 4 |  |
 | P33 | Rummy share is not a win |  |  |  | 1 |  |  |  |  |  |  | 1 |  |
 | P34 | Round notice (Round N already saved · scorecard refreshed · view only) | 3 | 2 | 1 | 1 |  |  |  | 1 |  |  | 8 |  |
 | P35 | Enter Scores ⋮ menu (Game settings · Share live scorecard · Clear / Undo my changes · Help) | 2 |  |  |  |  |  |  |  |  |  | 2 |  |
@@ -270,17 +268,17 @@ CSV twins in `csv/`. Red = no flow / no test.
 | P37 | Remove from game (blocked: player has a score) | 3 | 1 |  |  |  |  |  |  |  |  | 4 |  |
 | P38 | Something went wrong (Players · Admins) | 9 |  |  |  |  |  |  |  |  |  | 9 |  |
 | P39 | Add non-playing admin (by Player ID) | 1 |  |  |  | 3 |  |  |  |  |  | 4 |  |
-| P40 | Complete this game? / Complete this pool? |  |  |  | 1 |  |  | 2 |  |  |  | 3 |  |
+| P40 | Complete this game? / Complete this pool? (Nov 18: one dialog; Fix round N first when a Points round is off) | 2 |  |  | 2 |  |  | 3 | 1 |  |  | 8 |  |
 | P41 | Could not complete |  |  |  |  |  |  | 1 |  |  |  | 1 |  |
 | P42 | Not all given out (save awards anyway?) | 1 |  |  | 1 |  |  |  |  |  |  | 2 |  |
 | P43 | Not for this pool | 1 |  |  | 1 |  |  |  |  |  |  | 2 |  |
 | P44 | Could not save awards | 1 | 1 |  |  |  |  | 1 |  |  |  | 3 |  |
-| P45 | Add a co-admin? | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
+| P45 | Add a co-admin? | 2 |  |  |  |  |  |  |  |  |  | 2 |  |
 | P46 | Can’t remove this player (picker) |  |  |  |  |  |  |  |  |  |  | 0 | <span style="color:#c62828">**GAP**</span> |
 | P47 | Large multiplier (Game type) |  |  |  |  | 1 |  |  |  |  |  | 1 |  |
 | P48 | Unsaved letters | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
 | P49 | Deselect games? | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
-| P50 | Give awards first | 1 | 1 |  | 1 |  |  |  |  |  |  | 3 |  |
+| P50 | Give awards first | 2 | 1 |  |  |  |  |  |  |  |  | 3 |  |
 | P51 | Not an admin (locked card) | 2 | 3 |  |  |  |  |  |  |  |  | 5 |  |
 | P52 | Results toast (Result deleted · UNDO / restored) | 1 | 1 |  | 1 | 1 |  |  |  |  |  | 4 |  |
 | P53 | Result saved (status changes) | 1 | 1 |  | 2 | 1 |  |  |  |  |  | 5 |  |
@@ -298,7 +296,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W05 | Link requests card (Yes / No) | 2 | 2 |  |  |  |  |  |  |  |  | 4 |  |
 | W06 | Claim requests card |  | 2 |  |  |  |  |  |  |  |  | 2 |  |
 | W07 | Empty states (no live games · no players · no results) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
-| W08 | Game status tag (Active · Completed · Closed · Deleted) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
+| W08 | Game status tag (Active · Completed · Closed · Deleted) |  |  |  |  |  |  |  |  |  |  | 0 | <span style="color:#c62828">**GAP**</span> |
 | W09 | Deleted game banner (Deleted by …, Ask to restore / Restore) | 2 |  |  |  |  | 1 |  |  |  |  | 3 |  |
 | W10 | Pool over hint (everyone out / limit reached) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
 | W11 | Multiplier chip + entered-points banner |  |  |  | 1 | 1 |  |  |  |  |  | 2 |  |
@@ -308,7 +306,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W15 | Initials format line / Change the letters to save | 2 |  |  |  | 1 |  |  |  |  |  | 3 |  |
 | W16 | Registration tags (Unregistered · Pending registration · Link pending) | 12 | 1 |  | 2 |  |  |  |  |  |  | 15 |  |
 | W17 | Can’t link yet (conflict names each game) | 1 | 2 |  |  |  |  |  |  |  |  | 3 |  |
-| W18 | Seating note / error (dealer, order unchanged) | 1 |  |  | 1 | 1 |  |  |  |  |  | 3 |  |
+| W18 | Seating note / error (dealer, order unchanged) |  |  |  | 1 | 1 |  |  |  |  |  | 2 |  |
 | W19 | Game settings error / locked note | 1 | 2 |  |  |  |  |  |  |  |  | 3 |  |
 | W20 | Awards hints (given out · winner warning · blocked) | 1 |  |  |  |  |  |  |  |  |  | 1 |  |
 | W21 | Results picker count + locked (non-admin) cards | 2 |  |  |  |  |  |  |  |  |  | 2 |  |
@@ -325,12 +323,12 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W32 | Final scores note + multiplier line | 2 |  |  |  |  |  |  |  |  |  | 2 |  |
 | W33 | Web result banners (deleted · edited after it was saved · older versions) | 5 | 8 |  |  |  |  |  |  |  |  | 13 |  |
 | W34 | Web scorecard Changes card | 10 | 3 |  |  |  |  |  |  |  |  | 13 |  |
-| W35 | Pool standings (OUT · re-entry eligible · re-entered · limit) | 2 |  |  | 2 |  |  |  |  |  |  | 4 |  |
-| W36 | Pool awards card (after complete) | 1 |  |  | 2 |  |  | 1 |  |  |  | 4 |  |
+| W35 | Pool standings (OUT · re-entry eligible · re-entered · limit) | 3 |  |  | 3 |  |  |  |  |  |  | 6 |  |
+| W36 | Pool awards card (after complete) | 2 |  |  | 2 |  |  |  |  |  |  | 4 |  |
 | W37 | Toast errors (formatSupabaseError) on every write | 3 |  |  |  |  |  |  |  |  |  | 3 |  |
 | W38 | Rummy / positive pot colours (yellow selected, green win, red penalty) | 7 |  |  |  |  |  |  |  |  |  | 7 |  |
 | W39 | Deleted game read-only (no Add round / Undo / Share) | 2 |  |  |  |  | 1 |  |  |  |  | 3 |  |
-| W40 | Role tags on Home cards (Creator · Admin · Player · View only) | 5 |  |  |  |  | 3 |  |  |  |  | 8 |  |
+| W40 | Role tags on Home cards (Creator · Admin · Player · View only) | 6 |  |  |  |  | 3 |  |  |  |  | 9 |  |
 
 ## d. Scenario → flow → requirement → screens → test file → last result
 
@@ -482,40 +480,44 @@ CSV twins in `csv/`. Red = no flow / no test.
 | F08-5 | happy | F08 | R20 R21 | S14 P18 P26 P27 W11 P28 S17 W19 S20 S23 | Final scores, share image, PDF and /r/ show the multiplied values | [`tests/final-scores.test.ts`](../../tests/final-scores.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F08-6 | happy | F08 | R20 R21 | S14 P18 P26 P27 W11 P28 S17 W19 S20 S23 | Log row "Multiplier changed ×1 → ×10" | [`supabase/tests/34_multiplier_043.sql`](../../supabase/tests/34_multiplier_043.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F08-6 | happy | F08 | R20 R21 | S14 P18 P26 P27 W11 P28 S17 W19 S20 S23 | Log row "Multiplier changed ×1 → ×10" | [`tests/multiplier-pr14.test.ts`](../../tests/multiplier-pr14.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F09-1 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Pool round: player crosses the limit → Round saved sheet says who is out → OUT chip | [`e2e/smoke/16-pool-game.yaml`](../../e2e/smoke/16-pool-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F09-1 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Pool round: player crosses the limit → Round saved sheet says who is out → OUT chip | [`tests/pool-pr13.test.ts`](../../tests/pool-pr13.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F09-1 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Pool round: player crosses the limit → Round saved sheet says who is out → OUT chip | [`supabase/tests/32_pool_041.sql`](../../supabase/tests/32_pool_041.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F09-2 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Re-enter (Unlimited) at the highest live total | [`e2e/smoke/16-pool-game.yaml`](../../e2e/smoke/16-pool-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F09-2 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Re-enter (Unlimited) at the highest live total | [`supabase/tests/33_pool_reentries_042.sql`](../../supabase/tests/33_pool_reentries_042.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F09-2 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Re-enter (Unlimited) at the highest live total | [`tests/pool-pr13.test.ts`](../../tests/pool-pr13.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F09-3 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Limited re-entries: N used → Re-enter gone, message (F3 fix) | [`supabase/tests/33_pool_reentries_042.sql`](../../supabase/tests/33_pool_reentries_042.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F09-3 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Limited re-entries: N used → Re-enter gone, message (F3 fix) | [`tests/test-findings-pr19.test.ts`](../../tests/test-findings-pr19.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F09-4 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Everyone out / one left → Complete offered; Give awards | [`e2e/chaos/c10-pool-everyone-out.yaml`](../../e2e/chaos/c10-pool-everyone-out.yaml) | chaos | [fail · non-blocking, PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F09-4 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Everyone out / one left → Complete offered; Give awards | [`supabase/tests/32_pool_041.sql`](../../supabase/tests/32_pool_041.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F09-5 | misuse | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Pool settings locked after round 1 (PT423); spectator cannot re-enter anyone | [`supabase/tests/33_pool_reentries_042.sql`](../../supabase/tests/33_pool_reentries_042.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F09-5 | misuse | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Pool settings locked after round 1 (PT423); spectator cannot re-enter anyone | [`e2e/roles/r02-spectator-pool.yaml`](../../e2e/roles/r02-spectator-pool.yaml) | roles | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F09-6 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | 20 players wide initials in the pool strip | [`e2e/smoke/17-pool-wide-initials-20p.yaml`](../../e2e/smoke/17-pool-wide-initials-20p.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F09-6 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | 20 players wide initials in the pool strip | [`tests/initials-fit.test.ts`](../../tests/initials-fit.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F09-7 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 S18 | Re-entry a second time after going out again (Unlimited) on the device | <span style="color:#c62828">**GAP**</span> |  |  |
-| F10-1 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Complete a Points game → Completed tag → Final scores | [`e2e/smoke/05-complete-game.yaml`](../../e2e/smoke/05-complete-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F10-1 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Complete a Points game → Completed tag → Final scores | [`tests/final-scores.test.ts`](../../tests/final-scores.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-1 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Complete a Points game → Completed tag → Final scores | [`supabase/tests/02_games_visibility.sql`](../../supabase/tests/02_games_visibility.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-2 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Complete a pool → Give awards → preset / custom → saved → card on scorecard | [`e2e/smoke/16-pool-game.yaml`](../../e2e/smoke/16-pool-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F10-2 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Complete a pool → Give awards → preset / custom → saved → card on scorecard | [`tests/pool-pr13.test.ts`](../../tests/pool-pr13.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-2 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Complete a pool → Give awards → preset / custom → saved → card on scorecard | [`supabase/tests/32_pool_041.sql`](../../supabase/tests/32_pool_041.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-3 | edge | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Not all given out → save anyway; preset not viable → Not for this pool | [`e2e/smoke/16-pool-game.yaml`](../../e2e/smoke/16-pool-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F10-3 | edge | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Not all given out → save anyway; preset not viable → Not for this pool | [`tests/pool-pr13.test.ts`](../../tests/pool-pr13.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-4 | edge | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Double Complete taps → one completion | [`e2e/chaos/c02-double-complete.yaml`](../../e2e/chaos/c02-double-complete.yaml) | chaos | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F10-5 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Pool without awards cannot join a result (Give awards first) | [`e2e/smoke/16-pool-game.yaml`](../../e2e/smoke/16-pool-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F10-5 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Pool without awards cannot join a result (Give awards first) | [`tests/pool-pr13.test.ts`](../../tests/pool-pr13.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-5 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Pool without awards cannot join a result (Give awards first) | [`supabase/tests/32_pool_041.sql`](../../supabase/tests/32_pool_041.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-6 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Reopen a Completed (not Closed) game as admin | [`tests/archive.test.ts`](../../tests/archive.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-6 | happy | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Reopen a Completed (not Closed) game as admin | [`supabase/tests/13_hide_delete_023.sql`](../../supabase/tests/13_hide_delete_023.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-7 | misuse | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Non-admin cannot complete or reopen | [`e2e/roles/r01-player-view-only.yaml`](../../e2e/roles/r01-player-view-only.yaml) | roles | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F10-7 | misuse | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Non-admin cannot complete or reopen | [`supabase/tests/02_games_visibility.sql`](../../supabase/tests/02_games_visibility.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-8 | edge | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Complete with 20 players: Standings fit (F6) | [`tests/test-findings-pr19.test.ts`](../../tests/test-findings-pr19.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
-| F10-8 | edge | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Complete with 20 players: Standings fit (F6) | [`e2e/smoke/17-pool-wide-initials-20p.yaml`](../../e2e/smoke/17-pool-wide-initials-20p.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F10-9 | edge | F10 | R25 R26 R27 | S14 S18 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 | Reopen dialog on the device | <span style="color:#c62828">**GAP**</span> |  |  |
+| F09-1 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Pool round: player crosses the limit → Round saved sheet says who is out → OUT chip | [`e2e/smoke/16-pool-game.yaml`](../../e2e/smoke/16-pool-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F09-1 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Pool round: player crosses the limit → Round saved sheet says who is out → OUT chip | [`tests/pool-pr13.test.ts`](../../tests/pool-pr13.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F09-1 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Pool round: player crosses the limit → Round saved sheet says who is out → OUT chip | [`supabase/tests/32_pool_041.sql`](../../supabase/tests/32_pool_041.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F09-2 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Re-enter (Unlimited) at the highest live total | [`e2e/smoke/16-pool-game.yaml`](../../e2e/smoke/16-pool-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F09-2 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Re-enter (Unlimited) at the highest live total | [`supabase/tests/33_pool_reentries_042.sql`](../../supabase/tests/33_pool_reentries_042.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F09-2 | happy | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Re-enter (Unlimited) at the highest live total | [`tests/pool-pr13.test.ts`](../../tests/pool-pr13.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F09-3 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Limited re-entries: N used → Re-enter gone, message (F3 fix) | [`supabase/tests/33_pool_reentries_042.sql`](../../supabase/tests/33_pool_reentries_042.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F09-3 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Limited re-entries: N used → Re-enter gone, message (F3 fix) | [`tests/test-findings-pr19.test.ts`](../../tests/test-findings-pr19.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F09-4 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Everyone out / one left → Complete offered; Give awards | [`e2e/chaos/c10-pool-everyone-out.yaml`](../../e2e/chaos/c10-pool-everyone-out.yaml) | chaos | [fail · non-blocking, PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F09-4 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Everyone out / one left → Complete offered; Give awards | [`supabase/tests/32_pool_041.sql`](../../supabase/tests/32_pool_041.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F09-5 | misuse | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Pool settings locked after round 1 (PT423); spectator cannot re-enter anyone | [`supabase/tests/33_pool_reentries_042.sql`](../../supabase/tests/33_pool_reentries_042.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F09-5 | misuse | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Pool settings locked after round 1 (PT423); spectator cannot re-enter anyone | [`e2e/roles/r02-spectator-pool.yaml`](../../e2e/roles/r02-spectator-pool.yaml) | roles | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F09-6 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | 20 players wide initials in the pool strip | [`e2e/smoke/17-pool-wide-initials-20p.yaml`](../../e2e/smoke/17-pool-wide-initials-20p.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F09-6 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | 20 players wide initials in the pool strip | [`tests/initials-fit.test.ts`](../../tests/initials-fit.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F09-7 | edge | F09 | R22 R23 R24 | S14 S15 P32 W35 W10 P31 W19 P40 | Re-entry a second time after going out again (Unlimited) on the device | <span style="color:#c62828">**GAP**</span> |  |  |
+| F10-1 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Complete a Points game → one dialog → Final screen (Share + Done) → Done = Home; header arrow = completed scorecard | [`e2e/smoke/05-complete-game.yaml`](../../e2e/smoke/05-complete-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F10-1 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Complete a Points game → one dialog → Final screen (Share + Done) → Done = Home; header arrow = completed scorecard | [`tests/final-scores.test.ts`](../../tests/final-scores.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-1 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Complete a Points game → one dialog → Final screen (Share + Done) → Done = Home; header arrow = completed scorecard | [`tests/nov18-end-flow.test.ts`](../../tests/nov18-end-flow.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-1 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Complete a Points game → one dialog → Final screen (Share + Done) → Done = Home; header arrow = completed scorecard | [`supabase/tests/02_games_visibility.sql`](../../supabase/tests/02_games_visibility.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-2 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Complete a pool → Awards (Not now / Save awards) → Final screen with the Awards card → Done = Home | [`e2e/smoke/16-pool-game.yaml`](../../e2e/smoke/16-pool-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F10-2 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Complete a pool → Awards (Not now / Save awards) → Final screen with the Awards card → Done = Home | [`tests/pool-pr13.test.ts`](../../tests/pool-pr13.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-2 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Complete a pool → Awards (Not now / Save awards) → Final screen with the Awards card → Done = Home | [`tests/nov18-end-flow.test.ts`](../../tests/nov18-end-flow.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-2 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Complete a pool → Awards (Not now / Save awards) → Final screen with the Awards card → Done = Home | [`supabase/tests/32_pool_041.sql`](../../supabase/tests/32_pool_041.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-3 | edge | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Not all given out → save anyway; preset not viable → Not for this pool | [`e2e/smoke/16-pool-game.yaml`](../../e2e/smoke/16-pool-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F10-3 | edge | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Not all given out → save anyway; preset not viable → Not for this pool | [`tests/pool-pr13.test.ts`](../../tests/pool-pr13.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-4 | edge | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Double Complete taps → one completion | [`e2e/chaos/c02-double-complete.yaml`](../../e2e/chaos/c02-double-complete.yaml) | chaos | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F10-5 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | A pool without awards is "Completed" (no nag); the Results picker says Give awards first when it is picked | [`tests/pool-pr13.test.ts`](../../tests/pool-pr13.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-5 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | A pool without awards is "Completed" (no nag); the Results picker says Give awards first when it is picked | [`tests/nov18-end-flow.test.ts`](../../tests/nov18-end-flow.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-5 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | A pool without awards is "Completed" (no nag); the Results picker says Give awards first when it is picked | [`supabase/tests/32_pool_041.sql`](../../supabase/tests/32_pool_041.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-10 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Full-details PDF carries the pool: limit, drops, pool scores, entries, put in, gets, awards, out rounds, re-entries, every round | [`tests/nov18-end-flow.test.ts`](../../tests/nov18-end-flow.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-11 | edge | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Points round does not add to 0 → "Fix round N first" → Edit round | [`tests/design-tokens.test.ts`](../../tests/design-tokens.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-6 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Reopen a Completed (not Closed) game as admin | [`tests/archive.test.ts`](../../tests/archive.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-6 | happy | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Reopen a Completed (not Closed) game as admin | [`supabase/tests/13_hide_delete_023.sql`](../../supabase/tests/13_hide_delete_023.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-7 | misuse | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Non-admin cannot complete or reopen | [`e2e/roles/r01-player-view-only.yaml`](../../e2e/roles/r01-player-view-only.yaml) | roles | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F10-7 | misuse | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Non-admin cannot complete or reopen | [`supabase/tests/02_games_visibility.sql`](../../supabase/tests/02_games_visibility.sql) | pgTAP | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-8 | edge | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Complete with 20 players: Standings fit (F6) | [`tests/test-findings-pr19.test.ts`](../../tests/test-findings-pr19.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F10-8 | edge | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Complete with 20 players: Standings fit (F6) | [`e2e/smoke/17-pool-wide-initials-20p.yaml`](../../e2e/smoke/17-pool-wide-initials-20p.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F10-9 | edge | F10 | R25 R26 R27 | S14 S15 P40 P41 S19 P42 P43 W20 W36 S20 S21 P50 P22 P44 W08 W32 S04 P24 | Reopen dialog on the device | <span style="color:#c62828">**GAP**</span> |  |  |
 | F11-1 | happy | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Share result picture → preview → OS sheet; generated-by initials | [`e2e/full/41-share-images.yaml`](../../e2e/full/41-share-images.yaml) | full | [fail · nightly Nov 15 on stale PR 19 branch](https://github.com/sreeatcandorps/RummyHome/actions/runs/43733029118) |
 | F11-1 | happy | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Share result picture → preview → OS sheet; generated-by initials | [`tests/results-design.test.ts`](../../tests/results-design.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F11-1 | happy | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Share result picture → preview → OS sheet; generated-by initials | [`tests/results-share-unsaved.test.ts`](../../tests/results-share-unsaved.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
@@ -533,8 +535,9 @@ CSV twins in `csv/`. Red = no flow / no test.
 | F11-6 | misuse | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Anon can call only the allow-listed RPCs | [`tests/security-033.test.ts`](../../tests/security-033.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F11-7 | edge | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Share before Save carries the "Not saved yet" banner on picture and PDF | [`tests/results-share-unsaved.test.ts`](../../tests/results-share-unsaved.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F11-7 | edge | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Share before Save carries the "Not saved yet" banner on picture and PDF | [`e2e/smoke/06-results.yaml`](../../e2e/smoke/06-results.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F11-8 | happy | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Final scores share (yellow sheet, Game N Final Scores) | [`e2e/smoke/05-complete-game.yaml`](../../e2e/smoke/05-complete-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
-| F11-8 | happy | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Final scores share (yellow sheet, Game N Final Scores) | [`tests/final-scores.test.ts`](../../tests/final-scores.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F11-8 | happy | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Final screen Share: the picture (final scores, or the awards for an awarded pool) or the full-details PDF; nothing else | [`e2e/smoke/05-complete-game.yaml`](../../e2e/smoke/05-complete-game.yaml) | smoke | [pass · PR run 9817239](https://github.com/sreeatcandorps/RummyHome/actions/runs/43729169240) |
+| F11-8 | happy | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Final screen Share: the picture (final scores, or the awards for an awarded pool) or the full-details PDF; nothing else | [`tests/final-scores.test.ts`](../../tests/final-scores.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
+| F11-8 | happy | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Final screen Share: the picture (final scores, or the awards for an awarded pool) or the full-details PDF; nothing else | [`tests/nov18-end-flow.test.ts`](../../tests/nov18-end-flow.test.ts) | unit | [pass · run 6a262d2](https://github.com/sreeatcandorps/RummyHome/actions/runs/43751679374) |
 | F11-9 | edge | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Email a scorecard (send-email kind scorecard) end to end | <span style="color:#c62828">**GAP**</span> |  |  |
 | F11-10 | edge | F11 | R28 R29 R30 | S14 S20 S23 P24 P58 P29 P35 S25 S26 W33 W34 E07 P55 S29 S31 S32 | Web pages in a real browser (Playwright) — /r/, scorecard.html, link.html, unsubscribe.html | <span style="color:#c62828">**GAP**</span> |  |  |
 | F12-1 | happy | F12 | R31 R32 R33 | S14 S16 P14 P39 P36 P37 P12 P09 P10 W16 W40 S04 P38 | Make a seated player admin → they can score | [`e2e/full/30-players-admins-and-settings.yaml`](../../e2e/full/30-players-admins-and-settings.yaml) | full | [pass · nightly Nov 15 (stale PR 19 branch)](https://github.com/sreeatcandorps/RummyHome/actions/runs/43733029118) |
@@ -659,20 +662,20 @@ CSV twins in `csv/`. Red = no flow / no test.
 | P16 | dialog | Account created | S02 | F01 | Sign-up succeeded | 1 |
 | P17 | menu | Country picker (phone code) | S02 | F01 | Country field tapped | 0 |
 | P18 | menu | Scorecard ⋮ menu (Players · Admins, Seating, Edit round, Reopen, Log, Hide, Delete, Settings) | S14 | F05 F07 F08 F13 | ⋮ in the scorecard header | 15 |
-| P19 | dialog | Edit which round? | S14 | F07 | ⋮ → Edit round | 5 |
+| P19 | dialog | Edit which round? | S14 | F07 | ⋮ → Edit round | 6 |
 | P20 | dialog | Remove the last round? (Undo) | S14 | F07 | Undo round tapped | 12 |
 | P21 | dialog | Delete this game? | S14 | F13 | ⋮ → Delete game (creator / admin) | 4 |
 | P22 | dialog | Reopen this game? | S14 | F10 | ⋮ → Reopen game (Completed, admin) | 1 |
 | P23 | dialog | Something went wrong (scorecard action error) | S14 | F13 | Hide / delete / restore / undo / reopen failed | 7 |
-| P24 | sheet | Share sheet (picture · PDF · link) | S14 S20 S23 | F11 | Share icon tapped | 3 |
-| P25 | sheet | Seating order sheet | S14 | F03 F05 | After Start (prompt) or ⋮ → Seating order | 4 |
-| P26 | dialog | Game settings (Full count, multiplier, pool rules) | S14 S15 | F08 | ⋮ → Game settings | 8 |
+| P24 | sheet | Share sheet (picture · PDF · link) | S14 S20 S23 | F10 F11 | Share icon tapped | 5 |
+| P25 | sheet | Seating order sheet | S14 | F03 F05 | After Start (prompt) or ⋮ → Seating order | 5 |
+| P26 | dialog | Game settings (Full count, multiplier, pool rules) | S14 S15 | F08 | ⋮ → Game settings | 9 |
 | P27 | dialog | Change the multiplier? / Large multiplier | S14 S15 | F08 | Multiplier changed when rounds exist, or ≥ ×1,000 | 3 |
-| P28 | sheet | Exact points (multiplier totals) | S14 | F08 | Multiplier chip → Exact points | 3 |
+| P28 | sheet | Exact points (multiplier totals) | S14 | F08 | Multiplier chip → Exact points | 4 |
 | P29 | toast | Link copied (scorecard) | S14 | F11 | Share → Copy link | 0 |
-| P30 | dialog | Help | S04 S05 S06 S07 S08 S09 S10 S11 S12 S13 S14 S15 S16 S17 S18 S19 S21 S22 S23 | F16 | ? in the header | 17 |
+| P30 | dialog | Help | S04 S05 S06 S07 S08 S09 S10 S11 S12 S13 S14 S15 S16 S17 S19 S21 S22 S23 | F16 | ? in the header | 17 |
 | P31 | dialog | Over the Full count / Are you sure? (pool) | S15 | F06 F09 | Typed value first passes the Full count (once per cell) | 4 |
-| P32 | dialog | Round saved (pool: out · eligible · re-enter) | S15 | F09 | Pool round saved with a change in who is out | 2 |
+| P32 | dialog | Round saved (pool: out · eligible · re-enter) | S15 | F09 | Pool round saved with a change in who is out | 4 |
 | P33 | dialog | Rummy share is not a win | S15 | F06 | Save with a Rummy share ≤ 0 | 1 |
 | P34 | dialog | Round notice (Round N already saved · scorecard refreshed · view only) | S15 | F06 F07 F14 | PT409 / 23505 conflict, dead game, no rights | 8 |
 | P35 | menu | Enter Scores ⋮ menu (Game settings · Share live scorecard · Clear / Undo my changes · Help) | S15 | F11 | ⋮ in Enter Scores | 2 |
@@ -680,12 +683,12 @@ CSV twins in `csv/`. Red = no flow / no test.
 | P37 | dialog | Remove from game (blocked: player has a score) | S16 | F12 | ⋮ → Remove player with a non-zero score | 4 |
 | P38 | dialog | Something went wrong (Players · Admins) | S16 | F12 | Admin toggle / name / remove failed | 9 |
 | P39 | dialog | Add non-playing admin (by Player ID) | S16 | F12 | Add non-playing admin button | 4 |
-| P40 | dialog | Complete this game? / Complete this pool? | S18 | F10 | Complete button | 3 |
-| P41 | dialog | Could not complete | S18 | F10 | complete RPC failed | 1 |
+| P40 | dialog | Complete this game? / Complete this pool? (Nov 18: one dialog; Fix round N first when a Points round is off) | S14 S15 | F09 F10 | Complete game on the scorecard, or Complete on the Round saved sheet | 8 |
+| P41 | dialog | Could not complete | S14 S15 | F10 | complete RPC failed | 1 |
 | P42 | dialog | Not all given out (save awards anyway?) | S19 | F10 | Save awards with pot left over | 2 |
 | P43 | dialog | Not for this pool | S19 | F10 | Preset does not fit the number of players | 2 |
 | P44 | dialog | Could not save awards | S19 | F10 | award RPC failed | 3 |
-| P45 | dialog | Add a co-admin? | S09 | F03 | Start game with a registered seated player and no co-admin | 1 |
+| P45 | dialog | Add a co-admin? | S09 | F03 | Start game with a registered seated player and no co-admin | 2 |
 | P46 | dialog | Can’t remove this player (picker) | S10 | F04 | × on a saved seat with scores (add mode) | 0 |
 | P47 | dialog | Large multiplier (Game type) | S09 | F03 | Start with multiplier ≥ ×1,000 | 1 |
 | P48 | dialog | Unsaved letters | S12 | F04 | Back with letters typed and not saved | 1 |
@@ -708,7 +711,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W05 | card | Link requests card (Yes / No) | S04 | F15 | Someone asked to link a seat to your Player ID | 4 |
 | W06 | card | Claim requests card | S04 | F15 | Open claim requests for your account | 2 |
 | W07 | empty | Empty states (no live games · no players · no results) | S04 S05 S21 | F04 | List has no rows | 1 |
-| W08 | tag | Game status tag (Active · Completed · Closed · Deleted) | S14 S18 | F10 | Always on the scorecard strip | 1 |
+| W08 | tag | Game status tag (Active · Completed · Closed · Deleted) | S14 | F10 | Always on the scorecard strip | 0 |
 | W09 | banner | Deleted game banner (Deleted by …, Ask to restore / Restore) | S14 | F13 | Opening a deleted game from Deleted games | 3 |
 | W10 | inline | Pool over hint (everyone out / limit reached) | S14 | F09 | Pool cannot continue | 1 |
 | W11 | chip | Multiplier chip + entered-points banner | S14 | F08 | Game multiplier ≠ ×1 | 2 |
@@ -718,7 +721,7 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W15 | inline | Initials format line / Change the letters to save | S05 S06 S12 S13 S16 | F02 F04 | Initials invalid or unchanged | 3 |
 | W16 | tag | Registration tags (Unregistered · Pending registration · Link pending) | S05 S10 S16 | F04 F12 | Player not registered / invite or link open | 15 |
 | W17 | inline | Can’t link yet (conflict names each game) | S05 S16 | F04 | Target account already plays in a game with this seat | 3 |
-| W18 | inline | Seating note / error (dealer, order unchanged) | S14 | F05 | Seating sheet open | 3 |
+| W18 | inline | Seating note / error (dealer, order unchanged) | S14 | F05 | Seating sheet open | 2 |
 | W19 | inline | Game settings error / locked note | S14 S15 | F08 F09 | Invalid value or pool locked after round 1 | 3 |
 | W20 | inline | Awards hints (given out · winner warning · blocked) | S19 | F10 | Awards sheet totals | 1 |
 | W21 | inline | Results picker count + locked (non-admin) cards | S21 | F17 | Games ticked / game you do not run | 2 |
@@ -735,9 +738,9 @@ CSV twins in `csv/`. Red = no flow / no test.
 | W32 | inline | Final scores note + multiplier line | S20 | F10 | Final scores screen | 2 |
 | W33 | web | Web result banners (deleted · edited after it was saved · older versions) | S26 | F11 | Result deleted or has versions | 13 |
 | W34 | web | Web scorecard Changes card | S25 | F11 | Important log rows exist | 13 |
-| W35 | inline | Pool standings (OUT · re-entry eligible · re-entered · limit) | S14 | F09 | Pool game | 4 |
-| W36 | card | Pool awards card (after complete) | S14 S18 | F10 | Completed pool | 4 |
+| W35 | inline | Pool standings (OUT · re-entry eligible · re-entered · limit) | S14 | F09 | Pool game | 6 |
+| W36 | card | Pool awards card (after complete) | S14 | F10 | Completed pool | 4 |
 | W37 | inline | Toast errors (formatSupabaseError) on every write | S04 S05 S06 S14 S15 S16 S21 S23 | F14 | Any server write fails | 3 |
 | W38 | inline | Rummy / positive pot colours (yellow selected, green win, red penalty) | S15 S14 | F06 | Typed or saved values | 7 |
 | W39 | inline | Deleted game read-only (no Add round / Undo / Share) | S14 | F13 | Game deleted | 3 |
-| W40 | tag | Role tags on Home cards (Creator · Admin · Player · View only) | S04 S21 | F12 | Always | 8 |
+| W40 | tag | Role tags on Home cards (Creator · Admin · Player · View only) | S04 S21 | F12 | Always | 9 |

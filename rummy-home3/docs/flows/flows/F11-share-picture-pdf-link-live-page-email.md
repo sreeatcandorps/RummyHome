@@ -8,7 +8,7 @@ Requirements: R28, R29, R30 · Screens / pop-ups / warnings in this flow: 16 · 
 %%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
 flowchart TD
   s14["S14 Scorecard (Points / Pool)"]:::screen
-  s20["S20 Final scores (single game share)"]:::screen
+  s20["S20 Final screen (final scores / awards · Share + Done)"]:::screen
   s23["S23 Results · saved result"]:::screen
   p24(["P24 Share sheet (picture · PDF · link)"]):::popup
   p58(["P58 Share results preview (picture)"]):::popup
@@ -28,7 +28,7 @@ flowchart TD
   os("OS share sheet"):::step
   marker("Shared-from-this-phone marker stored"):::step
   s14 -->|"share icon"| p24
-  s20 --> p24
+  s20 -->|"Share (picture · full PDF only)"| p24
   s23 --> p24
   s14 -->|"Enter Scores ⋮ → Share live scorecard"| p35
   p35 --> p24
@@ -71,7 +71,7 @@ flowchart TD
 | F11-5 | edge | Deleted / edited result → /r/ banner and version links | [`pgTAP/24_results_design_034.sql`](../../../supabase/tests/24_results_design_034.sql) · [`pgTAP/30_results_delete.sql`](../../../supabase/tests/30_results_delete.sql) |
 | F11-6 | misuse | Anon can call only the allow-listed RPCs | [`pgTAP/23_security_033.sql`](../../../supabase/tests/23_security_033.sql) · [`security-033.test.ts`](../../../tests/security-033.test.ts) |
 | F11-7 | edge | Share before Save carries the "Not saved yet" banner on picture and PDF | [`results-share-unsaved.test.ts`](../../../tests/results-share-unsaved.test.ts) · [`smoke/06-results.yaml`](../../../e2e/smoke/06-results.yaml) |
-| F11-8 | happy | Final scores share (yellow sheet, Game N Final Scores) | [`smoke/05-complete-game.yaml`](../../../e2e/smoke/05-complete-game.yaml) · [`final-scores.test.ts`](../../../tests/final-scores.test.ts) |
+| F11-8 | happy | Final screen Share: the picture (final scores, or the awards for an awarded pool) or the full-details PDF; nothing else | [`smoke/05-complete-game.yaml`](../../../e2e/smoke/05-complete-game.yaml) · [`final-scores.test.ts`](../../../tests/final-scores.test.ts) · [`nov18-end-flow.test.ts`](../../../tests/nov18-end-flow.test.ts) |
 | F11-9 | edge | Email a scorecard (send-email kind scorecard) end to end | <span style="color:#c62828">**GAP**</span> |
 | F11-10 | edge | Web pages in a real browser (Playwright) — /r/, scorecard.html, link.html, unsubscribe.html | <span style="color:#c62828">**GAP**</span> |
 
@@ -79,10 +79,10 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
-| S20 | Final scores (single game share) | `app/(screens)/games/final-scores.tsx` | 9 |
-| S23 | Results · saved result | `app/(screens)/results/[id].tsx` | 34 |
-| P24 | Share sheet (picture · PDF · link) | `components/share/ShareSheet.tsx` | 3 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 91 |
+| S20 | Final screen (final scores / awards · Share + Done) | `app/(screens)/games/final-scores.tsx` | 11 |
+| S23 | Results · saved result | `app/(screens)/results/[id].tsx` | 35 |
+| P24 | Share sheet (picture · PDF · link) | `components/share/ShareSheet.tsx` | 5 |
 | P58 | Share results preview (picture) | `components/share/ShareImageDialog.tsx` | 2 |
 | P29 | Link copied (scorecard) | `app/(screens)/games/[id].tsx` | <span style="color:#c62828">**GAP**</span> |
 | P35 | Enter Scores ⋮ menu (Game settings · Share live scorecard · Clear / Undo my changes · Help) | `app/(screens)/score-entry.tsx` | 2 |

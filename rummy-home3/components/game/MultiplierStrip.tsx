@@ -86,7 +86,8 @@ export function ExactPointsSheet({ visible, multiplier, lines, sum, shortened, o
         </Dialog.Content>
         <Dialog.Actions>
           {onSharePdf ? <Button icon="file-pdf-box" onPress={onSharePdf}>Share full details</Button> : null}
-          <Button mode="contained" onPress={onDismiss}>Done</Button>
+          {/* A05 / Nov 18: an info sheet closes with Close; Done is only for ending a game. */}
+          <Button mode="contained" onPress={onDismiss}>Close</Button>
         </Dialog.Actions>
       </Dialog>
     </Portal>

@@ -234,10 +234,14 @@ export function afterRound(before: Pick<Game, 'players' | 'poolSeats'>, after: P
   };
 }
 
-/** Pool status words on the scorecard and the home cards (F13.11). */
-export function poolStatusLabel(game: Pick<Game, 'gameType' | 'isComplete' | 'closedAt' | 'awardedAt'>): 'Awards pending' | 'Awarded' | null {
+/**
+ * Pool status words on the scorecard and the home cards (F13.11; Nov 18): "Awarded" once the awards
+ * are given, otherwise null — a completed pool without awards is just "Completed". The Results picker
+ * says "Give awards first" when such a pool is picked; nothing nags before that.
+ */
+export function poolStatusLabel(game: Pick<Game, 'gameType' | 'isComplete' | 'closedAt' | 'awardedAt'>): 'Awarded' | null {
   if (!isPoolGame(game) || !game.isComplete) return null;
-  return game.awardedAt ? 'Awarded' : 'Awards pending';
+  return game.awardedAt ? 'Awarded' : null;
 }
 
 export const GIVE_AWARDS_FIRST = 'Give awards first';

@@ -35,6 +35,15 @@ export function selectedCountLine(count: number): string {
   return count === 1 ? '1 game selected' : `${count} games selected`;
 }
 
+/** The picker's button (Nov 18): "Show results · 1 game" makes a one-game result an obvious, deliberate choice. */
+export function showResultsLabel(count: number): string {
+  if (count <= 0) return 'Show results';
+  return `Show results · ${count === 1 ? '1 game' : `${count} games`}`;
+}
+
+/** Under the button when exactly one game is picked: a result of one game is allowed, just unusual. */
+export const ONE_GAME_RESULT_NOTE = 'A result of one game. Pick more games to add them up.';
+
 const gName = (game: LabelledGame) => gameLabelOf(game) ?? 'a game';
 
 export function listNames(games: LabelledGame[]): string {

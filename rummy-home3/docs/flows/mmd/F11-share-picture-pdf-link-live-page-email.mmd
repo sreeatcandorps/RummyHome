@@ -1,7 +1,7 @@
 %%{init: {"flowchart": {"wrappingWidth": 230, "nodeSpacing": 30, "rankSpacing": 40}, "themeVariables": {"fontSize": "14px"}}}%%
 flowchart TD
   s14["S14 Scorecard (Points / Pool)"]:::screen
-  s20["S20 Final scores (single game share)"]:::screen
+  s20["S20 Final screen (final scores / awards · Share + Done)"]:::screen
   s23["S23 Results · saved result"]:::screen
   p24(["P24 Share sheet (picture · PDF · link)"]):::popup
   p58(["P58 Share results preview (picture)"]):::popup
@@ -21,7 +21,7 @@ flowchart TD
   os("OS share sheet"):::step
   marker("Shared-from-this-phone marker stored"):::step
   s14 -->|"share icon"| p24
-  s20 --> p24
+  s20 -->|"Share (picture · full PDF only)"| p24
   s23 --> p24
   s14 -->|"Enter Scores ⋮ → Share live scorecard"| p35
   p35 --> p24

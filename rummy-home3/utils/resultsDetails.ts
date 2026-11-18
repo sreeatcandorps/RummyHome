@@ -129,11 +129,19 @@ export function chunkBy<T>(items: T[], size: number): T[][] {
  * across the whole result (first appearance order) so the same person reads the same in
  * every table; pass them in when there are several games.
  */
+export type RoundCellText = {
+  /** Pool (Nov 18 PDF): plain numbers, "101 out" on the out round, "↺106" on the re-entry round, "—" before it. */
+  cell?: (playerId: string, roundIndex: number, value: number | null | undefined) => string;
+  /** Pool: "52" or "101 out" instead of the signed Points total. */
+  total?: (playerId: string, total: number) => string;
+};
+
 export function buildRoundTable(
   game: ResultsDetailGame,
   index: number,
   players: DesignPlayer[],
   labels: Map<string, string> = initialsById(firstAppearanceOrder(players, [game])),
+  text: RoundCellText = {},
 ): ResultsRoundTable {
   const seated = playersByFirstName(players.filter((player) => Object.prototype.hasOwnProperty.call(game.scores, player.id)));
   const names = seated.map((player) => player.name);
@@ -143,13 +151,14 @@ export function buildRoundTable(
   const roundCount = rounds ? seated.reduce((max, player) => Math.max(max, rounds[player.id]?.length ?? 0), 0) : 0;
   const cellAt = (playerId: string, roundIndex: number) => {
     const value = rounds?.[playerId]?.[roundIndex];
+    if (text.cell) return text.cell(playerId, roundIndex, value);
     return value == null ? '—' : formatPoints(value);
   };
   const rows = Array.from({ length: roundCount }, (_, roundIndex) => ({
     round: roundIndex + 1,
     cells: seated.map((player) => cellAt(player.id, roundIndex)),
   }));
-  const totals = seated.map((player) => formatPoints(game.scores[player.id] ?? 0));
+  const totals = seated.map((player) => (text.total ? text.total(player.id, game.scores[player.id] ?? 0) : formatPoints(game.scores[player.id] ?? 0)));
   const blockSize = pdfBlockSize(widestChars([...totals, ...rows.flatMap((row) => row.cells)]));
   const blocks: RoundBlock[] = chunkBy(seated.map((player, position) => ({ player, position })), blockSize).map((block) => ({
     heads: block.map(({ player, position }) => ({ initials: initials[position], playerNo: player.playerNo ?? null, total: totals[position] })),
@@ -481,21 +490,49 @@ export const UNIQUE_GAME_ID_LABEL = 'Unique game ID';
  * final-scores screen), in the game's marigold tone. The Game ID is printed once, at the
  * foot, with the short label ("Game S10 · Unique game ID · EJMEYV").
  */
-export function roundsPdfHtml(input: { heading: string; lines: string[]; table: ResultsRoundTable; footer: string; iconDataUri?: string | null }): string {
+/** A block of the single-game PDF above the rounds (Nov 18): a heading, lines, and/or a small table. */
+export type PdfSection = {
+  title: string;
+  lines?: string[];
+  table?: { heads: string[]; rows: string[][] };
+};
+
+const DETAIL_CSS = `
+  table.det { border-collapse: collapse; width: 100%; margin: 4px 0 6px; font-size: 14px; }
+  table.det th, table.det td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  table.det th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; }
+  table.det th:first-child, table.det td:first-child { text-align: left; white-space: normal; }
+  table.det td:first-child { font-weight: 600; }
+  table.det tr:last-child td { border-bottom: 0; }
+  table.det { page-break-inside: avoid; break-inside: avoid; }
+`;
+
+export function pdfSectionHtml(section: PdfSection): string {
+  const lines = (section.lines ?? []).map((line) => `<p class="meta">${escapeHtml(line)}</p>`).join('');
+  const table = section.table
+    ? `<table class="det"><thead><tr>${section.table.heads.map((head) => `<th>${escapeHtml(head)}</th>`).join('')}</tr></thead>`
+      + `<tbody>${section.table.rows.map((row) => `<tr>${row.map((cell) => `<td class="${pointsClass(cell)}">${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+    : '';
+  return `<div class="section"><h2>${escapeHtml(section.title)}</h2>${lines}${table}</div>`;
+}
+
+export function roundsPdfHtml(input: { heading: string; lines: string[]; sections?: PdfSection[]; table: ResultsRoundTable; footer: string; iconDataUri?: string | null }): string {
   const lines = input.lines.map((line) => `<p class="meta">${escapeHtml(line)}</p>`).join('');
+  const sections = (input.sections ?? []).map(pdfSectionHtml).join('');
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(input.heading)}</title>
-<style>${designCss('game')}${PDF_PAGE_CSS}</style>
+<style>${designCss('game')}${PDF_PAGE_CSS}${DETAIL_CSS}</style>
 </head>
 <body>
 <div class="doc">
   ${brandHtml(input.iconDataUri)}
   <h1>${escapeHtml(input.heading)}</h1>
   ${lines}
+  ${sections}
   <div class="section"><h2>Round by round</h2>${roundTableHtml(input.table, { gameIdInHeading: false })}</div>
   <p class="footer">${escapeHtml(input.footer)} · ${UNIQUE_GAME_ID_LABEL} · ${escapeHtml(input.table.code)}</p>
 </div>

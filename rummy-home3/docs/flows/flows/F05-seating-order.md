@@ -54,8 +54,8 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
-| P25 | Seating order sheet | `components/game/SeatingSheet.tsx` | 4 |
-| W18 | Seating note / error (dealer, order unchanged) | `components/game/SeatingSheet.tsx` | 3 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 91 |
+| P25 | Seating order sheet | `components/game/SeatingSheet.tsx` | 5 |
+| W18 | Seating note / error (dealer, order unchanged) | `components/game/SeatingSheet.tsx` | 2 |
 | P18 | Scorecard ⋮ menu (Players · Admins, Seating, Edit round, Reopen, Log, Hide, Delete, Settings) | `app/(screens)/games/[id].tsx` | 15 |
 | S17 | Log (game log) | `app/(screens)/games/log.tsx` | 24 |

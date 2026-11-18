@@ -192,8 +192,11 @@ screens. Callout positions are indicative.
 - **Q11.11 (F11.3) One Share… item** with a three-line sheet (recommended; PR 15) vs two items as today — **built in Design audit 15b (A04): the header share icon opens the sheet**.
 - **Q11.12 (F11.4) "Game settings · locked"** on the menu item once rounds exist (recommended; small, could ride with PR 11).
 - **Q11.13 (F11.5) Complete done-state** shows the card preview and a single "Final scores & share" button; share buttons
-  only on Final scores (recommended; PR 15). Keep as is if you like the shortcut.
+  only on Final scores (recommended; PR 15). Keep as is if you like the shortcut. **Superseded Nov 18:** the Complete
+  page is deleted; Complete is one dialog on the scorecard and goes straight to the Final screen (Share + Done).
 - **Q11.14 (F11.6) Awards primary button "Add to Results"** after save (recommended; tiny change to PR 13's screen).
+  **Reversed Nov 18 (Sree):** no Results button anywhere in the end flow; Awards ends with Not now / Save awards and
+  goes on to the Final screen. Results is its own errand from Home.
 - **Q11.15 (F11.7) Hidden & deleted** also reachable from Home › Recent footer (recommended) — or leave under Settings.
 - **Q11.16 (F11.8) "Me" + "Settings"**, drop "User settings" (recommended; copy-only).
 - **Q11.17 (F11.9) Players · Admins** keep the ⋮ (help lists it in order) now; player sheet later (recommended).

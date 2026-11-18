@@ -83,7 +83,7 @@ export const HELP = {
   ),
   share: bullets(
     'Anyone with the live link can watch rounds and totals without the app or an account.',
-    'Share final scores appears once the game is complete: a yellow picture of this game’s totals and every round, shown to you before the share sheet opens.',
+    'Share on the Final screen, once the game is complete: a yellow picture of this game’s scores (or the awards), or the full details as a PDF with every round.',
   ),
   scoreEntry: bullets(
     'Tap one or more players, then type a number or tap Drop, Middle drop, or Full count. Everyone you tapped gets it.',
@@ -102,13 +102,9 @@ export const HELP = {
   awards: bullets(
     'The pool is worth one entry per entry made (a re-entry counts twice). Tap a preset to see who gets what; players are sorted by points left.',
     'Winner takes all · By points left · 50/50 · Entry per drop left · Custom (type each player’s share).',
-    'Award = what a player gets minus their entries. The awards are what this pool adds to Results.',
+    'Award = what a player gets minus their entries. The awards are what this pool counts for if it is ever added to Results.',
     'Save works even when the pool is not fully given out; the app asks “Save awards anyway?” first. Awards can be edited until the pool is in a saved result.',
-  ),
-  complete: bullets(
-    'Completing the game locks the scores. In a Points game every round must add to 0 first.',
-    'A Points game can then be picked for Results. A pool goes on to Awards; it can be picked for Results once the awards are given.',
-    'Pressed too early? Reopen it from the scorecard ⋮ menu until it is added to Results.',
+    'Not now leaves the pool Completed without awards. Give them later from the scorecard; Results asks for them first.',
   ),
   settle: bullets('Finished games stay on Home under Recent.'),
   players: bullets(

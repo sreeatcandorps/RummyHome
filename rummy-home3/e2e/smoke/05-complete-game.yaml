@@ -1,8 +1,9 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
-# Complete game A from the scorecard: the Complete screen, the confirm, the Completed state.
-# Runs after 04-add-round so the game has three rounds. Game A is then a Completed game sree runs,
-# which 06-results relies on.
+# Complete game A from the scorecard (Nov 18 end flow): Complete is one dialog on the scorecard, the
+# confirm goes straight to the Final screen (Share + Done; Done goes Home), the header arrow returns to
+# the completed scorecard. Runs after 04-add-round so the game has three rounds. Game A is then a
+# Completed game sree runs, which 06-results relies on.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - scrollUntilVisible:
@@ -17,39 +18,52 @@ tags: [smoke]
     timeout: 15000
 - tapOn: "Complete game"
 - extendedWaitUntil:
-    visible: "Game admins"
-    timeout: 15000
-- takeScreenshot: 05-complete-screen
-- tapOn: "Complete game"
-- extendedWaitUntil:
-    visible: "Confirm complete game"
+    visible: "Complete this game?"
     timeout: 5000
+- assertVisible: "3 rounds will be locked. Every round adds to 0. You can reopen the game later from the ⋮ menu."
+- assertNotVisible: "Results"
 - takeScreenshot: 05b-complete-confirm
 - tapOn: "Confirm complete game"
-- extendedWaitUntil:
-    visible: "Share final scores"
-    timeout: 20000
-- assertVisible: "Go to Results"
-- takeScreenshot: 05c-completed
-# PR 8 / PR 10b: the Final scores screen shows the standings card (the shared picture, marigold frame)
-# and the rounds in blocks of five players with the game total on top. Buttons: Share full details
-# (PDF) and Share final scores (image); the header arrow is the only Back; title "Final scores · S…".
-- tapOn: "Share final scores"
+# PR 8 / PR 10b / Nov 18: the Final screen shows the standings card (the shared picture, marigold frame)
+# and the rounds in blocks of five players with the game total on top. Bar: Share (picture or full PDF
+# from one sheet) + Done; the header arrow is the only Back; title "Final scores · S…"; no Results.
 - extendedWaitUntil:
     visible: "Round by round"
-    timeout: 15000
+    timeout: 20000
 - assertVisible: "Final scores · .*"
 - assertVisible:
     id: "final-scores-rounds"
 - assertVisible:
-    id: "share-rounds"
-- assertVisible: "Share full details"
+    id: "final-share"
+- assertVisible:
+    id: "final-done"
+- assertNotVisible: "Results"
+- takeScreenshot: 05c-final-screen
+- tapOn:
+    id: "final-share"
+- extendedWaitUntil:
+    visible: "Share full details"
+    timeout: 5000
 - assertVisible:
     id: "share-final-scores"
-# No in-page Back button (the header arrow is the only way back). Not asserted as text: the
-# emulator's system navigation bar also exposes a "Back" button to Maestro; the screenshot shows it.
-- takeScreenshot: 05d-final-scores
+- assertVisible:
+    id: "share-rounds"
+- takeScreenshot: 05d-final-share-sheet
+- tapOn: "Close"
+# The header arrow goes back to the completed scorecard (Done would go Home).
 - back
 - extendedWaitUntil:
-    visible: "Go to Results"
-    timeout: 10000
+    visible: "Scorecard( · .*)?"
+    timeout: 15000
+- assertVisible: "Completed"
+- assertNotVisible: "Complete game"
+- takeScreenshot: 05e-completed-scorecard
+# The completed scorecard shares from the header icon: live link + final scores (picture or PDF).
+- tapOn:
+    id: "scorecard-share-icon"
+- extendedWaitUntil:
+    visible:
+      id: "share-final-scores-option"
+    timeout: 5000
+- assertVisible: "Share final scores"
+- tapOn: "Close"

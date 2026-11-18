@@ -75,8 +75,8 @@ flowchart TD
 
 | ID | Name | File | Tests touching it |
 | --- | --- | --- | --- |
-| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 87 |
-| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 58 |
+| S14 | Scorecard (Points / Pool) | `app/(screens)/games/[id].tsx` | 91 |
+| S15 | Enter Scores (Add round / Edit round) | `app/(screens)/score-entry.tsx` | 64 |
 | W12 | Count warning line (half / Full count) | `app/(screens)/score-entry.tsx` | 2 |
 | W13 | Balance pill (Save off until 0) | `app/(screens)/score-entry.tsx` | 8 |
 | P31 | Over the Full count / Are you sure? (pool) | `app/(screens)/score-entry.tsx` | 4 |
