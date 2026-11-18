@@ -8,7 +8,6 @@ import { PoolStanding } from '@/utils/pool';
 export type PoolStandingRow = PoolStanding & {
   name: string;
   label: string;
-  number?: number | null;
   /** Null when the player may re-enter now; otherwise why not (shown as a hint). */
   reentryHint: string | null;
   canReenter: boolean;
@@ -69,7 +68,6 @@ export function PoolStandings({ rows, limit, compact = false, onReenter, busyId,
             <View style={[styles.name, styles.nameCell]}>
               <Text style={[styles.label, { color: r.reentered ? colors.reentry : colors.onSurface }]}>{r.label}</Text>
               <Text variant="bodyMedium" numberOfLines={1} style={[styles.flex, { color: colors.onSurface }]}>{r.name}</Text>
-              {r.number != null ? <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{`#${r.number}`}</Text> : null}
               {leader ? <Icon source="crown" size={14} color={colors.leader} /> : null}
               {r.reentered ? <Icon source="restore" size={14} color={colors.reentry} /> : null}
             </View>

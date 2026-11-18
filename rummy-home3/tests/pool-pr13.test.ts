@@ -472,13 +472,16 @@ test('13.8c Add round screen: the pool keeps one confirm ("Are you sure?") and d
 
 // ---------- Scorecard (13.9) ----------
 
-test('13.9 scorecard: header shows number / initials / score, OUT struck through, re-entered blue; Standings below; settings lock after a round', () => {
+test('13.9 scorecard: header shows initials / score (no player number since Nov 18), OUT struck through, re-entered blue; Standings below; settings lock after a round', () => {
   const table = src('components/game/ScoreTable.tsx');
-  assert.match(table, /number\?: number \| null/);
+  // Sree, Nov 18: the #number line is gone from the pool header and from Standings; Points and Pool read alike.
+  assert.doesNotMatch(table, /number\?: number \| null/, 'ScoreColumn has no number field');
+  assert.doesNotMatch(table, /headerNumber/, 'no #number line in the header');
   assert.match(table, /reentered \? colors\.reentry/);
   assert.match(table, /OUT R/);
   const scorecard = src('app/(screens)/games/[id].tsx');
-  assert.match(scorecard, /number: player\.playerNo \?\? null/, 'the public player number, no new column');
+  assert.doesNotMatch(scorecard, /number: player\??\.playerNo \?\? null/, 'the scorecard passes no player number');
+  assert.doesNotMatch(src('components/game/PoolStandings.tsx'), /#\$\{r\.number\}/, 'Standings rows carry no #number');
   assert.match(scorecard, /<PoolStandings\s+rows=\{poolRows\}/);
   assert.match(scorecard, /onReenter=\{game\.isComplete \|\| deleted \? undefined : reenter\}/); // PR 20: read-only when deleted
   assert.match(scorecard, /lockValues=\{pool && maxRounds > 0\}/);

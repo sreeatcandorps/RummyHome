@@ -436,8 +436,8 @@ export default function GameScreen() {
       id: player.id,
       label: initialsFor(player.id),
       color: colorFor(player.id),
-      // Pool header (D5): player number, initials, score; OUT and re-entry marks.
-      ...(seat ? { number: player.playerNo ?? null, outRound: seat.outRound, reenteredRound: seat.reenteredRound, reentryScore: seat.reentryScore } : {}),
+      // Pool header: initials and score like Points (no player number, Sree Nov 18); OUT and re-entry marks.
+      ...(seat ? { outRound: seat.outRound, reenteredRound: seat.reenteredRound, reentryScore: seat.reentryScore } : {}),
     };
   });
 
@@ -449,7 +449,6 @@ export default function GameScreen() {
           ...row,
           name: player?.name ?? '?',
           label: initialsFor(row.playerId),
-          number: player?.playerNo ?? null,
           canReenter: block === null && canScoreNow,
           reentryHint: block && block !== 'in' ? REENTRY_BLOCK_TEXT[block] : null,
         };

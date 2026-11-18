@@ -268,7 +268,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     needToKnow: [
       '[View only] means you can watch but not change scores. Admins see **Add round**, **Undo** and **Complete**.',
       'Totals sit in the header next to each name. With a multiplier, big numbers read short (8K, 1.2M); the **×N** chip opens the exact points.',
-      'Pool: the header reads like a Points header, one small line taller for the player number; out is struck through. A re-entered player shows the re-entry score with ↺ in that round, and their cells above it turn grey. **Standings** below show points and drops left.',
+      'Pool: the header reads like a Points header (initials and score; Player IDs live on **My players** and **Players · Admins**); out is struck through. A re-entered player shows the re-entry score with ↺ in that round, and their cells above it turn grey. **Standings** below show points and drops left.',
       '**Order of players**: set before Start by tapping players in seating order. Seat 1 deals first and the deal goes round by seat. Admins change the order any time from ⋮; played rounds keep their dealer.',
       '**Undo** asks before removing the last round. **Complete** shows the final totals and asks once more before locking.',
     ],
