@@ -23,6 +23,7 @@ import { LinkRequestOutcome } from '@/utils/linkPlayer';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
+import { InfoTip } from '@/components/ui/InfoTip';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { InitialsDialog } from '@/components/players/InitialsDialog';
@@ -52,6 +53,9 @@ type Sheet =
  * Adding happens on the picker screen; Remove from game is confirmed first and works only
  * while every round score the player has is 0.
  */
+/** Mini help (PR 11) beside Playing, for admins. */
+export const PLAYING_TIP = ['A player added now gets 0 for every round already played.', '**Remove from game** (in a row\u2019s ⋮ menu) works only while every round score they have is 0.', 'Each row\u2019s ⋮ also has Invite, Link, Edit initials, Edit name and Make admin.'];
+
 export default function GamePlayersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -183,7 +187,10 @@ export default function GamePlayersScreen() {
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: screenTitle(PLAYERS_ADMINS_TITLE, game), headerRight: () => <HelpButton topic="players-admins" /> }} />
       <ScrollView contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}>
-        <Text variant="titleSmall" style={styles.section}>Playing · {playing.length}</Text>
+        <View style={[styles.section, styles.sectionRow]}>
+          <Text variant="titleSmall">Playing · {playing.length}</Text>
+          {canScore ? <InfoTip title="Playing" text={PLAYING_TIP} topic="players-admins" testID="players-playing-tip" /> : null}
+        </View>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
           {playing.map((seat, index) => row(seat, index, playing))}
         </View>
@@ -202,11 +209,6 @@ export default function GamePlayersScreen() {
               {watching.map((seat, index) => row(seat, playing.length + unseated.length + index, watching))}
             </View>
           </>
-        ) : null}
-        {canScore ? (
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            A player added now gets 0 for every round already played. Remove from game (in a row's ⋮ menu) works only while every round score they have is 0.
-          </Text>
         ) : null}
         {canScore ? (
           <View style={styles.adminAdd}>
@@ -409,6 +411,7 @@ function AddAdminDialog({ game, busy, onDismiss, onConfirm }: {
 }
 
 const styles = StyleSheet.create({
+  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   screen: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { paddingTop: spacing.md, paddingBottom: spacing.xl, gap: spacing.sm },
