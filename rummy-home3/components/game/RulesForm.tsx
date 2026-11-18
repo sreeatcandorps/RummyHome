@@ -2,6 +2,8 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { RadioButton, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
+import { InfoTip } from '@/components/ui/InfoTip';
+import { HelpTopicKey } from '@/constants/helpTopics';
 import { limitHint, parsePoolLimit, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_LIMITS, POOL_REENTRY_LIMIT_MAX } from '@/utils/pool';
 import { parseReentryLimit } from '@/utils/rulesDraft';
 import { multiplierExample, multiplierFieldInput, MULTIPLIER_RANGE_TEXT, parseMultiplierInput } from '@/utils/multiplier';
@@ -23,13 +25,21 @@ export const POOL_RULES_NOTE = 'Pool scores are plus points: the winner scores 0
 export const multiplierRoundsNote = (rounds: number) => `${rounds === 1 ? '1 round' : `${rounds} rounds`} played · a change re-prices the whole game`;
 export const MULTIPLIER_HINT = 'Type the points as usual; the app multiplies. ×1 unless you change it — changeable later for the whole game.';
 export const POOL_LOCK_NOTE = 'Rounds have been saved, so the pool limit is locked — changing it would change who is out. Drop, Middle drop, Full count and Re-entries can still change; the Log records it.';
+/** Mini help (ⓘ) beside the pool limit chips. */
+export const POOL_LIMIT_TIP = 'The limit decides who is out: at 101, a score of 100 is still in and 101 is out. 101, 201 and 251 are the usual limits; Custom takes any number.';
+/** Mini help (ⓘ) beside Re-entries; the line under the radios stays and tracks the choice. */
+export const REENTRIES_TIP = 'A player who is out may come back at the highest score still in. Unlimited lets them come back as often as they like; Limited caps it per player.';
+/** The title above Drop, Middle drop and Full count; its ⓘ carries the kind's note. */
+export const VALUES_TITLE = 'Drop · Middle drop · Full count';
+/** Under the Pool limit title once rounds exist and the limit is locked (Q14.23). */
+export const LOCKED_TAG = 'Locked';
 
 /**
  * Drop, Middle drop and Full count for either kind; a pool also has its limit (101 / 201 / 251 /
  * Custom, D2) and Re-entries (D4; 042: Unlimited / Limited N). `lockValues` greys the pool limit
  * once a pool has a saved round (13.5, Q14.23); the three values and Re-entries stay live.
  */
-export function RulesForm({ draft, onChange, disabled = false, lockValues = false, testIDPrefix = 'rules', roundCount = 0 }: {
+export function RulesForm({ draft, onChange, disabled = false, lockValues = false, testIDPrefix = 'rules', roundCount = 0, helpTopic = 'game-type', helpAnchor }: {
   draft: RulesDraft;
   onChange: (d: RulesDraft) => void;
   disabled?: boolean;
@@ -37,6 +47,9 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
   testIDPrefix?: string;
   /** Game settings: rounds already saved, so the Multiplier box can say a change re-prices them (PR 14). */
   roundCount?: number;
+  /** Where the ⓘ pop-ups' Full guide goes: the New game Game type page, or the scorecard's Game settings part. */
+  helpTopic?: HelpTopicKey;
+  helpAnchor?: string;
 }) {
   const { colors } = useAppTheme();
   const pool = draft.gameKind === 'pool';
@@ -54,7 +67,11 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
     <View style={styles.wrap}>
       {pool ? (
         <View style={styles.block}>
-          <Text variant="titleSmall">Pool limit</Text>
+          <View style={styles.titleRow}>
+            <Text variant="titleSmall">Pool limit</Text>
+            {lockValues ? <Text variant="labelSmall" style={[styles.locked, { color: colors.onSurfaceVariant, borderColor: colors.outlineVariant }]} testID={`${testIDPrefix}-limit-locked`}>{LOCKED_TAG}</Text> : null}
+            <InfoTip title="Pool limit" text={lockValues ? [POOL_LIMIT_TIP, POOL_LOCK_NOTE] : POOL_LIMIT_TIP} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-limit`} />
+          </View>
           <View style={styles.chips}>
             {POOL_LIMITS.map((limit) => {
               const active = !draft.customLimit && draft.poolLimit === String(limit);
@@ -103,17 +120,21 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
           </Text>
         </View>
       ) : null}
+      <View style={styles.titleRow}>
+        <Text variant="titleSmall">{VALUES_TITLE}</Text>
+        <InfoTip title={VALUES_TITLE} text={pool ? POOL_RULES_NOTE : POINTS_RULES_NOTE} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-values`} />
+      </View>
       <View style={styles.row}>
         <TextInput mode="outlined" label="Drop" keyboardType="number-pad" disabled={numbersDisabled} value={draft.drop} onChangeText={(t) => onChange({ ...draft, drop: field(t) })} style={styles.input} testID={`${testIDPrefix}-drop`} />
         <TextInput mode="outlined" label="Middle drop" keyboardType="number-pad" disabled={numbersDisabled} value={draft.middleDrop} onChangeText={(t) => onChange({ ...draft, middleDrop: field(t) })} style={styles.input} testID={`${testIDPrefix}-middle-drop`} />
         <TextInput mode="outlined" label="Full count" keyboardType="number-pad" disabled={numbersDisabled} value={draft.fullCount} onChangeText={(t) => onChange({ ...draft, fullCount: field(t) })} style={styles.input} testID={`${testIDPrefix}-full-count`} />
       </View>
-      <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-        {lockValues ? POOL_LOCK_NOTE : pool ? POOL_RULES_NOTE : POINTS_RULES_NOTE}
-      </Text>
       {!pool ? (
         <View style={styles.block} testID={`${testIDPrefix}-multiplier-block`}>
-          <Text variant="titleSmall">Multiplier</Text>
+          <View style={styles.titleRow}>
+            <Text variant="titleSmall">Multiplier</Text>
+            <InfoTip title="Multiplier" text={MULTIPLIER_HINT} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-multiplier`} />
+          </View>
           <TextInput
             mode="outlined"
             label="Multiplier"
@@ -139,15 +160,14 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
               <Text variant="bodySmall" style={{ color: colors.onSecondaryContainer }}>{multiplierRoundsNote(roundCount)}</Text>
             ) : null}
           </View>
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{MULTIPLIER_HINT}</Text>
         </View>
       ) : null}
       {pool ? (
         <View style={styles.block}>
-          <Text variant="titleSmall">Re-entries</Text>
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            A player who is out may come back at the highest score still in. How many times per player?
-          </Text>
+          <View style={styles.titleRow}>
+            <Text variant="titleSmall">Re-entries</Text>
+            <InfoTip title="Re-entries" text={REENTRIES_TIP} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-reentries`} />
+          </View>
           <RadioButton.Group value={draft.reentryMode} onValueChange={(v) => onChange({ ...draft, reentryMode: v as RulesDraft['reentryMode'] })}>
             <View style={styles.radios}>
               <RadioButton.Item label="Unlimited" value="unlimited" disabled={disabled} position="leading" labelVariant="bodyMedium" style={styles.radio} testID={`${testIDPrefix}-reentries-unlimited`} accessibilityLabel="Re-entries unlimited" />
@@ -179,6 +199,8 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
 const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   block: { gap: spacing.xs },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  locked: { borderWidth: 1, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 1, overflow: 'hidden' },
   row: { flexDirection: 'row', gap: spacing.sm },
   input: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },

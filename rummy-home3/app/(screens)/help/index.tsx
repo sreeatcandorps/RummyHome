@@ -5,11 +5,10 @@ import { Icon, Text } from 'react-native-paper';
 import { helpRoute, useFamilyColors } from '@/components/help/HelpPage';
 import { Screen } from '@/components/ui/Screen';
 import { SearchField } from '@/components/ui/SearchField';
-import { helpIndex, HelpTopic, searchHelp } from '@/constants/helpTopics';
+import { HELP_INDEX_TITLE, helpIndex, HelpTopic, searchHelp } from '@/constants/helpTopics';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { router } from 'expo-router';
 
-export const HELP_INDEX_TITLE = 'Help & guide';
 export const HELP_SEARCH_PLACEHOLDER = 'Search help';
 
 /** Help & guide index (H10): grouped Playing → Results → People → You → Rules, with local search. */

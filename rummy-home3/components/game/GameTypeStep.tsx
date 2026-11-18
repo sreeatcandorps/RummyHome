@@ -6,12 +6,20 @@ import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { InfoTip } from '@/components/ui/InfoTip';
 import { draftFromRules, RulesDraft, RulesForm, rulesFromDraft } from '@/components/game/RulesForm';
 import { GameKind, PointsRules } from '@/utils/gameSettings';
 import { highMultiplierConfirm } from '@/utils/multiplier';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 export const SETTINGS_LINK = 'You can also set these defaults in Settings.';
+/** Mini help (ⓘ) beside "Game type": what the picked kind means, in two lines. */
+export const GAME_KIND_TIP = {
+  points: ['**Points**: every round adds up to 0; the winner takes what the others lost.', 'Drop, Middle drop and Full count are the fixed scores a player can take instead of playing the hand out.'],
+  pool: ['**Pool**: the round\u2019s winner scores 0, everyone else adds their hand. Reach the limit and you are out.', 'The admin gives awards once the pool is completed; the awards are what the pool adds to Results.'],
+} as const;
+/** Mini help (ⓘ) beside "Points settings" / "Pool settings". */
+export const KIND_SETTINGS_TIP = 'For this game only, prefilled from your defaults. Changing them here does not change your Settings.';
 
 export type TypeStepPick = { id: string; name: string; label?: string };
 
@@ -60,7 +68,7 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Screen contentStyle={styles.content} safeBottom={false}>
-        <SectionCard title="Game type" icon={pool ? 'pool' : 'numeric'}>
+        <SectionCard title="Game type" icon={pool ? 'pool' : 'numeric'} right={<InfoTip title="Game type" text={GAME_KIND_TIP[kind]} topic="game-type" testID="game-type-tip" />}>
           <SegmentedButtons
             value={kind}
             onValueChange={(v) => switchKind(v as GameKind)}
@@ -69,14 +77,13 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
               { value: 'pool', label: 'Pool', icon: 'pool', testID: 'game-type-pool' },
             ]}
           />
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: spacing.xs }}>
-            {pool
-              ? 'Pool: the round’s winner scores 0, everyone else adds their hand. Reach the limit and you are out. The admin gives awards once the pool is completed.'
-              : 'Points: every round adds up to 0; the winner takes what the others lost.'}
-          </Text>
         </SectionCard>
 
-        <SectionCard title={pool ? 'Pool settings' : 'Points settings'} icon="cog-outline" supportingText="For this game only. Prefilled from your defaults.">
+        <SectionCard
+          title={pool ? 'Pool settings' : 'Points settings'}
+          icon="cog-outline"
+          right={<InfoTip title={pool ? 'Pool settings' : 'Points settings'} text={KIND_SETTINGS_TIP} topic="game-type" testID="kind-settings-tip" />}
+        >
           <RulesForm draft={draft} onChange={(next) => { setDraft(next); setProblem(null); }} testIDPrefix="new-game" />
           <Text
             variant="bodyMedium"

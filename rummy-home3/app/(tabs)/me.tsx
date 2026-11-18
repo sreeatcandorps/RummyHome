@@ -23,6 +23,7 @@ import { DeleteAccountDialog } from '@/components/account/DeleteAccountDialog';
 import { DELETE_ACCOUNT_DONE_BODY, DELETE_ACCOUNT_DONE_TITLE, PRIVACY_PAGE_URL } from '@/utils/accountDeletion';
 import { Screen } from '@/components/ui/Screen';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { HELP_INDEX_TITLE } from '@/constants/helpTopics';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
@@ -419,6 +420,26 @@ export default function MeScreen() {
               Game type, Drop, Middle drop, Full count
             </Text>
             <Icon source="chevron-right" size={18} color={colors.onSecondaryContainer} />
+          </View>
+        </TouchableRipple>
+      </SectionCard>
+
+      {/* PR 11 (Q11.7): the help index — every help page by group, with search. */}
+      <SectionCard title={HELP_INDEX_TITLE} icon="book-open-variant">
+        <TouchableRipple
+          onPress={() => router.push('/(screens)/help' as never)}
+          style={[styles.settingsButton, { backgroundColor: colors.tertiaryContainer }]}
+          borderless
+          accessibilityRole="button"
+          accessibilityLabel="Help and guide: every help page, with search"
+          testID="me-help-index"
+        >
+          <View style={styles.settingsInner}>
+            <Icon source="magnify" size={18} color={colors.onTertiaryContainer} />
+            <Text variant="labelLarge" style={[styles.flex, { color: colors.onTertiaryContainer }]}>
+              How each screen works, Tricky cases, scoring rules
+            </Text>
+            <Icon source="chevron-right" size={18} color={colors.onTertiaryContainer} />
           </View>
         </TouchableRipple>
       </SectionCard>

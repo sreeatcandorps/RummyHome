@@ -70,10 +70,10 @@ export default function UserSettings() {
         />
       </SectionCard>
       <SectionCard title="Points defaults" icon="numeric" supportingText="Every new Points game starts with these, including the multiplier (×1 unless you set one). Change one game from its ⋮ menu > Game settings.">
-        <RulesForm draft={points} onChange={(next) => { setPoints(next); clearSaved(); }} testIDPrefix="settings-points" />
+        <RulesForm draft={points} onChange={(next) => { setPoints(next); clearSaved(); }} testIDPrefix="settings-points" helpTopic="settings" />
       </SectionCard>
       <SectionCard title="Pool defaults" icon="pool" supportingText="Every new Pool game starts with these. The limit and the values lock once a round is saved; Re-entry can change any time.">
-        <RulesForm draft={pool} onChange={(next) => { setPool(next); clearSaved(); }} testIDPrefix="settings-pool" />
+        <RulesForm draft={pool} onChange={(next) => { setPool(next); clearSaved(); }} testIDPrefix="settings-pool" helpTopic="settings" />
       </SectionCard>
       <SectionCard title="Which setting wins" icon="sort-variant" mode="outlined">
         <SettingsPriority highlight="Settings" showTitle={false} />

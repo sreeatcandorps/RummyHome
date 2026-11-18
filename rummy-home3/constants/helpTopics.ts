@@ -36,6 +36,9 @@ export type HelpTopic = {
   aliases?: string[];
 };
 
+/** The index page's title; also the row on Me that opens it. */
+export const HELP_INDEX_TITLE = 'Help & guide';
+
 export const HELP_TOPIC_KEYS = [
   'home',
   'new-game',
@@ -556,10 +559,6 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       '**Remove from game** asks first and works only while the player has no scores or every round score they have is 0. Otherwise edit the rounds and clear their scores first.',
       '**Add new player** picks from My players (0 for rounds already played). **Add non-playing admin**: someone who keeps score but does not play, by Player ID; no column.',
     ],
-    screenshot: {
-      file: 'players-admins',
-      legend: ['A row: name, #ID, role.', 'The row ⋮ with the actions below.', '**Add new player** and **Add non-playing admin**.'],
-    },
     sections: [
       {
         title: 'Linking an account',
@@ -721,7 +720,11 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     ],
     screenshot: {
       file: 'add-players',
-      legend: ['Add by initials: three rows, two cells each.', 'A saved row, with the letters the app picked.', 'Find in database: search by name or #ID; **+ Add** / **+ My players**.'],
+      legend: [
+        'Add by initials: three rows, two cells each; **Save** on a row keeps it.',
+        'A saved row shows the letters the app picked; tap to change them.',
+        '**Done** goes back; rows you saved are already in. Find in database is the other way in: search by name or #ID.',
+      ],
     },
     sections: [
       {
@@ -761,7 +764,12 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     ],
     screenshot: {
       file: 'me',
-      legend: ['Your name, email and #ID.', '**Settings**: Points and Pool defaults.', '**Help & guide**: this index.', 'Account: Change passcode, Sign out, Delete account.'],
+      legend: [
+        'Your name, email and #ID; **Share your Player ID** so a friend can link you.',
+        '**Change passcode**: the 6 digits you sign in with.',
+        '**Appearance**: Phone, Light or Dark.',
+        'Phone and Email. Scroll down for **Settings**, **Help & guide** and Log out.',
+      ],
     },
     sections: [
       {
@@ -794,7 +802,11 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     ],
     screenshot: {
       file: 'settings',
-      legend: ['The priority ladder: Game settings › Settings › Game defaults.', 'Points defaults, with the Multiplier.', 'Pool defaults: limit, values, Re-entries.', '**Hidden & deleted**.'],
+      legend: [
+        'The priority ladder: Game settings › Settings › Game defaults.',
+        'Points defaults, with the Multiplier.',
+        'Pool defaults: limit, values, Re-entries. **Hidden & deleted** is at the foot.',
+      ],
     },
     sections: [
       {
@@ -822,10 +834,6 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       'A deleted game stays under **Deleted games** for 30 days, then is hidden for good — nothing is ever erased. Players who scored in it see it on Home and can ask an admin to restore it.',
       'Only the person who deleted something, or an admin of it, can restore it. No admin left? Email support@ezscore.app with the Unique game ID from the scorecard foot.',
     ],
-    screenshot: {
-      file: 'hidden-deleted',
-      legend: ['**Hidden games**: Unhide.', '**Deleted games**: Restore, with the day it is hidden for good.', '**Deleted results**: Restore.', 'The support card.'],
-    },
     sections: [
       {
         title: 'Results',
@@ -855,10 +863,6 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       'Came from a friend\u2019s invite? Confirm your email, then tap **Yes** on \u201cIs this you?\u201d to move your past scores here.',
       'Have a player ID like 42 but no invite? Enter it and the friend who added you approves it. A player ID is never used to sign in.',
     ],
-    screenshot: {
-      file: 'sign-in',
-      legend: ['Email and the 6-digit passcode.', '**Forgot passcode**: the OTP flow.', '**Create account**.'],
-    },
     sections: [
       {
         title: 'Create account',

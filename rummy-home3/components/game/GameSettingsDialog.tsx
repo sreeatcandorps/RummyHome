@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/AppButton';
 import { router } from 'expo-router';
 import { PointsRules } from '@/utils/gameSettings';
 import { draftFromRules, RulesDraft, RulesForm, rulesFromDraft } from '@/components/game/RulesForm';
+import { WhyLink } from '@/components/help/WhyLink';
 import { APPLY_WHOLE_GAME, highMultiplierConfirm, multiplierChangeConfirm, multiplierOf, START_NEW_GAME_INSTEAD } from '@/utils/multiplier';
 import { spacing, useAppTheme } from '@/constants/theme';
 
-export const MORE_SETTINGS_NOTE = 'If you want more settings go to your user settings.';
+export const MORE_SETTINGS_NOTE = 'Your defaults for new games are in Settings.';
 export const CHANGE_MULTIPLIER_TITLE = 'Change the multiplier?';
 
 type Pending =
@@ -104,12 +105,13 @@ export function GameSettingsDialog({ visible, rules, title = 'Game settings', on
         <Dialog.ScrollArea style={styles.scrollArea}>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
             <Text variant="bodyMedium" style={{ marginBottom: 8 }}>{rules.gameKind === 'pool' ? 'Pool game' : 'Points game'}</Text>
-            <RulesForm draft={draft} onChange={setDraft} disabled={readOnly} lockValues={lockValues} roundCount={roundCount} testIDPrefix="game-settings" />
+            <RulesForm draft={draft} onChange={setDraft} disabled={readOnly} lockValues={lockValues} roundCount={roundCount} testIDPrefix="game-settings" helpTopic="scorecard" helpAnchor="game-settings" />
             {readOnly ? (
               <Text style={{ color: colors.onSurfaceVariant, marginTop: 8 }} accessibilityLabel="Only a game admin can save changes">
                 You can see this game’s settings, but only a game admin (the organizer or someone they made admin) can save changes. They apply to this game only and win over your Settings.
               </Text>
             ) : null}
+            {lockValues ? <WhyLink why="settingsLocked" before={onDismiss} testID="game-settings-why-locked" /> : null}
             {error ? <Text style={{ color: colors.error, marginTop: 8 }} testID="game-settings-error">{error}</Text> : null}
             <Text variant="bodyMedium" accessibilityRole="link" style={{ color: colors.primary, marginTop: 12, textDecorationLine: 'underline' }}
               onPress={() => { onDismiss(); router.push('/(screens)/settings'); }}>
