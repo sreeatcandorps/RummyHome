@@ -201,7 +201,7 @@ test('X24-10c mid-game: the sheet opens prefilled so one move is one tap; Done s
   // Clear then renumber in the same order: complete, unchanged, Done off.
   const same = four.reduce((acc, id) => tapPlayer(acc, id), clearOrder(d));
   assert.ok(orderComplete(same) && !orderChanged(same));
-  assert.ok(showsPlayerCode(360) && !showsPlayerCode(320), 'the player ID shows only when the row is wide enough');
+  assert.ok(showsPlayerCode(347) && !showsPlayerCode(300), 'the player ID shows only when the row is wide enough (a Pixel 6 row inside the card is ~347 dp)');
 });
 
 test('X24-10d the component and sheet: no chips panel, no "Keep this order", arrows only on numbered rows, Clear and Done', () => {

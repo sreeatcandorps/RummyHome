@@ -99,7 +99,7 @@ export const clearOrder = (draft: OrderDraft): OrderDraft => ({ ...draft, number
 export const orderChanged = (draft: OrderDraft) => !sameOrder(draft.base, displayOrder(draft));
 
 /** The player ID (#42) joins the row only where it fits: a row 360 dp wide or more (landscape, tablet). */
-export const showsPlayerCode = (rowWidth: number) => rowWidth >= 360;
+export const showsPlayerCode = (rowWidth: number) => rowWidth >= 330;
 
 /** The sheet's menu item and Done exist only while the game is Active (Q21.7). */
 export const canChangeSeating = (game: { isComplete: boolean; closedAt?: string | null; deletedAt?: string | null } | null | undefined, canScore: boolean) =>
