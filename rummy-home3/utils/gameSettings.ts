@@ -1,7 +1,7 @@
 import { GameSettings } from '@/types/game';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
 import { MULTIPLIER_DEFAULT, MULTIPLIER_MAX, MULTIPLIER_MIN, MULTIPLIER_RANGE_TEXT, multiplierOf } from '@/utils/multiplier';
-import { DEFAULT_POOL_LIMIT, DEFAULT_POOL_REENTRY_LIMIT, DEFAULT_POOL_VALUES, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_REENTRY_LIMIT_MAX, reentryLimitOf } from '@/utils/pool';
+import { DEFAULT_LATE_ENTRY_PLUS, DEFAULT_POOL_LIMIT, DEFAULT_POOL_REENTRY_LIMIT, DEFAULT_POOL_VALUES, DEFAULT_REENTRY_PLUS, EntryPlus, entryPlusDefault, lateEntryPlusOf, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_REENTRY_LIMIT_MAX, reentryLimitOf, reentryPlusOf } from '@/utils/pool';
 
 /**
  * The rules a user or a game can change. Points games store penalties negative (a drop is -10);
@@ -23,6 +23,10 @@ export type PointsRules = {
   poolLimit?: number;
   /** Pool only (042): re-entries per player — null = Unlimited, N = Limited to N (0 = none). */
   reentryLimit?: number | null;
+  /** Pool only (PR 24): a re-entry starts at the highest score still in (0) or that + 1 (1, the default). */
+  reentryPlus?: EntryPlus;
+  /** Pool only (PR 24): a late joiner starts at the highest score still in (0) or that + 1 (1, the default). */
+  lateEntryPlus?: EntryPlus;
   /** Points only (PR 14): the game's multiplier, 1–10,000; absent reads as 1. */
   multiplier?: number;
 };
@@ -42,6 +46,8 @@ export const DEFAULT_POOL_RULES: PointsRules = {
   fullCount: DEFAULT_POOL_VALUES.fullCount,
   poolLimit: DEFAULT_POOL_LIMIT,
   reentryLimit: DEFAULT_POOL_REENTRY_LIMIT,
+  reentryPlus: DEFAULT_REENTRY_PLUS,
+  lateEntryPlus: DEFAULT_LATE_ENTRY_PLUS,
 };
 
 export const defaultRulesFor = (kind: GameKind): PointsRules => (kind === 'pool' ? DEFAULT_POOL_RULES : DEFAULT_POINTS_RULES);
@@ -92,6 +98,8 @@ export function rulesFromProfileDefaults(defaults: Record<string, unknown> | nul
       fullCount: Math.abs(num(d.poolFullCount, DEFAULT_POOL_RULES.fullCount)),
       poolLimit: num(d.poolLimit, DEFAULT_POOL_LIMIT),
       reentryLimit: reentryLimitOf({ reentryLimit: d.poolReentryLimit as number | null | undefined, reentry: d.poolReentry as boolean | undefined } as GameSettings),
+      reentryPlus: entryPlusDefault(d.poolReentryPlus, DEFAULT_REENTRY_PLUS),
+      lateEntryPlus: entryPlusDefault(d.poolLateEntryPlus, DEFAULT_LATE_ENTRY_PLUS),
     };
   }
   return {
@@ -121,6 +129,8 @@ export function rulesToProfileDefaults(rules: PointsRules): Record<string, unkno
       poolMiddleDrop: rules.middleDrop,
       poolFullCount: rules.fullCount,
       poolReentryLimit: rules.reentryLimit ?? DEFAULT_POOL_REENTRY_LIMIT,
+      poolReentryPlus: rules.reentryPlus ?? DEFAULT_REENTRY_PLUS,
+      poolLateEntryPlus: rules.lateEntryPlus ?? DEFAULT_LATE_ENTRY_PLUS,
     };
   }
   return {
@@ -140,6 +150,8 @@ export function rulesFromGame(settings: GameSettings, gameType: 'stake' | 'pool'
       fullCount: Math.abs(settings.maxCount),
       poolLimit: settings.poolLimit ?? DEFAULT_POOL_LIMIT,
       reentryLimit: reentryLimitOf(settings),
+      reentryPlus: reentryPlusOf(settings),
+      lateEntryPlus: lateEntryPlusOf(settings),
     };
   }
   return {
@@ -165,6 +177,9 @@ export function withStoredPointsRules(base: GameSettings, stored: any): GameSett
     poolLimit: typeof stored.poolLimit === 'number' ? stored.poolLimit : base.poolLimit,
     reentry: typeof stored.reentry === 'boolean' ? stored.reentry : base.reentry,
     reentryLimit: 'reentryLimit' in stored || typeof stored.reentry === 'boolean' ? reentryLimitOf(stored as GameSettings) : base.reentryLimit,
+    // PR 24: the two entry rules ride along only when the game carries them (absent = the 041 rule).
+    ...('reentryPlus' in stored ? { reentryPlus: reentryPlusOf(stored as GameSettings) } : {}),
+    ...('lateEntryPlus' in stored ? { lateEntryPlus: lateEntryPlusOf(stored as GameSettings) } : {}),
     ...(typeof stored.multiplier === 'number' ? { multiplier: multiplierOf(stored) } : {}),
     // PR 21: the once-per-game Seating pop-up flag rides along (false from Start, true once answered).
     ...(typeof stored.seatingPrompted === 'boolean' ? { seatingPrompted: stored.seatingPrompted } : {}),

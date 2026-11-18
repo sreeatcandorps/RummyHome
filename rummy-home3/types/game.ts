@@ -11,6 +11,10 @@ export type GameSettings = {
   reentry?: boolean;
   /** Pool (042): re-entries per player. null / absent = Unlimited; N = Limited to N (0 = none). */
   reentryLimit?: number | null;
+  /** Pool (047, PR 24): a re-entry starts at the highest score still in (0) or that + 1 (1). Absent = 0 (the 041 rule). */
+  reentryPlus?: 0 | 1;
+  /** Pool (047, PR 24): a late joiner starts at the highest score still in (0) or that + 1 (1). Absent = 0. */
+  lateEntryPlus?: 0 | 1;
   /** Points (043, PR 14): one multiplier for the whole game, 1–10,000; absent = 1. Never on a pool. */
   multiplier?: number;
   /** Seating order (PR 21): false from Start until the admin answers the once-per-game pop-up; absent on older games (never asked). */

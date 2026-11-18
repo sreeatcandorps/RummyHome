@@ -3,7 +3,7 @@ import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
 import { multiplierOf } from '@/utils/multiplier';
-import { reentryLimitOf } from '@/utils/pool';
+import { entryScoreUnder, isPoolGame, lateEntryScore, reentryLimitOf, reentryPlusOf } from '@/utils/pool';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { INITIALS_FORMAT_MESSAGE, MIGRATION_007_HINT, playersService } from '@/services/players';
 import { RETIRED_ROUND_OFFSET, retiredRoundNumber } from '@/utils/editRound';
@@ -390,7 +390,7 @@ export const gamesService = {
         mdAmount: input.rules.middleDrop,
         maxCount: input.rules.fullCount,
         // 041/042: a pool's limit and its re-entry limit (null = Unlimited) live beside its (plus) values.
-        ...(input.rules.gameKind === 'pool' ? { poolLimit: input.rules.poolLimit ?? 101, reentryLimit: input.rules.reentryLimit ?? null } : {}),
+        ...(input.rules.gameKind === 'pool' ? { poolLimit: input.rules.poolLimit ?? 101, reentryLimit: input.rules.reentryLimit ?? null, reentryPlus: input.rules.reentryPlus ?? 1, lateEntryPlus: input.rules.lateEntryPlus ?? 1 } : {}),
         // 043 (PR 14): one multiplier for the whole Points game; a pool never carries the key.
         ...(input.rules.gameKind === 'points' ? { multiplier: multiplierOf(input.rules) } : {}),
       } : {}),
@@ -640,7 +640,9 @@ export const gamesService = {
    * is locked by the server once a round is saved (042); its values and Re-entries can still change.
    */
   async updateGameRules(gameId: string, rules: PointsRules): Promise<Game | null> {
-    const poolKeys = rules.gameKind === 'pool' ? { poolLimit: rules.poolLimit ?? 101, reentryLimit: rules.reentryLimit ?? null } : { multiplier: multiplierOf(rules) };
+    const poolKeys = rules.gameKind === 'pool'
+      ? { poolLimit: rules.poolLimit ?? 101, reentryLimit: rules.reentryLimit ?? null, reentryPlus: rules.reentryPlus ?? 0, lateEntryPlus: rules.lateEntryPlus ?? 0 }
+      : { multiplier: multiplierOf(rules) };
     if (!isSupabaseConfigured) {
       const game = await this.getGame(gameId);
       if (!game) return null;
@@ -686,7 +688,9 @@ export const gamesService = {
       const inIds = game.players.filter((id) => !game.poolSeats?.[id]?.outRound);
       const high = Math.max(0, ...inIds.map((id) => (game.scores[id] ?? []).reduce((a, b) => a + b, 0)));
       const rounds = Math.max(0, ...game.players.map((id) => game.scores[id]?.length ?? 0));
-      const next = { ...game, poolSeats: { ...game.poolSeats, [profileId]: { outRound: null, reenteredRound: rounds + 1, reentryScore: high, entries: seat.entries + 1 } } };
+      // PR 24: the game's re-entry rule adds 0 or 1 to the highest score still in.
+      const startAt = entryScoreUnder(high, reentryPlusOf(game.settings));
+      const next = { ...game, poolSeats: { ...game.poolSeats, [profileId]: { outRound: null, reenteredRound: rounds + 1, reentryScore: startAt, entries: seat.entries + 1 } } };
       await storage.updateGame(next);
       return next;
     }
@@ -1136,6 +1140,11 @@ export const gamesService = {
       // Joining mid-game: every round already played is an explicit 0 for them.
       updated.scores = { ...updated.scores, [profileId]: zerosForJoiner(game.scores, seated) };
       if (label) updated.labels = { ...(game.labels ?? {}), [profileId]: label };
+      // Pool (F13.2, PR 24): a late joiner starts at the highest score still in, plus the game's late-entry rule.
+      const played = updated.scores[profileId].length;
+      if (isPoolGame(game) && played > 0) {
+        updated.poolSeats = { ...(game.poolSeats ?? {}), [profileId]: { outRound: null, reenteredRound: played + 1, reentryScore: lateEntryScore(game), entries: 1 } };
+      }
       await storage.updateGame(updated);
       await playersService.rememberTogether(game.createdBy ?? profileId, [profileId]).catch(() => {});
       return updated;
