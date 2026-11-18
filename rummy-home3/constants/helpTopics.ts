@@ -82,7 +82,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     screenshot: {
       file: 'home',
       legend: [
-        '**New game** starts the two-step New game flow (players, then game type).',
+        '**New game** starts the New game steps: players, game type, order of players, then a co-admin.',
         '**Results** opens the results picker and the past results.',
         '**My players**, with the count of people in your list.',
         '**Recent**: every game you are in, newest first, with its status tag.',
@@ -135,13 +135,13 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     group: 'Playing',
     family: 'games',
     icon: 'account-multiple-plus-outline',
-    purpose: 'Pick who plays, then Next to choose Points or Pool.',
+    purpose: 'Pick who plays; Next through Game type and Order of players; Start game at the end.',
     needToKnow: [
       'Tap yourself if you are playing. You can run a game without sitting in it.',
       'Recent partners come first, then everyone else by how often you play together. Up to 20 players.',
       '**Add by initials**: new people by initials, seated as you save them. **Find in database**: a registered player, seated here and added to My players at once.',
       'Scorecard columns show each player\u2019s initials from your My players. If two would match, a **Fix initials** step appears before the game starts.',
-      '**Next** opens Game type: Points or Pool, with Drop, Middle drop, Full count (and for a pool the limit and Re-entries) prefilled from your Settings.',
+      '**Next** opens Game type: Points or Pool, with the numbers prefilled from your Settings. Then **Order of players** (tap players in seating order) and, when a registered player was added, a co-admin. Only the last step says **Start game**.',
     ],
     screenshot: {
       file: 'new-game',
@@ -149,14 +149,14 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         '**Playing**: the people picked so far, in seat order. Tap a face or its × to send someone back to the list.',
         'The list: you first, then recent partners, then everyone else. Only people who have not finished signing up carry a tag.',
         '**Add by initials** and **Find in database** add someone who is not in the list yet.',
-        '**Next · N players** goes to Game type.',
+        '**Next · N players** goes to Game type; Order of players and the co-admin step follow before **Start game**.',
       ],
     },
     sections: [
       {
         title: 'Picking players',
         bullets: [
-          'Tap a row to seat a player; tap the face under **Playing** (or its ×) to send them back. The order under Playing is the seating order to start with; you can change it after Start.',
+          'Tap a row to seat a player; tap the face under **Playing** (or its ×) to send them back. The order under Playing is only the pick order — the **Order of players** step decides who sits where.',
           'You are always first in the list. Only players who have not finished signing up carry a tag: [Unregistered] (added by initials) or [Pending registration] (invited, not yet signed up).',
           'Search finds anyone in your My players, even in a list of thousands.',
         ],
@@ -179,20 +179,29 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         ],
       },
       {
-        title: 'After Start',
+        title: 'Order of players',
         bullets: [
-          'After you start, the app asks who sits where (Seating order). Registered players you added may be offered as a co-admin once; **Skip** starts without one.',
-          'The scorecard ⋮ has **Players · Admins** to invite people to register or send sign-up links.',
+          'Tap players in seating order: the first tap is seat 1, and the player moves up into the numbered rows. Tap the most recently numbered player again to take the number back; tap any other numbered player to highlight them.',
+          'Numbered rows show small ▲ ▼ arrows that move a seat one place at once. **Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
+          'Seat 1 deals round 1 and the deal goes round by seat; the scorecard columns follow this order.',
+          'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens prefilled, so one move is one tap; **Done** saves it, the Log records it and played rounds keep their dealer.',
+        ],
+      },
+      {
+        title: 'Co-admin and Start',
+        bullets: [
+          'When a registered player was added, the last step offers them as a co-admin: pick one, or **Start game** without. Only registered players can be admins; change this later from **Players · Admins**.',
+          'There is no pop-up after Start: the scorecard opens with the order you set. The scorecard ⋮ has **Players · Admins** to invite people to register or send sign-up links.',
         ],
       },
     ],
     tricky: [
       { id: 'not-in-list', q: 'The person I want is not in the list.', a: 'They are not in your My players yet. **Find in database** if they have an account (name or #ID), **Add by initials** if they do not. Both seat them in this game at once.' },
-      { id: 'who-deals', q: 'Who deals first?', a: 'Seat 1 in the seating order the app asks for right after Start. The deal then goes round by seat; played rounds keep their dealer.' },
+      { id: 'who-deals', q: 'Who deals first?', a: 'Seat 1 in the **Order of players** you set before Start (the first player you tapped). The deal then goes round by seat; played rounds keep their dealer.' },
       { id: 'twenty', q: 'Why can I not add a 21st player?', a: 'A game holds up to 20 players. Start a second game for the rest.' },
     ],
     alsoSee: ['game-type', 'add-players', 'my-players', 'scorecard'],
-    aliases: ['new game', 'players', 'start a game', 'fix initials', 'add new players', 'from database'],
+    aliases: ['new game', 'players', 'start a game', 'fix initials', 'add new players', 'from database', 'order of players', 'seating', 'co-admin', 'who deals'],
   },
 
   'game-type': {
@@ -204,7 +213,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     needToKnow: [
       '**Points**: every round adds up to 0; the winner takes what the others lost. Scores are minus by default.',
       '**Pool**: the winner scores 0, everyone else adds their hand. Reach the limit (100 in, 101 out) and you are out.',
-      '**Re-entries**: a player who is out may come back at the highest score still in — Unlimited, or Limited to a number per player.',
+      '**Re-entries**: a player who is out may come back — Unlimited (the default), or Limited to a number per player. **Re-entry score** and **Late entry** say where they start: the highest score still in, or that plus 1 (the default).',
       'The settings here are for this game only and start from your Settings defaults. A pool\u2019s limit locks once a round is saved; Drop, Middle drop, Full count and Re-entries can change any time (the Log records it).',
       '**Multiplier** (Points only, 1 to 10,000): enter the small numbers as always; the app multiplies (×100 makes a 30 worth 3,000). A mid-game change applies to the whole game.',
     ],
@@ -214,8 +223,8 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         '**Points / Pool** switch. Switching reloads that kind\u2019s defaults.',
         '**Pool limit**: 101 · 201 · 251 · Custom… (51–999). The line under it says what is in and what is out.',
         '**Drop · Middle drop · Full count**: plus points in a pool, minus in Points.',
-        '**Re-entries**: Unlimited, or Limited to N per player.',
-        '**Start pool · N players** creates the game.',
+        '**Re-entries**: Unlimited, or Limited to N per player; Re-entry score and Late entry below it.',
+        '**Next** goes on to Order of players; Start game is the last step.',
       ],
     },
     sections: [
@@ -230,6 +239,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'Pool',
         bullets: [
           'The limit decides who is out: at 101, a score of 100 is still in and 101 is out. Defaults 25, 50, 130 for Drop, Middle drop, Full count.',
+          '**Re-entry score** (a player who comes back) and **Late entry** (a player added after round 1): **Highest score** still in, or **Highest score + 1** — the default, so the newcomer never ties the leader.',
           'When a pool is [Completed], an admin gives awards (who gets what from the pool); the awards are what the pool adds to Results.',
         ],
       },
@@ -237,7 +247,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'Where the numbers come from',
         bullets: [
           'Prefilled from your **Settings** (your defaults for new games). Change them here for this game only, or tap the Settings link to change the defaults.',
-          'A multiplier of 1,000 or more asks once before Start (**Large multiplier**) so a slip of the thumb does not price a game at ×10,000.',
+          'A multiplier of 1,000 or more asks once before you go on (**Large multiplier**) so a slip of the thumb does not price a game at ×10,000.',
         ],
       },
     ],
@@ -258,8 +268,8 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     needToKnow: [
       '[View only] means you can watch but not change scores. Admins see **Add round**, **Undo** and **Complete**.',
       'Totals sit in the header next to each name. With a multiplier, big numbers read short (8K, 1.2M); the **×N** chip opens the exact points.',
-      'Pool: the header shows player number, initials and pool score; out is struck through, re-entered is blue. **Standings** below show points and drops left.',
-      '**Seating order**: after Start the app asks who sits where. Seat 1 deals first and the deal goes round by seat. Admins change the order any time from ⋮; played rounds keep their dealer.',
+      'Pool: the header reads like a Points header, one small line taller for the player number; out is struck through. A re-entered player shows the re-entry score with ↺ in that round, and their cells above it turn grey. **Standings** below show points and drops left.',
+      '**Order of players**: set before Start by tapping players in seating order. Seat 1 deals first and the deal goes round by seat. Admins change the order any time from ⋮; played rounds keep their dealer.',
       '**Undo** asks before removing the last round. **Complete** shows the final totals and asks once more before locking.',
     ],
     screenshot: {
@@ -269,8 +279,8 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         'The rounds, newest at the bottom. Tap a cell to see the exact points.',
         '**Add round** (admins) opens the round sheet; **Undo** removes the last round.',
         'Share icon: the live link, and once complete the final scores picture or PDF.',
-        '⋮ menu: Game settings, Players · Admins, Seating order, Edit round, Log, Hide, Delete.',
-        'Foot: the game number with its creator and admins, and the Unique game ID (tap to copy).',
+        '⋮ menu: Game settings, Players · Admins, Order of players, Edit round, Log, Hide, Delete.',
+        'Foot, inside the card under the last round: creator, admins and the Unique game ID (tap to copy). It scrolls with the rounds.',
       ],
     },
     sections: [
@@ -299,15 +309,16 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'Pool',
         bullets: [
-          'The limit line under the title (**Limit 101 · 100 in, 101 out**) and the number out. A player at or past the limit is [OUT]; **Re-enter** (admins) brings them back at the highest score still in, shown [Re-entered].',
-          '**Standings** list everyone by points left; drops left count down from the Full count.',
+          'The limit line under the title (**Limit 101 · 100 in, 101 out**) and the number out. A player at or past the limit is [OUT]; **Re-enter** (admins) brings them back at the re-entry score — the highest score still in, or that plus 1 (the game\u2019s **Re-entry score** setting).',
+          'The re-entry round shows that score with ↺ beside it (105 → ↺106); the typed score is kept but not shown. That player\u2019s cells in the rounds above turn grey; the ↺ row and everything after keep their normal colours. Tap a round number to edit that round.',
+          '**Standings** list everyone by points left; drops left count down from the Full count. In portrait the table takes about two thirds of the screen and Standings scroll on their own below; in landscape Standings follow the last round in the same scroller.',
           'When the pool is complete, **Give awards** appears; the Completed scorecard shows the Awards block.',
         ],
       },
       {
         title: 'Under the table',
         bullets: [
-          'The game number with its creator and admins, and the full **Unique game ID**. Tap the ID to copy it when you report a problem.',
+          'The foot sits inside the scorecard card right under the last round row and scrolls with the rounds, in small italics: the game number with its creator and admins, and the full **Unique game ID**. Tap the ID to copy it when you report a problem.',
         ],
       },
     ],
@@ -316,7 +327,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       rows: [
         { item: 'Game settings', does: 'Drop, Middle drop, Full count; Multiplier (Points) or Re-entries (Pool) for this game. Reads "· locked" on a pool with rounds.', who: 'Admins', hidden: 'Completed games show it read-only' },
         { item: 'Players · Admins', does: 'Who plays, who is admin, invite, link, initials, remove.', who: 'Everyone (admins can change)', hidden: 'Deleted game' },
-        { item: 'Seating order', does: 'Rearrange who sits where; the deal follows the new order from the next round.', who: 'Admins', hidden: 'Completed game' },
+        { item: 'Order of players', does: 'Rearrange who sits where (tap to number, arrows to nudge); the deal follows the new order from the next round.', who: 'Admins', hidden: 'Completed game' },
         { item: 'Edit round', does: 'Pick a round and change its scores; the Log keeps the old ones.', who: 'Admins', hidden: 'Completed game, or no rounds yet (grey)' },
         { item: 'Reopen game', does: 'Unlocks a Completed game so rounds can be added again.', who: 'Admins', hidden: 'Active game, or a Closed game (part of a result)' },
         { item: 'Log', does: 'Every change to this game, written by the server.', who: 'Everyone' },
@@ -332,7 +343,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       { id: 'short-numbers', q: 'The totals say 8K — where are the exact points?', a: 'Tap the **×N** chip (or any cell) for the exact number. Big totals read short on the scorecard so twenty columns still fit.' },
     ],
     alsoSee: ['add-round', 'players-admins', 'game-log', 'complete', 'scoring-rules'],
-    aliases: ['game', 'rounds', 'undo', 'share', 'live link', 'dealer', 'seating', 'game settings', 'hide', 'delete'],
+    aliases: ['game', 'rounds', 'undo', 'share', 'live link', 'dealer', 'seating', 'order of players', 'footer', 'unique game id', 'game settings', 'hide', 'delete'],
   },
 
   'add-round': {
@@ -536,7 +547,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'What is logged',
         bullets: [
-          'Rounds saved, undone and edited (with the old scores); game settings and multiplier changes; seating order; players added, removed, linked, renamed; admins made and removed; complete, reopen, awards; delete and restore.',
+          'Rounds saved, undone and edited (with the old scores); game settings (including Re-entry score and Late entry) and multiplier changes; order of players; players added, removed, linked, renamed; admins made and removed; complete, reopen, awards; delete and restore.',
         ],
       },
     ],
@@ -798,14 +809,14 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       '**Game settings**: change one game from its ⋮ menu. They override everything for that game.',
       'What you set here is what every new game starts with for you — Points and Pool each keep their own numbers.',
       '**Game defaults**: Rummy\u2019s standard -10, -30, -80 (Points) and 101 / 25, 50, 130 (Pool), used when you have set nothing else.',
-      '**Multiplier default** (Points): what every new Points game starts at. ×1 means the points are exactly what you enter.',
+      '**Multiplier default** (Points): what every new Points game starts at. ×1 means the points are exactly what you enter. Pool: **Re-entry score** and **Late entry** default to Highest score + 1.',
     ],
     screenshot: {
       file: 'settings',
       legend: [
         'The priority ladder: Game settings › Settings › Game defaults.',
         'Points defaults, with the Multiplier.',
-        'Pool defaults: limit, values, Re-entries. **Hidden & deleted** is at the foot.',
+        'Pool defaults: limit, values, Re-entries, Re-entry score, Late entry. **Hidden & deleted** is at the foot.',
       ],
     },
     sections: [
@@ -895,7 +906,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     purpose: 'Points and Pool, drops, Rummy and the multiplier — in one place.',
     needToKnow: [
       '**Points**: every round adds to 0. Losers score minus their hand; the winner gets the sum. Drop -10, Middle drop -30, Full count -80 by default.',
-      '**Pool**: everyone but the winner adds their hand as plus points; the winner scores 0. At the limit (101: 100 in, 101 out) you are out; a re-entry comes back at the highest score still in.',
+      '**Pool**: everyone but the winner adds their hand as plus points; the winner scores 0. At the limit (101: 100 in, 101 out) you are out; a re-entry comes back at the highest score still in, or that plus 1 (the default **Re-entry score**).',
       '**Rummy** is the winner\u2019s button: Points — the winners split what the table lost; Pool — the winner scores 0.',
       '**Multiplier** (Points): type the small numbers, the app multiplies every score and total; a change applies to the whole game.',
     ],

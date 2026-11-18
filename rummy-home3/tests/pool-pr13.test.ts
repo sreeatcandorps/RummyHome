@@ -579,7 +579,7 @@ test('13.12 log labels for the pool kinds; help explains Complete → Award → 
   assert.equal(dotTone({ kind: 'awards_changed', level: 'important' }), 'amber');
   assert.equal(dotTone({ kind: 'awards_set', level: 'important' }), 'green');
   assert.match(HELP.gameType, /Pool: the winner scores 0/);
-  assert.match(HELP.gameType, /Re-entries: .*Unlimited, or Limited/);
+  assert.match(HELP.gameType, /Re-entries: .*Unlimited \(the default\), or Limited/);
   assert.match(HELP.scoreEntryPool, /Pool/);
   assert.match(HELP.awards, /award/i);
   assert.match(HELP.complete, /award/i);
