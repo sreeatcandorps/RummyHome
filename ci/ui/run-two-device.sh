@@ -112,6 +112,10 @@ echo "::group::T1 realtime"
 flow "$A" t1-a-open t1-a-open.yaml
 flow "$B" t1-b-add t1-realtime-add.yaml
 flow "$A" t1-a-expect t1-a-expect.yaml EXPECT_ROUND=5
+# What device A's Realtime channel said (the scorecard logs "[realtime] game <id>: SUBSCRIBED | CHANNEL_ERROR …"
+# to ReactNativeJS). No line at all = the channel never reported; CHANNEL_ERROR / TIMED_OUT = the socket or RLS.
+adb -s "$A" logcat -d -s ReactNativeJS:I 2>/dev/null | grep -F '[realtime]' > "$ABS_OUT/realtime-device-a.txt" || true
+echo "device A realtime channel: $(grep -c . "$ABS_OUT/realtime-device-a.txt") line(s)"; cat "$ABS_OUT/realtime-device-a.txt" || true
 echo "::endgroup::"
 
 # ---- T2 race: both prefill round 5, then both Save within the same ~100 ms. Expected: Round 6 on

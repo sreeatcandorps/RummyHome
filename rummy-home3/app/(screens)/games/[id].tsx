@@ -1,7 +1,7 @@
 import { gameLabelOf, screenTitle } from '@/utils/gameLabel';
 import { dealerForRound, nextDealer, rotationStarts } from '@/utils/dealerRotation';
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { AppState, View, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Text, Dialog, IconButton, Menu, Portal } from 'react-native-paper';
 import { ShareSheet } from '@/components/share/ShareSheet';
 import { Toast } from '@/components/ui/Toast';
@@ -17,7 +17,7 @@ import { DELETE_GAME_BODY, DELETE_GAME_TITLE, deleteGameWarning, deletedBody, GA
 import { ASKED_TOAST } from '@/utils/deletedGames';
 import { DeletedGameBanner } from '@/components/game/DeletedGameBanner';
 import { isSupabaseConfigured } from '@/services/supabase';
-import { realtimeService } from '@/services/realtime';
+import { LIVE_POLL_MS, realtimeService } from '@/services/realtime';
 import { storage } from '@/utils/storage';
 import { PLAYERS_ADMINS_TITLE } from '@/utils/gameAdmins';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
@@ -105,6 +105,23 @@ export default function GameScreen() {
       realtimeService.unsubscribe(channel);
     };
   }, [id]);
+
+  // Safety net under Realtime: the socket dies while the phone sleeps or the share sheet is up, and a
+  // mobile network can drop it silently. Reload when the app comes back to the front, and while an
+  // active game is on screen, poll every LIVE_POLL_MS so the other phone's round shows up either way.
+  const live = Boolean(game) && !game?.completedAt && !game?.deletedAt;
+  useEffect(() => {
+    if (!isSupabaseConfigured || typeof id !== 'string') return;
+    const sub = AppState.addEventListener('change', (state) => { if (state === 'active') loadGameData(); });
+    return () => sub.remove();
+  }, [id]);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!isSupabaseConfigured || typeof id !== 'string' || !live) return;
+      const timer = setInterval(() => { if (AppState.currentState === 'active') loadGameData(); }, LIVE_POLL_MS);
+      return () => clearInterval(timer);
+    }, [id, live]),
+  );
 
   // Reload game data when screen comes into focus (e.g., after adding scores)
   useFocusEffect(

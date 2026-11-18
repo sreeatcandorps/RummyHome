@@ -4,6 +4,8 @@ import { debounceTrailing } from '@/utils/debounce';
 
 export type GameRealtimeHandlers = {
   onChange: () => void;
+  /** Channel status as Realtime reports it (SUBSCRIBED, CHANNEL_ERROR, TIMED_OUT, CLOSED). */
+  onStatus?: (status: string, error?: Error) => void;
 };
 
 /**
@@ -12,6 +14,9 @@ export type GameRealtimeHandlers = {
  * burst, after this quiet period, instead of once per event.
  */
 export const REALTIME_DEBOUNCE_MS = 400;
+
+/** The scorecard's fallback poll while an active game is on screen and the app is in front. */
+export const LIVE_POLL_MS = 20_000;
 
 /** The debounced reload per channel, so unsubscribe() can drop a reload still waiting. */
 const pending = new WeakMap<RealtimeChannel, { cancel: () => void }>();
@@ -29,7 +34,12 @@ export const realtimeService = {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, onChange)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, onChange)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rounds', filter: `game_id=eq.${gameId}` }, onChange)
-      .subscribe();
+      .subscribe((status, error) => {
+        // Visible in `adb logcat -s ReactNativeJS` on a release build, so a phone that never hears
+        // about the other phone's round can be read without a debugger (two-device T1).
+        console.log(`[realtime] game ${gameId}: ${status}${error ? ` (${error.message})` : ''}`);
+        handlers.onStatus?.(status, error);
+      });
     pending.set(channel, onChange);
     return channel;
   },

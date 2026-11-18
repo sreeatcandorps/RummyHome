@@ -1,8 +1,10 @@
 // Is Realtime alive on this (local, throw-away) Supabase? Signs in as c1 (seed-break.sql), subscribes
-// the way the app does (postgres_changes on public.games filtered to one game id), nudges that game
-// row with a no-op update through psql, and waits for the event. Run by the two-device CI job before
-// the realtime flow so a red T1 can be read: probe green + flow red = the app; probe red = the stack.
-// Local database only: refuses hosted URLs. Prints one line per step; exit 1 when no event arrives.
+// exactly the way the scorecard does (one channel, postgres_changes on games / game_players / rounds
+// filtered to one game), then two stages: (1) a no-op update of the game row through psql — is CDC
+// delivering at all; (2) a real round saved through the `save_round` RPC as c1, the way device B does
+// in T1 — does the `rounds` insert reach a subscriber under RLS. The round is deleted again afterwards.
+// Run by the two-device CI job before the realtime flow so a red T1 can be read: probe green + flow
+// red = the app; probe red = the stack. Local database only: refuses hosted URLs. Exit 1 on no event.
 import { execFileSync } from 'node:child_process';
 import { createClient } from '@supabase/supabase-js';
 
@@ -39,14 +41,16 @@ if (!gameId) {
   process.exit(1);
 }
 
-let resolveEvent;
-const gotEvent = new Promise((resolve) => { resolveEvent = resolve; });
+let resolveEvent = () => {};
+let gotEvent = new Promise((resolve) => { resolveEvent = resolve; });
+const armEvent = () => { gotEvent = new Promise((resolve) => { resolveEvent = resolve; }); };
+const onChange = (payload) => resolveEvent(`${payload.table} ${payload.eventType}`);
 let status = 'none';
 const channel = supabase
   .channel(`probe:${gameId}`)
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, (payload) => {
-    resolveEvent(payload.eventType);
-  })
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }, onChange)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'game_players', filter: `game_id=eq.${gameId}` }, onChange)
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'rounds', filter: `game_id=eq.${gameId}` }, onChange)
   // Realtime confirms (or refuses) the postgres_changes subscription a moment after the join with a
   // `system` message — "Subscribed to PostgreSQL" or the reason it could not. The join reply alone
   // says nothing about CDC, so print it.
@@ -84,11 +88,34 @@ const timer = setInterval(nudge, 2000);
 
 const result = await Promise.race([gotEvent, new Promise((r) => setTimeout(() => r(null), waitMs))]);
 clearInterval(timer);
-await supabase.removeChannel(channel);
 if (result) {
-  console.log(`realtime-probe: PASS — ${result} event after ${Date.now() - t0} ms (${nudges} nudge${nudges === 1 ? '' : 's'})`);
-  process.exit(0);
+  console.log(`stage 1 ok — ${result} event after ${Date.now() - t0} ms (${nudges} nudge${nudges === 1 ? '' : 's'})`);
+  // Stage 2: the app's own write path. c1 is the admin of this game; four seats, a balanced Points round.
+  armEvent();
+  const seats = psql(`select string_agg(profile_id::text, ',' order by player_order) from public.game_players where game_id = '${gameId}' and seated`).split(',');
+  const roundNumber = Number(psql(`select coalesce(max(round_number), 0) + 1 from public.rounds where game_id = '${gameId}' and undone_at is null`));
+  const values = [30, -10, -10, -10];
+  const scores = seats.slice(0, 4).map((playerId, i) => ({ playerId, scoreType: i === 0 ? 'rummy' : 'count', value: values[i] ?? 0 }));
+  const t1 = Date.now();
+  const { error: saveError } = await supabase.rpc('save_round', { p_game_id: gameId, p_round_number: roundNumber, p_scores: scores, p_replace: false });
+  if (saveError) console.log(`stage 2: save_round refused (${saveError.message}) — the stage says nothing then`);
+  const roundEvent = saveError ? 'skipped' : await Promise.race([gotEvent, new Promise((r) => setTimeout(() => r(null), waitMs))]);
+  try {
+    psql(`delete from public.scores where game_id = '${gameId}' and round_id in (select id from public.rounds where game_id = '${gameId}' and round_number = ${roundNumber})`);
+    psql(`delete from public.rounds where game_id = '${gameId}' and round_number = ${roundNumber}`);
+    psql(`update public.games set current_round = ${roundNumber} where id = '${gameId}'`);
+  } catch (e) {
+    console.log(`cleanup: ${e.message.split('\n')[0]}`);
+  }
+  await supabase.removeChannel(channel);
+  if (roundEvent) {
+    console.log(`realtime-probe: PASS — stage 2 ${roundEvent === 'skipped' ? 'skipped' : `${roundEvent} event after ${Date.now() - t1} ms (save_round as c1)`}`);
+    process.exit(0);
+  }
+  console.error(`realtime-probe: FAIL — stage 1 delivered but no event within ${waitMs} ms after save_round (RLS on rounds / game_players for a subscriber, or the three-table channel)`);
+  process.exit(1);
 }
+await supabase.removeChannel(channel);
 console.error(`realtime-probe: FAIL — no event within ${waitMs} ms after ${nudges} nudges (publication, RLS or the Realtime container)`);
 try {
   console.error(`realtime.subscription rows: ${psql('select count(*) from realtime.subscription')}`);
