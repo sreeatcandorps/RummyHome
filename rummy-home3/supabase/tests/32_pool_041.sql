@@ -24,7 +24,7 @@ select has_function('public', 'set_pool_awards', array['uuid', 'jsonb', 'jsonb']
 select ok(has_function_privilege('authenticated', 'public.reenter_player(uuid, uuid)', 'execute'), 'signed-in users may call reenter_player');
 select ok(not has_function_privilege('anon', 'public.set_pool_awards(uuid, jsonb, jsonb)', 'execute'), 'anon may not give awards');
 select has_trigger('public', 'scores', 'scores_pool_sign', 'pool sign trigger on scores');
-select has_trigger('public', 'games', 'games_pool_settings_lock', 'settings lock trigger on games');
+select hasnt_trigger('public', 'games', 'games_pool_settings_lock', 'settings lock trigger on games (gone since 051)');
 
 -- ---------- game P ----------
 insert into public.games (id, created_by, status, game_type, settings, share_code)
@@ -88,9 +88,10 @@ select is((select count(*)::int from public.event_log where game_id = :P and kin
 select is((select details->>'total' from public.event_log where game_id = :P and kind = 'player_out'), '101', 'with the total');
 select is(public.pool_players_in(:P), array[:SREE, :HARISH, :PRIYA]::uuid[], '13.4 three still in');
 
--- 13.5 settings locked after a live round; re-entry may still change
-select throws_ok($$ update public.games set settings = settings || '{"poolLimit":201}' where id = '10000000-0000-4000-8000-0000000000d1' $$,
-  'PT423', null, '13.5 the limit is locked once a round exists');
+-- 13.5 (superseded by 051 / D53): the limit may change after a live round; 42_pool_limit_unlocked_051 covers what happens
+select lives_ok($$ update public.games set settings = settings || '{"poolLimit":201}' where id = '10000000-0000-4000-8000-0000000000d1' $$,
+  '13.5 → 051 the limit may change once a round exists');
+update public.games set settings = settings || '{"poolLimit":101}' where id = :P;
 -- 042: Drop / Middle drop / Full count are free once rounds exist (Q14.23); the Log records it
 select lives_ok($$ update public.games set settings = settings || '{"dropAmount":30}' where id = '10000000-0000-4000-8000-0000000000d1' $$, '13.5 (042) Drop may change mid-game');
 select is((select count(*)::int from public.event_log where game_id = :P and kind = 'settings_changed' and summary like '%Drop 25→30%'), 1, '13.5 (042) the change is in the Log');
