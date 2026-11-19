@@ -80,6 +80,12 @@ function uniq(list) {
   return [...new Set(list)];
 }
 
+/** `rummy-home3/e2e/full/51-seating-20p.yaml` → `51-seating-20p`; anything else → null. */
+function fullFlowName(file) {
+  const m = /^rummy-home3\/e2e\/full\/([^/]+)\.ya?ml$/.exec(file);
+  return m ? m[1] : null;
+}
+
 /**
  * Pure planner. `files` is the changed path list (PR); `tier` overrides the event's default.
  * Returns { tier, ui, jobs: [{device, suite, flows, monkeyEvents?}], volume, fileBugs, publish, reason }.
@@ -128,16 +134,21 @@ export function select({ event = 'pull_request', tier, files = [], message = '' 
   }
 
   if (infraChanged || forceAll || changed.length === 0) {
+    plan.jobs.push(job('pixel6', 'smoke'));
+    // The full set is the nightly's; on a PR only the full flows that were edited run (by name), so a
+    // flow fix is checked before it merges instead of at 09:00 the next day.
+    const touchedFull = uniq(changed.map(fullFlowName).filter(Boolean));
+    if (touchedFull.length) plan.jobs.push(job('pixel6', 'full', touchedFull));
     plan.jobs.push(
-      job('pixel6', 'smoke'),
       job('pixel6', 'chaos'),
       job('pixel6', 'roles'),
       job('pixel6', 'two-device'),
       job('pixel6', 'monkey', [], { monkeyEvents: 1500 }),
     );
-    plan.reason = forceAll ? '[ui-all] in the commit message: every suite on the reference phone'
+    const fullNote = touchedFull.length ? ` + the ${touchedFull.length} edited full flow(s)` : '';
+    plan.reason = forceAll ? `[ui-all] in the commit message: every suite on the reference phone${fullNote}`
       : changed.length === 0 ? 'no file list: every suite on the reference phone'
-      : 'test infrastructure changed: every suite on the reference phone';
+      : `test infrastructure changed: every suite on the reference phone${fullNote}`;
     return plan;
   }
 

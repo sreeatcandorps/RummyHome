@@ -60,6 +60,13 @@ test('PR 17 T16-8: a test-infrastructure change runs every suite once on the ref
   assert.equal(plan.jobs.find((j) => j.suite === 'monkey')!.monkeyEvents, 1500);
 });
 
+test('Nov 19: an infra change that edits full flows also runs those flows by name (the full set stays nightly)', () => {
+  const plan = select({ event: 'pull_request', files: ['rummy-home3/e2e/lib/sign-in.yaml', 'rummy-home3/e2e/full/51-seating-20p.yaml', 'rummy-home3/e2e/full/70-game-log.yaml', 'rummy-home3/e2e/smoke/12-results-zero-players.yaml'] });
+  assert.deepEqual(plan.jobs.map((j) => j.suite), ['smoke', 'full', 'chaos', 'roles', 'two-device', 'monkey']);
+  assert.equal(plan.jobs.find((j) => j.suite === 'full')!.flows, '51-seating-20p,70-game-log');
+  assert.match(plan.reason, /2 edited full flow/);
+});
+
 test('PR 17 T16-8: commit-message tags — [ui-all] widens a PR, [file-bugs] lets it open issues', () => {
   const plan = select({ event: 'pull_request', files: ['rummy-home3/app.json'], message: 'fix thing [ui-all] [file-bugs]' });
   assert.equal(plan.jobs.length, 5);
