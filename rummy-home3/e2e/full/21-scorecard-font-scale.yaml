@@ -2,16 +2,17 @@ appId: com.mindweavetech.rummyhome
 tags: [nightly]
 # PR 4: with the phone font at 1.3x (ci/ui/run-flows.sh sets it for any flow named *font-scale*) the
 # header box is sized from its three lines, so initials, totals and DEALS stay whole, and the footer
-# still shows. Game A (4 players) portrait, then Game F (20 players) for the narrow columns.
+# still shows. Game E (4 players, active — smoke/05 completes game A, and a Completed game has no DEALS)
+# portrait, then Game F (20 players) for the narrow columns.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - scrollUntilVisible:
     element:
-      id: "game-card-GAMEA1"
+      id: "game-card-GAMEE1"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "game-card-GAMEA1"
+    id: "game-card-GAMEE1"
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000
@@ -19,7 +20,7 @@ tags: [nightly]
 - assertVisible: "DEALS"
 - assertVisible: "4 players"
 - assertVisible:
-    text: "Unique game ID: GAMEA1"
+    text: "Unique game ID: GAMEE1"
 - takeScreenshot: 21-scorecard-4p-font-scale
 - back
 - scrollUntilVisible:

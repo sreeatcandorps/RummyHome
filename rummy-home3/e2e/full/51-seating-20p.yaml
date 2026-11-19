@@ -30,9 +30,6 @@ tags: [nightly]
 - assertVisible: "Mid-game · admins only · logged"
 - assertVisible: "30 rounds played.*"
 - assertVisible:
-    id: "order-counter"
-    text: "Everyone numbered"
-- assertVisible:
     id: "seat-name-1"
     text: "Sree Test"
 - assertVisible:
@@ -55,6 +52,10 @@ tags: [nightly]
 - assertVisible:
     id: "seat-name-20"
     text: "Test Uniform"
+# The counter sits under the last row, so with twenty players it is on screen only here.
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
 # Clear, then number Test Uniform first: seat 1, straight to the top; the other nineteen follow in order.
 - tapOn:
     id: "seating-clear"

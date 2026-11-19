@@ -41,7 +41,11 @@ tags: [nightly]
     timeout: 15000
 - tapOn: "Harish Test, score -10"
 - tapOn: "Middle drop -30"
-# Priya holds the Rummy: her share follows the others, so the round still balances.
+# An edited round loads every hand as a fixed number (Priya's +30 is a stored score, not a live Rummy share),
+# so the balance reads -20 until Priya is given the Rummy again; then her share follows the others.
+- assertVisible: "Balance -20"
+- tapOn: "Priya Test, score +30"
+- tapOn: "Rummy"
 - assertVisible: "Priya Test, score +50"
 - assertVisible: "Balance 0"
 - tapOn: "Save edit"

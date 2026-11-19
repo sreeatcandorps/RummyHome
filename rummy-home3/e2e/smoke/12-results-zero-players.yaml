@@ -147,8 +147,16 @@ tags: [smoke]
     direction: DOWN
     timeout: 10000
 - assertVisible: "Deleted"
-# PR 11 mini help: the 30-day note sits in the ⓘ beside the Deleted title.
-- tapOn: "About Deleted"
+# PR 11 mini help: the 30-day note sits in the ⓘ beside the Deleted title. On a tall phone the
+# Deleted title lands at the very foot of the screen after the scroll above, so centre the ⓘ first.
+- scrollUntilVisible:
+    element:
+      id: "deleted-results-note-tip"
+    direction: DOWN
+    centerElement: true
+    timeout: 10000
+- tapOn:
+    id: "deleted-results-note-tip"
 - extendedWaitUntil:
     visible: "Got it"
     timeout: 5000

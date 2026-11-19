@@ -26,7 +26,7 @@ tags: [nightly]
     text: "The Full count for this game is 80. Keep -120 for this round?"
 - takeScreenshot: 80-over-max-confirm
 - tapOn: "Keep -120"
-- assertVisible: "Sree Test, typing -120"
+- assertVisible: "Sree Test, typing -120, selected"
 - assertVisible:
     id: "count-warning"
 - tapOn: "Save score"
