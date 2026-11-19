@@ -71,11 +71,12 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "New game starts as"
     timeout: 15000
-# The button is the last thing on Settings: centre it, or a part-visible button at the foot takes the tap on the nav bar.
+# The button sits near the foot of Settings: a part-visible button there takes the tap on the nav bar, and
+# centerElement cannot centre something the page cannot scroll past. Scroll to the very last link instead;
+# with that on screen the button above it is whole.
 - scrollUntilVisible:
-    element: "Open Hidden & deleted"
+    element: "Use Rummy defaults"
     direction: DOWN
-    centerElement: true
     timeout: 15000
 - tapOn: "Open Hidden & deleted"
 - extendedWaitUntil:
