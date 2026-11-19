@@ -484,3 +484,10 @@ tags: [nightly]
 - takeScreenshot: 51h-pool-unchanged
 - tapOn:
     id: "seating-cancel"
+# Back to sree: this flow is the only full flow that signs in as someone else, and the flows after it
+# (70, 80) keep whatever session they find. In the nightly 61 resets the session between; on a targeted
+# PR run (planner picks 51 and 70 only) it does not — Nov 19 run: 70 and 80 failed on Charan's Home.
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: sree@test.local
