@@ -612,3 +612,10 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   First time the `production` profile is used; EAS holds the upload key, Play App Signing will hold the app key.
   Play Store answers so far: contact `support@mindweavetech.com`, all countries; trader status and #101 (listing
   pack) still open. No new dependency.
+### 2026-11-19 — Google Play: organization account in place; listing pack written
+- Sree: "Todays goal is to deploy on android store … Use a business account for Candor PS." The Play Console
+  organization account (MindWeave Tech / CANDOR PS LLC, owner sree@candorps.com) already exists, verified, with a
+  draft app for `com.mindweavetech.rummyhome` and no bundle yet. Distribution path from here: production **AAB** from
+  EAS (`production` profile, Play App Signing) → Internal testing → Production review. `docs/play-listing/` holds the
+  store text, the 11 App content answers, icon 512, feature graphic 1024×500 and eight captioned 9:16 / 16:9
+  screenshots built from the CI device gallery (`make-assets.py`). No new dependency; Pillow only for the images.

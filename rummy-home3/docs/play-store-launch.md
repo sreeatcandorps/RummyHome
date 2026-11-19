@@ -18,6 +18,13 @@ organization route is the faster one.
 
 Already on Google Play, a personal account's name shows as the developer; it can be changed.
 
+**Decided Nov 19 (Sree: "Use a business account for Candor PS")** — and it turned out the organization
+account already exists and is verified: **MindWeave Tech, CANDOR PS LLC**, owner `sree@candorps.com`, with a
+draft app "Rummy Home" (`com.mindweavetech.rummyhome`). So the D-U-N-S / verification wait above is behind us;
+the 12-tester gate does not apply. What remains is the listing (`docs/play-listing/README.md`, text and
+images ready to paste), the 11 App content tasks (answers in the same file), the trader status declaration
+(Sree decides), the first AAB uploaded by hand, and Google's first-app review (up to 7 days).
+
 ## Only Sree can do
 
 1. Create the Play Console developer account (choose the email; "three at ganderbs dot com" is unconfirmed), pay US$25, verify identity, verify a device in the Play Console app.
