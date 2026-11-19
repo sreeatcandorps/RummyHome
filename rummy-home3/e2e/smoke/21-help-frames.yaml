@@ -90,8 +90,9 @@ tags: [smoke]
 - assertVisible: "Games I hid · 0"
 - back
 - back
+# Profile comes back at the scroll position it was left at (Settings is below Appearance), so wait for the title.
 - extendedWaitUntil:
-    visible: "Appearance"
+    visible: "Profile"
     timeout: 15000
 
 # 3. The sign-in screen, then sign in again so the session is back for the next flow.
