@@ -596,7 +596,7 @@ What 047 does (rollback: `supabase/rollback/rollback_047_reentry_and_late_entry_
 
 Update Nov 18: 046, 047 and a re-apply of `event_log_games` (live's `047b`, in the repo as `048_event_log_games_exact_fix.sql`) are **on live**.
 
-D46 C (Sree, Nov 18), **written, not applied — never run against live without Sree's OK**:
+D46 C (Sree, Nov 18) — **on live since Nov 19** (Build Bot applied it from merged `main`, schema_migrations `20261119044506`; trigger present, enabled, row counts unchanged):
 
 26. `supabase/migrations/049_reopen_pool_clears_awards.sql`
 

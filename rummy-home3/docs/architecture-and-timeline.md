@@ -566,3 +566,10 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   tablet turned sideways gets the table-alone pool layout and upright keeps the card + Standings. His question on
   reopening a pool that is in a result: it cannot happen — such a pool is Closed; results keep their stored places.
   049 is **not applied** to live (needs Sree's yes). No new dependency, no hosting change.
+
+### 2026-11-19 — #90 and #91 merged to `main`; 049 applied to live
+- Sree: "go ahead with all recommended actions". #90 (help pictures, pool header without the player number — D48,
+  ci.yml schedule refs) and #91 (D46 C, D47 B, migration 049) merged after green device runs. Build Bot applied
+  **049** to `gngcrplcldfiubvhcdin` (schema_migrations `20261119044506`; trigger present and enabled; row counts
+  unchanged). 050 waits on #93's run. Open: #93 (050), #94 (nightly drift + planner: infra PRs run the edited full
+  flows), #95 (sign-in help picture). No new dependency, no hosting change.
