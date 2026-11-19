@@ -37,11 +37,22 @@ tags: [nightly]
 - assertVisible: "Add by initials"
 - assertVisible: "Find in database: add players to this game from the EZ Score database"
 - takeScreenshot: 32b-add-players-total-3
+# The full job runs after the smoke flows (since #94), which make Zed Zero and the Test players "recent";
+# R K and C D sit lower in the list, so scroll to each before tapping and back up for the total.
+- scrollUntilVisible:
+    element: "Add R K"
+    direction: DOWN
+    timeout: 15000
 - tapOn: "Add R K"
+- scrollUntilVisible:
+    element: "Add C D"
+    direction: DOWN
+    timeout: 15000
 - tapOn: "Add C D"
-- extendedWaitUntil:
-    visible: "Total, 5 players"
-    timeout: 5000
+- scrollUntilVisible:
+    element: "Total, 5 players"
+    direction: UP
+    timeout: 15000
 - assertVisible: "Added now: 2 (yellow ring)"
 - takeScreenshot: 32c-add-players-total-5
 - tapOn: "Return to game"
