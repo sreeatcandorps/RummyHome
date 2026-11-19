@@ -15,7 +15,7 @@ import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { canEnterScores, gameVisibleToUser, SeatRole } from '@/utils/gameAccess';
 import { gameCache } from '@/utils/gameCache';
-import { canReopenGame, REOPEN_BLOCKED_MESSAGE } from '@/utils/gameStatus';
+import { canReopenGame, reopenClearsAwards, REOPEN_BLOCKED_MESSAGE } from '@/utils/gameStatus';
 import { createViewToken } from '@/utils/shareLink';
 import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validatePoolRoundScores, validateRoundScores } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
@@ -1016,21 +1016,34 @@ export const gamesService = {
   /**
    * Undo an accidental Complete game. Only a game that is Completed and not yet
    * Closed (not part of a declared result) can go back to Active.
+   * D46 C (049): a pool that already has awards loses them — they were worked out from standings
+   * the reopen is about to change; the pool asks for them again after the next Complete.
    */
   async reopenGame(gameId: string): Promise<Game | null> {
     const game = await this.getGame(gameId);
     if (!game) throw new Error('Game not found.');
     if (!canReopenGame(game)) throw new Error(REOPEN_BLOCKED_MESSAGE);
+    const clearsAwards = reopenClearsAwards(game);
 
     if (!isSupabaseConfigured) {
-      const updatedGame = { ...game, isComplete: false, completedAt: null };
+      const updatedGame = {
+        ...game,
+        isComplete: false,
+        completedAt: null,
+        ...(clearsAwards ? { prizeShares: null, awardedAt: null, awardNote: null } : {}),
+      };
       await storage.updateGame(updatedGame);
       return updatedGame;
     }
 
+    // The 049 trigger clears the awards server-side as well; sending them keeps an older database honest.
     const { data, error } = await supabase
       .from('games')
-      .update({ status: 'active', completed_at: null })
+      .update({
+        status: 'active',
+        completed_at: null,
+        ...(clearsAwards ? { prize_shares: null, awarded_at: null, awarded_by: null, award_note: null } : {}),
+      })
       .eq('id', gameId)
       .eq('status', 'completed')
       .is('closed_at', null)
