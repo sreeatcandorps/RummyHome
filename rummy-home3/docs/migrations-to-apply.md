@@ -594,6 +594,19 @@ What 047 does (rollback: `supabase/rollback/rollback_047_reentry_and_late_entry_
 - `event_log_games`: the 044 body plus the labels "Re-entry score" / "Late entry score" with the words "Highest score" / "Highest score + 1" (`entry_plus_text`).
 - Adds no column, changes no row; functions only. Until it runs, the app writes `reentryPlus: 1` / `lateEntryPlus: 1` on new pools and shows the stored re-entry score, but the server still re-enters at the highest (041), so the +1 rules take effect on live only once 047 is applied.
 
+Update Nov 18: 046, 047 and a re-apply of `event_log_games` (live's `047b`, in the repo as `048_event_log_games_exact_fix.sql`) are **on live**.
+
+D46 C (Sree, Nov 18), **written, not applied — never run against live without Sree's OK**:
+
+26. `supabase/migrations/049_reopen_pool_clears_awards.sql`
+
+What 049 does (rollback: `supabase/rollback/rollback_049_reopen_pool_clears_awards.sql`; pgTAP: `supabase/tests/40_reopen_pool_clears_awards_049.sql`, 16 checks; replay hook `HAS_049`):
+
+- One `before update of status` trigger on `games`: when a **pool** goes Completed → Active and it has awards (`awarded_at` set), the awards are cleared — `prize_shares`, `awarded_at`, `awarded_by`, `award_note` → null — and a Log line is written (kind `awards_changed`, "Awards cleared · The pool was reopened; give them again after Complete", with what was cleared in `details`). The pool is "awards pending" again and asks for them after the next Complete.
+- A pool in a saved result is Closed and cannot be reopened (unchanged), so a result's stored places never go stale this way.
+- Points games and pools without awards: nothing happens. Adds no column, changes no row by itself.
+- The app sends the same clear in its reopen update, so on a database without 049 the awards still clear when the current APK reopens the pool; 049 makes it hold for any client.
+
 Read-only checks that go with 021 (nothing is changed):
 
 ```sql

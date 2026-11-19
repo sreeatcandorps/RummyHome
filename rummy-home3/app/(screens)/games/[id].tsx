@@ -44,7 +44,7 @@ import { canChangeSeating, SEATING_MENU_ITEM } from '@/utils/seating';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
 import { playersChipLabel, POOL_CARD_MAX_ROWS } from '@/utils/scorecardLayout';
 import { gameSettingsMenuTitle, rulesFromGame } from '@/utils/gameSettings';
-import { canReopenGame } from '@/utils/gameStatus';
+import { canReopenGame, reopenClearsAwards, REOPEN_CLEARS_AWARDS_NOTE } from '@/utils/gameStatus';
 import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
 import { PoolAwardsCard } from '@/components/game/PoolAwardsCard';
 import { CompleteGameDialog } from '@/components/game/CompleteGameDialog';
@@ -776,6 +776,11 @@ export default function GameScreen() {
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
               It goes back to Active so rounds can be added or edited. Scores stay as they are. Use this when Complete game was pressed too early.
             </Text>
+            {reopenClearsAwards(game) ? (
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: spacing.sm }} testID="reopen-clears-awards">
+                {REOPEN_CLEARS_AWARDS_NOTE}
+              </Text>
+            ) : null}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setShowReopenConfirm(false)} disabled={reopening}>Cancel</Button>
