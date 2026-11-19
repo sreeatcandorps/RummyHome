@@ -1,0 +1,147 @@
+appId: com.mindweavetech.rummyhome
+tags: [full]
+# D49 B (Sree, Nov 19): a Closed game can be reopened. Game G (GAMEG1, completed, 6 seated, 0 rounds)
+# is Closed by its saved result (smoke/12 on a full run; saved here when G is still open). Scorecard ⋮ ›
+# Reopen game shows the one dialog naming the result (saved when, six-character ID, game count, who);
+# Reopen anyway → the scorecard is Active again (Complete back in the bar). The Log says "Reopened while
+# Closed — result R… is Out of date". G is completed again, and in Results the saved result carries the
+# Out of date chip; its page shows the banner with Make a new result (→ the Results picker) and Delete.
+# Nothing is deleted: the old result stays, its numbers unchanged, for the eye and for later runs.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "Results"
+- extendedWaitUntil:
+    visible: "Show results"
+    timeout: 15000
+# G still open (no smoke/12 before this flow): save its result now so it is Closed.
+- runFlow:
+    when:
+      visible:
+        id: "game-card-GAMEG1"
+    commands:
+      - runFlow:
+          when:
+            visible:
+              id: "game-card-GAMEA1"
+          commands:
+            - tapOn:
+                id: "game-card-GAMEA1"
+      - tapOn: "Show results"
+      - extendedWaitUntil:
+          visible: "Scores"
+          timeout: 20000
+      - tapOn:
+          id: "results-save-button"
+      - extendedWaitUntil:
+          visible: "OK, open the saved result"
+          timeout: 20000
+      - tapOn: "OK, open the saved result"
+      - extendedWaitUntil:
+          visible: "Scores"
+          timeout: 20000
+- launchApp
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEG1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEG1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertNotVisible: "Complete game"
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-reopen"
+- extendedWaitUntil:
+    visible: "Reopen this Closed game?"
+    timeout: 10000
+- assertVisible:
+    id: "reopen-closed-note"
+# The result lookup lands a moment after the dialog opens: the ID line is the proof it did.
+- extendedWaitUntil:
+    visible: ".*ID [A-Z0-9]{6}.*"
+    timeout: 15000
+- assertVisible: ".*Out of date.*"
+- assertVisible:
+    id: "reopen-open-result"
+- takeScreenshot: 42-reopen-closed-dialog
+- tapOn:
+    id: "reopen-confirm"
+- extendedWaitUntil:
+    visible: "Complete game"
+    timeout: 20000
+- takeScreenshot: 42b-reopened-scorecard-active
+# The Log row, written by the 050 trigger. All, in case Important is remembered from an earlier flow.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- tapOn:
+    id: "game-log-filter-all"
+- assertVisible:
+    text: ".*Reopened while Closed.*"
+- assertVisible:
+    text: ".*Out of date.*"
+- takeScreenshot: 42c-log-reopened-while-closed
+- back
+- extendedWaitUntil:
+    visible: "Complete game"
+    timeout: 15000
+# Complete G again (no rounds): the result stays Out of date; G is Completed, not Closed.
+- tapOn: "Complete game"
+- extendedWaitUntil:
+    visible: "Complete this game?"
+    timeout: 5000
+- tapOn: "Confirm complete game"
+- extendedWaitUntil:
+    visible: "Final scores · .*"
+    timeout: 20000
+- launchApp
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000
+- tapOn: "Results"
+- extendedWaitUntil:
+    visible: "Past results"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "result-stale-.*"
+    direction: DOWN
+    timeout: 15000
+- assertVisible: "Out of date"
+- takeScreenshot: 42d-past-results-out-of-date-chip
+- tapOn: "Open results from .*out of date.*"
+- extendedWaitUntil:
+    visible: "Scores"
+    timeout: 20000
+- assertVisible:
+    id: "result-stale-banner"
+- assertVisible:
+    text: ".*was reopened .* after this result was saved.*"
+- assertVisible:
+    text: ".*do not change.*"
+- assertVisible:
+    id: "result-stale-new"
+- assertVisible:
+    id: "result-stale-delete"
+- takeScreenshot: 42e-result-page-out-of-date-banner
+- tapOn:
+    id: "result-stale-new"
+- extendedWaitUntil:
+    visible: "Show results"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEG1"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 42f-make-a-new-result-picker
