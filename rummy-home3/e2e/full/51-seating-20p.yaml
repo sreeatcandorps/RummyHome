@@ -30,9 +30,6 @@ tags: [nightly]
 - assertVisible: "Mid-game · admins only · logged"
 - assertVisible: "30 rounds played.*"
 - assertVisible:
-    id: "order-counter"
-    text: "Everyone numbered"
-- assertVisible:
     id: "seat-name-1"
     text: "Sree Test"
 - assertVisible:
@@ -55,6 +52,10 @@ tags: [nightly]
 - assertVisible:
     id: "seat-name-20"
     text: "Test Uniform"
+# The counter sits under the last row, so with twenty players it is on screen only here.
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
 # Clear, then number Test Uniform first: seat 1, straight to the top; the other nineteen follow in order.
 - tapOn:
     id: "seating-clear"
@@ -414,9 +415,24 @@ tags: [nightly]
 - assertVisible:
     id: "score-header-initials-1"
     text: "ST"
-- assertVisible:
-    id: "score-header-initials-20"
-    text: "TU"
+# Column 20 is off the right edge in portrait (nine columns fit): swipe the table left, then check it.
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
+- extendedWaitUntil:
+    visible:
+      id: "score-header-initials-20"
+      text: "TU"
+    timeout: 15000
 - takeScreenshot: 51f-scorecard-20p-restored
 # Pool: BQ1 as its creator c3. Out and re-entered seats show as such, and an out player moves like anyone else.
 - runFlow:
@@ -468,3 +484,10 @@ tags: [nightly]
 - takeScreenshot: 51h-pool-unchanged
 - tapOn:
     id: "seating-cancel"
+# Back to sree: this flow is the only full flow that signs in as someone else, and the flows after it
+# (70, 80) keep whatever session they find. In the nightly 61 resets the session between; on a targeted
+# PR run (planner picks 51 and 70 only) it does not — Nov 19 run: 70 and 80 failed on Charan's Home.
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: sree@test.local

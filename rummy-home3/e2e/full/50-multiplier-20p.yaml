@@ -58,6 +58,9 @@ tags: [nightly]
 - extendedWaitUntil:
     visible: "Exact points"
     timeout: 5000
+# Nov 19: 20 lines scroll inside the sheet; the totals line and Close stay on the screen below them.
+- assertVisible:
+    id: "exact-lines"
 - assertVisible:
     id: "exact-totals-line"
 - assertVisible: ".*\\(exact\\).*"

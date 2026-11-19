@@ -6,10 +6,13 @@ env:
 ---
 - tapOn:
     id: "login-email"
+# The fields may still hold a previous attempt (full/10 types a wrong passcode first): clear before typing.
+- eraseText: 80
 - inputText: ${EMAIL}
 - hideKeyboard
 - tapOn:
     id: "login-passcode"
+- eraseText: 12
 - inputText: ${PASSCODE}
 - hideKeyboard
 - tapOn:

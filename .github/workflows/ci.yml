@@ -413,6 +413,9 @@ jobs:
               started=1; break
             fi
             echo "::warning::supabase start failed (attempt $attempt)"; show_log
+            # Who holds the database port? (Nov 19: a two-device job lost all three attempts to "54322 in use"
+            # on a fresh runner with no container of ours; the retry cannot help against a host process.)
+            (sudo ss -ltnp 'sport = :54322' || ss -ltnp 'sport = :54322') 2>/dev/null | tail -n +2 || true
             supabase stop --no-backup || true; sleep 10
           done
           [ "$started" -eq 1 ] || { echo "::error::supabase start failed three times"; show_log; exit 1; }
@@ -508,6 +511,7 @@ jobs:
             fi
             echo "::warning::supabase start failed (attempt $attempt)"; show_log
             docker ps -a --format '{{.Names}} {{.Status}}' || true
+            (sudo ss -ltnp 'sport = :54322' || ss -ltnp 'sport = :54322') 2>/dev/null | tail -n +2 || true
             supabase stop --no-backup || true; sleep 10
           done
           [ "$started" -eq 1 ] || { echo "::error::supabase start failed three times"; exit 1; }

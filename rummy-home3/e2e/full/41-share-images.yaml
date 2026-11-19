@@ -1,7 +1,7 @@
 appId: com.mindweavetech.rummyhome
 tags: [full]
 # PR 10b share pictures, side by side for the eye: the single game's Final scores card (marigold frame,
-# "Final scores · S…" title, Share + Done bar, no Back button) and
+# "Final scores · S…" title, Share + Done bar; since D40 the header arrow goes back to the scorecard) and
 # the results share dialog (green frame, every player, no code / link / "and N more" on the card).
 # Game G is completed with 6 seated players; its saved result exists once smoke/12 has run (the
 # nightly runs smoke first). The pixel size of the saved file (1080 wide) cannot be read by Maestro;
@@ -32,8 +32,6 @@ tags: [full]
     id: "final-share"
 - assertVisible:
     id: "final-done"
-- assertNotVisible:
-    text: "Back"
 - assertVisible: "EZ Score: Rummy game share image"
 - assertVisible: "Round by round"
 - takeScreenshot: 41-final-scores-game-share-marigold

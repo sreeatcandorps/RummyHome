@@ -48,7 +48,7 @@ Manygames (38 games); admins `a1` Arun Admin, `a2` Asha Coadmin (non-playing), `
 | BP4 | `BREAKP4` | Points, completed, in a result | (reserved: Recent / result views) |
 | BP5 | `BREAKP5` | Points, created by c2 who is not seated; a1, p05–p07; no rounds | `chaos/c02` (completes it), `roles/r02` (s1 must not see it) |
 | BP6 / BP7 | `BREAKP6` / `BREAKP7` | Points, c1 + p11–p13, no rounds | `chaos/c05`+`c06` (offline then reconnect), `chaos/c07`+`c08` (kill mid-save) |
-| BQ1 | `BREAKQ1` | Pool 101, c3 + a1 + p03–p06; p05 out, p06 re-entered; s1 spectator | `roles/r02` (s1 sees it view-only), `full/51` (PR 21: the Seating sheet counts the out, moves an out player, Cancel saves nothing) |
+| BQ1 | `BREAKQ1` | Pool 101, c3 + a1 + p03–p06; p05 out, p06 re-entered; s1 spectator | `roles/r02` (s1 sees it view-only), `full/51` (PR 21: the Seating sheet counts the out, moves an out player, Cancel saves nothing; ends by signing back in as sree so 70 / 80 find their games on any run order) |
 | BQ2 | `BREAKQ2` | Pool 201, 20 seats, 19 out, c3 the last one in | `chaos/c10` (completes, awards) |
 | BQ3 | `BREAKQ3` | Pool 400, re-entry off, completed and awarded | (reserved: awards block on a completed pool) |
 | BRKC01–38 | `BRKC01`… | c4's 38 games (30 completed, 8 active) | (reserved: Home paging, the live-games guard) |
