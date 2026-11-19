@@ -14,5 +14,5 @@
   "settings": {"source": "07d-settings-points-defaults", "badges": [[1000, 300], [1000, 630], [1000, 1580]]},
   "players-admins": {"source": "21-players-admins", "badges": [[590, 558], [738, 445], [1020, 520], [110, 1345], [110, 2168]]},
   "hidden-deleted": {"source": "21b-hidden-deleted", "badges": [[1010, 480], [1010, 920], [1010, 1760], [1010, 2080]]},
-  "sign-in": {"source": "21c-sign-in", "badges": [[1000, 720], [1000, 1000], [540, 1355], [540, 1560]]}
+  "sign-in": {"source": "21c-sign-in", "badges": [[1000, 715], [1000, 995], [900, 1352], [1000, 1660]]}
 }
