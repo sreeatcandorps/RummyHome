@@ -57,7 +57,7 @@ import { useActualToggle } from '@/hooks/useActualToggle';
 import { actual, anyShortened, exactLines, pointsGameMultiplier } from '@/utils/multiplier';
 import { newGameDraft } from '@/utils/newGameDraft';
 import { PointsRules } from '@/utils/gameSettings';
-import { isPoolGame, lastPlayerStanding, playersIn, poolLimitOf, poolStandings, poolStatusLabel, poolTotal, reentryBlock, REENTRY_BLOCK_TEXT, seatOf } from '@/utils/pool';
+import { isPoolGame, lastPlayerStanding, limitChangePreview, playersIn, poolLimitOf, poolStandings, poolStatusLabel, poolTotal, reentryBlock, REENTRY_BLOCK_TEXT, seatOf } from '@/utils/pool';
 
 export default function GameScreen() {
   const { id } = useLocalSearchParams();
@@ -635,7 +635,7 @@ export default function GameScreen() {
                 onDismiss={() => setMenuOpen(false)}
                 anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu"> </Button>}
               >
-                <Menu.Item leadingIcon={pool && maxRounds > 0 ? 'lock-outline' : 'cog-outline'} onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title={gameSettingsMenuTitle(pool, maxRounds)} testID="game-menu-settings" />
+                <Menu.Item leadingIcon="cog-outline" onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title={gameSettingsMenuTitle(pool, maxRounds)} testID="game-menu-settings" />
                 {deleted ? null : <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title={PLAYERS_ADMINS_TITLE} />}
                 {canChangeSeating(game, canScoreNow) ? (
                   <Menu.Item leadingIcon="seat-outline" title={SEATING_MENU_ITEM} onPress={() => { setMenuOpen(false); setSeating(true); }} testID="game-menu-seating" />
@@ -894,8 +894,8 @@ export default function GameScreen() {
         visible={gameSettingsOpen}
         rules={rulesFromGame(game.settings, game.gameType)}
         readOnly={!canScoreNow}
-        lockValues={pool && maxRounds > 0}
         roundCount={maxRounds}
+        poolLimitPreview={pool ? (limit) => limitChangePreview(game, limit, (id) => players.find((p) => p.id === id)?.name ?? '?') : undefined}
         onStartNewGame={canScoreNow && !pool ? startNewGameWith : undefined}
         onDismiss={() => setGameSettingsOpen(false)}
         onSave={async (rules) => {

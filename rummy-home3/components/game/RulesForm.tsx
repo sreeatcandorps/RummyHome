@@ -4,7 +4,7 @@ import { RadioButton, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { InfoTip } from '@/components/ui/InfoTip';
 import { HelpTopicKey } from '@/constants/helpTopics';
-import { ENTRY_PLUS_LABELS, EntryPlus, limitHint, parsePoolLimit, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_LIMITS, POOL_REENTRY_LIMIT_MAX } from '@/utils/pool';
+import { ENTRY_PLUS_LABELS, EntryPlus, limitHint, parsePoolLimit, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_LIMITS, POOL_REENTRY_LIMIT_MAX, poolLimitRoundsNote } from '@/utils/pool';
 import { parseReentryLimit } from '@/utils/rulesDraft';
 import { multiplierExample, multiplierFieldInput, MULTIPLIER_RANGE_TEXT, parseMultiplierInput } from '@/utils/multiplier';
 import { RulesDraft } from '@/utils/rulesDraft';
@@ -24,15 +24,14 @@ export const POOL_RULES_NOTE = 'Pool scores are plus points: the winner scores 0
 /** PR 14: under the Multiplier field once rounds exist (Game settings). */
 export const multiplierRoundsNote = (rounds: number) => `${rounds === 1 ? '1 round' : `${rounds} rounds`} played · a change re-prices the whole game`;
 export const MULTIPLIER_HINT = 'Type the points as usual; the app multiplies. ×1 unless you change it — changeable later for the whole game.';
-export const POOL_LOCK_NOTE = 'Rounds have been saved, so the pool limit is locked — changing it would change who is out. Drop, Middle drop, Full count and Re-entries can still change; the Log records it.';
+/** 051 / D53: the limit may change once rounds exist; the ⓘ says what that does. */
+export const POOL_LIMIT_CHANGE_NOTE = 'You can change the limit mid-game. Who is out is then read again from every total against the new limit: players under it are back in, players at or over it are out. Totals stay as they are; the Log records it.';
 /** Mini help (ⓘ) beside the pool limit chips. */
 export const POOL_LIMIT_TIP = 'The limit decides who is out: at 101, a score of 100 is still in and 101 is out. 101, 201 and 251 are the usual limits; Custom takes any number.';
 /** Mini help (ⓘ) beside Re-entries; the line under the radios stays and tracks the choice. */
 export const REENTRIES_TIP = 'A player who is out may come back; how many times per player? Unlimited lets them come back as often as they like; Limited caps it per player. Re-entry score says where they start: the highest score still in, or that plus 1.';
 /** The title above Drop, Middle drop and Full count; its ⓘ carries the kind's note. */
 export const VALUES_TITLE = 'Drop · Middle drop · Full count';
-/** Under the Pool limit title once rounds exist and the limit is locked (Q14.23). */
-export const LOCKED_TAG = 'Locked';
 /** PR 24: the Re-entries block groups how many and where a re-entry starts; Late entry is its own block. The "how many" question lives in the ⓘ (PR 11). */
 export const REENTRY_SCORE_TITLE = 'Re-entry score';
 export const REENTRY_SCORE_HINT = 'Where a re-entering player starts.';
@@ -42,14 +41,14 @@ export const REENTRY_COUNT_EMPTY_HINT = 'Type how many re-entries each player ge
 
 /**
  * Drop, Middle drop and Full count for either kind; a pool also has its limit (101 / 201 / 251 /
- * Custom, D2) and Re-entries (D4; 042: Unlimited / Limited N). `lockValues` greys the pool limit
+ * Custom, D2) and Re-entries (D4; 042: Unlimited / Limited N). 051 / D53: the limit stays editable once rounds exist;
+ * a note under the chips says a change re-reads who is out
  * once a pool has a saved round (13.5, Q14.23); the three values and Re-entries stay live.
  */
-export function RulesForm({ draft, onChange, disabled = false, lockValues = false, testIDPrefix = 'rules', roundCount = 0, helpTopic = 'game-type', helpAnchor }: {
+export function RulesForm({ draft, onChange, disabled = false, testIDPrefix = 'rules', roundCount = 0, helpTopic = 'game-type', helpAnchor }: {
   draft: RulesDraft;
   onChange: (d: RulesDraft) => void;
   disabled?: boolean;
-  lockValues?: boolean;
   testIDPrefix?: string;
   /** Game settings: rounds already saved, so the Multiplier box can say a change re-prices them (PR 14). */
   roundCount?: number;
@@ -60,8 +59,7 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
   const { colors } = useAppTheme();
   const pool = draft.gameKind === 'pool';
   const field = pool ? plainField : signedField;
-  // Q14.23: once rounds exist only the pool limit is locked (it decides who is out).
-  const limitDisabled = disabled || lockValues;
+  const limitDisabled = disabled;
   const numbersDisabled = disabled;
   const limitNumber = parsePoolLimit(draft.poolLimit);
   const reentryLimit = parseReentryLimit(draft);
@@ -75,8 +73,7 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
         <View style={styles.block}>
           <View style={styles.titleRow}>
             <Text variant="titleSmall">Pool limit</Text>
-            {lockValues ? <Text variant="labelSmall" style={[styles.locked, { color: colors.onSurfaceVariant, borderColor: colors.outlineVariant }]} testID={`${testIDPrefix}-limit-locked`}>{LOCKED_TAG}</Text> : null}
-            <InfoTip title="Pool limit" text={lockValues ? [POOL_LIMIT_TIP, POOL_LOCK_NOTE] : POOL_LIMIT_TIP} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-limit`} />
+            <InfoTip title="Pool limit" text={roundCount > 0 ? [POOL_LIMIT_TIP, POOL_LIMIT_CHANGE_NOTE] : POOL_LIMIT_TIP} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-limit`} />
           </View>
           <View style={styles.chips}>
             {POOL_LIMITS.map((limit) => {
@@ -124,6 +121,9 @@ export function RulesForm({ draft, onChange, disabled = false, lockValues = fals
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
             {limitNumber ? limitHint(limitNumber) : 'Reach the limit and you are out.'}
           </Text>
+          {roundCount > 0 ? (
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID={`${testIDPrefix}-limit-rounds-note`}>{poolLimitRoundsNote(roundCount)}</Text>
+          ) : null}
         </View>
       ) : null}
       <View style={styles.titleRow}>
@@ -228,7 +228,6 @@ const styles = StyleSheet.create({
   wrap: { gap: spacing.sm },
   block: { gap: spacing.xs },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  locked: { borderWidth: 1, borderRadius: radius.full, paddingHorizontal: spacing.sm, paddingVertical: 1, overflow: 'hidden' },
   row: { flexDirection: 'row', gap: spacing.sm },
   input: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },

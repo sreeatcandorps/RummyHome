@@ -365,8 +365,9 @@ test('13.7 RulesForm draft: chips for the three limits, Custom for anything else
   assert.match(form, /-reentries-limited/, 'Re-entries: Limited radio');
   assert.match(form, /-reentries-count/, 'the Limited count field');
   assert.match(form, /draft\.reentryMode === 'limited' \? \(/, 'the count field shows only for Limited');
-  assert.match(form, /const limitDisabled = disabled \|\| lockValues;\s+const numbersDisabled = disabled;/, 'Q14.23: lockValues greys only the pool limit');
-  assert.match(form, /POOL_LOCK_NOTE = 'Rounds have been saved, so the pool limit is locked/);
+  // Q14.23 locked the limit once rounds existed; 051 / D53 (Nov 19) unlocked it — see tests/v12-pool-limit-nov19.test.ts.
+  assert.match(form, /const limitDisabled = disabled;\s+const numbersDisabled = disabled;/, 'D53: nothing in the form is locked by rounds');
+  assert.doesNotMatch(form, /POOL_LOCK_NOTE|lockValues/);
   const settingsScreen = src('app/(screens)/settings.tsx');
   assert.match(settingsScreen, /settings-starts-points/);
   assert.match(settingsScreen, /settings-starts-pool/);
@@ -484,7 +485,7 @@ test('13.9 scorecard: header shows initials / score (no player number since Nov 
   assert.doesNotMatch(src('components/game/PoolStandings.tsx'), /#\$\{r\.number\}/, 'Standings rows carry no #number');
   assert.match(scorecard, /<PoolStandings\s+rows=\{poolRows\}/);
   assert.match(scorecard, /onReenter=\{game\.isComplete \|\| deleted \? undefined : reenter\}/); // PR 20: read-only when deleted
-  assert.match(scorecard, /lockValues=\{pool && maxRounds > 0\}/);
+  assert.match(scorecard, /poolLimitPreview=\{pool \? \(limit\) => limitChangePreview\(game, limit,/, 'D53: the limit confirm names who changes');
   assert.match(scorecard, /\(pool \? a\.total - b\.total : b\.total - a\.total\)/, 'the leader of a pool is the lowest score still in');
   assert.match(scorecard, /<PoolAwardsCard/);
   const theme = src('constants/theme.ts');

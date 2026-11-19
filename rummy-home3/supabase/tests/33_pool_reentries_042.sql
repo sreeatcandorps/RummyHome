@@ -41,9 +41,9 @@ select lives_ok($$ select public.save_round('10000000-0000-4000-8000-0000000000e
     {"playerId":"00000000-0000-4000-8000-000000000008","scoreType":"count","value":70}]'::jsonb, false) $$, 'round 1');
 select is((select out_round from public.game_players where game_id = :R and profile_id = :ZERO), 1, 'zero is out in round 1');
 
--- only the pool limit is locked (042 B)
-select throws_ok($$ update public.games set settings = settings || '{"poolLimit":101}' where id = '10000000-0000-4000-8000-0000000000e2' $$,
-  'PT423', null, 'the pool limit is locked once a round exists');
+-- 042 B locked the pool limit once a round existed; 051 (D53) unlocked it — see 42_pool_limit_unlocked_051
+select lives_ok($$ update public.games set settings = settings || '{"poolLimit":60}' where id = '10000000-0000-4000-8000-0000000000e2' $$,
+  '051 the pool limit may change once a round exists (same value here: nothing moves)');
 select lives_ok($$ update public.games set settings = settings || '{"dropAmount":25,"mdAmount":50,"maxCount":130}' where id = '10000000-0000-4000-8000-0000000000e2' $$,
   'Drop, Middle drop and Full count may change mid-game');
 select is((select summary from public.event_log where game_id = :R and kind = 'settings_changed' order by id desc limit 1),

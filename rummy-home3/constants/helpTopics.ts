@@ -252,7 +252,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       },
     ],
     tricky: [
-      { id: 'limit-locked', q: 'Why is the pool limit grey in Game settings?', a: 'Rounds have been saved. Changing the limit would change who is out, so it is locked for this game. Drop, Middle drop, Full count and Re-entries still change.' },
+      { id: 'limit-change', q: 'Can the pool limit change once rounds are saved?', a: 'Yes. Game settings asks once and names who comes back in and who goes out: who is out is read again from every total against the new limit. Totals stay as they are; the Log records it.' },
       { id: 'which-kind', q: 'Points or Pool?', a: 'Points when every round is squared up among the table (the round adds to 0). Pool when players climb towards a limit and drop out; the last ones in share the pool through awards.' },
     ],
     alsoSee: ['scoring-rules', 'new-game', 'settings', 'awards'],
@@ -302,7 +302,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'Game settings',
         bullets: [
           '⋮ › **Game settings** changes this game\u2019s Drop, Middle drop, Full count, Multiplier (Points) or Re-entries (Pool). They override your defaults for this game only; the Log records every change.',
-          'A pool\u2019s limit is locked once a round is saved; the menu item then reads **Game settings · locked**.',
+          'A pool\u2019s limit can change mid-game: the dialog asks once and names who comes back in and who goes out (who is out is read again from every total). Totals stay as they are.',
           'Changing the multiplier when rounds exist asks first: **Apply to whole game** re-prices every round; **Start a new game instead** opens New game with these players.',
         ],
       },
@@ -325,7 +325,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     menu: {
       title: 'The ⋮ menu, top to bottom',
       rows: [
-        { item: 'Game settings', does: 'Drop, Middle drop, Full count; Multiplier (Points) or Re-entries (Pool) for this game. Reads "· locked" on a pool with rounds.', who: 'Admins', hidden: 'Completed games show it read-only' },
+        { item: 'Game settings', does: 'Drop, Middle drop, Full count; Multiplier (Points) or Pool limit and Re-entries (Pool) for this game.', who: 'Admins', hidden: 'Completed games show it read-only' },
         { item: 'Players · Admins', does: 'Who plays, who is admin, invite, link, initials, remove.', who: 'Everyone (admins can change)', hidden: 'Deleted game' },
         { item: 'Order of players', does: 'Rearrange who sits where (tap to number, arrows to nudge); the deal follows the new order from the next round.', who: 'Admins', hidden: 'Completed game' },
         { item: 'Edit round', does: 'Pick a round and change its scores; the Log keeps the old ones.', who: 'Admins', hidden: 'Completed game, or no rounds yet (grey)' },
@@ -337,7 +337,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     },
     tricky: [
       { id: 'view-only', q: 'Why does it say View only?', a: 'You are not an admin of this game. Ask the creator (named under the table) to make you one from **Players · Admins**.' },
-      { id: 'settings-locked', q: 'Why is Game settings locked?', a: 'Only the pool limit locks, and only once a round is saved — changing it would change who is out. Everything else in Game settings still changes.' },
+      { id: 'limit-changed', q: 'I changed the pool limit — who is out now?', a: 'Who is out is read again from every total against the new limit: players under it are back in, players at or over it are out from the round they crossed it. Totals stay as they are; the Log has a line per player who changed.' },
       { id: 'scorecard-changed', q: '"The scorecard changed" — what happened?', a: 'Another phone saved a round, undid one or edited one while you were typing. The sheet reloads; check the round number before you save again.' },
       { id: 'reopen-closed', q: 'Can I reopen a Closed game?', a: 'Yes. Scorecard ⋮ › **Reopen game** names the result it is in and asks once. The result keeps the numbers it had and shows **Out of date**; its other games go back to [Completed]. Make a new result when you are done, or delete the old one.' },
       { id: 'short-numbers', q: 'The totals say 8K — where are the exact points?', a: 'Tap the **×N** chip (or any cell) for the exact number. Big totals read short on the scorecard so twenty columns still fit.' },
@@ -397,7 +397,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       title: 'The ⋮ menu on the sheet',
       rows: [
         { item: 'Clear this round', does: 'Empties every cell of a new round. While editing it reads Undo my changes.', who: 'Admins' },
-        { item: 'Game settings', does: 'Same dialog as on the scorecard; the pool limit is locked once rounds exist.', who: 'Admins' },
+        { item: 'Game settings', does: 'Same dialog as on the scorecard; a pool-limit change asks once and re-reads who is out.', who: 'Admins' },
         { item: 'Share live scorecard', does: 'The live link.', who: 'Admins' },
         { item: 'Help', does: 'This page.', who: 'Everyone' },
       ],
@@ -1048,7 +1048,6 @@ export const HELP_WHY = {
   giveAwardsFirst: { topic: 'results', anchor: 'give-awards-first' },
   scorecardChanged: { topic: 'scorecard', anchor: 'scorecard-changed' },
   saveAwardsAnyway: { topic: 'awards', anchor: 'save-anyway' },
-  settingsLocked: { topic: 'scorecard', anchor: 'settings-locked' },
   countedAgain: { topic: 'results', anchor: 'counted-again' },
 } as const satisfies Record<string, { topic: HelpTopicKey; anchor: string }>;
 

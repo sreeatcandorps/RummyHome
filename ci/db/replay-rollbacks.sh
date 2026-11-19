@@ -24,6 +24,17 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 
 echo "TAP version 13"
 
+# 051 (D53: the pool limit is unlocked; a change re-reads who is out — rolled back first)
+HAS_051=f
+if [ -f "$RB/rollback_051_pool_limit_unlocked.sql" ]; then
+  HAS_051=t
+  if apply "$RB/rollback_051_pool_limit_unlocked.sql"; then tap ok "rollback_051 applies"; else tap fail "rollback_051 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists games_pool_limit_changed)" = f ] && [ "$(fn_exists games_pool_settings_lock)" = t ] \
+    && [ "$(q "select exists(select 1 from pg_trigger where tgname='games_pool_settings_lock')")" = t ] \
+    && tap ok "after rollback_051 the limit-changed trigger is gone and the 042 lock is back" \
+    || tap fail "after rollback_051 the limit-changed trigger should be gone and the 042 lock back"
+fi
+
 # 050 (D49 B: reopening a Closed game — stamp, un-close, guards, RPC wrappers; rolled back first)
 HAS_050=f
 if [ -f "$RB/rollback_050_reopen_closed_game.sql" ]; then
@@ -503,6 +514,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_048" = t ] && FORWARD="$FORWARD 048_event_log_games_exact_fix"
 [ "$HAS_049" = t ] && FORWARD="$FORWARD 049_reopen_pool_clears_awards"
 [ "$HAS_050" = t ] && FORWARD="$FORWARD 050_reopen_closed_game"
+[ "$HAS_051" = t ] && FORWARD="$FORWARD 051_pool_limit_unlocked"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -681,6 +693,11 @@ if [ "$HAS_050" = t ]; then
     && [ "$(q "select exists(select 1 from pg_trigger where tgname='games_reopen_closed')")" = t ] \
     && [ "$(fn_has event_log_games 'Out of date')" = t ] \
     && tap ok "050 restored (reopen-closed trigger, guards, RPC wrappers, Log wording)" || tap fail "050 restored"
+fi
+if [ "$HAS_051" = t ]; then
+  [ "$(fn_exists games_pool_limit_changed)" = t ] && [ "$(fn_exists games_pool_settings_lock)" = f ] \
+    && [ "$(q "select exists(select 1 from pg_trigger where tgname='games_pool_limit_changed')")" = t ] \
+    && tap ok "051 restored (limit-changed trigger, no lock)" || tap fail "051 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

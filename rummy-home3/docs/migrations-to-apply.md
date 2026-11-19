@@ -620,6 +620,19 @@ What 050 does (rollback: `supabase/rollback/rollback_050_reopen_closed_game.sql`
 - `get_game_result` and `list_game_results_page` are renamed to `_v028` / `_v043` and wrapped: the wrapper adds `staleAt`, `staleBy`, `staleByName`, `staleGameId`, `staleGameLabel` to each row. New `result_for_game(game_id)` tells the Reopen dialog which result a Closed game sits in (id, saved at, who, game count, the other games' labels).
 - On a database without 050 the current APK still reopens a Closed game (it clears `closed_at` itself) but no result is stamped and the other games stay Closed; 050 makes the bookkeeping hold for any client.
 
+D53 (Sree, Nov 19, APK v12 point 12) — **written, not applied**; applied only from merged `main` after Sree's yes:
+
+28. `supabase/migrations/051_pool_limit_unlocked.sql`
+
+What 051 does (rollback: `supabase/rollback/rollback_051_pool_limit_unlocked.sql`; pgTAP: `supabase/tests/42_pool_limit_unlocked_051.sql`, 23 checks; replay hook `HAS_051`):
+
+- Drops the 042 lock (`games_pool_settings_lock` trigger + function): the pool limit may change once rounds exist. Sree: "Pool limit locked. I don't think you should lock it … a player that's out comes back and becomes active … keep it as flexible as possible."
+- One new Log kind, `player_back_in` (the `event_log_kind` check constraint is rewritten with it added; nothing else in the list changes).
+- Trigger `games_pool_limit_changed` (after update of settings on `games`): when a pool's `poolLimit` changes and live rounds exist, `pool_recompute` (041) re-derives `out_round` for every seat against the new limit, then one `important` Log line per player whose state changed — `player_out` "X is out · 120 (limit 101) · Round 3" (with `limitChanged: true` in details) or `player_back_in` "X is back in · 120 (limit 201)". The 042 `settings_changed` line ("Pool limit 101→201") is still written. Totals are never rewritten; a re-entered player keeps the re-entry.
+- Points games and pools without rounds: nothing beyond the usual `settings_changed` line. Adds no column, changes no row by itself.
+- On a database without 051 the current APK's Game settings offers the change but the 042 trigger refuses it (PT423 "Rounds have been saved. The pool limit is locked…"), shown in the dialog's error line; nothing is half-applied.
+- Tests 32 and 33 (041 / 042) no longer assert the lock; they assert the change goes through.
+
 Read-only checks that go with 021 (nothing is changed):
 
 ```sql

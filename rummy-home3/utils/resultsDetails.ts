@@ -277,8 +277,9 @@ export function bandTableHtml(table: BandTable): string {
   return `<div class="bt" data-bands="${table.bandCount}">${header}${rows}</div>`;
 }
 
+/** v12 point 14: the key is a two-column grid (initials · name · #ID) with light row lines, not one run-on line. */
 export function legendHtml(legend: LegendEntry[]): string {
-  return `<p class="legend">${legend.map((entry) => `<span><b>${escapeHtml(entry.initials)}</b>${entry.playerNo != null ? ` <small>#${entry.playerNo}</small>` : ''} ${escapeHtml(entry.name)}</span>`).join(' · ')}</p>`;
+  return `<div class="legend">${legend.map((entry) => `<span><b>${escapeHtml(entry.initials)}</b> ${escapeHtml(entry.name)}${entry.playerNo != null ? ` <small>· #${entry.playerNo}</small>` : ''}</span>`).join('')}</div>`;
 }
 
 export function gameInfoHtml(info: GameInfo): string {
@@ -303,10 +304,9 @@ export function roundBlockHtml(block: RoundBlock, caption: string | null = null,
   return `${caption ? `<p class="cap">${escapeHtml(caption)}</p>` : ''}<table class="rb${blockSize === ROUND_BLOCK_SIZE ? '' : ` b${blockSize}`} n${block.heads.length}"><thead>${head}</thead><tbody>${body}</tbody></table>`;
 }
 
-/** "HG Harish Gadupudi · #40" per seated player, under the blocks. */
+/** "HG Harish Gadupudi · #40" per seated player, under the blocks, in the same two-column key. */
 export function roundLegendHtml(table: ResultsRoundTable): string {
-  return `<p class="legend">${table.initials.map((label, index) => `<span><b>${escapeHtml(label)}</b> ${escapeHtml(table.names[index])}`
-    + `${table.playerNos[index] != null ? ` <small>· #${table.playerNos[index]}</small>` : ''}</span>`).join(' · ')}</p>`;
+  return legendHtml(table.initials.map((initials, index) => ({ initials, name: table.names[index], playerNo: table.playerNos[index] ?? null })));
 }
 
 /**
@@ -376,7 +376,8 @@ export const RESULTS_DESIGN_CSS = `
   .box .c.win { color: var(--ink); }
   .box .c.neg { color: var(--neg); }
   .box .c.dash { color: #B8BBB3; text-align: center; }
-  .legend { color: var(--muted); font-size: 13px; margin-top: 8px; line-height: 1.5; }
+  .legend { color: var(--muted); font-size: 13px; margin-top: 8px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; page-break-inside: avoid; break-inside: avoid; }
+  .legend span { padding: 3px 0; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .legend b { color: var(--ink); } .legend small { font-size: 12px; }
   .gm { padding: 8px 0; border-bottom: 1px solid var(--line); }
   .g1 { display: flex; align-items: baseline; gap: 8px; }

@@ -210,12 +210,12 @@ test('A10: the saved result page has no UPPERCASE letter-spaced section headings
 
 // ---- Q11.12 / Q11.14 / Q11.18 (Help-spec items folded into 15a) ----
 
-test('Q11.12: the ⋮ item says "Game settings · locked" once a pool has saved rounds, on the scorecard and on Add round', () => {
+test('Q11.12 → D53: the ⋮ item always says "Game settings" (the limit is no longer locked, 051), on the scorecard and on Add round', () => {
   assert.equal(gameSettingsMenuTitle(true, 0), 'Game settings');
-  assert.equal(gameSettingsMenuTitle(true, 1), 'Game settings · locked');
+  assert.equal(gameSettingsMenuTitle(true, 1), 'Game settings', 'D53: no lock wording on a pool with rounds');
   assert.equal(gameSettingsMenuTitle(false, 9), 'Game settings', 'Rummy settings never lock');
   assert.match(src('app/(screens)/games/[id].tsx'), /title=\{gameSettingsMenuTitle\(pool, maxRounds\)\} testID="game-menu-settings"/);
-  assert.match(src('app/(screens)/games/[id].tsx'), /leadingIcon=\{pool && maxRounds > 0 \? 'lock-outline' : 'cog-outline'\}/);
+  assert.doesNotMatch(src('app/(screens)/games/[id].tsx'), /lock-outline/, 'D53: no padlock on the menu item');
   assert.match(src('app/(screens)/score-entry.tsx'), /title=\{gameSettingsMenuTitle\(pool, nextRoundNumber\(game\) - 1\)\}/);
 });
 
