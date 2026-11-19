@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { BAND_SIZE, BandCell, BandTable as BandTableModel, LegendEntry } from '@/utils/resultsDesign';
+import { LegendKey } from '@/components/results/LegendKey';
 
 /**
  * "How you got there": players down, games across in bands of five. Player and Total sit
@@ -68,15 +69,7 @@ export function BandTable({ table, legend, testID = 'results-band-table' }: { ta
           </View>
         </View>
       ))}
-      <Text variant="bodySmall" style={[styles.legend, { color: colors.onSurfaceVariant }]} testID="results-legend">
-        {legend.map((entry, index) => (
-          <Text key={entry.initials + index} variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-            {index > 0 ? '  ·  ' : ''}
-            <Text variant="bodySmall" style={[styles.legendInitials, { color: colors.onSurface }]}>{entry.initials}</Text>
-            {entry.playerNo != null ? ` #${entry.playerNo}` : ''} {entry.name}
-          </Text>
-        ))}
-      </Text>
+      <LegendKey entries={legend} testID="results-legend" />
     </View>
   );
 }
@@ -120,6 +113,4 @@ const styles = StyleSheet.create({
   headLabel: { fontWeight: '800', fontSize: 13 },
   headMultiplier: { fontWeight: '700', fontSize: 10 },
   cellText: { fontSize: 14 },
-  legend: { marginTop: spacing.sm, lineHeight: 20 },
-  legendInitials: { fontWeight: '800' },
 });
