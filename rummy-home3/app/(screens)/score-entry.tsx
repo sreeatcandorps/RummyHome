@@ -79,6 +79,8 @@ const signed = (value: number) => (value > 0 ? `+${value}` : `${value}`);
 /** Long enough for the saved cell to flash before the round leaves the screen. */
 const SAVE_FLASH_MS = 450;
 const GRID_GAP = spacing.sm;
+/** Height of the "N more" pill + fade (v12 point 9). */
+export const MORE_PILL_CLEARANCE = 56;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -878,12 +880,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     flexShrink: 1,
   },
+  // v12 point 9 (Sree, Nov 19): room under the last row for the "N more ▾" pill and its fade, so the
+  // last players can scroll clear of the pill and be tapped; the pill itself hides once they are in view.
   gridContent: {
     paddingTop: spacing.xs,
-    paddingBottom: spacing.md,
+    paddingBottom: MORE_PILL_CLEARANCE,
   },
   gridContentCompact: {
-    paddingBottom: spacing.sm,
+    paddingBottom: MORE_PILL_CLEARANCE,
   },
   grid: {
     flexDirection: 'row',

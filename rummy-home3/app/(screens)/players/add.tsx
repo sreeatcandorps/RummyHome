@@ -25,7 +25,6 @@ import { DraftPick, newGameDraft } from '@/utils/newGameDraft';
 import { SelectedPlayersStrip } from '@/components/players/SelectedPlayersStrip';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { InfoTip } from '@/components/ui/InfoTip';
-import { BottomBar } from '@/components/ui/BottomBar';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 
@@ -49,12 +48,19 @@ export const ADD_PLAYERS_TITLE = 'Add by initials';
 // PR 10b (Q10.7): the heading no longer counts rows; the cells carry F / L placeholders instead of a sentence.
 export const ADD_PLAYERS_HEADING = 'Add new players by initials';
 export const ADD_PLAYERS_SUBLINE = 'First-name initial · Last-name initial';
-export const FIRST_PLACEHOLDER = 'F';
-export const LAST_PLACEHOLDER = 'L';
+/** v12 point 4 (Sree, Nov 19): no F / L sample letters in the boxes — "First · Last" above them says what goes where. */
+export const FIRST_PLACEHOLDER = '';
+export const LAST_PLACEHOLDER = '';
 export const EDIT_NOTE = 'Edit lets you type any free 2–3 characters; the first must be a letter. Delete removes a player you added here from My players.';
 /** Done with letters still unsaved (Q10.9): "2 of 3 players saved. 1 row has letters you have not saved." */
+/** v12 point 3: Done saves every row with both letters by itself; this is only for rows with one letter. */
 export function unsavedSummary(saved: number, unsaved: number): string {
-  return `${saved} of ${NEW_PLAYER_ROWS_MAX} players saved. ${unsaved} ${unsaved === 1 ? 'row has' : 'rows have'} letters you have not saved.`;
+  return `${saved} of ${NEW_PLAYER_ROWS_MAX} players saved. ${unsaved} ${unsaved === 1 ? 'row has' : 'rows have'} one letter only.`;
+}
+export const UNSAVED_TITLE = 'Unsaved players';
+/** The button that leaves anyway (default B until Sree picks A "Save N of 3" or B). */
+export function unsavedLeaveLabel(saved: number): string {
+  return saved === 0 ? 'Done · save none' : `Done · keep the ${saved} saved`;
 }
 
 let rowSeq = 0;
@@ -152,15 +158,15 @@ export default function AddPlayersScreen() {
     patch(row.key, { last, error });
   };
 
-  const save = async (row: Row) => {
+  const save = async (row: Row): Promise<boolean> => {
     const problem = initialsCellsProblem(row.first, row.last);
     if (problem) {
       patch(row.key, { error: problem });
-      return;
+      return false;
     }
     if (!ownerId) {
       patch(row.key, { error: 'Not signed in.' });
-      return;
+      return false;
     }
     patch(row.key, { busy: true, error: undefined });
     try {
@@ -175,8 +181,10 @@ export default function AddPlayersScreen() {
         if (open) setTimeout(() => firstInputs.current[open.key]?.focus(), 50);
         return next;
       });
+      return true;
     } catch (err) {
       patch(row.key, { busy: false, error: formatSupabaseError(err) });
+      return false;
     }
   };
 
@@ -190,8 +198,15 @@ export default function AddPlayersScreen() {
   const unsavedRows = rows.filter((row) => !row.player && (row.first || row.last));
   const anyBusy = rows.some((row) => row.busy);
   // Done with typed-but-unsaved letters asks first (Q10.9); all saved or all empty leaves at once.
-  const done = () => {
-    if (unsavedRows.length > 0) {
+  const done = async () => {
+    // v12 point 3: rows with both letters are saved on Done without asking.
+    const complete = unsavedRows.filter((row) => row.first && row.last && !initialsCellsProblem(row.first, row.last));
+    const halfDone = unsavedRows.length - complete.length;
+    if (complete.length > 0) {
+      const results = await Promise.all(complete.map((row) => save(row)));
+      if (results.some((ok) => !ok)) return; // a row did not save: its error is on the row, stay
+    }
+    if (halfDone > 0) {
       setUnsavedOpen(true);
       return;
     }
@@ -315,20 +330,6 @@ export default function AddPlayersScreen() {
                     ref={(ref: NativeTextInput | null) => { lastInputs.current[row.key] = ref; }}
                     accessibilityLabel={`Row ${index + 1} last initial`}
                   />
-                  <View style={styles.middle}>
-                    {saved && label ? (
-                      <View accessibilityLabel={`Saved ${row.initials}`} accessible>
-                        <Text variant="headlineSmall" style={styles.label}>
-                          <Text variant="headlineSmall" style={[styles.label, { color: colors.win }]}>{label.letters}</Text>
-                          {label.digits ? <Text variant="headlineSmall" style={[styles.label, { color: colors.error }]}>{label.digits}</Text> : null}
-                        </Text>
-                        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
-                          {row.takenBy ? clashSentence(row.first + row.last, row.takenBy, row.initials!) : 'Saved'}
-                        </Text>
-                        {badge ? <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>{badge}</Text> : null}
-                      </View>
-                    ) : null}
-                  </View>
                   {saved ? (
                     <Button mode="outlined" compact onPress={() => setEditRow(row)} style={styles.rowButton} accessibilityLabel={`Edit initials for ${row.player!.name}`}>
                       Edit
@@ -346,6 +347,20 @@ export default function AddPlayersScreen() {
                       Save
                     </Button>
                   )}
+                  <View style={styles.middle}>
+                    {saved && label ? (
+                      <View accessibilityLabel={`Saved ${row.initials}`} accessible>
+                        <Text variant="headlineSmall" style={styles.label}>
+                          <Text variant="headlineSmall" style={[styles.label, { color: colors.win }]}>{label.letters}</Text>
+                          {label.digits ? <Text variant="headlineSmall" style={[styles.label, { color: colors.error }]}>{label.digits}</Text> : null}
+                        </Text>
+                        <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>
+                          {row.takenBy ? clashSentence(row.first + row.last, row.takenBy, row.initials!) : 'Saved'}
+                        </Text>
+                        {badge ? <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>{badge}</Text> : null}
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
                 {row.error ? (
                   <Text variant="labelSmall" style={{ color: isNotReadyMessage(row.error) ? colors.onSurfaceVariant : colors.error }}>
@@ -357,6 +372,31 @@ export default function AddPlayersScreen() {
           })}
         </View>
 
+        <View style={styles.doneRow} testID="add-players-done-row">
+          <Text variant="titleSmall" style={styles.count} testID="add-players-count">
+            {fromNewGame ? `Playing in this game · ${seated.length}` : `Saved this visit · ${savedCount}`}
+          </Text>
+          <Button
+            mode="contained"
+            onPress={done}
+            disabled={anyBusy}
+            style={styles.done}
+            contentStyle={styles.doneContent}
+            labelStyle={styles.doneLabel}
+            accessibilityLabel="Done adding players"
+            testID="add-players-done"
+          >
+            {savedCount === 0 ? 'Done' : `Done · ${savedCount} added`}
+          </Button>
+        </View>
+        {fromNewGame ? (
+          <SelectedPlayersStrip
+            picks={seated}
+            meId={ownerId}
+            onRemove={(id) => newGameDraft.remove(id)}
+            emptyText="Nobody seated yet. Saved players are seated as you go."
+          />
+        ) : null}
       </ScrollView>
 
       <Portal>
@@ -374,41 +414,17 @@ export default function AddPlayersScreen() {
           />
         ) : null}
         <Dialog visible={unsavedOpen} onDismiss={() => setUnsavedOpen(false)} style={{ backgroundColor: colors.surface }}>
-          <Dialog.Title>Unsaved letters</Dialog.Title>
+          <Dialog.Title>{UNSAVED_TITLE}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" testID="add-players-unsaved">{unsavedSummary(savedCount, unsavedRows.length)}</Text>
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setUnsavedOpen(false)} accessibilityLabel="Go back to the rows">Go back</Button>
-            <Button mode="contained" onPress={() => { setUnsavedOpen(false); leave(); }} accessibilityLabel="Discard unsaved letters">Discard</Button>
+            <Button mode="contained" onPress={() => { setUnsavedOpen(false); leave(); }} accessibilityLabel="Leave without the unfinished rows" testID="add-players-leave">{unsavedLeaveLabel(savedCount)}</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
 
-      <BottomBar>
-        <View style={styles.footer}>
-          {fromNewGame ? (
-            <SelectedPlayersStrip
-              picks={seated}
-              meId={ownerId}
-              onRemove={(id) => newGameDraft.remove(id)}
-              title="Playing in this game"
-              emptyText="Nobody seated yet. Saved players are seated as you go."
-            />
-          ) : null}
-          <Button
-            mode="contained"
-            onPress={done}
-            disabled={anyBusy}
-            style={styles.done}
-            contentStyle={styles.doneContent}
-            labelStyle={styles.doneLabel}
-            accessibilityLabel="Done adding players"
-          >
-            {savedCount === 0 ? 'Done' : `Done · ${savedCount} added`}
-          </Button>
-        </View>
-      </BottomBar>
     </View>
   );
 }
@@ -424,11 +440,12 @@ const styles = StyleSheet.create({
   cell: { width: 56, height: 56 },
   cellWide: { width: 72 },
   cellText: { textAlign: 'center', fontSize: 24, fontWeight: '700', letterSpacing: 1 },
-  middle: { flex: 1, minWidth: 0, paddingLeft: spacing.xs },
+  middle: { flex: 1, minWidth: 0, paddingLeft: spacing.sm },
   label: { fontWeight: '800', letterSpacing: 1 },
   rowButton: { minWidth: 72, borderRadius: radius.full },
-  footer: { flex: 1, gap: spacing.sm },
+  doneRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginTop: spacing.xs },
+  count: { flex: 1, fontWeight: '800' },
   done: { borderRadius: radius.full },
-  doneContent: { height: 60 },
+  doneContent: { height: 52 },
   doneLabel: { fontSize: 18, fontWeight: '800' },
 });

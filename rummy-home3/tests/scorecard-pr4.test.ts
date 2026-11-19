@@ -96,22 +96,27 @@ test('A4-5 footer lines: creator, one Admin line per admin, Unique game ID = sha
 
 test('A4-6 / PR 10a: header pinned above one vertical scroller, rows in one sideways scroller at an explicit width; no JS scroll sync, no fixed heights', () => {
   const table = src('components/game/ScoreTable.tsx');
-  assert.doesNotMatch(table, /scrollSync|createScrollSync/, 'the two-ScrollView JS sync is gone (D4.2)');
+  // D4.2 dropped the PR 3 two-ScrollView sync because the two drifted apart; v12 point 10 (Nov 19) brings a
+  // header scroller back so the names can be dragged, with an owner guard so only the scroller under the
+  // finger drives the other (no echo, no drift).
+  assert.doesNotMatch(table, /scrollSync|createScrollSync/, 'the PR 3 helper itself stays gone');
+  assert.match(table, /sidewaysOwner\.current && sidewaysOwner\.current !== who\) return;/, 'owner guard');
   assert.doesNotMatch(table, /headerHeight = compact \? 58 : 68|rowHeight = compact \? 34/, 'no fixed header or row height');
   assert.match(table, /headerHeight\(columnWidth, compact, fontScale, pool\)/, 'PR 24: the pool header counts its #number line');
   // PR 10a: the PR 4 nesting (vertical scroller with a sticky header inside the sideways scroller) collapsed
   // the header into one column on Android once the columns were wider than the screen.
   assert.doesNotMatch(table, /stickyHeaderIndices/, 'no sticky-header trick: the header row sits above the vertical scroller');
-  assert.match(table, /<Animated\.View style=\{\[styles\.row, \{ width: contentWidth \}, followColumns\]\} testID="score-table-header">/, 'the header carries contentWidth and follows the rows sideways');
-  assert.match(table, /contentOffset: \{ x: scrollX \} \} \}\], \{ useNativeDriver: true \}/, 'the header follows the sideways offset on the UI thread');
+  assert.match(table, /<View style=\{\[styles\.row, \{ width: contentWidth \}\]\} testID="score-table-header">/, 'the header carries contentWidth');
+  assert.match(table, /testID="score-table-header-scroller"/, 'v12 point 10: the header is a sideways scroller of its own');
+  assert.match(table, /onScroll=\{syncFrom\('header'\)\}[\s\S]*?onScroll=\{syncFrom\('body'\)\}/, 'header and rows keep each other in step');
   assert.match(table, /<View style=\{\{ width: contentWidth \}\}>\s*\{Array\.from\(\{ length: roundCount \}/, 'the rows sit in a wrapper of contentWidth');
   assert.match(table, /width: columnWidth \* columns\.length,\s*height: rowHeight,/, 'every row carries its own width');
-  assert.match(table, /<ScrollView\s+ref=\{verticalRef\}[\s\S]*?<Animated\.ScrollView\s+horizontal/, 'the sideways scroller is inside the vertical one, as in PR 3');
+  assert.match(table, /<ScrollView\s+ref=\{verticalRef\}[\s\S]*?<ScrollView\s+ref=\{bodyRef\}\s+horizontal/, 'the sideways scroller is inside the vertical one, as in PR 3');
   assert.match(table, /testID=\{`score-header-\$\{index \+ 1\}`\}/, 'header cells are addressable by column');
   assert.match(table, /testID=\{`score-cell-\$\{index \+ 1\}-\$\{roundNumber\}`\}/, 'score cells are addressable by column and round');
   assert.match(table, /maxFontSizeMultiplier=\{TABLE_MAX_FONT_SCALE\}/);
   assert.match(table, /directionalLockEnabled/);
-  assert.equal((table.match(/<ScrollView\s|<Animated\.ScrollView\s/g) ?? []).length, 2, 'exactly two scroll views: one vertical, one sideways');
+  assert.equal((table.match(/<ScrollView\s|<Animated\.ScrollView\s/g) ?? []).length, 3, 'three scroll views: the header sideways, the rows vertical, the rows sideways (v12 point 10)');
   assert.match(table, /dealsBadge\(columnWidth\) === 'text'/, 'DEALS shrinks or becomes the cards icon');
   const footer = src('components/game/GameIdFooter.tsx');
   assert.match(footer, /scorecardFooterLines\(game, members, creatorName\)/);

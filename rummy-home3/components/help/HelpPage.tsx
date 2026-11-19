@@ -7,6 +7,7 @@ import { HelpBullets, HelpLine } from '@/components/help/HelpRich';
 import { Tag } from '@/components/ui/Tag';
 import { HELP_TOPICS, HelpFamily, HelpTopic } from '@/constants/helpTopics';
 import { MAX_CONTENT_WIDTH, radius, spacing, useAppTheme } from '@/constants/theme';
+import { helpShotSize } from '@/utils/helpShot';
 
 export const NEED_TO_KNOW = 'Need to know';
 export const FULL_GUIDE = 'Full guide';
@@ -52,6 +53,8 @@ export function HelpPage({ topic, anchor }: { topic: HelpTopic; anchor?: string 
   const scrollRef = useRef<ScrollView>(null);
   const positions = useRef<Record<string, number>>({});
   const [ready, setReady] = useState(false);
+  // v12 point 1 (Sree, Nov 19): the picture is sized from the card's measured width, never its pixel width.
+  const [shotWidth, setShotWidth] = useState(0);
   const shot = topic.screenshot ? HELP_SCREENSHOTS[topic.screenshot.file] : undefined;
 
   const mark = useCallback((id: string) => (e: LayoutChangeEvent) => {
@@ -85,7 +88,16 @@ export function HelpPage({ topic, anchor }: { topic: HelpTopic; anchor?: string 
         {topic.screenshot ? (
           <Card title={ON_THE_SCREEN} rule={family.rule} testID="help-screenshot">
             {shot ? (
-              <Image source={shot} style={[styles.shot, { borderColor: colors.outlineVariant }]} resizeMode="contain" accessibilityLabel={`${topic.title}, annotated`} />
+              <View onLayout={(e) => setShotWidth(Math.floor(e.nativeEvent.layout.width))} testID="help-screenshot-frame">
+                {shotWidth > 0 ? (
+                  <Image
+                    source={shot}
+                    style={[styles.shot, helpShotSize(shotWidth), { borderColor: colors.outlineVariant }]}
+                    resizeMode="contain"
+                    accessibilityLabel={`${topic.title}, annotated`}
+                  />
+                ) : null}
+              </View>
             ) : null}
             <HelpBullets lines={topic.screenshot.legend} numbered />
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>Screenshots are shown in the light theme.</Text>
@@ -164,7 +176,7 @@ const styles = StyleSheet.create({
   heroTitle: { fontWeight: '800' },
   card: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth * 2, borderLeftWidth: 4, padding: spacing.lg, gap: spacing.md },
   cardTitle: { textTransform: 'uppercase', letterSpacing: 0.8 },
-  shot: { width: '100%', aspectRatio: 0.72, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth },
+  shot: { alignSelf: 'center', borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth },
   sections: { gap: spacing.lg },
   section: { gap: spacing.sm },
   sectionTitle: { fontWeight: '700' },

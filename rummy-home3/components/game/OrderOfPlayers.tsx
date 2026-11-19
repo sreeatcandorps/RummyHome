@@ -51,7 +51,8 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
   const byId = new Map(players.map((player) => [player.id, player]));
   const rows = displayOrder(draft);
   const rowHeight = seatRowHeight(rows.length);
-  const compact = rows.length > 8;
+  // v12 point 6: rows are 48 dp at every count, so nothing shrinks; `compact` only trims the player ID line.
+  const compact = false;
   const withCode = showsPlayerCode(rowWidth);
   const onLayout = (event: LayoutChangeEvent) => {
     const width = Math.floor(event.nativeEvent.layout.width);
@@ -116,8 +117,8 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
             {deals ? <Text variant="labelSmall" style={{ color: colors.primary }} testID={`${testIDPrefix}-deals-next`}>deals</Text> : null}
             {numbered ? (
               <View style={styles.arrows}>
-                <IconButton icon="chevron-up" size={compact ? 14 : 18} iconColor={colors.onSurfaceVariant} disabled={disabled || seat === 1} onPress={() => onChange(stepNumbered(draft, id, -1))} accessibilityLabel={`Move ${player.name} up`} style={styles.arrow} testID={`${testIDPrefix}-up-${index + 1}`} />
-                <IconButton icon="chevron-down" size={compact ? 14 : 18} iconColor={colors.onSurfaceVariant} disabled={disabled || seat === draft.numbered.length} onPress={() => onChange(stepNumbered(draft, id, 1))} accessibilityLabel={`Move ${player.name} down`} style={styles.arrow} testID={`${testIDPrefix}-down-${index + 1}`} />
+                <IconButton icon="chevron-up" size={22} iconColor={colors.onSurfaceVariant} disabled={disabled || seat === 1} onPress={() => onChange(stepNumbered(draft, id, -1))} accessibilityLabel={`Move ${player.name} up`} style={styles.arrow} testID={`${testIDPrefix}-up-${index + 1}`} />
+                <IconButton icon="chevron-down" size={22} iconColor={colors.onSurfaceVariant} disabled={disabled || seat === draft.numbered.length} onPress={() => onChange(stepNumbered(draft, id, 1))} accessibilityLabel={`Move ${player.name} down`} style={styles.arrow} testID={`${testIDPrefix}-down-${index + 1}`} />
               </View>
             ) : (
               <View style={styles.arrowsGap} />
@@ -132,7 +133,7 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
   );
 }
 
-const ARROWS_WIDTH = 64;
+const ARROWS_WIDTH = 96;
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderRadius: radius.sm, paddingHorizontal: spacing.xs },
