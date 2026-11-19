@@ -3,7 +3,7 @@ import { NOT_READY_MESSAGE } from '@/utils/notReady';
 import { displayPlayerId } from '@/utils/playerIdentity';
 import { PointsRules, withStoredPointsRules } from '@/utils/gameSettings';
 import { multiplierOf } from '@/utils/multiplier';
-import { entryScoreUnder, isPoolGame, lateEntryScore, reentryLimitOf, reentryPlusOf } from '@/utils/pool';
+import { entryScoreUnder, isPoolGame, lateEntryScore, playersOut, reentryLimitOf, reentryPlusOf } from '@/utils/pool';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { INITIALS_FORMAT_MESSAGE, MIGRATION_007_HINT, playersService } from '@/services/players';
 import { RETIRED_ROUND_OFFSET, retiredRoundNumber } from '@/utils/editRound';
@@ -26,7 +26,7 @@ import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 import { localGameGuard, localRoundsGuard } from '@/utils/guardrails';
 import { BundleSeatRow, dealerIdsFrom, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
-import { nextDealer, withDealer } from '@/utils/dealerRotation';
+import { DealerChange, nextDealer, planDealerChange, plannedDealer, rotationOf, seatAfter, withDealer } from '@/utils/dealerRotation';
 import { deletionFromRow } from '@/utils/deletedGames';
 import { queryCache } from '@/utils/queryCache';
 import { INITIALS_PATTERN, normalizeInitials } from '@/utils/initials';
@@ -153,6 +153,10 @@ export const legacyGameFromServer = (
       .filter((membership) => membership.role === 'game_admin' && membership.seated === false)
       .map((membership) => membership.profile_id),
     dealerIds: dealerIdsFrom(dealers, scores),
+    // 052 (D60): who really deals the round being played, when the Dealer sheet said so.
+    nextDealerOverride: game.next_dealer_profile_id && typeof game.next_dealer_round === 'number'
+      ? { playerId: game.next_dealer_profile_id, round: game.next_dealer_round, keepsSequence: Boolean(game.next_dealer_keeps_sequence) }
+      : null,
     gameNumber: game.game_number ?? null,
     gameLabel: game.game_label ?? null,
     closedAt: game.closed_at ?? null,
@@ -865,10 +869,18 @@ export const gamesService = {
       });
 
       // A new round is dealt by the seat after the last dealer; an edited round keeps its dealer.
-      const dealerIds = roundIndex >= liveRounds || !game.dealerIds?.[roundIndex]
-        ? withDealer(game.dealerIds, roundIndex, nextDealer(game, roundIndex))
-        : game.dealerIds;
-      const updatedGame = { ...game, scores: updatedScores, currentRound: input.roundNumber + 1, dealerIds };
+      const newRound = roundIndex >= liveRounds || !game.dealerIds?.[roundIndex];
+      const rotation = { ...game, outIds: isPoolGame(game) ? new Set(playersOut(game)) : null };
+      const dealerIds = newRound ? withDealer(game.dealerIds, roundIndex, nextDealer(rotation, roundIndex)) : game.dealerIds;
+      // 052: the Dealer-sheet override is for this round only; "this round only" carries the planned seat one round on.
+      let nextDealerOverride = game.nextDealerOverride ?? null;
+      if (newRound && nextDealerOverride && nextDealerOverride.round <= input.roundNumber) {
+        const planned = plannedDealer(rotation, roundIndex);
+        const used = nextDealerOverride.round === input.roundNumber && rotationOf(rotation).includes(nextDealerOverride.playerId);
+        const chained = used && nextDealerOverride.keepsSequence ? seatAfter(rotation, planned) : undefined;
+        nextDealerOverride = chained ? { playerId: chained, round: input.roundNumber + 1, keepsSequence: false } : null;
+      }
+      const updatedGame = { ...game, scores: updatedScores, currentRound: input.roundNumber + 1, dealerIds, nextDealerOverride };
       await storage.updateGame(updatedGame);
       return updatedGame;
     }
@@ -1340,6 +1352,29 @@ export const gamesService = {
     return this.getGame(gameId);
   },
 
+
+  /**
+   * 052 (D60): the Dealer sheet. Any round — played, the last, or the one being played — gets the dealer
+   * the table really had; follow re-deals every later round from there, this-round-only leaves the
+   * sequence as the card had it. The server writes the rounds, the override and the Log row.
+   */
+  async setRoundDealer(gameId: string, change: DealerChange): Promise<Game | null> {
+    const game = await this.getGame(gameId);
+    if (!game) throw new Error('Game not found.');
+    const roundCount = Math.max(0, ...Object.values(game.scores).map((column) => column?.length ?? 0));
+    if (change.round < 1 || change.round > roundCount + 1) throw new Error(`Round ${change.round} has not been played.`);
+    if (!isSupabaseConfigured) {
+      const rotation = { ...game, outIds: isPoolGame(game) ? new Set(playersOut(game)) : null };
+      if (!rotationOf(rotation).includes(change.dealerId)) throw new Error(`That player is not at the table for round ${change.round}.`);
+      const plan = planDealerChange(rotation, roundCount, change);
+      const updated: Game = { ...game, dealerIds: plan.dealerIds, nextDealerOverride: plan.nextDealerOverride };
+      await storage.updateGame(updated);
+      return updated;
+    }
+    const { error } = await supabase.rpc('set_round_dealer', { p_game_id: gameId, p_round_number: change.round, p_dealer: change.dealerId, p_follow: change.follow });
+    if (error) throw error;
+    return this.getGame(gameId);
+  },
 
   /** Players · Admins ▲ ▼: one seat up or down, through the same logged RPC as the Seating sheet (Q21.5). */
   async moveSeat(gameId: string, profileId: string, direction: -1 | 1) {

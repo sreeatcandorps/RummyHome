@@ -41,6 +41,8 @@ export type AwardNote = {
   givenOut?: number;
 };
 
+export type DealerOverride = { playerId: string; round: number; keepsSequence: boolean };
+
 export type Game = {
   id: string;
   date: string;
@@ -79,6 +81,11 @@ export type Game = {
   labels?: Record<string, string>;
   /** Who dealt each saved round, by round index (031). Missing before 031; the seat-order rule fills in. */
   dealerIds?: (string | null | undefined)[];
+  /**
+   * 052 (D60): who really deals the round being played, set from the Dealer sheet. Applies to `round`
+   * only; `keepsSequence` = "this round only" (the round after goes on from the planned dealer).
+   */
+  nextDealerOverride?: DealerOverride | null;
   /** Soft delete (023). A deleted game is gone for everyone until restored. Since 045 the creator, admins and scored players still read it (read-only). */
   deletedAt?: string | null;
   deletedBy?: string | null;

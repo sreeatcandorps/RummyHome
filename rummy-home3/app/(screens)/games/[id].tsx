@@ -1,5 +1,6 @@
 import { gameLabelOf, screenTitle } from '@/utils/gameLabel';
-import { dealerForRound, nextDealer, rotationStarts } from '@/utils/dealerRotation';
+import { dealerForRound, nextDealer, opensFor, rotationStarts } from '@/utils/dealerRotation';
+import { DEALER_MENU_ITEM } from '@/utils/dealerSheet';
 import React from 'react';
 import { AppState, View, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Text, Dialog, IconButton, Menu, Portal } from 'react-native-paper';
@@ -40,6 +41,7 @@ import { editableRounds } from '@/utils/editRound';
 import { Tag } from '@/components/ui/Tag';
 import { GameSettingsDialog } from '@/components/game/GameSettingsDialog';
 import { SeatingSheet } from '@/components/game/SeatingSheet';
+import { DealerSheet } from '@/components/game/DealerSheet';
 import { canChangeSeating, SEATING_MENU_ITEM } from '@/utils/seating';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
 import { playersChipLabel, POOL_CARD_MAX_ROWS } from '@/utils/scorecardLayout';
@@ -101,6 +103,7 @@ export default function GameScreen() {
   // PR 21 / PR 24: the Order of players sheet, any time from the ⋮ menu. The once-per-game pop-up is gone —
   // a new game sets its order as a step before Start.
   const [seating, setSeating] = useState(false);
+  const [dealerSheet, setDealerSheet] = useState(false);
   // Nov 18 end flow: Complete is a dialog here, not a page.
   const [completeOpen, setCompleteOpen] = useState(false);
 
@@ -429,9 +432,16 @@ export default function GameScreen() {
 
   const seats = players;
   // 031: the deal follows the actual rotation (stored per round); a player added mid-game lengthens the next rotation.
-  const rotation = { players: seats.map((seat) => seat.id), dealerIds: game.dealerIds };
+  // 052 (D58, D60): a pool seat that is out is skipped; the Dealer sheet's override names who really deals.
+  const rotation = {
+    players: seats.map((seat) => seat.id),
+    dealerIds: game.dealerIds,
+    outIds: pool ? new Set(seats.filter((seat) => seatOf(game, seat.id)?.outRound).map((seat) => seat.id)) : null,
+    nextDealerOverride: game.nextDealerOverride,
+  };
   const dealerIdForRound = (roundIndex: number) => dealerForRound(rotation, roundIndex);
   const nextDealerId = game.isComplete ? undefined : nextDealer(rotation, maxRounds);
+  const opensId = game.isComplete ? undefined : opensFor(rotation, nextDealerId);
   const rotationStartRounds = rotationStarts(rotation, maxRounds);
 
   const colorFor = (playerId: string) => seatColor(seats.findIndex((seat) => seat.id === playerId));
@@ -553,6 +563,8 @@ export default function GameScreen() {
         return dealerId ? initialsFor(dealerId) : undefined;
       }}
       nextDealerId={nextDealerId}
+      opensId={opensId}
+      onDealerPress={canChangeSeating(game, canScoreNow) ? () => setDealerSheet(true) : undefined}
       rotationStarts={rotationStartRounds}
       leaderIds={leaderIds}
       compact={isShort}
@@ -639,6 +651,9 @@ export default function GameScreen() {
                 {deleted ? null : <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title={PLAYERS_ADMINS_TITLE} />}
                 {canChangeSeating(game, canScoreNow) ? (
                   <Menu.Item leadingIcon="seat-outline" title={SEATING_MENU_ITEM} onPress={() => { setMenuOpen(false); setSeating(true); }} testID="game-menu-seating" />
+                ) : null}
+                {canChangeSeating(game, canScoreNow) ? (
+                  <Menu.Item leadingIcon="cards-playing-outline" title={DEALER_MENU_ITEM} onPress={() => { setMenuOpen(false); setDealerSheet(true); }} testID="game-menu-dealer" />
                 ) : null}
                 {canScoreNow && !game.isComplete ? (
                   <Menu.Item leadingIcon="pencil-outline" title="Edit round" disabled={maxRounds === 0} onPress={() => { setMenuOpen(false); setEditRoundOpen(true); }} />
@@ -876,6 +891,19 @@ export default function GameScreen() {
         shortened={exactShortened}
         onDismiss={() => setExactOpen(false)}
         onSharePdf={() => { setExactOpen(false); shareFinalScores(); }}
+      />
+      <DealerSheet
+        visible={dealerSheet}
+        players={seats.map((seat) => ({ id: seat.id, name: seat.name, label: initialsFor(seat.id), outRound: pool ? seatOf(game, seat.id)?.outRound ?? null : null }))}
+        dealerIds={game.dealerIds}
+        nextDealerOverride={game.nextDealerOverride}
+        roundCount={maxRounds}
+        onDismiss={() => setDealerSheet(false)}
+        onSave={async (change) => {
+          const updated = await gamesService.setRoundDealer(game.id, change);
+          if (updated) setGame(updated);
+          await loadGameData();
+        }}
       />
       <SeatingSheet
         visible={seating}

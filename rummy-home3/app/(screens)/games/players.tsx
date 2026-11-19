@@ -54,7 +54,7 @@ type Sheet =
  * while every round score the player has is 0.
  */
 /** Mini help (PR 11) beside Playing, for admins. */
-export const PLAYING_TIP = ['A player added now gets 0 for every round already played.', '**Remove from game** (in a row\u2019s ⋮ menu) works only while every round score they have is 0.', 'Each row\u2019s ⋮ also has Invite, Link, Edit initials, Edit name and Make admin.'];
+export const PLAYING_TIP = ['A player added now sits right after whoever is dealing and gets 0 for every round already played.', '**Remove from game** (in a row\u2019s ⋮ menu) works only while every round score they have is 0.', 'Each row\u2019s ⋮ also has Invite, Link, Edit initials, Edit name and Make admin.'];
 
 export default function GamePlayersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
