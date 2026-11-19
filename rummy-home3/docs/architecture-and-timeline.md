@@ -585,3 +585,12 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   (sign-in help picture) merged earlier the same morning (`c6b6bae`). Build Bot applied **050** to live at 06:50 UTC
   (schema_migrations `20261119065006`; trigger enabled, guard gone, columns and `result_for_game` present, counts
   unchanged). No new dependency, no hosting change.
+
+### 2026-11-19 — APK v12 (EAS preview) from `main`; #94 merged
+- Sree: "build". Build Bot cut **APK v12** (EAS build `ac2a3759-7b3c-4219-a51b-43ffa4bb0937`, versionCode 12, appVersion
+  1.1.0, profile `preview`) from `main` `3d32599` at 07:19 UTC and sent Sree the install link
+  (`https://expo.dev/artifacts/eas/3fVyWAuc9Sp8JDBmUp2pyodqzJ2XwojCzluopAVXHgA.apk`). v12 carries #90, #91, #95 and
+  #96 (D46–D50: pool reopen clears awards, sideways layout, no player number, sign-in help picture, Closed-game
+  reopen with Out of date results); the live database has 049 and 050. #94 (nightly drift fixes, the planner's
+  edited-full-flows job, smoke-first full job, `full/51` signs back in as sree) merged right after the build, so
+  its Exact-points scroll fix waits for the next APK. No new dependency, no hosting change.
