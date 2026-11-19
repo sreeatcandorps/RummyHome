@@ -64,12 +64,8 @@ test('sameOrder and isPermutation', () => {
   assert.equal(EVERY_PLAYER_NEEDS_A_SEAT, 'Every player needs a seat.');
 });
 
-test('row sizes: 40 dp to 8 players, 32 to 16, 30 at 17–20', () => {
-  assert.equal(seatRowHeight(4), 40);
-  assert.equal(seatRowHeight(8), 40);
-  assert.equal(seatRowHeight(9), 32);
-  assert.equal(seatRowHeight(16), 32);
-  assert.equal(seatRowHeight(20), 30);
+test('row sizes: 48 dp at every count (v12 point 6 — the Android minimum touch target; the list scrolls)', () => {
+  for (const n of [4, 8, 9, 16, 20]) assert.equal(seatRowHeight(n), 48);
 });
 
 // ---------- X21-2 (PR 24): the once-per-game pop-up is gone; the order is a New game step ----------

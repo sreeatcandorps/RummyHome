@@ -40,11 +40,14 @@ export function isPermutation<T>(base: readonly T[], next: readonly T[]): boolea
   return seen.size === next.length && base.every((id) => seen.has(id));
 }
 
-/** Row height: 40 dp to 8 players (one screen), 32 dp from 9, 30 dp at 17–20 (S03 / S04). */
-export function seatRowHeight(count: number): number {
-  if (count <= 8) return 40;
-  if (count <= 16) return 32;
-  return 30;
+/**
+ * Row height. v12 point 6 (Sree, Nov 19): never below the platform minimum touch target — 48 dp on
+ * Android (Material), 44 pt on iOS — whatever the count; the list scrolls instead of shrinking.
+ * Before: 40 / 32 / 30 dp by count (S03 / S04), which he found too small to tap at 20 players.
+ */
+export const SEAT_ROW_MIN_HEIGHT = 48;
+export function seatRowHeight(_count: number): number {
+  return SEAT_ROW_MIN_HEIGHT;
 }
 
 /**

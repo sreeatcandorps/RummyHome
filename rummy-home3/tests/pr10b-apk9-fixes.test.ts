@@ -56,7 +56,7 @@ test('10.6 Add round: every saved cell is light green whatever the score; three 
   const entry = src('app/(screens)/score-entry.tsx');
   assert.match(entry, /testID="add-round-more"/, 'the pill that scrolls the hidden cells into view');
   assert.match(entry, /gridColumns\(participants\.length, isLandscape\)/);
-  assert.match(src('components/game/ScoreCell.tsx'), /styles\.check/, 'a tick on saved cells for colour-blind readers');
+  assert.doesNotMatch(src('components/game/ScoreCell.tsx'), /styles\.check/, 'v12 point 8: the tick is gone; the green tile and the → total line say scored');
 });
 
 // ---------- Add players (10.4) ----------
@@ -64,9 +64,9 @@ test('10.6 Add round: every saved cell is light green whatever the score; three 
 test('10.4 Add players: heading, F / L placeholders, one RPC per save, Backspace walks back, Done guards unsaved rows, Delete for this visit', () => {
   const screen = src('app/(screens)/players/add.tsx');
   assert.match(screen, /export const ADD_PLAYERS_HEADING = 'Add new players by initials';/);
-  assert.match(screen, /export const FIRST_PLACEHOLDER = 'F';/);
-  assert.match(screen, /export const LAST_PLACEHOLDER = 'L';/);
-  assert.match(screen, /return `\$\{saved\} of \$\{NEW_PLAYER_ROWS_MAX\} players saved\. \$\{unsaved\} \$\{unsaved === 1 \? 'row has' : 'rows have'\} letters you have not saved\.`;/, 'the Done pop-up summary');
+  assert.match(screen, /export const FIRST_PLACEHOLDER = '';/, 'v12 point 4: no sample letters');
+  assert.match(screen, /export const LAST_PLACEHOLDER = '';/);
+  assert.match(screen, /return `\$\{saved\} of \$\{NEW_PLAYER_ROWS_MAX\} players saved\. \$\{unsaved\} \$\{unsaved === 1 \? 'row has' : 'rows have'\} one letter only\.`;/, 'the Done pop-up summary (v12 point 3)');
   assert.match(screen, /event\.nativeEvent\.key !== 'Backspace'/, 'Backspace in an empty cell walks back');
   assert.match(screen, /lastInputs\.current\[above\.key\]\?\.focus\(\)/, 'row n cell 1 → row n−1 cell 2');
   assert.match(screen, /testID="add-players-unsaved"/, 'Go back / Discard dialog');
