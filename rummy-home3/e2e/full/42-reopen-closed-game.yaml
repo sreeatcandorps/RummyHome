@@ -7,6 +7,7 @@ tags: [full]
 # Closed — result R… is Out of date". G is completed again, and in Results the saved result carries the
 # Out of date chip; its page shows the banner with Make a new result (→ the Results picker) and Delete.
 # Nothing is deleted: the old result stays, its numbers unchanged, for the eye and for later runs.
+# Runs on its own PR job whenever it is edited (planner, #94); the nightly runs it in the full set.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Results"
