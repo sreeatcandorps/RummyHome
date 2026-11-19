@@ -628,3 +628,14 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
 - The listing screenshots now come from a dedicated account seeded by `supabase/seed-listing.sql` (applied by the
   ui-smoke / ui-full jobs after seed-break; never on hosted): a 10-player Points game, a 9-player pool with two out,
   and a saved result over S1 + S2, captured by `smoke/22`. Nothing in Sree's test data changes.
+
+### 2026-11-19 — The Dealer sheet (D60), join at dealer + 1 (D57), the deal skips out seats (D58): migration 052 written, not applied
+- Sree asked for the dealer to be "a menu of its own" and for one simple flow for any round. Migration
+  `052_dealer.sql` adds `games.next_dealer_profile_id / next_dealer_round / next_dealer_keeps_sequence` and the
+  admin RPC `set_round_dealer(game, round, dealer, follow)`: a played round is rewritten (`rounds.dealer_profile_id`,
+  later rounds re-dealt when followed), the next round is an override `save_round` consumes; "this round only"
+  chains one more override so the sequence survives. `add_seated_player` now seats a newcomer at the current dealer's
+  seat + 1 once rounds exist (D57). The rotation helpers skip `out_round` seats on both sides (D58), and the scorecard
+  header shows DEALS and OPENS. pgTAP `43_dealer_052.sql`, rollback `rollback_052_dealer.sql`, replay harness updated;
+  `smoke/23-dealer` captures the frames. **The migration is a file in the PR only; live gets it on Sree's separate yes.**
+- Not built: a Points "left the table" state (Q9) — pool "out" is the only out state today.
