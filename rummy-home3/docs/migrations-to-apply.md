@@ -607,7 +607,7 @@ What 049 does (rollback: `supabase/rollback/rollback_049_reopen_pool_clears_awar
 - Points games and pools without awards: nothing happens. Adds no column, changes no row by itself.
 - The app sends the same clear in its reopen update, so on a database without 049 the awards still clear when the current APK reopens the pool; 049 makes it hold for any client.
 
-D49 B (Sree, Nov 19) — **written, not applied — never run against live without Sree's OK**. Replaces the first draft of 050 (PR #93, a hard refusal of score changes while Closed), which was never applied:
+D49 B (Sree, Nov 19) — **on live since Nov 19** (Build Bot applied it from merged `main` `4b8187a` with Sree's yes, schema_migrations `20261119065006`; trigger `games_reopen_closed` enabled, `games_closed_guard` gone, the three `stale_*` columns and `result_for_game` present; row counts unchanged). Replaces the first draft of 050 (PR #93, a hard refusal of score changes while Closed), which was never applied:
 
 27. `supabase/migrations/050_reopen_closed_game.sql`
 
