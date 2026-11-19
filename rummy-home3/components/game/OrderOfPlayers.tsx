@@ -125,7 +125,11 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
             {numbered ? (
               <View style={styles.arrows}>
                 <IconButton icon="chevron-up" size={22} iconColor={colors.onSurfaceVariant} disabled={disabled || seat === draft.base.length} onPress={() => onChange(stepNumbered(draft, id, 1))} accessibilityLabel={`Move ${player.name} up`} style={styles.arrow} testID={`${testIDPrefix}-up-${index + 1}`} />
-                <IconButton icon="chevron-down" size={22} iconColor={colors.onSurfaceVariant} disabled={disabled || seat === draft.base.length - draft.numbered.length + 1} onPress={() => onChange(stepNumbered(draft, id, -1))} accessibilityLabel={`Move ${player.name} down`} style={styles.arrow} testID={`${testIDPrefix}-down-${index + 1}`} />
+                {seat === draft.base.length - draft.numbered.length + 1 ? (
+                  <View style={styles.arrowSlot} />
+                ) : (
+                  <IconButton icon="chevron-down" size={22} iconColor={colors.onSurfaceVariant} disabled={disabled} onPress={() => onChange(stepNumbered(draft, id, -1))} accessibilityLabel={`Move ${player.name} down`} style={styles.arrow} testID={`${testIDPrefix}-down-${index + 1}`} />
+                )}
               </View>
             ) : (
               <View style={styles.arrowsGap} />
@@ -150,5 +154,6 @@ const styles = StyleSheet.create({
   arrows: { flexDirection: 'row', alignItems: 'center', width: ARROWS_WIDTH, justifyContent: 'flex-end' },
   arrowsGap: { width: ARROWS_WIDTH },
   arrow: { margin: 0 },
+  arrowSlot: { width: 22 + 2 * 8, height: 22 + 2 * 8 },
   counter: { paddingTop: spacing.xs, paddingHorizontal: spacing.xs },
 });

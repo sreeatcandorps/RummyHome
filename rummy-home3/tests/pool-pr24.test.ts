@@ -286,3 +286,10 @@ test('X24-1 no "stake" in user-facing copy', () => {
     assert.deepEqual(offending, [], `${f} shows "stake" to the user`);
   }
 });
+
+test('D59: the lowest numbered seat renders no down arrow; the up arrow stays', () => {
+  const list = read('components/game/OrderOfPlayers.tsx');
+  assert.match(list, /seat === draft\.base\.length - draft\.numbered\.length \+ 1 \? \(\s*<View style=\{styles\.arrowSlot\} \/>/);
+  assert.match(list, /icon="chevron-down"[^\n]*disabled=\{disabled\} onPress/);
+  assert.match(list, /icon="chevron-up"[^\n]*disabled=\{disabled \|\| seat === draft\.base\.length\}/);
+});

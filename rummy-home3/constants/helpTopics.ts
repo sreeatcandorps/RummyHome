@@ -182,7 +182,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'Order of players',
         bullets: [
           'Everyone draws a card. Tap players from the highest card to the lowest: the first tap takes the top row with the highest seat number, each next tap the row under it, and the last tap is **seat 1**. Tap the latest one again to take the number back; tap any other numbered player to highlight them.',
-          'Numbered rows show small ▲ ▼ arrows that move a seat one place at once. **Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
+          'Numbered rows show small ▲ ▼ arrows that move a seat one place at once; the lowest seat has no ▼, there is nowhere lower to go. **Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
           'Seat numbers run from 1 (lowest card) up. Seat 1 deals round 1 and the deal goes round by seat; the scorecard columns follow this order, seat 1 first.',
           'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens prefilled, so one move is one tap; **Done** saves it, the Log records it and played rounds keep their dealer.',
         ],
