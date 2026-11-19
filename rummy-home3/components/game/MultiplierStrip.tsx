@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Dialog, Icon, Portal, Switch, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { radius, spacing, tabularNums, useAppTheme } from '@/constants/theme';
@@ -61,11 +61,14 @@ export function ExactPointsSheet({ visible, multiplier, lines, sum, shortened, o
   onSharePdf?: () => void;
 }) {
   const { colors } = useAppTheme();
+  const { height } = useWindowDimensions();
   return (
     <Portal>
       <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog} testID="exact-points-sheet">
         <Dialog.Title>Exact points</Dialog.Title>
-        <Dialog.Content style={styles.content}>
+        {/* 20 players × a two-line row outgrew the screen (nightly full/50): the lines scroll, the title, the sum and Close stay put. */}
+        <Dialog.ScrollArea style={[styles.scrollArea, { maxHeight: Math.max(160, height * 0.45) }]}>
+          <ScrollView contentContainerStyle={styles.scrollBody} testID="exact-lines">
           {lines.map((line) => (
             <View key={line.id} style={[styles.line, { borderBottomColor: colors.outlineVariant }]} testID={`exact-line-${line.id}`}>
               <View style={styles.nameBlock}>
@@ -79,6 +82,9 @@ export function ExactPointsSheet({ visible, multiplier, lines, sum, shortened, o
               </Text>
             </View>
           ))}
+          </ScrollView>
+        </Dialog.ScrollArea>
+        <Dialog.Content style={styles.content}>
           <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, marginTop: spacing.sm }}>{exactSheetHint(multiplier)}</Text>
           <Text variant="labelLarge" style={{ color: sum === 0 ? colors.onSurface : colors.error, marginTop: spacing.xs }} testID="exact-totals-line">
             {totalsFooter(sum, shortened)}
@@ -103,6 +109,8 @@ const styles = StyleSheet.create({
   bannerText: { flex: 1, fontWeight: '600' },
   dialog: { maxWidth: 480, width: '92%', alignSelf: 'center' },
   content: { gap: 0 },
+  scrollArea: { paddingHorizontal: 0 },
+  scrollBody: { paddingHorizontal: 24 },
   line: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6, borderBottomWidth: StyleSheet.hairlineWidth },
   nameBlock: { flex: 1, minWidth: 0 },
 });
