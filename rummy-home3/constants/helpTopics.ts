@@ -329,7 +329,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         { item: 'Players · Admins', does: 'Who plays, who is admin, invite, link, initials, remove.', who: 'Everyone (admins can change)', hidden: 'Deleted game' },
         { item: 'Order of players', does: 'Rearrange who sits where (tap to number, arrows to nudge); the deal follows the new order from the next round.', who: 'Admins', hidden: 'Completed game' },
         { item: 'Edit round', does: 'Pick a round and change its scores; the Log keeps the old ones.', who: 'Admins', hidden: 'Completed game, or no rounds yet (grey)' },
-        { item: 'Reopen game', does: 'Unlocks a Completed game so rounds can be added again.', who: 'Admins', hidden: 'Active game, or a Closed game (part of a result)' },
+        { item: 'Reopen game', does: 'Unlocks a Completed game so rounds can be added again. A pool that already has awards loses them; give them again after the next Complete.', who: 'Admins', hidden: 'Active game, or a Closed game (part of a result)' },
         { item: 'Log', does: 'Every change to this game, written by the server.', who: 'Everyone' },
         { item: 'Hide game', does: 'Takes the game off your Home only. Unhide in Settings › Hidden & deleted.', who: 'Everyone', hidden: 'Deleted game' },
         { item: 'Delete game', does: 'Removes the game for every player, for 30 days under Deleted games, then hidden for good — nothing is erased.', who: 'Creator and admins', hidden: 'Deleted game' },
@@ -977,7 +977,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'Undoing a step',
         bullets: [
-          'Delete the result → its games go back to Completed. Edit the awards → allowed until the pool is in a saved result. Reopen the game → allowed until it is Closed.',
+          'Delete the result → its games go back to Completed. Edit the awards → allowed until the pool is in a saved result. Reopen the game → allowed until it is Closed; a pool with awards loses them (they came from the standings you are about to change).',
         ],
       },
     ],

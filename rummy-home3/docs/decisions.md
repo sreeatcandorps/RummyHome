@@ -33,6 +33,7 @@ this file exists so nobody has to read five specs and a chat log to know the cur
 
 | ID | Date | Decision | Where | Status |
 | --- | --- | --- | --- | --- |
+| D47 | 2026-11-18 | **Sideways = wider than tall, on every device.** Sree picked B: a tablet turned sideways gets the phone-landscape pool layout (table alone, D42); held upright it keeps the five-row card with Standings right under it. Compact chrome (`isShort`) stays a matter of height. Replaces the height-based choice that left tablets on the upright layout in landscape. | `games/[id].tsx` `sideways`, `hooks/useLayout.ts` | active |
 | D48 | 2026-11-18 | **No player number on the scorecard.** Sree: "ignore the player number. Remove it from Pool also. players can always go into the menu players and see the player number there." Pool header and Standings read initials · score like Points; the Player ID stays on My players and Players · Admins. | `ScoreTable`, `PoolStandings`, `scorecardLayout.headerHeight` | active |
 | D42 | 2026-11-18 | **Landscape pool is the full-width table alone**, like Points. No Standings in landscape ("they can always come back to portrait"). An admin reaches Give / Change awards from the strip. | `games/[id].tsx`, PR B | active (supersedes D31) |
 | D41 | 2026-11-18 | **Five-line rule for the portrait pool card.** Content = round rows (a placeholder row at 0 rounds) + one empty row + Creator / Admin / Unique game ID; the card hugs that content and stops at five round-row heights; the newest round sits at the bottom of the card; the Standings take the rest. At 0 rounds that is five lines. Empty row sits between the last round and the Creator line (Sree's 10:35 PM wording; default A). | `ScoreTable` `hugRows`, `utils/scorecardLayout.ts`, PR B | active (supersedes D30) |
@@ -46,6 +47,7 @@ this file exists so nobody has to read five specs and a chat log to know the cur
 
 | ID | Date | Decision | Where | Status |
 | --- | --- | --- | --- | --- |
+| D46 | 2026-11-18 | **Reopening a pool clears its awards.** Sree picked C: the awards were worked out from the standings the reopen is about to change, so Reopen clears `prize_shares` / `awarded_at` / `awarded_by` / `award_note`; the pool is awards-pending again after the next Complete. The Reopen dialog says so; the Log gets "Awards cleared · The pool was reopened; give them again after Complete". A pool in a saved result is Closed and cannot be reopened, so results never go stale (Sree's question, answered Nov 18). | migration 049, `services/games.ts reopenGame`, `utils/gameStatus.ts` | active |
 | D26 | 2026-11-17 | Re-entry settings grouped: Unlimited by default, Limited leaves the count empty; Re-entry score and Late entry = Highest score / Highest score + 1, default + 1. Server rule in migration 047 (applied to live by Build Bot, Nov 18). | pool-design §0 row 24 | active |
 | D25 | 2026-11-17 | No "stake" anywhere the user reads; the money-free type is **Points**. | pool-design §0 row 18 | active |
 | D24 | 2026-11-15 | 50 / 50 is a deliberate exception to "the lowest score gets the most". | pool-design §0 row 17 | active |
@@ -89,5 +91,4 @@ this file exists so nobody has to read five specs and a chat log to know the cur
 
 | ID | Date | Question | Default in use | Status |
 | --- | --- | --- | --- | --- |
-| D46 | 2026-11-18 | Reopen a pool that already has awards: should the Awards page warn "saved before the pool was reopened"? | nothing shown | deferred |
-| D47 | 2026-11-18 | Tablets in landscape are not "short" (`isShort` is height-based), so they keep the portrait pool layout. Intended? | keep | deferred |
+| — | — | Nothing open. D46 and D47 were decided on Nov 18 (see Pool rules and Pool scorecard layout). | — | — |

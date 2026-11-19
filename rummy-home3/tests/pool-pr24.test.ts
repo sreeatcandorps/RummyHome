@@ -261,7 +261,7 @@ test('X24-3 pool header: same lines as Points (the #number line went on Nov 18),
   assert.match(table, /`\$\{REENTRY_MARK\}\$\{column\.reentryScore\}`/, 'the re-entry cell shows the re-entry score, not the typed one');
   const screen = read('app/(screens)/games/[id].tsx');
   assert.doesNotMatch(screen, /below=\{/, 'Nov 18: landscape pool has no standings (turn the phone back for them)');
-  assert.match(screen, /hugRows=\{pool && !isShort \? POOL_CARD_MAX_ROWS : undefined\}/, 'portrait pool: the five-row card');
+  assert.match(screen, /hugRows=\{pool && !sideways \? POOL_CARD_MAX_ROWS : undefined\}/, 'portrait pool: the five-row card');
   assert.match(screen, /testID="pool-standings-pane"/, 'portrait: the standings pane');
   assert.ok(!/flexDirection: 'row'[^\n]*standings/i.test(screen), 'never side by side');
 });

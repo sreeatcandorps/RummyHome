@@ -22,3 +22,13 @@ export function canReopenGame(game: { isComplete?: boolean; closedAt?: string | 
 }
 
 export const REOPEN_BLOCKED_MESSAGE = 'This game is Closed: it is part of declared results and cannot be reopened.';
+
+/**
+ * D46 C (Sree, Nov 18): reopening a pool that already has awards clears them — the awards came
+ * from the standings the reopen is about to change. Points games and pools without awards: nothing.
+ */
+export function reopenClearsAwards(game: { gameType?: string; awardedAt?: string | null }): boolean {
+  return game.gameType === 'pool' && Boolean(game.awardedAt);
+}
+
+export const REOPEN_CLEARS_AWARDS_NOTE = 'The awards are cleared too: they were worked out from the standings as they stand now. Give them again after the next Complete.';

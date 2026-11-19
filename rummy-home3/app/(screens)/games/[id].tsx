@@ -44,7 +44,7 @@ import { canChangeSeating, SEATING_MENU_ITEM } from '@/utils/seating';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
 import { playersChipLabel, POOL_CARD_MAX_ROWS } from '@/utils/scorecardLayout';
 import { gameSettingsMenuTitle, rulesFromGame } from '@/utils/gameSettings';
-import { canReopenGame } from '@/utils/gameStatus';
+import { canReopenGame, reopenClearsAwards, REOPEN_CLEARS_AWARDS_NOTE } from '@/utils/gameStatus';
 import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
 import { PoolAwardsCard } from '@/components/game/PoolAwardsCard';
 import { CompleteGameDialog } from '@/components/game/CompleteGameDialog';
@@ -61,7 +61,10 @@ export default function GameScreen() {
   const router = useRouter();
   const theme = useAppTheme();
   const { colors } = theme;
-  const { isShort, insets, gutterLeft, gutterRight } = useLayout();
+  const { isShort, isLandscape, insets, gutterLeft, gutterRight } = useLayout();
+  // D47 B (Sree, Nov 18): "sideways" is wider than tall, on every device. A phone turned sideways is also
+  // short (compact chrome); a tablet turned sideways is not, but it still gets the table alone.
+  const sideways = isLandscape;
   // Seed from the last-known copy so returning from Add round shows the new row at once; the fresh load follows.
   const cachedGame = gamesService.peekGame(typeof id === 'string' ? id : null);
   const cachedSeats = gamesService.peekSeats(typeof id === 'string' ? id : null);
@@ -493,8 +496,8 @@ export default function GameScreen() {
   const playersTag = <Tag label={playersChipLabel(players.length)} icon="account-group-outline" />;
 
   // Pool (D5): Standings under the grid; on a completed pool the awards block (P19/P30) too.
-  // Nov 18 (Sree): portrait only. The card hugs its rounds (five at most) and the standings take the
-  // rest; landscape is the full-width table alone, like Points — turn the phone for the standings.
+  // Nov 18 (Sree): upright only. The card hugs its rounds (five at most) and the standings sit right
+  // under it; sideways is the full-width table alone, like Points — turn the device for the standings.
   const poolBelow = pool ? (
     <>
       {game.isComplete ? (
@@ -548,8 +551,8 @@ export default function GameScreen() {
       footer={idFooter}
       // PR 24: a tap on a round number edits that round (the re-entry round too); the menu's Edit round stays.
       onRoundPress={canScoreNow && !game.isComplete && !deleted ? openEditRound : undefined}
-      // Pool portrait (Nov 18): Sree's 5-line rule — see ScoreTable.hugRows.
-      hugRows={pool && !isShort ? POOL_CARD_MAX_ROWS : undefined}
+      // Pool upright (Nov 18): Sree's 5-line rule — see ScoreTable.hugRows.
+      hugRows={pool && !sideways ? POOL_CARD_MAX_ROWS : undefined}
     />
   );
 
@@ -658,8 +661,8 @@ export default function GameScreen() {
             <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="completed-line">
               {pool && game.awardedAt ? 'Completed and awarded.' : 'Completed.'}
             </Text>
-            {/* Landscape pool has no awards card (no standings pane), so the admin's way to the awards sits in the strip. */}
-            {pool && isShort && canManageNow && !game.closedAt ? (
+            {/* A sideways pool has no awards card (no standings pane), so the admin's way to the awards sits in the strip. */}
+            {pool && sideways && canManageNow && !game.closedAt ? (
               <Button compact mode="text" icon="trophy-outline" onPress={openAwards} testID="strip-give-awards">
                 {game.awardedAt ? 'Change awards' : 'Give awards'}
               </Button>
@@ -672,7 +675,7 @@ export default function GameScreen() {
         ) : null}
       </View>
 
-      {isShort ? (
+      {sideways ? (
         <View
           style={[
             styles.landscapeBody,
@@ -689,7 +692,7 @@ export default function GameScreen() {
             (game.isComplete || !canScoreNow) && { paddingBottom: insets.bottom + spacing.md },
           ]}
         >
-          {/* Pool portrait (Nov 18): the card hugs its rounds (five at most, see ScoreTable.hugRows); the standings fill what is left. */}
+          {/* Pool upright (Nov 18): the card hugs its rounds (five at most, see ScoreTable.hugRows); the standings follow right under it. */}
           <View style={styles.flex}>
             {pool ? <View style={styles.poolTablePane} testID="pool-table-pane">{table}</View> : table}
             {pool ? (
@@ -776,6 +779,11 @@ export default function GameScreen() {
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
               It goes back to Active so rounds can be added or edited. Scores stay as they are. Use this when Complete game was pressed too early.
             </Text>
+            {reopenClearsAwards(game) ? (
+              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: spacing.sm }} testID="reopen-clears-awards">
+                {REOPEN_CLEARS_AWARDS_NOTE}
+              </Text>
+            ) : null}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setShowReopenConfirm(false)} disabled={reopening}>Cancel</Button>

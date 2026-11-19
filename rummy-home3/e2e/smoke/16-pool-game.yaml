@@ -242,6 +242,17 @@ tags: [smoke]
     id: "pool-awards"
 - assertVisible: "Custom · entry 100 · pool 500 · 400 given out"
 - takeScreenshot: 16s-pool-scorecard-awarded
+# D46 C (Nov 18): Reopen on an awarded pool warns that the awards are cleared. Cancel — the pool stays awarded.
+- tapOn: "Scorecard menu"
+- tapOn: "Reopen game"
+- extendedWaitUntil:
+    visible: "Reopen this game?"
+    timeout: 5000
+- assertVisible:
+    id: "reopen-clears-awards"
+- takeScreenshot: 16t-reopen-clears-awards
+- tapOn: "Cancel"
+- assertVisible: "Awarded"
 # Clean up: the creator deletes the pool so the Results picker and Home stay as the other flows expect.
 - tapOn: "Scorecard menu"
 - tapOn: "Delete game"
