@@ -71,9 +71,11 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "New game starts as"
     timeout: 15000
+# The button is the last thing on Settings: centre it, or a part-visible button at the foot takes the tap on the nav bar.
 - scrollUntilVisible:
     element: "Open Hidden & deleted"
     direction: DOWN
+    centerElement: true
     timeout: 15000
 - tapOn: "Open Hidden & deleted"
 - extendedWaitUntil:
