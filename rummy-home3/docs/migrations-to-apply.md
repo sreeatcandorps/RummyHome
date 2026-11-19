@@ -603,9 +603,22 @@ D46 C (Sree, Nov 18) — **on live since Nov 19** (Build Bot applied it from mer
 What 049 does (rollback: `supabase/rollback/rollback_049_reopen_pool_clears_awards.sql`; pgTAP: `supabase/tests/40_reopen_pool_clears_awards_049.sql`, 16 checks; replay hook `HAS_049`):
 
 - One `before update of status` trigger on `games`: when a **pool** goes Completed → Active and it has awards (`awarded_at` set), the awards are cleared — `prize_shares`, `awarded_at`, `awarded_by`, `award_note` → null — and a Log line is written (kind `awards_changed`, "Awards cleared · The pool was reopened; give them again after Complete", with what was cleared in `details`). The pool is "awards pending" again and asks for them after the next Complete.
-- A pool in a saved result is Closed and cannot be reopened (unchanged), so a result's stored places never go stale this way.
+- Nov 18 wording: a pool in a saved result is Closed and cannot be reopened. D49 (Nov 19, 050 below) changed that: a Closed game can be reopened and its result is marked Out of date.
 - Points games and pools without awards: nothing happens. Adds no column, changes no row by itself.
 - The app sends the same clear in its reopen update, so on a database without 049 the awards still clear when the current APK reopens the pool; 049 makes it hold for any client.
+
+D49 B (Sree, Nov 19) — **written, not applied — never run against live without Sree's OK**. Replaces the first draft of 050 (PR #93, a hard refusal of score changes while Closed), which was never applied:
+
+27. `supabase/migrations/050_reopen_closed_game.sql`
+
+What 050 does (rollback: `supabase/rollback/rollback_050_reopen_closed_game.sql`; pgTAP: `supabase/tests/41_reopen_closed_game_050.sql`, 30 checks; replay hook `HAS_050`):
+
+- Three nullable columns on `game_results`: `stale_at`, `stale_by` (→ profiles), `stale_game_id` (→ games). Nothing else changes shape; no row is touched by the migration itself.
+- Trigger `games_reopen_closed` (before update of status on `games`): when a **Closed** game goes Completed → Active, every live result that counts it is stamped Out of date (first stamp wins: `stale_at = coalesce(stale_at, now())`), the other games in that result lose their `closed_at` (back to Completed), and this game's `closed_at` is cleared. `places` / totals in the result are never rewritten.
+- Drops the Nov 18 `games_closed_guard` (the refusal). Adds `rounds_closed_guard` / `scores_closed_guard`: a round or score of a game that is still Closed cannot be inserted or changed (PT423 "This game is Closed: it is part of a saved result. Reopen it first."). Reopen is the one door.
+- `event_log_games` = the 048 body with one clause: the Log row on a reopen while Closed reads "Reopened while Closed — result R<n> is Out of date · its numbers do not change".
+- `get_game_result` and `list_game_results_page` are renamed to `_v028` / `_v043` and wrapped: the wrapper adds `staleAt`, `staleBy`, `staleByName`, `staleGameId`, `staleGameLabel` to each row. New `result_for_game(game_id)` tells the Reopen dialog which result a Closed game sits in (id, saved at, who, game count, the other games' labels).
+- On a database without 050 the current APK still reopens a Closed game (it clears `closed_at` itself) but no result is stamped and the other games stay Closed; 050 makes the bookkeeping hold for any client.
 
 Read-only checks that go with 021 (nothing is changed):
 

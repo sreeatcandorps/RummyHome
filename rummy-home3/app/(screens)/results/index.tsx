@@ -33,6 +33,7 @@ import {
   ResultsStatus,
   RESULTS_FILTER_LABEL,
   RESULTS_STATUSES,
+  RESULT_STALE_CHIP,
   resultsEmptyText,
   resultsPickerHeading,
   visibleSelection,
@@ -82,7 +83,7 @@ function PastResult({ item }: { item: GameResultSummary }) {
         borderless
         style={styles.ripple}
         accessibilityRole="button"
-        accessibilityLabel={`Open results from ${formatGameDateTime(item.declaredAt)}${reused ? `, ${reused.toLowerCase()}` : ''}`}
+        accessibilityLabel={`Open results from ${formatGameDateTime(item.declaredAt)}${item.stale ? ', out of date' : ''}${reused ? `, ${reused.toLowerCase()}` : ''}`}
       >
         <View style={styles.pastInner}>
           <View style={styles.winner} accessibilityLabel={`Winner ${rows[0]?.name ?? ''}`}>
@@ -93,6 +94,7 @@ function PastResult({ item }: { item: GameResultSummary }) {
             <Text variant="titleSmall" style={styles.left} numberOfLines={1}>{formatGameDateTime(item.declaredAt)}</Text>
             <View style={styles.meta}>
               <Tag label="Results" tone="results" icon="podium" />
+              {item.stale ? <Tag label={RESULT_STALE_CHIP} tone="warning" icon="alert-outline" testID={`result-stale-${item.id}`} /> : null}
               {reused ? <Icon source="alert-outline" size={18} color={colors.secondary} /> : null}
               <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{resultsCountLine(item.gameCount, item.playerCount)}</Text>
             </View>

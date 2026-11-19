@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–049) applied, check the function state after each, then re-apply the forward
+# has every migration (001–050) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,19 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 050 (D49 B: reopening a Closed game — stamp, un-close, guards, RPC wrappers; rolled back first)
+HAS_050=f
+if [ -f "$RB/rollback_050_reopen_closed_game.sql" ]; then
+  HAS_050=t
+  if apply "$RB/rollback_050_reopen_closed_game.sql"; then tap ok "rollback_050 applies"; else tap fail "rollback_050 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists games_reopen_closed)" = f ] && [ "$(fn_exists rounds_closed_guard)" = f ] && [ "$(fn_exists result_stale_json)" = f ] && [ "$(fn_exists result_for_game)" = f ] \
+    && [ "$(fn_exists get_game_result_v028)" = f ] && [ "$(fn_exists get_game_result)" = t ] \
+    && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='game_results' and column_name='stale_at')")" = f ] \
+    && [ "$(fn_has event_log_games 'Out of date')" = f ] \
+    && tap ok "after rollback_050 the reopen trigger, guards, wrappers and stale columns are gone; get_game_result is the 028 body" \
+    || tap fail "after rollback_050 the reopen trigger, guards, wrappers and stale columns should be gone"
+fi
 
 # 049 (D46 C: reopening a pool clears its awards — trigger + function; rolled back first)
 HAS_049=f
@@ -489,6 +502,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_047" = t ] && FORWARD="$FORWARD 047_reentry_and_late_entry_score"
 [ "$HAS_048" = t ] && FORWARD="$FORWARD 048_event_log_games_exact_fix"
 [ "$HAS_049" = t ] && FORWARD="$FORWARD 049_reopen_pool_clears_awards"
+[ "$HAS_050" = t ] && FORWARD="$FORWARD 050_reopen_closed_game"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -497,7 +511,7 @@ done
 [ "$(fn_exists remove_seat_if_no_scores)" = t ] && tap ok "016 restored" || tap fail "016 restored"
 [ "$(fn_has link_seat_to_player 'already playing in this game')" = t ] && tap ok "017 restored (takeover body)" || tap fail "017 restored (takeover body)"
 if [ "$HAS_018" = t ]; then
-  [ "$(fn_exists reused_game_ids)" = t ] && [ "$(fn_has get_game_result reused_game_ids)" = t ] && tap ok "018 restored (reused_game_ids and the 018 reader)" || tap fail "018 restored"
+  [ "$(fn_exists reused_game_ids)" = t ] && { [ "$(fn_has get_game_result reused_game_ids)" = t ] || [ "$(fn_has get_game_result_v028 reused_game_ids)" = t ]; } && tap ok "018 restored (reused_game_ids and the 018 reader)" || tap fail "018 restored"
 fi
 if [ "$HAS_019" = t ]; then
   [ "$(fn_exists lock_profile_role)" = t ] && [ "$(fn_has save_round pg_advisory_xact_lock)" = t ] && [ "$(fn_has remove_seat_if_no_scores pg_advisory_xact_lock)" = t ] \
@@ -508,7 +522,7 @@ if [ "$HAS_019" = t ]; then
 fi
 if [ "$HAS_020" = t ]; then
   [ "$(fn_exists get_game_bundle)" = t ] && [ "$(fn_exists get_home_bundle)" = t ] && [ "$(fn_exists list_result_candidates)" = t ] \
-    && [ "$(fn_has list_visible_game_ids 'union')" = t ] && [ "$(fn_has get_game_result game_rounds_json)" = t ] \
+    && [ "$(fn_has list_visible_game_ids 'union')" = t ] && { [ "$(fn_has get_game_result game_rounds_json)" = t ] || [ "$(fn_has get_game_result_v028 game_rounds_json)" = t ]; } \
     && [ "$(q "select exists(select 1 from pg_indexes where schemaname='public' and indexname='game_results_declared_by_idx')")" = t ] \
     && tap ok "020 restored (bundle RPCs, union bodies, indexes)" || tap fail "020 restored"
 fi
@@ -661,6 +675,12 @@ if [ "$HAS_049" = t ]; then
   [ "$(fn_exists games_pool_reopen_clears_awards)" = t ] \
     && [ "$(q "select exists(select 1 from pg_trigger where tgname='games_pool_reopen_clears_awards')")" = t ] \
     && tap ok "049 restored (reopen-clears-awards trigger)" || tap fail "049 restored"
+fi
+if [ "$HAS_050" = t ]; then
+  [ "$(fn_exists games_reopen_closed)" = t ] && [ "$(fn_exists rounds_closed_guard)" = t ] && [ "$(fn_exists get_game_result_v028)" = t ] \
+    && [ "$(q "select exists(select 1 from pg_trigger where tgname='games_reopen_closed')")" = t ] \
+    && [ "$(fn_has event_log_games 'Out of date')" = t ] \
+    && tap ok "050 restored (reopen-closed trigger, guards, RPC wrappers, Log wording)" || tap fail "050 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

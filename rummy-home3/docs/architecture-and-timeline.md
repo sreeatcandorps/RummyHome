@@ -573,3 +573,13 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   **049** to `gngcrplcldfiubvhcdin` (schema_migrations `20261119044506`; trigger present and enabled; row counts
   unchanged). 050 waits on #93's run. Open: #93 (050), #94 (nightly drift + planner: infra PRs run the edited full
   flows), #95 (sign-in help picture). No new dependency, no hosting change.
+
+### 2026-11-19 — D49 B: a Closed game can be reopened (migration 050 rewritten; #93 replaced)
+- Sree's real-use case ("he should be able to add, because it happens all the time … give a warning … the old
+  result never changes") overturned the Nov 18 refusal. He picked **B** "to keep it simple" and set the
+  **simplicity principle** (D50, now in `AGENTS.md`). 050 is rewritten: `game_results.stale_at/stale_by/
+  stale_game_id`, trigger `games_reopen_closed` (stamp the result Out of date, un-close its other games), the
+  rounds/scores guards replace the games guard, `result_for_game` RPC, and the results RPCs wrapped (`_v028` /
+  `_v043` kept intact). App: one Reopen dialog that names the result, an Out of date chip in Results and a banner
+  on the result page. PR #93 (the refusal) is closed, replaced. 050 is **not applied** to live (needs Sree's yes).
+  No new dependency, no hosting change.

@@ -347,6 +347,10 @@ async function main() {
   // 10. (035 / 2.5) Admin A is saving the next round while admin B undoes the last one
   // ---------------------------------------------------------------------------------------
   {
+    // 050: game A has been Closed since scenario 7, and a Closed game refuses undo and save on the server now.
+    // Take it out of its results first (what Delete result does), as the admin.
+    await admin.query(`update public.game_results set deleted_at = now() where id in (select result_id from public.game_result_games where game_id = $1) and deleted_at is null`, [GAME_A]);
+    await admin.query(`update public.games set closed_at = null, status = 'active', completed_at = null where id = $1`, [GAME_A]);
     const live = await liveRounds(admin, GAME_A);
     const last = live[live.length - 1].round_number;
     await beginAs(b, COADMIN);

@@ -43,11 +43,16 @@ values (:E, :OUTSIDER, 'active', 'stake',
 insert into public.game_players (game_id, profile_id, player_order, role, seated) values
   (:E, :OUTSIDER, 0, 'game_admin', true),
   (:E, :CD, 1, 'player', true);
+-- 050: a Closed game refuses new rounds; this fixture back-fills history into Closed C, so the guards step aside for it.
+alter table public.rounds disable trigger rounds_closed_guard;
+alter table public.scores disable trigger scores_closed_guard;
 insert into public.rounds (id, game_id, round_number, dealer_profile_id, created_by)
 values ('30000000-0000-4000-8000-0000000000c1', :C, 1, :HARISH, :SREE);
 insert into public.scores (round_id, game_id, profile_id, score_type, value) values
   ('30000000-0000-4000-8000-0000000000c1', :C, :HARISH, 'count', -40),
   ('30000000-0000-4000-8000-0000000000c1', :C, :CD, 'rummy', 40);
+alter table public.rounds enable trigger rounds_closed_guard;
+alter table public.scores enable trigger scores_closed_guard;
 
 select tests.anon();
 select throws_like($$ select public.remove_my_player('00000000-0000-4000-8000-0000000000a3') $$, '%permission denied%', 'anon cannot remove (033: no EXECUTE for anon)');

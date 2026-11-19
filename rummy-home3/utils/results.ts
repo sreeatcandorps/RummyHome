@@ -63,6 +63,16 @@ export type GameResult = {
   /** Soft delete (023). A deleted result shows only this; its games are uncounted again. */
   deletedAt?: string | null;
   canRestore?: boolean;
+  /** D49 (050): a game in this result was reopened after it was saved. The stored numbers do not change. */
+  stale?: ResultStale;
+};
+
+/** D49 (050): who reopened which game, and when. */
+export type ResultStale = {
+  at: string;
+  byName: string;
+  gameId?: string | null;
+  gameLabel?: string | null;
 };
 
 export type GameResultSummary = {
@@ -76,7 +86,33 @@ export type GameResultSummary = {
   top: { name: string; points: number; place: number }[];
   /** How many of its games were already in an earlier result. Absent on servers before 018. */
   reusedCount?: number;
+  /** D49 (050): a game in it was reopened after it was saved. */
+  stale?: ResultStale;
 };
+
+/** The 050 stamp from a results RPC row, or undefined when the result is current (or the server is older). */
+export function resultStaleFrom(row: { staleAt?: unknown; staleByName?: unknown; staleGameId?: unknown; staleGameLabel?: unknown }): ResultStale | undefined {
+  if (typeof row.staleAt !== 'string' || !row.staleAt) return undefined;
+  return {
+    at: row.staleAt,
+    byName: typeof row.staleByName === 'string' && row.staleByName ? row.staleByName : 'an admin',
+    gameId: typeof row.staleGameId === 'string' ? row.staleGameId : null,
+    gameLabel: typeof row.staleGameLabel === 'string' ? row.staleGameLabel : null,
+  };
+}
+
+/** Results list chip and page banner (D49): "Out of date". */
+export const RESULT_STALE_CHIP = 'Out of date';
+
+/** The banner on a result page (D49, Sree's wording tightened): what moved, and that the numbers stay. */
+export function resultStaleLines(stale: ResultStale, formatWhen: (iso: string) => string): { title: string; body: string; next: string } {
+  const game = stale.gameLabel ? `Game ${stale.gameLabel}` : 'A game in this result';
+  return {
+    title: RESULT_STALE_CHIP,
+    body: `${game} was reopened ${formatWhen(stale.at)} by ${stale.byName}, after this result was saved. The places and totals here are from when it was saved and do not change.`,
+    next: 'Its games are back to Completed. Make a new result from them, or delete this one.',
+  };
+}
 
 /** Past results load this many at a time. */
 export const RESULTS_PAGE_SIZE = 5;
@@ -360,6 +396,41 @@ export function summaryFrom(result: GameResult): GameResultSummary {
     playerCount: result.standings.length,
     top: topThree(result.standings),
     ...(result.reusedGameIds ? { reusedCount: result.reusedGameIds.length } : {}),
+    ...(result.stale ? { stale: result.stale } : {}),
+  };
+}
+
+/** D49: the result a Closed game sits in, for the Reopen dialog. */
+export type ResultForGame = {
+  id: string;
+  declaredAt: string;
+  declaredByName: string;
+  gameCount: number;
+  /** Labels of the other games in it (S4, P1 …), for "its other games go back to Completed too". */
+  otherGameLabels: string[];
+};
+
+/**
+ * The Reopen dialog on a Closed game (D49 B). Names the result, says it keeps its numbers and goes Out of
+ * date, and that its other games go back to Completed.
+ */
+export function reopenClosedLines(result: ResultForGame | null, formatWhen: (iso: string) => string): { body: string; others: string | null } {
+  if (!result) {
+    return {
+      body: 'This game is Closed: it is part of a saved result. That result keeps the numbers it has now and will show Out of date.',
+      others: null,
+    };
+  }
+  const who = result.declaredByName ? `, by ${result.declaredByName}` : '';
+  const count = result.gameCount === 1 ? '1 game' : `${result.gameCount} games`;
+  const others = result.otherGameLabels.length === 0
+    ? null
+    : result.otherGameLabels.length === 1
+      ? `Its other game (${result.otherGameLabels[0]}) goes back to Completed too.`
+      : `Its other games (${result.otherGameLabels.join(', ')}) go back to Completed too.`;
+  return {
+    body: `This game is Closed: it is part of the result saved ${formatWhen(result.declaredAt)} (ID ${resultShortId(result.id)}, ${count}${who}). That result keeps the numbers it has now and will show Out of date. Make a new result when you are done.`,
+    others,
   };
 }
 

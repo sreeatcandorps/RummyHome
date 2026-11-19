@@ -29,8 +29,8 @@ test('ties are deterministic: same finish time falls back to date, then id', () 
   assert.deepEqual(sorted.map((g) => g.id), ['c', 'a', 'b']);
 });
 
-test('only a Completed game that is not Closed can be reopened', () => {
+test('any Completed game can be reopened; a Closed one too (D49, Nov 19)', () => {
   assert.equal(canReopenGame({ isComplete: true, closedAt: null }), true);
-  assert.equal(canReopenGame({ isComplete: true, closedAt: '2026-11-06T00:00:00Z' }), false);
+  assert.equal(canReopenGame({ isComplete: true, closedAt: '2026-11-06T00:00:00Z' }), true, 'Closed: allowed, the result goes Out of date');
   assert.equal(canReopenGame({ isComplete: false, closedAt: null }), false);
 });

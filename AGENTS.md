@@ -28,6 +28,11 @@ Before suggesting a design, writing a spec, or building any UI change:
 
 "Finish it", "go ahead" on a different question, or silence is **not** a yes. When in doubt, ask one question with a default and wait.
 
+## Design principles (Sree, Nov 19 2026 — D50)
+
+- **Keep it simple.** "We have to keep this app simple and not complicate it. A lot of times, people just play the game, do the results, and then they send it to each other, and it's done. No one cares about having a super accurate history … I don't want to over-engineer it."
+- In practice: when options differ in bookkeeping, pick the one with the fewest states and dialogs. A warning beats a refusal. A saved result is a snapshot, not a ledger; it never changes, and a stale one is simply marked (D49). Add history or audit detail only when a real case from use asks for it.
+
 ## Talking to Sree
 
 - Build Bot relays Sree word for word and adds nothing. The builder asks its own questions, few, each with the default it will use if there is no answer.

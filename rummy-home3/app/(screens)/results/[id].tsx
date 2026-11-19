@@ -32,6 +32,7 @@ import { GameMeta, resultPageUrl } from '@/utils/resultsDesign';
 import { GameResult, RESULT_EXPENSE_ID, resultFooter, ResultSheet } from '@/utils/results';
 import { RESULT_NOT_AVAILABLE } from '@/utils/resultsAccess';
 import { resultReusedNote, resultShareNotes, reusedGameIds, reusedWarningLines } from '@/utils/resultsSave';
+import { ResultStaleBanner } from '@/components/results/ResultStaleBanner';
 import { ResultWarnings } from '@/components/results/ResultWarnings';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { Player } from '@/types/player';
@@ -343,6 +344,14 @@ export default function DeclaredResult() {
         ) : null}
       />
       <ChangedAfterSharingLine note={history?.changedNote ?? null} onPress={scrollToHistory} />
+      {result ? (
+        <ResultStaleBanner
+          stale={result.stale}
+          canDelete={Boolean(result.canManage) && !busy && !undoToast}
+          onNewResult={() => router.push('/(screens)/results')}
+          onDelete={startDelete}
+        />
+      ) : null}
       <ResultWarnings warnings={warnings} />
       {error ? (
         <>

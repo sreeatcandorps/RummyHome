@@ -16,12 +16,21 @@ export const GAME_STATUS_ICON: Record<GameStatus, string> = {
   Closed: 'lock-outline',
 };
 
-/** A Completed game can be reopened until it is Closed (part of a declared result). */
+/**
+ * A Completed game can be reopened. D49 (Sree, Nov 19, option B): a Closed one too — its result stays
+ * as saved, marked Out of date, and the other games in that result go back to Completed. Before D49 a
+ * Closed game was refused here.
+ */
 export function canReopenGame(game: { isComplete?: boolean; closedAt?: string | null }): boolean {
-  return Boolean(game.isComplete) && !game.closedAt;
+  return Boolean(game.isComplete);
 }
 
-export const REOPEN_BLOCKED_MESSAGE = 'This game is Closed: it is part of declared results and cannot be reopened.';
+/** D49: the reopen is the one that un-closes a game and dates its result. */
+export function reopenUncloses(game: { closedAt?: string | null }): boolean {
+  return Boolean(game.closedAt);
+}
+
+export const REOPEN_BLOCKED_MESSAGE = 'Only a Completed game can be reopened.';
 
 /**
  * D46 C (Sree, Nov 18): reopening a pool that already has awards clears them — the awards came

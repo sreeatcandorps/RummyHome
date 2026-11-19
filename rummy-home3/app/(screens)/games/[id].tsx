@@ -44,7 +44,10 @@ import { canChangeSeating, SEATING_MENU_ITEM } from '@/utils/seating';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
 import { playersChipLabel, POOL_CARD_MAX_ROWS } from '@/utils/scorecardLayout';
 import { gameSettingsMenuTitle, rulesFromGame } from '@/utils/gameSettings';
-import { canReopenGame, reopenClearsAwards, REOPEN_CLEARS_AWARDS_NOTE } from '@/utils/gameStatus';
+import { canReopenGame, reopenClearsAwards, reopenUncloses, REOPEN_CLEARS_AWARDS_NOTE } from '@/utils/gameStatus';
+import { reopenClosedLines, type ResultForGame } from '@/utils/results';
+import { resultsService } from '@/services/results';
+import { formatWhen } from '@/utils/formatWhen';
 import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
 import { PoolAwardsCard } from '@/components/game/PoolAwardsCard';
 import { CompleteGameDialog } from '@/components/game/CompleteGameDialog';
@@ -75,6 +78,8 @@ export default function GameScreen() {
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
   const [showReopenConfirm, setShowReopenConfirm] = useState(false);
   const [reopening, setReopening] = useState(false);
+  // D49: the result a Closed game sits in, named in the Reopen dialog. null = none known / still loading.
+  const [closedResult, setClosedResult] = useState<ResultForGame | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [canScore, setCanScore] = useState(true);
   const [canManage, setCanManage] = useState(false);
@@ -212,6 +217,15 @@ export default function GameScreen() {
       if (nextGame) setGame(nextGame);
     } catch (error) {
       setActionError(formatSupabaseError(error));
+    }
+  };
+
+  const openReopen = () => {
+    if (!game) return;
+    setClosedResult(null);
+    setShowReopenConfirm(true);
+    if (reopenUncloses(game)) {
+      resultsService.forGame(game.id).then((result) => setClosedResult(result)).catch(() => setClosedResult(null));
     }
   };
 
@@ -630,7 +644,7 @@ export default function GameScreen() {
                   <Menu.Item leadingIcon="pencil-outline" title="Edit round" disabled={maxRounds === 0} onPress={() => { setMenuOpen(false); setEditRoundOpen(true); }} />
                 ) : null}
                 {canScoreNow && canReopenGame(game) ? (
-                  <Menu.Item leadingIcon="lock-open-variant-outline" title="Reopen game" onPress={() => { setMenuOpen(false); setShowReopenConfirm(true); }} />
+                  <Menu.Item leadingIcon="lock-open-variant-outline" title="Reopen game" testID="game-menu-reopen" onPress={() => { setMenuOpen(false); openReopen(); }} />
                 ) : null}
                 <Menu.Item leadingIcon="history" onPress={openLog} title="Log" testID="game-menu-log" />
                 {deleted ? null : <Menu.Item leadingIcon="eye-off-outline" onPress={hideGame} title="Hide game" />}
@@ -774,20 +788,43 @@ export default function GameScreen() {
           onDismiss={() => reopening || setShowReopenConfirm(false)}
           style={[styles.dialog, { backgroundColor: colors.surface }]}
         >
-          <Dialog.Title>Reopen this game?</Dialog.Title>
+          <Dialog.Title>{reopenUncloses(game) ? 'Reopen this Closed game?' : 'Reopen this game?'}</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
               It goes back to Active so rounds can be added or edited. Scores stay as they are. Use this when Complete game was pressed too early.
             </Text>
+            {reopenUncloses(game) ? (
+              <>
+                <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: spacing.sm }} testID="reopen-closed-note">
+                  {reopenClosedLines(closedResult, formatWhen).body}
+                </Text>
+                {reopenClosedLines(closedResult, formatWhen).others ? (
+                  <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: spacing.sm }} testID="reopen-closed-others">
+                    {reopenClosedLines(closedResult, formatWhen).others}
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
             {reopenClearsAwards(game) ? (
               <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant, marginTop: spacing.sm }} testID="reopen-clears-awards">
                 {REOPEN_CLEARS_AWARDS_NOTE}
               </Text>
             ) : null}
           </Dialog.Content>
-          <Dialog.Actions>
+          <Dialog.Actions style={reopenUncloses(game) ? styles.reopenActions : undefined}>
             <Button onPress={() => setShowReopenConfirm(false)} disabled={reopening}>Cancel</Button>
-            <Button mode="contained" onPress={confirmReopen} loading={reopening} disabled={reopening}>Reopen</Button>
+            {reopenUncloses(game) && closedResult ? (
+              <Button
+                onPress={() => { setShowReopenConfirm(false); router.push(`/(screens)/results/${closedResult.id}`); }}
+                disabled={reopening}
+                testID="reopen-open-result"
+              >
+                Open the result
+              </Button>
+            ) : null}
+            <Button mode="contained" onPress={confirmReopen} loading={reopening} disabled={reopening} testID="reopen-confirm">
+              {reopenUncloses(game) ? 'Reopen anyway' : 'Reopen'}
+            </Button>
           </Dialog.Actions>
         </Dialog>
         <Dialog
@@ -956,6 +993,10 @@ const styles = StyleSheet.create({
   roundPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   warning: { padding: spacing.md, borderRadius: radius.md },
   roundChip: { minWidth: 96 },
+  reopenActions: {
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+  },
   dialog: {
     borderRadius: radius.xl,
     maxWidth: 480,
