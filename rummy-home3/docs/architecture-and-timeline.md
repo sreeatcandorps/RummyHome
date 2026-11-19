@@ -566,3 +566,10 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   tablet turned sideways gets the table-alone pool layout and upright keeps the card + Standings. His question on
   reopening a pool that is in a result: it cannot happen — such a pool is Closed; results keep their stored places.
   049 is **not applied** to live (needs Sree's yes). No new dependency, no hosting change.
+
+### 2026-11-18 — Migration 050: Closed games locked on the server (written, not applied)
+- Sree: "Please proceed with everything you recommend." The follow-up suggested in the D46 answer is built: three
+  triggers (`games`, `rounds`, `scores`) refuse any change to a game while it is in a saved result, where before only
+  the app did. Rollback, pgTAP 41, replay hook; the concurrency script's scenario 10 now un-closes game A first (it
+  had been undoing rounds on a Closed game — exactly the hole). Full local DB suite green (50 migrations, rollbacks
+  214/214). Not applied to live. No new dependency, no hosting change.

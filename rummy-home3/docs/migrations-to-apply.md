@@ -607,6 +607,16 @@ What 049 does (rollback: `supabase/rollback/rollback_049_reopen_pool_clears_awar
 - Points games and pools without awards: nothing happens. Adds no column, changes no row by itself.
 - The app sends the same clear in its reopen update, so on a database without 049 the awards still clear when the current APK reopens the pool; 049 makes it hold for any client.
 
+Closed-game guard (from Sree's D46 question, Nov 18), **written, not applied — never run against live without Sree's OK**:
+
+27. `supabase/migrations/050_closed_game_guard.sql`
+
+What 050 does (rollback: `supabase/rollback/rollback_050_closed_game_guard.sql`; pgTAP: `supabase/tests/41_closed_game_guard_050.sql`, 19 checks; replay hook `HAS_050`):
+
+- Until now only the app kept a Closed game (in a saved result) unchanged; on the server a game admin — or any direct API call — could still save, undo or edit a round or set the game back to Active, leaving the result on stale totals. 050 closes that: three `before` triggers refuse, with "This game is Closed: it is part of a saved result. Delete the result first." (`PT423`), any status / completed_at change while `closed_at` stays set, any new or changed round (`undone_at`, `round_number`), and any new or changed score (`value`, `score_type`).
+- Closing and unclosing themselves are untouched; identity moves on rounds / scores (linking a seat to an account) still work; deletes are not guarded (the app never deletes a round; a hard delete of a game cascades).
+- Adds no column, changes no row. The local concurrency script now takes game A out of its results before scenario 10, as Delete result would.
+
 Read-only checks that go with 021 (nothing is changed):
 
 ```sql

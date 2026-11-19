@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–049) applied, check the function state after each, then re-apply the forward
+# has every migration (001–050) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,17 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 050 (Closed game guard: three triggers + two functions; rolled back first)
+HAS_050=f
+if [ -f "$RB/rollback_050_closed_game_guard.sql" ]; then
+  HAS_050=t
+  if apply "$RB/rollback_050_closed_game_guard.sql"; then tap ok "rollback_050 applies"; else tap fail "rollback_050 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists games_closed_guard)" = f ] && [ "$(fn_exists rounds_closed_guard)" = f ] \
+    && [ "$(q "select count(*) from pg_trigger where tgname in ('games_closed_guard','rounds_closed_guard','scores_closed_guard')")" = 0 ] \
+    && tap ok "after rollback_050 the Closed-game guards are gone" \
+    || tap fail "after rollback_050 the Closed-game guards should be gone"
+fi
 
 # 049 (D46 C: reopening a pool clears its awards — trigger + function; rolled back first)
 HAS_049=f
@@ -489,6 +500,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_047" = t ] && FORWARD="$FORWARD 047_reentry_and_late_entry_score"
 [ "$HAS_048" = t ] && FORWARD="$FORWARD 048_event_log_games_exact_fix"
 [ "$HAS_049" = t ] && FORWARD="$FORWARD 049_reopen_pool_clears_awards"
+[ "$HAS_050" = t ] && FORWARD="$FORWARD 050_closed_game_guard"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -661,6 +673,10 @@ if [ "$HAS_049" = t ]; then
   [ "$(fn_exists games_pool_reopen_clears_awards)" = t ] \
     && [ "$(q "select exists(select 1 from pg_trigger where tgname='games_pool_reopen_clears_awards')")" = t ] \
     && tap ok "049 restored (reopen-clears-awards trigger)" || tap fail "049 restored"
+fi
+if [ "$HAS_050" = t ]; then
+  [ "$(q "select count(*) from pg_trigger where tgname in ('games_closed_guard','rounds_closed_guard','scores_closed_guard')")" = 3 ] \
+    && tap ok "050 restored (three Closed-game guards)" || tap fail "050 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op
