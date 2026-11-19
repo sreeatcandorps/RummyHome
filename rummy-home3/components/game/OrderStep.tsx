@@ -7,9 +7,8 @@ import { BottomBar } from '@/components/ui/BottomBar';
 import { SectionCard } from '@/components/ui/SectionCard';
 import { OrderOfPlayers, SeatingPlayer } from '@/components/game/OrderOfPlayers';
 import { spacing, useAppTheme } from '@/constants/theme';
-import { clearOrder, displayOrder, nextDealerFor, OrderDraft, orderComplete, ORDER_HOW_TO, SEATING_CLEAR, SEATING_TITLE } from '@/utils/seating';
-
-export const ORDER_STEP_SUPPORT = 'Highest card first, lowest last. The last tap is seat 1 and deals round 1; the scorecard columns follow this order.';
+import { clearOrder, displayOrder, nextDealerFor, OrderDraft, orderComplete, ORDER_WRONG_TAP, orderSteps, SEATING_CLEAR, SEATING_TITLE } from '@/utils/seating';
+import { OrderHowTo } from '@/components/game/OrderHowTo';
 
 /**
  * New game, step 3 (PR 24): Order of players. Nobody is numbered to begin with; tap the players in
@@ -33,8 +32,8 @@ export function OrderStep({ players, draft, onChange, onBack, onNext, nextIsStar
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Screen contentStyle={styles.content} safeBottom={false}>
-        <SectionCard title={SEATING_TITLE} icon="seat-outline" supportingText={ORDER_STEP_SUPPORT}>
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{ORDER_HOW_TO}</Text>
+        <SectionCard title={SEATING_TITLE} icon="seat-outline">
+          <OrderHowTo steps={orderSteps(players.length)} note={ORDER_WRONG_TAP} testID="order-how-to" />
           <OrderOfPlayers players={players} draft={draft} onChange={onChange} dealsNext={dealsNext} disabled={creating} />
         </SectionCard>
         {error ? <Text variant="bodyMedium" style={{ color: colors.error, paddingHorizontal: spacing.md }} testID="new-game-problem">{error}</Text> : null}

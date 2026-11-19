@@ -181,10 +181,12 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'Order of players',
         bullets: [
-          'Everyone draws a card. Tap players from the highest card to the lowest: the first tap takes the top row with the highest seat number, each next tap the row under it, and the last tap is **seat 1**. Tap the latest one again to take the number back; tap any other numbered player to highlight them.',
-          'Numbered rows show small ▲ ▼ arrows that move a seat one place at once; the lowest seat has no ▼, there is nowhere lower to go. **Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
-          'Seat numbers run from 1 (lowest card) up. Seat 1 deals round 1 and the deal goes round by seat; the scorecard columns follow this order, seat 1 first.',
-          'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens prefilled, so one move is one tap; **Done** saves it, the Log records it and played rounds keep their dealer.',
+          'Draw a card each for the seating position.',
+          'Tap players from the highest card to the lowest, in that order. The first tap goes on top with the highest seat number; the last tap is **seat 1**.',
+          'Seat 1 deals round 1. The highest seat gets the first open card. Every round the deal moves up one seat, and the open card goes to the seat before the dealer. The scorecard columns follow the seats, seat 1 first.',
+          'Wrong tap? Tap the latest player again to take the number back; tap any other numbered player to highlight them.',
+          'Numbered rows show small ▲ ▼ arrows that nudge a player one seat; the lowest seat has no ▼, there is nowhere lower to go. **Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
+          'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens prefilled, so one move is one tap; **Done** saves it, the Log records it, played rounds keep their dealer and the next deal follows the new order.',
         ],
       },
       {
@@ -197,7 +199,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     ],
     tricky: [
       { id: 'not-in-list', q: 'The person I want is not in the list.', a: 'They are not in your My players yet. **Find in database** if they have an account (name or #ID), **Add by initials** if they do not. Both seat them in this game at once.' },
-      { id: 'who-deals', q: 'Who deals first?', a: 'Seat 1 in the **Order of players** you set before Start (the first player you tapped). The deal then goes round by seat; played rounds keep their dealer.' },
+      { id: 'who-deals', q: 'Who deals first?', a: 'Seat 1 in the **Order of players** you set before Start: the lowest card, the last player you tapped. Every round the deal moves up one seat and the open card goes to the seat before the dealer; played rounds keep their dealer.' },
       { id: 'twenty', q: 'Why can I not add a 21st player?', a: 'A game holds up to 20 players. Start a second game for the rest.' },
     ],
     alsoSee: ['game-type', 'add-players', 'my-players', 'scorecard'],
