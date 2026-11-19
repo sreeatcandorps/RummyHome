@@ -6,14 +6,19 @@ app version 1.1.0. Facts about what the app stores come from `public/privacy/ind
 Play will read. Who does what: **Sree** pastes and submits in the Console (only the account owner can); the agent
 keeps this file and the images current. Nothing here is a decision Sree has not made except where marked **Sree decides**.
 
-Images are in `assets/` (made by `make-assets.py` from the CI device gallery; re-run it after a UI change):
+Sree's review of the first set (Nov 19) is folded in: whole phone inside each card (no cut edges), icon
+full-bleed, "Your games", pool with nine players, the awards split page, "Consolidate points across games",
+a saved result over S1 + S2, the seating caption for the D56 countdown, ten players sideways (not twenty).
+The frames for the new pictures come from `smoke/22` (PR #102's seed) and `smoke/19` (the countdown).
+
+Images are in `assets/` (made by `make-assets.py <frames-dir>` from the CI device gallery; re-run it after a UI change):
 
 | File | Size | Where in the Console |
 | --- | --- | --- |
 | `assets/icon-512.png` | 512 × 512 PNG | Store listing → App icon |
 | `assets/feature-graphic-1024x500.png` | 1024 × 500 PNG | Store listing → Feature graphic |
-| `assets/screenshot-1-01.png` … `screenshot-7-19d.png` | 1080 × 1920 (9:16) | Store listing → Phone screenshots (Play wants 2–8 at 16:9 or 9:16; raw Pixel 6 frames are 9:20 and are refused, so each sits on a captioned 9:16 card) |
-| `assets/screenshot-8-landscape-20p.png` | 1920 × 1080 (16:9) | Phone screenshots, last (landscape scorecard) |
+| `assets/screenshot-1-01.png` … `screenshot-7-19d.png` | 1080 × 1920 (9:16) | Store listing → Phone screenshots, in this order: Your games · Every round on one card · Points and pool games (9-player pool) · Tap the points · Split the pool your way · Consolidate points across games (saved S1 + S2) · Seat the table (Play wants 2–8 at 16:9 or 9:16; raw Pixel 6 frames are 9:20 and are refused, so each sits on a captioned 9:16 card) |
+| `assets/screenshot-8-landscape-10p.png` | 1920 × 1080 (16:9) | Phone screenshots, last (ten players sideways) |
 
 No 7" / 10" tablet screenshots yet: optional for a phone-first listing; add from the tablet smoke job later.
 
@@ -50,7 +55,7 @@ RESULTS AND SHARING
 
 FOR THE TABLE
 • Admins run the game; everyone else sees it read-only
-• Seat the table and the deal goes round by seat
+• Seat the table: tap players from the highest card to the lowest, the last tap is seat 1 and deals
 • The log records every round, undo and change
 
 Free, no ads. EZ Score keeps points only: no money changes hands in the app.
@@ -60,7 +65,7 @@ Free, no ads. EZ Score keeps points only: no money changes hands in the app.
 bring the gaming content rules). **Tags** (optional, up to 5): Score keeper, Card games, Rummy, Scoreboard.
 
 **Contact details** (shown publicly on the listing):
-- Email: `support@mindweavetech.com` (the address the privacy policy already names) — **Sree decides** if a Candor PS address should appear instead
+- Email: `support@mindweavetech.com` (Sree, Nov 19: confirmed)
 - Phone: leave blank (optional)
 - Website: `https://ezscore.mindweavetech.com`
 
@@ -143,7 +148,7 @@ Answers come straight from the privacy policy. **Does your app collect or share 
 See **Store listing** above (category Tools; contact email, website; no phone).
 
 ### Also pending in the Console
-- **Trader status declaration** (EU consumer law): **Sree decides**. Guidance: the app is free, has no purchases and earns nothing, so "I am not a trader" is defensible; choosing "trader" requires publishing a business address and phone to EU users. Recommendation: **not a trader**, revisit if the app ever charges.
+- **Trader status declaration** (EU consumer law): **still open — Sree decides** (skipped on Nov 19). Guidance: the app is free, has no purchases and earns nothing, so "I am not a trader" is defensible; choosing "trader" requires publishing a business address and phone to EU users. Recommendation: **not a trader**, revisit if the app ever charges.
 - **Advertising ID** declaration (Android 13+ target): **No**, the app does not use the advertising ID (no ad or analytics SDK).
 
 ---
@@ -170,7 +175,7 @@ First release on Google Play.
 • Order of players, game log, undo
 ```
 
-**Countries**: all (free app). **Sree decides** if it should be US + India only to start.
+**Countries**: all (Sree, Nov 19: "All countries").
 
 ---
 
