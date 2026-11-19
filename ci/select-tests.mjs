@@ -174,7 +174,7 @@ export function select({ event = 'pull_request', tier, files = [], message = '' 
   return plan;
 }
 
-/** The job matrix GitHub expects. "full" with a FLOW_FILTER still runs the smoke set whole (it is the gate). */
+/** The job matrix GitHub expects. "full" with a FLOW_FILTER still runs the smoke set whole first (run-suite.sh): the full flows build on its state. */
 export function toMatrix(plan) {
   return { include: plan.jobs.map((j) => ({ ...j, monkeyEvents: j.monkeyEvents ?? 0 })) };
 }

@@ -56,9 +56,12 @@ case "$SUITE" in
     adb install -r "$APK"
     settle_device
     case "$SUITE" in
-      # With a FLOW_FILTER (change-based selection) only the named flows of the one set run.
+      # With a FLOW_FILTER (change-based selection) only the named flows of the one set run. The full
+      # flows build on what the smoke set leaves behind (a saved result for full/41, game E at round 1
+      # for full/70, …), so a filtered full job still runs the whole smoke set first (Nov 19: without it
+      # 41 found "No results yet"), exactly as the nightly full job does.
       smoke) run_set smoke; [ -n "${FLOW_FILTER:-}" ] || run_set known-bugs --quarantine ;;
-      full)  [ -n "${FLOW_FILTER:-}" ] || run_set smoke; run_set full; [ -n "${FLOW_FILTER:-}" ] || run_set known-bugs --quarantine ;;
+      full)  FLOW_FILTER= run_set smoke; run_set full; [ -n "${FLOW_FILTER:-}" ] || run_set known-bugs --quarantine ;;
       chaos) VIDEO="${VIDEO:-all}" run_set chaos ;;
       roles) run_set roles ;;
       *) echo "unknown suite: $SUITE"; echo 1 > "$OUT/$SUITE.status" ;;

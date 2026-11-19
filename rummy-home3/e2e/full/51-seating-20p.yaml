@@ -415,9 +415,24 @@ tags: [nightly]
 - assertVisible:
     id: "score-header-initials-1"
     text: "ST"
-- assertVisible:
-    id: "score-header-initials-20"
-    text: "TU"
+# Column 20 is off the right edge in portrait (nine columns fit): swipe the table left, then check it.
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
+- extendedWaitUntil:
+    visible:
+      id: "score-header-initials-20"
+      text: "TU"
+    timeout: 15000
 - takeScreenshot: 51f-scorecard-20p-restored
 # Pool: BQ1 as its creator c3. Out and re-entered seats show as such, and an out player moves like anyone else.
 - runFlow:

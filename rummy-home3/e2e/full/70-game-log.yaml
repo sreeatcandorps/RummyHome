@@ -1,8 +1,8 @@
 appId: com.mindweavetech.rummyhome
 tags: [nightly]
 # Logs PR (036): add a round, edit it, undo it, then the Log shows the three rows newest first
-# (undone · edited · added), the edited row expands to a was→now table, and Important hides
-# nothing here (all three are important). Fixture: game E (GAMEE1), 4 players; sree is creator.
+# (undone · edited · added), the edited row expands to a was→now table, and Important keeps the
+# undone and edited rows (added is routine). Fixture: game E (GAMEE1), 4 players; sree is creator.
 # Runs after smoke/13, which leaves game E at round 1 saved (Round 2 next).
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
@@ -68,6 +68,10 @@ tags: [nightly]
     visible:
       id: "game-log-first-row"
     timeout: 15000
+# The All / Important choice is remembered across games (one key); full/51 leaves it on Important, and
+# "Round added" is routine, so choose All here before counting rows.
+- tapOn:
+    id: "game-log-filter-all"
 - assertVisible:
     text: ".*Round 2 undone.*"
 - assertVisible:
