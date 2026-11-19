@@ -29,7 +29,7 @@ HAS_050=f
 if [ -f "$RB/rollback_050_reopen_closed_game.sql" ]; then
   HAS_050=t
   if apply "$RB/rollback_050_reopen_closed_game.sql"; then tap ok "rollback_050 applies"; else tap fail "rollback_050 applies: $(head -c 300 "$OUTERR")"; fi
-  [ "$(fn_exists games_reopen_closed)" = f ] && [ "$(fn_exists rounds_closed_guard)" = f ] && [ "$(fn_exists result_stale_json)" = f ] \
+  [ "$(fn_exists games_reopen_closed)" = f ] && [ "$(fn_exists rounds_closed_guard)" = f ] && [ "$(fn_exists result_stale_json)" = f ] && [ "$(fn_exists result_for_game)" = f ] \
     && [ "$(fn_exists get_game_result_v028)" = f ] && [ "$(fn_exists get_game_result)" = t ] \
     && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='game_results' and column_name='stale_at')")" = f ] \
     && [ "$(fn_has event_log_games 'Out of date')" = f ] \

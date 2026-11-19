@@ -12,6 +12,7 @@ drop function if exists public.closed_game_message();
 drop function if exists public.get_game_result(uuid);
 drop function if exists public.list_game_results_page(integer, integer);
 drop function if exists public.result_stale_json(uuid);
+drop function if exists public.result_for_game(uuid);
 do $$
 begin
   if to_regprocedure('public.get_game_result_v028(uuid)') is not null then

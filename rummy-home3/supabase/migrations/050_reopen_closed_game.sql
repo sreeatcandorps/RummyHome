@@ -12,7 +12,7 @@
 --   2. every other game in those results goes Closed → Completed (closed_at cleared); this one goes Active;
 --   3. the Log of each game gets an 'unclosed' row that says the result is Out of date (event_log_games,
 --      048 body + that wording; the rest of the body is byte-for-byte 048);
---   4. the results RPCs return the stamp (`staleAt`, `staleBy`, `staleByName`, `staleGameId`,
+--   4. the results RPCs return the stamp (and result_for_game tells the Reopen dialog which result it is) (`staleAt`, `staleBy`, `staleByName`, `staleGameId`,
 --      `staleGameLabel`) — the 028 / 043 bodies are kept under `_v028` / `_v043` names and wrapped, so
 --      nothing else in them changes.
 -- The result's stored places never change (008 snapshot); the app shows a chip on the list and a banner on
@@ -279,5 +279,36 @@ as $$
 $$;
 revoke all on function public.list_game_results_page(integer, integer) from public, anon;
 grant execute on function public.list_game_results_page(integer, integer) to authenticated;
+
+-- ---------- E. the Reopen dialog asks which result a Closed game sits in ----------
+create or replace function public.result_for_game(p_game_id uuid)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select case when auth.uid() is null or not public.can_read_game(p_game_id) then null else (
+    select jsonb_build_object(
+      'id', r.id,
+      'declaredAt', r.declared_at,
+      'declaredByName', coalesce(nullif(trim(p.display_name), ''), ''),
+      'gameCount', (select count(*) from public.game_result_games x where x.result_id = r.id and x.removed_at is null),
+      'otherGameLabels', coalesce((
+        select jsonb_agg(public.game_label_text(g.game_label, g.game_number) order by g.game_number)
+        from public.game_result_games x join public.games g on g.id = x.game_id
+        where x.result_id = r.id and x.removed_at is null and x.game_id <> p_game_id
+      ), '[]'::jsonb)
+    )
+    from public.game_result_games grg
+    join public.game_results r on r.id = grg.result_id
+    left join public.profiles p on p.id = r.declared_by
+    where grg.game_id = p_game_id and grg.removed_at is null and r.deleted_at is null
+    order by r.declared_at desc
+    limit 1
+  ) end;
+$$;
+revoke all on function public.result_for_game(uuid) from public, anon;
+grant execute on function public.result_for_game(uuid) to authenticated;
 
 notify pgrst, 'reload schema';

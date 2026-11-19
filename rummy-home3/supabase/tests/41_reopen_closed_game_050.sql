@@ -3,7 +3,7 @@
 -- While a game is still Closed its rounds and scores do not change (reopen first). Games R1 and R2: sree
 -- (admin, seated) with harish and priya, Points; one result over both.
 begin;
-select plan(28);
+select plan(30);
 
 \set SREE '''00000000-0000-4000-8000-000000000001'''
 \set HARISH '''00000000-0000-4000-8000-000000000002'''
@@ -56,6 +56,8 @@ select throws_ok($$ select public.save_round('10000000-0000-4000-8000-0000000000
     {"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"count","value":-5}]'::jsonb, false) $$,
   'PT423', 'This game is Closed: it is part of a saved result. Reopen it first.', '050 save_round on a Closed game is refused (reopen is the door)');
 select is((select public.get_game_result((select id from t_rr))->>'staleAt'), null, 'the result is not Out of date before the reopen');
+select is((select public.result_for_game('10000000-0000-4000-8000-0000000000f5')->>'gameCount'), '2', 'result_for_game names the result (2 games)');
+select is((select public.result_for_game('10000000-0000-4000-8000-0000000000f5')->'otherGameLabels'->>0), (select public.game_label_text(game_label, game_number) from public.games where id = :R2), 'result_for_game lists the other game by label');
 
 -- ---------- the door: reopen R1 ----------
 select lives_ok($$ update public.games set status = 'active', completed_at = null where id = '10000000-0000-4000-8000-0000000000f5' $$, '050 a Closed game can be reopened');
