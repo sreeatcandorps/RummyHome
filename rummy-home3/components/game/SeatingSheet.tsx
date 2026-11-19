@@ -54,7 +54,7 @@ export function SeatingSheet({ visible, players, pool, dealerIds, roundCount, on
   }, [visible, baseKey]);
 
   const outIds = useMemo(() => new Set(players.filter((player) => player.out).map((player) => player.id)), [players]);
-  const dealsNext = draft.numbered.length ? nextDealerFor(displayOrder(draft), dealerIds, roundCount, outIds) : undefined;
+  const dealsNext = orderComplete(draft) ? nextDealerFor(displayOrder(draft), dealerIds, roundCount, outIds) : undefined;
   const complete = orderComplete(draft);
   const changed = orderChanged(draft);
   const note = midGameSeatingNote(roundCount);

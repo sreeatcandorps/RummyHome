@@ -1,13 +1,17 @@
 appId: com.mindweavetech.rummyhome
 tags: [nightly]
-# PR 24 Order of players (was PR 21 Seating order, X21-8): the 20-player pass. Game F (20 players × 30
-# rounds, Sree creator) → ⋮ → Order of players: twenty rows, prefilled (everyone numbered, arrows on
-# every row), the "30 rounds played" note, the green "deals next" seat (round 30's dealer was seat 10,
-# so seat 11 deals next); Clear, then tap Test Uniform first (seat 1, moves to the top) and the rest in
-# order → Done → column 1 reads TU and the Log has an important Seating row listing all twenty seats.
-# The flow then puts TU back at seat 20 so game F reads as before for full/20, 21, 50.
+# PR 24 Order of players (was PR 21 Seating order, X21-8): the 20-player pass, under the D56 countdown
+# (Sree, Nov 19: tap from the highest card to the lowest; the last tap is seat 1 and deals; the list
+# reads seat 20 at the top down to seat 1). Game F (20 players × 30 rounds, Sree creator) → ⋮ → Order
+# of players: twenty rows, prefilled (everyone numbered, arrows on every row; row 1 is seat 20 Test
+# Uniform, row 20 is seat 1 Sree), the "30 rounds played" note, the green "deals next" seat (round 30's
+# dealer was seat 10, so seat 11 Test Juliet deals next, on row 10); Clear, then tap Test Romeo first
+# (seat 20, "highest card", straight to the top), the rest downwards, Sree second to last (seat 2) and
+# Test Uniform last (seat 1) → Done → column 1 reads TU and the Log has an important Seating row listing
+# all twenty seats. The flow then puts the order back (TU seat 20, Sree seat 1) so game F reads as
+# before for full/20, 21, 50.
 # Second half, as c3 on the pool BQ1 (6 seats, Player Five out in round 3, Player Six re-entered): the
-# subline counts the outs, an out player is movable like anyone else (▲ on seat 5), Cancel saves nothing.
+# subline counts the outs, an out player is movable like anyone else (▼ on seat 5), Cancel saves nothing.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - scrollUntilVisible:
@@ -29,18 +33,25 @@ tags: [nightly]
     timeout: 15000
 - assertVisible: "Mid-game · admins only · logged"
 - assertVisible: "30 rounds played.*"
+# Row 1 is the highest seat (20, Test Uniform); arrows on every numbered row.
 - assertVisible:
     id: "seat-name-1"
-    text: "Sree Test"
+    text: "Test Uniform"
+- assertVisible:
+    id: "seat-number-1"
+    text: "20"
 - assertVisible:
     id: "seat-up-1"
 - takeScreenshot: 51-order-20p-top
-# Seat 11 (Test Juliet) deals next: round 30's dealer sat at 10.
+# Seat 11 (Test Juliet) deals next: round 30's dealer sat at 10. Seat 11 is row 10 (21 - 11).
 - scrollUntilVisible:
     element:
-      id: "seat-row-11"
+      id: "seat-row-10"
     direction: DOWN
     timeout: 15000
+- assertVisible:
+    id: "seat-name-10"
+    text: "Test Juliet"
 - assertVisible:
     id: "seat-deals-next"
 - takeScreenshot: 51b-order-20p-deals-next
@@ -51,24 +62,30 @@ tags: [nightly]
     timeout: 15000
 - assertVisible:
     id: "seat-name-20"
-    text: "Test Uniform"
+    text: "Sree Test"
+- assertVisible:
+    id: "seat-number-20"
+    text: "1"
 # The counter sits under the last row, so with twenty players it is on screen only here.
 - assertVisible:
     id: "order-counter"
     text: "Everyone numbered"
-# Clear, then number Test Uniform first: seat 1, straight to the top; the other nineteen follow in order.
+# Clear: the rows fall back to today's seat order (Sree, Test Alpha … Test Uniform). Tap Test Romeo
+# (row 19) first: seat 20, "highest card", straight to the top; nobody deals yet.
 - tapOn:
     id: "seating-clear"
 - assertVisible:
     id: "order-counter"
     text: "0 of 20 numbered"
+- assertNotVisible:
+    id: "seat-deals-next"
 - scrollUntilVisible:
     element:
-      id: "seat-row-20"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-20"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-1"
@@ -76,130 +93,139 @@ tags: [nightly]
     timeout: 15000
 - assertVisible:
     id: "seat-name-1"
-    text: "Test Uniform"
+    text: "Test Romeo"
+- assertVisible:
+    id: "seat-number-1"
+    text: "20"
+- assertVisible:
+    id: "seat-highest-card"
 - assertVisible:
     id: "seat-name-2"
     text: "Sree Test"
-- takeScreenshot: 51c-order-20p-uniform-first
+- assertNotVisible:
+    id: "seat-up-2"
+- takeScreenshot: 51c-order-20p-romeo-highest
+# Each tap on row 19 numbers the next unnumbered player downwards (Test Quebec 19 … Test Alpha 3, then
+# Sree 2); Test Uniform waits on row 20 and takes seat 1 last.
 - scrollUntilVisible:
     element:
-      id: "seat-row-2"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-2"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-3"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-3"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-4"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-4"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-5"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-5"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-6"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-6"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-7"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-7"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-8"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-8"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-9"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-9"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-10"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-10"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-11"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-11"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-12"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-12"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-13"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-13"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-14"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-14"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-15"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-15"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-16"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-16"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-17"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-17"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
-      id: "seat-row-18"
+      id: "seat-row-19"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-18"
+    id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
@@ -214,6 +240,12 @@ tags: [nightly]
     timeout: 15000
 - tapOn:
     id: "seat-row-20"
+- assertVisible:
+    id: "seat-name-20"
+    text: "Test Uniform"
+- assertVisible:
+    id: "seat-number-20"
+    text: "1"
 - assertVisible:
     id: "order-counter"
     text: "Everyone numbered"
@@ -249,8 +281,9 @@ tags: [nightly]
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000
-# Put TU back at seat 20 so game F is unchanged for the other nightly flows: Clear, then number rows
-# 2..20 in turn (TU slides down one row per tap) and TU last.
+# Put the order back (TU seat 20 … Sree seat 1) so game F is unchanged for the other nightly flows:
+# Clear (rows: TU, ST, TA … TR), tap TU (row 1, seat 20), then row 20 nineteen times (TR 19 … TA 2,
+# Sree 1).
 - tapOn: "Scorecard menu"
 - tapOn:
     id: "game-menu-seating"
@@ -262,130 +295,130 @@ tags: [nightly]
     id: "seating-clear"
 - scrollUntilVisible:
     element:
-      id: "seat-row-2"
+      id: "seat-row-1"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-2"
+    id: "seat-row-1"
 - scrollUntilVisible:
     element:
-      id: "seat-row-3"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-3"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-4"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-4"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-5"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-5"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-6"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-6"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-7"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-7"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-8"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-8"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-9"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-9"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-10"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-10"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-11"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-11"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-12"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-12"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-13"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-13"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-14"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-14"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-15"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-15"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-16"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-16"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-17"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-17"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-18"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-18"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
-      id: "seat-row-19"
+      id: "seat-row-20"
     direction: DOWN
     timeout: 15000
 - tapOn:
-    id: "seat-row-19"
+    id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
@@ -402,7 +435,10 @@ tags: [nightly]
     id: "seat-row-20"
 - assertVisible:
     id: "seat-name-20"
-    text: "Test Uniform"
+    text: "Sree Test"
+- assertVisible:
+    id: "seat-number-20"
+    text: "1"
 - assertVisible:
     id: "order-counter"
     text: "Everyone numbered"
@@ -452,17 +488,22 @@ tags: [nightly]
     timeout: 15000
 - assertVisible: "Pool · 6 seats · 1 out"
 - assertVisible: "3 rounds played.*"
+# Seat 5 (Player Five, out) is row 2 under the countdown display (seat 6 on top).
 - assertVisible:
-    id: "seat-name-5"
+    id: "seat-name-2"
     text: "Player Five"
+- assertVisible:
+    id: "seat-number-2"
+    text: "5"
 - takeScreenshot: 51g-order-pool-outs
+# ▼ gives Player Five seat 4; Player Four takes seat 5 and the row above.
 - tapOn:
-    id: "seat-up-5"
+    id: "seat-down-2"
 - assertVisible:
-    id: "seat-name-4"
+    id: "seat-name-3"
     text: "Player Five"
 - assertVisible:
-    id: "seat-name-5"
+    id: "seat-name-2"
     text: "Player Four"
 - tapOn:
     id: "seating-cancel"
@@ -479,7 +520,7 @@ tags: [nightly]
       id: "seating-sheet"
     timeout: 15000
 - assertVisible:
-    id: "seat-name-5"
+    id: "seat-name-2"
     text: "Player Five"
 - takeScreenshot: 51h-pool-unchanged
 - tapOn:

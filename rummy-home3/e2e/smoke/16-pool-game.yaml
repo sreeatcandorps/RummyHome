@@ -54,7 +54,9 @@ tags: [smoke]
 - takeScreenshot: 16d-game-type-pool-players
 - tapOn:
     id: "new-game-type-next"
-# PR 24: Order of players is a step before Start; number everyone in pick order (Sree first).
+# PR 24: Order of players is a step before Start. D56 countdown: tap from the highest card down, the
+# last tap is seat 1. Tapping the bottom row four times (Zed, Priya, Harish, Sree) keeps the pick order
+# as the seat order: Sree seat 1.
 - extendedWaitUntil:
     visible: "Order of players"
     timeout: 15000
@@ -62,11 +64,11 @@ tags: [smoke]
     id: "order-counter"
     text: "0 of 4 numbered"
 - tapOn:
-    id: "seat-row-1"
+    id: "seat-row-4"
 - tapOn:
-    id: "seat-row-2"
+    id: "seat-row-4"
 - tapOn:
-    id: "seat-row-3"
+    id: "seat-row-4"
 - tapOn:
     id: "seat-row-4"
 - assertVisible:

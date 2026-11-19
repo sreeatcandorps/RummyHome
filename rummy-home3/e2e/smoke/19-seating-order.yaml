@@ -1,13 +1,15 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
-# PR 24 Order of players (was PR 21 Seating order), end to end on the seed: a fresh Points game (Sree,
-# Harish, Priya, Zed) → Next → Game type → Next → Order of players: nobody numbered, no arrows; tapping
-# Zed gives seat 1 and moves them up; tapping Zed again takes the number back (undo last); numbering
-# everyone enables Next → the co-admin step (Harish and Priya are registered) → Start game → the
-# scorecard columns follow the order (Zed is column 1). Then ⋮ → Order of players (mid-game path:
-# prefilled, arrows) → ▼ on seat 1 swaps Zed and Sree → Done → columns move and the Log has a Seating
-# row. Clear empties the numbers; Cancel changes nothing. Runs after smoke/16 (deletes its game at the
-# end, so no other flow sees an extra game); no round is saved, no result.
+# PR 24 Order of players (was PR 21 Seating order), end to end on the seed, under the D56 countdown
+# (Sree, Nov 19: tap from the highest card to the lowest; the last tap is seat 1 and deals; the list
+# reads from the highest seat at the top down to seat 1). A fresh Points game (Sree, Harish, Priya,
+# Zed) → Next → Game type → Next → Order of players: nobody numbered, no arrows; tapping Priya gives
+# seat 4 ("highest card") and moves her to the top; tapping Priya again takes the number back (undo
+# last); numbering everyone (Priya 4, Harish 3, Sree 2, Zed 1) enables Next → the co-admin step →
+# Start game → the scorecard columns follow the seats (Zed is column 1). Then ⋮ → Order of players
+# (mid-game path: prefilled, arrows) → ▲ on seat 1 swaps Zed and Sree → Done → columns move and the Log
+# has a Seating row. Clear empties the numbers; Cancel changes nothing. Runs after smoke/16 (deletes its
+# game at the end, so no other flow sees an extra game); no round is saved, no result.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "New game"
@@ -51,40 +53,45 @@ tags: [smoke]
 - assertNotVisible:
     id: "seat-deals-next"
 - takeScreenshot: 19-order-start-empty
-# Tap Zed: seat 1, moves to the top, deals round 1.
+# Tap Priya (highest card): seat 4, moves to the top, tagged "highest card"; nobody deals yet.
 - tapOn:
-    id: "seat-row-4"
+    id: "seat-row-3"
 - assertVisible:
     id: "seat-name-1"
-    text: "Zed Zero"
+    text: "Priya Test"
 - assertVisible:
     id: "seat-number-1"
-    text: "1"
+    text: "4"
 - assertVisible:
+    id: "seat-highest-card"
+- assertNotVisible:
     id: "seat-deals-next"
 - assertVisible:
     id: "order-counter"
     text: "1 of 4 numbered"
-- takeScreenshot: 19b-order-zed-first
-# Tap Zed again: the last number comes back off and Zed drops below the unnumbered players.
+- takeScreenshot: 19b-order-priya-highest
+# Tap Priya again: the latest number comes back off and Priya drops back among the unnumbered.
 - tapOn:
     id: "seat-row-1"
 - assertVisible:
     id: "order-counter"
     text: "0 of 4 numbered"
 - assertVisible:
-    id: "seat-name-4"
-    text: "Zed Zero"
+    id: "seat-name-3"
+    text: "Priya Test"
 - takeScreenshot: 19c-order-undo-last
-# Number everyone: Zed, Sree, Harish, Priya. Arrows appear on numbered rows only.
+# Number everyone, highest card first: Priya 4, Harish 3, Sree 2, Zed 1. Arrows on numbered rows only.
 - tapOn:
-    id: "seat-row-4"
+    id: "seat-row-3"
 - tapOn:
-    id: "seat-row-2"
+    id: "seat-row-3"
 - assertVisible:
     id: "seat-up-2"
 - assertNotVisible:
     id: "seat-up-3"
+- assertVisible:
+    id: "seat-number-2"
+    text: "3"
 - tapOn:
     id: "seat-row-3"
 - tapOn:
@@ -94,13 +101,20 @@ tags: [smoke]
     text: "Everyone numbered"
 - assertVisible:
     id: "seat-name-1"
-    text: "Zed Zero"
+    text: "Priya Test"
 - assertVisible:
-    id: "seat-name-2"
+    id: "seat-name-3"
     text: "Sree Test"
 - assertVisible:
     id: "seat-name-4"
-    text: "Priya Test"
+    text: "Zed Zero"
+- assertVisible:
+    id: "seat-number-4"
+    text: "1"
+- assertVisible:
+    id: "seat-deals-next"
+- assertNotVisible:
+    id: "seat-highest-card"
 # Clear empties the numbers; number them again the same way.
 - tapOn:
     id: "new-game-order-clear"
@@ -108,9 +122,9 @@ tags: [smoke]
     id: "order-counter"
     text: "0 of 4 numbered"
 - tapOn:
-    id: "seat-row-4"
+    id: "seat-row-3"
 - tapOn:
-    id: "seat-row-2"
+    id: "seat-row-3"
 - tapOn:
     id: "seat-row-3"
 - tapOn:
@@ -154,21 +168,25 @@ tags: [smoke]
 - assertVisible: "Mid-game · admins only · logged"
 - assertNotVisible:
     text: ".*rounds? played.*"
+# Prefilled, seat 4 (Priya) on top, seat 1 (Zed) at the bottom.
 - assertVisible:
     id: "seat-name-1"
+    text: "Priya Test"
+- assertVisible:
+    id: "seat-name-4"
     text: "Zed Zero"
 - assertVisible:
     id: "order-counter"
     text: "Everyone numbered"
 - takeScreenshot: 19g-order-from-menu
-# ▼ on seat 1 swaps Zed and Sree.
+# ▲ on seat 1 (Zed) swaps Zed and Sree: Sree is seat 1 now.
 - tapOn:
-    id: "seat-down-1"
+    id: "seat-up-4"
 - assertVisible:
-    id: "seat-name-1"
+    id: "seat-name-4"
     text: "Sree Test"
 - assertVisible:
-    id: "seat-name-2"
+    id: "seat-name-3"
     text: "Zed Zero"
 - tapOn:
     id: "seating-done"

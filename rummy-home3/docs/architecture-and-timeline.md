@@ -619,3 +619,12 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   EAS (`production` profile, Play App Signing) → Internal testing → Production review. `docs/play-listing/` holds the
   store text, the 11 App content answers, icon 512, feature graphic 1024×500 and eight captioned 9:16 / 16:9
   screenshots built from the CI device gallery (`make-assets.py`). No new dependency; Pillow only for the images.
+
+### 2026-11-19 — Order of players counts down (D56); Play listing frames get their own seed
+- Sree reviewed the Play listing pictures and settled the seating question from v12 point 7: "Tap from highest to
+  lowest. Seat numbers are from lowest to highest. Lowest deals first." Built as D56 in `utils/seating.ts` and the
+  Order of players component (first tap = seat N on top, last tap = seat 1 and deals; help copy, smoke/16, smoke/19
+  and full/51 follow). No server change: `player_order` is unchanged, only how the list is built.
+- The listing screenshots now come from a dedicated account seeded by `supabase/seed-listing.sql` (applied by the
+  ui-smoke / ui-full jobs after seed-break; never on hosted): a 10-player Points game, a 9-player pool with two out,
+  and a saved result over S1 + S2, captured by `smoke/22`. Nothing in Sree's test data changes.

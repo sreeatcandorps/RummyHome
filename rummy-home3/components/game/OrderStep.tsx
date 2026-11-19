@@ -9,7 +9,7 @@ import { OrderOfPlayers, SeatingPlayer } from '@/components/game/OrderOfPlayers'
 import { spacing, useAppTheme } from '@/constants/theme';
 import { clearOrder, displayOrder, nextDealerFor, OrderDraft, orderComplete, ORDER_HOW_TO, SEATING_CLEAR, SEATING_TITLE } from '@/utils/seating';
 
-export const ORDER_STEP_SUPPORT = 'Seat 1 deals round 1. Columns on the scorecard follow this order.';
+export const ORDER_STEP_SUPPORT = 'Highest card first, lowest last. The last tap is seat 1 and deals round 1; the scorecard columns follow this order.';
 
 /**
  * New game, step 3 (PR 24): Order of players. Nobody is numbered to begin with; tap the players in
@@ -29,7 +29,7 @@ export function OrderStep({ players, draft, onChange, onBack, onNext, nextIsStar
 }) {
   const { colors } = useAppTheme();
   const complete = orderComplete(draft);
-  const dealsNext = draft.numbered.length ? nextDealerFor(displayOrder(draft), null, 0) : undefined;
+  const dealsNext = orderComplete(draft) ? nextDealerFor(displayOrder(draft), null, 0) : undefined;
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Screen contentStyle={styles.content} safeBottom={false}>

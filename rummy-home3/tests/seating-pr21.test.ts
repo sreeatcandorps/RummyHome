@@ -157,5 +157,5 @@ test('the Log knows the new kind and the migration ignores the pop-up flag', () 
   assert.match(migration, /create or replace function public\.set_seating_order\(p_game_id uuid, p_profile_ids uuid\[\]\)/);
   assert.match(migration, /where k <> 'seatingPrompted'/, 'marking the pop-up seen never logs a settings change');
   assert.match(migration, /\(public\.initials_candidates\(ps->>'name'\)\)\[1\]/, 'Log initials fall back to the scorecard default (022)');
-  assert.match(read('constants/helpTopics.ts'), /\*\*Order of players\*\*: set before Start by tapping players in seating order/);
+  assert.match(read('constants/helpTopics.ts'), /\*\*Order of players\*\*: set before Start by tapping players from the highest card to the lowest/);
 });

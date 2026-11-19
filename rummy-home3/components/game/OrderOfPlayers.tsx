@@ -4,10 +4,13 @@ import { IconButton, Text } from 'react-native-paper';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import {
-  displayOrder,
+  displayRows,
+  HIGHEST_CARD_TAG,
+  isFirstNumbered,
   isLastNumbered,
   numberedCounter,
   OrderDraft,
+  orderComplete,
   seatNumberOf,
   seatRowHeight,
   seatRowLabel,
@@ -31,11 +34,12 @@ export type SeatingPlayer = {
 
 /**
  * Order of players (PR 24) — the one list used at game start (New game step) and mid-game (⋮ sheet).
- * Rows: seat circle, avatar, name, initials, player ID when it fits. Tap an unnumbered player to give
- * them the next seat (they rise to the numbered block); tap the most recently numbered player to take
- * it back; tap any other numbered player to highlight them. Numbered players carry ▲ ▼ that work at
- * once; unnumbered players have none. One row is highlighted at a time: the last one touched. The
- * green seat number is who deals next under the order being built. The parent scrolls.
+ * Rows: seat circle, avatar, name, initials, player ID when it fits. Taps count down (D56): the first
+ * tap is the highest card and takes the top row with seat N, each next tap the row under it with the
+ * next seat down, and the last tap is seat 1 and deals. Tap the most recent tap to take it back; tap
+ * any other numbered player to highlight them. Numbered players carry ▲ ▼ that work at once (▲ = a
+ * higher seat); unnumbered players have none. One row is highlighted at a time: the last one touched.
+ * The green seat number is who deals next once everyone is numbered. The parent scrolls.
  */
 export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled = false, testIDPrefix = 'seat' }: {
   players: SeatingPlayer[];
@@ -49,7 +53,8 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
   const { colors } = useAppTheme();
   const [rowWidth, setRowWidth] = useState(0);
   const byId = new Map(players.map((player) => [player.id, player]));
-  const rows = displayOrder(draft);
+  const rows = displayRows(draft);
+  const building = !orderComplete(draft);
   const rowHeight = seatRowHeight(rows.length);
   // v12 point 6: rows are 48 dp at every count, so nothing shrinks; `compact` only trims the player ID line.
   const compact = false;
@@ -69,6 +74,7 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
         const deals = numbered && id === dealsNext;
         const focused = draft.focus === id;
         const undoable = isLastNumbered(draft, id);
+        const highest = building && isFirstNumbered(draft, id);
         return (
           <Pressable
             key={id}
@@ -82,7 +88,7 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
             ]}
             accessibilityRole="button"
             accessibilityLabel={seatRowLabel({ seat, name: player.name, dealsNext: deals, out: player.out })}
-            accessibilityHint={!numbered ? `Give seat ${draft.numbered.length + 1}` : undoable ? 'Take the number back' : 'Highlight'}
+            accessibilityHint={!numbered ? `Give seat ${draft.base.length - draft.numbered.length}` : undoable ? 'Take the number back' : 'Highlight'}
             accessibilityState={{ selected: focused }}
             testID={`${testIDPrefix}-row-${index + 1}`}
           >
@@ -115,10 +121,11 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
               <Text variant="labelSmall" style={[tabularNums, { color: colors.onSurfaceVariant }]} testID={`${testIDPrefix}-code-${index + 1}`}>{player.playerCode}</Text>
             ) : null}
             {deals ? <Text variant="labelSmall" style={{ color: colors.primary }} testID={`${testIDPrefix}-deals-next`}>deals</Text> : null}
+            {highest ? <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }} testID={`${testIDPrefix}-highest-card`}>{HIGHEST_CARD_TAG}</Text> : null}
             {numbered ? (
               <View style={styles.arrows}>
-                <IconButton icon="chevron-up" size={22} iconColor={colors.onSurfaceVariant} disabled={disabled || seat === 1} onPress={() => onChange(stepNumbered(draft, id, -1))} accessibilityLabel={`Move ${player.name} up`} style={styles.arrow} testID={`${testIDPrefix}-up-${index + 1}`} />
-                <IconButton icon="chevron-down" size={22} iconColor={colors.onSurfaceVariant} disabled={disabled || seat === draft.numbered.length} onPress={() => onChange(stepNumbered(draft, id, 1))} accessibilityLabel={`Move ${player.name} down`} style={styles.arrow} testID={`${testIDPrefix}-down-${index + 1}`} />
+                <IconButton icon="chevron-up" size={22} iconColor={colors.onSurfaceVariant} disabled={disabled || seat === draft.base.length} onPress={() => onChange(stepNumbered(draft, id, 1))} accessibilityLabel={`Move ${player.name} up`} style={styles.arrow} testID={`${testIDPrefix}-up-${index + 1}`} />
+                <IconButton icon="chevron-down" size={22} iconColor={colors.onSurfaceVariant} disabled={disabled || seat === draft.base.length - draft.numbered.length + 1} onPress={() => onChange(stepNumbered(draft, id, -1))} accessibilityLabel={`Move ${player.name} down`} style={styles.arrow} testID={`${testIDPrefix}-down-${index + 1}`} />
               </View>
             ) : (
               <View style={styles.arrowsGap} />

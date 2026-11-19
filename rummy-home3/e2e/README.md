@@ -60,6 +60,9 @@ missing!", the first bug the break-the-app runs found).
 
 | Game | Share code | State at the start | Used by |
 | --- | --- | --- | --- |
+| L | `GAMEL1` | Ravi Kumar's (demo@test.local, `seed-listing.sql`): Points, active, 10 players × 8 rounds | `smoke/22` (Play listing frames: the 10-player sideways scorecard; saves nothing) |
+| M | `GAMEM1` | Ravi's pool 101, active, 9 players × 5 rounds, Kiran Rao out after round 4, Deepa Shah after round 5 | `smoke/22` (the pool portrait) |
+| N1, N2 | `GAMEN1`, `GAMEN2` | Ravi's two completed Points games (labels S1, S2), 6 players × 3 rounds, Closed by saved result …000d01 | `smoke/22` (the saved result page) |
 | A | `GAMEA1` | active, 4 players, 2 rounds (from `seed.sql`) | `smoke/01–06`: 04 adds round 3, 05 completes it, 06 shows its result, `full/40` saves the result, deletes it with Undo, deletes it again from the result page and restores it from Deleted (PR 9, PR 10b) |
 | E | `GAMEE1` | active, 4 players, 1 round, sree seated as game admin | `full/30`, `full/31` (Edit initials for Zed Zero → ZZ2 and back to ZZ; PR 6 / 039), `full/60`, `smoke/13` (undo then add round saves round 1 again; PR 2 / 035), `full/70` (add → edit → undo round 2, then the Log shows three rows; Logs PR / 036), `smoke/18` (PR 14: Game settings ×10 → whole-game confirm → chip, toggle, Exact sheet; sets ×1 again at the end), `smoke/21` (Players · Admins frame for the help page; nothing changed) |
 | W | `GAMEW1` | pool 101, completed, awards pending, 20 seats × 3 rounds, placeholders' initials WWW / MMM / WMW … | `smoke/17` (F13.22: header, Standings and Awards labels in full; saves nothing) |

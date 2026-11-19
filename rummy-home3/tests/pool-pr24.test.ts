@@ -9,7 +9,7 @@ import {
 } from '../utils/pool';
 import { draftFromRules, parseReentryLimit, rulesFromDraft } from '../utils/rulesDraft';
 import {
-  clearOrder, displayOrder, isLastNumbered, numberedCounter, orderChanged, orderComplete, seatNumberOf, showsPlayerCode, startOrder, stepNumbered, tapPlayer,
+  clearOrder, displayOrder, displayRows, isFirstNumbered, isLastNumbered, numberedCounter, orderChanged, orderComplete, seatNumberOf, showsPlayerCode, startOrder, stepNumbered, tapPlayer,
 } from '../utils/seating';
 
 // PR 24 (Sree's feedback on v11, Nov 17) — item 7: where a player who comes back starts.
@@ -139,49 +139,58 @@ test('X24-7c migration 047 is written with rollback, pgTAP and replay hook — n
 // ---------- X24-10: the Order of players draft ----------
 const four = ['sree', 'harish', 'priya', 'zed'];
 
-test('X24-10a game start: nobody numbered; a tap numbers and lifts the player; tapping the last one again undoes it', () => {
+test('X24-10a / D56 game start: nobody numbered; taps count down from the table size; tapping the latest one again undoes it', () => {
   let d = startOrder(four);
   assert.deepEqual(d.numbered, []);
   assert.equal(d.focus, null);
-  assert.deepEqual(displayOrder(d), four, 'untouched rows keep the pick order');
+  assert.deepEqual(displayRows(d), four, 'untouched rows keep the pick order');
   assert.ok(!orderComplete(d));
   assert.equal(numberedCounter(0, 4), '0 of 4 numbered');
 
   d = tapPlayer(d, 'zed');
-  assert.deepEqual(displayOrder(d), ['zed', 'sree', 'harish', 'priya'], 'seat 1 moves to the top');
-  assert.equal(seatNumberOf(d, 'zed'), 1);
+  assert.deepEqual(displayRows(d), ['zed', 'sree', 'harish', 'priya'], 'the first tap (highest card) moves to the top');
+  assert.equal(seatNumberOf(d, 'zed'), 4, 'and shows the highest seat, not 1');
   assert.equal(seatNumberOf(d, 'sree'), null);
   assert.equal(d.focus, 'zed', 'the last touched row is highlighted');
-  assert.ok(isLastNumbered(d, 'zed'));
+  assert.ok(isLastNumbered(d, 'zed') && isFirstNumbered(d, 'zed'));
 
   d = tapPlayer(d, 'zed');
   assert.deepEqual(d.numbered, [], 'tapping the most recent number takes it back');
-  assert.deepEqual(displayOrder(d), four, 'and the player drops back among the unnumbered, in pick order');
+  assert.deepEqual(displayRows(d), four, 'and the player drops back among the unnumbered, in pick order');
 
   d = tapPlayer(tapPlayer(tapPlayer(d, 'zed'), 'sree'), 'harish');
-  assert.deepEqual(d.numbered, ['zed', 'sree', 'harish']);
+  assert.deepEqual(d.numbered, ['harish', 'sree', 'zed'], 'seat order: the latest tap is the lowest seat');
+  assert.deepEqual(displayRows(d), ['zed', 'sree', 'harish', 'priya'], 'rows: first tap on top, then each later tap under it');
+  assert.equal(seatNumberOf(d, 'zed'), 4);
+  assert.equal(seatNumberOf(d, 'sree'), 3);
+  assert.equal(seatNumberOf(d, 'harish'), 2, 'numbers never change once given');
   assert.equal(numberedCounter(3, 4), '3 of 4 numbered');
+  assert.ok(isFirstNumbered(d, 'zed') && isLastNumbered(d, 'harish'));
   const before = d;
   d = tapPlayer(d, 'zed');
   assert.deepEqual(d.numbered, before.numbered, 'tapping an earlier number only highlights');
   assert.equal(d.focus, 'zed');
   d = tapPlayer(d, 'priya');
   assert.ok(orderComplete(d));
+  assert.equal(seatNumberOf(d, 'priya'), 1, 'the last tap is seat 1 and deals');
   assert.equal(numberedCounter(4, 4), 'Everyone numbered');
-  assert.deepEqual(displayOrder(d), ['zed', 'sree', 'harish', 'priya']);
+  assert.deepEqual(displayOrder(d), ['priya', 'harish', 'sree', 'zed'], 'what is saved: seat 1 first');
+  assert.deepEqual(displayRows(d), ['zed', 'sree', 'harish', 'priya'], 'what is shown: seat 4 down to seat 1');
   assert.ok(orderChanged(d), 'Done has something to save');
   assert.equal(tapPlayer(d, 'nobody'), d, 'an unknown id is ignored');
 });
 
-test('X24-10b arrows move numbered players at once and never touch the unnumbered; Clear empties everything', () => {
+test('X24-10b arrows move numbered players one seat at once and never touch the unnumbered; Clear empties everything', () => {
   let d = tapPlayer(tapPlayer(startOrder(four), 'zed'), 'sree');
+  assert.deepEqual(d.numbered, ['sree', 'zed'], 'zed seat 4, sree seat 3');
   assert.equal(stepNumbered(d, 'priya', -1), d, 'no arrows on an unnumbered row');
-  d = stepNumbered(d, 'sree', -1);
-  assert.deepEqual(d.numbered, ['sree', 'zed']);
+  d = stepNumbered(d, 'sree', 1);
+  assert.deepEqual(d.numbered, ['zed', 'sree'], '▲ gives sree the higher seat (4) and zed drops to 3');
+  assert.equal(seatNumberOf(d, 'sree'), 4);
   assert.equal(d.focus, 'sree');
-  assert.deepEqual(stepNumbered(d, 'sree', -1).numbered, ['sree', 'zed'], 'seat 1 has nowhere to go up');
-  assert.deepEqual(stepNumbered(d, 'zed', 1).numbered, ['sree', 'zed'], 'the last number has nowhere to go down');
-  assert.deepEqual(displayOrder(d), ['sree', 'zed', 'harish', 'priya'], 'the unnumbered stay below, in pick order');
+  assert.deepEqual(stepNumbered(d, 'sree', 1).numbered, ['zed', 'sree'], 'the highest seat has nowhere to go up');
+  assert.deepEqual(stepNumbered(d, 'zed', -1).numbered, ['zed', 'sree'], 'the lowest seat so far has nowhere to go down');
+  assert.deepEqual(displayRows(d), ['sree', 'zed', 'harish', 'priya'], 'the unnumbered stay below, in pick order');
   const cleared = clearOrder(d);
   assert.deepEqual(cleared.numbered, []);
   assert.equal(cleared.focus, null);
@@ -190,16 +199,17 @@ test('X24-10b arrows move numbered players at once and never touch the unnumbere
 
 test('X24-10c mid-game: the sheet opens prefilled so one move is one tap; Done stays off until the order changes', () => {
   const d = startOrder(four, true);
-  assert.deepEqual(d.numbered, four);
+  assert.deepEqual(d.numbered, four, 'seat order as played');
+  assert.deepEqual(displayRows(d), ['zed', 'priya', 'harish', 'sree'], 'shown seat 4 down to seat 1');
   assert.ok(orderComplete(d));
   assert.ok(!orderChanged(d), 'nothing moved yet');
   const moved = stepNumbered(d, 'zed', -1);
   assert.ok(orderChanged(moved));
-  assert.deepEqual(displayOrder(moved), ['sree', 'harish', 'zed', 'priya']);
+  assert.deepEqual(displayOrder(moved), ['sree', 'harish', 'zed', 'priya'], '▼ on seat 4 (zed): zed to seat 3, priya to 4');
   const back = stepNumbered(moved, 'zed', 1);
   assert.ok(!orderChanged(back), 'moving back leaves Done off again');
-  // Clear then renumber in the same order: complete, unchanged, Done off.
-  const same = four.reduce((acc, id) => tapPlayer(acc, id), clearOrder(d));
+  // Clear then renumber highest card first (seat 4 down to seat 1): complete, unchanged, Done off.
+  const same = [...four].reverse().reduce((acc, id) => tapPlayer(acc, id), clearOrder(d));
   assert.ok(orderComplete(same) && !orderChanged(same));
   assert.ok(showsPlayerCode(347) && !showsPlayerCode(300), 'the player ID shows only when the row is wide enough (a Pixel 6 row inside the card is ~347 dp)');
 });

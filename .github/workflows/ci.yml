@@ -520,6 +520,7 @@ jobs:
           supabase db reset 2>&1 | tail -3
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-break.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-listing.sql
           psql "$DB_URL" -tAc "select count(*) || ' games seeded for the UI tests' from public.games"
 
       - name: Check this runner's anon key is the one baked into the APK
@@ -676,6 +677,7 @@ jobs:
           supabase db reset 2>&1 | tail -2
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-break.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-listing.sql
       - name: Run the stress checks (latency budgets, 500-round guard, 8 clients)
         working-directory: ci
         run: |

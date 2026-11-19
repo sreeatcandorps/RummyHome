@@ -238,7 +238,7 @@ test('HL11-8 help copy matches PR 24 (#82): four-step New game, Order of players
   const newGame = plainHelpText(helpTopicText('new-game'));
   assert.match(newGame, /Then Order of players .* and, when a registered player was added, a co-admin\. Only the last step says Start game\./);
   assert.match(newGame, /\nOrder of players\n/);
-  assert.match(newGame, /the first tap is seat 1.*Tap the most recently numbered player again to take the number back/);
+  assert.match(newGame, /from the highest card to the lowest.*the last tap is seat 1.*Tap the latest one again to take the number back/);
   assert.match(newGame, /▲ ▼ arrows.*Clear removes every number.*Every player needs a seat before Next \(or Start game/);
   assert.match(newGame, /\nCo-admin and Start\n/);
   assert.match(newGame, /There is no pop-up after Start/);
