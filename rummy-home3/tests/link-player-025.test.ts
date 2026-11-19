@@ -77,9 +77,9 @@ test('item 5 fix 1: the local preview mirrors the server — who, how many games
   assert.equal(fine.conflictMessage, null);
   assert.equal(fine.pending, null);
   assert.match(linkPreviewMessage('R K', fine), /Cora \(#6\) gets an email and an in-app request\. Nothing moves until they say Yes\. R K's seat and scores in 2 games move to Cora\./);
-  const open: PendingLink = { id: 'lr1', kind: 'link_request', ownerId: 'me', playerId: 'rk', playerName: 'R K', targetId: 'cora', targetNo: 6, targetName: 'Cora', status: 'pending', createdAt: '2026-11-12T00:00:00Z', expiresAt: '2026-11-19T00:00:00Z' };
+  const open: PendingLink = { id: 'lr1', kind: 'link_request', ownerId: 'me', playerId: 'rk', playerName: 'R K', targetId: 'cora', targetNo: 6, targetName: 'Cora', status: 'pending', createdAt: '2026-11-12T00:00:00Z', expiresAt: '2099-01-01T00:00:00Z' };
   const pending = localLinkPreview(rk, cora, games, open, creator);
-  assert.deepEqual(pending.pending, { id: 'lr1', expiresAt: '2026-11-19T00:00:00Z', targetId: 'cora', targetNo: 6, targetName: 'Cora' });
+  assert.deepEqual(pending.pending, { id: 'lr1', expiresAt: '2099-01-01T00:00:00Z', targetId: 'cora', targetNo: 6, targetName: 'Cora' });
   assert.match(linkPendingMessage(pending.pending!), /Waiting for Cora \(#6\) to say Yes\. Expires /);
 });
 
@@ -112,7 +112,7 @@ test('item 5 fix 1: nothing moves on Send; the owner gets the request; the row r
 });
 
 test('item 5 fix 1: the owner sees the request in-app (Home) and by email, says Yes or No; conflicts re-checked at Yes', () => {
-  const req = { id: 'lr1', ownerId: 'me', ownerName: 'Sree', playerId: 'rk', playerName: 'Harish', playerInitials: 'HG', targetNo: 40, gameNumbers: [4, 7], gameLabels: ['S4', 'P7'], gameCount: 2, expiresAt: '2026-11-19T00:00:00Z', conflictMessage: null };
+  const req = { id: 'lr1', ownerId: 'me', ownerName: 'Sree', playerId: 'rk', playerName: 'Harish', playerInitials: 'HG', targetNo: 40, gameNumbers: [4, 7], gameLabels: ['S4', 'P7'], gameCount: 2, expiresAt: '2099-01-01T00:00:00Z', conflictMessage: null };
   assert.equal(linkRequestPrompt(req), 'Sree wants to link “Harish (HG)” to your Player ID #40.');
   assert.match(linkRequestDetail(req), /^Yes moves Harish's seats and scores in 2 games \(S4, P7\) to your account\. Expires /);
   assert.match(linkRequestDetail({ ...req, gameCount: 0, gameNumbers: [], gameLabels: [] }), /^Harish is in no games yet\. Expires /);
@@ -167,7 +167,7 @@ test('item 5 fix 1: local store — the move happens only at Yes, every seat and
   assert.match(home, /home\.notices\.filter\(\(n\) => n\.kind === 'linked'\)/, 'linked notices become a pop-up, not a card');
   assert.match(home, /testID="linked-popup"/);
   // A link_request only its target may answer; expiry puts the player back to unregistered.
-  const link: PendingLink = { id: 'lr1', kind: 'link_request', ownerId: 'me', playerId: 'rk', playerName: 'R K', targetId: 'cora', status: 'pending', createdAt: '2026-11-12T00:00:00Z', expiresAt: '2026-11-19T00:00:00Z' };
+  const link: PendingLink = { id: 'lr1', kind: 'link_request', ownerId: 'me', playerId: 'rk', playerName: 'R K', targetId: 'cora', status: 'pending', createdAt: '2026-11-12T00:00:00Z', expiresAt: '2099-01-01T00:00:00Z' };
   assert.throws(() => acceptClaim([link], 'lr1', 'priya', []), /for another account/);
   const expired = closeClaim(link, 'expire');
   assert.equal(expired.link.status, 'expired');

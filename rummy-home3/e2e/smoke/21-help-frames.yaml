@@ -104,6 +104,8 @@ tags: [smoke]
     visible:
       id: "login-email"
     timeout: 20000
+# The email field focuses itself and the keyboard covers the bottom of the card (CI run 1).
+- hideKeyboard
 - assertVisible: "Forgot passcode?"
 - assertVisible: "Create account"
 - takeScreenshot: 21c-sign-in
