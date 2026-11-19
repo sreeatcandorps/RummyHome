@@ -33,13 +33,14 @@ this file exists so nobody has to read five specs and a chat log to know the cur
 
 | ID | Date | Decision | Where | Status |
 | --- | --- | --- | --- | --- |
+| D48 | 2026-11-18 | **No player number on the scorecard.** Sree: "ignore the player number. Remove it from Pool also. players can always go into the menu players and see the player number there." Pool header and Standings read initials · score like Points; the Player ID stays on My players and Players · Admins. | `ScoreTable`, `PoolStandings`, `scorecardLayout.headerHeight` | active |
 | D42 | 2026-11-18 | **Landscape pool is the full-width table alone**, like Points. No Standings in landscape ("they can always come back to portrait"). An admin reaches Give / Change awards from the strip. | `games/[id].tsx`, PR B | active (supersedes D31) |
 | D41 | 2026-11-18 | **Five-line rule for the portrait pool card.** Content = round rows (a placeholder row at 0 rounds) + one empty row + Creator / Admin / Unique game ID; the card hugs that content and stops at five round-row heights; the newest round sits at the bottom of the card; the Standings take the rest. At 0 rounds that is five lines. Empty row sits between the last round and the Creator line (Sree's 10:35 PM wording; default A). | `ScoreTable` `hugRows`, `utils/scorecardLayout.ts`, PR B | active (supersedes D30) |
 | D31 | 2026-11-17 | Landscape pool: standings below the rounds in the table's scroller, never side by side. | pool-design §0 row 22 (PR 24) | superseded → D42 |
 | D30 | 2026-11-17 | Portrait pool split ~70 / 30, each pane scrolling on its own. | pool-design §0 row 21 (PR 24) | superseded → D41 |
 | D29 | 2026-11-17 | Footer (Creator · Admin · Unique game ID) inside the card under the last round, 70 % italic, never bold. | pool-design §0 row 23 (PR 24) | active |
 | D28 | 2026-11-17 | Re-entry display: the re-entry round shows the re-entry score with ↺; cells above go grey; a tap on a round number edits that round. | pool-design §0 row 25 (PR 24) | active |
-| D27 | 2026-11-17 | The pool header reads like the Points header, exactly one small line taller (#number). Initials never cut off. | pool-design §0 rows 15, 20 (PR 24) | active |
+| D27 | 2026-11-17 | The pool header reads like the Points header, exactly one small line taller (#number). Initials never cut off. | pool-design §0 rows 15, 20 (PR 24) | superseded → D48 |
 
 ## Pool rules
 

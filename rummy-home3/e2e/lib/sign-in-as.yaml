@@ -9,8 +9,10 @@ appId: com.mindweavetech.rummyhome
 #       env:
 #         EMAIL: c1@test.local
 ---
-- launchApp:
-    clearState: true
+# clearState and launchApp as two steps: in one step the start can land while the force-stop from the
+# clear is still running, and Android kills the new process ("start not valid") — a blank screen for 30 s.
+- clearState
+- launchApp
 - extendedWaitUntil:
     visible:
       id: "login-email"

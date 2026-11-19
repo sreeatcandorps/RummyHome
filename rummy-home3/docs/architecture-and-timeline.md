@@ -550,3 +550,12 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   live** — `schema_migrations` has 046 (2026-11-15 23:31 UTC), 047 (2026-11-18 07:20 UTC) and a `047b_event_log_games_exact_fix`
   (07:21 UTC) that has no file in the repo; functions matched the files by hash, row counts unchanged. Nothing applied
   today. No APK built — Sree wants the pending list first. No new dependency, no hosting change.
+
+### 2026-11-18 — 047b recorded in the repo as migration 048 (already on live; no new apply)
+- Live `schema_migrations` had `047b_event_log_games_exact_fix` (version 20261118072131, 07:21 UTC) with no file in
+  the repo. Build Bot read the stored SQL back: it re-applies `event_log_games` with the 047 section D body,
+  byte-for-byte. Sree: "This is fine." → committed as `supabase/migrations/048_event_log_games_exact_fix.sql`
+  (`supabase db reset` only reads `<digits>_name.sql`, so not `047b_`), with `rollback_048_…` (same body) and pgTAP
+  `39_event_log_games_048.sql`; the rollback replay covers it. Nothing applied to live. Rule going forward: a step
+  run on live gets its file in the same hour, so the repo stays the source of truth.
+

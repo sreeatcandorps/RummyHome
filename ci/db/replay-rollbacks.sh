@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–047) applied, check the function state after each, then re-apply the forward
+# has every migration (001–048) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,16 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 048 (live 047b: event_log_games re-applied with the 047 body; the rollback is the same body, so the Log labels stay)
+HAS_048=f
+if [ -f "$RB/rollback_048_event_log_games_exact_fix.sql" ]; then
+  HAS_048=t
+  if apply "$RB/rollback_048_event_log_games_exact_fix.sql"; then tap ok "rollback_048 applies"; else tap fail "rollback_048 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_has event_log_games 'Re-entry score')" = t ] && [ "$(fn_has event_log_games 'seatingPrompted')" = t ] \
+    && tap ok "after rollback_048 event_log_games is the 047 body (048 changed nothing)" \
+    || tap fail "after rollback_048 event_log_games should still be the 047 body"
+fi
 
 # 047 (re-entry / late-entry score rules: pool_entry_plus, reenter_player + add_seated_player add the rule, Log labels; rolled back first)
 HAS_047=f
@@ -466,6 +476,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_045" = t ] && FORWARD="$FORWARD 045_going_rogue"
 [ "$HAS_046" = t ] && FORWARD="$FORWARD 046_no_permanent_delete"
 [ "$HAS_047" = t ] && FORWARD="$FORWARD 047_reentry_and_late_entry_score"
+[ "$HAS_048" = t ] && FORWARD="$FORWARD 048_event_log_games_exact_fix"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -630,6 +641,9 @@ if [ "$HAS_047" = t ]; then
   [ "$(fn_exists pool_entry_plus)" = t ] && [ "$(fn_has reenter_player pool_entry_plus)" = t ] && [ "$(fn_has add_seated_player pool_entry_plus)" = t ] \
     && [ "$(fn_has event_log_games 'Re-entry score')" = t ] \
     && tap ok "047 restored (pool_entry_plus; reenter_player, add_seated_player and the Log read the entry rules)" || tap fail "047 restored"
+fi
+if [ "$HAS_048" = t ]; then
+  [ "$(fn_has event_log_games 'Late entry score')" = t ] && tap ok "048 restored (event_log_games carries the entry-rule labels)" || tap fail "048 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

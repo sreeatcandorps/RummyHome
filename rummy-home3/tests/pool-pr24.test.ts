@@ -240,13 +240,11 @@ test('X24-9 New game: Players → Next → Game type → Next → Order of playe
 });
 
 // ---------- X24-3 / 5 / 6: the scorecard ----------
-test('X24-3 pool header: one line taller than Points (the #number line), same type sizes; the footer at 70% italic', async () => {
+test('X24-3 pool header: same lines as Points (the #number line went on Nov 18), same type sizes; the footer at 70% italic', async () => {
   const { headerHeight, footerType, FOOTER_SCALE, POOL_HEADER_SLACK, poolCardBodyHeight } = await import('../utils/scorecardLayout');
   const points = headerHeight(72, false, 1, false);
   const poolH = headerHeight(72, false, 1, true);
-  assert.ok(poolH > points, 'the pool header gets room for its extra line');
-  assert.ok(poolH - points <= 20, 'only one small line taller');
-  assert.equal(poolH - points, 13 + POOL_HEADER_SLACK, 'the #number line plus the slack that keeps the dealer column from shrinking its initials (CI run 1)');
+  assert.equal(poolH - points, POOL_HEADER_SLACK, 'only the slack that keeps the dealer column from shrinking its initials (CI run 1); no #number line');
   // Nov 18 (Sree): the 70 / 30 split is gone; the card hugs its rows and stops at five round rows.
   assert.equal(poolCardBodyHeight(130, 48, 5), 130, 'two rounds: the card hugs');
   assert.equal(poolCardBodyHeight(700, 48, 5), 240, 'many rounds: five row heights');

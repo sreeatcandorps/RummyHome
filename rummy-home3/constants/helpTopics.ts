@@ -268,7 +268,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     needToKnow: [
       '[View only] means you can watch but not change scores. Admins see **Add round**, **Undo** and **Complete**.',
       'Totals sit in the header next to each name. With a multiplier, big numbers read short (8K, 1.2M); the **×N** chip opens the exact points.',
-      'Pool: the header reads like a Points header, one small line taller for the player number; out is struck through. A re-entered player shows the re-entry score with ↺ in that round, and their cells above it turn grey. **Standings** below show points and drops left.',
+      'Pool: the header reads like a Points header (initials and score; Player IDs live on **My players** and **Players · Admins**); out is struck through. A re-entered player shows the re-entry score with ↺ in that round, and their cells above it turn grey. **Standings** below show points and drops left.',
       '**Order of players**: set before Start by tapping players in seating order. Seat 1 deals first and the deal goes round by seat. Admins change the order any time from ⋮; played rounds keep their dealer.',
       '**Undo** asks before removing the last round. **Complete** shows the final totals and asks once more before locking.',
     ],
@@ -572,6 +572,16 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       '**Remove from game** asks first and works only while the player has no scores or every round score they have is 0. Otherwise edit the rounds and clear their scores first.',
       '**Add new player** picks from My players (0 for rounds already played). **Add non-playing admin**: someone who keeps score but does not play, by Player ID; no column.',
     ],
+    screenshot: {
+      file: 'players-admins',
+      legend: [
+        'A row: name, **#ID** and role (Creator, Admin, Player). Only players still signing up carry a tag.',
+        'The arrows move a seat up or down the order of players; Seat 1 deals first. Played rounds keep their dealer.',
+        'The row ⋮: Invite, Link to Player ID, Edit initials, Edit name, Make admin, Remove from game.',
+        '**Add non-playing admin** by Player ID: keeps score, gets no column.',
+        '**Add new player** from My players; 0 for the rounds already played.',
+      ],
+    },
     sections: [
       {
         title: 'Linking an account',
@@ -847,6 +857,15 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       'A deleted game stays under **Deleted games** for 30 days, then is hidden for good — nothing is ever erased. Players who scored in it see it on Home and can ask an admin to restore it.',
       'Only the person who deleted something, or an admin of it, can restore it. No admin left? Email support@ezscore.app with the Unique game ID from the scorecard foot.',
     ],
+    screenshot: {
+      file: 'hidden-deleted',
+      legend: [
+        '**Games I hid**: off your Home only. **Unhide** puts one back.',
+        '**Deleted games**: who deleted it and when, and the day it is hidden for good (30 days). **Restore** brings it back for everyone.',
+        '**Deleted results**: a result you deleted; **Restore** closes its games again.',
+        '**Can\u2019t find a game?** No admin left — email support with the Unique game ID.',
+      ],
+    },
     sections: [
       {
         title: 'Results',

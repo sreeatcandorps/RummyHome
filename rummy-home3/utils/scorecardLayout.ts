@@ -88,16 +88,14 @@ export const headerPadding = (compact: boolean) => (compact ? 3 : 4);
 /**
  * Header height = the three line heights at the effective font scale + the dealer bar + padding.
  * Nothing is clipped at any font size because the box is sized from the text, not the other way round.
- * PR 24: a pool header carries a fourth line (the player's #number above the initials); before, the
- * four texts shared a three-line box, so the initials shrank to fit (Sree: "tiny gray"). The box now
- * counts that line, so pool initials, total and DEALS set at exactly the Points sizes.
+ * Nov 18 (Sree): the pool header lost its #number line, so Points and Pool headers are the same height;
+ * `pool` stays in the signature for the callers and the slack that kept the dealer column from
+ * shrinking its initials (CI run 1 of PR 24).
  */
 export function headerHeight(columnWidth: number, compact: boolean, fontScale = 1, pool = false): number {
   const scale = effectiveFontScale(fontScale);
   const type = headerType(columnWidth);
-  const lines = (type.initials.lineHeight + type.total.lineHeight + type.deals.lineHeight + (pool ? type.deals.lineHeight : 0)) * scale;
-  // Pool: a fourth line of native text rounding, plus the dealer bar drawn inside the dealer's cell,
-  // left that one column a pixel short and its initials shrank (CI run 1); POOL_HEADER_SLACK covers it.
+  const lines = (type.initials.lineHeight + type.total.lineHeight + type.deals.lineHeight) * scale;
   return Math.ceil(lines + DEALER_BAR + headerPadding(compact) * 2 + (pool ? POOL_HEADER_SLACK : 0));
 }
 export const POOL_HEADER_SLACK = DEALER_BAR;

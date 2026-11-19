@@ -19,4 +19,6 @@ export const HELP_SCREENSHOTS: Partial<Record<string, ImageSourcePropType>> = {
   'add-players': require('./add-players.png'),
   'me': require('./me.png'),
   'settings': require('./settings.png'),
+  'players-admins': require('./players-admins.png'),
+  'hidden-deleted': require('./hidden-deleted.png'),
 };

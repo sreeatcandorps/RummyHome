@@ -4,8 +4,8 @@ tags: [nightly]
 # flow named *night-phone* and off again after). clearState wipes the saved appearance and the session,
 # so this is a first launch; ensure-signed-in signs back in.
 ---
-- launchApp:
-    clearState: true
+- clearState
+- launchApp
 - runFlow: ../lib/ensure-signed-in.yaml
 - assertVisible: "New game"
 - takeScreenshot: 61-home-first-launch-night-phone

@@ -25,8 +25,6 @@ export type ScoreColumn = {
   label: string;
   color: string;
   isExpense?: boolean;
-  /** Pool (PR 13): the player's public number, shown above the initials (D5). */
-  number?: number | null;
   /** Pool: the round that put the player out; the header is struck through and reads OUT R<n>. */
   outRound?: number | null;
   /** Pool: the player re-entered (blue header, D5) before this round; the cell there shows the restart score. */
@@ -53,7 +51,7 @@ type ScoreTableProps = {
   emptyMessage: string;
   /**
    * Pool (PR 13): scores are plus points, 0 is the win, the corner sum and the off-by markers do not
-   * apply (F13.10), totals are shown without a sign and the header carries number / initials / score.
+   * apply (F13.10), totals are shown without a sign and the header reads initials / score like Points (Sree, Nov 18: no player number on the scorecard).
    */
   pool?: boolean;
   /**
@@ -111,7 +109,7 @@ type ScoreRowProps = {
 
 const sameColumns = (a: ScoreColumn[], b: ScoreColumn[]) =>
   a.length === b.length && a.every((column, i) => column.id === b[i].id && column.label === b[i].label && column.color === b[i].color && column.isExpense === b[i].isExpense
-    && column.number === b[i].number && column.outRound === b[i].outRound && column.reenteredRound === b[i].reenteredRound && column.reentryScore === b[i].reentryScore);
+    && column.outRound === b[i].outRound && column.reenteredRound === b[i].reenteredRound && column.reentryScore === b[i].reentryScore);
 const sameCells = (a: (number | undefined)[], b: (number | undefined)[]) => a.length === b.length && a.every((value, i) => value === b[i]);
 
 /**
@@ -337,7 +335,7 @@ export function ScoreTable({
         disabled={!onTotalPress}
         accessibilityRole={onTotalPress ? 'button' : undefined}
         accessibilityHint={onTotalPress ? 'Opens the exact points' : undefined}
-        accessibilityLabel={pool ? `${column.number != null ? `Player ${column.number}, ` : ''}${column.label}, ${total}${out ? `, out in round ${column.outRound}` : reentered ? ', re-entered' : ''}` : factor !== 1 ? `${column.label}, total ${spokenExact(actual(total, factor))}` : undefined}
+        accessibilityLabel={pool ? `${column.label}, ${total}${out ? `, out in round ${column.outRound}` : reentered ? ', re-entered' : ''}` : factor !== 1 ? `${column.label}, total ${spokenExact(actual(total, factor))}` : undefined}
         style={[
           styles.cell,
           styles.headerCell,
@@ -346,15 +344,6 @@ export function ScoreTable({
           out && { backgroundColor: colors.surfaceVariant },
         ]}
       >
-        {pool ? (
-          <Text
-            numberOfLines={1}
-            maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
-            style={[styles.headerNumber, { fontSize: type.deals.fontSize, lineHeight: type.deals.lineHeight, color: out ? colors.onSurfaceVariant : colors.onSurfaceVariant }]}
-          >
-            {column.number != null ? `#${column.number}` : ' '}
-          </Text>
-        ) : null}
         <Text
           numberOfLines={1}
           adjustsFontSizeToFit
@@ -674,12 +663,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
     includeFontPadding: false,
-  },
-  headerNumber: {
-    fontWeight: '700',
-    textAlign: 'center',
-    includeFontPadding: false,
-    letterSpacing: 0.2,
   },
   struck: {
     textDecorationLine: 'line-through',
