@@ -581,5 +581,6 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   stale_game_id`, trigger `games_reopen_closed` (stamp the result Out of date, un-close its other games), the
   rounds/scores guards replace the games guard, `result_for_game` RPC, and the results RPCs wrapped (`_v028` /
   `_v043` kept intact). App: one Reopen dialog that names the result, an Out of date chip in Results and a banner
-  on the result page. PR #93 (the refusal) is closed, replaced. 050 is **not applied** to live (needs Sree's yes).
-  No new dependency, no hosting change.
+  on the result page. PR #93 (the refusal) is closed, replaced. #96 merged to `main` (`4b8187a`) on Sree's yes; #95
+  (sign-in help picture) merged earlier the same morning (`c6b6bae`). 050 is **not applied** to live (needs Sree's
+  separate yes). No new dependency, no hosting change.
