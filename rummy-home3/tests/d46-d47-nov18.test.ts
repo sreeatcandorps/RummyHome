@@ -22,7 +22,7 @@ test('D46 C: reopenGame clears the award columns (local and hosted) and the dial
   assert.match(service, /const clearsAwards = reopenClearsAwards\(game\);/);
   assert.match(service, /\.\.\.\(clearsAwards \? \{ prizeShares: null, awardedAt: null, awardNote: null \} : \{\}\)/, 'local mode');
   assert.match(service, /\.\.\.\(clearsAwards \? \{ prize_shares: null, awarded_at: null, awarded_by: null, award_note: null \} : \{\}\)/, 'hosted update');
-  assert.match(service, /\.eq\('status', 'completed'\)\s*\.is\('closed_at', null\)/, 'a Closed pool is still never reopened');
+  assert.match(service, /\.eq\('status', 'completed'\)\s*\.select\('id'\)/, 'only a Completed game is reopened (a Closed one too, D49)');
   const screen = src('app/(screens)/games/[id].tsx');
   assert.match(screen, /\{reopenClearsAwards\(game\) \? \([\s\S]*?testID="reopen-clears-awards">[\s\S]*?\{REOPEN_CLEARS_AWARDS_NOTE\}/, 'the Reopen dialog warns a pool with awards');
 });

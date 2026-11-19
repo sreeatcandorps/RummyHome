@@ -15,7 +15,8 @@ import { Game } from '@/types/game';
 import { Player } from '@/types/player';
 import { canEnterScores, gameVisibleToUser, SeatRole } from '@/utils/gameAccess';
 import { gameCache } from '@/utils/gameCache';
-import { canReopenGame, reopenClearsAwards, REOPEN_BLOCKED_MESSAGE } from '@/utils/gameStatus';
+import { canReopenGame, reopenClearsAwards, reopenUncloses, REOPEN_BLOCKED_MESSAGE } from '@/utils/gameStatus';
+import { gameLabelOf } from '@/utils/gameLabel';
 import { createViewToken } from '@/utils/shareLink';
 import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validatePoolRoundScores, validateRoundScores } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
@@ -1024,12 +1025,21 @@ export const gamesService = {
     if (!game) throw new Error('Game not found.');
     if (!canReopenGame(game)) throw new Error(REOPEN_BLOCKED_MESSAGE);
     const clearsAwards = reopenClearsAwards(game);
+    const uncloses = reopenUncloses(game);
 
     if (!isSupabaseConfigured) {
+      if (uncloses) {
+        // D49, local store: stamp the result Out of date and un-close its other games (the 050 trigger's work).
+        const { resultsService } = await import('@/services/results');
+        const { authService } = await import('@/services/auth');
+        const me = await authService.getCurrentPlayer().catch(() => null);
+        await resultsService.markStaleForReopen(game.id, me?.name ?? 'an admin', gameLabelOf(game) ?? null);
+      }
       const updatedGame = {
         ...game,
         isComplete: false,
         completedAt: null,
+        ...(uncloses ? { closedAt: null } : {}),
         ...(clearsAwards ? { prizeShares: null, awardedAt: null, awardNote: null } : {}),
       };
       await storage.updateGame(updatedGame);
@@ -1037,16 +1047,19 @@ export const gamesService = {
     }
 
     // The 049 trigger clears the awards server-side as well; sending them keeps an older database honest.
+    // A Closed game (D49, 050): the games_reopen_closed trigger clears closed_at, stamps the result Out of
+    // date and un-closes the result's other games; on a database before 050 the status guard of the day
+    // (none) lets the update through and closed_at is cleared here, so the game is at least consistent.
     const { data, error } = await supabase
       .from('games')
       .update({
         status: 'active',
         completed_at: null,
+        ...(uncloses ? { closed_at: null } : {}),
         ...(clearsAwards ? { prize_shares: null, awarded_at: null, awarded_by: null, award_note: null } : {}),
       })
       .eq('id', gameId)
       .eq('status', 'completed')
-      .is('closed_at', null)
       .select('id');
     if (error) throw error;
     if (!data || data.length === 0) throw new Error(REOPEN_BLOCKED_MESSAGE);

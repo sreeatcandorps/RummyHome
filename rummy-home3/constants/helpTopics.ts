@@ -124,7 +124,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     tricky: [
       { id: 'missing-game', q: 'A game I played is not on Home.', a: 'Either you hid it (**Settings › Hidden & deleted › Unhide**) or an admin deleted it (it shows under **Deleted games** for 30 days). Or you were never added as a player — ask the admin to add you from **Players · Admins**.' },
       { id: 'cannot-score', q: 'Why can I not change scores in a game?', a: 'Only admins can. The creator is always an admin and can make you one from **Players · Admins**. Until then you see the scorecard [View only].' },
-      { id: 'closed', q: 'Why is a game Closed and not Completed?', a: 'It is part of a saved result. Delete that result (from its page) and the game goes back to [Completed].' },
+      { id: 'closed', q: 'Why is a game Closed and not Completed?', a: 'It is part of a saved result. Delete that result (from its page) and the game goes back to [Completed]. Or reopen the game anyway: the result keeps its numbers and shows **Out of date**, and its other games go back to Completed.' },
     ],
     alsoSee: ['new-game', 'results', 'my-players', 'hidden-deleted'],
     aliases: ['recent', 'statuses', 'bottom bar'],
@@ -329,7 +329,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         { item: 'Players · Admins', does: 'Who plays, who is admin, invite, link, initials, remove.', who: 'Everyone (admins can change)', hidden: 'Deleted game' },
         { item: 'Order of players', does: 'Rearrange who sits where (tap to number, arrows to nudge); the deal follows the new order from the next round.', who: 'Admins', hidden: 'Completed game' },
         { item: 'Edit round', does: 'Pick a round and change its scores; the Log keeps the old ones.', who: 'Admins', hidden: 'Completed game, or no rounds yet (grey)' },
-        { item: 'Reopen game', does: 'Unlocks a Completed game so rounds can be added again. A pool that already has awards loses them; give them again after the next Complete.', who: 'Admins', hidden: 'Active game, or a Closed game (part of a result)' },
+        { item: 'Reopen game', does: 'Unlocks a Completed game so rounds can be added again. On a Closed game the saved result stays as saved and shows Out of date. A pool that already has awards loses them; give them again after the next Complete.', who: 'Admins', hidden: 'Active game' },
         { item: 'Log', does: 'Every change to this game, written by the server.', who: 'Everyone' },
         { item: 'Hide game', does: 'Takes the game off your Home only. Unhide in Settings › Hidden & deleted.', who: 'Everyone', hidden: 'Deleted game' },
         { item: 'Delete game', does: 'Removes the game for every player, for 30 days under Deleted games, then hidden for good — nothing is erased.', who: 'Creator and admins', hidden: 'Deleted game' },
@@ -339,7 +339,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       { id: 'view-only', q: 'Why does it say View only?', a: 'You are not an admin of this game. Ask the creator (named under the table) to make you one from **Players · Admins**.' },
       { id: 'settings-locked', q: 'Why is Game settings locked?', a: 'Only the pool limit locks, and only once a round is saved — changing it would change who is out. Everything else in Game settings still changes.' },
       { id: 'scorecard-changed', q: '"The scorecard changed" — what happened?', a: 'Another phone saved a round, undid one or edited one while you were typing. The sheet reloads; check the round number before you save again.' },
-      { id: 'reopen-blocked', q: 'Why can I not reopen a Completed game?', a: 'It is [Closed]: part of a saved result. Delete that result first (its games go back to Completed), then reopen.' },
+      { id: 'reopen-closed', q: 'Can I reopen a Closed game?', a: 'Yes. Scorecard ⋮ › **Reopen game** names the result it is in and asks once. The result keeps the numbers it had and shows **Out of date**; its other games go back to [Completed]. Make a new result when you are done, or delete the old one.' },
       { id: 'short-numbers', q: 'The totals say 8K — where are the exact points?', a: 'Tap the **×N** chip (or any cell) for the exact number. Big totals read short on the scorecard so twenty columns still fit.' },
     ],
     alsoSee: ['add-round', 'players-admins', 'game-log', 'complete', 'scoring-rules'],
@@ -462,7 +462,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     needToKnow: [
       '**Complete** on the scorecard (or on the Round saved sheet) opens one dialog: how many rounds will be locked, who is in and out for a pool, and that you can reopen later. In a Points game every round must add to 0 first.',
       'Points: the dialog goes straight to the **Final screen** (Share + Done). Pool: first **Awards** (Save awards, or Not now), then the Final screen.',
-      'Pressed too early? **Reopen game** from the scorecard ⋮ menu, until the game is part of a saved result.',
+      'Pressed too early? **Reopen game** from the scorecard ⋮ menu. If the game is already in a saved result, that result stays as saved and shows **Out of date**.',
     ],
     sections: [
       {
@@ -475,7 +475,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     ],
     tricky: [
       { id: 'unbalanced', q: 'Why can I not complete the game?', a: 'A Points round does not add to 0. The dialog names the round and offers **Edit round**.' },
-      { id: 'reopen', q: 'I completed too early.', a: 'Scorecard ⋮ › **Reopen game**. It is blocked only once the game is [Closed] (in a saved result) — delete that result first.' },
+      { id: 'reopen', q: 'I completed too early.', a: 'Scorecard ⋮ › **Reopen game**. A [Closed] game (in a saved result) can be reopened too: the result stays as saved, marked **Out of date**, and its other games go back to Completed.' },
     ],
     alsoSee: ['after-last-round', 'final-scores', 'awards', 'results'],
     aliases: ['complete', 'lock', 'finish game'],
@@ -871,6 +871,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'Results',
         bullets: [
           '**Delete result** (result ⋮, for whoever saved it or an admin of its games) removes the result for everyone. Its games are no longer [Closed]. Undo for 10 seconds on the spot; Restore here for 30 days.',
+          '**Out of date** on a result means one of its games was reopened after it was saved. The places and totals stay exactly as saved; the result says which game and who. Make a new result from the games, or delete this one.',
         ],
       },
     ],
@@ -965,7 +966,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     needToKnow: [
       '**Points**: Complete (one dialog, locks the scores) → Final screen (Share, Done = Home). Later, when you want a standings sheet: Home › Results, tick the game, Show results → **Save result** (the game becomes [Closed]).',
       '**Pool**: Complete → **Awards** (who gets what from the pool; Save awards or Not now) → Final screen. Later: Results, tick the pool (it counts its awards) → Save result.',
-      '**Final scores** is for sharing a finished game and changes nothing. **Reopen game** undoes Complete until the game is in a saved result.',
+      '**Final scores** is for sharing a finished game and changes nothing. **Reopen game** undoes Complete; on a Closed game it also marks the saved result **Out of date**.',
     ],
     sections: [
       {
@@ -977,7 +978,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'Undoing a step',
         bullets: [
-          'Delete the result → its games go back to Completed. Edit the awards → allowed until the pool is in a saved result. Reopen the game → allowed until it is Closed; a pool with awards loses them (they came from the standings you are about to change).',
+          'Delete the result → its games go back to Completed. Edit the awards → allowed until the pool is in a saved result. Reopen the game → always allowed; on a Closed game the saved result keeps its numbers and shows Out of date, and its other games go back to Completed. A pool with awards loses them (they came from the standings you are about to change).',
         ],
       },
     ],

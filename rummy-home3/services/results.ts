@@ -10,7 +10,9 @@ import {
   GameResultSummary,
   gameResultName,
   presentResults,
+  ResultForGame,
   ResultSheet,
+  resultStaleFrom,
   ResultStanding,
   summaryFrom,
   withinResultsPlayerLimit,
@@ -146,6 +148,10 @@ function resultFrom(value: unknown): GameResult | null {
     deleted?: unknown;
     deletedAt?: unknown;
     canRestore?: unknown;
+    staleAt?: unknown;
+    staleByName?: unknown;
+    staleGameId?: unknown;
+    staleGameLabel?: unknown;
   };
   if (typeof row.id !== 'string') return null;
   if (row.deleted === true || (typeof row.deletedAt === 'string' && row.deletedAt)) {
@@ -184,6 +190,7 @@ function resultFrom(value: unknown): GameResult | null {
       ? { removedGameIds: row.removedGameIds.filter((id): id is string => typeof id === 'string') }
       : {}),
     ...(typeof row.canManage === 'boolean' ? { canManage: row.canManage } : {}),
+    ...(resultStaleFrom(row) ? { stale: resultStaleFrom(row) } : {}),
   };
 }
 
@@ -259,6 +266,7 @@ export const resultsService = {
     const rows = (Array.isArray(data) ? data : []) as {
       id?: string; declaredAt?: string; gameCount?: number; playerCount?: number;
       firstNames?: string[]; top?: { name?: string; points?: number; place?: number }[]; reusedGameIds?: unknown[];
+      staleAt?: unknown; staleByName?: unknown; staleGameId?: unknown; staleGameLabel?: unknown;
     }[];
     return rows
       .filter((row) => typeof row.id === 'string')
@@ -269,6 +277,7 @@ export const resultsService = {
         playerCount: Number(row.playerCount) || 0,
         // Servers before 018 send no reusedGameIds; the card then shows no flag.
         ...(Array.isArray(row.reusedGameIds) ? { reusedCount: row.reusedGameIds.length } : {}),
+        ...(resultStaleFrom(row) ? { stale: resultStaleFrom(row) } : {}),
         top: (Array.isArray(row.top) ? row.top : []).map((item) => ({
           name: typeof item.name === 'string' ? item.name : 'Player',
           points: Number(item.points) || 0,
@@ -349,6 +358,69 @@ export const resultsService = {
     const result = resultFrom(data);
     if (!result) throw new Error('Results were declared but could not be opened.');
     return result;
+  },
+
+  /** D49: the live result a game sits in (null when none). For the Reopen dialog on a Closed game. */
+  async forGame(gameId: string): Promise<ResultForGame | null> {
+    if (!isSupabaseConfigured) {
+      const result = (await readLocal()).find((item) => !item.deletedAt && item.gameIds.includes(gameId));
+      if (!result) return null;
+      const { storage } = await import('@/utils/storage');
+      const games = await storage.getGames();
+      const players = await storage.getPlayers().catch(() => []);
+      return {
+        id: result.id,
+        declaredAt: result.declaredAt,
+        declaredByName: players.find((player) => player.id === result.declaredBy)?.name ?? '',
+        gameCount: result.gameIds.length,
+        otherGameLabels: result.gameIds
+          .filter((id) => id !== gameId)
+          .map((id) => games.find((game) => game.id === id))
+          .map((game) => (game ? gameLabelFor(game) : null))
+          .filter((label): label is string => Boolean(label)),
+      };
+    }
+    const { data, error } = await supabase.rpc('result_for_game', { p_game_id: gameId });
+    if (error) {
+      // Servers before 050 have no RPC: the dialog then shows the generic wording.
+      if (missingRpc(error)) return null;
+      throw error;
+    }
+    const row = data as { id?: unknown; declaredAt?: unknown; declaredByName?: unknown; gameCount?: unknown; otherGameLabels?: unknown } | null;
+    if (!row || typeof row.id !== 'string') return null;
+    return {
+      id: row.id,
+      declaredAt: typeof row.declaredAt === 'string' ? row.declaredAt : '',
+      declaredByName: typeof row.declaredByName === 'string' ? row.declaredByName : '',
+      gameCount: Number(row.gameCount) || 1,
+      otherGameLabels: Array.isArray(row.otherGameLabels) ? row.otherGameLabels.filter((label): label is string => typeof label === 'string') : [],
+    };
+  },
+
+  /**
+   * D49, local store: the server trigger's work. Stamp every live result that counts the game and
+   * un-close the other games in it. Returns the ids of the games that were un-closed.
+   */
+  async markStaleForReopen(gameId: string, byName: string, gameLabel: string | null): Promise<string[]> {
+    if (isSupabaseConfigured) return [];
+    const results = await readLocal();
+    const now = new Date().toISOString();
+    const unclosed = new Set<string>();
+    let changed = false;
+    const next = results.map((result) => {
+      if (result.deletedAt || !result.gameIds.includes(gameId)) return result;
+      for (const id of result.gameIds) if (id !== gameId) unclosed.add(id);
+      if (result.stale) return result;
+      changed = true;
+      return { ...result, stale: { at: now, byName, gameId, gameLabel } };
+    });
+    if (changed) await writeLocal(next);
+    if (unclosed.size > 0) {
+      const { storage } = await import('@/utils/storage');
+      const games = await storage.getGames();
+      await storage.saveGames(games.map((game) => (unclosed.has(game.id) && game.closedAt ? { ...game, closedAt: null } : game)));
+    }
+    return [...unclosed];
   },
 
   async closeGames(gameIds: string[], closedAt: string): Promise<void> {
