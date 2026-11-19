@@ -148,13 +148,16 @@ tags: [smoke]
     timeout: 10000
 - assertVisible: "Deleted"
 # PR 11 mini help: the 30-day note sits in the ⓘ beside the Deleted title. On a tall phone the
-# Deleted title lands at the very foot of the screen after the scroll above, so centre the ⓘ first.
+# Deleted title lands at the very foot of the screen after the scroll above, so centre the ⓘ first —
+# optionally: when the page is too short to centre it (Pixel 6, Nov 19: the ⓘ visible at the foot, the
+# centring scroll ran out its timeout), the tap below finds it where it is.
 - scrollUntilVisible:
     element:
       id: "deleted-results-note-tip"
     direction: DOWN
     centerElement: true
     timeout: 10000
+    optional: true
 - tapOn:
     id: "deleted-results-note-tip"
 - extendedWaitUntil:
