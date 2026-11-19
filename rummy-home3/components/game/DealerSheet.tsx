@@ -134,12 +134,12 @@ export function DealerSheet({ visible, players, dealerIds, nextDealerOverride, r
               <RadioButton.Group value={follow ? 'follow' : 'keep'} onValueChange={(value) => setFollow(value === 'follow')}>
                 <RadioButton.Item
                   label={`${DEALER_FOLLOW} · ${consequenceLine(game, roundCount, { ...change, follow: true }, ini)}`}
-                  value="follow" position="leading" labelVariant="bodyMedium" style={styles.radio} disabled={saving}
+                  value="follow" position="leading" labelVariant="bodyMedium" labelStyle={styles.radioLabel} style={styles.radio} disabled={saving}
                   testID="dealer-follow" accessibilityLabel={DEALER_FOLLOW}
                 />
                 <RadioButton.Item
                   label={`${DEALER_KEEP} · ${consequenceLine(game, roundCount, { ...change, follow: false }, ini)}`}
-                  value="keep" position="leading" labelVariant="bodyMedium" style={styles.radio} disabled={saving}
+                  value="keep" position="leading" labelVariant="bodyMedium" labelStyle={styles.radioLabel} style={styles.radio} disabled={saving}
                   testID="dealer-keep" accessibilityLabel={DEALER_KEEP}
                 />
               </RadioButton.Group>
@@ -163,4 +163,5 @@ const styles = StyleSheet.create({
   step: { marginTop: spacing.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   radio: { paddingHorizontal: 0 },
+  radioLabel: { textAlign: 'left', paddingLeft: 4 },
 });
