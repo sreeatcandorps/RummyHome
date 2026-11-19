@@ -888,6 +888,15 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     family: 'people',
     icon: 'login-variant',
     purpose: 'Email and a 6-digit passcode; a code by email if you forget it.',
+    screenshot: {
+      file: 'sign-in',
+      legend: [
+        '**Email**: the address you created the account with. It is your sign-in and cannot be changed.',
+        '**6-digit passcode**: numbers only; the eye shows what you typed.',
+        '**Forgot passcode?** emails a one-time code; type it back, then choose a new passcode.',
+        '**Create account**: name, email, passcode. Confirm the email we send before the first sign-in.',
+      ],
+    },
     needToKnow: [
       'Your passcode is 6 digits. Numbers only.',
       '**Forgot passcode** emails you a 6-digit code (OTP) to type back here, then you choose a new passcode. The OTP works once and expires in 15 minutes; your old passcode keeps working until the new one is saved.',
