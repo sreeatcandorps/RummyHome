@@ -559,3 +559,10 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   `39_event_log_games_048.sql`; the rollback replay covers it. Nothing applied to live. Rule going forward: a step
   run on live gets its file in the same hour, so the repo stays the source of truth.
 
+### 2026-11-18 — D46 C and D47 B built (migration 049 written, not applied)
+- Sree picked the recommendations: **D46 C** — reopening a pool that has awards clears them (migration
+  `049_reopen_pool_clears_awards.sql`, a `before update of status` trigger on `games` plus the app's own reopen
+  update; rollback, pgTAP 40, replay hook), and **D47 B** — "sideways" means wider than tall on every device, so a
+  tablet turned sideways gets the table-alone pool layout and upright keeps the card + Standings. His question on
+  reopening a pool that is in a result: it cannot happen — such a pool is Closed; results keep their stored places.
+  049 is **not applied** to live (needs Sree's yes). No new dependency, no hosting change.
