@@ -599,7 +599,16 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
 - Sree tested v12 and sent 15 points (`docs/v12-feedback.md`). #97 (flow 42 device frames) and #98 (the feedback
   table and `docs/play-store-launch.md`) merged on his "Yes". Two PRs follow: the quick fixes (D51 scorecard header
   scrolls sideways, D52 Add by initials layout, help pictures fit, 48 dp seating rows, no tick, pill clearance) and
-  the pool-limit unlock (D53, **migration 051**, not applied) with the width-fitted round blocks and the two-column
+  the pool-limit unlock (D53, **migration 051**, applied the same evening, see below) with the width-fitted round blocks and the two-column
   abbreviation key (D54). Open with Sree: seating countdown (Q4), the unsaved-players button wording (Q3), the
   Find-in-database help highlight (Q5), republishing the live scorecard page (Q6), and the Play Console account
   (personal needs 12 testers × 14 days before production; organization needs a D-U-N-S number). No new dependency.
+
+### 2026-11-19 — #100 merged; 051 applied to live; first production AAB cut
+- Sree: "Yes, merge 100, apply 051 to live, and build the AAB and APK." #100 merged (`eafe964`). Build Bot applied
+  **051** at 18:46 UTC (schema_migrations `20261119184606`; `games_pool_limit_changed` enabled, `games_pool_settings_lock`
+  gone, `player_back_in` in `event_log_kind`, counts unchanged). Two EAS builds from `eafe964`: the first **production
+  AAB** (`d34e29b6`, versionCode 13, for Google Play) and the preview APK v13 (`ee53751b`, versionCode 14, sideload).
+  First time the `production` profile is used; EAS holds the upload key, Play App Signing will hold the app key.
+  Play Store answers so far: contact `support@mindweavetech.com`, all countries; trader status and #101 (listing
+  pack) still open. No new dependency.
