@@ -187,9 +187,9 @@ export function withStoredPointsRules(base: GameSettings, stored: any): GameSett
 }
 
 /**
- * The ⋮ item for Game settings (Q11.12): a pool with saved rounds says so on the item itself,
- * "Game settings · locked" — the limit cannot change; Drop / Middle drop / Full count and Re-entries still can.
+ * The ⋮ item for Game settings. Q11.12 read "Game settings · locked" on a pool with rounds; 051 / D53
+ * (Nov 19) unlocked the limit, so the item always reads the same. Kept as a function for its callers.
  */
-export function gameSettingsMenuTitle(pool: boolean, roundCount: number): string {
-  return pool && roundCount > 0 ? 'Game settings · locked' : 'Game settings';
+export function gameSettingsMenuTitle(_pool: boolean, _roundCount: number): string {
+  return 'Game settings';
 }

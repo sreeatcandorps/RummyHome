@@ -273,3 +273,38 @@ export function resultScoresOf(game: Pick<Game, 'gameType' | 'players' | 'scores
   if (!game.awardedAt) return Object.fromEntries(game.players.map((id) => [id, []]));
   return Object.fromEntries(game.players.map((id) => [id, [game.prizeShares?.[id] ?? 0]]));
 }
+
+// ---------- 051 / D53 (v12 point 12, Sree Nov 19): the limit may change once rounds exist ----------
+
+export type LimitChangePreview = { backIn: string[]; goOut: string[] };
+
+/** Who changes state if the limit becomes `limit`: out players under it come back, in players at or over it go out. */
+export function limitChangePreview(game: Pick<Game, 'players' | 'scores' | 'poolSeats'>, limit: number, nameOf: (id: string) => string): LimitChangePreview {
+  const backIn: string[] = [];
+  const goOut: string[] = [];
+  game.players.forEach((id) => {
+    const seat = seatOf(game, id);
+    const total = poolTotal(game.scores[id], seat);
+    if (isOut(seat) && total < limit) backIn.push(nameOf(id));
+    if (!isOut(seat) && total >= limit) goOut.push(nameOf(id));
+  });
+  return { backIn, goOut };
+}
+
+export const POOL_LIMIT_CHANGE_TITLE = 'Change the pool limit?';
+
+/** Under the Pool limit chips once rounds exist (Game settings). */
+export const poolLimitRoundsNote = (rounds: number) => `${rounds === 1 ? '1 round' : `${rounds} rounds`} played · a change re-reads who is out`;
+
+const nameList = (names: string[]) => (names.length <= 2 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
+
+/** The confirm before a limit change with rounds saved. Null when nothing needs asking. */
+export function poolLimitChangeConfirm(roundCount: number, from: number, to: number, preview: LimitChangePreview | null): string | null {
+  if (roundCount <= 0 || from === to) return null;
+  const head = `${roundCount === 1 ? '1 round' : `${roundCount} rounds`} already played. At ${to} instead of ${from}, who is out is read again from every total.`;
+  const parts: string[] = [];
+  if (preview?.backIn.length) parts.push(`${nameList(preview.backIn)} ${preview.backIn.length === 1 ? 'comes' : 'come'} back in.`);
+  if (preview?.goOut.length) parts.push(`${nameList(preview.goOut)} ${preview.goOut.length === 1 ? 'goes' : 'go'} out.`);
+  if (preview && parts.length === 0) parts.push('Nobody changes today; the new limit applies from the next round.');
+  return [head, ...parts, 'Totals stay as they are. The Log records it.'].join(' ');
+}

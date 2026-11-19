@@ -62,7 +62,7 @@ import { formatSupabaseError } from '../../utils/supabaseErrors';
 import { isRoundConflict, roundConflictMessage } from '../../utils/roundConflict';
 import { rummyShareNeedsConfirm } from '../../utils/rummyDistribution';
 import { overMaxConfirm, poolOverFullConfirm, rummyShareConfirm } from '../../utils/roundConfirms';
-import { afterRound, AfterRound, isPoolGame, overFullCount, playersIn, poolTotal, seatOf } from '../../utils/pool';
+import { afterRound, AfterRound, isPoolGame, limitChangePreview, overFullCount, playersIn, poolTotal, seatOf } from '../../utils/pool';
 import { gameSettingsMenuTitle } from '@/utils/gameSettings';
 import { CompleteGameDialog } from '../../components/game/CompleteGameDialog';
 import { afterCompleteRoute } from '@/utils/endFlow';
@@ -419,7 +419,7 @@ export default function ScoreEntryScreen() {
           />
         }
       >
-        <Menu.Item leadingIcon={pool && nextRoundNumber(game) > 1 ? 'lock-outline' : 'cog-outline'} title={gameSettingsMenuTitle(pool, nextRoundNumber(game) - 1)} onPress={() => { setMenuOpen(false); setSettingsOpen(true); }} />
+        <Menu.Item leadingIcon="cog-outline" title={gameSettingsMenuTitle(pool, nextRoundNumber(game) - 1)} onPress={() => { setMenuOpen(false); setSettingsOpen(true); }} />
         <Menu.Item leadingIcon="share-variant" title="Share live scorecard" onPress={shareLive} />
         <Menu.Item
           leadingIcon="eraser-variant"
@@ -808,7 +808,8 @@ export default function ScoreEntryScreen() {
       <GameSettingsDialog
         visible={settingsOpen}
         rules={rulesFromGame(game.settings, game.gameType)}
-        lockValues={pool && nextRoundNumber(game) > 1}
+        roundCount={nextRoundNumber(game) - 1}
+        poolLimitPreview={pool ? (limit) => limitChangePreview(game, limit, nameOf) : undefined}
         onDismiss={() => setSettingsOpen(false)}
         onSave={async (rules) => {
           const updated = await gamesService.updateGameRules(game.id, rules);

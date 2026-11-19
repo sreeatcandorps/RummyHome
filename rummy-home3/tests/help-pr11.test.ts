@@ -185,8 +185,9 @@ test('HL11-5 mini helps (ⓘ): the Game type screen keeps only live feedback; ea
   for (const id of ['tip-limit', 'tip-values', 'tip-multiplier', 'tip-reentries']) assert.match(form, new RegExp(`\\$\\{testIDPrefix\\}-${id}`), `RulesForm ⓘ ${id}`);
   assert.doesNotMatch(form, /How many times per player\?/, 'the Re-entries question moved into its ⓘ');
   assert.match(form, /limitNumber \? limitHint\(limitNumber\)/, 'the live "100 is in, 101 is out" line stays');
-  assert.match(form, /lockValues \? \[POOL_LIMIT_TIP, POOL_LOCK_NOTE\] : POOL_LIMIT_TIP/, 'the lock note joins the limit ⓘ when the limit is locked');
-  assert.match(form, /LOCKED_TAG/, 'and a Locked tag shows beside the title');
+  // 051 / D53 (Nov 19): the limit is no longer locked; the ⓘ explains what a change does once rounds exist.
+  assert.match(form, /roundCount > 0 \? \[POOL_LIMIT_TIP, POOL_LIMIT_CHANGE_NOTE\] : POOL_LIMIT_TIP/, 'the change note joins the limit ⓘ once rounds exist');
+  assert.doesNotMatch(form, /LOCKED_TAG|lockValues/, 'no Locked tag, no lock prop');
   const settings = src('components/game/GameSettingsDialog.tsx');
   assert.match(settings, /helpTopic="scorecard" helpAnchor="game-settings"/, 'Game settings ⓘ Full guide → scorecard help, Game settings part');
 });
@@ -260,12 +261,11 @@ test('HL11-8 help copy matches PR 24 (#82): four-step New game, Order of players
 });
 
 test('HL11-6 Why? links: the five puzzling dialogs link to their Tricky case', () => {
-  assert.deepEqual(Object.keys(HELP_WHY).sort(), ['countedAgain', 'giveAwardsFirst', 'saveAwardsAnyway', 'scorecardChanged', 'settingsLocked'].sort());
+  assert.deepEqual(Object.keys(HELP_WHY).sort(), ['countedAgain', 'giveAwardsFirst', 'saveAwardsAnyway', 'scorecardChanged'].sort());
   assert.match(src('app/(screens)/results/index.tsx'), /<WhyLink why="giveAwardsFirst"/);
   assert.match(src('app/(screens)/games/award.tsx'), /<WhyLink why="saveAwardsAnyway"/);
   assert.match(src('app/(screens)/score-entry.tsx'), /why: 'scorecardChanged'/);
   assert.match(src('components/results/ResultWarnings.tsx'), /<WhyLink why="countedAgain"/);
-  assert.match(src('components/game/GameSettingsDialog.tsx'), /lockValues \? <WhyLink why="settingsLocked"/);
   assert.match(src('components/help/WhyLink.tsx'), /WHY_LABEL = 'Why\?'/);
 });
 

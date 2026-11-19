@@ -65,6 +65,8 @@ export const KIND_LABELS: Record<string, string> = {
   // Pool (PR 13)
   player_out: 'Out',
   player_reentered: 'Re-entered',
+  // 051 / D53: back in because the limit was raised
+  player_back_in: 'Back in',
   reentry_undone: 'Re-entry undone',
   awards_set: 'Awards given',
   awards_changed: 'Awards changed',
@@ -109,6 +111,7 @@ export function dotTone(entry: Pick<LogEntry, 'kind' | 'level'>): DotTone {
       return 'red';
     case 'player_added':
     case 'player_reentered':
+    case 'player_back_in':
     case 'seating_changed':
     case 'admin_added':
     case 'admin_removed':

@@ -594,3 +594,12 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   reopen with Out of date results); the live database has 049 and 050. #94 (nightly drift fixes, the planner's
   edited-full-flows job, smoke-first full job, `full/51` signs back in as sree) merged right after the build, so
   its Exact-points scroll fix waits for the next APK. No new dependency, no hosting change.
+
+### 2026-11-19 — v12 feedback: #97 and #98 merged; quick-fix and pool-limit PRs opened; Play Store path written
+- Sree tested v12 and sent 15 points (`docs/v12-feedback.md`). #97 (flow 42 device frames) and #98 (the feedback
+  table and `docs/play-store-launch.md`) merged on his "Yes". Two PRs follow: the quick fixes (D51 scorecard header
+  scrolls sideways, D52 Add by initials layout, help pictures fit, 48 dp seating rows, no tick, pill clearance) and
+  the pool-limit unlock (D53, **migration 051**, not applied) with the width-fitted round blocks and the two-column
+  abbreviation key (D54). Open with Sree: seating countdown (Q4), the unsaved-players button wording (Q3), the
+  Find-in-database help highlight (Q5), republishing the live scorecard page (Q6), and the Play Console account
+  (personal needs 12 testers × 14 days before production; organization needs a D-U-N-S number). No new dependency.
