@@ -43,10 +43,10 @@ test('ScoreTable in hug mode: placeholder row at 0 rounds, one empty row, maxHei
 
 test('the scorecard: pool portrait hugs, Points and landscape fill; landscape pool has no standings but the admin keeps Give awards in the strip', () => {
   const screen = src('app/(screens)/games/[id].tsx');
-  assert.match(screen, /hugRows=\{pool && !isShort \? POOL_CARD_MAX_ROWS : undefined\}/);
+  assert.match(screen, /hugRows=\{pool && !sideways \? POOL_CARD_MAX_ROWS : undefined\}/);
   assert.doesNotMatch(screen, /portraitPaneHeights|PORTRAIT_TABLE_FLEX|PORTRAIT_STANDINGS_FLEX|below=\{/, 'the 70 / 30 split and the landscape standings are gone');
   assert.match(screen, /\{pool \? <View style=\{styles\.poolTablePane\} testID="pool-table-pane">\{table\}<\/View> : table\}/);
   assert.match(screen, /<ScrollView style=\{styles\.flex\} contentContainerStyle=\{styles\.portraitStandingsContent\} showsVerticalScrollIndicator testID="pool-standings-pane">/, 'the standings take what is left');
-  assert.match(screen, /pool && isShort && canManageNow && !game\.closedAt \?[\s\S]*?testID="strip-give-awards"[\s\S]*?\{game\.awardedAt \? 'Change awards' : 'Give awards'\}/, 'landscape completed pool: awards reachable from the strip');
+  assert.match(screen, /pool && sideways && canManageNow && !game\.closedAt \?[\s\S]*?testID="strip-give-awards"[\s\S]*?\{game\.awardedAt \? 'Change awards' : 'Give awards'\}/, 'landscape completed pool: awards reachable from the strip');
   assert.doesNotMatch(src('utils/scorecardLayout.ts'), /PORTRAIT_TABLE_FLEX/);
 });
