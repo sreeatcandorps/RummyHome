@@ -1,0 +1,82 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke, landscape]
+# Frames for the Google Play listing (docs/play-listing/make-assets.py reads them from this job's
+# gallery). Sree, Nov 19: "10 players sideways", a pool "with at least 8 players", a saved result whose
+# games read S1 and S2. Everything is Ravi Kumar's (demo@test.local, supabase/seed-listing.sql), so
+# nothing of Sree's is touched; the flow signs Sree back in at the end for the known-bugs set that
+# follows. Asserts only what the pictures need; saves nothing.
+---
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: demo@test.local
+- takeScreenshot: 22-home-ravi
+# Game L: Points, 10 players, 8 rounds — portrait, then sideways.
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEL1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEL1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertVisible: "10 players"
+- takeScreenshot: 22b-points-10p-portrait
+- setOrientation: LANDSCAPE_LEFT
+- extendedWaitUntil:
+    visible:
+      id: "score-header-2"
+    timeout: 15000
+- assertVisible: "10 players"
+- takeScreenshot: 22c-points-10p-landscape
+- setOrientation: PORTRAIT
+- extendedWaitUntil:
+    visible: "10 players"
+    timeout: 15000
+- back
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000
+# Game M: Pool 101, 9 players, 5 rounds, two out.
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEM1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEM1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertVisible: "9 players"
+- takeScreenshot: 22d-pool-9p-portrait
+- back
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 20000
+# The saved result over S1 and S2 (Past results → the one row).
+- tapOn: "Results"
+- extendedWaitUntil:
+    visible: "Past results"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "past-result-20000000-0000-4000-8000-000000000d01"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "past-result-20000000-0000-4000-8000-000000000d01"
+- extendedWaitUntil:
+    visible: "Scores"
+    timeout: 20000
+- assertVisible: "2 games · 6 players"
+- assertNotVisible: "Not saved yet.*"
+- takeScreenshot: 22e-result-saved-s1-s2
+- back
+# Back to Sree for whatever runs after this flow.
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: sree@test.local

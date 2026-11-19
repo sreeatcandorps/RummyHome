@@ -141,7 +141,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       'Recent partners come first, then everyone else by how often you play together. Up to 20 players.',
       '**Add by initials**: new people by initials, seated as you save them. **Find in database**: a registered player, seated here and added to My players at once.',
       'Scorecard columns show each player\u2019s initials from your My players. If two would match, a **Fix initials** step appears before the game starts.',
-      '**Next** opens Game type: Points or Pool, with the numbers prefilled from your Settings. Then **Order of players** (tap players in seating order) and, when a registered player was added, a co-admin. Only the last step says **Start game**.',
+      '**Next** opens Game type: Points or Pool, with the numbers prefilled from your Settings. Then **Order of players** (tap players from the highest card to the lowest) and, when a registered player was added, a co-admin. Only the last step says **Start game**.',
     ],
     screenshot: {
       file: 'new-game',
@@ -181,10 +181,12 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'Order of players',
         bullets: [
-          'Tap players in seating order: the first tap is seat 1, and the player moves up into the numbered rows. Tap the most recently numbered player again to take the number back; tap any other numbered player to highlight them.',
-          'Numbered rows show small ▲ ▼ arrows that move a seat one place at once. **Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
-          'Seat 1 deals round 1 and the deal goes round by seat; the scorecard columns follow this order.',
-          'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens prefilled, so one move is one tap; **Done** saves it, the Log records it and played rounds keep their dealer.',
+          'Draw a card each for the seating position.',
+          'Tap players from the highest card to the lowest, in that order. The first tap goes on top with the highest seat number; the last tap is **seat 1**.',
+          'Seat 1 deals round 1. The highest seat gets the first open card. Every round the deal moves up one seat, and the open card goes to the seat before the dealer. The scorecard columns follow the seats, seat 1 first.',
+          'Wrong tap? Tap the latest player again to take the number back; tap any other numbered player to highlight them.',
+          'Numbered rows show small ▲ ▼ arrows that nudge a player one seat; the lowest seat has no ▼, there is nowhere lower to go. **Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
+          'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens prefilled, so one move is one tap; **Done** saves it, the Log records it, played rounds keep their dealer and the next deal follows the new order.',
         ],
       },
       {
@@ -197,7 +199,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     ],
     tricky: [
       { id: 'not-in-list', q: 'The person I want is not in the list.', a: 'They are not in your My players yet. **Find in database** if they have an account (name or #ID), **Add by initials** if they do not. Both seat them in this game at once.' },
-      { id: 'who-deals', q: 'Who deals first?', a: 'Seat 1 in the **Order of players** you set before Start (the first player you tapped). The deal then goes round by seat; played rounds keep their dealer.' },
+      { id: 'who-deals', q: 'Who deals first?', a: 'Seat 1 in the **Order of players** you set before Start: the lowest card, the last player you tapped. Every round the deal moves up one seat and the open card goes to the seat before the dealer; played rounds keep their dealer.' },
       { id: 'twenty', q: 'Why can I not add a 21st player?', a: 'A game holds up to 20 players. Start a second game for the rest.' },
     ],
     alsoSee: ['game-type', 'add-players', 'my-players', 'scorecard'],
@@ -269,7 +271,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       '[View only] means you can watch but not change scores. Admins see **Add round**, **Undo** and **Complete**.',
       'Totals sit in the header next to each name. With a multiplier, big numbers read short (8K, 1.2M); the **×N** chip opens the exact points.',
       'Pool: the header reads like a Points header (initials and score; Player IDs live on **My players** and **Players · Admins**); out is struck through. A re-entered player shows the re-entry score with ↺ in that round, and their cells above it turn grey. **Standings** below show points and drops left.',
-      '**Order of players**: set before Start by tapping players in seating order. Seat 1 deals first and the deal goes round by seat. Admins change the order any time from ⋮; played rounds keep their dealer.',
+      '**Order of players**: set before Start by tapping players from the highest card to the lowest; the last tap is seat 1 and deals first, and the deal goes round by seat. Admins change the order any time from ⋮; played rounds keep their dealer.',
       '**Undo** asks before removing the last round. **Complete** shows the final totals and asks once more before locking.',
     ],
     screenshot: {

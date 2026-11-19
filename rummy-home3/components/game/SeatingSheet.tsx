@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Dialog, Portal, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { OrderOfPlayers, SeatingPlayer } from '@/components/game/OrderOfPlayers';
+import { OrderHowTo } from '@/components/game/OrderHowTo';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import {
@@ -13,7 +14,8 @@ import {
   OrderDraft,
   orderChanged,
   orderComplete,
-  ORDER_HOW_TO,
+  ORDER_WRONG_TAP,
+  orderSteps,
   SEATING_CLEAR,
   SEATING_DONE,
   SEATING_TITLE,
@@ -54,7 +56,7 @@ export function SeatingSheet({ visible, players, pool, dealerIds, roundCount, on
   }, [visible, baseKey]);
 
   const outIds = useMemo(() => new Set(players.filter((player) => player.out).map((player) => player.id)), [players]);
-  const dealsNext = draft.numbered.length ? nextDealerFor(displayOrder(draft), dealerIds, roundCount, outIds) : undefined;
+  const dealsNext = orderComplete(draft) ? nextDealerFor(displayOrder(draft), dealerIds, roundCount, outIds) : undefined;
   const complete = orderComplete(draft);
   const changed = orderChanged(draft);
   const note = midGameSeatingNote(roundCount);
@@ -85,7 +87,7 @@ export function SeatingSheet({ visible, players, pool, dealerIds, roundCount, on
               <Text variant="bodySmall" style={{ color: colors.onSecondaryContainer }}>{note}</Text>
             </View>
           ) : null}
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{ORDER_HOW_TO}</Text>
+          <OrderHowTo steps={orderSteps(base.length).slice(1)} note={ORDER_WRONG_TAP} testID="seating-how-to" />
         </Dialog.Content>
         <Dialog.ScrollArea style={[styles.scrollArea, { maxHeight: Math.max(200, layout.height * 0.5) }]}>
           <ScrollView contentContainerStyle={styles.body}>

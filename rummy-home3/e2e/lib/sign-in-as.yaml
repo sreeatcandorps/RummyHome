@@ -11,8 +11,23 @@ appId: com.mindweavetech.rummyhome
 ---
 # clearState and launchApp as two steps: in one step the start can land while the force-stop from the
 # clear is still running, and Android kills the new process ("start not valid") — a blank screen for 30 s.
+# Even as two steps the clear's "remove task" can still kill the fresh process a few ms after it starts
+# (full/51 on Nov 19: Start proc … Killing (adj -10000): remove task → blank screen until the timeout).
+# So wait for the login screen once, and if it never came, start the app again.
 - clearState
 - launchApp
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 20000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: "login-email"
+    commands:
+      - stopApp
+      - launchApp
 - extendedWaitUntil:
     visible:
       id: "login-email"

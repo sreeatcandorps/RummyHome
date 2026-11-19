@@ -42,7 +42,9 @@ test('e2e: every flow targets the real package and every runnable flow takes a s
   }
   for (const f of flows) {
     assert.match(read(f), /^- takeScreenshot: /m, `${f} has no screenshot`);
-    assert.match(read(f), /^- runFlow: \.\.\/lib\/ensure-signed-in\.yaml$/m, `${f} does not start signed in`);
+    // smoke/22 (Play listing frames) signs in as the listing account instead, and puts Sree back at the end.
+    const signedIn = /^- runFlow: \.\.\/lib\/ensure-signed-in\.yaml$/m.test(read(f)) || /file: \.\.\/lib\/sign-in-as\.yaml/.test(read(f));
+    assert.ok(signedIn, `${f} does not start signed in`);
   }
 });
 
@@ -75,16 +77,16 @@ test('e2e: every id: a flow taps or asserts exists as a testID in the app', () =
 });
 
 test('e2e: the fixtures the flows name are seeded, and the seed is CI-only', () => {
-  const seed = read('supabase/seed-e2e.sql');
-  for (const code of ['GAMEE1', 'GAMEF1', 'GAMEG1', 'GAMEH1']) assert.match(seed, new RegExp(code), code);
+  const seed = read('supabase/seed-e2e.sql') + read('supabase/seed-listing.sql');
+  for (const code of ['GAMEE1', 'GAMEF1', 'GAMEG1', 'GAMEH1', 'GAMEL1', 'GAMEM1']) assert.match(seed, new RegExp(code), code);
   for (const f of flows) {
     for (const m of read(f).matchAll(/game-card-(GAME[A-Z0-9]+)/g)) {
       const code = m[1];
-      assert.ok(code === 'GAMEA1' || seed.includes(code), `${f} uses ${code} but seed-e2e.sql does not seed it`);
+      assert.ok(code === 'GAMEA1' || seed.includes(code), `${f} uses ${code} but seed-e2e.sql / seed-listing.sql does not seed it`);
     }
   }
   // Never part of `supabase db reset` (seed.sql is what pgTAP counts against); applied by the UI job only.
-  assert.doesNotMatch(read('supabase/config.toml'), /seed-e2e/);
+  assert.doesNotMatch(read('supabase/config.toml'), /seed-e2e|seed-listing/);
 });
 
 test('e2e: known-bug flows say which PR fixes them, and smoke flows are tagged smoke', () => {
@@ -104,6 +106,7 @@ test('e2e: the workflow runs the device plan (PR 17: select → apk → ui matri
   assert.match(wf, /name: ui-\$\{\{ matrix\.device \}\}-\$\{\{ matrix\.suite \}\}/);
   assert.match(wf, /matrix: \$\{\{ fromJSON\(needs\.select\.outputs\.matrix\) \}\}/);
   assert.match(wf, /seed-break\.sql/, 'the break-the-app roster is seeded for the device jobs');
+  assert.match(wf, /seed-listing\.sql/, 'the Play listing fixtures are seeded for the device jobs');
   assert.match(wf, /reactivecircus\/android-emulator-runner@v2/);
   assert.match(wf, /EXPO_PUBLIC_SUPABASE_URL: http:\/\/10\.0\.2\.2:54321/, 'the APK talks to the local Supabase');
   assert.match(wf, /seed-e2e\.sql/);

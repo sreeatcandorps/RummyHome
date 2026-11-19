@@ -51,11 +51,15 @@ export function seatRowHeight(_count: number): number {
 }
 
 /**
- * PR 24 — the Order of players list. Players are numbered by tapping them: the first tap gives 1,
- * the next 2, and so on; numbered players rise to the top in number order, the rest wait below in
- * their current order. Tapping the most recently numbered player takes their number back (undo the
- * last tap); tapping any other numbered player only highlights them. ▲ ▼ move a numbered player one
- * place. Clear takes every number back. Done / Next need everyone numbered.
+ * PR 24 — the Order of players list; D56 (Sree, Nov 19, v12 point 7) turned the taps into a countdown.
+ * Players tap in the order of the cards they drew, highest first: the first tap is seat N (the top row),
+ * the next seat N-1, and so on; the LAST tap is seat 1, which deals round 1 and is the first scorecard
+ * column. Numbered players sit at the top, highest seat first, so the list reads N … 1 downwards and
+ * the dealer ends up at the bottom of the numbered block; the rest wait below in their current order.
+ * Tapping the most recent tap takes it back (undo); tapping any other numbered player only highlights
+ * them. ▲ ▼ move a numbered player one seat (▲ = a higher seat, up the list). Clear takes every number
+ * back. Done / Next need everyone numbered. `numbered` is kept in SEAT order (seat 1 first) so the
+ * saved `player_order` is read straight off it.
  */
 export type OrderDraft = {
   /** Every seated player in today's order (the fallback order for the unnumbered). */
@@ -69,27 +73,43 @@ export type OrderDraft = {
 /** A fresh draft: nobody numbered (game start), or everyone in today's order (mid-game, so one move is one tap). */
 export const startOrder = (base: readonly string[], prefilled = false): OrderDraft => ({ base: [...base], numbered: prefilled ? [...base] : [], focus: null });
 
-/** The rows as shown: numbered first in number order, then the rest in their base order. */
-export const displayOrder = (draft: OrderDraft): string[] => [...draft.numbered, ...draft.base.filter((id) => !draft.numbered.includes(id))];
+/** The unnumbered players, in their base order. */
+const unnumbered = (draft: OrderDraft): string[] => draft.base.filter((id) => !draft.numbered.includes(id));
 
-/** 1-based seat number, or null while the player is unnumbered. */
+/** The seat order (seat 1 first) — what Done / Start save. Meaningful once everyone is numbered. */
+export const displayOrder = (draft: OrderDraft): string[] => [...draft.numbered, ...unnumbered(draft)];
+
+/** The rows as shown: numbered players highest seat first (the first tap on top), then the rest in their base order. */
+export const displayRows = (draft: OrderDraft): string[] => [...draft.numbered].reverse().concat(unnumbered(draft));
+
+/**
+ * 1-based seat number, or null while the player is unnumbered. Seats count DOWN from the table size
+ * while the order is being built: with 8 players the first tap shows 8, the second 7 … so a number
+ * never changes once given (D56).
+ */
 export const seatNumberOf = (draft: OrderDraft, id: string): number | null => {
   const at = draft.numbered.indexOf(id);
-  return at < 0 ? null : at + 1;
+  return at < 0 ? null : at + 1 + (draft.base.length - draft.numbered.length);
 };
 
-export const isLastNumbered = (draft: OrderDraft, id: string) => draft.numbered.length > 0 && draft.numbered[draft.numbered.length - 1] === id;
+/** The most recent tap: the lowest seat so far (seat 1 once everyone is numbered). Tapping it again undoes it. */
+export const isLastNumbered = (draft: OrderDraft, id: string) => draft.numbered.length > 0 && draft.numbered[0] === id;
+/** The first tap: the highest card, seat N. */
+export const isFirstNumbered = (draft: OrderDraft, id: string) => draft.numbered.length > 0 && draft.numbered[draft.numbered.length - 1] === id;
 export const orderComplete = (draft: OrderDraft) => draft.numbered.length === draft.base.length;
 
-/** A tap: number an unnumbered player, un-number the most recent one, or just highlight. */
+/** A tap: number an unnumbered player (the lowest seat so far), un-number the most recent one, or just highlight. */
 export function tapPlayer(draft: OrderDraft, id: string): OrderDraft {
   if (!draft.base.includes(id)) return draft;
-  if (!draft.numbered.includes(id)) return { ...draft, numbered: [...draft.numbered, id], focus: id };
-  if (isLastNumbered(draft, id)) return { ...draft, numbered: draft.numbered.slice(0, -1), focus: id };
+  if (!draft.numbered.includes(id)) return { ...draft, numbered: [id, ...draft.numbered], focus: id };
+  if (isLastNumbered(draft, id)) return { ...draft, numbered: draft.numbered.slice(1), focus: id };
   return { ...draft, focus: id };
 }
 
-/** ▲ (-1) / ▼ (+1) on a numbered player; unnumbered players have no arrows. */
+/**
+ * ▲ / ▼ on a numbered player; unnumbered players have no arrows. `direction` is the seat change:
+ * +1 = a higher seat = one row UP the list (the list reads N … 1), -1 = a lower seat = one row down.
+ */
 export function stepNumbered(draft: OrderDraft, id: string, direction: -1 | 1): OrderDraft {
   if (!draft.numbered.includes(id)) return draft;
   return { ...draft, numbered: stepSeat(draft.numbered, id, direction), focus: id };
@@ -114,8 +134,17 @@ export const SEATING_MENU_ITEM = 'Order of players';
 export const SEATING_DONE = 'Done';
 export const SEATING_CLEAR = 'Clear';
 export const SEATING_MENU_SUBLINE = 'Mid-game · admins only · logged';
-/** Under the title on the New game step and the mid-game sheet. */
-export const ORDER_HOW_TO = 'Tap players in seating order: the first tap is seat 1. Tap the last one again to take it back. Seat 1 deals round 1 and the deal goes round by seat.';
+/** Under the title on the New game step (all three) and the mid-game sheet (the last two); Sree's copy, Nov 19. */
+export function orderSteps(seatCount: number): string[] {
+  return [
+    'Draw a card each for the seating position.',
+    'Tap players from the highest card to the lowest.',
+    `Lowest card = seat 1, deals round 1. Highest card = seat ${seatCount}, gets the first open card.`,
+  ];
+}
+export const ORDER_WRONG_TAP = 'Wrong tap? Tap the latest player again to take it back.';
+/** Small tag on the first tap's row while the order is being built. */
+export const HIGHEST_CARD_TAG = 'highest card';
 export const EVERY_PLAYER_NEEDS_A_SEAT = 'Every player needs a seat.';
 
 /** "Pool · 6 seats · 1 out" for a pool; the mid-game subline otherwise. */
