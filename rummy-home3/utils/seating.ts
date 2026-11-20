@@ -134,15 +134,7 @@ export const SEATING_MENU_ITEM = 'Order of players';
 export const SEATING_DONE = 'Done';
 export const SEATING_CLEAR = 'Clear';
 export const SEATING_MENU_SUBLINE = 'Mid-game · admins only · logged';
-/** Under the title on the New game step (all three) and the mid-game sheet (the last two); Sree's copy, Nov 19. */
-export function orderSteps(seatCount: number): string[] {
-  return [
-    'Draw a card each for the seating position.',
-    'Tap players from the highest card to the lowest.',
-    `Lowest card = seat 1, deals round 1. Highest card = seat ${seatCount}, gets the first open card.`,
-  ];
-}
-export const ORDER_WRONG_TAP = 'Wrong tap? Tap the latest player again to take it back.';
+// The three-line how-to of Nov 19 moved into the step-by-step tutorial (utils/tutorials.ts, D61); the screen keeps one line.
 /** Small tag on the first tap's row while the order is being built. */
 export const HIGHEST_CARD_TAG = 'highest card';
 export const EVERY_PLAYER_NEEDS_A_SEAT = 'Every player needs a seat.';

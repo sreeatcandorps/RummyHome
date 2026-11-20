@@ -14,7 +14,8 @@ export type HelpFamily = 'games' | 'results' | 'people' | 'rules';
 export type HelpGroup = 'Playing' | 'Results' | 'People' | 'You' | 'Rules';
 
 export type HelpMenuRow = { item: string; does: string; who: string; hidden?: string };
-export type HelpSection = { title: string; bullets: string[] };
+/** `watch`: the section has a step-by-step tutorial (D61); the page shows a **Watch how** button under the bullets. */
+export type HelpSection = { title: string; bullets: string[]; watch?: 'seating' };
 export type HelpTricky = { id: string; q: string; a: string };
 
 export type HelpTopic = {
@@ -180,7 +181,9 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       },
       {
         title: 'Order of players',
+        watch: 'seating',
         bullets: [
+          'New to it? **Watch how (20 s)** below plays the four steps; the screen also opens them the first time you reach it, and **Show me** on the screen plays them again.',
           'Draw a card each for the seating position.',
           'Tap players from the highest card to the lowest, in that order. The first tap goes on top with the highest seat number; the last tap is **seat 1**.',
           'Seat 1 deals round 1. The highest seat gets the first open card. Every round the deal moves up one seat, and the open card goes to the seat before the dealer. The scorecard columns follow the seats, seat 1 first.',
