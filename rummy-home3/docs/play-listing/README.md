@@ -11,7 +11,9 @@ full-bleed, "Your games", pool with nine players, the awards split page, "Consol
 a saved result over S1 + S2, the seating caption for the D56 countdown, ten players sideways (not twenty).
 The frames for the new pictures come from `smoke/22` (PR #102's seed) and `smoke/19` (the countdown).
 
-Images are in `assets/` (made by `make-assets.py <frames-dir>` from the CI device gallery; re-run it after a UI change):
+Images are in `assets/` (made by `make-assets.py <frames-dir>` from the CI device gallery; re-run it after a UI change).
+Last made Nov 20 from the Pixel 6 smoke frames of `main` @ `e800cb2` (#105 merged; CI run 44623483345), which is
+the first set built since the Nov 19 rework — the earlier files were the pre-review set:
 
 | File | Size | Where in the Console |
 | --- | --- | --- |
