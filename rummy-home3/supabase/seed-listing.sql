@@ -305,3 +305,14 @@ values ('20000000-0000-4000-8000-000000000d01', '00000000-0000-4000-8000-0000000
 insert into public.game_result_games (result_id, game_id) values ('20000000-0000-4000-8000-000000000d01', '10000000-0000-4000-8000-000000000d03'), ('20000000-0000-4000-8000-000000000d01', '10000000-0000-4000-8000-000000000d04');
 -- Closed last: the 050 guard refuses rounds and scores on a Closed game, so the rows above go in first.
 update public.games set closed_at = now() - interval '24 hours' where id in ('10000000-0000-4000-8000-000000000d03', '10000000-0000-4000-8000-000000000d04');
+
+-- ---------------------------------------------------------------------------
+-- D61 the Order of players tutorial: it pops up forced the first time a person reaches the screen
+-- and remembers that on profiles.default_settings (jsonb, no migration). Every seeded account has
+-- seen it, so smoke/16, smoke/19, full/51 and the chaos flows meet the screen as before; Ravi
+-- (demo@test.local) has not, so smoke/24-seating-tutorial gets the first-time run. This file is the
+-- last seed applied, so it covers seed.sql, seed-e2e.sql and seed-break.sql accounts alike.
+-- ---------------------------------------------------------------------------
+update public.profiles
+   set default_settings = coalesce(default_settings, '{}'::jsonb) || '{"seatingTutorialSeen": true}'::jsonb
+ where id <> '00000000-0000-4000-8000-000000000d01';
