@@ -1,0 +1,95 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# 052 / D60 the Dealer sheet, on game E (GAMEE1: sree creator and seated, harish, priya, zero; one
+# round saved, dealt by seat 1). The scorecard header shows DEALS on the seat that deals next and
+# OPENS on the seat before it (D58). ⋮ › Dealer opens one sheet for any round: 1 which round (chips
+# 1 … N and Next), 2 who really deals, 3 Follow from here / This round only, each with the next round
+# written out. Round 1 is given to Harish "this round only": the Log gets a Dealer row and the header
+# still shows the same next dealer (the sequence was kept). Tapping the DEALS badge opens the same
+# sheet; Cancel changes nothing. Runs after smoke/13 (which leaves E with its round 1 re-saved).
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEE1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEE1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertVisible:
+    id: "score-deals-badge"
+- assertVisible:
+    id: "score-opens-badge"
+- takeScreenshot: 23-dealer-scorecard-before
+# ⋮ › Dealer: the sheet opens on the round being played.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-dealer"
+- extendedWaitUntil:
+    visible:
+      id: "dealer-sheet"
+    timeout: 10000
+- assertVisible:
+    id: "dealer-round-next"
+- assertVisible:
+    id: "dealer-card-says"
+    text: "Card says: Round 2 .*"
+- assertVisible:
+    id: "dealer-follow"
+- assertVisible:
+    id: "dealer-keep"
+- takeScreenshot: 23b-dealer-sheet-next-round
+# Round 1 was dealt by seat 1 (Sree). Say Harish really dealt it, this round only.
+- tapOn:
+    id: "dealer-round-1"
+- assertVisible:
+    id: "dealer-card-says"
+    text: "Card says: Round 1 .*"
+- tapOn: "Harish Test deals round 1"
+- assertVisible:
+    id: "dealer-chosen"
+    text: "Harish Test deals round 1"
+- tapOn:
+    id: "dealer-keep"
+- takeScreenshot: 23c-dealer-sheet-round-1-harish-this-round-only
+- tapOn:
+    id: "dealer-done"
+- extendedWaitUntil:
+    notVisible:
+      id: "dealer-sheet"
+    timeout: 15000
+- assertVisible:
+    id: "score-deals-badge"
+- takeScreenshot: 23d-dealer-scorecard-after
+# The Log has the Dealer row.
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-log"
+- extendedWaitUntil:
+    visible:
+      id: "game-log-first-row"
+    timeout: 15000
+- assertVisible:
+    text: ".*Dealer changed · Round 1 · .* → .* · this round only.*"
+- takeScreenshot: 23e-dealer-log
+- back
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+# The DEALS badge is a shortcut to the same sheet; Cancel saves nothing.
+- tapOn:
+    id: "score-deals-badge"
+- extendedWaitUntil:
+    visible:
+      id: "dealer-sheet"
+    timeout: 10000
+- tapOn:
+    id: "dealer-cancel"
+- extendedWaitUntil:
+    notVisible:
+      id: "dealer-sheet"
+    timeout: 10000
+- back

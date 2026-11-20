@@ -76,6 +76,10 @@ export type Database = {
           awarded_at?: string | null;
           awarded_by?: string | null;
           award_note?: Json | null;
+          /** 052: who really deals round next_dealer_round (the Dealer sheet); keeps_sequence = this round only. */
+          next_dealer_profile_id?: string | null;
+          next_dealer_round?: number | null;
+          next_dealer_keeps_sequence?: boolean;
         };
         Insert: {
           id?: string;

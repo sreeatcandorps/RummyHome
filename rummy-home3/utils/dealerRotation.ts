@@ -7,13 +7,23 @@
  * the next rotation one round longer (9 rounds, then 10). A divider is drawn above each
  * round where the game's first dealer deals again: one full rotation done.
  *
+ * 052 (D58, D60): a seat that is out of a pool is skipped, never removed; the first open card
+ * goes to the seat before the dealer that is still in. The Dealer sheet can name who really deals
+ * the round being played (`Game.nextDealerOverride`, applied by the server to that round only) or
+ * fix a played round, following from there or keeping the sequence.
+ *
  * Games saved before 031 (or local games) have no stored dealers; those fall back to the
  * old seat-order rule, which is what the server used to store anyway.
  */
 
+import type { DealerOverride } from '@/types/game';
+
 type RotationGame = {
   players: string[];
   dealerIds?: (string | null | undefined)[] | null;
+  /** Seats skipped by the deal (pool: out). Absent = everyone is in. */
+  outIds?: ReadonlySet<string> | null;
+  nextDealerOverride?: DealerOverride | null;
 };
 
 /** The seat-order rule used before 031 and for a round whose dealer is unknown. */
@@ -28,19 +38,58 @@ export function dealerForRound(game: RotationGame, roundIndex: number): string |
   return seatOrderDealer(game.players, roundIndex);
 }
 
+/** The seats the deal goes round: today's order without the seats that are out. */
+export function rotationOf(game: Pick<RotationGame, 'players' | 'outIds'>): string[] {
+  return game.outIds ? game.players.filter((id) => !game.outIds!.has(id)) : game.players;
+}
+
 /**
- * Who deals the next round (`roundCount` rounds already saved): the seat after the last
- * round's dealer in the current seat order. A last dealer who has left the game, or no
- * rounds yet, falls back to the seat-order rule, as the server does.
+ * The seat after `after` in the rotation (052 `next_in_rotation`). When `after` is not in it
+ * (out, or gone), the next seat up that is, in the full order; past the end wraps to seat 1.
  */
-export function nextDealer(game: RotationGame, roundCount: number): string | undefined {
-  const seats = game.players;
-  if (!seats.length) return undefined;
-  if (roundCount <= 0) return seats[0];
+export function seatAfter(game: Pick<RotationGame, 'players' | 'outIds'>, after: string | null | undefined): string | undefined {
+  const rotation = rotationOf(game);
+  if (!rotation.length) return undefined;
+  if (!after) return rotation[0];
+  const at = rotation.indexOf(after);
+  if (at >= 0) return rotation[(at + 1) % rotation.length];
+  const inFull = game.players.indexOf(after);
+  if (inFull < 0) return rotation[0];
+  for (let step = 1; step <= game.players.length; step += 1) {
+    const candidate = game.players[(inFull + step) % game.players.length];
+    if (rotation.includes(candidate)) return candidate;
+  }
+  return rotation[0];
+}
+
+/** The seat before `dealer` that is still in: the first open card (D58). */
+export function opensFor(game: Pick<RotationGame, 'players' | 'outIds'>, dealer: string | null | undefined): string | undefined {
+  const rotation = rotationOf(game);
+  if (!dealer || rotation.length < 2) return undefined;
+  const at = rotation.indexOf(dealer);
+  if (at < 0) return undefined;
+  return rotation[(at - 1 + rotation.length) % rotation.length];
+}
+
+/**
+ * Who the sequence says deals the next round (`roundCount` rounds already saved), ignoring any
+ * override: the seat after the last round's dealer; no rounds yet → seat 1 of the rotation. A last
+ * dealer who has left the game falls back to the seat-order rule, as the server does.
+ */
+export function plannedDealer(game: RotationGame, roundCount: number): string | undefined {
+  const rotation = rotationOf(game);
+  if (!rotation.length) return undefined;
+  if (roundCount <= 0) return rotation[0];
   const last = game.dealerIds?.[roundCount - 1];
-  const at = last ? seats.indexOf(last) : -1;
-  if (at >= 0) return seats[(at + 1) % seats.length];
-  return seatOrderDealer(seats, roundCount);
+  if (last && game.players.includes(last)) return seatAfter(game, last);
+  return seatOrderDealer(rotation, roundCount);
+}
+
+/** Who deals the next round: the Dealer-sheet override for that round when it names a seat in play, else the plan. */
+export function nextDealer(game: RotationGame, roundCount: number): string | undefined {
+  const override = game.nextDealerOverride;
+  if (override && override.round === roundCount + 1 && rotationOf(game).includes(override.playerId)) return override.playerId;
+  return plannedDealer(game, roundCount);
 }
 
 /**
@@ -66,4 +115,59 @@ export function withDealer(dealerIds: (string | null | undefined)[] | null | und
   while (next.length < roundIndex) next.push(null);
   next[roundIndex] = dealerId ?? null;
   return next;
+}
+
+// ---------- the Dealer sheet (052, D60) ----------
+
+export type DealerChange = {
+  /** 1-based round: a played one, or roundCount + 1 for the round being played. */
+  round: number;
+  dealerId: string;
+  /** true = follow from here (every later round is re-dealt); false = this round only. */
+  follow: boolean;
+};
+
+export type DealerPlan = {
+  /** `dealerIds` after the change (played rounds only; the next round is not stored). */
+  dealerIds: (string | null)[];
+  /** The override the server keeps for the round being played, or null when nothing is pending. */
+  nextDealerOverride: DealerOverride | null;
+  /** The round after the one changed: who deals and who opens. */
+  after: { round: number; dealer: string | undefined; opens: string | undefined };
+};
+
+/**
+ * What a Dealer-sheet change does, worked out the way `set_round_dealer` and `save_round` (052) do
+ * it, so the sheet can show the consequence before Done and a local game can apply it itself.
+ */
+export function planDealerChange(game: RotationGame, roundCount: number, change: DealerChange): DealerPlan {
+  const dealerIds: (string | null)[] = Array.from({ length: roundCount }, (_, i) => dealerForRound(game, i) ?? null);
+  const nextRound = roundCount + 1;
+  if (change.round === nextRound) {
+    const planned = plannedDealer(game, roundCount);
+    const nextDealerOverride: DealerOverride | null =
+      change.follow && change.dealerId === planned ? null : { playerId: change.dealerId, round: nextRound, keepsSequence: !change.follow };
+    const dealer = change.follow ? seatAfter(game, change.dealerId) : seatAfter(game, planned);
+    return { dealerIds, nextDealerOverride, after: { round: nextRound + 1, dealer, opens: opensFor(game, dealer) } };
+  }
+  const index = change.round - 1;
+  const old = dealerIds[index];
+  dealerIds[index] = change.dealerId;
+  if (change.follow) {
+    let prev: string | undefined = change.dealerId;
+    for (let i = index + 1; i < roundCount; i += 1) {
+      prev = seatAfter(game, prev);
+      dealerIds[i] = prev ?? null;
+    }
+    const dealer = seatAfter(game, prev);
+    return { dealerIds, nextDealerOverride: null, after: { round: nextRound, dealer, opens: opensFor(game, dealer) } };
+  }
+  if (change.round === roundCount) {
+    // Keep the sequence on the last round: the next round goes on from the dealer the card had.
+    const dealer = seatAfter(game, old);
+    const nextDealerOverride = dealer ? { playerId: dealer, round: nextRound, keepsSequence: false } : null;
+    return { dealerIds, nextDealerOverride, after: { round: nextRound, dealer, opens: opensFor(game, dealer) } };
+  }
+  const dealer = nextDealer(game, roundCount);
+  return { dealerIds, nextDealerOverride: game.nextDealerOverride ?? null, after: { round: nextRound, dealer, opens: opensFor(game, dealer) } };
 }

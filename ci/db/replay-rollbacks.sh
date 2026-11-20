@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–050) applied, check the function state after each, then re-apply the forward
+# has every migration (001–052) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,18 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 052 (D60 Dealer sheet, D57 join at dealer + 1: set_round_dealer + helpers, override columns, save_round / add_seated_player bodies; rolled back first)
+HAS_052=f
+if [ -f "$RB/rollback_052_dealer.sql" ]; then
+  HAS_052=t
+  if apply "$RB/rollback_052_dealer.sql"; then tap ok "rollback_052 applies"; else tap fail "rollback_052 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists set_round_dealer)" = f ] && [ "$(fn_exists current_dealer)" = f ] && [ "$(fn_exists dealer_rotation)" = f ] \
+    && [ "$(fn_has save_round next_dealer_profile_id)" = f ] && [ "$(fn_has add_seated_player current_dealer)" = f ] \
+    && [ "$(q "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='games' and column_name='next_dealer_profile_id')")" = f ] \
+    && tap ok "after rollback_052 the Dealer RPC, helpers and override columns are gone; save_round / add_seated_player are 041 / 047 again" \
+    || tap fail "after rollback_052 the Dealer RPC, helpers and override columns should be gone"
+fi
 
 # 051 (D53: the pool limit is unlocked; a change re-reads who is out — rolled back first)
 HAS_051=f
@@ -515,6 +527,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_049" = t ] && FORWARD="$FORWARD 049_reopen_pool_clears_awards"
 [ "$HAS_050" = t ] && FORWARD="$FORWARD 050_reopen_closed_game"
 [ "$HAS_051" = t ] && FORWARD="$FORWARD 051_pool_limit_unlocked"
+[ "$HAS_052" = t ] && FORWARD="$FORWARD 052_dealer"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -698,6 +711,11 @@ if [ "$HAS_051" = t ]; then
   [ "$(fn_exists games_pool_limit_changed)" = t ] && [ "$(fn_exists games_pool_settings_lock)" = f ] \
     && [ "$(q "select exists(select 1 from pg_trigger where tgname='games_pool_limit_changed')")" = t ] \
     && tap ok "051 restored (limit-changed trigger, no lock)" || tap fail "051 restored"
+fi
+if [ "$HAS_052" = t ]; then
+  [ "$(fn_exists set_round_dealer)" = t ] && [ "$(fn_exists current_dealer)" = t ] && [ "$(fn_has save_round next_dealer_profile_id)" = t ] \
+    && [ "$(fn_has add_seated_player current_dealer)" = t ] \
+    && tap ok "052 restored (Dealer RPC, override in save_round, join at dealer + 1)" || tap fail "052 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

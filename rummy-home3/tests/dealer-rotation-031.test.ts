@@ -68,7 +68,7 @@ test('031: dealers come from the bundle or the legacy rounds join; undone rounds
   const service = src('services/games.ts');
   assert.match(service, /legacyGameFromServer\(bundle\.game, legacyScoreRows\(bundle\.scores\), bundle\.game_players \?\? \[\], bundle\.dealers\)/);
   assert.match(service, /rounds\(round_number, undone_at, dealer_profile_id\)/, 'the single-game legacy select carries the dealer');
-  assert.match(service, /withDealer\(game\.dealerIds, roundIndex, nextDealer\(game, roundIndex\)\)/, 'local games store the dealer per round');
+  assert.match(service, /withDealer\(game\.dealerIds, roundIndex, nextDealer\(rotation, roundIndex\)\)/, 'local games store the dealer per round (052: the rotation skips out seats)');
 
   const screen = src('app/(screens)/games/[id].tsx');
   assert.match(screen, /nextDealer\(rotation, maxRounds\)/);

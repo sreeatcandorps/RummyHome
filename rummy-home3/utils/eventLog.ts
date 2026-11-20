@@ -72,6 +72,8 @@ export const KIND_LABELS: Record<string, string> = {
   awards_changed: 'Awards changed',
   // Seating order (PR 21)
   seating_changed: 'Seating',
+  // 052 / D60: the Dealer sheet
+  dealer_changed: 'Dealer',
   // Going rogue (PR 20): a scored player asked for a deleted game back. 046 (PR 22): after 30 days the game is
   // hidden for good, never erased; game_purged is 045's kind, kept for any row written before 046.
   restore_requested: 'Asked to restore',
@@ -101,6 +103,7 @@ export function dotTone(entry: Pick<LogEntry, 'kind' | 'level'>): DotTone {
     case 'unclosed':
       return 'red';
     case 'round_edited':
+    case 'dealer_changed':
     case 'settings_changed':
     case 'result_changed':
     case 'awards_changed':

@@ -187,6 +187,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
           'Wrong tap? Tap the latest player again to take the number back; tap any other numbered player to highlight them.',
           'Numbered rows show small ▲ ▼ arrows that nudge a player one seat; the lowest seat has no ▼, there is nowhere lower to go. **Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
           'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens prefilled, so one move is one tap; **Done** saves it, the Log records it, played rounds keep their dealer and the next deal follows the new order.',
+          'Someone joins mid-game: they sit right after whoever is dealing (the dealer\'s seat + 1), deal the round after this one, and nobody loses a turn. Move them from Order of players if the table sat them elsewhere. A pool player who is out keeps the seat; the deal and the open card skip it.',
         ],
       },
       {
@@ -203,7 +204,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       { id: 'twenty', q: 'Why can I not add a 21st player?', a: 'A game holds up to 20 players. Start a second game for the rest.' },
     ],
     alsoSee: ['game-type', 'add-players', 'my-players', 'scorecard'],
-    aliases: ['new game', 'players', 'start a game', 'fix initials', 'add new players', 'from database', 'order of players', 'seating', 'co-admin', 'who deals'],
+    aliases: ['new game', 'players', 'start a game', 'fix initials', 'add new players', 'from database', 'order of players', 'seating', 'co-admin', 'who deals', 'dealer', 'change dealer', 'wrong dealer'],
   },
 
   'game-type': {
@@ -277,11 +278,11 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     screenshot: {
       file: 'scorecard',
       legend: [
-        'Header: each player\u2019s initials and total; the dealer marker on the seat that deals next.',
+        'Header: each player\u2019s initials and total; DEALS on the seat that deals next, OPENS on the seat that gets the first open card.',
         'The rounds, newest at the bottom. Tap a cell to see the exact points.',
         '**Add round** (admins) opens the round sheet; **Undo** removes the last round.',
         'Share icon: the live link, and once complete **Share final scores** (the picture, or the full details as a PDF).',
-        '⋮ menu: Game settings, Players · Admins, Order of players, Edit round, Log, Hide, Delete.',
+        '⋮ menu: Game settings, Players · Admins, Order of players, Dealer, Edit round, Log, Hide, Delete.',
         'Foot, inside the card under the last round: creator, admins and the Unique game ID (tap to copy). It scrolls with the rounds.',
       ],
     },
@@ -291,7 +292,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         bullets: [
           'One column per seat, one row per round. Points: minus numbers in the players\u2019 colours, the winner\u2019s plus in green. Pool: plus points; the winner\u2019s <<0>>.',
           'Landscape shows more columns; with many players the table scrolls sideways and the initials stay pinned.',
-          'Tap **Add round** for the next round; the dealer shown in the header is who deals it.',
+          'Tap **Add round** for the next round; the dealer shown in the header is who deals it. Wrong dealer? Tap DEALS (or ⋮ › **Dealer**), pick the round and who really deals, then follow from there or change that round only.',
         ],
       },
       {
@@ -330,6 +331,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         { item: 'Game settings', does: 'Drop, Middle drop, Full count; Multiplier (Points) or Pool limit and Re-entries (Pool) for this game.', who: 'Admins', hidden: 'Completed games show it read-only' },
         { item: 'Players · Admins', does: 'Who plays, who is admin, invite, link, initials, remove.', who: 'Everyone (admins can change)', hidden: 'Deleted game' },
         { item: 'Order of players', does: 'Rearrange who sits where (tap to number, arrows to nudge); the deal follows the new order from the next round.', who: 'Admins', hidden: 'Completed game' },
+        { item: 'Dealer', does: 'Pick any round — a played one or the one being played — and tap who really deals. **Follow from here** re-deals every later round from them; **This round only** leaves the sequence as the card had it. Scores never change; the Log records it. Tapping the DEALS badge on the scorecard opens the same sheet.', who: 'Admins', hidden: 'Completed game' },
         { item: 'Edit round', does: 'Pick a round and change its scores; the Log keeps the old ones.', who: 'Admins', hidden: 'Completed game, or no rounds yet (grey)' },
         { item: 'Reopen game', does: 'Unlocks a Completed game so rounds can be added again. On a Closed game the saved result stays as saved and shows Out of date. A pool that already has awards loses them; give them again after the next Complete.', who: 'Admins', hidden: 'Active game' },
         { item: 'Log', does: 'Every change to this game, written by the server.', who: 'Everyone' },

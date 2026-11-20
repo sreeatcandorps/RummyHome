@@ -41,6 +41,10 @@ type ScoreTableProps = {
   grandTotal: number;
   dealerLabelForRound: (roundIndex: number) => string | undefined;
   nextDealerId?: string;
+  /** 052 (D58): the seat before the dealer that is still in — the first open card; the header reads OPENS. */
+  opensId?: string;
+  /** 052 (D60): tapping the DEALS badge opens the Dealer sheet (admins, live game). */
+  onDealerPress?: () => void;
   /** Round indexes that start a new rotation (the first dealer deals again); a divider is drawn above each. */
   rotationStarts?: number[];
   leaderIds: string[];
@@ -251,6 +255,8 @@ export function ScoreTable({
   grandTotal,
   dealerLabelForRound,
   nextDealerId,
+  opensId,
+  onDealerPress,
   rotationStarts,
   leaderIds,
   compact = false,
@@ -323,6 +329,7 @@ export function ScoreTable({
   // The dealer's column is tinted, not filled: the button green belongs to buttons only.
   const headerCells = columns.map((column, index) => {
     const dealsNext = column.id === nextDealerId;
+    const opens = column.id === opensId && !dealsNext;
     const leader = isLeader(column.id);
     const out = pool && Boolean(column.outRound);
     const reentered = pool && Boolean(column.reenteredRound) && !out;
@@ -400,19 +407,44 @@ export function ScoreTable({
               {`OUT R${column.outRound}`}
             </Text>
           ) : dealsNext ? (
-            <>
+            <Pressable
+              onPress={onDealerPress}
+              disabled={!onDealerPress}
+              hitSlop={6}
+              accessibilityRole={onDealerPress ? 'button' : undefined}
+              accessibilityLabel="Deals next"
+              accessibilityHint={onDealerPress ? 'Opens the Dealer sheet' : undefined}
+              style={styles.dealsBadge}
+              testID="score-deals-badge"
+            >
               {leader ? <Icon source="crown" size={type.deals.fontSize + 1} color={colors.leader} /> : null}
               {dealsBadge(columnWidth) === 'text' ? (
                 <Text
                   numberOfLines={1}
                   maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
                   style={[styles.dealsText, { fontSize: type.deals.fontSize, lineHeight: type.deals.lineHeight, color: colors.onPrimaryContainer }]}
-                  accessibilityLabel="Deals next"
                 >
                   DEALS
                 </Text>
               ) : (
                 <Icon source="cards-playing-outline" size={type.deals.lineHeight} color={colors.onPrimaryContainer} />
+              )}
+            </Pressable>
+          ) : opens ? (
+            <>
+              {leader ? <Icon source="crown" size={type.deals.fontSize + 1} color={colors.leader} /> : null}
+              {dealsBadge(columnWidth) === 'text' ? (
+                <Text
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={TABLE_MAX_FONT_SCALE}
+                  style={[styles.dealsText, { fontSize: type.deals.fontSize, lineHeight: type.deals.lineHeight, color: colors.onSurfaceVariant }]}
+                  accessibilityLabel="Gets the first open card"
+                  testID="score-opens-badge"
+                >
+                  OPENS
+                </Text>
+              ) : (
+                <Icon source="cards-outline" size={type.deals.lineHeight} color={colors.onSurfaceVariant} />
               )}
             </>
           ) : leader ? (
@@ -669,6 +701,7 @@ const styles = StyleSheet.create({
   rotationDivider: {
     borderTopWidth: 2,
   },
+  dealsBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
   headerLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',

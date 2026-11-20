@@ -11,5 +11,5 @@ test('final batch 8: who deals is shown once (the DEALS column badge), not again
   assert.match(scorecard, /<Tag label=\{`Round \$\{maxRounds \+ 1\}`\} tone="primary" icon="cards-outline" \/>/);
   assert.match(scorecard, /nextDealerId=\{nextDealerId\}/, 'the table still gets the next dealer for its badge');
   const table = src('components/game/ScoreTable.tsx');
-  assert.equal((table.match(/DEALS/g) ?? []).length, 1, 'exactly one DEALS badge text in the table');
+  assert.equal((table.match(/>\s*DEALS\s*</g) ?? []).length, 1, 'exactly one DEALS badge text in the table');
 });
