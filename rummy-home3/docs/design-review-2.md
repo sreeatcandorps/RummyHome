@@ -267,3 +267,107 @@ proposed with Sree selected (only his arrows, green). Generator: `make-order-moc
 
 Batch item (no PR yet, per the batching rule): `OrderOfPlayers.tsx` selected-state arrows, `utils/tutorials.ts`
 SEATING_STEPS 4 → 3, Help copy, flows 19b–19i and 24b–24c re-pinned.
+
+### 8.5 Order of players as a table, and "the newcomer sits left of the dealer" (Sree, Nov 21, 1:11 AM)
+
+**Sree's words**: "It should be a circle, or at least an oval, because that's how people sit in real life … The dealing
+always happens counterclockwise … When someone new comes in, they have to always sit to the left side of the person
+that is dealing. Even if someone re-enters … Anytime someone new is added, you have to warn and say, 'he's going to sit
+on the left side of the dealer, his seat is going to be so-and-so number, the dealer's seat is seat 5, and he's going
+to sit in between these two people.' … the admin can move the players around if he wants, but implement this as a default."
+
+**The table view — yes.** A ring of seats is how every table app draws this (poker home-game lobbies, seating-chart
+tools, board-game companions), and it is the only picture in which "left of the dealer" and "the deal goes this way"
+can be seen rather than read. Recommendation, shown in `table-mockup.png`:
+
+| | Recommendation |
+| --- | --- |
+| Where | Above today's list, in both places (`OrderOfPlayers`, so New game step 3 and the mid-game sheet get it together). The list stays: it is where the card count-down taps happen (D56) and where names, initials and IDs are readable. The table fills as players are numbered — the first tap (highest card) appears, then the next, round the ring. |
+| Geometry | Seat 1 at six o'clock, then **anticlockwise** (seat 2 to seat 1's right — a seated person's right is anticlockwise seen from above), a faint dashed arrow inside the felt showing the deal direction, the dealer's seat badge green with "deals". The centre says the state: "Round 7 · Priya deals · Venkat opens". |
+| 6–8 seats | Circle, 40 dp avatars with the seat badge, first names under them. |
+| 9–13 seats | Oval (the phone is taller than wide), 34 dp avatars, initials only on the ring, names in the list. 13 × 34 dp fits a 336 × 216 oval with room; the ring never shrinks below 34 dp — above 13 the oval scrolls with the page, which is the 14–18 case the scorecard already treats as "big table". |
+| With the 1:03 AM idea | The same selection: tap a seat on the ring (or its row) and **only that player** shows controls — on the ring two round buttons ⟲ ⟳ beside the avatar ("move one seat either way", the ring makes ▲ ▼ meaningless), the row highlighted below. Tap again to deselect. One rule, two pictures of it. |
+| Rotation | When the admin is seated, the ring turns so **they** sit at six o'clock — the table as they see it from their chair. |
+
+**"Left of the dealer" — a direction check, and the one question.** The app stores no left or right, only the order,
+and the order *is* the deal order: seat 1 deals, then seat 2, … (`nextDealer` = the seat after the last dealer). With
+counterclockwise dealing the deal passes to the dealer's **right**, so the dealer's right-hand neighbour is seat + 1
+and **the dealer's left-hand neighbour is seat − 1: the one who deals last before the dealer deals again.** What is
+built today (D57, 052 `add_seated_player`, approved Nov 19 as "+1 from the dealer's seat number") puts a joiner at
+**seat + 1 — the dealer's right — and they deal the very next round.** So the two instructions point opposite ways:
+
+| | Nov 19 (built, D57) | Nov 21 words, taken literally |
+| --- | --- | --- |
+| Kiran joins while Priya (seat 3) deals round 7 | Kiran = seat 4, Priya's **right**; Venkat → 5, Sree → 6, Harish → 7 | Kiran = seat 3, Priya's **left**; Priya → 4, Venkat → 5 … |
+| Kiran first deals | round 8 (next) | round 13 (after everyone else — last in the cycle) |
+| Kiran first opens | round 9 | round 8 (dealt in last, plays last) |
+| Who else notices | Venkat loses "deals next" to Kiran | nobody's turn moves; Kiran waits his turn |
+
+Our recommendation is the **Nov 21 reading** — it is the real-life convention he describes (the newcomer is dealt in
+last and queues for the deal; nobody at the table loses a deal or an open), and it is what the ring will *show*, so
+the picture and the rule must agree. It means changing D57's "+1" to "the seat before the dealer" in `add_seated_player`
+(one line of the 052 body, a migration 053 with the same shape) and the help copy. **Q13 asks Sree to confirm with
+the picture: Kiran at Priya's right (deals next, built) or Priya's left (deals last, his words).**
+
+**Re-entry (pool).** Today a player who re-enters **keeps their seat** (`reenter_player` never touches
+`player_order`); only the score and the entry count change. Sree's rule moves them to the dealer's left as well.
+Recommend: yes as the default, through the same notice, with a **Keep seat N** button — the person who went out has
+usually left their chair, and the dealer's left is the fairest place to be dealt back in (they play last that round).
+Cost to say out loud: their scorecard column moves (columns follow seats, D56), as it already does when an admin
+reorders. The Round saved sheet's `Re-enter` pill opens the notice first.
+
+**The notice** (third screen of the mockup) is a confirm, not a toast — it is the moment the admin can disagree:
+"**Kiran sits left of the dealer.** Seat 3, between Anil (2) and Priya, who is dealing (now seat 4). Priya, Venkat,
+Sree and Harish each move up one seat." + the small ring with the new seat dashed-green + one grey line "Kiran is
+dealt in from round 8 and deals after Anil. Scorecard columns follow the seats." Buttons **Pick a seat** (opens
+Order of players with Kiran selected) · **Add Kiran**. For re-entry: "Anil re-enters at 61 and sits left of the
+dealer: seat 3, between Venkat and Priya." · **Keep seat 5** · **Re-enter**. Before round 1 nobody is dealing: the
+newcomer takes the last seat with no notice, as today.
+
+Picture: `table-mockup.png`. Generator: `make-table-mockup.py`. Batch item 10; the direction is Q13.
+
+### 8.6 Awards: the split chips (Sree, Nov 21, 1:16 AM)
+
+**Sree's words**: "'Winner takes all' is weird, because obviously, if there's only one person left, it's 'winner takes
+all' … If there are 3 players left, distribute evenly … call it 'even distribution' … 'Distribute by drops' is probably
+the most important default, and that should be the first default. The second default should be 'distribute evenly.'
+Those are the two options that could automatically activate. The rest are other options … 'buy points' is fine, 'buy
+points left', 'custom'. We have 4 options."
+
+**Reading it.** "Buy points" / "buy points left" are the transcriber's "by points" — today's **By points left**
+preset (share in proportion to the points each player still in has left). He names five labels and counts four; the
+count is right if "by points" and "by points left" are the same chip. We read it as **four**: *By drops left · Split
+evenly · By points left · Custom*, and ask him to say if "by points" was a different idea (e.g. in proportion to points
+*scored* — unusual, the lowest score would get the least; we recommend not).
+
+**What goes, and what it costs.** *Winner takes all* and *50 / 50* fold into **Split evenly**: the players still in
+share the pool equally — one left takes it all, two left is 50 / 50, three left is thirds (his "the 3 players get the
+full prize"). The one case lost is "three still in, pay only the top two" — 50 / 50 as a *choice* with three in. That is
+what Custom is for; we would not keep a chip for it.
+
+**By drops left, first.** It is today's *Entry per drop left*: every player still in gets one entry per drop they have
+left; the lowest score (the winner) gets the rest. With one player left it **is** winner takes all (the others are out,
+nothing to pay), so the default works at every table size. **Why it was greyed on his screen** (D23 / F13.23): the
+preset is refused when the others' drop entries would leave the winner with less than, or equal to, any of them — on
+P6 the two others had enough drops left (3 × 100 each) to beat the winner's remainder. Today the chip greys and a
+pop-up explains only when tapped. Recommendation: keep D23's rule, but **say why on the screen** under the chips
+("By drops left is off here: Venkat's 3 drops (300) and Sree's 3 drops (300) would leave Priya, the winner, 100") and
+**pick the next default automatically** — exactly his "two options that could automatically activate": *By drops left*
+when viable, else *Split evenly*; the line says "Picked for you: Split evenly".
+
+**Labels**: "By drops left" (not "Entry per drop left" — the unit is in the hint), "Split evenly" (shorter than "even
+distribution", reads as a verb like the others), "By points left", "Custom". The hint line under the chips explains the
+selected one in one sentence; the Gets column shows the result. Four chips fit one row on a Pixel; the fifth today
+wrapped.
+
+Picture: `awards-chips-mockup.png` (today · proposed with drops · proposed when drops is off). Generator:
+`make-awards-chips-mockup.py`. Batch item 11.
+
+### 8.7 Order of players: Done stays grey when nothing changed (Sree thought it was a bug)
+
+Mid-game the sheet's Done is `disabled` while the order is incomplete **or unchanged** (`SeatingSheet`: `!complete ||
+!changed`); nothing on the screen says which. A grey primary button with no reason reads as broken. Recommendation:
+**Done is never grey once everyone is numbered** — unchanged order → Done simply closes (nothing saved, no Log row),
+the standard "Done = I'm finished" meaning; and the counter line under the list carries the state: "Everyone numbered
+· order unchanged" / "Everyone numbered · Sree moves 5 → 3, the next deal follows the new order". While numbering is
+incomplete Done stays grey and the line already says "3 of 6 numbered". Batch item 12.
