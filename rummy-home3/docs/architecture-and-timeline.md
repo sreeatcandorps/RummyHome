@@ -651,3 +651,11 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   next EAS / CI APK includes it (prebuild picks it up); Expo Go is unaffected since we do not use it.
 - `seed-listing.sql` flags every seeded account as having seen the tutorial except Ravi (demo@test.local), so the
   existing seating flows are unchanged and `smoke/24-seating-tutorial` covers the first-time run.
+
+### 2026-11-21 — #107 / #108 merged (`afa9c83`), APK v17; AAB 15 in Play review; `docs/next-up.md` becomes the ordered list
+- Sree: the board does not tell him what is next and the agent stops when a PR lands. New living doc
+  `docs/next-up.md` (ordered, kept every turn by rule `.cursor/rules/next-up.mdc`); the board stays the *state*
+  view, `decisions.md` the *why*. The agent starts the next unblocked item on its own; merges, live migrations,
+  builds and Play uploads still wait for Sree's yes through Build Bot.
+- Found while reading CI timings: the New game "Playing" halo looped for ever on the JS thread, so Maestro waited
+  60–100 s per tap on that screen (smoke/19 10 min) and the slower nightly devices timed out (#88 #103 #106) — #109.
