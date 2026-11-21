@@ -400,7 +400,7 @@ from pictures, not words.
 | Text contrast (WCAG) | green on cream **4.6 : 1** — passes AA for text, but only just; the green links ("Forgot passcode?", "Create account", text buttons) are the thinnest colour in the app | green on paper **8.9 : 1**; brass selection text 9.9 : 1; dark buttons 8.1 : 1 | 16 : 1 both modes |
 | Reads as | the app today | the same room, better lit: the brass reads *selected* where the lemon read *caution* (B04) | the fintech / music shell — Robinhood, Spotify |
 | Fits the icon, the listing, the share sheets (cream card stock), the Sign-in band | yes | yes — same family, nothing else to redo | no: a green icon and a green band lead into a black app; the band goes ink too (shown), and the listing screenshots, web pages and icon would have to follow — that is **L** (§5) |
-| What it costs | nothing | one token change: `constants/theme.ts` + the same hex values in `public/scorecard.html` / `result.html`; the seat colours stay | the token change **plus** a re-think of everything green |
+| What it costs | nothing | one token change: `constants/theme.ts` + the one green in `public/scorecard.html` (and its `web/` copy); the seat colours stay | the token change **plus** a re-think of everything green |
 
 What does **not** change in any option: the ten seat colours (teal first, never the button green), red for negatives
 and destructive actions, the meaning of each colour (B03), and any words on any screen.
