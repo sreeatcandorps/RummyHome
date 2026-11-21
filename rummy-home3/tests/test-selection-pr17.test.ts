@@ -83,7 +83,7 @@ test('PR 17 T16-8: nightly = every suite on the reference phone, smoke on the ot
   assert.deepEqual(byDevice.get('pixel7pro'), ['smoke']);
   assert.deepEqual(byDevice.get('tablet'), ['smoke']);
   assert.equal(plan.jobs.find((j) => j.suite === 'monkey')!.monkeyEvents, 5000);
-  assert.equal(plan.volume, false);
+  assert.equal(plan.volume, true, 'the volume job is nightly since Nov 21 (test-environment-plan V1)');
   assert.equal(plan.fileBugs, true);
 });
 

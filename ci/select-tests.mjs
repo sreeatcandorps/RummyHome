@@ -17,8 +17,8 @@
  *               flows that cover the touched area are added by name (FLOW_FILTER); infra changes
  *               (ci/, e2e/, seeds, workflow) run every suite on the reference phone.
  *   nightly     full + chaos + roles + two-device + monkey(5k) on the reference phone, smoke on the
- *               small / large-font / tablet devices.
- *   prerelease  nightly + full on every device + monkey(20k) + volume.
+ *               small / large-font / tablet devices, the volume job (database ladder + stress).
+ *   prerelease  nightly + full on every device + monkey(20k).
  * Docs-only changes run nothing on a device.
  */
 import fs from 'node:fs';
@@ -117,9 +117,11 @@ export function select({ event = 'pull_request', tier, files = [], message = '' 
       job('tablet', pre ? 'full' : 'smoke'),
     );
     if (pre) plan.jobs.push(job('pixel4a', 'chaos'), job('tablet', 'chaos'));
-    plan.volume = pre;
+    // Volume (the database ladder + stress budgets, ~5 min on a plain runner) runs every night since
+    // Nov 21 (docs/test-environment-plan.md V1): six migrations of new RPCs had never been under load.
+    plan.volume = true;
     plan.fileBugs = true;
-    plan.reason = `${effectiveTier}: every suite on the reference phone, ${pre ? 'full' : 'smoke'} on the other devices${pre ? ', monkey 20k, volume' : ', monkey 5k'}`;
+    plan.reason = `${effectiveTier}: every suite on the reference phone, ${pre ? 'full' : 'smoke'} on the other devices${pre ? ', monkey 20k' : ', monkey 5k'}, volume`;
     return plan;
   }
 
