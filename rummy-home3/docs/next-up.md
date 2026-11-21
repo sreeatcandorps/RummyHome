@@ -11,7 +11,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes. Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-21 09:10 UTC (agent), after #110 merged (`9b92a42`), staging created, Sree's APK v17 pass (icon, header shimmer, three screens), the batching rule.
+Last updated: 2026-11-21 09:40 UTC (agent), after #110 merged (`9b92a42`), staging created, Sree's APK v17 pass (icon, header shimmer, three screens, Order of players arrows), the batching rule.
 
 ## In flight
 
@@ -22,7 +22,7 @@ Last updated: 2026-11-21 09:10 UTC (agent), after #110 merged (`9b92a42`), stagi
 | 2b | **iPhone plan** — eight steps; Sree: enrol as **Candor PS** (D62). | PR #112 | **Sree**: the enrolment itself (D-U-N-S for Candor PS) |
 | 2e | **Volume V1 on 052** — 20 new ladder rows, 137/137 pass, `volume` job nightly. Rebased on main after #110. | PR #114 | CI green, then Build Bot merges (Sree's yes stands) |
 | 2f | **Staging** — Supabase `ezscore-staging` (ca-central-1, 001–052 applied by Build Bot). EAS `staging` profile ("EZ Score · Staging", `.staging` package) + the population generator (`ci/volume/seed-staging.mjs`, validated at 2 % locally, nightly check). **Seeding staging and the staging APK wait for Sree's yes.** | PR #116 | CI, then **Sree**: merge; yes to seed; yes to build
-| 2g | **Small fixes batch** — the table below. #117 (icon) was opened before the batching rule arrived and is now the **batch's shell** (draft, renamed); everything else on the list is folded into it when Sree says build. | PR #117 (draft) | **Sree**: pick the §8 suggestions, say build PR | the anon key as an EAS / GitHub secret (Build Bot); **Sree**: "build" for the first staging APK |
+| 2g | **Small fixes batch** — the table below. #117 (icon) was opened before the batching rule arrived and is now the **batch's shell** (renamed, "do not merge yet"; GitHub would not let the agent flip it to draft — Build Bot may); everything else on the list is folded into it when Sree says build. | PR #117 (shell) | **Sree**: pick the §8 suggestions, say build PR | the anon key as an EAS / GitHub secret (Build Bot); **Sree**: "build" for the first staging APK |
 
 ## Small fixes batch (one PR, built on Sree's yes — rule in `AGENTS.md`)
 
@@ -39,6 +39,7 @@ diagnosis and a mockup where there is a screen; nothing coded until he says buil
 | 6 | **Round saved (pool) dialog** — *suggestion, awaits his pick* | "the buttons and the text are all over the place … what if there are more players, will it scroll?" | Bottom sheet, one row per player with Re-enter on the row, pinned title/chips/buttons, list scrolls; Complete when one is left. **Also verify:** six "is out" lines in one round is impossible (the winner on 0 cannot go out) — the dialog may list every out player, not this round's. | `mockups/round-saved-mockup.png` |
 | 7 | **Add by initials: one letter per box, auto-advance, one Save, results in place, Done** — *suggestion, awaits his pick* | "I don't even need those save buttons … cursor to move to the second player … just allow for one … show what happened … Save, saved, saved … then Done" | Take it, with three refinements (resolved name shown while typing, rows grow, same Row component as S). D52's half-filled-row question stays. | `mockups/initials-mockup.png` |
 | 8 | Live page: "Keep score like this — get EZ Score" footer; Help "Watch a game" entry | (from the competitor review, §7) | Two lines of HTML / one Help row. | — |
+| 9 | **Order of players: arrows only on the selected player** (both places, one component) | Sree Nov 21: "show the arrows on all the rows initially; once a player is selected, only his arrows show … deselect and all the arrows come back … the last player has no down arrow … do it in both places; update the tutorial and the help; merge tutorial steps 2 and 3" | Recommended with one refinement — faint arrows when nobody is selected, green on the selected row only (`design-review-2.md` §8.4, `order-mockup.png`). `OrderOfPlayers.tsx`, `SEATING_STEPS` 4 → 3 (step 4 "Wrong tap? Fix it" becomes step 3 with the new sentence), Help copy, flows 19b–19i / 24b–24c re-pinned. | **Sree**: yes to the faint-arrows refinement, or full-strength as he said |
 
 ## Next, in order
 
