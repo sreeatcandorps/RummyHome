@@ -5,7 +5,10 @@ games … do we have a test environment? Should we create one? … There's no re
 the app! … fill up the database with so much data, see what it looks like, and try to uncover more and more bugs.
 If we've already done most of it, let me know."
 
-**Plan only. Nothing here has been run; nothing touches the live database.**
+**Status (Nov 21):** Sree said yes to Q12 (1–3). `ezscore-staging` exists (ref `erurahfybkxemgtkfzkn`, ca-central-1,
+same org, $10 / month approved), migrations 001–052 applied by Build Bot, empty. The EAS **`staging`** profile and
+the population generator are built (this PR); **seeding staging and the first staging APK each wait for Sree's yes.**
+Nothing touches the live database. See §7 for how to run it.
 
 ## 1. What already exists (more than half of it)
 
@@ -105,3 +108,43 @@ Pass / fail is written down before each run (budgets like `docs/volume-testing.m
 | 2 | A second app on the phone ("EZ Score · Staging", own package id) rather than switching the real app between backends? | yes — switching inside one app is a way to put real games in the wrong database |
 | 3 | Same region as live (so latency numbers mean something)? | yes |
 | 4 | Make the volume job nightly (adds ~5 min to the 09:00 run)? | yes |
+
+## 7. What was built (Nov 21) and how to use it
+
+**The staging app** — `APP_VARIANT=staging` in `app.config.js` turns the same code into a second app that installs
+beside the real one: name **EZ Score · Staging**, package `com.candorps.rummyhome3.staging`, its own URL scheme,
+"Staging" after the version on Profile. `eas.json` has a `staging` profile (extends `preview`, channel `staging`)
+that sets `EXPO_PUBLIC_APP_VARIANT=staging` and `EXPO_PUBLIC_STAGING_SUPABASE_URL`; the anon key is the EAS secret
+`EXPO_PUBLIC_STAGING_SUPABASE_ANON_KEY`, never in the repo. `services/supabase.ts` reads the `EXPO_PUBLIC_STAGING_*`
+pair only for that variant, so the live names are never overridden by accident. Build: `eas build -p android
+--profile staging` — **only when Sree says build.**
+
+Known gaps of the staging app, on purpose for now: passcode-reset and shared scorecard / result links still point at
+the live GitHub Pages (`EXPO_PUBLIC_AUTH_REDIRECT_URL`, `EXPO_PUBLIC_SCORECARD_URL`); the pages take the project URL
+from the link, so a staging link opens a page that queries staging, but the reset page's redirect goes to the live
+app's scheme. Fix when the first staging APK is in hand. **pg_cron is not enabled on staging**, so the 045/046 nightly
+jobs do not exist there; enable the extension on the dashboard before the V5 soak.
+
+**The population** — `ci/volume/seed-staging.mjs` + `seed-staging.sql` (schema `staging`). Deterministic (seeded
+PRNG + id prefixes `c0000000-…` for people, `d<owner>-…` for guests), so the same `SCALE` gives the same data every
+time; `WIPE=1` removes exactly what it made and reseeds. It refuses any `DB_URL` that is neither loopback nor the
+staging ref. The 029 guardrail triggers and, during a wipe, the event-log triggers are switched off, because an
+18-month history breaks every per-day cap by design; everything else (initials, game numbers, pool out/in, logs,
+multiplier check) runs through the app's own triggers, and results go through `set_pool_awards` /
+`declare_game_result` / `delete_result` / `restore_result` as the signed-in creator.
+
+| What §3 asked for | What the generator makes at `SCALE=1` |
+| --- | --- |
+| 2,000 accounts, 200 regulars | 2,000 `auth.users` + profiles, passcode **123456**, e-mail `<first>.<last>.<n>@staging.test`; #1 is **Sree Koneru** (`sree.koneru.1@staging.test`) |
+| 150 circles of 4–20 | regulars sit in 1–3 circles, one-timers in one; everyone in a circle has everyone in My players |
+| 10 % unregistered | ~200 guests spread over the regulars, with real-looking names |
+| 20,000 games | 18,500 across circles + 1,500 by Sree; 70 / 30 Points / Pool; 2–20 players (median ~5); 3–60 rounds; multiplier on 15 % of Points games (×2 ×5 ×10 ×100); pool limits 101–501, some with a re-entry limit; 8 % with a mid-game joiner; 5 % deleted, 1 % archived, 0.5 % reopened, 3 % hidden by a player |
+| 3,000 results | 1–30 games each, through the real RPCs; pools get awards first; 3 % deleted then restored |
+| 60 live | active games across circles plus Sree's, at the `live_games_per_user` cap for him |
+| Sree at scale | 400 My players (60 % people, 40 % guests), 1,500 games, 120 results, 20 pending link requests (the cap) |
+| One huge table | 20 × 500 pool, limit 1,000,000, three re-entries, two dealer overrides via `set_round_dealer` |
+
+Local check: `ci/db/local-run.sh && DB_URL=… SCALE=0.02 node ci/volume/seed-staging.mjs` makes 417 games / 8,005 rounds /
+49,012 scores / 67 results in ~10 s; the full set is ~8 min. The nightly `volume` job runs the 2 % build, then wipe +
+reseed, so the generator cannot rot. Against staging: `DB_URL=<pooler URL from the secret> node ci/volume/seed-staging.mjs`
+— **after Sree's yes.**
