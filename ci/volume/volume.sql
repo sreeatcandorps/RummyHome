@@ -84,10 +84,11 @@ end $$;
 -- One game: creator p_creator_n (seated admin), the first p_players-1 of their guests, p_rounds
 -- live rounds with one score per seat (one rummy winner per round, the others negative counts),
 -- dealer rotating by seat order. Status 'active' or 'completed'. Returns the game id.
+drop function if exists volume.make_game(integer, integer, integer, text, timestamptz, text);
 create or replace function volume.make_game(
   p_creator_n integer, p_players integer, p_rounds integer,
   p_status text default 'completed', p_created_at timestamptz default now() - interval '2 days',
-  p_game_type text default 'stake'
+  p_game_type text default 'stake', p_pool_limit integer default 101
 ) returns uuid
 language plpgsql as $$
 declare
@@ -108,7 +109,7 @@ begin
   insert into public.games (id, created_by, status, game_type, settings, share_code, created_at, current_round,
                             completed_at, prize)
   values (v_game, v_creator, p_status::public.game_status, p_game_type::public.game_type,
-          case when p_game_type = 'pool' then '{"gameType":"pool","maxCount":-80,"poolDrop":-25,"poolMiddleDrop":-50,"poolAmount":100,"poolDefaultDeposit":-100,"expenseEnabled":false}'::jsonb
+          case when p_game_type = 'pool' then jsonb_build_object('gameType', 'pool', 'poolLimit', p_pool_limit, 'poolDrop', 25, 'poolMiddleDrop', 50, 'poolAmount', 100, 'poolDefaultDeposit', -100, 'expenseEnabled', false)
                else '{"gameType":"stake","maxCount":-80,"stakeDrop":-10,"stakeMiddleDrop":-30,"expenseEnabled":false}'::jsonb end,
           upper(substr(md5(v_game::text), 1, 10)), p_created_at, p_rounds + 1,
           case when p_status = 'completed' then p_created_at + (p_rounds || ' minutes')::interval end,
@@ -122,16 +123,20 @@ begin
   select v_game, r, v_players[((r - 1) % v_n) + 1], v_creator, p_created_at + (r || ' minutes')::interval
     from generate_series(1, p_rounds) r;
 
-  -- winner of round r is seat ((r * 7) % n); everyone else loses 5..75 (every multiple of 5), winner gets the sum
+  -- winner of round r is seat ((r * 7) % n); everyone else loses 5..75 (every multiple of 5), winner gets the sum.
+  -- Pool (041): plus points, the winner scores 0; who is out is derived afterwards the way save_round does.
   insert into public.scores (round_id, game_id, profile_id, score_type, value)
   select rd.id, v_game, v_players[i],
          case when i - 1 = (r * 7) % v_n then 'rummy'::public.score_type else 'count'::public.score_type end,
          case when i - 1 = (r * 7) % v_n
-              then (select sum(5 + ((r * 31 + j * 17) % 15) * 5) from generate_series(1, v_n) j where j - 1 <> (r * 7) % v_n)
-              else -(5 + ((r * 31 + i * 17) % 15) * 5) end
+              then case when p_game_type = 'pool' then 0
+                        else (select sum(5 + ((r * 31 + j * 17) % 15) * 5) from generate_series(1, v_n) j where j - 1 <> (r * 7) % v_n) end
+              else case when p_game_type = 'pool' then 1 else -1 end * (5 + ((r * 31 + i * 17) % 15) * 5) end
     from generate_series(1, p_rounds) r
     join public.rounds rd on rd.game_id = v_game and rd.round_number = r
     cross join generate_series(1, v_n) i;
+
+  if p_game_type = 'pool' then perform public.pool_recompute(v_game); end if;
 
   return v_game;
 end $$;

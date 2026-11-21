@@ -31,7 +31,7 @@ on:
         required: false
         default: ''
       tier:
-        description: Device tier — nightly (every suite on the reference phone, smoke elsewhere) or prerelease (everything + volume + monkey 20k)
+        description: Device tier — nightly (every suite on the reference phone, smoke elsewhere, volume) or prerelease (everything + monkey 20k)
         required: false
         default: nightly
         type: choice
@@ -304,7 +304,7 @@ jobs:
   #   apk        builds the release APK once per run, pointed at the runner's local Supabase
   #              (10.0.2.2 is the host as seen from the emulator); the device jobs download it.
   #   ui         one job per matrix row: local Supabase + seeds, emulator, suite, gallery, artifact.
-  #   volume     load against the local database (pre-release tier) — ci/volume/run-volume.mjs (size
+  #   volume     load against the local database (nightly + pre-release) — ci/volume/run-volume.mjs (size
   #              ladder) and ci/volume/run-stress.mjs (latency budgets, guard, concurrency).
   #   dashboard  gathers every ui artifact, publishes screenshots / videos / history to the gh-pages
   #              branch (the page Sree watches), comments on the PR and files found bugs as issues.

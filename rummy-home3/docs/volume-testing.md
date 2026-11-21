@@ -1,13 +1,15 @@
 # Volume testing
 
-Final launch batch, item 9 (Nov 12, 2026). Every case below ran against the full migration set
-(001–032) on a local PostgreSQL 16 with the real RPCs, as the real users would call them
+Final launch batch, item 9 (Nov 12, 2026; pool / dealer / seating / reopen cases added Nov 21). Every case below ran against the full migration set
+(001–052) on a local PostgreSQL 16 with the real RPCs, as the real users would call them
 (`volume.login(uid)` sets the `authenticated` role and JWT claims inside each transaction, so
 RLS and every guardrail apply). Nothing here touches the live Supabase project.
 
 The full per-row table from the last run is in
-[`volume/results-2026-11-12.md`](volume/results-2026-11-12.md) (117 rows, all pass, 44 s wall;
-machine-readable copy in `results-2026-11-12.json`). Representative screenshots are in
+[`volume/results-2026-11-21.md`](volume/results-2026-11-21.md) (137 rows, all pass, 40 s wall, on
+migrations 001–052; machine-readable copy in `results-2026-11-21.json`; the Nov 12 run on 001–032 is
+kept beside it). Since Nov 21 the ladder and the stress budgets run **every night** (`select-tests.mjs`
+puts `volume` in the nightly tier), not only at pre-release. Representative screenshots are in
 [`volume/`](volume/); the complete set (13 PNGs) lands in `ci/out/volume/screenshots/`
 (git-ignored) when you rerun.
 
@@ -58,10 +60,24 @@ Times are the measured RPC round-trip on the test VM after one warm-up call, DB 
 | 17 | Client: scorecard totals, rotation dividers, score tones, final-scores image, scorecard sheet | 2/10/20 p × 50–500 r | each < 200 ms | worst 1.5 ms | pass | ≤ 1.5 ms | — |
 | 18 | Client: My players A–Z sections, name sort, search merge, 100-row paging | 100 / 1,000 / 10,000 | sections < 150 ms | 10,000: sections 1.8 ms, sort 0.8 ms, paging 33 ms | pass | ≤ 33 ms | — |
 | 19 | Client: 500 rounds of dealer rotation with players joining mid-game | 500 r, 9→10→11 players | first rotation 10 rounds, none shorter than the table | as expected | pass | < 1 ms | — |
+| 20 | **Pool at the cap** (041–052, added Nov 21): seed 19p × 499r pool at a limit nobody reaches; `pool_recompute` over the whole game; `get_game_bundle` (pool limit in the bundle); web `/r/` payload; late joiner (`add_seated_player`, starts at the highest score still in, sits after the dealer); round 500 with twenty in (`save_round` + recompute); dealer override for round 501 (`set_round_dealer`); seating reversed (`set_seating_order`); bundle again; awards for twenty (`set_pool_awards`); reopen clears the awards (049) | 19→20p × 500r pool | each < 300–500 ms | recompute 51 ms; bundle 1,000 KB in 37 ms; web 1,114 KB in 56 ms; join 31 ms at 19,015; save 28 ms; dealer 3 ms; seating 3 ms; awards 2 ms; reopen 1 ms | pass | 1–56 ms | `volume/scorecard-pool-19p-499r.png` |
+| 21 | **A real pool**: 10p at 101 after three rounds of 5..75 (5 out, 5 in); `reenter_player` (047: back in at the highest score still in); the next round scored for those in only; scoring a player who is out is refused by name | 10p pool at 101 | re-entry < 300 ms; refusal names the player | re-entry 3 ms at 90; round 4 saved for 6 in 3 ms; "Guest 00005 … is out of the pool and cannot be scored. Re-enter them first." | pass | 3 ms | — |
+| 22 | **Pool results**: 30 awarded pools × 20 players → `declare_game_result`, `get_game_result`, `public_result`; reopening one of the 30 marks the result stale (050) instead of refusing | 30 pools × 20 players | declare < 1 s; sheet, web < 300 ms | declare 145 ms; sheet 20 standings, kind pool, 75 KB in 124 ms; web 13 KB in 10 ms; reopen 8 ms, `result_stale_json` set | pass | 8–145 ms | `volume/result-pool-30x20.png` |
 
-Database after the run: 6,269 games, 281,831 scores, 13,490 My players rows, ~100 MB.
+Database after the run (Nov 21): 6,299 games, 297,357 scores, 12,536 My players rows, 117 MB.
+
+Case 7–9's "numbers dense, S5001" expectation was rewritten on Nov 21: since 038 (D5.1, Nov 13) a short
+number is free again the moment a game leaves Active, so a user with 5,000 *completed* games gets S1 — the
+ladder now asserts exactly that (and still times the trigger per insert and the next-number query, 46 ms at
+5,000 games).
 
 ## What broke or was slow, and what changed
+
+0. **(Nov 21) The repo's web scorecard page did not render at all.** Rendering the payloads with
+   `ci/volume/screenshots.mjs` gave "Could not load the scorecard." for every card: PR 14 declared
+   `const multiplier` in `render()` below its first use (a TDZ `ReferenceError`). Fixed in its own PR with a
+   test that executes the page script in a stub DOM. Live was unaffected only because live still serves the
+   older page (Q6).
 
 1. **`public_result` took 540–600 ms for a 30-game result** regardless of size. Cause: PostgreSQL
    JIT compiling the big jsonb plan on every call (the 020 bundle RPCs already carry `set jit = off`;
@@ -83,6 +99,10 @@ Database after the run: 6,269 games, 281,831 scores, 13,490 My players rows, ~10
    records the refusal and the 30-game case is the real volume test.
 
 ## Known gaps
+
+- **No hosted environment has ever been under load.** Everything here is a local PostgreSQL; latency,
+  PostgREST, Realtime fan-out, the pooler cap and the free-tier limits are untested. The plan for a
+  staging project, a staging APK and k6 load runs is `docs/test-environment-plan.md` (Q12).
 
 - Screenshots are of the web `/r/` pages (scorecard and results), rendered by headless Chrome
   from the real RPC payloads. The React Native screens were exercised through their pure
