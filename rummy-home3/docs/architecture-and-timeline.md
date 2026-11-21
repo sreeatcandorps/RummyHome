@@ -663,3 +663,9 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   (`docs/ios/README.md`, #112 — the date is Apple's enrolment + TestFlight + App Review waits) and volume / test
   environment (`docs/test-environment-plan.md`, Q12): the database ladder and device suites already exist; what is
   missing is a hosted staging Supabase project (free tier) with a staging APK, and load against it.
+- Volume ladder re-run on 001–052 (V1 of `docs/test-environment-plan.md`): 20 new rows for pool at the cap (19→20p ×
+  500r: recompute, bundle, late joiner, dealer override, seating, awards, reopen), a real 10p pool at 101 with
+  re-entry, and 30 awarded pools in one result — all within budget (≤ 145 ms). Case 7–9's "S5001" expectation
+  rewritten for D5.1 (numbers reused once a game leaves Active). `volume` moves from pre-release-only to **nightly**.
+- Rendering the payloads found `public/scorecard.html` broken since PR 14 (`multiplier` read before its `const`) —
+  fixed in its own PR, with a test that executes the page script in a stub DOM, before Q6 republishes the page.

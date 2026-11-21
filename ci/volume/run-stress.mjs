@@ -84,8 +84,9 @@ const admin = await connect();
 // The per-day / live-game guards (029) would stop a volume run at 10 live games; they are the
 // subject of V4 only, so they are lifted for the rest (local database, re-enabled at the end).
 await admin.query(`alter table public.games disable trigger games_0_guard`);
-await admin.query(`insert into public.my_players (owner_id, player_id) select $1, p from unnest($2::uuid[]) p on conflict do nothing`, [SREE, [HARISH, PRIYA, ...Array.from({ length: 20 }, (_, i) => P(i + 1))]]);
 const hasBreakSeed = (await admin.query(`select count(*)::int as c from public.profiles where id = any($1::uuid[])`, [[P(1), P(2), P(3)]])).rows[0].c === 3;
+// Only profiles that exist: seed-break.sql (the P accounts) is applied in CI but not by every local run.
+await admin.query(`insert into public.my_players (owner_id, player_id) select $1, p.id from public.profiles p where p.id = any($2::uuid[]) on conflict do nothing`, [SREE, [HARISH, PRIYA, ...Array.from({ length: 20 }, (_, i) => P(i + 1))]]);
 const seats4 = hasBreakSeed ? [SREE, P(1), P(2), P(3)] : [SREE, HARISH, PRIYA];
 
 try {

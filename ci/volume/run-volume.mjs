@@ -193,8 +193,10 @@ async function manyGames(client) {
     const stale = await rpc(client, user, 'select public.get_home_bundle(50)');
     await analyze(client);
     record({ area: 'Games seed (game-number trigger per insert)', size: `${size} games`, expected: 'numbers 1..N, no gaps', actual: `${size} games in ${(seed.ms / 1000).toFixed(1)} s (${(seed.ms / size).toFixed(1)} ms/game)`, pass: true, ms: seed.ms });
+    // 038 (D5.1, Nov 13): a short number is free again the moment a game leaves Active, so every one of
+    // these completed games took S1 in turn — the trigger still ran once per insert (the time above).
     const numbers = (await client.query('select count(*)::int as c, max(game_number) as m, count(distinct game_number)::int as d from public.games where created_by = $1', [user])).rows[0];
-    record({ area: 'Game numbers unique and dense', size: `${size} games`, expected: `${size} distinct, max ${size}`, actual: `${numbers.d} distinct, max ${numbers.m}`, pass: numbers.d === size && numbers.m === size, ms: null });
+    record({ area: 'Game numbers reused once completed (D5.1)', size: `${size} games`, expected: 'every completed game was S1', actual: `${numbers.d} distinct, max ${numbers.m}`, pass: numbers.d === 1 && numbers.m === 1, ms: null });
 
     const home = await rpc(client, user, 'select public.get_home_bundle(50)');
     record({ area: 'Home open (get_home_bundle)', size: `${size} games`, expected: '50 games, < 500 ms', actual: `${home.data?.games?.length ?? 0} games, ${kb(home.bytes)} (${Math.round(stale.ms)} ms before ANALYZE ran on the bulk load)`, pass: (home.data?.games?.length ?? 0) === 50 && home.ms < 500, ms: home.ms });
@@ -211,7 +213,7 @@ async function manyGames(client) {
 
     const create = await asUser(client, user, async () => timed(client, "insert into public.games (created_by, status, game_type, settings, share_code) values ($1, 'active', 'stake', '{\"gameType\":\"stake\",\"maxCount\":-80}'::jsonb, upper(substr(md5(random()::text), 1, 10))) returning game_label", [user]));
     const label = create.res.rows[0]?.game_label;
-    record({ area: 'Create one more game (number assignment)', size: `${size} games`, expected: `lowest free number S${size + 1}, < 200 ms`, actual: `${label}`, pass: label === `S${size + 1}` && create.ms < 200, ms: create.ms });
+    record({ area: 'Create one more game (number assignment)', size: `${size} games`, expected: 'S1 (no active game in the circle, D5.1), < 200 ms', actual: `${label}`, pass: label === 'S1' && create.ms < 200, ms: create.ms });
   }
 }
 
@@ -448,6 +450,176 @@ async function guardrails(client) {
 }
 
 // ---------------------------------------------------------------------------------------
+// 041–052 at volume: pool (out / re-entry / awards), the dealer override, seating, a late joiner,
+// reopen. None of these existed when the ladder was written (Nov 12).
+async function poolAndTable(client) {
+  // A. the biggest pool the guardrails allow: 19 seats (one free for the late joiner) × 499 rounds, a limit
+  //    nobody reaches, so every seat is still in and every RPC sees the full table.
+  {
+    const k = 101; const user = uid(k);
+    const seed = await timed(client, "select volume.make_game($1, 19, 499, 'active', now() - interval '6 hours', 'pool', 1000000)", [k]);
+    const gameId = seed.res.rows[0].make_game;
+    await analyze(client);
+    const size = '19p × 499r pool';
+    record({ area: 'Pool seed (plus points, out derived)', size, expected: '9,481 scores, nobody out', actual: `game ${gameId.slice(0, 8)} seeded`, pass: true, ms: seed.ms });
+
+    const recompute = await timed(client, 'select public.pool_recompute($1)', [gameId]);
+    const outCount = (await client.query('select count(*)::int as c from public.game_players where game_id = $1 and out_round is not null', [gameId])).rows[0].c;
+    record({ area: 'Pool recompute (who is out) over the whole game', size, expected: '0 out, < 300 ms', actual: `${outCount} out`, pass: outCount === 0 && recompute.ms < 300, ms: recompute.ms });
+
+    const bundle = await rpc(client, user, 'select public.get_game_bundle($1)', [gameId]);
+    const scores = bundle.data?.scores?.length ?? 0;
+    const limit = bundle.data?.game?.settings?.poolLimit ?? bundle.data?.poolLimit ?? bundle.data?.pool?.limit;
+    record({ area: 'Pool scorecard open (get_game_bundle)', size, expected: '9,481 scores, pool limit in the bundle, < 500 ms', actual: `${scores} scores, limit ${limit ?? '-'}, ${kb(bundle.bytes)}`, pass: scores === 19 * 499 && Number(limit) === 1000000 && bundle.ms < 500, ms: bundle.ms });
+
+    const token = (await client.query('select view_token from public.games where id = $1', [gameId])).rows[0].view_token;
+    const pub = await rpc(client, user, 'select public.public_scorecard($1)', [token]);
+    writeFileSync(path.join(OUT, 'payloads', 'scorecard-pool-19p-499r.json'), JSON.stringify(pub.data));
+    record({ area: 'Web /r/ pool scorecard payload', size, expected: '9,481 scores, < 500 ms', actual: `${pub.data?.scores?.length ?? 0} scores, ${kb(pub.bytes)}`, pass: (pub.data?.scores?.length ?? 0) === 19 * 499 && pub.ms < 500, ms: pub.ms, screenshot: 'ci/out/volume/screenshots/scorecard-pool-19p-499r.png' });
+
+    // the late joiner (047 / 052): starts at the highest score still in, sits after the dealer
+    const joiner = (await client.query('select volume.ensure_user($1)', [k * 10 + 1])).rows[0].ensure_user;
+    await client.query('alter table public.my_players disable trigger my_players_0_guard');
+    await client.query("insert into public.my_players (owner_id, player_id, games_together, initials) values ($1, $2, 0, 'LJ') on conflict do nothing", [user, joiner]);
+    await client.query('alter table public.my_players enable trigger my_players_0_guard');
+    const join = await asUser(client, user, async () => {
+      const t0 = performance.now();
+      const err = await errorOf(client.query('select public.add_seated_player($1, $2)', [gameId, joiner]));
+      return { ms: performance.now() - t0, err };
+    }, { commit: true });
+    const joined = (await client.query('select reentry_score, reentered_round, player_order from public.game_players where game_id = $1 and profile_id = $2', [gameId, joiner])).rows[0];
+    const high = (await client.query('select max(public.pool_total($1, gp.profile_id))::int as h from public.game_players gp where gp.game_id = $1 and gp.profile_id <> $2', [gameId, joiner])).rows[0].h;
+    record({ area: 'Late joiner into a 499-round pool (add_seated_player)', size, expected: `20th seat, starts at the highest score still in (${high}), < 500 ms`, actual: join.err ? `${join.err.code}: ${join.err.message}` : `seat ${joined?.player_order}, starts at ${joined?.reentry_score} from round ${joined?.reentered_round}`, pass: !join.err && Number(joined?.reentry_score) === high && join.ms < 500, ms: join.ms });
+
+    // round 500 with all twenty in: save_round runs the pool checks and the recompute over 10,000 scores
+    const seats = (await client.query('select profile_id from public.game_players where game_id = $1 and seated and out_round is null order by player_order', [gameId])).rows.map((x) => x.profile_id);
+    const payload = JSON.stringify(seats.map((id, j) => ({ playerId: id, scoreType: j === 3 ? 'rummy' : 'count', value: j === 3 ? 0 : 10 + j })));
+    const save = await asUser(client, user, async () => {
+      const t0 = performance.now();
+      const err = await errorOf(client.query('select public.save_round($1, 500, $2::jsonb, false)', [gameId, payload]));
+      return { ms: performance.now() - t0, err };
+    }, { commit: true });
+    record({ area: 'Pool add round with 20 in (save_round + recompute)', size: '20p × 500r pool', expected: 'saved < 500 ms', actual: save.err ? `${save.err.code}: ${save.err.message}` : 'round 500 saved', pass: !save.err && save.ms < 500, ms: save.ms });
+
+    // the dealer override for the round being played (052): rotation over 500 rounds of history
+    const dealerPick = seats[7];
+    const dealer = await asUser(client, user, async () => {
+      const t0 = performance.now();
+      const res = await client.query('select public.set_round_dealer($1, 501, $2, true) as r', [gameId, dealerPick]);
+      return { ms: performance.now() - t0, r: res.rows[0].r };
+    }, { commit: true });
+    const nowDealing = (await client.query('select public.current_dealer($1) as d', [gameId])).rows[0].d;
+    record({ area: 'Dealer override for the next round (set_round_dealer)', size: '20p × 500r pool', expected: 'seat 8 deals round 501, < 300 ms', actual: `changed ${dealer.r?.changed}, dealing ${nowDealing === dealerPick ? 'seat 8' : 'someone else'}`, pass: nowDealing === dealerPick && dealer.ms < 300, ms: dealer.ms });
+
+    // seating change with 500 rounds behind it (044)
+    const reversed = [...seats].reverse();
+    const seating = await asUser(client, user, async () => {
+      const t0 = performance.now();
+      const err = await errorOf(client.query('select public.set_seating_order($1, $2::uuid[])', [gameId, reversed]));
+      return { ms: performance.now() - t0, err };
+    }, { commit: true });
+    const after = (await client.query('select profile_id from public.game_players where game_id = $1 and seated order by player_order', [gameId])).rows.map((x) => x.profile_id);
+    record({ area: 'Seating order reversed mid-game (set_seating_order)', size: '20p × 500r pool', expected: 'twenty seats in the new order, < 500 ms', actual: seating.err ? `${seating.err.code}: ${seating.err.message}` : `${after.length} seats, ${after.join() === reversed.join() ? 'new order' : 'ORDER NOT APPLIED'}`, pass: !seating.err && after.join() === reversed.join() && seating.ms < 500, ms: seating.ms });
+
+    const bundle2 = await rpc(client, user, 'select public.get_game_bundle($1)', [gameId]);
+    record({ area: 'Pool scorecard after join + round + dealer + seating', size: '20p × 500r pool', expected: '9,501 scores, < 500 ms', actual: `${bundle2.data?.scores?.length ?? 0} scores, ${kb(bundle2.bytes)}`, pass: (bundle2.data?.scores?.length ?? 0) === 19 * 499 + 20 && bundle2.ms < 500, ms: bundle2.ms });
+
+    // complete, award twenty players (041), reopen (049 clears the awards, 050 logs it)
+    await client.query("update public.games set status = 'completed', completed_at = now() where id = $1", [gameId]);
+    const awards = JSON.stringify(Object.fromEntries(seats.map((id, j) => [id, j === 0 ? 1000 : j === 1 ? 500 : 0])));
+    const award = await asUser(client, user, async () => {
+      const t0 = performance.now();
+      const err = await errorOf(client.query("select public.set_pool_awards($1, $2::jsonb, '{\"presetLabel\":\"Winner takes most\"}'::jsonb)", [gameId, awards]));
+      return { ms: performance.now() - t0, err };
+    }, { commit: true });
+    const awarded = (await client.query('select prize_shares is not null as a, awarded_at is not null as t from public.games where id = $1', [gameId])).rows[0];
+    record({ area: 'Pool awards for twenty players (set_pool_awards)', size: '20p × 500r pool', expected: 'awards saved and logged, < 300 ms', actual: award.err ? `${award.err.code}: ${award.err.message}` : `awards ${awarded.a ? 'saved' : 'missing'}`, pass: !award.err && awarded.a && awarded.t && award.ms < 300, ms: award.ms });
+
+    const reopen = await asUser(client, user, async () => {
+      const t0 = performance.now();
+      const err = await errorOf(client.query("update public.games set status = 'active', completed_at = null where id = $1", [gameId]));
+      return { ms: performance.now() - t0, err };
+    }, { commit: true });
+    const reopened = (await client.query('select status, prize_shares from public.games where id = $1', [gameId])).rows[0];
+    record({ area: 'Reopen the awarded pool (049: awards cleared)', size: '20p × 500r pool', expected: 'active again, awards gone, < 500 ms', actual: reopen.err ? `${reopen.err.code}: ${reopen.err.message}` : `${reopened.status}, awards ${reopened.prize_shares == null ? 'cleared' : 'KEPT'}`, pass: !reopen.err && reopened.status === 'active' && reopened.prize_shares == null && reopen.ms < 500, ms: reopen.ms });
+  }
+
+  // B. a real pool: ten seats at the usual 101 after three rounds of 5..75 — most of the table is out;
+  //    re-enter one (047: at the highest score still in), then score the next round with those in.
+  {
+    const k = 102; const user = uid(k);
+    const gameId = (await client.query("select volume.make_game($1, 10, 3, 'active', now() - interval '1 hour', 'pool', 101)", [k])).rows[0].make_game;
+    const size = '10p pool at 101';
+    const outs = (await client.query('select profile_id, out_round from public.game_players where game_id = $1 and out_round is not null order by out_round, player_order', [gameId])).rows;
+    const inBefore = (await client.query('select coalesce(array_length(public.pool_players_in($1), 1), 0)::int as n', [gameId])).rows[0].n;
+    record({ area: 'Pool: who is out after three rounds', size, expected: 'some out, some in (5..75 a round against 101)', actual: `${outs.length} out, ${inBefore} in`, pass: outs.length > 0 && inBefore > 0 && outs.length + inBefore === 10, ms: null });
+
+    const back = outs[0].profile_id;
+    const reenter = await asUser(client, user, async () => {
+      const t0 = performance.now();
+      const res = await errorOf(client.query('select public.reenter_player($1, $2)', [gameId, back]));
+      return { ms: performance.now() - t0, err: res };
+    }, { commit: true });
+    const row = (await client.query('select out_round, reentry_score, entries from public.game_players where game_id = $1 and profile_id = $2', [gameId, back])).rows[0];
+    const highIn = (await client.query('select max(public.pool_total($1, u))::int as h from unnest(public.pool_players_in($1)) u where u <> $2', [gameId, back])).rows[0].h;
+    record({ area: 'Pool re-entry (reenter_player)', size, expected: `back in at the highest score still in, < 300 ms`, actual: reenter.err ? `${reenter.err.code}: ${reenter.err.message}` : `in again at ${row.reentry_score} (entries ${row.entries}), highest in ${highIn}`, pass: !reenter.err && row.out_round == null && row.entries === 2 && reenter.ms < 300, ms: reenter.ms });
+
+    const inNow = (await client.query('select public.pool_players_in($1) as p', [gameId])).rows[0].p;
+    const payload = JSON.stringify(inNow.map((id, j) => ({ playerId: id, scoreType: j === 0 ? 'rummy' : 'count', value: j === 0 ? 0 : 5 })));
+    const save = await asUser(client, user, async () => {
+      const t0 = performance.now();
+      const err = await errorOf(client.query('select public.save_round($1, 4, $2::jsonb, false)', [gameId, payload]));
+      return { ms: performance.now() - t0, err };
+    }, { commit: true });
+    record({ area: 'Pool round scored for those in only', size, expected: `${inNow.length} scores saved, < 300 ms`, actual: save.err ? `${save.err.code}: ${save.err.message}` : `round 4 saved for ${inNow.length}`, pass: !save.err && save.ms < 300, ms: save.ms });
+
+    // scoring someone who is out is refused with their name
+    const outOne = outs.find((o) => o.profile_id !== back)?.profile_id;
+    if (outOne) {
+      const bad = JSON.stringify([...inNow, outOne].map((id, j) => ({ playerId: id, scoreType: j === 0 ? 'rummy' : 'count', value: j === 0 ? 0 : 5 })));
+      const err = await asUser(client, user, () => errorOf(client.query('select public.save_round($1, 5, $2::jsonb, false)', [gameId, bad])));
+      record({ area: 'Pool: scoring a player who is out', size, expected: 'refused: "… is out of the pool"', actual: err ? err.message : 'accepted', pass: /out of the pool/.test(err?.message ?? ''), ms: null });
+    }
+  }
+
+  // C. results over 30 completed pools × 20 players with awards (041's result path, prize shares in the sheet)
+  {
+    const k = 103; const user = uid(k);
+    const seed = await timed(client, "select volume.make_game($1, 20, 10, 'completed', now() - (g || ' hours')::interval - interval '1 day', 'pool', 1000000) from generate_series(1, 30) g", [k]);
+    await analyze(client);
+    const ids = (await client.query('select id from public.games where created_by = $1 order by created_at', [user])).rows.map((r) => r.id);
+    await client.query("update public.games g set prize_shares = (select jsonb_object_agg(gp.profile_id, case when gp.player_order = 0 then 1000 else 0 end) from public.game_players gp where gp.game_id = g.id), awarded_at = now(), awarded_by = created_by where id = any($1::uuid[])", [ids]);
+    record({ area: 'Pool results seed', size: '30 pools × 20 players', expected: '30 awarded pools', actual: `seeded in ${(seed.ms / 1000).toFixed(1)} s`, pass: ids.length === 30, ms: seed.ms });
+
+    const declared = await asUser(client, user, async () => {
+      const t0 = performance.now();
+      const res = await client.query('select public.declare_game_result($1::uuid[]) as r', [ids]);
+      return { ms: performance.now() - t0, id: res.rows[0].r?.id ?? res.rows[0].r };
+    }, { commit: true });
+    const resultId = typeof declared.id === 'string' ? declared.id : declared.id?.id;
+    record({ area: 'Declare results over 30 pools', size: '30 pools × 20 players', expected: 'saved < 1,000 ms', actual: `result ${String(resultId).slice(0, 8)}`, pass: Boolean(resultId) && declared.ms < 1000, ms: declared.ms });
+
+    const sheet = await rpc(client, user, 'select public.get_game_result($1)', [resultId]);
+    const places = sheet.data?.standings?.length ?? 0;
+    const kinds = new Set((sheet.data?.sheet?.games ?? sheet.data?.places?.games ?? []).map((g) => g.kind));
+    record({ area: 'Pool results sheet (get_game_result)', size: '30 pools × 20 players', expected: '20 standings, every game kind pool, < 300 ms', actual: `${places} standings, kinds ${[...kinds].join('/') || '-'}, ${kb(sheet.bytes)}`, pass: places === 20 && sheet.ms < 300, ms: sheet.ms });
+
+    const pub = await rpc(client, user, 'select public.public_result($1)', [resultId]);
+    writeFileSync(path.join(OUT, 'payloads', 'result-pool-30x20.json'), JSON.stringify(pub.data));
+    record({ area: 'Web /r/ pool results payload (public_result)', size: '30 pools × 20 players', expected: '< 300 ms', actual: `${kb(pub.bytes)}`, pass: pub.ms < 300 && pub.bytes > 100, ms: pub.ms, screenshot: 'ci/out/volume/screenshots/result-pool-30x20.png' });
+
+    // reopening a pool that is in a saved result marks the result stale (050) rather than refusing
+    const reopen = await asUser(client, user, async () => {
+      const t0 = performance.now();
+      const err = await errorOf(client.query("update public.games set status = 'active', completed_at = null where id = $1", [ids[0]]));
+      return { ms: performance.now() - t0, err };
+    }, { commit: true });
+    const stale = (await client.query('select public.result_stale_json($1) as s', [resultId])).rows[0].s;
+    record({ area: 'Reopen a pool inside a saved result (050)', size: '1 of 30', expected: 'reopened, result marked stale, < 500 ms', actual: reopen.err ? `${reopen.err.code}: ${reopen.err.message}` : `reopened; stale: ${JSON.stringify(stale).slice(0, 80)}`, pass: !reopen.err && stale != null && reopen.ms < 500, ms: reopen.ms });
+  }
+}
+
+// ---------------------------------------------------------------------------------------
 async function main() {
   console.log('TAP version 13');
   const client = await connect();
@@ -457,6 +629,7 @@ async function main() {
   await bigGames(client);
   await manyGames(client);
   await results50x20(client);
+  await poolAndTable(client);
   await adminsAtOnce();
   await concurrentGames();
   await emailBurst(client);
