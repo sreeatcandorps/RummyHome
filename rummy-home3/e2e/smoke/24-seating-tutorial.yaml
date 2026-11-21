@@ -149,11 +149,14 @@ tags: [smoke]
     visible:
       id: "help-page-new-game"
     timeout: 15000
+# The guide is long (the Order of players section sits past the hero, Need to know, the picture and
+# two sections); 15 s of swipes ran out just as the section came into view, so give it time.
 - scrollUntilVisible:
     element:
       id: "help-watch-seating"
     direction: DOWN
-    timeout: 15000
+    timeout: 60000
+- assertVisible: "Watch how \\(20 s\\)"
 - takeScreenshot: 24h-help-watch-how
 - tapOn:
     id: "help-watch-seating"
