@@ -117,7 +117,7 @@ test('A4-6 / PR 10a: header pinned above one vertical scroller, rows in one side
   assert.match(table, /<Animated\.ScrollView[\s\S]*ref=\{headerRef\}[\s\S]*<Animated\.ScrollView[\s\S]*ref=\{bodyRef\}/, 'both scrollers are Animated');
   assert.match(table, /<Animated\.View style=\{\{ width: contentWidth, transform: \[\{ translateX: bodyShift \}\] \}\}>\s*\{Array\.from\(\{ length: roundCount \}/, 'the rows sit in a wrapper of contentWidth');
   assert.match(table, /width: columnWidth \* columns\.length,\s*height: rowHeight,/, 'every row carries its own width');
-  assert.match(table, /<ScrollView\s+ref=\{verticalRef\}[\s\S]*?<ScrollView\s+ref=\{bodyRef\}\s+horizontal/, 'the sideways scroller is inside the vertical one, as in PR 3');
+  assert.match(table, /<ScrollView\s+ref=\{verticalRef\}[\s\S]*?<Animated\.ScrollView\s+ref=\{bodyRef\}\s+horizontal/, 'the sideways scroller is inside the vertical one, as in PR 3');
   assert.match(table, /testID=\{`score-header-\$\{index \+ 1\}`\}/, 'header cells are addressable by column');
   assert.match(table, /testID=\{`score-cell-\$\{index \+ 1\}-\$\{roundNumber\}`\}/, 'score cells are addressable by column and round');
   assert.match(table, /maxFontSizeMultiplier=\{TABLE_MAX_FONT_SCALE\}/);
