@@ -100,16 +100,22 @@ test('A4-6 / PR 10a: header pinned above one vertical scroller, rows in one side
   // header scroller back so the names can be dragged, with an owner guard so only the scroller under the
   // finger drives the other (no echo, no drift).
   assert.doesNotMatch(table, /scrollSync|createScrollSync/, 'the PR 3 helper itself stays gone');
-  assert.match(table, /sidewaysOwner\.current && sidewaysOwner\.current !== who\) return;/, 'owner guard');
+  assert.match(table, /if \(sidewaysOwner\.current !== who\) \{/, 'owner hand-over guard');
   assert.doesNotMatch(table, /headerHeight = compact \? 58 : 68|rowHeight = compact \? 34/, 'no fixed header or row height');
   assert.match(table, /headerHeight\(columnWidth, compact, fontScale, pool\)/, 'PR 24: the pool header counts its #number line');
   // PR 10a: the PR 4 nesting (vertical scroller with a sticky header inside the sideways scroller) collapsed
   // the header into one column on Android once the columns were wider than the screen.
   assert.doesNotMatch(table, /stickyHeaderIndices/, 'no sticky-header trick: the header row sits above the vertical scroller');
-  assert.match(table, /<View style=\{\[styles\.row, \{ width: contentWidth \}\]\} testID="score-table-header">/, 'the header carries contentWidth');
+  assert.match(table, /<Animated\.View style=\{\[styles\.row, \{ width: contentWidth, transform: \[\{ translateX: headerShift \}\] \}\]\} testID="score-table-header">/, 'the header carries contentWidth');
   assert.match(table, /testID="score-table-header-scroller"/, 'v12 point 10: the header is a sideways scroller of its own');
-  assert.match(table, /onScroll=\{syncFrom\('header'\)\}[\s\S]*?onScroll=\{syncFrom\('body'\)\}/, 'header and rows keep each other in step');
-  assert.match(table, /<View style=\{\{ width: contentWidth \}\}>\s*\{Array\.from\(\{ length: roundCount \}/, 'the rows sit in a wrapper of contentWidth');
+  assert.match(table, /onScroll=\{trackHeader\}[\s\S]*?onScroll=\{trackBody\}/, 'header and rows keep each other in step');
+  // Small fixes batch (Nov 21): the sync is native-driven — no scrollTo on every scroll event, so a fast
+  // fling cannot leave the header a frame behind the rows (the "zigzag / faded" header Sree saw twice).
+  assert.doesNotMatch(table, /onScroll=\{[^}]*scrollTo/, 'no JS-thread scrollTo inside onScroll');
+  assert.match(table, /useNativeDriver: true/, 'the offsets are read on the UI thread');
+  assert.match(table, /translateX: headerShift[\s\S]*translateX: bodyShift/, 'the idle scroller is counter-translated natively');
+  assert.match(table, /<Animated\.ScrollView[\s\S]*ref=\{headerRef\}[\s\S]*<Animated\.ScrollView[\s\S]*ref=\{bodyRef\}/, 'both scrollers are Animated');
+  assert.match(table, /<Animated\.View style=\{\{ width: contentWidth, transform: \[\{ translateX: bodyShift \}\] \}\}>\s*\{Array\.from\(\{ length: roundCount \}/, 'the rows sit in a wrapper of contentWidth');
   assert.match(table, /width: columnWidth \* columns\.length,\s*height: rowHeight,/, 'every row carries its own width');
   assert.match(table, /<ScrollView\s+ref=\{verticalRef\}[\s\S]*?<ScrollView\s+ref=\{bodyRef\}\s+horizontal/, 'the sideways scroller is inside the vertical one, as in PR 3');
   assert.match(table, /testID=\{`score-header-\$\{index \+ 1\}`\}/, 'header cells are addressable by column');
