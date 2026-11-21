@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EZ Score — device tests</title><style>
+body{font:14px/1.45 system-ui,sans-serif;margin:0;background:#f6f7f5;color:#1f2a24}
+header{background:#1b4d3e;color:#fff;padding:14px 24px} header h1{margin:0;font-size:18px} header a{color:#cfe9dc}
+main{padding:16px 24px;max-width:1500px} h2{font-size:16px;margin:28px 0 8px;border-bottom:1px solid #d8ddd9;padding-bottom:4px}
+h3{font-size:14px;margin:18px 0 6px}
+table{border-collapse:collapse;background:#fff;margin:6px 0 12px} td,th{border:1px solid #dfe3e0;padding:4px 10px;text-align:left;font-size:13px}
+.pass{color:#1b7f3b;font-weight:600} .fail{color:#b00020;font-weight:700} .skip{color:#777} .run{color:#b26a00;font-weight:600}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;margin-right:6px}
+.pill.ok{background:#dff3e6;color:#1b7f3b} .pill.bad{background:#fde0e3;color:#b00020} .pill.live{background:#fff1d6;color:#9a5b00}
+.grid{display:flex;flex-wrap:wrap;gap:10px} figure{margin:0;background:#fff;border:1px solid #e1e5e2;border-radius:8px;padding:6px}
+figure img{max-height:360px;max-width:100%;border-radius:4px;display:block;background:#000} figcaption{font-size:11px;color:#555;margin-top:4px;max-width:200px;word-break:break-all}
+video{max-height:360px;border-radius:4px;background:#000}
+.muted{color:#667} code{background:#eef1ee;padding:1px 4px;border-radius:3px} .crash{background:#fff4f4;border-left:4px solid #b00020;padding:6px 10px;margin:6px 0}
+#live table{width:100%} .dot{display:inline-block;width:10px;height:10px;border-radius:5px;margin-right:6px;background:#aaa}
+.dot.in_progress,.dot.queued{background:#e0a100;animation:p 1.2s infinite} .dot.success{background:#1b7f3b} .dot.failure{background:#b00020}
+@keyframes p{50%{opacity:.3}}
+</style>
+<header><h1>EZ Score — device tests</h1><div><a href="https://github.com/sreeatcandorps/RummyHome/actions/workflows/ci.yml">Actions</a> · <a href="https://github.com/sreeatcandorps/RummyHome/issues?q=is%3Aissue+label%3Afound-by-tests">bugs found by tests</a> · <a href="https://github.com/sreeatcandorps/RummyHome/blob/cursor/app-icon-safe-zone-ca74/rummy-home3/docs/test-plan/README.md">test plan</a></div></header><main>
+<h2>Live now</h2><div id="live"><p class="muted">Loading the last workflow runs from GitHub…</p></div>
+<h2>Finished runs</h2><table><tr><th>Run</th><th>When</th><th>Branch / PR</th><th>Tier</th><th>Flows</th><th>Crashes</th><th>Jobs</th></tr>
+<tr><td><a href="runs/44896157630/">#600</a> <span class="muted"><code>2673a8a</code></span></td><td>2026-11-21 11:37 UTC</td><td>cursor/app-icon-safe-zone-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/117">PR #117</a></td><td>pr</td><td class="pass">52/52</td><td class="">0</td><td><span class="pass">pixel6·chaos</span> &nbsp; <span class="pass">pixel6·monkey</span> &nbsp; <span class="pass">pixel6·roles</span> &nbsp; <span class="pass">pixel6·smoke</span> &nbsp; <span class="pass">pixel6·two-device</span></td></tr>
+<tr><td><a href="runs/44890126016/">#591</a> <span class="muted"><code>4d18cfe</code></span></td><td>2026-11-21 10:23 UTC</td><td>cursor/app-icon-safe-zone-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/117">PR #117</a></td><td>pr</td><td class="fail">50/52</td><td class="">0</td><td><span class="pass">pixel6·chaos</span> &nbsp; <span class="pass">pixel6·monkey</span> &nbsp; <span class="pass">pixel6·roles</span> &nbsp; <span class="fail">pixel6·smoke</span> &nbsp; <span class="pass">pixel6·two-device</span></td></tr>
+<tr><td><a href="runs/44888296456/">#585</a> <span class="muted"><code>1ddbaba</code></span></td><td>2026-11-21 10:04 UTC</td><td>cursor/staging-profile-seed-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/116">PR #116</a></td><td>pr</td><td class="pass">51/51</td><td class="">0</td><td><span class="pass">pixel6·chaos</span> &nbsp; <span class="pass">pixel6·monkey</span> &nbsp; <span class="pass">pixel6·roles</span> &nbsp; <span class="pass">pixel6·smoke</span> &nbsp; <span class="pass">pixel6·two-device</span></td></tr>
+<tr><td><a href="runs/44886650299/">#575</a> <span class="muted"><code>a0da236</code></span></td><td>2026-11-21 09:34 UTC</td><td>cursor/app-icon-safe-zone-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/117">PR #117</a></td><td>pr</td><td class="pass">21/21</td><td class="">0</td><td><span class="pass">pixel6·smoke</span></td></tr>
+<tr><td><a href="runs/44884783909/">#571</a> <span class="muted"><code>67c56ba</code></span></td><td>2026-11-21 09:18 UTC</td><td>cursor/ios-plan-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/112">PR #112</a></td><td>pr</td><td class="pass">24/24</td><td class="">0</td><td><span class="pass">pixel6·smoke</span></td></tr>
+<tr><td><a href="runs/44885806385/">#573</a> <span class="muted"><code>434585b</code></span></td><td>2026-11-21 09:11 UTC</td><td>cursor/staging-profile-seed-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/116">PR #116</a></td><td>pr</td><td class="pass">42/42</td><td class="">0</td><td><span class="pass">pixel6·chaos</span> &nbsp; <span class="pass">pixel6·monkey</span> &nbsp; <span class="pass">pixel6·roles</span> &nbsp; <span class="pass">pixel6·smoke</span> &nbsp; <span class="pass">pixel6·two-device</span></td></tr>
+<tr><td><a href="runs/44884557122/">#567</a> <span class="muted"><code>c154314</code></span></td><td>2026-11-21 09:09 UTC</td><td>cursor/volume-052-nightly-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/114">PR #114</a></td><td>pr</td><td class="pass">51/51</td><td class="">0</td><td><span class="pass">pixel6·chaos</span> &nbsp; <span class="pass">pixel6·monkey</span> &nbsp; <span class="pass">pixel6·roles</span> &nbsp; <span class="pass">pixel6·smoke</span> &nbsp; <span class="pass">pixel6·two-device</span></td></tr>
+<tr><td><a href="runs/44884053642/">#564</a> <span class="muted"><code>6fb240c</code></span></td><td>2026-11-21 08:26 UTC</td><td>cursor/ios-plan-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/112">PR #112</a></td><td>pr</td><td class="pass">0/0</td><td class="">0</td><td><span class="fail">pixel6·smoke</span></td></tr>
+<tr><td><a href="runs/44861522771/">#556</a> <span class="muted"><code>7b27928</code></span></td><td>2026-11-21 04:38 UTC</td><td>cursor/volume-052-nightly-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/114">PR #114</a></td><td>pr</td><td class="pass">51/51</td><td class="">0</td><td><span class="pass">pixel6·chaos</span> &nbsp; <span class="pass">pixel6·monkey</span> &nbsp; <span class="pass">pixel6·roles</span> &nbsp; <span class="pass">pixel6·smoke</span> &nbsp; <span class="pass">pixel6·two-device</span></td></tr>
+<tr><td><a href="runs/44861401205/">#554</a> <span class="muted"><code>da02ab2</code></span></td><td>2026-11-21 04:36 UTC</td><td>cursor/web-scorecard-tdz-fix-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/113">PR #113</a></td><td>pr</td><td class="pass">24/24</td><td class="">0</td><td><span class="pass">pixel6·smoke</span></td></tr>
+<tr><td><a href="runs/44856315298/">#549</a> <span class="muted"><code>3dce171</code></span></td><td>2026-11-21 03:38 UTC</td><td>cursor/ios-plan-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/112">PR #112</a></td><td>pr</td><td class="fail">23/24</td><td class="">0</td><td><span class="fail">pixel6·smoke</span></td></tr>
+<tr><td><a href="runs/44855188640/">#543</a> <span class="muted"><code>5b1c861</code></span></td><td>2026-11-21 03:06 UTC</td><td>cursor/new-game-halo-idle-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/109">PR #109</a></td><td>pr</td><td class="pass">25/25</td><td class="">0</td><td><span class="pass">pixel6·chaos</span> &nbsp; <span class="pass">pixel6·smoke</span></td></tr>
+<tr><td><a href="runs/44843885954/">#539</a> <span class="muted"><code>dbab55a</code></span></td><td>2026-11-21 01:46 UTC</td><td>cursor/seating-tutorial-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/108">PR #108</a></td><td>pr</td><td class="pass">51/51</td><td class="">0</td><td><span class="pass">pixel6·chaos</span> &nbsp; <span class="pass">pixel6·monkey</span> &nbsp; <span class="pass">pixel6·roles</span> &nbsp; <span class="pass">pixel6·smoke</span> &nbsp; <span class="pass">pixel6·two-device</span></td></tr>
+<tr><td><a href="runs/44835061138/">#537</a> <span class="muted"><code>3ca85ab</code></span></td><td>2026-11-21 00:22 UTC</td><td>cursor/seating-tutorial-ca74 · <a href="https://github.com/sreeatcandorps/RummyHome/pull/108">PR #108</a></td><td>pr</td><td class="fail">41/42</td><td class="">0</td><td><span class="pass">pixel6·chaos</span> &nbsp; <span class="pass">pixel6·monkey</span> &nbsp; <span class="pass">pixel6·roles</span> &nbsp; <span class="fail">pixel6·smoke</span> &nbsp; <span class="fail">pixel6·two-device</span></td></tr>
+<tr><td><a href="runs/44783527305/">#532</a> <span class="muted"><code>6ce919c</code></span></td><td>2026-11-20 18:56 UTC</td><td>main</td><td>nightly</td><td class="fail">127/131</td><td class="">0</td><td><span class="pass">pixel4a·smoke</span> &nbsp; <span class="pass">pixel6·chaos</span> &nbsp; <span class="pass">pixel6·full</span> &nbsp; <span class="pass">pixel6·monkey</span> &nbsp; <span class="pass">pixel6·roles</span> &nbsp; <span class="pass">pixel6·two-device</span> &nbsp; <span class="fail">pixel7pro·smoke</span> &nbsp; <span class="fail">tablet·smoke</span></td></tr>
+</table>
+<p class="muted">Built 2026-11-21 11:37 UTC. Each run keeps its screenshots and the videos of failing / chaos flows for the last 15 runs. Every run here used a throw-away local Supabase on the runner — never the live project.</p>
+<script>
+const REPO="sreeatcandorps/RummyHome";
+const live=document.getElementById('live');
+async function poll(){
+  try{
+    const r=await fetch('https://api.github.com/repos/'+REPO+'/actions/runs?per_page=12',{headers:{accept:'application/vnd.github+json'}});
+    if(!r.ok) throw new Error('GitHub API '+r.status);
+    const d=await r.json();
+    const runs=d.workflow_runs.filter(x=>x.name==='CI');
+    const rows=[];
+    for(const x of runs.slice(0,8)){
+      const st=x.status==='completed'?x.conclusion:x.status;
+      let jobsHtml='';
+      if(x.status!=='completed'){
+        try{
+          const j=await (await fetch(x.jobs_url+'?per_page=50')).json();
+          jobsHtml=(j.jobs||[]).map(k=>'<div><span class="dot '+(k.status==='completed'?k.conclusion:k.status)+'"></span><a href="'+k.html_url+'">'+k.name+'</a> <span class="muted">'+(k.status==='completed'?k.conclusion:k.status)+(k.steps?' · '+((k.steps.find(s=>s.status==='in_progress')||{}).name||''):'')+'</span></div>').join('');
+        }catch(e){}
+      }
+      rows.push('<tr><td><span class="dot '+st+'"></span><a href="'+x.html_url+'">#'+x.run_number+'</a></td><td>'+(x.head_branch||'')+'</td><td>'+x.event+'</td><td class="'+(st==='success'?'pass':st==='failure'?'fail':'run')+'">'+st+'</td><td>'+new Date(x.run_started_at||x.created_at).toLocaleString()+'</td><td>'+jobsHtml+'</td></tr>');
+    }
+    const anyLive=runs.some(x=>x.status!=='completed');
+    live.innerHTML='<table><tr><th>Run</th><th>Branch</th><th>Trigger</th><th>Status</th><th>Started</th><th>Jobs (while running)</th></tr>'+rows.join('')+'</table><p class="muted">'+(anyLive?'Something is running — this list refreshes every 60 s. Click a job for its live log.':'Nothing running right now. Refreshes every 60 s.')+'</p>';
+  }catch(e){ live.innerHTML='<p class="muted">Could not reach the GitHub API ('+e.message+'). The finished runs below are still current.</p>'; }
+}
+poll(); setInterval(poll,60000);
+</script>
+</main></html>
