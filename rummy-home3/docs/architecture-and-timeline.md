@@ -659,3 +659,7 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   builds and Play uploads still wait for Sree's yes through Build Bot.
 - Found while reading CI timings: the New game "Playing" halo looped for ever on the JS thread, so Maestro waited
   60–100 s per tap on that screen (smoke/19 10 min) and the slower nightly devices timed out (#88 #103 #106) — #109.
+- Three plans written on Sree's asks, no code: design review 2 (`docs/design-review-2.md`, #111), iPhone
+  (`docs/ios/README.md`, #112 — the date is Apple's enrolment + TestFlight + App Review waits) and volume / test
+  environment (`docs/test-environment-plan.md`, Q12): the database ladder and device suites already exist; what is
+  missing is a hosted staging Supabase project (free tier) with a staging APK, and load against it.
