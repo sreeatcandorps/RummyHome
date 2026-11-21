@@ -11,7 +11,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes. Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-21 02:20 UTC (agent), after #107 / #108 merged (`afa9c83`), APK v17 built, AAB 15 in Play review.
+Last updated: 2026-11-21 09:10 UTC (agent), after #110 merged (`9b92a42`), staging created, Sree's APK v17 pass (icon, header shimmer, three screens), the batching rule.
 
 ## In flight
 
@@ -21,14 +21,31 @@ Last updated: 2026-11-21 02:20 UTC (agent), after #107 / #108 merged (`afa9c83`)
 | 2a | **Design review 2** — Sree: "Go with Small now, mockups first" (Q11). Mockups of Profile / Settings / Game type / Sign in as grouped lists, light + dark, added to the PR. | PR #111 | **Sree**: yes per screen on the mockups; competitor screens |
 | 2b | **iPhone plan** — eight steps; Sree: enrol as **Candor PS** (D62). | PR #112 | **Sree**: the enrolment itself (D-U-N-S for Candor PS) |
 | 2e | **Volume V1 on 052** — 20 new ladder rows, 137/137 pass, `volume` job nightly. Rebased on main after #110. | PR #114 | CI green, then Build Bot merges (Sree's yes stands) |
-| 2f | **Staging** — Supabase `ezscore-staging` (ca-central-1, 001–052 applied by Build Bot). Next PR: EAS `staging` profile ("EZ Score · Staging", own package suffix) + the seed generator. | new PR | the anon key as an EAS / GitHub secret (Build Bot); **Sree**: "build" for the first staging APK |
+| 2f | **Staging** — Supabase `ezscore-staging` (ca-central-1, 001–052 applied by Build Bot). EAS `staging` profile ("EZ Score · Staging", `.staging` package) + the population generator (`ci/volume/seed-staging.mjs`, validated at 2 % locally, nightly check). **Seeding staging and the staging APK wait for Sree's yes.** | PR #116 | CI, then **Sree**: merge; yes to seed; yes to build
+| 2g | **Small fixes batch** — the table below. #117 (icon) was opened before the batching rule arrived and is now the **batch's shell** (draft, renamed); everything else on the list is folded into it when Sree says build. | PR #117 (draft) | **Sree**: pick the §8 suggestions, say build PR | the anon key as an EAS / GitHub secret (Build Bot); **Sree**: "build" for the first staging APK |
+
+## Small fixes batch (one PR, built on Sree's yes — rule in `AGENTS.md`)
+
+Sree, Nov 21: "Don't make every little thing a PR … combine all of them into one PR." Collected here with the
+diagnosis and a mockup where there is a screen; nothing coded until he says build (except the icon, done before the rule).
+
+| P | Item | Sree said (Nov 21, APK v17) | Diagnosis / fix | Picture |
+| --- | --- | --- | --- | --- |
+| **1** | **Scorecard header shimmer on a fast sideways scroll** (18 players) — *recurring; he reported it before* | "the zigzag, the faded look on the header … it's moving … a hazy look that moves a little bit. As soon as I take a screenshot, it becomes normal … if I scroll very slowly, it's completely fine. If I add any amount of speed, that's when it is screwing up." | The header and the rows are **two horizontal ScrollViews kept in step from the JS thread** (`ScoreTable.tsx` `syncFrom` → `scrollTo` on every `onScroll`, 16 ms throttle). In a fling the header lands one or two frames behind the rows, so the header cells shimmer against the body and a sliver of the previous column shows at the left edge; at rest (and in a screenshot) they converge. **Fix:** one native-driven offset — the rows' `Animated.event` (`useNativeDriver`) translates a plain header view inside a clipped container; no second ScrollView, no JS in the loop. **Proof:** a Maestro flow that flings the 18-player header; the device job's per-flow `screenrecord` video shows motion where screenshots cannot. | — (video) |
+| 2 | **Launcher icon cut by the circle mask** | "the Joker icon … square shape, but then it's a circle, so it's not very clean … zoom it out" | Foreground was the whole tile at 70 %; Android guarantees only the 66 dp circle. Joker alone as foreground at 50 %, tile green as background, monochrome layer, store icon full bleed, splash unchanged (D63). **Built** in #117 before the batching rule; 650 tests + safe-zone test pass. | `docs/app-icon/*.png` |
+| 3 | **Pool web link shows no Standings** | "for pool it doesn't show the standings … make sure the web link is showing as much information as the actual app" | **Not code: publishing.** The repo's page has had Standings since Nov 14; the live page is the Nov 12 build (byte-compared). → **Q6 republish by Build Bot.** Then small parity rows for the batch: dealer per round, awards once given, entries per player on the page. | `design-review-2.md` §7.4 |
+| 4 | **Awards "AWAR D" header wraps; "1 drops"** | (on the Awards · P5 screen) | Give the Award column its width / `numberOfLines={1}`; plural helper. | `mockups/awards-mockup.png` |
+| 5 | **Awards: game name + pool limit** — *suggestion, awaits his pick* | "I don't see the pool count … show the game name and how much it was played for" | One line under the title: *Friday night · Pool 101 · drop 25 · 7 players*; same on the Final scores header. PDF, share picture and web page already carry the limit. | `mockups/awards-mockup.png` |
+| 6 | **Round saved (pool) dialog** — *suggestion, awaits his pick* | "the buttons and the text are all over the place … what if there are more players, will it scroll?" | Bottom sheet, one row per player with Re-enter on the row, pinned title/chips/buttons, list scrolls; Complete when one is left. **Also verify:** six "is out" lines in one round is impossible (the winner on 0 cannot go out) — the dialog may list every out player, not this round's. | `mockups/round-saved-mockup.png` |
+| 7 | **Add by initials: one letter per box, auto-advance, one Save, results in place, Done** — *suggestion, awaits his pick* | "I don't even need those save buttons … cursor to move to the second player … just allow for one … show what happened … Save, saved, saved … then Done" | Take it, with three refinements (resolved name shown while typing, rows grow, same Row component as S). D52's half-filled-row question stays. | `mockups/initials-mockup.png` |
+| 8 | Live page: "Keep score like this — get EZ Score" footer; Help "Watch a game" entry | (from the competitor review, §7) | Two lines of HTML / one Help row. | — |
 
 ## Next, in order
 
 | # | Item | Why this order | Size | Needs from Sree |
 | --- | --- | --- | --- | --- |
-| 3 | **Republish the live scorecard page** so shared links show Pool and Standings (Q6). #113 is on main, so the page renders; live still serves the old page — every shared link today is wrong for a pool game. | A live-user bug, zero code. | tiny | yes to Build Bot |
-| 3b | **Staging PR**: `ci/volume/seed-staging.mjs` (2,000 accounts / 20,000 games / the power user, SCALE for CI), the EAS `staging` profile and app variant; then seed `ezscore-staging` and V2 (the app on staging data) once Sree says build. | The project exists; this is the next thing that needs nothing more from him. | medium | the anon key (Build Bot), then "build" |
+| 3 | **Republish the live scorecard page** so shared links show Pool and Standings (Q6) — **confirmed Nov 21: the live page is the Nov 12 build; Sree's "pool link has no standings" is this.** #113 is on main, so the page renders; live still serves the old page — every shared link today is wrong for a pool game. | A live-user bug, zero code. | tiny | yes to Build Bot |
+| 3b | **Staging, after #116**: seed `ezscore-staging` (Sree's yes), the first staging APK (Sree's yes), then V2 (the app on staging data) once Sree says build. | The project exists; this is the next thing that needs nothing more from him. | medium | the anon key (Build Bot), then "build" |
 | 4 | **Nightly red → green** after #109: re-run the Pixel 7 Pro / 4a / tablet smoke; whatever still fails is a real device bug and gets its own PR. | Keeps the test suite trusted; the three issues close themselves. | small | — |
 | 5 | **Points "left the table"** (Q9, the Points half of D58): admins mark a seat LEFT / BACK in Players · Admins; the column stays, Add round asks no score, the deal and the open card skip the seat (052's rotation already does). Mockup first. | The only place Pool has a state Points lacks; comes up in every long Points night. | medium (migration) | yes to the spec (Q9) |
 | 6 | **Unsaved-players dialog button** (Q3): B "Done · keep the 1 saved". | Tiny, already answered in the question. | tiny | confirm B |

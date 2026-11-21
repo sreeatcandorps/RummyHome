@@ -24,6 +24,15 @@ down the priority list until everything is done."
 - Anything that needs a yes: do every part that does not (branch, spec, tests, mockups), then ask once,
   in the Next-up line, with the question in one sentence.
 
+## Small things go on the batch list, not into PRs
+
+Sree (Nov 21): "Just make one PR. Don't make any PRs yet. Keep collecting everything and then combine them
+into PRs … that should be a thing you should do automatically." So: every small item (bug under an hour, copy,
+one-screen layout, an icon, a plural) is a row in the **Small fixes batch** table of `docs/next-up.md` — what he
+said, the diagnosis, the fix, a mockup when it has a screen, priority — and the batch ships as **one** PR when he
+says build. Diagnose and mock up at once; write code only when the batch is approved. Features, migrations,
+plan / mockup documents and live-user bugs he asks to ship alone still get their own PR.
+
 ## What never happens without Sree's explicit yes (via Build Bot)
 
 Merging to `main`, applying a migration to live, cutting an EAS build, uploading to Play, closing his issues.
