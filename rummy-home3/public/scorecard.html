@@ -134,6 +134,8 @@
       const linkParam = params.get('g') || '';
       const fromLink = /^[SPG]\d+$/.test(linkParam) ? 'Game ' + linkParam : /^\d+$/.test(linkParam) ? 'Game ' + linkParam : '';
       const gameNo = fromCard || fromLink;
+      // PR 14 multiplier: the card carries the entered scores and the ×N; this page shows actual points, short (K / M) in cells, exact on hover and in the list below.
+      const multiplier = pool ? 1 : Math.max(1, Math.trunc(Number(card.multiplier) || 1));
       const status = card.status === 'completed' ? (pool ? (card.awarded ? 'Completed · Awarded' : 'Completed · Awards pending') : 'Completed') : 'Live';
       document.getElementById('meta').textContent = [gameNo, pool ? 'Pool · limit ' + limit : '', multiplier > 1 ? '×' + multiplier.toLocaleString('en-US') : '', 'Started ' + when, status].filter(Boolean).join(' · ');
       // The scorecard standard: a win green, a penalty of more than half the Full count red text, the rest plain.
@@ -142,8 +144,6 @@
       // 031: a divider above each round where the first dealer deals again (one full rotation done).
       const dealers = card.dealers || {};
       const firstDealer = roundList.length ? dealers[String(roundList[0])] : null;
-      // PR 14 multiplier: the card carries the entered scores and the ×N; this page shows actual points, short (K / M) in cells, exact on hover and in the list below.
-      const multiplier = pool ? 1 : Math.max(1, Math.trunc(Number(card.multiplier) || 1));
       const exact = (value) => (value > 0 ? '+' : '') + Math.trunc(value).toLocaleString('en-US');
       const short = (value) => {
         const abs = Math.abs(value);
