@@ -51,14 +51,8 @@ def wrap(draw, text, font, width):
     return lines
 
 
-# ---- icon 512: the green tile full-bleed (Play masks icons itself; the cream border read as "cut off") ----
-src = Image.open(ICON_SRC).convert('RGB')
-tile = src.crop((70, 59, 953, 958))  # the dark tile's bounding box in the 1024 source
-icon = Image.new('RGB', tile.size, (15, 69, 45))
-mask = Image.new('L', tile.size, 0)
-ImageDraw.Draw(mask).rounded_rectangle((0, 0, tile.size[0] - 1, tile.size[1] - 1), 150, fill=255)
-icon.paste(tile, (0, 0), mask)
-icon.resize((512, 512), Image.LANCZOS).save(os.path.join(OUT, 'icon-512.png'))
+# ---- icon 512: assets/icon.png is already full bleed (docs/app-icon); Play rounds the corners itself ----
+Image.open(ICON_SRC).convert('RGB').resize((512, 512), Image.LANCZOS).save(os.path.join(OUT, 'icon-512.png'))
 
 # ---- feature graphic 1024x500 ----
 fg = Image.new('RGB', (1024, 500), GREEN)
