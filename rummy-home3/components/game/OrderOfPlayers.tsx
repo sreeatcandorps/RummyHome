@@ -41,13 +41,15 @@ export type SeatingPlayer = {
  * higher seat); unnumbered players have none. One row is highlighted at a time: the last one touched.
  * The green seat number is who deals next once everyone is numbered. The parent scrolls.
  */
-export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled = false, testIDPrefix = 'seat' }: {
+export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled = false, unchanged = false, testIDPrefix = 'seat' }: {
   players: SeatingPlayer[];
   draft: OrderDraft;
   onChange: (draft: OrderDraft) => void;
   /** Who deals next under the order being built (undefined before seat 1 exists). */
   dealsNext?: string;
   disabled?: boolean;
+  /** Mid-game: the order on screen is the saved one, so the counter says Done will just close. */
+  unchanged?: boolean;
   testIDPrefix?: string;
 }) {
   const { colors } = useAppTheme();
@@ -138,7 +140,7 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
         );
       })}
       <Text variant="labelSmall" style={[styles.counter, { color: colors.onSurfaceVariant }]} testID="order-counter">
-        {numberedCounter(draft.numbered.length, rows.length)}
+        {numberedCounter(draft.numbered.length, rows.length, unchanged && !building)}
       </Text>
     </View>
   );

@@ -87,6 +87,21 @@ test('web scorecard: a completed, awarded Pool card renders with its limit', () 
   assert.match(p.text('meta'), /Pool · limit 201/);
   assert.match(p.text('meta'), /Completed · Awarded/);
   assert.doesNotMatch(p.text('meta'), /Could not load/);
+  assert.match(p.html('board'), /<h2>Standings<\/h2>/, 'the link carries the pool standings (v12 point 11)');
+});
+
+test('web scorecard: a pool link shows re-entries and the entry count, like the app', () => {
+  const p = pageSandbox(page, `?t=${token}`);
+  const pool = card(6, 8, { gameType: 'pool', poolLimit: 201, status: 'active' });
+  for (const s of pool.scores as { type: string; value: number }[]) s.value = s.type === 'rummy' ? 0 : Math.abs(s.value);
+  const players = pool.players as { outRound: number | null; reenteredRound: number | null; entries: number }[];
+  players[1].reenteredRound = 4; players[1].entries = 2;
+  players[2].outRound = 6;
+  (p.context as unknown as { render: (c: unknown) => void }).render(pool);
+  const board = p.html('board');
+  assert.match(board, /7 entries/, 'one re-entry → 7 entries for 6 players');
+  assert.match(board, /class="again"><b>P2<\/b>[^<]*<span class="st">-?\d+<\/span><span class="st2">↺ R4 · /, 'the re-entered player carries ↺ and the round');
+  assert.match(board, /class="isout"><b>P3<\/b>/, 'the out player is struck');
 });
 
 test('web scorecard: the 20 × 500 volume card renders', () => {

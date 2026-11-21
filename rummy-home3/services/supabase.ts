@@ -3,8 +3,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/types/database';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+// The staging app (eas.json `staging`, app.config.js APP_VARIANT) reads its own pair of variables, so the
+// live names are never overridden by mistake. Expo inlines EXPO_PUBLIC_* only as literal member reads.
+const isStaging = process.env.EXPO_PUBLIC_APP_VARIANT === 'staging';
+const supabaseUrl = isStaging ? process.env.EXPO_PUBLIC_STAGING_SUPABASE_URL : process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = isStaging ? process.env.EXPO_PUBLIC_STAGING_SUPABASE_ANON_KEY : process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 

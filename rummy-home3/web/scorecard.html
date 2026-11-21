@@ -36,6 +36,7 @@
     .standings .sub { margin: 0 0 6px; color: var(--muted); font-size: 12px; }
     .standings p { margin: 2px 0; display: flex; gap: 8px; align-items: baseline; }
     .standings p.isout { color: var(--muted); text-decoration: line-through; }
+    .standings p.again b { color: #1D4ED8; }
     .standings .st { margin-left: auto; font-weight: 800; font-variant-numeric: tabular-nums; }
     .standings .st2 { min-width: 120px; text-align: right; color: var(--muted); font-size: 12px; }
     th.rn, td.rn { width: 40px; text-align: left; color: var(--muted); }
@@ -195,14 +196,18 @@
       if (pool) {
         // Standings (D5): players in, lowest first, with points and drops left; then the outs.
         const drop = Math.abs(Number(card.dropAmount) || 25);
-        const rows = players.map((seat, i) => ({ i, total: totals[i], out: Boolean(seat.outRound), outRound: seat.outRound || 0 }))
+        // Small fixes batch (Nov 21): the link shows what the app shows — re-entries (↺, blue, like the app's
+        // header) and the entry count, so a shared pool link is not a lesser scorecard.
+        const rows = players.map((seat, i) => ({ i, total: totals[i], out: Boolean(seat.outRound), outRound: seat.outRound || 0, reentered: !seat.outRound && Boolean(seat.reenteredRound), reenteredRound: seat.reenteredRound || 0, entries: Math.max(1, Number(seat.entries) || 1) }))
           .sort((a, b) => (a.out !== b.out ? (a.out ? 1 : -1) : a.out ? a.outRound - b.outRound : a.total - b.total));
         const inCount = rows.filter((r) => !r.out).length;
-        standings = '<div class="standings"><h2>Standings</h2><p class="sub">Limit ' + limit + ' · ' + (limit - 1) + ' in, ' + limit + ' out · ' + inCount + ' of ' + players.length + ' in</p>'
+        const entries = rows.reduce((n, r) => n + r.entries, 0);
+        standings = '<div class="standings"><h2>Standings</h2><p class="sub">Limit ' + limit + ' · ' + (limit - 1) + ' in, ' + limit + ' out · ' + inCount + ' of ' + players.length + ' in' + (entries > players.length ? ' · ' + entries + ' entries' : '') + '</p>'
           + rows.map((r) => {
             const left = Math.max(0, limit - r.total);
-            const right = r.out ? 'OUT R' + r.outRound : left + ' left · ' + Math.ceil(left / drop) + (Math.ceil(left / drop) === 1 ? ' drop' : ' drops');
-            return '<p class="' + (r.out ? 'isout' : '') + '"><b>' + esc(labels[r.i]) + '</b> ' + esc(names[r.i]) + ' <span class="st">' + r.total + '</span><span class="st2">' + right + '</span></p>';
+            const again = r.reentered ? '↺ R' + r.reenteredRound + ' · ' : '';
+            const right = r.out ? 'OUT R' + r.outRound : again + left + ' left · ' + Math.ceil(left / drop) + (Math.ceil(left / drop) === 1 ? ' drop' : ' drops');
+            return '<p class="' + (r.out ? 'isout' : r.reentered ? 'again' : '') + '"><b>' + esc(labels[r.i]) + '</b> ' + esc(names[r.i]) + ' <span class="st">' + r.total + '</span><span class="st2">' + right + '</span></p>';
           }).join('') + '</div>';
       }
       document.getElementById('board').innerHTML = '<div class="blocks">' + (tables || '<p class="msg">No players yet.</p>') + '</div>'

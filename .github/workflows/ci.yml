@@ -693,6 +693,15 @@ jobs:
           OUT=out/volume node volume/run-volume.mjs | tee out/volume/volume.tap
           echo "${PIPESTATUS[0]}" > out/volume/volume.status
           cat out/volume/results.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - name: Staging population generator still builds (2 % scale, then wipe + reseed)
+        working-directory: ci
+        run: |
+          set +e
+          SCALE=0.02 OUT=out/volume/staging-seed node volume/seed-staging.mjs | tee out/volume/staging-seed.tap
+          s1="${PIPESTATUS[0]}"
+          SCALE=0.02 WIPE=1 OUT=out/volume/staging-seed node volume/seed-staging.mjs | tail -3
+          s2="$?"
+          echo "$(( s1 + s2 ))" > out/volume/staging-seed.status
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -702,7 +711,7 @@ jobs:
         if: always()
         working-directory: rummy-home3
         run: supabase stop --no-backup || true
-      - run: '[ "$(cat ci/out/volume/stress.status)" = 0 ] && [ "$(cat ci/out/volume/volume.status)" = 0 ]'
+      - run: '[ "$(cat ci/out/volume/stress.status)" = 0 ] && [ "$(cat ci/out/volume/volume.status)" = 0 ] && [ "$(cat ci/out/volume/staging-seed.status)" = 0 ]'
 
   dashboard:
     name: Dashboard, PR comment, bug filing

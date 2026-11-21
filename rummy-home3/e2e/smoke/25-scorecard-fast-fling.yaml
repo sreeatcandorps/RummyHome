@@ -1,0 +1,66 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Small fixes batch (Nov 21): Sree, twice — "scrolling to the right for 18 players … the zigzag, the faded look …
+# slowly it's fine, any speed screws up … as soon as I take a screenshot, it stops." The header and the rows
+# used to be kept in step from the JS thread, so a fling left the header a frame behind. There is one offset now:
+# the rows' scroller writes it natively and the header is a plain view translated by it; a drag on the names
+# drives the rows' scroller.
+# A screenshot cannot show the tear (it is between frames), so the proof is this flow's video (VIDEO=all in
+# CI): three fast flings on the rows, one on the names, one hand-over mid-fling. The screenshots pin that the
+# header and the rows end on the same column after each path (the only thing a still can prove).
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEF1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEF1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertVisible: "TA"
+# Fast flings on the rows.
+- swipe:
+    start: 90%, 45%
+    end: 10%, 45%
+    duration: 120
+- swipe:
+    start: 90%, 45%
+    end: 10%, 45%
+    duration: 120
+- swipe:
+    start: 90%, 45%
+    end: 10%, 45%
+    duration: 120
+- extendedWaitUntil:
+    visible:
+      id: "score-table-header"
+    timeout: 30000
+- takeScreenshot: 25-fling-rows-settled
+# A fling on the names (the names row sits at 16–21 % of the screen height on a
+# Pixel 6); the rows must follow and settle on the same column.
+- swipe:
+    start: 10%, 19%
+    end: 90%, 19%
+    duration: 120
+- extendedWaitUntil:
+    visible:
+      id: "score-table-header"
+    timeout: 30000
+- takeScreenshot: 25-fling-header-settled
+# Hand-over mid-fling: fling the rows, then grab the names before they stop.
+- swipe:
+    start: 90%, 45%
+    end: 10%, 45%
+    duration: 100
+- swipe:
+    start: 50%, 19%
+    end: 60%, 19%
+    duration: 400
+- extendedWaitUntil:
+    visible:
+      id: "score-table-header"
+    timeout: 30000
+- takeScreenshot: 25-fling-handover-settled

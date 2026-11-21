@@ -14,6 +14,7 @@ Before suggesting a design, writing a spec, or building any UI change:
 
 - `main` is the product. Every branch starts from `main`; a stack is at most two PRs deep and short-lived.
 - One PR per feature, opened with the PR template. A UI PR is not done until its **screenshot matrix** (0 / 1 / 5 rounds × 4 / 13 players × portrait / landscape) is in the body.
+- **Small things are batched, never one PR each** (Sree, Nov 21: "Don't make every little thing a PR. When I give you little things, combine all of them into one PR"). Every small fix, copy change or one-screen tweak goes on the **Small fixes batch** list in `rummy-home3/docs/next-up.md` with its diagnosis and, when it has a screen, a mockup; the batch is built as **one** PR when Sree says so. Open a PR of its own only for a feature, a migration, a plan / mockup document, or a live-user bug Sree asks to ship alone.
 - Run `npm run typecheck` and `npm test` in `rummy-home3/` before pushing; update the Maestro flows in `rummy-home3/e2e/` that your change breaks.
 - Update `rummy-home3/docs/architecture-and-timeline.md` when tooling, distribution or a major module changes (see `.cursor/rules/architecture-timeline.mdc`).
 
