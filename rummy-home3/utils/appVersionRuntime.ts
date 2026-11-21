@@ -18,3 +18,9 @@ export function readAppVersion(): AppVersionInfo {
     updateId: Updates.updateId ?? null,
   };
 }
+
+/** "Staging" on the staging app (app.config.js APP_VARIANT), '' on the real one — shown under the version. */
+export function appVariantLabel(): string {
+  const variant = (Constants.expoConfig?.extra as { variant?: string } | undefined)?.variant;
+  return variant === 'staging' ? 'Staging' : '';
+}
