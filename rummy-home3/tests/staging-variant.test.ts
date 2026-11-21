@@ -65,7 +65,7 @@ test('Q12 staging: the client reads the staging pair only on the staging variant
 });
 
 test('Q12 staging: the population generator refuses every host but local and ezscore-staging', async () => {
-  const seed = await import('../../ci/volume/seed-staging.mjs');
+  const seed = await import('../../ci/volume/seed-staging-config.mjs');
   assert.equal(seed.allowedTarget('postgresql://postgres:postgres@127.0.0.1:5432/ezscore_test'), true);
   assert.equal(seed.allowedTarget('postgresql://postgres.erurahfybkxemgtkfzkn:x@aws-0-ca-central-1.pooler.supabase.com:6543/postgres'), true);
   assert.equal(seed.allowedTarget('postgresql://postgres:x@db.someotherref.supabase.co:5432/postgres'), false, 'live is never a target');
@@ -73,5 +73,5 @@ test('Q12 staging: the population generator refuses every host but local and ezs
   for (const [k, v] of Object.entries(seed.SIZES)) assert.ok(Number.isInteger(v) && v > 0, `${k} is a positive count`);
   const sql = src('../ci/volume/seed-staging.sql');
   assert.match(sql, /crypt\('123456', gen_salt\('bf'\)\)/, 'seeded people can sign in');
-  assert.doesNotMatch(sql + src('../ci/volume/seed-staging.mjs'), /eyJ[A-Za-z0-9_-]{20,}|sb_publishable|sb_secret/, 'no keys in the generator');
+  assert.doesNotMatch(sql + src('../ci/volume/seed-staging.mjs') + src('../ci/volume/seed-staging-config.mjs'), /eyJ[A-Za-z0-9_-]{20,}|sb_publishable|sb_secret/, 'no keys in the generator');
 });

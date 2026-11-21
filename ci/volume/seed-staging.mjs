@@ -24,34 +24,13 @@ import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { performance } from 'node:perf_hooks';
+import { allowedTarget, SCALE, SIZES } from './seed-staging-config.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.OUT ?? path.join(HERE, '..', 'out', 'staging-seed');
 const DB_URL = process.env.DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
-const SCALE = Math.min(1, Math.max(0.005, Number(process.env.SCALE ?? '1')));
 const WIPE = process.env.WIPE === '1';
-const STAGING_REF = 'erurahfybkxemgtkfzkn';
 
-export function allowedTarget(url) {
-  let host = '';
-  try { host = new URL(url).hostname; } catch { return false; }
-  const local = host === '127.0.0.1' || host === 'localhost' || host === '::1' || host === 'db';
-  return local || url.includes(STAGING_REF);
-}
-
-const scaled = (n, min = 1) => Math.max(min, Math.round(n * SCALE));
-export const SIZES = {
-  people: scaled(2000, 60),
-  regulars: scaled(200, 12),
-  circles: scaled(150, 6),
-  games: scaled(20000, 200),
-  results: scaled(3000, 30),
-  live: scaled(60, 4),
-  powerGames: scaled(1500, 40),
-  powerPlayers: scaled(400, 30),
-  powerResults: scaled(120, 6),
-  hugeRounds: scaled(500, 60),
-};
 const POWER = 1; // person #1 is "Sree at scale"
 const MONTHS = 18;
 
