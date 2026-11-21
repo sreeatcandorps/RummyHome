@@ -223,3 +223,47 @@ fourth appears (up to the per-day cap), so "add three people quickly" becomes "a
 (3) the summary rows are the same `Row` component the S redesign introduces, so this screen is built once.
 
 Picture: `initials-mockup.png`.
+
+### 8.4 Order of players — "arrows only on the selected player" (Sree, Nov 21)
+
+**Sree's words**: "show the arrows on all the rows initially; once a player is selected, only his arrows show — that
+is the selection sign — the others' arrows are gone; deselect and all the arrows come back; clicking another player
+moves the selection; the last player has no down arrow; do it in both places; update the tutorial and the help; merge
+tutorial steps 2 and 3 — 'the last tap deals' is obvious; what is step 4?"
+
+**Honest view.** Industry pattern for reordering a short list is one of two: *drag handles* (iOS Reminders, Google
+Keep, Spotify queue — a ≡ grip on every row, press-and-drag) or *select, then move* (Android Settings › Apps order,
+most accessibility-first UIs — tap a row, then up/down controls act on it). Drag is the prettier default but fails
+the table: six to eighteen rows, a phone passed hand to hand, fingers that are not steady, and a list that is also
+being *tapped* to count down cards (D56) — a drag gesture and a tap gesture on the same row fight each other.
+**Select-then-move is the right pattern here, and Sree's version of it is the textbook one**: the selection *is* the
+affordance. We recommend it with one refinement: when nobody is selected, show the arrows on every row **faint**
+(outline grey), not full strength — Sree's "show them initially so people know" is right, but at full strength six
+rows × two arrows is the clutter he reacted to in v17. On selection they turn full green on the selected row only.
+Twelve arrows that all work (today) become two that do; fewer mis-taps on an 18-player list.
+
+Rules, as we would build them (both places, one component — `OrderOfPlayers`, used by `OrderStep` in New game ›
+step 3 and by `SeatingSheet` from the ⋮ menu mid-game, so it is one change):
+
+| Rule | Behaviour |
+| --- | --- |
+| Nobody selected | Faint ▲ ▼ on every numbered row (top row no ▲, seat 1 no ▼). Unnumbered rows: none (unchanged). |
+| Tap a numbered row | Row highlighted (today's `primaryContainer`), **its** arrows full green, every other row's arrows hidden. |
+| Tap the selected row again | Deselect: faint arrows return everywhere. (Today the same tap *takes back the number* for the latest player — that stays for the latest player while numbering; once everyone is numbered, a second tap deselects.) |
+| Tap another numbered row | Selection moves; arrows follow. |
+| ▲ ▼ | Move one seat, selection stays on the player (so three taps move three seats). |
+| Last row (seat 1, deals) | No ▼ — already true today (`arrowSlot` spacer); the top row gets the matching rule for ▲ (today it is a disabled grey chevron). |
+| Out / left-the-table rows (mid-game) | Not selectable, no arrows — unchanged. |
+
+**Tutorial**: merge steps 2 and 3 into one — *"Tap the highest card first"* / "Tap the highest card first, then the
+next one down… the last tap is the lowest card and deals round 1." Three steps instead of four. **Step 4 today is
+"Wrong tap? Fix it"** — "Tap the latest player again to take it back. Once everyone is numbered, the arrows move a
+player one seat." It becomes step 3 and its second sentence changes to the new rule: "Once everyone is numbered, tap
+a player and use ▲ ▼ to move them." Help › Order of players gets the same sentence; the on-screen one-liner
+("Tap players from the highest card to the lowest") is unchanged.
+
+Picture: `order-mockup.png` — today's CI frame (arrows on every row), proposed with nobody selected (faint arrows),
+proposed with Sree selected (only his arrows, green). Generator: `make-order-mockup.py`.
+
+Batch item (no PR yet, per the batching rule): `OrderOfPlayers.tsx` selected-state arrows, `utils/tutorials.ts`
+SEATING_STEPS 4 → 3, Help copy, flows 19b–19i and 24b–24c re-pinned.
