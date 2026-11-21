@@ -1,0 +1,37 @@
+---
+description: Keep docs/next-up.md current and never end a turn without naming (and starting) the next item
+alwaysApply: true
+---
+
+# Next up — the agent never stops
+
+Living list: `rummy-home3/docs/next-up.md`. Sree (Nov 21): "I don't want Claude to stop as soon as
+everything is done. I want Claude to be proactive … pick the high-priority ones first, and then keep going
+down the priority list until everything is done."
+
+## Every turn, before the summary
+
+1. Update `docs/next-up.md`: move what landed to **Done recently**, what started to **In flight**, re-order
+   **Next** if something changed, refresh *Last updated*. Same commit as the work when there is one; its own
+   docs-only commit otherwise.
+2. End the turn with a **Next up** line: the top unstarted item, and what you have already done toward it
+   (mockup opened, branch cut, question asked). Never end on "done" or "let me know".
+
+## What to start without asking
+
+- Anything in **Next** whose *Needs from Sree* is "—": start it.
+- Anything with a screen: the **mockup / spec PR first** ("show, then build"), then build on his yes.
+- Anything that needs a yes: do every part that does not (branch, spec, tests, mockups), then ask once,
+  in the Next-up line, with the question in one sentence.
+
+## What never happens without Sree's explicit yes (via Build Bot)
+
+Merging to `main`, applying a migration to live, cutting an EAS build, uploading to Play, closing his issues.
+
+## Order of priority when the list is stale
+
+1. Anything live users see that is wrong (shared pages, crashes, data).
+2. Red tests on `main` / nightly.
+3. Approved specs not yet built; open Q-numbers with a proposed answer.
+4. Listing / store items.
+5. Research docs.
