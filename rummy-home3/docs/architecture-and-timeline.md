@@ -52,6 +52,7 @@ Same codebase either way.
 | Scheduled DB job | **pg_cron** (Supabase extension), enabled on live Nov 15. The 045 job `purge-deleted-games` was **unscheduled the same day** (0 jobs) after Sree's rule that the app never permanently deletes games or results. PR 22 / migration 046 (written, not applied) replaces it with `archive-deleted-games` → `archive_deleted_games()`, 03:15 UTC nightly, non-destructive (`games.archived_at`) | Live has no scheduled job until 046 is applied; `purge_deleted_games()` exists there but nothing calls it |
 | Public scorecard | `https://ezscore.mindweavetech.com/scorecard.html` | Static HTML. `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__` are filled at publish time, not committed |
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
+| Tutorials | `components/tutorial/StepsSheet.tsx` + `expo-haptics` (D61, Nov 20) | Step-by-step sheets drawn from the real components (no video / Lottie); seen-flags on `profiles.default_settings`; the light tap on the real last tap of the Order of players |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / production | Real store binaries |
 | Device UI tests | Maestro + `reactivecircus/android-emulator-runner` in GitHub Actions (`ci/ui/`, `rummy-home3/e2e/`); four emulator profiles, six suites, `adb monkey`, two-emulator races; dashboard on the `gh-pages` branch (GitHub Pages) | Flows on the real APK, screenshots and videos of every run, bugs filed as issues; no EAS credits, no production data, $0 on the public repo |
@@ -639,3 +640,14 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   header shows DEALS and OPENS. pgTAP `43_dealer_052.sql`, rollback `rollback_052_dealer.sql`, replay harness updated;
   `smoke/23-dealer` captures the frames. **The migration is a file in the PR only; live gets it on Sree's separate yes.**
 - Not built: a Points "left the table" state (Q9) — pool "out" is the only out state today.
+
+### 2026-11-20 — #105 merged, 052 live; the Order of players tutorial (D61); `expo-haptics` added
+- #101, #102 and #105 are on `main`; Sree applied 052 to live and cut AAB v15 / APK v16 from `e800cb2`.
+- D61: a reusable step-by-step sheet (`components/tutorial/StepsSheet.tsx`) with the Order of players as its first
+  user — four steps, each a looping demo of the real rows scripted in `utils/tutorials.ts` (no video asset, no
+  Lottie, no Reanimated: plain state on a timer). Forced on the first visit, remembered on
+  `profiles.default_settings` (jsonb, no migration) plus a per-person device copy; Show me on the screen and Watch
+  how (20 s) in Help replay it. New native module **`expo-haptics`** for the light tap on the real last tap — the
+  next EAS / CI APK includes it (prebuild picks it up); Expo Go is unaffected since we do not use it.
+- `seed-listing.sql` flags every seeded account as having seen the tutorial except Ravi (demo@test.local), so the
+  existing seating flows are unchanged and `smoke/24-seating-tutorial` covers the first-time run.

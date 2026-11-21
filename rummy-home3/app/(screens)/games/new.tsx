@@ -520,6 +520,7 @@ export default function NewGame() {
           players={selected.map((p) => ({ id: p.id, name: p.name, label: typeLabels.get(p.id) ?? '', playerCode: p.playerCode ?? byId.get(p.id)?.playerCode ?? null }))}
           draft={order}
           onChange={setOrder}
+          meId={me?.id ?? null}
           onBack={() => setStep('type')}
           onNext={orderNext}
           nextIsStart={coAdminPicks.length === 0}

@@ -4,10 +4,14 @@ import { Icon, Text } from 'react-native-paper';
 import { router } from 'expo-router';
 import { HELP_SCREENSHOTS } from '@/assets/help';
 import { HelpBullets, HelpLine } from '@/components/help/HelpRich';
+import { SeatingTutorial } from '@/components/tutorial/SeatingTutorial';
+import { Button } from '@/components/ui/AppButton';
 import { Tag } from '@/components/ui/Tag';
 import { HELP_TOPICS, HelpFamily, HelpTopic } from '@/constants/helpTopics';
 import { MAX_CONTENT_WIDTH, radius, spacing, useAppTheme } from '@/constants/theme';
+import { flagKey, tutorialsService } from '@/services/tutorials';
 import { helpShotSize } from '@/utils/helpShot';
+import { TutorialKey, WATCH_HOW } from '@/utils/tutorials';
 
 export const NEED_TO_KNOW = 'Need to know';
 export const FULL_GUIDE = 'Full guide';
@@ -56,6 +60,9 @@ export function HelpPage({ topic, anchor }: { topic: HelpTopic; anchor?: string 
   // v12 point 1 (Sree, Nov 19): the picture is sized from the card's measured width, never its pixel width.
   const [shotWidth, setShotWidth] = useState(0);
   const shot = topic.screenshot ? HELP_SCREENSHOTS[topic.screenshot.file] : undefined;
+  // D61: Watch how (20 s) under a section plays its tutorial, never forced; watching it here counts as seen.
+  const [watching, setWatching] = useState<TutorialKey | null>(null);
+  const watched = () => { if (watching) void tutorialsService.markSeen(flagKey(watching, 'tutorial')); setWatching(null); };
 
   const mark = useCallback((id: string) => (e: LayoutChangeEvent) => {
     positions.current[id] = e.nativeEvent.layout.y;
@@ -69,6 +76,7 @@ export function HelpPage({ topic, anchor }: { topic: HelpTopic; anchor?: string 
   }, [anchor, ready]);
 
   return (
+    <>
     <ScrollView ref={scrollRef} style={{ backgroundColor: colors.background }} contentContainerStyle={styles.content} testID={`help-page-${topic.key}`}>
       <View style={styles.column}>
         <View style={[styles.hero, { backgroundColor: family.bg }]} testID="help-hero">
@@ -110,6 +118,9 @@ export function HelpPage({ topic, anchor }: { topic: HelpTopic; anchor?: string 
               <View key={s.title} style={styles.section} onLayout={mark(slug(s.title))}>
                 <Text variant="titleMedium" style={styles.sectionTitle}>{s.title}</Text>
                 <HelpBullets lines={s.bullets} />
+                {s.watch ? (
+                  <Button mode="outlined" icon="play-circle-outline" onPress={() => setWatching(s.watch ?? null)} style={styles.watch} testID={`help-watch-${s.watch}`}>{WATCH_HOW}</Button>
+                ) : null}
               </View>
             ))}
             {topic.menu ? (
@@ -154,6 +165,8 @@ export function HelpPage({ topic, anchor }: { topic: HelpTopic; anchor?: string 
         </View>
       </View>
     </ScrollView>
+      <SeatingTutorial visible={watching === 'seating'} forced={false} onDone={watched} />
+    </>
   );
 }
 
@@ -170,6 +183,7 @@ function AlsoSeeChip({ topic }: { topic: HelpTopic }) {
 const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: spacing.xxl, alignItems: 'center' },
   column: { width: '100%', maxWidth: MAX_CONTENT_WIDTH, gap: spacing.md },
+  watch: { alignSelf: 'flex-start', marginTop: spacing.sm },
   hero: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderRadius: radius.lg },
   heroIcon: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   heroText: { flex: 1, gap: 2 },

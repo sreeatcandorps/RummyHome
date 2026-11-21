@@ -4,6 +4,8 @@ import { Dialog, Portal, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { OrderOfPlayers, SeatingPlayer } from '@/components/game/OrderOfPlayers';
 import { OrderHowTo } from '@/components/game/OrderHowTo';
+import { SeatingTutorial } from '@/components/tutorial/SeatingTutorial';
+import { useTutorial } from '@/hooks/useTutorial';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import {
@@ -14,8 +16,6 @@ import {
   OrderDraft,
   orderChanged,
   orderComplete,
-  ORDER_WRONG_TAP,
-  orderSteps,
   SEATING_CLEAR,
   SEATING_DONE,
   SEATING_TITLE,
@@ -60,6 +60,8 @@ export function SeatingSheet({ visible, players, pool, dealerIds, roundCount, on
   const complete = orderComplete(draft);
   const changed = orderChanged(draft);
   const note = midGameSeatingNote(roundCount);
+  // D61: the first time anyone opens this (here or at New game) the steps come up forced.
+  const tutorial = useTutorial('seating', visible);
 
   const save = async () => {
     setSaving(true);
@@ -87,7 +89,7 @@ export function SeatingSheet({ visible, players, pool, dealerIds, roundCount, on
               <Text variant="bodySmall" style={{ color: colors.onSecondaryContainer }}>{note}</Text>
             </View>
           ) : null}
-          <OrderHowTo steps={orderSteps(base.length).slice(1)} note={ORDER_WRONG_TAP} testID="seating-how-to" />
+          <OrderHowTo onShowMe={tutorial.show} testID="seating-how-to" />
         </Dialog.Content>
         <Dialog.ScrollArea style={[styles.scrollArea, { maxHeight: Math.max(200, layout.height * 0.5) }]}>
           <ScrollView contentContainerStyle={styles.body}>
@@ -101,6 +103,7 @@ export function SeatingSheet({ visible, players, pool, dealerIds, roundCount, on
           <Button mode="contained" onPress={save} loading={saving} disabled={saving || !complete || !changed} testID="seating-done">{SEATING_DONE}</Button>
         </Dialog.Actions>
       </Dialog>
+      {visible ? <SeatingTutorial visible={tutorial.visible} forced={tutorial.forced} onDone={tutorial.done} /> : null}
     </Portal>
   );
 }
