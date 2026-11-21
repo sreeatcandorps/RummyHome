@@ -21,14 +21,15 @@ Last updated: 2026-11-21 02:20 UTC (agent), after #107 / #108 merged (`afa9c83`)
 | 2 | **Google Play review** of AAB 15 (internal testing). | Play Console | Google; **Sree**: Q7 trader status |
 | 2a | **Design review 2** — B01–B20 inconsistencies (settings pills, six input styles, yellow meaning five things…), S / M / L sizes, recommend S now. Document only, as asked. | PR #111 | **Sree**: read, pick a size (Q11), send the competitor screens |
 | 2b | **iPhone plan** — eight steps, who does each, the timeline is Apple's three waits; `app.json` iOS block. | PR #112 | **Sree**: enrol in the Apple Developer Program (the long pole) |
+| 2d | **Web scorecard page broken since PR 14** — `multiplier` read before its `const`; every shared link on the repo's page said "Could not load the scorecard". Fixed + a test that executes the page script. **Blocks Q6.** | PR #113 | CI, then **Sree**: merge, then yes to republish (Q6) |
+| 2e | **Volume V1 on 052** — 20 new ladder rows (pool at the cap, late joiner, dealer override, seating, awards, reopen, re-entry, pool results), 137/137 pass, `volume` job nightly. | PR #114 | CI, then **Sree**: merge |
 | 2c | **Volume + test environment plan** — what is already load-tested, the two gaps, a free-tier staging project and eight tests V1–V8. Plan only. | PR #110 (`docs/test-environment-plan.md`) | **Sree**: create `ezscore-staging` (2 min), four yes/no in §6 |
 
 ## Next, in order
 
 | # | Item | Why this order | Size | Needs from Sree |
 | --- | --- | --- | --- | --- |
-| 3 | **Republish the live scorecard page** so shared links show Pool and Standings (Q6). The repo has it; live still serves the old page — every shared link today is wrong for a pool game. | A live-user bug, zero code. | tiny | yes to Build Bot |
-| 3a | **Volume V1 on 052** — dispatch the pre-release tier once; add ladder cases for pool + awards bundle, `set_round_dealer`, `reorder_seats`, `add_seated_player`; make `volume` nightly. Needs nothing hosted. | The ladder has not run since Nov 12 and six migrations of new RPCs have never been under load. | small | — |
+| 3 | **Republish the live scorecard page** so shared links show Pool and Standings (Q6) — **after #113 merges** (the repo's page did not render until then). Live still serves the old page; every shared link today is wrong for a pool game. | A live-user bug, zero code. | tiny | merge #113, then yes to Build Bot |
 | 3b | **Staging seed generator** (`ci/volume/seed-staging.mjs`) run against the local database in CI, so V6 (phone memory / frames) and V7 (break it with data) can start before any hosted project exists. | The data set is the same one staging will get; writing it first costs Sree nothing. | medium | — |
 | 4 | **Nightly red → green** after #109: re-run the Pixel 7 Pro / 4a / tablet smoke; whatever still fails is a real device bug and gets its own PR. | Keeps the test suite trusted; the three issues close themselves. | small | — |
 | 5 | **Points "left the table"** (Q9, the Points half of D58): admins mark a seat LEFT / BACK in Players · Admins; the column stays, Add round asks no score, the deal and the open card skip the seat (052's rotation already does). Mockup first. | The only place Pool has a state Points lacks; comes up in every long Points night. | medium (migration) | yes to the spec (Q9) |
