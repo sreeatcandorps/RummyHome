@@ -146,5 +146,41 @@ multiplier check) runs through the app's own triggers, and results go through `s
 
 Local check: `ci/db/local-run.sh && DB_URL=… SCALE=0.02 node ci/volume/seed-staging.mjs` makes 417 games / 8,005 rounds /
 49,012 scores / 67 results in ~10 s; the full set is ~8 min. The nightly `volume` job runs the 2 % build, then wipe +
-reseed, so the generator cannot rot. Against staging: `DB_URL=<pooler URL from the secret> node ci/volume/seed-staging.mjs`
-— **after Sree's yes.**
+reseed, so the generator cannot rot.
+
+## 8. Run it (Sree said yes, Nov 21 1:21 AM: "all testing happens on the staging database … with staging APKs")
+
+Everything below is run by a person, once, from `rummy-home3/` on a machine with `eas-cli` logged in. Nothing here
+touches the live project: the generator refuses any URL without the staging ref, and the staging profile is the only
+one that reads the `EXPO_PUBLIC_STAGING_*` pair.
+
+**1. Seed the staging database** (about 8 minutes; needs Node 22 and `npm ci` in `ci/`):
+
+```bash
+cd ci && npm ci && cd ..
+# Dashboard → ezscore-staging → Connect → "Transaction pooler" URI, with the database password filled in.
+export DB_URL='postgresql://postgres.erurahfybkxemgtkfzkn:<DB PASSWORD>@aws-0-ca-central-1.pooler.supabase.com:6543/postgres'
+node ci/volume/seed-staging.mjs              # full population (SCALE=1); prints a summary line per step
+# Later, to start over with the same population:  WIPE=1 node ci/volume/seed-staging.mjs
+```
+
+The URL carries the password: type it in the terminal, do not paste it into a file, a chat or an issue. The summary
+is written to `ci/out/staging-seed/summary.json` (counts only, no keys). Sign in to the staging app afterwards as
+**sree.koneru.1@staging.test / 123456** — the account with 1,500 games, 400 My players and 60 live games.
+
+**2. Give the build the staging anon key** (once; the key is the *publishable / anon* key of ezscore-staging, never
+the service role key):
+
+```bash
+eas env:create --environment preview --name EXPO_PUBLIC_STAGING_SUPABASE_ANON_KEY --value '<STAGING ANON KEY>' --visibility sensitive --type string
+```
+
+**3. Build the staging APK** (installs beside the real app as "EZ Score · Staging"):
+
+```bash
+eas build -p android --profile staging
+```
+
+The `staging` profile extends `preview` (APK, no OTA updates), sets `APP_VARIANT=staging` and the staging URL, and
+reads the anon key from the `preview` environment created in step 2. The real app keeps using `preview` /
+`production` with the live names; nothing in it changes.

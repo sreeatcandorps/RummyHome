@@ -28,6 +28,7 @@
     "staging": {
       "extends": "preview",
       "channel": "staging",
+      "environment": "preview",
       "env": {
         "EXPO_UPDATES_ENABLED": "false",
         "APP_VARIANT": "staging",
