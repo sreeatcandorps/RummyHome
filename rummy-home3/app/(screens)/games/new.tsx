@@ -53,9 +53,15 @@ const PLAYING_BADGE = 68;
 /** Slide the list shut and the strip open together; a no-op on web, where the chip/row entry animations still run. */
 const animateMove = () => LayoutAnimation.configureNext(LayoutAnimation.create(260, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
 
+/** The halo breathes this many times after a seat changes, then rests (it used to loop for ever). */
+const HALO_BREATHS = 3;
+
 /**
- * "Playing · N". The number sits in a big yellow badge with a soft green halo
- * that keeps breathing while anyone is seated, and it pops each time N changes.
+ * "Playing · N". The number sits in a big yellow badge with a soft green halo that breathes a few
+ * times whenever N changes, and the badge pops. The halo runs on the native thread and is not an
+ * accessibility element: an endless JS-driven loop here kept the screen "busy", so every Maestro tap
+ * on New game waited 60–100 s for the UI to settle (smoke/19 ran 10 min; the nightly Pixel 7 Pro
+ * failures #88 / #103 / #106 are timeouts on this screen), and a phone kept redrawing while it sat idle.
  */
 function PlayingCount({ count, hint }: { count: number; hint: string }) {
   const { colors } = useAppTheme();
@@ -74,13 +80,13 @@ function PlayingCount({ count, hint }: { count: number; hint: string }) {
 
   useEffect(() => {
     if (count === 0) { halo.stopAnimation(); halo.setValue(0); return; }
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(halo, { toValue: 1, duration: 1100, easing: Easing.out(Easing.quad), useNativeDriver: false }),
-      Animated.timing(halo, { toValue: 0, duration: 1100, easing: Easing.in(Easing.quad), useNativeDriver: false }),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, [count === 0, halo]);
+    const breaths = Animated.loop(Animated.sequence([
+      Animated.timing(halo, { toValue: 1, duration: 1100, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.timing(halo, { toValue: 0, duration: 1100, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+    ]), { iterations: HALO_BREATHS });
+    breaths.start();
+    return () => breaths.stop();
+  }, [count, halo]);
 
   const scale = pop.interpolate({ inputRange: [0, 1], outputRange: [1, 1.22] });
   const fill = pop.interpolate({ inputRange: [0, 1], outputRange: [colors.secondaryContainer, colors.positiveContainer] });
@@ -92,7 +98,7 @@ function PlayingCount({ count, hint }: { count: number; hint: string }) {
     <View style={styles.playingRow} accessibilityLiveRegion="polite" accessibilityLabel={`Playing, ${count} ${count === 1 ? 'player' : 'players'}`}>
       <Text variant="titleLarge" style={{ color: colors.onSurface, fontWeight: '800' }}>Playing</Text>
       <View style={styles.countWrap}>
-        {seated ? <Animated.View pointerEvents="none" style={[styles.countHalo, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} /> : null}
+        {seated ? <Animated.View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.countHalo, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} /> : null}
         <Animated.View style={[styles.countBubble, { backgroundColor: seated ? fill : colors.surfaceVariant, borderColor: seated ? colors.primary : colors.outlineVariant, transform: [{ scale }] }]}>
           <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.countText, { color: seated ? colors.onSecondaryContainer : colors.onSurfaceVariant }]}>{count}</Text>
         </Animated.View>
