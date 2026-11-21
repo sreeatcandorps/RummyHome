@@ -37,10 +37,11 @@ tags: [smoke]
       id: "score-table-header"
     timeout: 30000
 - takeScreenshot: 25-fling-rows-settled
-# A fling on the names (the header is the owner); the rows must follow and settle on the same column.
+# A fling on the names (the header is the owner; the names row sits at 16–21 % of the screen height on a
+# Pixel 6); the rows must follow and settle on the same column.
 - swipe:
-    start: 10%, 22%
-    end: 90%, 22%
+    start: 10%, 19%
+    end: 90%, 19%
     duration: 120
 - extendedWaitUntil:
     visible:
@@ -53,8 +54,8 @@ tags: [smoke]
     end: 10%, 45%
     duration: 100
 - swipe:
-    start: 50%, 22%
-    end: 60%, 22%
+    start: 50%, 19%
+    end: 60%, 19%
     duration: 400
 - extendedWaitUntil:
     visible:

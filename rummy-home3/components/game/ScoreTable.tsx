@@ -311,7 +311,13 @@ export function ScoreTable({
     const owner = sidewaysOwner.current;
     const other = owner === 'header' ? 'body' : 'header';
     const x = sideways.current[owner];
-    if (sideways.current[other] !== x) scrollerOf(other)?.scrollTo({ x, animated: false });
+    if (sideways.current[other] === x) return;
+    // The idle scroller's offset value must move in the same frame as its scrollTo: left to the scroll event
+    // alone, the content sat one frame at offset x with the counter-translation still −x (a flash back to the
+    // first column at the end of every fling, seen in the flow 25 video).
+    sideways.current[other] = x;
+    (other === 'header' ? headerX : bodyX).setValue(x);
+    scrollerOf(other)?.scrollTo({ x, animated: false });
   };
   const own = (who: 'header' | 'body') => () => {
     if (sidewaysOwner.current !== who) {

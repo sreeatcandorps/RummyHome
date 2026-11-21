@@ -113,6 +113,7 @@ test('A4-6 / PR 10a: header pinned above one vertical scroller, rows in one side
   // fling cannot leave the header a frame behind the rows (the "zigzag / faded" header Sree saw twice).
   assert.doesNotMatch(table, /onScroll=\{[^}]*scrollTo/, 'no JS-thread scrollTo inside onScroll');
   assert.match(table, /useNativeDriver: true/, 'the offsets are read on the UI thread');
+  assert.match(table, /\(other === 'header' \? headerX : bodyX\)\.setValue\(x\);\s*scrollerOf\(other\)\?\.scrollTo\(\{ x, animated: false \}\)/, 'settle moves the idle offset value with its scrollTo (no one-frame flash back to column 1)');
   assert.match(table, /translateX: headerShift[\s\S]*translateX: bodyShift/, 'the idle scroller is counter-translated natively');
   assert.match(table, /<Animated\.ScrollView[\s\S]*ref=\{headerRef\}[\s\S]*<Animated\.ScrollView[\s\S]*ref=\{bodyRef\}/, 'both scrollers are Animated');
   assert.match(table, /<Animated\.View style=\{\{ width: contentWidth, transform: \[\{ translateX: bodyShift \}\] \}\}>\s*\{Array\.from\(\{ length: roundCount \}/, 'the rows sit in a wrapper of contentWidth');
