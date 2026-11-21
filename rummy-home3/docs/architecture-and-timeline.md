@@ -358,7 +358,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | EAS project linked on this PC | Done |
 | EAS env vars for Supabase | Done |
 | Play Console listing + closed test | **Waiting** on Google verification |
-| iOS App Store | Not started (same Expo app later) |
+| iOS App Store | Plan written (`docs/ios/README.md`, Nov 21): same Expo app, `app.json` iOS block ready; waiting on Apple Developer enrolment (Sree) |
 | Full website / web app | Not required for v1 (privacy page only) |
 
 ---
