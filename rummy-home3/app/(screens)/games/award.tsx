@@ -234,7 +234,7 @@ export default function AwardScreen() {
             <Text style={[styles.num, styles.colHead, { color: colors.onSurfaceVariant }]} numberOfLines={1} adjustsFontSizeToFit>Score</Text>
             <Text style={[styles.num, styles.colHead, { color: colors.onSurfaceVariant }]} numberOfLines={1} adjustsFontSizeToFit>Put in</Text>
             <Text style={[styles.numWide, styles.colHead, { color: colors.onSurfaceVariant }]} numberOfLines={1} adjustsFontSizeToFit>Gets</Text>
-            <Text style={[styles.numWide, styles.colHead, { color: colors.onSurfaceVariant }]} numberOfLines={1} adjustsFontSizeToFit testID="award-col-head">Award</Text>
+            <Text style={[styles.num, styles.colHead, { color: colors.onSurfaceVariant }]} numberOfLines={1} adjustsFontSizeToFit testID="award-col-head">Award</Text>
           </View>
           {sheet.rows.map((r) => (
             <View key={r.playerId} style={[styles.row, { borderBottomColor: colors.hairline }]} testID={`award-row-${r.playerId}`}>
@@ -264,7 +264,7 @@ export default function AwardScreen() {
               ) : (
                 <Text style={[styles.numWide, tabularNums, { color: colors.onSurface, fontWeight: '700' }]} testID={`award-gets-text-${r.playerId}`}>{r.gets}</Text>
               )}
-              <Text style={[styles.numWide, tabularNums, { color: r.award > 0 ? colors.win : r.award < 0 ? colors.loss : colors.onSurface, fontWeight: '800' }]} testID={`award-value-${r.playerId}`}>
+              <Text style={[styles.num, tabularNums, { color: r.award > 0 ? colors.win : r.award < 0 ? colors.loss : colors.onSurface, fontWeight: '800' }]} testID={`award-value-${r.playerId}`}>
                 {signedPoints(r.award)}
               </Text>
             </View>

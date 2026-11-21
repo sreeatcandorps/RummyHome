@@ -175,9 +175,10 @@ tags: [smoke]
 - assertVisible:
     id: "seat-name-4"
     text: "Zed Zero"
+# D64: prefilled and untouched, the line also says the order is unchanged and Done only closes.
 - assertVisible:
     id: "order-counter"
-    text: "Everyone numbered"
+    text: "Everyone numbered · order unchanged — Done closes"
 - takeScreenshot: 19g-order-from-menu
 # ▲ on seat 1 (Zed) swaps Zed and Sree: Sree is seat 1 now.
 - tapOn:
