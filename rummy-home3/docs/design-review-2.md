@@ -19,6 +19,11 @@ numbers below). Every frame is from the Pixel 6 smoke run of `main` @ `f98f4ac2`
 > he approves them screen by screen.** His competitor review is in §7 with recommendations; his APK v17 notes on three
 > screens are in §8 with mockups. Small fixes he reported on the same pass are collected in `next-up.md` ("Small fixes
 > batch") and go out as **one** PR when he says so.
+>
+> **Nov 21, 2:31 AM** — Sree: "What about the new designs? That's what I'm very interested in. Are we also doing any
+> color changes?" The four S screens are above (§5, `small-*.png`); the colour question is answered in **§9** with
+> three palettes on the same four screens, light and dark (`palette-*.png`), recommendation **B · Felt & Brass**.
+> Still no code: S starts when he says yes per screen, and the palette is one token change on top.
 
 PR 15 (`design-audit.md`, Nov 17–18) fixed the **token** layer: one button component with two weights, one `Tag`,
 one `SearchField`, one dialog family, one date format, radii from a table, sentence-case headings. That work holds —
@@ -143,6 +148,8 @@ B15 on), tests pinning the rules of §2 the way `tests/design-tokens.test.ts` pi
 | 4 | Dark mode: review it as part of S (adds a dark column to every matrix from now on)? | yes |
 | 5 | Home title: "Hi Sree" or "Your games"? | "Your games" (the greeting is in the avatar) |
 | 6 | The competitor screens you mentioned — send them; this document gets a §7 comparing shape by shape. | — |
+| 7 | Palette (§9): **A** keep the current Clubhouse, **B** Felt & Brass, or **C** Ink & Marigold? | **B** — same family as the icon, deeper green (text 8.9:1 instead of 4.6:1), brass instead of lemon yellow; a token change that rides along with S |
+| 8 | If B: dark mode stays green-black (as shown) or goes neutral black? | green-black as shown — the Sign-in band, the felt toast and the dark screens then share one tone |
 
 ## 7. Competitor review (Sree, Nov 21) — and what we recommend
 
@@ -371,3 +378,43 @@ Mid-game the sheet's Done is `disabled` while the order is incomplete **or uncha
 the standard "Done = I'm finished" meaning; and the counter line under the list carries the state: "Everyone numbered
 · order unchanged" / "Everyone numbered · Sree moves 5 → 3, the next deal follows the new order". While numbering is
 incomplete Done stays grey and the line already says "3 of 6 numbered". Batch item 12.
+
+## 9. Colour — three palettes on the S screens (Sree, Nov 21, 2:31 AM)
+
+Sree: "What about the new designs? That's what I'm very interested in. Are we also doing any color changes? Can we
+talk about that?"
+
+The straight answer first: **S as written changes *where* colours go, not *which* colours.** The colour contract (B03:
+marigold = a game or a selection, green = the primary action and positive numbers, blue = one notice per screen, red =
+destructive and negative, grey = the rest) is most of what makes the S screens look calmer — the "ovals" were as much a
+colour problem as a shape problem. The palette itself (green felt, marigold, cream — the icon's colours) was going to
+stay. Since he asked, here are three palettes on the **same four S screens**, light and dark, so the choice is made
+from pictures, not words.
+
+| | **A · Current · Clubhouse** | **B · Felt & Brass** (recommended) | **C · Ink & Marigold** |
+| --- | --- | --- | --- |
+| Buttons / links | green `#15803D` | deeper felt `#0E4D2A` | near-black `#1B1F24` |
+| Selection (segments, chips, game badge) | lemon marigold `#FFE38A` | brass `#F0DFAE`, text `#3E2E07` | marigold `#FFE38A` (unchanged) |
+| Paper / hairlines | cream `#F6F6F1` / `#E8E8E1` | warmer paper `#F5F2E8` / `#E6E1D3` | neutral `#F7F7F5` / `#E7E8E6` |
+| Dark mode | `#0F1412`, mint buttons `#5FD68E` | green-black `#0C120E`, mint `#7FD39F`, brass `#E3BE63` | black `#0E0F11`, **white** buttons |
+| Text contrast (WCAG) | green on cream **4.6 : 1** — passes AA for text, but only just; the green links ("Forgot passcode?", "Create account", text buttons) are the thinnest colour in the app | green on paper **8.9 : 1**; brass selection text 9.9 : 1; dark buttons 8.1 : 1 | 16 : 1 both modes |
+| Reads as | the app today | the same room, better lit: the brass reads *selected* where the lemon read *caution* (B04) | the fintech / music shell — Robinhood, Spotify |
+| Fits the icon, the listing, the share sheets (cream card stock), the Sign-in band | yes | yes — same family, nothing else to redo | no: a green icon and a green band lead into a black app; the band goes ink too (shown), and the listing screenshots, web pages and icon would have to follow — that is **L** (§5) |
+| What it costs | nothing | one token change: `constants/theme.ts` + the same hex values in `public/scorecard.html` / `result.html`; the seat colours stay | the token change **plus** a re-think of everything green |
+
+What does **not** change in any option: the ten seat colours (teal first, never the button green), red for negatives
+and destructive actions, the meaning of each colour (B03), and any words on any screen.
+
+**Recommendation: B, together with S.** It is the only option that is both a visible improvement and free of
+knock-on work: the icon, the Play listing, the share sheets and the web pages already agree with it. A is the
+no-change fallback — fine, but the 4.6 : 1 green stays the weakest thing in the app. C is kept here so the choice is
+informed, not because it is on the table now; if Sree likes the black shell, that is the L conversation (new icon,
+new listing images), after outside feedback.
+
+If he picks B, the order of work does not change: S screen by screen (Profile first), the palette tokens in the first
+S PR, light + dark in every screenshot matrix from then on (Q4).
+
+Pictures (`design-review-2/mockups/`): `palette-swatches.png` (the tokens side by side), then the four S screens in
+the three palettes, light above and dark below — `palette-profile.png`, `palette-settings.png`, `palette-game-type.png`,
+`palette-sign-in.png`. Generator: `make-palette-mockups.py` (reuses `make-small-mockups.py`; `--render` redoes the 24
+phones through headless Chrome, without it only the sheets are recomposed).
