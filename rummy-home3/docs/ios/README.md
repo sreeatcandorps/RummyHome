@@ -33,9 +33,12 @@ days, plus a day per rejection). With an individual enrolment and internal TestF
 Sree's iPad within two days of step 1, and the app can be in App Review inside the same week as the iOS device pass.
 Enrol as an organisation and add the D-U-N-S wait up front.
 
-**Recommendation:** enrol **now** (step 1 is the long pole and costs nothing but the $99 and a form), as whichever
-of individual / organisation Sree wants on the store page — it can be moved to an organisation later, but that is a
-support ticket. Everything after it is one build command, one or two PRs and a CI job — none of it is on the critical path.
+**Decided (Sree, Nov 21 — D62): enrol as Candor PS**, the organisation, matching Play. What that needs at the form:
+the company's **D-U-N-S number** (look it up or request one at [Dun & Bradstreet](https://developer.apple.com/enroll/duns-lookup/)
+— free, a few days if new), the legal entity name exactly as registered, a website, and the person enrolling must
+have legal authority to bind the company (or be listed as such). Apple may phone the company to verify. Start it
+**now**: step 1 is the long pole, and everything after it is one build command, one or two PRs and a CI job — none
+of it is on the critical path.
 
 ## Testing without an iPhone
 
@@ -71,6 +74,6 @@ filled after steps 1 and 3, when the ids exist.
 
 | # | Question | Recommended |
 | --- | --- | --- |
-| 1 | Enrol as **Candor PS LLC** (matches Play, needs D-U-N-S) or **Sree** (fast)? | Sree now if the D-U-N-S is not at hand; it is the long pole |
+| 1 | ~~Enrol as Candor PS LLC or Sree?~~ **Answered: Candor PS (D62).** | — |
 | 2 | iPad: keep `supportsTablet` (iPad screenshots and review, a real iPad layout pass) or iPhone-only for v1? | keep — Sree owns an iPad and will test on it; the pass is small |
 | 3 | TestFlight external link for friends, or internal only until the store? | internal until App Review passes |
