@@ -5,7 +5,9 @@ games … do we have a test environment? Should we create one? … There's no re
 the app! … fill up the database with so much data, see what it looks like, and try to uncover more and more bugs.
 If we've already done most of it, let me know."
 
-**Plan only. Nothing here has been run; nothing touches the live database.**
+**Nothing here touches the live database.** Status, Nov 21: Sree said yes to §6 1–3; `ezscore-staging` exists
+(ref `erurahfybkxemgtkfzkn`, ca-central-1, $10/month approved), Build Bot applied 001–052; V1 is #114; the staging
+PR (EAS profile + seed generator) is next; no staging APK until Sree says build.
 
 ## 1. What already exists (more than half of it)
 
