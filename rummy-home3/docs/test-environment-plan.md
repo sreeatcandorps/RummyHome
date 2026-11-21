@@ -5,10 +5,11 @@ games … do we have a test environment? Should we create one? … There's no re
 the app! … fill up the database with so much data, see what it looks like, and try to uncover more and more bugs.
 If we've already done most of it, let me know."
 
-**Status (Nov 21):** Sree said yes to Q12 (1–3). `ezscore-staging` exists (ref `erurahfybkxemgtkfzkn`, ca-central-1,
-same org, $10 / month approved), migrations 001–052 applied by Build Bot, empty. The EAS **`staging`** profile and
-the population generator are built (this PR); **seeding staging and the first staging APK each wait for Sree's yes.**
-Nothing touches the live database. See §7 for how to run it.
+**Status (Nov 21):** Sree said yes to Q12 (1–3) and, at 1:21 AM, to all testing on staging: "From now on all testing
+happens on the staging database … with staging APKs, not live." `ezscore-staging` exists (ref `erurahfybkxemgtkfzkn`,
+ca-central-1, same org, $10 / month approved), migrations 001–052 applied by Build Bot, empty. The EAS **`staging`**
+profile and the population generator are in the combined PR (#117); V1 is #114. **Sree runs the seed and the staging
+build himself — §8 has the exact commands.** Nothing touches the live database.
 
 ## 1. What already exists (more than half of it)
 

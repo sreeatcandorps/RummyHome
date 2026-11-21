@@ -20,6 +20,7 @@
 #   ANDROID_SERIAL  which emulator (adb and maestro both honour it); default: the only one
 #   FLOW_FILTER     comma list of flow names to run (change-based selection); default: all
 #   VIDEO           off | fail | all — keep the per-flow screen recording never / on failure / always
+#   VIDEO_KEEP      regex of flow names whose recording is kept even on pass (default: fast-fling)
 #   APP_ID          package to watch for crashes and to kill; default com.mindweavetech.rummyhome
 #   DEVICE_ROTATION / DEVICE_FONT_SCALE   the device's resting orientation (0/1) and font scale
 #                   (the matrix's tablet runs landscape, the Pixel 7 Pro at 1.3) — hooks still override
@@ -34,6 +35,9 @@ OUT="${2:?out dir}"
 QUARANTINE=0
 [ "${3:-}" = "--quarantine" ] && QUARANTINE=1
 VIDEO="${VIDEO:-fail}"
+# Flows whose video is the proof, kept even when they pass (regex on the flow name). The scorecard fling
+# flow exists for its recording: a torn header lives between frames, no screenshot can show it.
+VIDEO_KEEP="${VIDEO_KEEP:-fast-fling}"
 BASE_ROTATION="${DEVICE_ROTATION:-0}"
 BASE_FONT="${DEVICE_FONT_SCALE:-1.0}"
 APP_ID="${APP_ID:-com.mindweavetech.rummyhome}"
@@ -202,7 +206,9 @@ for f in $(ls "$SET_DIR"/*.yaml 2>/dev/null | sort); do
   if [ "$rc" -eq 0 ] && [ "$crashed" -eq 0 ]; then
     echo "PASS  $name  (${secs}s)"
     echo "$name,pass,$secs" >> "$OUT/results.csv"
-    [ "$VIDEO" != off ] && record_stop "$name" "$([ "$VIDEO" = all ] && echo keep || echo drop)"
+    if [ "$VIDEO" != off ]; then
+      if [ "$VIDEO" = all ] || [[ "$name" =~ $VIDEO_KEEP ]]; then record_stop "$name" keep; else record_stop "$name" drop; fi
+    fi
   else
     if [ "$crashed" -eq 1 ]; then
       echo "FAIL  $name  (${secs}s, exit $rc, APP CRASHED — see crashes/)"
