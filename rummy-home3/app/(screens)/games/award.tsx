@@ -36,6 +36,9 @@ export const SPLIT_TIP = [
   'Award = Gets − Put in. The awards are what this pool counts for if it is ever added to Results.',
 ];
 
+/** "1 drop", "2 drops" — the Awards sheet used to say "1 drops" (Sree, Nov 21). */
+export const dropsText = (n: number) => `${n} ${n === 1 ? 'drop' : 'drops'}`;
+
 export default function AwardScreen() {
   const { id, next } = useLocalSearchParams<{ id: string; next?: string }>();
   const router = useRouter();
@@ -227,11 +230,11 @@ export default function AwardScreen() {
 
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
           <View style={[styles.row, styles.headRow, { borderBottomColor: colors.hairline }]}>
-            <Text style={[styles.name, styles.colHead, { color: colors.onSurfaceVariant }]}>Player</Text>
-            <Text style={[styles.num, styles.colHead, { color: colors.onSurfaceVariant }]}>Score</Text>
-            <Text style={[styles.num, styles.colHead, { color: colors.onSurfaceVariant }]}>Put in</Text>
-            <Text style={[styles.numWide, styles.colHead, { color: colors.onSurfaceVariant }]}>Gets</Text>
-            <Text style={[styles.num, styles.colHead, { color: colors.onSurfaceVariant }]}>Award</Text>
+            <Text style={[styles.name, styles.colHead, { color: colors.onSurfaceVariant }]} numberOfLines={1}>Player</Text>
+            <Text style={[styles.num, styles.colHead, { color: colors.onSurfaceVariant }]} numberOfLines={1} adjustsFontSizeToFit>Score</Text>
+            <Text style={[styles.num, styles.colHead, { color: colors.onSurfaceVariant }]} numberOfLines={1} adjustsFontSizeToFit>Put in</Text>
+            <Text style={[styles.numWide, styles.colHead, { color: colors.onSurfaceVariant }]} numberOfLines={1} adjustsFontSizeToFit>Gets</Text>
+            <Text style={[styles.numWide, styles.colHead, { color: colors.onSurfaceVariant }]} numberOfLines={1} adjustsFontSizeToFit testID="award-col-head">Award</Text>
           </View>
           {sheet.rows.map((r) => (
             <View key={r.playerId} style={[styles.row, { borderBottomColor: colors.hairline }]} testID={`award-row-${r.playerId}`}>
@@ -240,7 +243,7 @@ export default function AwardScreen() {
                 <View style={styles.flex}>
                   <Text variant="bodyMedium" numberOfLines={1} style={[{ fontWeight: '600' }, r.out && styles.struck]}>{nameOf(r.playerId)}</Text>
                   <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
-                    {r.out ? `out R${standings.find((s) => s.playerId === r.playerId)?.outRound ?? ''}` : `${inputs.limit - r.total} left · ${standings.find((s) => s.playerId === r.playerId)?.drops ?? 0} drops`}
+                    {r.out ? `out R${standings.find((s) => s.playerId === r.playerId)?.outRound ?? ''}` : `${inputs.limit - r.total} left · ${dropsText(standings.find((s) => s.playerId === r.playerId)?.drops ?? 0)}`}
                   </Text>
                 </View>
               </View>
@@ -261,7 +264,7 @@ export default function AwardScreen() {
               ) : (
                 <Text style={[styles.numWide, tabularNums, { color: colors.onSurface, fontWeight: '700' }]} testID={`award-gets-text-${r.playerId}`}>{r.gets}</Text>
               )}
-              <Text style={[styles.num, tabularNums, { color: r.award > 0 ? colors.win : r.award < 0 ? colors.loss : colors.onSurface, fontWeight: '800' }]} testID={`award-value-${r.playerId}`}>
+              <Text style={[styles.numWide, tabularNums, { color: r.award > 0 ? colors.win : r.award < 0 ? colors.loss : colors.onSurface, fontWeight: '800' }]} testID={`award-value-${r.playerId}`}>
                 {signedPoints(r.award)}
               </Text>
             </View>
