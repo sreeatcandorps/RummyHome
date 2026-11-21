@@ -14,6 +14,12 @@ numbers below). Every frame is from the Pixel 6 smoke run of `main` @ `f98f4ac2`
 
 ## 0. Where the app stands
 
+> **Status (Nov 21):** Sree picked **S, mockups first** (Q11: "Go with Small now, mockups first"). The four S mockups
+> are in `design-review-2/mockups/small-*.png` (before = the v17 CI frame, after = light and dark); **no code until
+> he approves them screen by screen.** His competitor review is in §7 with recommendations; his APK v17 notes on three
+> screens are in §8 with mockups. Small fixes he reported on the same pass are collected in `next-up.md` ("Small fixes
+> batch") and go out as **one** PR when he says so.
+
 PR 15 (`design-audit.md`, Nov 17–18) fixed the **token** layer: one button component with two weights, one `Tag`,
 one `SearchField`, one dialog family, one date format, radii from a table, sentence-case headings. That work holds —
 the pieces are consistent with themselves.
@@ -138,6 +144,82 @@ B15 on), tests pinning the rules of §2 the way `tests/design-tokens.test.ts` pi
 | 5 | Home title: "Hi Sree" or "Your games"? | "Your games" (the greeting is in the avatar) |
 | 6 | The competitor screens you mentioned — send them; this document gets a §7 comparing shape by shape. | — |
 
-## 7. Competitor screens
+## 7. Competitor review (Sree, Nov 21) — and what we recommend
 
-Waiting for the screens Sree mentioned. Each gets: what it does better than us, what it does worse, what we take.
+Sree looked at six Play Store apps: *Rummy Score Tracker*, *Rummy Score Card*, two actual Rummy games (plain Rummy,
+Gin Rummy), *Rummy Score – Rummy, Poker and more*, and a multi-game scorer with "templates" (Uno, Darts, Yahtzee,
+Rummy 51). His verdict: "there is literally no competition … we have a winner … there's literally nothing I can use."
+Agreed on the substance — none of them has My players, seating, pool outs and re-entries, awards, results, a live link
+or a log. The useful part of the exercise is the handful of small things he noticed, and his own ideas. He asked
+for recommendations, industry standards and better suggestions, "don't just take everything I say". Here they are.
+
+| # | Sree's idea | What the better apps do | Recommendation |
+| --- | --- | --- | --- |
+| 7.1 | **Light / dark toggle on the Home top bar** ("there's space on the top … instead of going all the way into Settings") | Material 3 and Apple HIG both put appearance under Settings and default to **following the phone**. No major app (Spotify, Robinhood, Duolingo, WhatsApp, Google apps) has a theme switch in a content screen's top bar; the top bar carries actions about *that* screen. Our app already follows the phone, and the Phone / Light / Dark choice is on **Profile** — one tap from Home, no settings page to dig into. | **Keep it on Profile, not on Home.** In the S redesign it becomes the *Appearance* row (mockup `small-profile.png`). A top-bar toggle is one more control on the one screen that must stay calm, used once and then never. If he still wants a faster route: long-press the Me tab → "Dark / Light" — zero visual cost. Picture: `competitor-mockups.png`, first two phones. |
+| 7.2 | **Sounds** ("there's sounds when I'm adding stuff … see if we even need it or not") | Score-keeping happens at a table with people talking; phones are usually silent; a tick on every keypress is what the competitor does and what makes it feel like a toy. Industry practice (Material "sound" guidance, Apple HIG feedback): sound only when it carries information the eye may miss, always optional, and **haptics before sound** — the phone in the hand feels it, the table does not hear it. We already use `expo-haptics` once (the seating toast, D61). | **No key sounds. Haptics for the three moments that matter, sound off by default with a switch.** (a) *Round saved* — light tap; (b) *someone is out / last player standing* — warning buzz; (c) *awards saved / pool completed* — success double-tap. Then one **Sounds** switch under Appearance, default **off**, with three short clips for the same three moments only (card-slap, soft chime, applause under a second). No sound on keypad digits, ever. Cost: `utils/haptics.ts` already exists; sounds need `expo-av` and three assets (~60 KB). |
+| 7.3 | **Winner animation** ("like a slot machine … subtle … maybe only for viewers, not for the admin") | Good instinct, and the standard form is a **toast / banner**, not a full-screen effect: slides in, lives 2 s, never blocks, respects "reduce motion". Viewers are the right audience — the admin is typing the next round. | **Yes, for viewers and for the web link.** After a round saves, non-admin phones on the scorecard and the live web page show a dark banner at the bottom: winner's initials on a yellow disc, "Player 3 wins round 4", the sub-line "Rummy · the table put in 133", and the points roll up like a counter (that is the slot-machine feel, in 600 ms). Gone after 2 s or on tap. Big moments get one more beat: a player goes **out** → the banner turns red; **last player standing** → the banner is the winner's name and the confetti burst is a single 1-second particle pass, once. The admin's phone shows nothing new — the existing green flash on the winning cell stays. Points games: "SK wins round 4 · +85". Picture: `competitor-mockups.png`, third phone. Not in S; it is the first item of M. |
+| 7.4 | **The web link must show as much as the app, including pool standings** | — | **Checked.** The page in the repo has had Standings for pool games since Nov 14 (PR 13: in / out, points left, drops left, re-entries, the awarded status) and the multiplier line since Nov 15. **The live page is the Nov 12 build** (byte-compared `ezscore.mindweavetech.com/scorecard.html` against every commit of `public/scorecard.html`; it matches `427c5a0b` exactly). So Sree's pool links show the old page with no Standings — a **publishing gap, not a code gap: Q6**, open since Nov 19, unblocked by #113's fix. It needs Build Bot to republish, nothing to build. Remaining parity after that (small, for the batch): the page does not mark **who dealt** each round (the app shows DEALS / OPENS; the payload already carries `dealers`), does not list the **awards** once given (only says "Awarded"), and does not show **entries** per player. |
+| 7.5 | **Strategies and practice games inside the scoring app** ("at some point") | — | Noted for later in `next-up.md`; not part of any size here. The honest version is a *Learn* tab with rules, the pool math (what "2 drops left" means), and an "if you were dealt this hand" quiz — content, not a game engine. |
+| 7.6 | **"Make sure this goes out to all Indian users"** | — | Growth is outside this document; the levers that exist today are the Telugu half of #29, the Play listing (#107 in review), and the share links (every scorecard and result link is an invitation — the live page should end with "Keep score like this: get EZ Score"). Put as a row in `next-up.md`. |
+
+What we take from the competitors, then: **nothing structural**. Two small borrowings worth having — a visible
+*Watch a game* entry in Help for first-time users (one app had it), and a one-line **web / app link** on the result
+page for people who do not have the app (we have the pages; we do not point to the app from them).
+
+## 8. APK v17 notes on three screens — suggestions and mockups (Nov 21, no code)
+
+Sree, on the same pass, asked for suggestions only on three screens; each has a mockup. They are not S or M — they are
+the next batch of small fixes once he picks.
+
+### 8.1 Round saved (pool) — "the buttons and the text are all over the place; will it scroll?"
+
+What he saw: six red sentences, a grey sentence listing the same six names, six outlined pills right-aligned with
+truncated first names ("Re-enter Player" three times — indistinguishable), then Close.
+
+| Problem | Recommendation |
+| --- | --- |
+| Six sentences, six pills, same six names | **One row per player**: initials disc · name · status line · score · **Re-enter** text action on the row. Nothing is said twice. |
+| Pills truncate to the first name; three "Player"s | The row has the full name (ellipsis only past ~22 characters) and the action never carries a name. |
+| Dialog grows with the players; 10+ players would push Close off screen | A **bottom sheet**, not a dialog: title and the summary chips pinned, the list scrolls (max ~6 rows visible), Close and Complete pinned at the bottom. Mockup shows 7 and 12 players. |
+| "May re-enter at 96: …" repeats the names | One chip: **Re-entry starts at 96**; two more chips: **6 out this round · 1 in**. |
+| Pill ovals | Text actions on rows, one filled Close — the Small control rule. |
+| Who wins / is it over? | When one player is left, the sub-line says so and **Complete** is offered beside Close (the code already has `lastStanding`). |
+
+Edge case to verify on CI before building: six "is out" lines in one round is suspicious — a pool round always has a
+winner on 0 who cannot go out, so at most *n − 1* can go out together. The dialog may be listing **every** out
+player, not only this round's (the `before` snapshot it compares against comes from the scorecard's cache and may not
+carry pool seats). If so, that is a bug for the batch, found by his screenshot. Picture: `round-saved-mockup.png`.
+
+### 8.2 Awards — "I don't see the pool count … show the game name and how much it was played for"
+
+| Problem | Recommendation |
+| --- | --- |
+| Title is "Awards · P5"; the limit (101) appears nowhere; the entry (100) is an input without context | One line under the title: **Friday night · Pool 101 · drop 25 · 7 players** (game name first when the game has one; otherwise just the pool line). The same line goes on the **Final scores sheet** header. The **PDF** already prints "Limit 101 · drop 25" and the **share picture** says "4 in · 2 out · limit 101"; the **web page** says "Pool · limit 101" — Awards is the only screen without it. |
+| "AWAR D" — the column header wraps | Give the last column its width (the header is wider than its numbers): min-width for the Award column, or "Award" in the same small caps as the others with `numberOfLines={1}` and a slightly narrower Player column. |
+| "6 left · 1 drops" | Plural helper: "1 drop", "2 drops" (the web page already does this). |
+
+Picture: `awards-mockup.png`.
+
+### 8.3 Add by initials — "one letter each … cursor moves on … one Save … show what happened … then Done"
+
+Sree's idea, in short: one letter per box, the cursor auto-advances (first → last → next row's first), one Save for
+all rows instead of a Save per row, then a summary of what happened (saved; any initials changed because of a clash,
+confirmed one by one), then Done leaves; editing later allows up to three letters.
+
+**Recommendation: take all of it, with three refinements.**
+
+| Sree's idea | Keep / change | Why |
+| --- | --- | --- |
+| One letter per box | **Keep.** The last box drops from two characters to one. | It is what makes auto-advance possible: a box is "done" the moment it has a letter. Two-letter surnames (and digits) move to **Edit**, where three characters stay allowed (D14). |
+| Cursor moves on by itself | **Keep**: F → L → next row F; Backspace on an empty box goes back one. | Standard OTP-field behaviour; everybody's thumbs know it. |
+| One Save instead of per-row Save | **Keep**, and label it with the count: **Save 2 players** (live, counts rows with both letters). It sits **above the keyboard**, not under the rows, so it never scrolls away. Rows with one letter are the only question (D52 keeps). | One decision instead of three; the count tells him exactly what will happen. |
+| After Save, "show what happened" | **Keep, in place**: the three rows turn into result rows — ✓ **SK · Saved · Sree K · new player**; ! **~~HG~~ HG2 · Harish Gadupudi already has HG · this new player is HG2**; ✓ **VR · Saved** — each with **Edit**. The seated strip under them already shows the new chips. | He sees every outcome without a dialog, and the clash row is the one that stands out. |
+| Then Done | **Keep**: **Done** (filled) and **Add 3 more** (text) under the results. Done is the only exit (as today). | |
+| "Allow three letters in Edit" | **Keep** (already so). Refinement: the clash row's Edit opens with the **digit form pre-selected**, so one tap types the letters he wants. | |
+
+Three refinements that are not in his words: (1) the row shows the resolved name beside the boxes **as he types**
+("Sree K · new"), so a clash is visible before Save, not only after; (2) rows grow: when the third row fills, a
+fourth appears (up to the per-day cap), so "add three people quickly" becomes "add as many as are at the table";
+(3) the summary rows are the same `Row` component the S redesign introduces, so this screen is built once.
+
+Picture: `initials-mockup.png`.
