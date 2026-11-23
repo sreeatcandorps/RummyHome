@@ -24,8 +24,8 @@ numbers below). Every frame is from the Pixel 6 smoke run of `main` @ `f98f4ac2`
 > color changes?" The four S screens are above (§5, `small-*.png`); the colour question is answered in **§9** with
 > three palettes on the same four screens, light and dark (`palette-*.png`), recommendation **B · Felt & Brass**.
 > **Nov 23** — Sree: "Palette B" (**D65**); then "Yes to the Profile redesign" (**D66**). Still no code: he is
-> then "Yes to the Settings redesign" (**D67**). Still no code: Game type and Sign in are under review. §10 is the
-> build spec per approved screen, ready for the first S PR on his "build".
+> then "Yes to the Settings redesign" (**D67**), then "Yes to the Game type redesign" (**D68**). Still no code:
+> Sign in is under review. §10 is the build spec per approved screen, ready for the first S PR on his "build".
 
 PR 15 (`design-audit.md`, Nov 17–18) fixed the **token** layer: one button component with two weights, one `Tag`,
 one `SearchField`, one dialog family, one date format, radii from a table, sentence-case headings. That work holds —
@@ -511,3 +511,35 @@ Flow `07-profile.yaml` steps 07d / 07e / 07f keep their ids; the tap label "Game
 becomes the Profile row "Settings" (same as 10.1); assertions "Points defaults" / "Pool defaults" / "Re-entry score" /
 "Late entry" stay as text. Screenshot matrix: Settings light / dark × default / large font, Pool defaults with Limited
 re-entries open, the Which-setting-wins sheet.
+
+### 10.3 Game type (Sree: "Yes to the Game type redesign"; D68)
+
+Approved as drawn in `small-game-type.png`. Today (`components/game/GameTypeStep.tsx`, step 2 of New game): a
+"Game type" `SectionCard` with Paper `SegmentedButtons`, a "Pool settings" / "Points settings" card holding
+`RulesForm` (bordered fields inside the card inside the screen — B05), a "Playing · n" outlined card of grey chips,
+the refused-limit strip above the bar, and Back / Next in the `BottomBar`.
+
+**Step**, top to bottom, same `SettingsGroup` as 10.1 / 10.2:
+
+| Group | Rows / controls |
+| --- | --- |
+| Game type ⓘ | `Points \| Pool` (`SegmentedChoice`, ids `game-type-points` / `game-type-pool` stay) — the one-line grey note under it says what changes ("Pool: out at the limit, re-entries allowed" / "Points: every round counts, multiplier applies") instead of the two-paragraph tip, which moves behind ⓘ |
+| Pool settings ⓘ *(or Points settings)* | `RulesForm layout="grouped"` exactly as in 10.2: Pool limit segmented + Other, Drop · Middle drop / Full count, Re-entries, Re-entry score, Late entry score; for Points: Drop · Middle drop / Full count · Multiplier. Hints behind ⓘ (B03, B16). The "from Settings" / "app defaults" origin line stays as the group's grey footer so the player sees where these numbers came from |
+| Playing · n | one row per player, avatar initials + name, no chips and no card — the same `ListRow` as Players, read-only, tapping the header goes Back to step 1 |
+
+**Bottom**: `BottomBar` unchanged — outlined Back, filled Next (`new-game-type-next`); the refused-limit strip keeps
+its place above the bar (F3, chaos c03) and its `new-game-problem` id. The large-multiplier dialog
+(`multiplier-high-confirm`) is unchanged.
+
+**Pieces**: nothing new — `SettingsGroup`, `SegmentedChoice`, `ListRow`, `RulesForm layout="grouped"` all exist after
+10.1 / 10.2. `SectionCard` leaves `GameTypeStep` (B12: 18 → 15 uses). `OrderStep` (step 3) is **not** in S — the
+seating card stays until Sree asks.
+
+**What does not change**: step order and the step counter, `draftFromRules` / `rulesFromDraft`, the limit refusal
+rules and copy, the defaults priority (D-rules), the help anchors (`new-game` topic).
+
+**Tests / flows**: `design-review-2-s.test.ts` adds: 0 `SectionCard` and 0 `SegmentedButtons` in `GameTypeStep.tsx`,
+`RulesForm` used with `layout="grouped"`, the Playing group renders `ListRow` (no `styles.chip`). Flow `16-pool.yaml`
+steps 16b–16d keep their ids and the "Game type" text assertion; the 16c2 re-entries tip step now taps the Pool
+settings ⓘ. Screenshot matrix: Game type Points / Pool × light / dark, Pool with Limited re-entries open, the
+refused-limit strip, large font.
