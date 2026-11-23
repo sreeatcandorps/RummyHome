@@ -146,7 +146,7 @@ multiplier check) runs through the app's own triggers, and results go through `s
 | One huge table | 20 × 500 pool, limit 1,000,000, three re-entries, two dealer overrides via `set_round_dealer` |
 
 Local check: `ci/db/local-run.sh && DB_URL=… SCALE=0.02 node ci/volume/seed-staging.mjs` makes 417 games / 8,005 rounds /
-49,012 scores / 67 results in ~10 s; the full set is ~8 min. The nightly `volume` job runs the 2 % build, then wipe +
+49,012 scores / 67 results in ~10 s; the full set was *estimated* at ~8 min from that — the first real run (Nov 23, GitHub Actions → transaction pooler) went silent in the power-user step and hit the 45-min timeout; see the note under §8 step 1. The nightly `volume` job runs the 2 % build, then wipe +
 reseed, so the generator cannot rot.
 
 ## 8. Run it (Sree said yes, Nov 21 1:21 AM: "all testing happens on the staging database … with staging APKs")
@@ -155,13 +155,21 @@ Everything below is run by a person, once, from `rummy-home3/` on a machine with
 touches the live project: the generator refuses any URL without the staging ref, and the staging profile is the only
 one that reads the `EXPO_PUBLIC_STAGING_*` pair.
 
-**1. Seed the staging database** (about 8 minutes; needs Node 22 and `npm ci` in `ci/`):
+**1. Seed the staging database** (timing unmeasured at full scale — run `scale=0.1` first and multiply; needs Node 22 and `npm ci` in `ci/`):
 
 ```bash
 cd ci && npm ci && cd ..
 # Dashboard → ezscore-staging → Connect → "Transaction pooler" URI, with the database password filled in.
-export DB_URL='postgresql://postgres.erurahfybkxemgtkfzkn:<DB PASSWORD>@aws-0-ca-central-1.pooler.supabase.com:6543/postgres'
+export DB_URL='postgresql://postgres.erurahfybkxemgtkfzkn:<DB PASSWORD>@aws-0-ca-central-1.pooler.supabase.com:5432/postgres'   # session pooler (5432), not transaction (6543): one long session, statement_timeout honoured
 node ci/volume/seed-staging.mjs              # full population (SCALE=1); prints a summary line per step
+
+> **Nov 23, run 45246986120 (Actions, `STAGING_DB_URL` = transaction pooler, scale 1, no wipe)**: people / circles /
+> placeholders done in 55 s, then "power user: 400 My players" (one 58k-row insert through the per-row initials
+> trigger) printed nothing for 44 min and the job was cancelled at its 45-min limit. `statement_timeout` never fired,
+> so the socket had died (no keepalive; the transaction pooler does not carry startup parameters). Fixed in the
+> generator: TCP keepalive, a client-side `query_timeout` that fails instead of hanging, the big insert chunked by
+> owner with progress lines, progress every 2,000 games. **Use the session pooler URL (port 5432) for the secret.**
+> The three finished steps are idempotent (`on conflict do nothing`, deterministic ids): re-run without wipe is safe.
 # Later, to start over with the same population:  WIPE=1 node ci/volume/seed-staging.mjs
 ```
 

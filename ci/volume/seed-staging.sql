@@ -93,6 +93,14 @@ language sql as $$
   on conflict (owner_id, player_id) do nothing;
 $$;
 
+-- The same, for a slice of owners (the generator chunks big circles so each statement stays short).
+create or replace function staging.know_each_other_from(p_owners uuid[], p_members uuid[]) returns void
+language sql as $$
+  insert into public.my_players (owner_id, player_id, games_together, created_at)
+  select a, b, 0, now() - interval '400 days' from unnest(p_owners) a cross join unnest(p_members) b where a <> b
+  on conflict (owner_id, player_id) do nothing;
+$$;
+
 -- One game with a full history. p_players[1] is the creator (seated admin). Scores: one winner per round, the others
 -- take 5..75; pool games are plus points with the winner on 0 and who-is-out derived afterwards (041).
 -- p_joined_round > 1 makes the last player a mid-game joiner (047: starts at the highest score still in).

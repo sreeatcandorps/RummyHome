@@ -87,3 +87,14 @@ test('Seed staging workflow: manual, secret-driven, URL never echoed; the refuse
   assert.match(src('../ci/volume/seed-staging-config.mjs'), /export const STAGING_REF/);
   assert.match(src('../ci/volume/seed-staging.mjs'), /import \{[^}]*STAGING_REF[^}]*\} from '\.\/seed-staging-config\.mjs'/, 'the refusal line names the ref without a ReferenceError');
 });
+
+test('Seed staging generator: cannot hang silently (keepalive, client-side query timeout, chunked big inserts with progress)', () => {
+  const gen = src('../ci/volume/seed-staging.mjs');
+  const sql = src('../ci/volume/seed-staging.sql');
+  assert.match(gen, /keepAlive:\s*true/);
+  assert.match(gen, /query_timeout:\s*\d/);
+  assert.match(gen, /know_each_other_from/);
+  assert.match(gen, /… know each other/);
+  assert.match(gen, /… games/);
+  assert.match(sql, /function staging\.know_each_other_from\(p_owners uuid\[\], p_members uuid\[\]\)/);
+});
