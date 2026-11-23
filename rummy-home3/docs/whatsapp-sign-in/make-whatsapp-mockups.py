@@ -171,3 +171,32 @@ sheet('Profile — one account, both methods', 'A person is one account. Either 
       [('Email account that added WhatsApp', render('pr-both', profile_methods), 'Existing email accounts lose nothing: Player ID, passcode, history stay; WhatsApp is a second key to the same door.'),
        ('WhatsApp account, no email yet', render('pr-add', profile_add), 'The nudge for the recovery problem (Q23): a WhatsApp-only account that loses its number has no way back except support.')],
       'wa-profile.png')
+
+# ---------- Backup contact: asked at sign-up with Skip, reminded later (Sree, Nov 23 — the Google pattern) ----------
+def backup_after_wa():
+    return (status() + '<div class="felt" style="padding-bottom:60px"><h1>Add a backup</h1><p>Step 2 of 2 · if you ever lose this WhatsApp number</p></div><div class="card">'
+            '<div class="field"><label>Backup email</label><div class="box" style="font-variant-numeric:normal;color:var(--muted)">you@example.com</div></div>'
+            '<p class="note">We send a code to confirm it. It is a second way into this account and where results can be emailed. Nothing else.</p>'
+            '<div class="btn fill">Send code</div><div class="link">Skip for now</div></div>'
+            '<div style="height:40px"></div>')
+def backup_after_email():
+    return (status() + '<div class="felt" style="padding-bottom:60px"><h1>Add a backup</h1><p>Step 2 of 2 · if you ever lose access to this email</p></div><div class="card">'
+            + phone_field('Backup WhatsApp number') +
+            '<p class="note">We send a code on WhatsApp to confirm it. It is a second way into this account. We never message it otherwise.</p>'
+            f'<div class="btn fill whats">{WA} Send code on WhatsApp</div><div class="link">Skip for now</div></div>'
+            '<div style="height:40px"></div>')
+def reminder_home():
+    return (status() + ns['bar']('Home') +
+            '<div class="group" style="margin:4px 16px 12px"><div class="rows" style="background:var(--secc);border-radius:14px;padding:14px 16px">'
+            '<div style="font-weight:700;font-size:15px;color:var(--onsecc)">Add a backup way in</div>'
+            '<div style="font-size:13px;color:var(--onsecc);margin-top:4px;line-height:1.4">You sign in with WhatsApp only. If you lose that number, an email is the only way back to your games.</div>'
+            '<div style="display:flex;gap:14px;margin-top:10px;font-weight:700;font-size:14px;color:var(--onsecc)"><span>Add email</span><span style="opacity:.7">Not now</span></div></div></div>'
+            '<div class="gh" style="padding:8px 20px">RECENT</div>'
+            '<div class="group" style="margin:0 16px"><div class="rows" style="background:var(--surface);border-radius:14px;border:1px solid var(--hair)">'
+            + row('FRI4 · Friday night', 'Completed · 6 rounds') + row('LIVE · Sunday', 'Live · round 3') + '</div></div><div style="height:30px"></div>')
+sheet('Backup contact — asked at sign-up with Skip, reminded once later',
+      'Sree: "we should have a second way to connect with anyone so that if something goes wrong with that email or with WhatsApp, we still have a phone number." The Google / WhatsApp pattern: ask once at sign-up with Skip, nudge later, add any time in Profile.',
+      [('After a WhatsApp sign-up', render('bk-wa', backup_after_wa), 'Step 2 of 2 right after the code. Backup email, confirmed with a code, becomes a second sign-in key.'),
+       ('After an email sign-up', render('bk-email', backup_after_email), 'Same step the other way round: a WhatsApp number as the backup. Both are optional; Skip for now is always there.'),
+       ('Reminder, once', render('bk-remind', reminder_home), 'Shown after the first saved game to anyone who skipped; Not now dismisses it for good. Profile › Sign-in methods keeps the row.')],
+      'wa-backup.png')
