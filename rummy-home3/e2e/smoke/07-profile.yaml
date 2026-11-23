@@ -9,10 +9,11 @@ tags: [smoke]
     timeout: 15000
 - assertVisible: "Sree Test"
 - assertVisible: "Change passcode"
-# PR 10b: pencils instead of the big Edit buttons; your initials row; passcode dialog with the
+# Size-S (D66): grouped rows — Name and Initials with a pen, the passcode dialog with the
 # fields first and the keyboard open — all three fields must stay on screen.
-- assertVisible: "Edit name"
-- assertVisible: "Your initials on scorecards"
+- assertVisible:
+    id: "me-edit-name"
+- assertVisible: "Initials on scorecards"
 - assertVisible:
     id: "me-edit-initials"
 - takeScreenshot: 07-profile
@@ -42,16 +43,18 @@ tags: [smoke]
 # PR 13: Settings holds "New game starts as", the Points defaults and the Pool defaults (limit chips,
 # 25 / 50 / 130, Re-entries Unlimited / Limited). Nothing is saved.
 - scrollUntilVisible:
-    element: "Game type, Drop, Middle drop, Full count"
+    element:
+      id: "me-settings"
     direction: UP
     timeout: 10000
-- tapOn: "Game type, Drop, Middle drop, Full count"
+- tapOn:
+    id: "me-settings"
 - extendedWaitUntil:
     visible: "New game starts as"
     timeout: 15000
 - assertVisible: "Points defaults"
 - takeScreenshot: 07d-settings-points-defaults
-# PR 14: the Points card grew a Multiplier block, so the pool chips sit a screen lower; scroll to the chip itself.
+# PR 14: the Points group has a Multiplier field, so the pool limit row sits a screen lower; scroll to the segment itself.
 - scrollUntilVisible:
     element:
       id: "settings-pool-limit-101"
@@ -60,7 +63,7 @@ tags: [smoke]
 - assertVisible: "Pool defaults"
 - assertVisible:
     id: "settings-pool-limit-custom"
-# Scroll to the hint under the radios so the radio row is fully on screen before tapping (a tap on a
+# Scroll to the line under the segmented row so the row is fully on screen before tapping (a tap on a
 # half-visible row at the bottom edge was lost on Pixel 6).
 - scrollUntilVisible:
     element:
@@ -72,7 +75,7 @@ tags: [smoke]
 # 042: Re-entries is Unlimited by default; Limited reveals the count field, nothing is saved.
 - tapOn:
     id: "settings-pool-reentries-limited"
-# The count field appears below the radios and can land under the nav bar: scroll to it, don't assume.
+# The count field appears below the segmented row and can land under the nav bar: scroll to it, don't assume.
 - scrollUntilVisible:
     element:
       id: "settings-pool-reentries-count"
@@ -96,12 +99,12 @@ tags: [smoke]
 - assertNotVisible:
     id: "settings-pool-reentries-count"
 - takeScreenshot: 07e-settings-pool-defaults
-# PR 24: Re-entry score (inside the Re-entries block) and Late entry (its own section), both default
+# PR 24: Re-entry score (inside the Re-entries group) and Late entry (its own group), both default
 # to Highest score + 1; the other choice is Highest score. Nothing is saved.
-# Each hint sits under its radios, so scroll to the hint and the radios above it are on screen too.
+# Size-S (D67): the "where they start" hints moved behind each group's ⓘ; scroll to the segment ids.
 - scrollUntilVisible:
     element:
-      text: "Where a re-entering player starts."
+      id: "settings-pool-reentry-score-plus-one"
     direction: DOWN
     timeout: 10000
 - assertVisible: "Re-entry score"
@@ -111,7 +114,7 @@ tags: [smoke]
     id: "settings-pool-reentry-score-plus-one"
 - scrollUntilVisible:
     element:
-      text: "Where a player added after round 1 starts."
+      id: "settings-pool-late-entry-score-plus-one"
     direction: DOWN
     timeout: 10000
 - assertVisible: "Late entry"

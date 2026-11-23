@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { CO_ADMIN_NUDGE_BODY, coAdminCandidates } from '../utils/coAdmin';
+import { emailPrefsSummary } from '../utils/emailPrefs';
 
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
 
@@ -39,11 +40,18 @@ test('results: saving flushes the result-saved outbox; no game-completed email e
   }
 });
 
-test('profile: two email checkboxes, both on by default, saved through set_email_prefs', () => {
+test('profile: two email switches, both on by default, saved through set_email_prefs', () => {
+  // Size-S (D66): the switches live in a sheet off the Email row; the row shows which are on.
   const me = src('app/(tabs)/me.tsx');
-  assert.match(me, /Game started \(live link\)/);
-  assert.match(me, />Results<\/Text>/);
-  assert.equal((me.match(/<Checkbox /g) ?? []).length, 2);
+  assert.match(me, /title="Email" value=\{emailPrefsSummary\(emailPrefs\)\}/);
+  assert.match(me, /<EmailPrefsDialog prefs=\{emailPrefs\} error=\{emailError\} onToggle=\{toggleEmail\}/);
+  const rows = src('utils/emailPrefs.ts');
+  assert.match(rows, /key: 'gameStarted', title: 'Game started'/);
+  assert.match(rows, /key: 'results', title: 'Results'/);
+  const sheet = src('components/account/EmailPrefsDialog.tsx');
+  assert.equal((sheet.match(/<Switch /g) ?? []).length, 1, 'one Switch per mapped row');
+  assert.equal(emailPrefsSummary({ gameStarted: true, results: true }), 'Game started · Results');
+  assert.equal(emailPrefsSummary({ gameStarted: false, results: false }), 'Off');
   const svc = src('services/emails.ts');
   assert.match(svc, /DEFAULT_EMAIL_PREFS: EmailPrefs = \{ gameStarted: true, results: true \}/);
   assert.match(svc, /rpc\('set_email_prefs', \{ p_game_started: prefs\.gameStarted, p_results: prefs\.results \}\)/);

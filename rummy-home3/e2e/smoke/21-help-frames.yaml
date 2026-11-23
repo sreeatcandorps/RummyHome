@@ -67,21 +67,24 @@ tags: [smoke]
     visible: "Appearance"
     timeout: 15000
 - scrollUntilVisible:
-    element: "Game type, Drop, Middle drop, Full count"
+    element:
+      id: "me-settings"
     direction: DOWN
     timeout: 10000
-- tapOn: "Game type, Drop, Middle drop, Full count"
+- tapOn:
+    id: "me-settings"
 - extendedWaitUntil:
     visible: "New game starts as"
     timeout: 15000
-# The button sits near the foot of Settings: a part-visible button there takes the tap on the nav bar, and
-# centerElement cannot centre something the page cannot scroll past. Scroll to the very last link instead;
-# with that on screen the button above it is whole.
+# Size-S (D67): Hidden & deleted is the last row of the More group, above the Save bar. Scroll to the row
+# itself; the bar is fixed, so the row can never be part-hidden under the nav bar.
 - scrollUntilVisible:
-    element: "Use Rummy defaults"
+    element:
+      id: "settings-hidden-deleted"
     direction: DOWN
     timeout: 15000
-- tapOn: "Open Hidden & deleted"
+- tapOn:
+    id: "settings-hidden-deleted"
 - extendedWaitUntil:
     visible: "Games I hid · 1"
     timeout: 15000

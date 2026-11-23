@@ -1,18 +1,25 @@
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Dialog, Icon, Portal, SegmentedButtons, Text } from 'react-native-paper';
+import { Dialog, Icon, Portal, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router } from 'expo-router';
 import { Screen } from '@/components/ui/Screen';
 import { BottomBar } from '@/components/ui/BottomBar';
-import { SectionCard } from '@/components/ui/SectionCard';
-import { InfoTip } from '@/components/ui/InfoTip';
+import { ListRow } from '@/components/ui/ListRow';
+import { SeatAvatar } from '@/components/ui/SeatAvatar';
+import { SegmentedChoice } from '@/components/ui/SegmentedChoice';
+import { SettingsGroup } from '@/components/ui/SettingsGroup';
 import { draftFromRules, RulesDraft, RulesForm, rulesFromDraft } from '@/components/game/RulesForm';
 import { GameKind, PointsRules } from '@/utils/gameSettings';
 import { highMultiplierConfirm } from '@/utils/multiplier';
-import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { radius, seatColor, spacing, useAppTheme } from '@/constants/theme';
 
 export const SETTINGS_LINK = 'You can also set these defaults in Settings.';
+/** Size-S (D68): the one grey line under the Points | Pool row; the paragraphs live behind the ⓘ. */
+export const GAME_KIND_NOTE = {
+  points: 'Points: every round counts, multiplier applies.',
+  pool: 'Pool: out at the limit, re-entries allowed.',
+} as const;
 /** Mini help (ⓘ) beside "Game type": what the picked kind means, in two lines. */
 export const GAME_KIND_TIP = {
   points: ['**Points**: every round adds up to 0; the winner takes what the others lost.', 'Drop, Middle drop and Full count are the fixed scores a player can take instead of playing the hand out.'],
@@ -66,47 +73,47 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
 
   const pool = kind === 'pool';
 
+  // Size-S (D68, design-review-2 §10.3): grouped lists, one ⓘ per group, segmented Points | Pool,
+  // the players as read-only rows. The bar and the refused-limit strip are as before.
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <Screen contentStyle={styles.content} safeBottom={false}>
-        <SectionCard title="Game type" icon={pool ? 'pool' : 'numeric'} right={<InfoTip title="Game type" text={GAME_KIND_TIP[kind]} topic="game-type" testID="game-type-tip" />}>
-          <SegmentedButtons
+        <SettingsGroup title="Game type" tip={{ text: GAME_KIND_TIP[kind], topic: 'game-type', testID: 'game-type-tip' }} note={GAME_KIND_NOTE[kind]} testID="game-type-group">
+          <SegmentedChoice
             value={kind}
-            onValueChange={(v) => switchKind(v as GameKind)}
-            buttons={[
-              { value: 'points', label: 'Points', icon: 'numeric', testID: 'game-type-points' },
-              { value: 'pool', label: 'Pool', icon: 'pool', testID: 'game-type-pool' },
+            onChange={switchKind}
+            accessibilityLabel="Game type"
+            options={[
+              { value: 'points', label: 'Points', testID: 'game-type-points' },
+              { value: 'pool', label: 'Pool', testID: 'game-type-pool' },
             ]}
+            style={styles.choice}
           />
-        </SectionCard>
+        </SettingsGroup>
 
-        <SectionCard
+        <SettingsGroup
           title={pool ? 'Pool settings' : 'Points settings'}
-          icon="cog-outline"
-          right={<InfoTip title={pool ? 'Pool settings' : 'Points settings'} text={KIND_SETTINGS_TIP} topic="game-type" testID="kind-settings-tip" />}
+          tip={{ title: pool ? 'Pool settings' : 'Points settings', text: KIND_SETTINGS_TIP, topic: 'game-type', testID: 'kind-settings-tip' }}
+          testID="kind-settings-group"
         >
-          <RulesForm draft={draft} onChange={(next) => { setDraft(next); setProblem(null); }} testIDPrefix="new-game" />
+          <RulesForm draft={draft} onChange={(next) => { setDraft(next); setProblem(null); }} testIDPrefix="new-game" layout="grouped" />
           <Text
             variant="bodyMedium"
             accessibilityRole="link"
-            style={{ color: colors.primary, textDecorationLine: 'underline', marginTop: spacing.xs }}
+            style={{ color: colors.primary, textDecorationLine: 'underline', paddingVertical: spacing.sm }}
             onPress={() => router.push('/(screens)/settings')}
           >
             {SETTINGS_LINK}
           </Text>
-        </SectionCard>
+        </SettingsGroup>
 
-        <SectionCard title={`Playing · ${picks.length}`} icon="account-group-outline" mode="outlined">
-          <View style={styles.chips} accessibilityLabel="Picked players">
-            {picks.map((p) => (
-              <View key={p.id} style={[styles.chip, { backgroundColor: colors.surfaceVariant }]}>
-                {p.label ? <Text style={[styles.chipInitials, { color: colors.primary }]}>{p.label}</Text> : null}
-                <Text variant="bodyMedium" numberOfLines={1} style={{ color: colors.onSurface }}>{p.name}</Text>
-              </View>
+        <SettingsGroup title={`Playing · ${picks.length}`} testID="playing-group">
+          <View accessibilityLabel="Picked players">
+            {picks.map((p, i) => (
+              <ListRow key={p.id} title={p.name} left={<SeatAvatar name={p.name} label={p.label} color={seatColor(i)} size={32} />} />
             ))}
           </View>
-        </SectionCard>
-
+        </SettingsGroup>
       </Screen>
 
       {/* F3 (chaos c03): pinned above the Next bar, outside the scroller, so a refused limit is never
@@ -143,10 +150,8 @@ export function GameTypeStep({ kind, rules, defaultsFor, picks, onKindChange, on
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { paddingBottom: spacing.md, gap: spacing.md },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.md, maxWidth: '100%' },
-  chipInitials: { fontWeight: '800', letterSpacing: 0.3 },
+  content: { paddingBottom: spacing.md, gap: spacing.lg },
+  choice: { marginVertical: spacing.xs },
   problem: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, marginHorizontal: spacing.md, borderRadius: radius.md },
   bottom: { flexDirection: 'row', gap: spacing.sm },
   barContent: { minHeight: 52 },

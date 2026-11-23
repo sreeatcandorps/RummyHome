@@ -1,8 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import { NoticeDialog } from '@/components/ui/NoticeDialog';
-import { Checkbox, Icon, IconButton, Portal, Text, TextInput, TouchableRipple } from 'react-native-paper';
-import { Button } from '@/components/ui/AppButton';
+import { Icon, Portal, Text } from 'react-native-paper';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
@@ -20,16 +19,23 @@ import { clearDemoData, loadDemoData } from '@/services/demoSeed';
 import { DEFAULT_EMAIL_PREFS, EmailPrefs, emailsService } from '@/services/emails';
 import { ChangePasscodeDialog } from '@/components/auth/ChangePasscodeDialog';
 import { DeleteAccountDialog } from '@/components/account/DeleteAccountDialog';
+import { EditFieldDialog } from '@/components/account/EditFieldDialog';
+import { EmailPrefsDialog } from '@/components/account/EmailPrefsDialog';
+import { emailPrefsSummary } from '@/utils/emailPrefs';
 import { DELETE_ACCOUNT_DONE_BODY, DELETE_ACCOUNT_DONE_TITLE, PRIVACY_PAGE_URL } from '@/utils/accountDeletion';
 import { Screen } from '@/components/ui/Screen';
-import { SectionCard } from '@/components/ui/SectionCard';
+import { ListRow } from '@/components/ui/ListRow';
+import { SegmentedChoice } from '@/components/ui/SegmentedChoice';
+import { SettingsGroup } from '@/components/ui/SettingsGroup';
 import { HELP_INDEX_TITLE } from '@/constants/helpTopics';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingRows } from '@/components/ui/LoadingRows';
 import { usePreferences } from '@/contexts/PreferencesContext';
 import { APPEARANCE_OPTIONS } from '@/utils/appearance';
-import { radius, spacing, useAppTheme } from '@/constants/theme';
+import { userSettingsService } from '@/services/userSettings';
+import { PointsRules } from '@/utils/gameSettings';
+import { spacing, useAppTheme } from '@/constants/theme';
 import { shortVersionLabel } from '@/utils/appVersion';
 import { appVariantLabel, readAppVersion } from '@/utils/appVersionRuntime';
 
@@ -37,28 +43,29 @@ const VERSION_LABEL = [shortVersionLabel(readAppVersion()), appVariantLabel()].f
 
 type PhoneState = { kind: 'idle' } | { kind: 'saved' } | { kind: 'error'; message: string };
 
-/** Mini help (PR 11) for the Email card: what each switch sends. */
-export const EMAIL_TIP = [
-  'Sent to the address you signed up with. Each email has an unsubscribe link.',
-  '**Game started**: when a game you are in starts, with a link to follow the scores live.',
-  '**Results**: when a result you are in is saved, with a link to the result page.',
-];
+/** The Game defaults row's value: "Points · −10 · −30 · −80" — the kind a new game starts as and its three scores. */
+export function defaultsSummary(startsAs: 'points' | 'pool', rules: PointsRules): string {
+  const n = (v: number) => String(v).replace('-', '\u2212');
+  return `${startsAs === 'pool' ? 'Pool' : 'Points'} · ${n(rules.drop)} · ${n(rules.middleDrop)} · ${n(rules.fullCount)}`;
+}
+
+/** Group headings, top to bottom (design-review-2 §10.1). */
+export const PROFILE_GROUPS = ['Your table', 'Notifications', 'Game defaults', 'Appearance', 'Help', 'Account'] as const;
 
 export default function MeScreen() {
   const { colors } = useAppTheme();
   const navigation = useNavigation();
-  const { appearance, darkMode, setAppearance } = usePreferences();
+  const { appearance, setAppearance } = usePreferences();
   const [player, setPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  // Size-S (D66): Name and Phone edit in a sheet off their row, not inline.
+  const [editing, setEditing] = useState<null | 'name' | 'phone' | 'email'>(null);
   const [savedPhone, setSavedPhone] = useState('');
   const [saving, setSaving] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
   const [phoneState, setPhoneState] = useState<PhoneState>({ kind: 'idle' });
-  const [editingPhone, setEditingPhone] = useState(false);
+  const [defaults, setDefaults] = useState<string | null>(null);
   const [showDemo, setShowDemo] = useState(false);
   const [demoBusy, setDemoBusy] = useState<null | 'load' | 'clear'>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -82,9 +89,8 @@ export default function MeScreen() {
         return;
       }
       setPlayer(current);
-      setName(current.name);
-      setPhone(current.phone ?? '');
       setSavedPhone(current.phone ?? '');
+      userSettingsService.getAll(current.id).then((all) => setDefaults(defaultsSummary(all.startsAs, all.startsAs === 'pool' ? all.pool : all.points))).catch(() => {});
       let email = current.email ?? null;
       if (isSupabaseConfigured) {
         const { data } = await supabase.auth.getSession();
@@ -132,7 +138,7 @@ export default function MeScreen() {
     }
   };
 
-  const saveName = async () => {
+  const saveName = async (name: string) => {
     if (!player) return;
     // Doubled spaces collapse on save (Sree, Nov 14: "Srikanth  Koneru" broke the winner line).
     const trimmed = name.trim().replace(/\s+/g, ' ');
@@ -146,7 +152,7 @@ export default function MeScreen() {
         const players = await storage.getPlayers();
         await storage.savePlayers(players.map((item) => (item.id === player.id ? { ...item, name: trimmed } : item)));
       }
-      setEditing(false);
+      setEditing(null);
       await load();
     } catch (err) {
       setPopup({ title: 'Couldn’t save', message: formatSupabaseError(err), icon: 'alert-circle-outline' });
@@ -155,7 +161,7 @@ export default function MeScreen() {
     }
   };
 
-  const savePhone = async () => {
+  const savePhone = async (phone: string) => {
     if (!player) return;
     const problem = phoneProblem(phone);
     if (problem) {
@@ -168,16 +174,14 @@ export default function MeScreen() {
     try {
       if (isSupabaseConfigured) {
         const stored = await authService.updatePhone(clean || null);
-        setPhone(stored ?? '');
         setSavedPhone(stored ?? '');
       } else {
         const players = await storage.getPlayers();
         await storage.savePlayers(players.map((item) => (item.id === player.id ? { ...item, phone: clean || undefined } : item)));
-        setPhone(clean);
         setSavedPhone(clean);
       }
       setPhoneState({ kind: 'saved' });
-      setEditingPhone(false);
+      setEditing(null);
     } catch (err) {
       setPhoneState({ kind: 'error', message: formatSupabaseError(err) });
     } finally {
@@ -254,200 +258,101 @@ export default function MeScreen() {
     );
   }
 
-  const phoneDirty = normalizePhone(phone) !== normalizePhone(savedPhone);
   const badge = playerIdBadge(player);
+  const initials = player.initials ?? defaultInitials(player.name);
 
+  // Size-S (D66, design-review-2 §10.1): a header block and six grouped lists; no cards, no icon
+  // squares, no buttons on the screen — each edit is a row that opens its sheet.
   return (
     <Screen contentStyle={styles.content}>
       {error ? <Text variant="bodyMedium" style={{ color: colors.error }}>{error}</Text> : null}
 
-      <View style={[styles.identityCard, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
-        <View style={styles.identity}>
-          <SeatAvatar name={player.name} size={56} />
-          <View style={styles.identityText}>
-            {editing ? (
-              <View style={styles.gap}>
-                <TextInput
-                  mode="outlined"
-                  dense
-                  label="Name"
-                  value={name}
-                  onChangeText={setName}
-                  autoFocus
-                  returnKeyType="done"
-                  onSubmitEditing={saveName}
-                  accessibilityLabel="Name"
-                />
-                <View style={styles.inlineActions}>
-                  <Button mode="contained" compact icon="check" onPress={saveName} loading={saving} disabled={saving || !name.trim()} accessibilityLabel="Save name">Save</Button>
-                  <Button mode="outlined" compact onPress={() => { setEditing(false); setName(player.name); }} accessibilityLabel="Cancel name edit">Cancel</Button>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.valueRow}>
-                <Text variant="headlineSmall" numberOfLines={2} style={styles.flex}>{player.name}</Text>
-                <IconButton icon="pencil-outline" size={20} onPress={() => setEditing(true)} accessibilityLabel="Edit name" style={styles.pencil} />
-              </View>
-            )}
-            {player.email ? <Text variant="bodySmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>{player.email}</Text> : null}
-          </View>
-        </View>
-        <View style={[styles.idBadge, { backgroundColor: colors.tertiaryContainer }]} accessibilityLabel={badge ? `Your ${badge}` : 'Player ID pending'}>
-          <Icon source="card-account-details-outline" size={20} color={colors.onTertiaryContainer} />
-          <Text variant="titleMedium" style={[styles.idText, { color: colors.onTertiaryContainer }]}>{badge ?? 'Player ID pending'}</Text>
-          <Text variant="labelSmall" style={{ color: colors.onTertiaryContainer }}>Share it so friends can find you</Text>
-        </View>
-        <View style={[styles.initialsRow, { borderColor: colors.outlineVariant, backgroundColor: colors.surfaceVariant }]}>
-          <View style={styles.flex}>
-            <Text variant="labelMedium" style={{ color: colors.onSurfaceVariant }}>Your initials on scorecards</Text>
-            <Text variant="titleLarge" style={styles.initialsText} accessibilityLabel={`Your initials ${player.initials ?? defaultInitials(player.name)}${player.initials ? '' : ', from your name'}`}>
-              {player.initials ?? defaultInitials(player.name)}
-              {player.initials ? '' : <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>  from your name</Text>}
-            </Text>
-          </View>
-          <IconButton icon="pencil-outline" size={20} onPress={() => { setInitialsError(null); setEditingInitials(true); }} accessibilityLabel="Change your initials" style={styles.pencil} testID="me-edit-initials" />
-        </View>
-        <Button mode="outlined" icon="share-variant" onPress={() => player.playerCode && sharePlayerId(player.playerCode).catch(() => {})} disabled={!player.playerCode} contentStyle={styles.action} accessibilityLabel="Share your Player ID">
-          Share your Player ID
-        </Button>
-      </View>
-
-      <Button mode="outlined" icon="lock-reset" onPress={changePasscode} contentStyle={styles.action} accessibilityLabel="Change passcode">
-        Change passcode
-      </Button>
-      {notice ? <Text variant="bodyMedium">{notice}</Text> : null}
-
-      <View style={[styles.row, styles.appearance, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
-        <View style={styles.valueRow}>
-          <Icon source={darkMode ? 'weather-night' : 'white-balance-sunny'} size={20} color={colors.onSurfaceVariant} />
-          <Text variant="titleMedium">Appearance</Text>
-        </View>
-        <View style={styles.segments} accessibilityRole="radiogroup">
-          {APPEARANCE_OPTIONS.map((option) => {
-            const on = appearance === option.value;
-            return (
-              <Pressable
-                key={option.value}
-                onPress={() => setAppearance(option.value)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: on }}
-                accessibilityLabel={option.value === 'system' ? 'Follow the phone setting' : `${option.label} mode`}
-                style={[
-                  styles.segment,
-                  { backgroundColor: on ? colors.primary : colors.surfaceSunken, borderColor: on ? colors.primary : colors.outlineVariant },
-                ]}
-              >
-                <Icon source={option.icon} size={18} color={on ? colors.onPrimary : colors.onSurfaceVariant} />
-                <Text variant="labelLarge" style={{ color: on ? colors.onPrimary : colors.onSurface }}>{option.label}</Text>
-              </Pressable>
-            );
-          })}
+      <View style={styles.identity}>
+        <SeatAvatar name={player.name} size={56} />
+        <View style={styles.identityText}>
+          <Text variant="headlineSmall" numberOfLines={2}>{player.name}</Text>
+          <Text variant="bodySmall" numberOfLines={1} style={{ color: colors.onSurfaceVariant }}>
+            {[player.email, badge].filter(Boolean).join(' · ') || 'Player ID pending'}
+          </Text>
         </View>
       </View>
 
-      <SectionCard title="Phone" icon="phone-outline" tip={{ text: 'Optional. Never texted, never shown to other players.', topic: 'me', anchor: 'account', testID: 'me-phone-tip' }}>
-        {editingPhone ? (
-          <View style={styles.gap}>
-            <TextInput
-              mode="outlined"
-              dense
-              value={phone}
-              onChangeText={(value) => { setPhone(value); if (phoneState.kind !== 'idle') setPhoneState({ kind: 'idle' }); }}
-              keyboardType="phone-pad"
-              placeholder="Add a number"
-              autoFocus
-              error={phoneState.kind === 'error'}
-              returnKeyType="done"
-              onSubmitEditing={savePhone}
-              accessibilityLabel="Phone"
-            />
-            {phoneState.kind === 'error' ? (
-              <Text variant="labelMedium" style={{ color: colors.error }}>{phoneState.message}</Text>
-            ) : null}
-            <View style={styles.inlineActions}>
-              <Button mode="contained" compact icon="check" onPress={savePhone} loading={savingPhone} disabled={savingPhone || !phoneDirty} accessibilityLabel="Save phone">
-                Save
-              </Button>
-              <Button mode="outlined" compact onPress={() => { setEditingPhone(false); setPhone(savedPhone); setPhoneState({ kind: 'idle' }); }} accessibilityLabel="Cancel phone edit">
-                Cancel
-              </Button>
-            </View>
-          </View>
-        ) : (
-          <View style={styles.valueRow}>
-            <View style={styles.flex}>
-              <Text variant="titleMedium" style={{ color: savedPhone ? colors.onSurface : colors.onSurfaceVariant }}>
-                {savedPhone || 'No number yet'}
-              </Text>
-              {phoneState.kind === 'saved' ? (
-                <View style={styles.inline}>
-                  <Icon source="check-circle" size={16} color={colors.win} />
-                  <Text variant="labelMedium" style={{ color: colors.win }}>{savedPhone ? 'Phone saved.' : 'Phone cleared.'}</Text>
-                </View>
-              ) : null}
-            </View>
-            <IconButton icon={savedPhone ? 'pencil-outline' : 'plus'} size={20} onPress={() => { setEditingPhone(true); setPhoneState({ kind: 'idle' }); }} accessibilityLabel={savedPhone ? 'Edit phone' : 'Add phone'} style={styles.pencil} />
-          </View>
-        )}
-      </SectionCard>
+      <SettingsGroup title="Your table" testID="me-your-table">
+        <ListRow title="Name" value={player.name} pen onPress={() => setEditing('name')} accessibilityLabel={`Name, ${player.name}. Edit name`} testID="me-edit-name" />
+        <ListRow
+          title="Initials on scorecards"
+          value={player.initials ? initials : `${initials} · from your name`}
+          pen
+          onPress={() => { setInitialsError(null); setEditingInitials(true); }}
+          accessibilityLabel={`Your initials ${initials}${player.initials ? '' : ', from your name'}. Change your initials`}
+          testID="me-edit-initials"
+        />
+        <ListRow
+          title="Player ID"
+          value={badge ?? 'Pending'}
+          right={badge ? <Icon source="share-variant" size={20} color={colors.onSurfaceVariant} /> : null}
+          onPress={player.playerCode ? () => sharePlayerId(player.playerCode!).catch(() => {}) : undefined}
+          accessibilityLabel={badge ? `Your ${badge}. Share your Player ID so friends can find you` : 'Player ID pending'}
+          testID="me-share-player-id"
+        />
+      </SettingsGroup>
 
-      <SectionCard title="Email" icon="email-outline" tip={{ text: EMAIL_TIP, topic: 'me', anchor: 'account', testID: 'me-email-tip' }}>
-        <TouchableRipple onPress={() => toggleEmail('gameStarted')} accessibilityRole="checkbox" accessibilityState={{ checked: emailPrefs.gameStarted }} accessibilityLabel="Email me when a game starts, with the live score link">
-          <View style={styles.checkRow}>
-            <Checkbox status={emailPrefs.gameStarted ? 'checked' : 'unchecked'} onPress={() => toggleEmail('gameStarted')} />
-            <View style={styles.flex}>
-              <Text variant="bodyLarge">Game started (live link)</Text>
-            </View>
-          </View>
-        </TouchableRipple>
-        <TouchableRipple onPress={() => toggleEmail('results')} accessibilityRole="checkbox" accessibilityState={{ checked: emailPrefs.results }} accessibilityLabel="Email me when a result I am in is saved">
-          <View style={styles.checkRow}>
-            <Checkbox status={emailPrefs.results ? 'checked' : 'unchecked'} onPress={() => toggleEmail('results')} />
-            <View style={styles.flex}>
-              <Text variant="bodyLarge">Results</Text>
-            </View>
-          </View>
-        </TouchableRipple>
-        {emailError ? <Text variant="bodySmall" style={{ color: colors.error }}>{emailError}</Text> : null}
-      </SectionCard>
+      <SettingsGroup title="Notifications" testID="me-notifications">
+        <ListRow
+          title="Phone"
+          description={phoneState.kind === 'saved' ? (savedPhone ? 'Saved.' : 'Cleared.') : undefined}
+          value={savedPhone || 'No number yet'}
+          pen
+          onPress={() => { setEditing('phone'); setPhoneState({ kind: 'idle' }); }}
+          accessibilityLabel={savedPhone ? `Phone, ${savedPhone}. Edit phone` : 'Phone, no number yet. Add phone'}
+          testID="me-edit-phone"
+        />
+        <ListRow title="Email" value={emailPrefsSummary(emailPrefs)} onPress={() => { setEmailError(null); setEditing('email'); }} testID="me-email" />
+      </SettingsGroup>
 
-      <SectionCard title="Settings" icon="cog-outline">
-        <TouchableRipple
-          onPress={() => router.push('/(screens)/settings')}
-          style={[styles.settingsButton, { backgroundColor: colors.secondaryContainer }]}
-          borderless
-          accessibilityRole="button"
-          accessibilityLabel="Game type, Drop, Middle drop, Full count"
-        >
-          <View style={styles.settingsInner}>
-            <Icon source="tune-variant" size={18} color={colors.onSecondaryContainer} />
-            <Text variant="labelLarge" style={[styles.flex, { color: colors.onSecondaryContainer }]}>
-              Game type, Drop, Middle drop, Full count
-            </Text>
-            <Icon source="chevron-right" size={18} color={colors.onSecondaryContainer} />
-          </View>
-        </TouchableRipple>
-      </SectionCard>
+      <SettingsGroup title="Game defaults" testID="me-game-defaults">
+        <ListRow title="Settings" value={defaults ?? ''} onPress={() => router.push('/(screens)/settings')} accessibilityLabel="Settings: game type, Drop, Middle drop, Full count" testID="me-settings" />
+      </SettingsGroup>
+
+      <SettingsGroup title="Appearance" testID="me-appearance">
+        <SegmentedChoice
+          value={appearance}
+          onChange={setAppearance}
+          accessibilityLabel="Appearance"
+          options={APPEARANCE_OPTIONS.map((option) => ({
+            value: option.value,
+            label: option.label,
+            accessibilityLabel: option.value === 'system' ? 'Follow the phone setting' : `${option.label} mode`,
+            testID: `me-appearance-${option.value}`,
+          }))}
+          style={styles.choice}
+        />
+      </SettingsGroup>
 
       {/* PR 11 (Q11.7): the help index — every help page by group, with search. */}
-      <SectionCard title={HELP_INDEX_TITLE} icon="book-open-variant">
-        <TouchableRipple
-          onPress={() => router.push('/(screens)/help' as never)}
-          style={[styles.settingsButton, { backgroundColor: colors.tertiaryContainer }]}
-          borderless
-          accessibilityRole="button"
-          accessibilityLabel="Help and guide: every help page, with search"
-          testID="me-help-index"
-        >
-          <View style={styles.settingsInner}>
-            <Icon source="magnify" size={18} color={colors.onTertiaryContainer} />
-            <Text variant="labelLarge" style={[styles.flex, { color: colors.onTertiaryContainer }]}>
-              How each screen works, Tricky cases, scoring rules
-            </Text>
-            <Icon source="chevron-right" size={18} color={colors.onTertiaryContainer} />
-          </View>
-        </TouchableRipple>
-      </SectionCard>
+      <SettingsGroup title="Help" testID="me-help">
+        <ListRow title={HELP_INDEX_TITLE} description="How each screen works, tricky cases, scoring rules" onPress={() => router.push('/(screens)/help' as never)} accessibilityLabel="Help and guide: every help page, with search" testID="me-help-index" />
+      </SettingsGroup>
+
+      <SettingsGroup title="Account" note={notice ?? undefined} testID="me-account">
+        <ListRow title="Change passcode" onPress={changePasscode} testID="me-change-passcode" />
+        <ListRow title="Privacy policy" onPress={() => Linking.openURL(PRIVACY_PAGE_URL).catch(() => {})} testID="me-privacy" />
+        <ListRow title="Delete account" tone="danger" onPress={() => setDeleteOpen(true)} testID="delete-account" />
+        <ListRow title="Log out" tone="danger" noChevron onPress={logout} testID="me-log-out" />
+      </SettingsGroup>
+
+      {showDemo ? (
+        <SettingsGroup title="Admin" note="Sample players and games for this account. Load adds them; Clear removes them." testID="me-admin">
+          <ListRow title="Load demo data" description={demoBusy === 'load' ? 'Loading…' : undefined} onPress={demoBusy ? undefined : () => runDemo('load')} testID="me-demo-load" />
+          <ListRow title="Clear demo data" description={demoBusy === 'clear' ? 'Clearing…' : undefined} onPress={demoBusy ? undefined : () => runDemo('clear')} testID="me-demo-clear" />
+        </SettingsGroup>
+      ) : null}
+
+      {VERSION_LABEL ? (
+        <Text variant="labelSmall" style={[styles.version, { color: colors.onSurfaceVariant }]} accessibilityLabel={`App version ${VERSION_LABEL}`}>
+          {`EZ Score ${VERSION_LABEL}`}
+        </Text>
+      ) : null}
 
       <Portal>
         {popup ? (
@@ -471,6 +376,38 @@ export default function MeScreen() {
             onSave={saveInitials}
           />
         ) : null}
+        {editing === 'name' ? (
+          <EditFieldDialog
+            title="Edit name"
+            label="Name"
+            initial={player.name}
+            autoCapitalize="words"
+            busy={saving}
+            validate={(value) => (value.trim() ? null : 'Type a name.')}
+            onSave={saveName}
+            onDismiss={() => setEditing(null)}
+            testID="me-name-dialog"
+          />
+        ) : null}
+        {editing === 'phone' ? (
+          <EditFieldDialog
+            title={savedPhone ? 'Edit phone' : 'Add phone'}
+            label="Phone"
+            initial={savedPhone}
+            hint="Optional. Never texted, never shown to other players."
+            placeholder="Add a number"
+            keyboardType="phone-pad"
+            busy={savingPhone}
+            error={phoneState.kind === 'error' ? phoneState.message : null}
+            validate={phoneProblem}
+            onSave={savePhone}
+            onDismiss={() => { setEditing(null); setPhoneState({ kind: 'idle' }); }}
+            testID="me-phone-dialog"
+          />
+        ) : null}
+        {editing === 'email' ? (
+          <EmailPrefsDialog prefs={emailPrefs} error={emailError} onToggle={toggleEmail} onDismiss={() => setEditing(null)} />
+        ) : null}
       </Portal>
 
       <ChangePasscodeDialog
@@ -482,36 +419,6 @@ export default function MeScreen() {
           setNotice('Passcode changed. Use the new 6 digits next time you sign in.');
         }}
       />
-
-      {showDemo ? (
-        <SectionCard title="Demo data" icon="flask-outline" tip={{ text: 'Sample players and games for this account. Load adds them; Clear removes them.', testID: 'me-demo-tip' }}>
-          <View style={styles.demo}>
-            <Button mode="contained" loading={demoBusy === 'load'} onPress={() => runDemo('load')}>Load</Button>
-            <Button mode="outlined" loading={demoBusy === 'clear'} onPress={() => runDemo('clear')}>Clear</Button>
-          </View>
-        </SectionCard>
-      ) : null}
-
-      <Button mode="contained" icon="logout" buttonColor={colors.error} onPress={logout} contentStyle={styles.action} accessibilityLabel="Log out">
-        Log out
-      </Button>
-
-      <SectionCard title="Account" icon="shield-account-outline" tip={{ text: 'Your data: email, name, Player ID, phone if you added one, and the games you play.', topic: 'me', anchor: 'account', testID: 'me-account-tip' }}>
-        <View style={styles.gap}>
-          <Button mode="outlined" icon="file-document-outline" onPress={() => Linking.openURL(PRIVACY_PAGE_URL).catch(() => {})} contentStyle={styles.action} accessibilityLabel="Privacy policy">
-            Privacy policy
-          </Button>
-          <Button mode="outlined" icon="account-remove-outline" textColor={colors.error} onPress={() => setDeleteOpen(true)} style={{ borderColor: colors.error }} contentStyle={styles.action} accessibilityLabel="Delete account" testID="delete-account">
-            Delete account
-          </Button>
-        </View>
-      </SectionCard>
-
-      {VERSION_LABEL ? (
-        <Text variant="labelSmall" style={[styles.version, { color: colors.onSurfaceVariant }]} accessibilityLabel={`App version ${VERSION_LABEL}`}>
-          {`EZ Score ${VERSION_LABEL}`}
-        </Text>
-      ) : null}
 
       <DeleteAccountDialog
         visible={deleteOpen}
@@ -526,80 +433,9 @@ export default function MeScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.sm },
+  content: { gap: spacing.lg },
   version: { textAlign: 'center', paddingVertical: spacing.sm },
-  identityCard: {
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  identity: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    alignItems: 'center',
-  },
-  identityText: {
-    flex: 1,
-    gap: 2,
-  },
-  inlineActions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end' },
-  pencil: { margin: 0 },
-  initialsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.md, paddingVertical: spacing.xs, paddingLeft: spacing.md, paddingRight: spacing.xs },
-  initialsText: { fontWeight: '800', letterSpacing: 2 },
-  action: { height: 44 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    minHeight: 52,
-  },
-  flex: { flex: 1 },
-  appearance: { flexDirection: 'column', alignItems: 'stretch', gap: spacing.sm, paddingVertical: spacing.sm },
-  segments: { flexDirection: 'row', gap: spacing.sm },
-  segment: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 6,
-    minHeight: 44,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.full,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gap: { gap: spacing.sm },
-  valueRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  idBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderRadius: radius.md,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.md,
-    flexWrap: 'wrap',
-  },
-  idText: { fontWeight: '800' },
-  inline: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  settingsButton: {
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    marginBottom: spacing.sm,
-  },
-  checkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs },
-  settingsInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-  },
-  demo: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
+  identity: { flexDirection: 'row', gap: spacing.md, alignItems: 'center', paddingVertical: spacing.xs },
+  identityText: { flex: 1, gap: 2 },
+  choice: { marginVertical: spacing.xs },
 });
