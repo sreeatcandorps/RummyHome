@@ -154,6 +154,22 @@ async function makeGames(client, recipes) {
   return ids;
 }
 
+const RESULT_PLAYER_CAP = 50;
+async function fitResultPlayers(client, gameIds) {
+  const seats = (await client.query('select game_id, profile_id from public.game_players where game_id = any($1::uuid[])', [gameIds])).rows;
+  const byGame = new Map(gameIds.map((id) => [id, []]));
+  for (const row of seats) byGame.get(row.game_id)?.push(row.profile_id);
+  const players = new Set();
+  const picked = [];
+  for (const id of gameIds) {
+    const next = new Set([...players, ...byGame.get(id)]);
+    if (next.size > RESULT_PLAYER_CAP) { if (picked.length) break; else continue; }
+    picked.push(id);
+    for (const p of next) players.add(p);
+  }
+  return picked.length ? picked : gameIds.slice(0, 1);
+}
+
 /** Results through the real RPCs as the creator: awards first for pools, then declare; 3 % deleted and restored. */
 async function declareResults(client, creator, gameIds, { maxGames = 30 } = {}) {
   const pools = (await client.query(`select id from public.games where id = any($1::uuid[]) and game_type = 'pool' and awarded_at is null`, [gameIds])).rows;
@@ -164,8 +180,11 @@ async function declareResults(client, creator, gameIds, { maxGames = 30 } = {}) 
       await client.query('select public.set_pool_awards($1, $2::jsonb, $3::jsonb)', [id, JSON.stringify(awards), JSON.stringify({ presetLabel: 'Winner takes all' })]);
     }
   });
+  // The app refuses a result with more than 50 distinct players (008_results). Keep the games whose seats fit, in order,
+  // like a creator would: the 10 % staging run (Nov 23) tripped this with the power user's 60-person pool.
+  const picked = await fitResultPlayers(client, gameIds.slice(0, maxGames));
   return asUser(client, creator, async () => {
-    const r = await client.query('select public.declare_game_result($1::uuid[]) as r', [gameIds.slice(0, maxGames)]);
+    const r = await client.query('select public.declare_game_result($1::uuid[]) as r', [picked]);
     const resultId = r.rows[0].r.id ?? r.rows[0].r.resultId ?? r.rows[0].r;
     if (rand() < 0.03) {
       await client.query('select public.delete_result($1)', [resultId]);
