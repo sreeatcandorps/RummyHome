@@ -11,7 +11,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes. Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-23 09:40 UTC (agent). Sree: "good night. after the design changes are done, proceed with the APK and have it ready when I wake up." → #120 (Size S + Palette B) head `512a1ef`: APK, roles, two-device, monkey, chaos, unit, db green; smoke running; matrix fills from its frames; Build Bot builds the **staging** APK from that head (no merge). #122 = batch 2 (D73 emails). D72 dialogs approved as drawn.
+Last updated: 2026-11-23 10:40 UTC (agent). **#120 done and green at head `e0e4850`** (22 / 22 checks; smoke 25 / 25 after a flow-07 re-pin); screenshot matrix in the PR body. Build Bot builds the **staging** APK from `e0e4850` for Sree's morning (his "proceed with the APK and have it ready when I wake up"); #120 and #122 stay unmerged. D72 dialogs approved; D73 emails in #122.
 
 ## In flight
 
