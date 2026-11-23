@@ -23,7 +23,8 @@ numbers below). Every frame is from the Pixel 6 smoke run of `main` @ `f98f4ac2`
 > **Nov 21, 2:31 AM** — Sree: "What about the new designs? That's what I'm very interested in. Are we also doing any
 > color changes?" The four S screens are above (§5, `small-*.png`); the colour question is answered in **§9** with
 > three palettes on the same four screens, light and dark (`palette-*.png`), recommendation **B · Felt & Brass**.
-> Still no code: S starts when he says yes per screen, and the palette is one token change on top.
+> **Nov 23** — Sree: "Palette B" (**D65**). Still no code: he is reviewing the S mockups screen by screen; the first
+> S PR carries the B tokens.
 
 PR 15 (`design-audit.md`, Nov 17–18) fixed the **token** layer: one button component with two weights, one `Tag`,
 one `SearchField`, one dialog family, one date format, radii from a table, sentence-case headings. That work holds —
@@ -148,8 +149,8 @@ B15 on), tests pinning the rules of §2 the way `tests/design-tokens.test.ts` pi
 | 4 | Dark mode: review it as part of S (adds a dark column to every matrix from now on)? | yes |
 | 5 | Home title: "Hi Sree" or "Your games"? | "Your games" (the greeting is in the avatar) |
 | 6 | The competitor screens you mentioned — send them; this document gets a §7 comparing shape by shape. | — |
-| 7 | Palette (§9): **A** keep the current Clubhouse, **B** Felt & Brass, or **C** Ink & Marigold? | **B** — same family as the icon, deeper green (text 8.9:1 instead of 4.6:1), brass instead of lemon yellow; a token change that rides along with S |
-| 8 | If B: dark mode stays green-black (as shown) or goes neutral black? | green-black as shown — the Sign-in band, the felt toast and the dark screens then share one tone |
+| 7 | Palette (§9): **A** keep the current Clubhouse, **B** Felt & Brass, or **C** Ink & Marigold? | **B** — same family as the icon, deeper green (text 8.9:1 instead of 4.6:1), brass instead of lemon yellow; a token change that rides along with S — **answered Nov 23: B** (D65) |
+| 8 | If B: dark mode stays green-black (as shown) or goes neutral black? | green-black as shown — the Sign-in band, the felt toast and the dark screens then share one tone — open; green-black is the default in the first S PR unless he says otherwise |
 
 ## 7. Competitor review (Sree, Nov 21) — and what we recommend
 
@@ -380,6 +381,8 @@ the standard "Done = I'm finished" meaning; and the counter line under the list 
 incomplete Done stays grey and the line already says "3 of 6 numbered". Batch item 12.
 
 ## 9. Colour — three palettes on the S screens (Sree, Nov 21, 2:31 AM)
+
+> **Decided Nov 23 — Sree: "Palette B."** Recorded as **D65** in `decisions.md`. Nothing is built yet; the tokens go into the first S PR once he has said yes to the screens.
 
 Sree: "What about the new designs? That's what I'm very interested in. Are we also doing any color changes? Can we
 talk about that?"
