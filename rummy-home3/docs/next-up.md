@@ -11,7 +11,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes. Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-23 10:40 UTC (agent). **#120 done and green at head `e0e4850`** (22 / 22 checks; smoke 25 / 25 after a flow-07 re-pin); screenshot matrix in the PR body. Build Bot builds the **staging** APK from `e0e4850` for Sree's morning (his "proceed with the APK and have it ready when I wake up"); #120 and #122 stay unmerged. D72 dialogs approved; D73 emails in #122.
+Last updated: 2026-11-23 18:15 UTC (agent). Sree: "can you run the seed step" → **#123** Seed staging workflow (manual, `STAGING_DB_URL` secret, wipe / scale, summary artifact) + refusal-path fix; CI running. #120 green at `e0e4850` (staging APK with Build Bot); #122 batch 2 (D73) green; §8.8 scorecard columns waits on Sree's yes to the mockup.
 
 ## In flight
 
@@ -19,6 +19,7 @@ Last updated: 2026-11-23 10:40 UTC (agent). **#120 done and green at head `e0e48
 | --- | --- | --- | --- |
 | 2 | **Google Play review** — **in #117**: D63 icon set of AAB 15 (internal testing). | Play Console | Google; **Sree**: Q7 trader status |
 | 2a | **Design review 2** — the review document: B01–B20, S / M / L, §7 competitors, §8 APK-v17 suggestions, §9 palettes, §10 build specs. **Nov 23**: §8.8 scorecard columns (5 by default, pinch 5 · 7 · All, ⋮ Columns row) and §8.9 landscape view-only, with mockups; Q13 answered in §8.5; Q8 dark: `dark-q8.png` → Sree "Both are fine. Just choose one" → green-black (D71). | PR #111 | **Sree**: §8.8 / §8.9 yes or changes; merge when he is done reading |
+| 2j | **Seed staging via GitHub — #123** (`cursor/seed-staging-workflow-ca74`): `Seed staging` workflow_dispatch, `DB_URL` from the repo secret, `wipe` / `scale` inputs, `summary.json` artifact; fixes the `STAGING_REF` ReferenceError on the refusal path. | Sree: "can you run the seed step"; Build Bot: its box cannot open Postgres | **Sree**: add the `STAGING_DB_URL` secret, yes to merge #123; Build Bot: *Run workflow* |
 | 2i | **Batch 2 — #122** (`cursor/small-fixes-batch-2-ca74`, off `main` 12b7cdd): D73 emails (sender name note, one button, no raw link, Palette B button, link note; 661 tests). Next items land here one commit each (§8.8, §8.9, 053) after their mockups. | Sree: "Yes to the new email design and the EZ Score: Rummy sender name" | **Sree**: yes to merge #122; Build Bot: `RESEND_FROM` secret + `send-email` redeploy after the merge |
 | 2h | **Size-S build** — Palette B tokens (D65) + Profile (D66), Settings (D67), Game type (D68), Sign in with the fixed Joker card (D69): `SettingsGroup`, `SegmentedChoice`, `ListRow` value slot, `RulesForm layout="grouped"`, `JokerCard`; 653 tests, flows 07 / 21 re-pinned; opened on "Yeah, you can start the redesign, though." | PR #120 | CI (device frames → the matrix in the body), then **Sree**: look, then yes to merge |
 | 2b | **iPhone plan** — eight steps; Sree: enrol as **Candor PS** (D62). | PR #112 | **Sree**: the enrolment itself (D-U-N-S for Candor PS) |
