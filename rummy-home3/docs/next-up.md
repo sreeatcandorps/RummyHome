@@ -11,7 +11,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes. Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-23 08:05 UTC (agent), Sree: all four S screens yes (D66–D69, Sign in with the Joker card), specs §10, palette B (D65), palette options on #111 (Sree Nov 21 2:31 AM), #117 merged with main after #114, combined PR #117 built (Sree 1:21 AM), after #110 merged (`9b92a42`), staging created, Sree's APK v17 pass (icon, header shimmer, three screens, Order of players arrows + table + left of the dealer, Awards chips, Done grey), the batching rule.
+Last updated: 2026-11-23 23:40 UTC (agent). WhatsApp spec PR #124 now carries `flows.md` (architecture + every flow, Mermaid + PNG) after Sree: "I never see a document where I can understand the whole architecture and specs" → D78 makes a spec + flows document the first thing in every feature PR (template + AGENTS.md). Q21/Q22/Q24 answered (D75–D77); Q20, Q23, Q25–Q27 open. #126 (seed: 50-player cap) checks finishing; Volume green. Nothing built.
 
 ## In flight
 
@@ -61,6 +61,7 @@ here and go into the next batch when he picks.
 | 10 | **Play listing**: 7" / 10" tablet screenshots from the tablet smoke job; a short promo video is optional. | Optional for a phone-first listing; cheap once the tablet job is green. | tiny | — |
 | 11 | **Telugu** (#29's second half): UI strings through an i18n table, Telugu first, English fallback. | Sree's audience; a real reach item, but every screen is touched. | large | yes, and who proofreads Telugu |
 | 12 | **WhatsApp / phone OTP for India** (#36): Supabase phone auth (Twilio / MSG91) beside e-mail. | Sign-up friction in India; costs per SMS. | medium | yes + an SMS provider account |
+| 12e | **WhatsApp sign-in** — spec PR first (`docs/whatsapp-sign-in/`), then paperwork (Meta portfolio, WABA via Twilio, display name, verification — Sree), then staging Twilio Verify, then the app PR. | Sree Nov 23: "We give a choice of using email or WhatsApp … I need a design spec for this before we start." | large (mostly waiting on Meta) | Q20, Q23, Q25–Q27 (Q21/Q22/Q24 answered → D75–D77); Google's approval of the current review |
 | 13 | **Research docs while Play reviews**: Google Play scorekeeper sweep (#40), Indian Rummy variants (#37), monetization (#41), learning section (#38). Each a one-page doc in `docs/`, no app change. | They shape the listing text and the next quarter; they cost nothing but agent time. | small each | — |
 | 14 | **iPhone** (#35): steps 2–8 of `docs/ios/README.md` once Sree is enrolled — link EAS, first build, TestFlight on his iPad, the iOS fix pass + nightly simulator job, submit. | Waits on Apple; the agent's part is not on the critical path. | medium | Apple Developer Program enrolment (step 1) |
 | 15 | **Design review 2, size S** — build after Sree's yes on the mockups, one surface per PR with light + dark matrices: `Row` / `SettingsGroup` / `SegmentedChoice` components, then Profile, Settings, Game type, Sign in. | Sree: "Go with Small now, mockups first." | medium | yes per mockup screen |
