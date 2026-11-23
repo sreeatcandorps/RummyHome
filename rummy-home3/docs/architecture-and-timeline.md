@@ -47,14 +47,14 @@ Same codebase either way.
 | UI | React Native Paper (Material 3) | Android-familiar components |
 | Share image | `react-native-view-shot` and `expo-sharing` | Scorecard picture, and the one-page Results card (ranked scores with medals, generator initials, link), for WhatsApp or a text. The web build draws the same card |
 | Results PDF | `expo-print` and `expo-sharing` | Share full details prints phone-sized HTML pages (390 × 780) to a PDF on the phone and opens the share sheet; a single game's rounds go the same way. The web build downloads the same details |
-| Backend | Supabase (Auth + Postgres + RLS) | Shared multi-user data without a custom server |
+| Backend | Supabase (Auth + Postgres + RLS); live project plus **`ezscore-staging`** (Nov 21, same region, migrations only, seeded population, no real people) | Shared multi-user data without a custom server; staging takes the volume tests and the staging APK |
 | My players | `my_players` in `007_redesign.sql` | Per-account roster. Home and New game do not read every profile |
 | Scheduled DB job | **pg_cron** (Supabase extension), enabled on live Nov 15. The 045 job `purge-deleted-games` was **unscheduled the same day** (0 jobs) after Sree's rule that the app never permanently deletes games or results. PR 22 / migration 046 (written, not applied) replaces it with `archive-deleted-games` → `archive_deleted_games()`, 03:15 UTC nightly, non-destructive (`games.archived_at`) | Live has no scheduled job until 046 is applied; `purge_deleted_games()` exists there but nothing calls it |
 | Public scorecard | `https://ezscore.mindweavetech.com/scorecard.html` | Static HTML. `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__` are filled at publish time, not committed |
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
 | Tutorials | `components/tutorial/StepsSheet.tsx` + `expo-haptics` (D61, Nov 20) | Step-by-step sheets drawn from the real components (no video / Lottie); seen-flags on `profiles.default_settings`; the light tap on the real last tap of the Order of players |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
-| Cloud builds | EAS Build profiles: development / preview / production | Real store binaries |
+| Cloud builds | EAS Build profiles: development / preview / staging (EZ Score · Staging, `.staging` package, points at `ezscore-staging`) / production | Real store binaries |
 | Device UI tests | Maestro + `reactivecircus/android-emulator-runner` in GitHub Actions (`ci/ui/`, `rummy-home3/e2e/`); four emulator profiles, six suites, `adb monkey`, two-emulator races; dashboard on the `gh-pages` branch (GitHub Pages) | Flows on the real APK, screenshots and videos of every run, bugs filed as issues; no EAS credits, no production data, $0 on the public repo |
 | OTA | `expo-updates`, on for the production profile only (`EXPO_UPDATES_ENABLED` in `eas.json` → `app.config.js`). Preview/development APKs run their embedded JS | Fix JS during the 14-day test without new Play review every time; preview builds can't be replaced by a stale update |
 | Version codes | `appVersionSource: "remote"` in `eas.json` | EAS tracks Android versionCode; no manual bumps in `app.json` |
@@ -669,3 +669,8 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   rewritten for D5.1 (numbers reused once a game leaves Active). `volume` moves from pre-release-only to **nightly**.
 - Rendering the payloads found `public/scorecard.html` broken since PR 14 (`multiplier` read before its `const`) —
   fixed in its own PR, with a test that executes the page script in a stub DOM, before Q6 republishes the page.
+- Sree said yes to staging (Q12). New Supabase project **`ezscore-staging`** (ca-central-1, same org, $10 / month;
+  migrations 001–052 applied by Build Bot, pg_cron not enabled). `app.config.js` gains an `APP_VARIANT=staging`
+  second app (EZ Score · Staging, `.staging` package, own scheme) and `eas.json` a `staging` profile whose anon key is
+  an EAS secret; `ci/volume/seed-staging.mjs` generates the §3 population deterministically and refuses every host
+  but loopback or the staging ref. Seeding staging and the first staging APK wait for Sree's yes.

@@ -223,7 +223,11 @@ test('X24-10d the component and sheet: no chips panel, no "Keep this order", arr
   const sheet = read('components/game/SeatingSheet.tsx');
   assert.match(sheet, /startOrder\(base, true\)/, 'mid-game opens prefilled');
   assert.match(sheet, /testID="seating-clear"/);
-  assert.match(sheet, /disabled=\{saving \|\| !complete \|\| !changed\} testID="seating-done"/);
+  // Small fixes batch (Nov 21): Done is never grey once everyone is numbered — unchanged order → it closes.
+  assert.match(sheet, /onPress=\{changed \? save : onDismiss\} loading=\{saving\} disabled=\{saving \|\| !complete\} testID="seating-done"/);
+  assert.match(sheet, /unchanged=\{complete && !changed\}/, 'the counter line says why Done only closes');
+  assert.equal(numberedCounter(4, 4, true), 'Everyone numbered · order unchanged — Done closes');
+  assert.equal(numberedCounter(3, 4, true), '3 of 4 numbered');
   assert.ok(!sheet.includes('fromMenu') && !sheet.includes('seating-chips'));
 });
 

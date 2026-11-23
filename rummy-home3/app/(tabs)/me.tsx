@@ -31,9 +31,9 @@ import { usePreferences } from '@/contexts/PreferencesContext';
 import { APPEARANCE_OPTIONS } from '@/utils/appearance';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { shortVersionLabel } from '@/utils/appVersion';
-import { readAppVersion } from '@/utils/appVersionRuntime';
+import { appVariantLabel, readAppVersion } from '@/utils/appVersionRuntime';
 
-const VERSION_LABEL = shortVersionLabel(readAppVersion());
+const VERSION_LABEL = [shortVersionLabel(readAppVersion()), appVariantLabel()].filter(Boolean).join(' · ');
 
 type PhoneState = { kind: 'idle' } | { kind: 'saved' } | { kind: 'error'; message: string };
 

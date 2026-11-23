@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, PanResponder, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { radius, seatColor, spacing, tabularNums, useAppTheme } from '@/constants/theme';
 import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
@@ -280,29 +280,56 @@ export function ScoreTable({
   const [tableWidth, setTableWidth] = useState(0);
   const verticalRef = useRef<ScrollView>(null);
   const shownRounds = useRef(0);
-  // v12 point 10 (Sree, Nov 19): the header is a sideways scroller of its own, kept in step with the
-  // rows both ways, so dragging the names scrolls the columns (before, only the rows could be dragged
-  // and the header merely followed). `sidewaysOwner` names the scroller under the finger so the echo
-  // from scrollTo on the other one is not sent back.
-  const headerRef = useRef<ScrollView>(null);
+  // v12 point 10 (Sree, Nov 19): the names can be dragged sideways too. Small fixes batch (Nov 21, reported
+  // twice): the header used to be a second ScrollView kept in step with the rows, first from the JS thread
+  // (onScroll → scrollTo: a fling left it a frame or two behind, "zigzag, faded"), then natively with a
+  // counter-translation (the hand-over scrollTo still flashed the header back to column 1 for one frame).
+  // Now there is ONE sideways offset — the rows' scroller writes it on the UI thread — and the header is a
+  // plain clipped view translated by it, so it cannot drift or flash. A drag on the names moves the rows'
+  // scroller by the finger's travel; a release with speed decays the way a fling does.
   const bodyRef = useRef<ScrollView>(null);
-  const sidewaysOwner = useRef<'header' | 'body' | null>(null);
+  const bodyX = useRef(new Animated.Value(0)).current;
+  const headerShift = useMemo(() => Animated.multiply(bodyX, -1), [bodyX]);
+  const sidewaysX = useRef(0);
+  const trackBody = useMemo(() => Animated.event([{ nativeEvent: { contentOffset: { x: bodyX } } }], {
+    useNativeDriver: true,
+    listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => { sidewaysX.current = event.nativeEvent.contentOffset.x; },
+  }), [bodyX]);
 
   const { roundColumnWidth, columnWidth, contentWidth, scrollsSideways } = columnLayout(tableWidth, columns.length, compact);
+  const maxSideways = useRef(0);
+  maxSideways.current = Math.max(0, contentWidth - (tableWidth - roundColumnWidth));
+  const sidewaysTo = (x: number) => {
+    const clamped = Math.min(maxSideways.current, Math.max(0, x));
+    bodyRef.current?.scrollTo({ x: clamped, animated: false });
+    return clamped === x;
+  };
+  const flingX = useRef(new Animated.Value(0)).current;
+  const fling = useRef<Animated.CompositeAnimation | null>(null);
+  const stopFling = () => { fling.current?.stop(); fling.current = null; };
+  useEffect(() => {
+    const id = flingX.addListener(({ value }) => { if (!sidewaysTo(value)) stopFling(); });
+    return () => { flingX.removeListener(id); stopFling(); };
+  }, [flingX]);
+  const dragStart = useRef(0);
+  const headerPan = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, g) => scrollsSideways && Math.abs(g.dx) > 4 && Math.abs(g.dx) > Math.abs(g.dy),
+    onPanResponderGrant: () => { stopFling(); dragStart.current = sidewaysX.current; },
+    onPanResponderMove: (_, g) => { sidewaysTo(dragStart.current - g.dx); },
+    onPanResponderRelease: (_, g) => {
+      if (Math.abs(g.vx) < 0.05) return;
+      flingX.setValue(sidewaysX.current);
+      fling.current = Animated.decay(flingX, { velocity: -g.vx, deceleration: 0.997, useNativeDriver: false });
+      fling.current.start(() => { fling.current = null; });
+    },
+    onPanResponderTerminate: () => {},
+  }), [scrollsSideways]);
 
   const fontSize = cellFontSize(columnWidth);
   const rowHeight = rowHeightFor(columnWidth, columns.length, compact, fontScale);
   const headerH = headerHeight(columnWidth, compact, fontScale, pool);
   const type = headerType(columnWidth);
   const onDark = theme.dark;
-
-  const syncFrom = (who: 'header' | 'body') => (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (sidewaysOwner.current && sidewaysOwner.current !== who) return;
-    const x = event.nativeEvent.contentOffset.x;
-    (who === 'header' ? bodyRef : headerRef).current?.scrollTo({ x, animated: false });
-  };
-  const own = (who: 'header' | 'body') => () => { sidewaysOwner.current = who; };
-  const release = () => { sidewaysOwner.current = null; };
 
   const handleLayout = (event: LayoutChangeEvent) => {
     const width = Math.floor(event.nativeEvent.layout.width);
@@ -527,25 +554,11 @@ export function ScoreTable({
           {/* Pinned header: the corner stays put; the header cells follow the rows' sideways offset on the UI thread. */}
           <View style={[styles.row, styles.headerRow, styles.cardTop, edge, { backgroundColor: colors.tableHeader, borderBottomColor: colors.outlineVariant }]}>
             {cornerCell}
-            <ScrollView
-              ref={headerRef}
-              horizontal
-              style={styles.flex}
-              scrollEnabled={scrollsSideways}
-              showsHorizontalScrollIndicator={false}
-              onScrollBeginDrag={own('header')}
-              onMomentumScrollEnd={release}
-              onScrollEndDrag={release}
-              onScroll={syncFrom('header')}
-              scrollEventThrottle={16}
-              bounces={false}
-              nestedScrollEnabled
-              testID="score-table-header-scroller"
-            >
-              <View style={[styles.row, { width: contentWidth }]} testID="score-table-header">
+            <View style={[styles.flex, styles.clip]} {...headerPan.panHandlers} testID="score-table-header-scroller">
+              <Animated.View style={[styles.row, { width: contentWidth, transform: [{ translateX: headerShift }] }]} testID="score-table-header">
                 {headerCells}
-              </View>
-            </ScrollView>
+              </Animated.View>
+            </View>
           </View>
 
           <ScrollView
@@ -562,17 +575,15 @@ export function ScoreTable({
                 {/* Frozen round column: scrolls with the rows, never sideways. */}
                 <View style={{ width: roundColumnWidth }}>{roundCells}</View>
 
-                <ScrollView
+                <Animated.ScrollView
                   ref={bodyRef}
                   horizontal
                   style={styles.flex}
                   scrollEnabled={scrollsSideways}
                   showsHorizontalScrollIndicator={scrollsSideways}
-                  onScrollBeginDrag={own('body')}
-                  onMomentumScrollEnd={release}
-                  onScrollEndDrag={release}
-                  onScroll={syncFrom('body')}
-                  scrollEventThrottle={16}
+                  onScrollBeginDrag={stopFling}
+                  onScroll={trackBody}
+                  scrollEventThrottle={1}
                   directionalLockEnabled
                   bounces={false}
                   nestedScrollEnabled
@@ -598,7 +609,7 @@ export function ScoreTable({
                       />
                     ))}
                   </View>
-                </ScrollView>
+                </Animated.ScrollView>
               </View>
 
               {roundCount === 0 && hugging ? (

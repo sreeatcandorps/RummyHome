@@ -25,6 +25,17 @@
       },
       "autoIncrement": true
     },
+    "staging": {
+      "extends": "preview",
+      "channel": "staging",
+      "environment": "preview",
+      "env": {
+        "EXPO_UPDATES_ENABLED": "false",
+        "APP_VARIANT": "staging",
+        "EXPO_PUBLIC_APP_VARIANT": "staging",
+        "EXPO_PUBLIC_STAGING_SUPABASE_URL": "https://erurahfybkxemgtkfzkn.supabase.co"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "channel": "production",

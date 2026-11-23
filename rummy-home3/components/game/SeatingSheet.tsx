@@ -93,14 +93,14 @@ export function SeatingSheet({ visible, players, pool, dealerIds, roundCount, on
         </Dialog.Content>
         <Dialog.ScrollArea style={[styles.scrollArea, { maxHeight: Math.max(200, layout.height * 0.5) }]}>
           <ScrollView contentContainerStyle={styles.body}>
-            <OrderOfPlayers players={players} draft={draft} onChange={setDraft} dealsNext={dealsNext} disabled={saving} />
+            <OrderOfPlayers players={players} draft={draft} onChange={setDraft} dealsNext={dealsNext} disabled={saving} unchanged={complete && !changed} />
             {error ? <Text variant="bodySmall" style={{ color: colors.error, marginTop: spacing.sm }} testID="seating-error">{error}</Text> : null}
           </ScrollView>
         </Dialog.ScrollArea>
         <Dialog.Actions>
           <Button onPress={onDismiss} disabled={saving} testID="seating-cancel">Cancel</Button>
           <Button onPress={() => setDraft(clearOrder(draft))} disabled={saving || draft.numbered.length === 0} testID="seating-clear">{SEATING_CLEAR}</Button>
-          <Button mode="contained" onPress={save} loading={saving} disabled={saving || !complete || !changed} testID="seating-done">{SEATING_DONE}</Button>
+          <Button mode="contained" onPress={changed ? save : onDismiss} loading={saving} disabled={saving || !complete} testID="seating-done">{SEATING_DONE}</Button>
         </Dialog.Actions>
       </Dialog>
       {visible ? <SeatingTutorial visible={tutorial.visible} forced={tutorial.forced} onDone={tutorial.done} /> : null}

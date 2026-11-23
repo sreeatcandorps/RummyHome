@@ -36,8 +36,10 @@ tags: [smoke]
     visible: "Add round"
     timeout: 15000
 - back
-- extendedWaitUntil:
-    visible: "New game"
+# Home keeps its scroll position across back, so "New game" can sit above the fold (CI run of #117).
+- scrollUntilVisible:
+    element: "New game"
+    direction: UP
     timeout: 15000
 
 # 2. Hidden & deleted with one hidden game: hide game H, open Settings › Hidden & deleted, unhide.
@@ -56,8 +58,9 @@ tags: [smoke]
     visible: "Hide game"
     timeout: 5000
 - tapOn: "Hide game"
-- extendedWaitUntil:
-    visible: "New game"
+- scrollUntilVisible:
+    element: "New game"
+    direction: UP
     timeout: 15000
 - tapOn: "Your profile"
 - extendedWaitUntil:

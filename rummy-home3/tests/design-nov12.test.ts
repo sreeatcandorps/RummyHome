@@ -207,9 +207,11 @@ test('final batch 11: the Joker mascot is the app icon and splash; four PNG opti
   const root = join(dirname(fileURLToPath(import.meta.url)), '..');
   const app = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8')).expo;
   assert.equal(app.icon, './assets/icon.png');
-  assert.equal(app.splash.image, './assets/icon.png');
-  assert.equal(app.android.adaptiveIcon.foregroundImage, './assets/adaptive-icon.png', 'the adaptive foreground keeps the card inside the 66% safe zone');
-  assert.equal(app.android.adaptiveIcon.backgroundColor, '#FBF1E1');
+  // D63 (Nov 21): the splash keeps option 1's tile picture; the launcher layers are the joker on the tile green
+  // (tests/app-icon.test.ts checks the safe zone).
+  assert.equal(app.splash.image, './assets/splash-icon.png');
+  assert.equal(app.android.adaptiveIcon.foregroundImage, './assets/adaptive-icon.png');
+  assert.equal(app.android.adaptiveIcon.backgroundColor, '#0F452D');
   const png = (rel: string) => {
     const bytes = readFileSync(join(root, rel));
     assert.equal(bytes.subarray(1, 4).toString('latin1'), 'PNG', `${rel} is a PNG`);
@@ -219,8 +221,8 @@ test('final batch 11: the Joker mascot is the app icon and splash; four PNG opti
   assert.deepEqual(png('assets/icon.png'), { width: 1024, height: 1024 });
   assert.deepEqual(png('assets/adaptive-icon.png'), { width: 1024, height: 1024 });
   assert.deepEqual(png('assets/icon-small.png'), { width: 320, height: 320 });
-  // Option 1 is wired: the launcher icon is byte-for-byte the first option.
-  assert.ok(readFileSync(join(root, 'assets/icon.png')).equals(readFileSync(join(root, 'assets/icon-options/joker-1.png'))));
+  // Option 1 is wired: the splash is byte-for-byte the first option; the store icon is its art full bleed (D63).
+  assert.ok(readFileSync(join(root, 'assets/splash-icon.png')).equals(readFileSync(join(root, 'assets/icon-options/joker-1.png'))));
   const layout = src('app/(tabs)/_layout.tsx');
   assert.doesNotMatch(layout, /VERSION_LABEL|brandVersion/, 'the header is the logo and the name only');
   assert.match(src('app/(tabs)/me.tsx'), /`EZ Score \$\{VERSION_LABEL\}`/, 'the version moved to the foot of Profile');

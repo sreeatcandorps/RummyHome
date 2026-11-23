@@ -146,7 +146,10 @@ export function seatingSubline(input: { pool: boolean; seatCount: number; outCou
 }
 
 /** "3 of 8 numbered" under the list while the order is being built; "Everyone numbered" when done. */
-export const numberedCounter = (numbered: number, total: number) => (numbered >= total ? 'Everyone numbered' : `${numbered} of ${total} numbered`);
+/** The line under the list. Mid-game, once everyone is numbered, it also says whether anything moved — Done
+ *  used to sit grey with no reason when the order was unchanged (Sree thought it was a bug, Nov 21). */
+export const numberedCounter = (numbered: number, total: number, unchanged = false) =>
+  numbered >= total ? (unchanged ? 'Everyone numbered · order unchanged — Done closes' : 'Everyone numbered') : `${numbered} of ${total} numbered`;
 
 /** The yellow note on the mid-game sheet (S05 B). Null when no rounds exist. */
 export function midGameSeatingNote(roundCount: number): string | null {

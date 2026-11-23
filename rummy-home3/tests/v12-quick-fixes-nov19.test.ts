@@ -53,6 +53,7 @@ test('v12 #8: no tick on a scored tile; #9: the grid clears the "N more" pill; #
   assert.match(entry, /paddingBottom: MORE_PILL_CLEARANCE/);
   const table = src('components/game/ScoreTable.tsx');
   assert.match(table, /testID="score-table-header-scroller"/);
-  assert.match(table, /onScrollBeginDrag=\{own\('header'\)\}/);
-  assert.match(table, /onScrollBeginDrag=\{own\('body'\)\}/);
+  // Small fixes batch (Nov 21): the names are a pan surface that drives the rows' scroller (one offset).
+  assert.match(table, /\{\.\.\.headerPan\.panHandlers\}/);
+  assert.match(table, /onPanResponderGrant: \(\) => \{ stopFling\(\); dragStart\.current = sidewaysX\.current; \}/);
 });
