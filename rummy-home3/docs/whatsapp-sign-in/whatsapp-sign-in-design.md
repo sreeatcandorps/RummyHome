@@ -3,6 +3,8 @@
 **Sree, Nov 23 2026**: *"Also, can we start a PR to make it work for WhatsApp? We give a choice of using email or
 WhatsApp. A lot of people in India will use WhatsApp. I need a design spec for this before we start."*
 
+**Flows and architecture**: [`flows.md`](flows.md) — one architecture diagram and one flowchart per flow (create account by WhatsApp / by email, sign in, forgot passcode, Profile › Sign-in methods, backup reminder, number changed, abuse limits), rendered as `flows-1.png` … `flows-9.png`. Read it beside this spec; the spec says *why*, the flows say *what happens on screen and behind it*.
+
 Mockups (this folder): `wa-sign-in.png` · `wa-sign-up.png` · `wa-profile.png` · `wa-backup.png`. Generator: `make-whatsapp-mockups.py`.
 Decisions Sree needs to make are at the end (Q20–Q27 in `../decisions.md`).
 
@@ -106,11 +108,24 @@ at $20 a month. Email accounts cost nothing in either model.
 
 ## 3. Meta Business verification and the sender (the paperwork)
 
-Who: Sree (Business Portfolio owner). Which entity: see Q21 — Candor PS LLC (Apple, D62) or MindWeave Tech (the
-domain, the support address, the privacy policy). Meta checks that the display name, the website and the legal
-document **agree**.
+Who: Sree (Business Portfolio owner). **Which entity — decided (D77)**. Sree: *"I think it should be Mindweave because
+that's the company I'm going to use DBA as for CandorPS. But anywhere we need legal names, it would be CandorPS."* and
+*"they don't even have to see Mindweave. They can just see EZ Score Rummy as of now, and then the next layer is
+Mindweave, and then the next layer is CandorPS if they ever need it."* So, three layers:
 
-1. **Meta Business Portfolio** (business.facebook.com) for the entity; Sree as admin.
+| Layer | Name | Where it appears |
+| --- | --- | --- |
+| What players see | **EZ Score: Rummy** | WhatsApp display name, email sender, store listing |
+| Brand / DBA | **MindWeave Tech** | Business Portfolio name, website `ezscore.mindweavetech.com`, support address, privacy policy |
+| Legal | **Candor PS LLC** | the *legal business name* field and the verification document (EIN letter / Articles); Apple (D62) |
+
+Meta's check is that the display name, the website and the document **agree**. A DBA is the normal way they do: the
+Portfolio's "Legal business name" is Candor PS LLC, "Business name" (shown) is MindWeave Tech, and the website must make
+the link visible — one footer line on `ezscore.mindweavetech.com` and in the privacy policy: *"MindWeave Tech is a
+trade name (DBA) of Candor PS LLC."* If the DBA is not yet filed in the state, file it before verification; Meta may
+ask for the DBA certificate when the names differ.
+
+1. **Meta Business Portfolio** (business.facebook.com): legal business name Candor PS LLC, business name MindWeave Tech (D77); Sree as admin.
 2. **WhatsApp Business Account** inside it — created through Twilio's *WhatsApp self sign-up* (Meta embedded sign-up,
    15 minutes), which also links the WABA to our Twilio account.
 3. **Phone number**: a Twilio number (buy one; ~$1.15/mo) or a company number never used on personal WhatsApp.
@@ -258,7 +273,7 @@ Cases:
 ## 10. Decisions for Sree
 
 - **Q20** Go ahead with WhatsApp sign-in on this spec (Twilio Verify, Supabase phone OTP), paperwork starting now, code after Google approves the current review? Default: yes.
-- **Q21** Which entity owns the WhatsApp Business account — Candor PS LLC (Apple, D62) or MindWeave Tech (domain, support address, privacy policy)? Default: the one whose name the website and privacy policy show, MindWeave Tech; otherwise the site needs a "Candor PS" line.
+- ~~**Q21**~~ answered Nov 23 (D77): legal name Candor PS LLC, brand/DBA MindWeave Tech, players see only EZ Score: Rummy. Needs the DBA line on the website and privacy policy (and the DBA filed) before Meta verification.
 - ~~**Q22**~~ answered Nov 23 (D75): a backup contact is asked at sign-up with Skip and reminded once later; it is a second sign-in key.
 - **Q23** For accounts that skipped the backup and lost their only contact: support with Player ID + two game codes + the creator's confirmation, as the only path? Default: yes.
 - ~~**Q24**~~ answered Nov 23 (D76): "Yes, use the same 6-digit passcode for WhatsApp and email accounts." Sign-in = number + passcode, no message; codes only prove a new number.

@@ -1,5 +1,11 @@
 <!-- Keep every section. Delete the hints in parentheses, not the headings. -->
 
+## Spec and flows (first thing in the body — Sree, Nov 23: "I never see a document where I can understand the whole architecture and specs")
+
+- Spec: `rummy-home3/docs/<area>/<name>-design.md` (full GitHub URL, not a relative path)
+- Flows: `rummy-home3/docs/<area>/flows.md` — architecture diagram + one flowchart per flow (Mermaid renders on GitHub); PNGs of the same in this body
+- Mockups: links to the images in the repo, and the images inline below
+
 ## Status
 
 - Based on: `main` @ `<sha>` (or: stacked on #<nn>)
