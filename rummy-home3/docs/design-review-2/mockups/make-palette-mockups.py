@@ -8,7 +8,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(HERE, 'make-small-mockups.py')).read()
 src = src[:src.index('for name in SCREENS:')]
 src = src.replace("OUT = '/tmp/mock/out'", "OUT = '/tmp/mock/palette'")
-ns = {}
+ns = {'__file__': os.path.join(HERE, 'make-small-mockups.py')}
 exec(compile(src, 'build.py', 'exec'), ns)
 render = ns['render']
 A_LIGHT, A_DARK = ns['LIGHT'], ns['DARK']

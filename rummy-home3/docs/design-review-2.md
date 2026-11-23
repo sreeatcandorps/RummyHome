@@ -24,8 +24,10 @@ numbers below). Every frame is from the Pixel 6 smoke run of `main` @ `f98f4ac2`
 > color changes?" The four S screens are above (§5, `small-*.png`); the colour question is answered in **§9** with
 > three palettes on the same four screens, light and dark (`palette-*.png`), recommendation **B · Felt & Brass**.
 > **Nov 23** — Sree: "Palette B" (**D65**); then "Yes to the Profile redesign" (**D66**). Still no code: he is
-> then "Yes to the Settings redesign" (**D67**), then "Yes to the Game type redesign" (**D68**). Still no code:
-> Sign in is under review. §10 is the build spec per approved screen, ready for the first S PR on his "build".
+> then "Yes to the Settings redesign" (**D67**), "Yes to the Game type redesign" (**D68**), and for Sign in "the redesign
+> is good, but can you pick a better image? … just get the Joker card" + keep the passcode eye (**D69**, re-mocked in
+> `small-sign-in.png`). All four S screens are approved; still no code ("Mockups only, no building yet"). §10 is the
+> build spec per screen, ready for the first S PR on his "build".
 
 PR 15 (`design-audit.md`, Nov 17–18) fixed the **token** layer: one button component with two weights, one `Tag`,
 one `SearchField`, one dialog family, one date format, radii from a table, sentence-case headings. That work holds —
@@ -543,3 +545,44 @@ rules and copy, the defaults priority (D-rules), the help anchors (`new-game` to
 steps 16b–16d keep their ids and the "Game type" text assertion; the 16c2 re-entries tip step now taps the Pool
 settings ⓘ. Screenshot matrix: Game type Points / Pool × light / dark, Pool with Limited re-entries open, the
 refused-limit strip, large font.
+
+### 10.4 Sign in (Sree: "the redesign is good, but can you pick a better image? …"; D69)
+
+Sree, Nov 23, verbatim: *"Yeah, the redesign is good, but can you pick a better image? Can you actually pick the exact
+Joker card from the Bicycle cards, the 52 cards from that company? … Don't get the poker-style cards. Get the regular
+ones that are smaller in looking size. Anyway, just get the Joker card. I know I have this thing where I'm hiding the
+password. … Can you keep that functionality and not remove it?"* Then, told Bicycle's Joker is the card company's
+copyrighted artwork and that an original Joker in the same classic style avoids the risk: *"ok"*.
+
+Read as: (1) the grouped-list Sign in is approved; (2) the hero is a **Joker playing card**, not the app-icon tile;
+(3) **bridge-size** proportions (2¼ × 3½ — Bicycle's "regular" narrower deck, not the 2½ × 3½ poker deck); (4) the
+artwork is **ours**, in the classic turn-of-the-century engraving style — jester with a three-point cap, ruff, diamond
+tunic, marotte, red / yellow / blue flat fills with black line-work — no Bicycle figure, no brand; (5) the **passcode
+eye stays** — the first mockup had dropped it, which is what he caught. Re-mocked in `small-sign-in.png` (before · after
+light · after dark · the card at 2×) by `make-sign-in-joker-mockup.py`; the figure is `mockups/joker-figure.png`.
+
+**Screen** (`app/(auth)/login.tsx` inside `components/ui/AuthShell.tsx`), top to bottom:
+
+| Part | Today | S |
+| --- | --- | --- |
+| Felt panel | 76 dp rounded tile with `icon-small.png`, ⓘ help top-right, a faint club | **The Joker card**: 90 × 140 dp, white, 7 dp radius, 1 dp inner rule 4 dp in, tilted −6°, soft shadow; "JOKER" set upright-vertical in the top-left and bottom-right (rotated 180°) indices; the figure 118 dp tall centred. Title and subtitle unchanged below it. ⓘ stays. Landscape: the card sits in the felt column as the tile does today |
+| Card | Email outlined with a mail icon, `PasscodeField` (six cells + eye), filled Sign in, Forgot passcode? text | Same controls, **one input style**: Email outlined without the leading icon, the six cells, **the eye at the right of the "6-digit passcode" label exactly as today** (`PasscodeField` is untouched), filled Sign in, Forgot passcode? as a text button |
+| Below | "New here?" divider, outlined **Create account pill**, "Secure sign-in enabled" | One line: "New here? **Create account**" (text button, B01). The "Secure sign-in enabled" line goes (B17); the local-prototype warning stays when Supabase is not configured |
+
+**Pieces**: `JokerCard` (new, `components/ui/JokerCard.tsx`): a `View` card with the border and shadow, two rotated
+`Text` indices, one `Image` — the frame is drawn in RN so the edges stay crisp at every density and dark mode needs no
+second asset; the figure is the only bitmap (`assets/joker-figure.png`, ≈ 400 × 720, exported from the mockup source at
+1× / 2× / 3×). `AuthShell` takes `hero?: ReactNode` (default = today's tile) so Register and Forgot passcode get the
+card too without touching their screens. Palette B (D65) tokens throughout.
+
+**What does not change**: `PasscodeField` (digits hidden by default, eye toggles, PR 10b), the validation and error
+copy, `AuthShell`'s keyboard avoidance and landscape split, the help topic (`sign-in`), the `login-*` testIDs.
+
+**Not the Bicycle artwork**: the figure was drawn for EZ Score; nothing from the US Playing Card Company's decks is
+copied. Keep it that way in the build — no "Bicycle" string, no rider, no their Joker.
+
+**Tests / flows**: `design-review-2-s.test.ts` adds: `login.tsx` renders `JokerCard` and still `PasscodeField`;
+`PasscodeField` still has the eye toggle (`eye-outline` / `eye-off-outline`); 0 outlined `Button`s in `login.tsx`;
+"Secure sign-in enabled" is gone. Flow `01-sign-in.yaml` (or whichever flow signs in first) keeps `login-email`,
+`login-passcode`, the eye tap and `login-submit`. Screenshot matrix: Sign in light / dark × portrait / landscape,
+passcode revealed, the Supabase-missing line.
