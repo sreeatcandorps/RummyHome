@@ -24,7 +24,7 @@ import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { performance } from 'node:perf_hooks';
-import { allowedTarget, SCALE, SIZES } from './seed-staging-config.mjs';
+import { allowedTarget, SCALE, SIZES, STAGING_REF } from './seed-staging-config.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.OUT ?? path.join(HERE, '..', 'out', 'staging-seed');

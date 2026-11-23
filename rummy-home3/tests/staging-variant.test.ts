@@ -75,3 +75,15 @@ test('Q12 staging: the population generator refuses every host but local and ezs
   assert.match(sql, /crypt\('123456', gen_salt\('bf'\)\)/, 'seeded people can sign in');
   assert.doesNotMatch(sql + src('../ci/volume/seed-staging.mjs') + src('../ci/volume/seed-staging-config.mjs'), /eyJ[A-Za-z0-9_-]{20,}|sb_publishable|sb_secret/, 'no keys in the generator');
 });
+
+test('Seed staging workflow: manual, secret-driven, URL never echoed; the refuse message can be printed', () => {
+  const wf = src('../.github/workflows/seed-staging.yml');
+  assert.match(wf, /^on:\n\s+workflow_dispatch:/m, 'manual only');
+  assert.match(wf, /DB_URL: \$\{\{ secrets\.STAGING_DB_URL \}\}/);
+  assert.match(wf, /WIPE: \$\{\{ inputs\.wipe && '1' \|\| '' \}\}/);
+  assert.match(wf, /run: node ci\/volume\/seed-staging\.mjs/);
+  assert.match(wf, /path: ci\/out\/staging-seed\/summary\.json/);
+  assert.doesNotMatch(wf, /echo[^\n]*(\$DB_URL|\$\{DB_URL|\$\{\{ secrets)/, 'the URL value is never echoed');
+  assert.match(src('../ci/volume/seed-staging-config.mjs'), /export const STAGING_REF/);
+  assert.match(src('../ci/volume/seed-staging.mjs'), /import \{[^}]*STAGING_REF[^}]*\} from '\.\/seed-staging-config\.mjs'/, 'the refusal line names the ref without a ReferenceError');
+});

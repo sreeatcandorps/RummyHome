@@ -1,6 +1,6 @@
 // The generator's guardrail and population sizes, kept free of `pg` so the unit tests can import them.
 
-const STAGING_REF = 'erurahfybkxemgtkfzkn';
+export const STAGING_REF = 'erurahfybkxemgtkfzkn';
 
 /** Only loopback / the compose `db` host / the ezscore-staging project. Live is never a target. */
 export function allowedTarget(url) {
