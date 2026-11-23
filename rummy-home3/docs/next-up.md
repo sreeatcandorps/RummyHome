@@ -11,7 +11,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes. Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-23 09:05 UTC (agent). #117 merged at `12b7cdd`; #120 (Size-S + Palette B) and #121 (docs) rebased on it. Sree on Q8: "Both are fine. Just choose one. I don't care." → green-black (D71), as #120 ships. Q13 answered (D70). Scorecard columns + landscape view-only recommended (§8.8 / §8.9, mockups).
+Last updated: 2026-11-23 09:40 UTC (agent). Sree: "good night. after the design changes are done, proceed with the APK and have it ready when I wake up." → #120 (Size S + Palette B) head `512a1ef`: APK, roles, two-device, monkey, chaos, unit, db green; smoke running; matrix fills from its frames; Build Bot builds the **staging** APK from that head (no merge). #122 = batch 2 (D73 emails). D72 dialogs approved as drawn.
 
 ## In flight
 
@@ -19,6 +19,7 @@ Last updated: 2026-11-23 09:05 UTC (agent). #117 merged at `12b7cdd`; #120 (Size
 | --- | --- | --- | --- |
 | 2 | **Google Play review** — **in #117**: D63 icon set of AAB 15 (internal testing). | Play Console | Google; **Sree**: Q7 trader status |
 | 2a | **Design review 2** — the review document: B01–B20, S / M / L, §7 competitors, §8 APK-v17 suggestions, §9 palettes, §10 build specs. **Nov 23**: §8.8 scorecard columns (5 by default, pinch 5 · 7 · All, ⋮ Columns row) and §8.9 landscape view-only, with mockups; Q13 answered in §8.5; Q8 dark: `dark-q8.png` → Sree "Both are fine. Just choose one" → green-black (D71). | PR #111 | **Sree**: §8.8 / §8.9 yes or changes; merge when he is done reading |
+| 2i | **Batch 2 — #122** (`cursor/small-fixes-batch-2-ca74`, off `main` 12b7cdd): D73 emails (sender name note, one button, no raw link, Palette B button, link note; 661 tests). Next items land here one commit each (§8.8, §8.9, 053) after their mockups. | Sree: "Yes to the new email design and the EZ Score: Rummy sender name" | **Sree**: yes to merge #122; Build Bot: `RESEND_FROM` secret + `send-email` redeploy after the merge |
 | 2h | **Size-S build** — Palette B tokens (D65) + Profile (D66), Settings (D67), Game type (D68), Sign in with the fixed Joker card (D69): `SettingsGroup`, `SegmentedChoice`, `ListRow` value slot, `RulesForm layout="grouped"`, `JokerCard`; 653 tests, flows 07 / 21 re-pinned; opened on "Yeah, you can start the redesign, though." | PR #120 | CI (device frames → the matrix in the body), then **Sree**: look, then yes to merge |
 | 2b | **iPhone plan** — eight steps; Sree: enrol as **Candor PS** (D62). | PR #112 | **Sree**: the enrolment itself (D-U-N-S for Candor PS) |
 | 2e | **Volume V1 on 052** — 20 new ladder rows, 137/137 pass, `volume` job nightly. Rebased on main after #110. | PR #114 | CI green, then Build Bot merges (Sree's yes stands) |
