@@ -153,7 +153,7 @@ B15 on), tests pinning the rules of §2 the way `tests/design-tokens.test.ts` pi
 | 5 | Home title: "Hi Sree" or "Your games"? | "Your games" (the greeting is in the avatar) |
 | 6 | The competitor screens you mentioned — send them; this document gets a §7 comparing shape by shape. | — |
 | 7 | Palette (§9): **A** keep the current Clubhouse, **B** Felt & Brass, or **C** Ink & Marigold? | **B** — same family as the icon, deeper green (text 8.9:1 instead of 4.6:1), brass instead of lemon yellow; a token change that rides along with S — **answered Nov 23: B** (D65) |
-| 8 | If B: dark mode stays green-black (as shown) or goes neutral black? **Nov 23, Sree: "I don't know what that dark mode thing is. Maybe I should see what it looks like first" → `mockups/dark-q8.png`, three S screens both ways.** | green-black as shown — the Sign-in band, the felt toast and the dark screens then share one tone — open; green-black is the default in the first S PR unless he says otherwise |
+| 8 | If B: dark mode stays green-black (as shown) or goes neutral black? **Nov 23, Sree: "I don't know what that dark mode thing is. Maybe I should see what it looks like first" → `mockups/dark-q8.png`, three S screens both ways. Then: "Both are fine. Just choose one. I don't care." → green-black, as #120 ships (D71).** | green-black as shown — the Sign-in band, the felt toast and the dark screens then share one tone | **answered Nov 23 → D71** |
 
 ## 7. Competitor review (Sree, Nov 21) — and what we recommend
 
