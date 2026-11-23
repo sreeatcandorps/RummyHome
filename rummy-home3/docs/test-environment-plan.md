@@ -165,6 +165,11 @@ node ci/volume/seed-staging.mjs              # full population (SCALE=1); prints
 # Later, to start over with the same population:  WIPE=1 node ci/volume/seed-staging.mjs
 ```
 
+**Or from GitHub (Nov 23, the way it is actually run — Build Bot's box cannot open Postgres connections):** add the repo
+secret `STAGING_DB_URL` (the ezscore-staging transaction-pooler URI, Settings › Secrets and variables › Actions), then
+Actions › **Seed staging** › *Run workflow*: `wipe` on to start over, `scale` 1 for the full set. The summary is the
+`staging-seed-summary` artifact and the job summary; the URL is a masked secret and is never printed.
+
 The URL carries the password: type it in the terminal, do not paste it into a file, a chat or an issue. The summary
 is written to `ci/out/staging-seed/summary.json` (counts only, no keys). Sign in to the staging app afterwards as
 **sree.koneru.1@staging.test / 123456** — the account with 1,500 games, 400 My players and 60 live games.

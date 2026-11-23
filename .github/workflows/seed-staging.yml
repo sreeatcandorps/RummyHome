@@ -1,0 +1,80 @@
+# Seed the staging database (ezscore-staging) with the volume population — by hand, from the Actions tab.
+# Sree, Nov 23: "can you run the seed step". Build Bot's box cannot open Postgres connections, so the seed runs here.
+#
+# Needs the repo secret STAGING_DB_URL: the ezscore-staging *transaction pooler* URI (carries the password).
+# The script refuses any URL that is not local or the staging project (ci/volume/seed-staging-config.mjs), so this
+# can never touch live. The URL is a GitHub secret: masked in logs, never echoed by this workflow or the script.
+#
+# Inputs:
+#   wipe   — "true" removes everything a previous seed created (staging.wipe()) before seeding again.
+#   scale  — fraction of the full population (1 = full set, ~10 min; 0.05 = a quick smoke of the generator).
+# Output: ci/out/staging-seed/summary.json (counts + the staging test sign-in from the run-book; no keys, no URL) as the
+#         artifact "staging-seed-summary" and in the job summary.
+name: Seed staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      wipe:
+        description: Wipe the previous population first (WIPE=1)
+        required: false
+        default: false
+        type: boolean
+      scale:
+        description: Population scale (1 = full set)
+        required: false
+        default: '1'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seed-staging
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    name: Seed ezscore-staging (wipe=${{ inputs.wipe }}, scale=${{ inputs.scale }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ci/package-lock.json
+      - name: Check the secret is set
+        env:
+          HAS_URL: ${{ secrets.STAGING_DB_URL != '' }}
+        run: |
+          if [ "$HAS_URL" != "true" ]; then
+            echo "::error::Repo secret STAGING_DB_URL is not set (ezscore-staging transaction pooler URI)."
+            exit 1
+          fi
+      - name: Install ci tooling
+        working-directory: ci
+        run: npm ci
+      - name: Seed
+        env:
+          DB_URL: ${{ secrets.STAGING_DB_URL }}
+          WIPE: ${{ inputs.wipe && '1' || '' }}
+          SCALE: ${{ inputs.scale }}
+          OUT: ci/out/staging-seed
+        run: node ci/volume/seed-staging.mjs
+      - name: Summary
+        if: always()
+        run: |
+          if [ -f ci/out/staging-seed/summary.json ]; then
+            { echo '## Seed staging'; echo; echo '```json'; cat ci/out/staging-seed/summary.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '## Seed staging — no summary.json (the seed did not finish)' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-seed-summary
+          path: ci/out/staging-seed/summary.json
+          if-no-files-found: warn
+          retention-days: 30
