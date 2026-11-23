@@ -11,7 +11,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes. Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-23 09:00 UTC (agent), Sree: "you can start the redesign" → **#120 built** (Palette B + Profile / Settings / Game type / Sign in, 653 tests, CI running); "Yes, merge #117" (smoke + chaos green on `7b9176d`, Build Bot merges); Q13 answered (D70, left of the dealer); scorecard columns + landscape view-only recommended (§8.8 / §8.9, mockups); Q8 dark side-by-side shown.
+Last updated: 2026-11-23 09:00 UTC (agent), Sree: "you can start the redesign" → **#120 built** (Palette B + Profile / Settings / Game type / Sign in, 653 tests, CI running); "Yes, merge #117" (smoke + chaos green on `7b9176d`; merged at `12b7cdd`); Q13 answered (D70, left of the dealer); scorecard columns + landscape view-only recommended (§8.8 / §8.9, mockups); Q8 dark side-by-side shown.
 
 ## In flight
 
@@ -23,7 +23,7 @@ Last updated: 2026-11-23 09:00 UTC (agent), Sree: "you can start the redesign" �
 | 2b | **iPhone plan** — eight steps; Sree: enrol as **Candor PS** (D62). | PR #112 | **Sree**: the enrolment itself (D-U-N-S for Candor PS) |
 | 2e | **Volume V1 on 052** — 20 new ladder rows, 137/137 pass, `volume` job nightly. Rebased on main after #110. | PR #114 | CI green, then Build Bot merges (Sree's yes stands) |
 | 2f | **Staging** — Supabase `ezscore-staging` (ca-central-1, 001–052 applied by Build Bot). EAS `staging` profile ("EZ Score · Staging", `.staging` package) + the population generator (`ci/volume/seed-staging.mjs`, validated at 2 % locally, nightly check). **Seeding staging and the staging APK wait for Sree's yes.** **Sree said yes to staging for all testing (1:21 AM); he runs the seed and `eas build --profile staging` himself (run-book §8).** | in PR #117 | CI, then **Sree**: merge; yes to seed; yes to build
-| 2g | **Small fixes batch** — the table below. **#117 is the combined PR** (Sree 1:21 AM): icon, header shimmer, web standings parity, AWAR D / 1 drop, Done reason, **staging profile + seed generator + run-book** (§8 of the test-environment plan); #115 and #116 are folded in and superseded; everything else on the list is folded into it when Sree says build. | PR #117 | **Sree said "Yes, merge #117" (Nov 23)**; `ui-pixel6-smoke` + `ui-pixel6-chaos` green on `7b9176d` → Build Bot merges. Then: the anon key as an EAS / GitHub secret (Build Bot); **Sree**: "build" for the first staging APK |
+| 2g | **Small fixes batch** — the table below. **#117 is the combined PR** (Sree 1:21 AM): icon, header shimmer, web standings parity, AWAR D / 1 drop, Done reason, **staging profile + seed generator + run-book** (§8 of the test-environment plan); #115 and #116 are folded in and superseded; everything else on the list is folded into it when Sree says build. | PR #117 | **Sree said "Yes, merge #117" (Nov 23)**; `ui-pixel6-smoke` + `ui-pixel6-chaos` green on `7b9176d` → **merged at `12b7cdd`**. Then: the anon key as an EAS / GitHub secret (Build Bot); **Sree**: "build" for the first staging APK |
 
 ## Small fixes batch (one PR, built on Sree's yes — rule in `AGENTS.md`)
 
