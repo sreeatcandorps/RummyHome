@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { RadioButton, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { InfoTip } from '@/components/ui/InfoTip';
+import { SegmentedChoice } from '@/components/ui/SegmentedChoice';
 import { HelpTopicKey } from '@/constants/helpTopics';
 import { ENTRY_PLUS_LABELS, EntryPlus, limitHint, parsePoolLimit, POOL_CUSTOM_MAX, POOL_CUSTOM_MIN, POOL_LIMITS, POOL_REENTRY_LIMIT_MAX, poolLimitRoundsNote } from '@/utils/pool';
 import { parseReentryLimit } from '@/utils/rulesDraft';
@@ -45,7 +46,7 @@ export const REENTRY_COUNT_EMPTY_HINT = 'Type how many re-entries each player ge
  * a note under the chips says a change re-reads who is out
  * once a pool has a saved round (13.5, Q14.23); the three values and Re-entries stay live.
  */
-export function RulesForm({ draft, onChange, disabled = false, testIDPrefix = 'rules', roundCount = 0, helpTopic = 'game-type', helpAnchor }: {
+export function RulesForm({ draft, onChange, disabled = false, testIDPrefix = 'rules', roundCount = 0, helpTopic = 'game-type', helpAnchor, layout = 'card' }: {
   draft: RulesDraft;
   onChange: (d: RulesDraft) => void;
   disabled?: boolean;
@@ -55,8 +56,18 @@ export function RulesForm({ draft, onChange, disabled = false, testIDPrefix = 'r
   /** Where the ⓘ pop-ups' Full guide goes: the New game Game type page, or the scorecard's Game settings part. */
   helpTopic?: HelpTopicKey;
   helpAnchor?: string;
+  /**
+   * `grouped` (Size-S, D67/D68): the same fields as rows of a grouped list — segmented rows for the
+   * limit, re-entries and the two entry scores instead of chips and radios (B06/B11), two inputs per
+   * line, the static hints behind the ⓘ (B03/B16), no brass example block. `card` is the Game settings
+   * sheet on the scorecard, unchanged.
+   */
+  layout?: 'card' | 'grouped';
 }) {
   const { colors } = useAppTheme();
+  if (layout === 'grouped') {
+    return <GroupedRulesForm draft={draft} onChange={onChange} disabled={disabled} testIDPrefix={testIDPrefix} roundCount={roundCount} helpTopic={helpTopic} helpAnchor={helpAnchor} />;
+  }
   const pool = draft.gameKind === 'pool';
   const field = pool ? plainField : signedField;
   const limitDisabled = disabled;
@@ -212,6 +223,175 @@ export function RulesForm({ draft, onChange, disabled = false, testIDPrefix = 'r
   );
 }
 
+/** Size-S grouped layout of the same form; see `RulesForm`'s `layout` prop. */
+function GroupedRulesForm({ draft, onChange, disabled, testIDPrefix, roundCount, helpTopic, helpAnchor }: {
+  draft: RulesDraft;
+  onChange: (d: RulesDraft) => void;
+  disabled: boolean;
+  testIDPrefix: string;
+  roundCount: number;
+  helpTopic: HelpTopicKey;
+  helpAnchor?: string;
+}) {
+  const { colors } = useAppTheme();
+  const pool = draft.gameKind === 'pool';
+  const field = pool ? plainField : signedField;
+  const limitNumber = parsePoolLimit(draft.poolLimit);
+  const reentryLimit = parseReentryLimit(draft);
+  const parsedMultiplier = parseMultiplierInput(draft.multiplier ?? '');
+  const multiplierValue = parsedMultiplier.value ?? 1;
+  const fullCountNumber = parseInt((draft.fullCount || '').replace(/[^0-9]/g, '') || '80', 10);
+  const hair = { borderTopColor: colors.hairline };
+  const muted = { color: colors.onSurfaceVariant };
+  const limitValue = draft.customLimit ? 'custom' : (POOL_LIMITS as readonly number[]).includes(Number(draft.poolLimit)) ? draft.poolLimit : 'custom';
+  const input = (label: string, key: 'drop' | 'middleDrop' | 'fullCount', testID: string) => (
+    <TextInput mode="outlined" dense label={label} keyboardType="number-pad" disabled={disabled} value={draft[key]} onChangeText={(t) => onChange({ ...draft, [key]: field(t) })} style={styles.input} testID={testID} />
+  );
+  return (
+    <View testID={`${testIDPrefix}-grouped`}>
+      {pool ? (
+        <View style={styles.gRow}>
+          <View style={styles.gLabelRow}>
+            <Text variant="bodyLarge" style={styles.gLabel}>Pool limit</Text>
+            <InfoTip title="Pool limit" text={roundCount > 0 ? [POOL_LIMIT_TIP, POOL_LIMIT_CHANGE_NOTE] : POOL_LIMIT_TIP} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-limit`} />
+          </View>
+          <SegmentedChoice
+            value={limitValue}
+            disabled={disabled}
+            accessibilityLabel="Pool limit"
+            onChange={(v) => (v === 'custom'
+              ? onChange({ ...draft, customLimit: true, poolLimit: (POOL_LIMITS as readonly number[]).includes(Number(draft.poolLimit)) ? '' : draft.poolLimit })
+              : onChange({ ...draft, poolLimit: v, customLimit: false }))}
+            options={[
+              ...POOL_LIMITS.map((limit) => ({ value: String(limit), label: String(limit), testID: `${testIDPrefix}-limit-${limit}` })),
+              { value: 'custom', label: 'Other', testID: `${testIDPrefix}-limit-custom`, accessibilityLabel: 'Pool limit: another number' },
+            ]}
+          />
+          {draft.customLimit ? (
+            <TextInput
+              mode="outlined"
+              dense
+              label={`Limit (${POOL_CUSTOM_MIN}–${POOL_CUSTOM_MAX})`}
+              keyboardType="number-pad"
+              disabled={disabled}
+              value={draft.poolLimit}
+              onChangeText={(t) => onChange({ ...draft, poolLimit: t.replace(/[^0-9]/g, '').slice(0, 3) })}
+              error={draft.poolLimit !== '' && limitNumber === null}
+              style={styles.limitInput}
+              testID={`${testIDPrefix}-limit-input`}
+            />
+          ) : null}
+          <Text variant="bodySmall" style={muted}>{limitNumber ? limitHint(limitNumber) : 'Reach the limit and you are out.'}</Text>
+          {roundCount > 0 ? <Text variant="bodySmall" style={muted} testID={`${testIDPrefix}-limit-rounds-note`}>{poolLimitRoundsNote(roundCount)}</Text> : null}
+        </View>
+      ) : null}
+      <View style={[styles.gRow, pool && styles.gHair, pool && hair]}>
+        <View style={styles.gLabelRow}>
+          <Text variant="bodyLarge" style={styles.gLabel}>{VALUES_TITLE}</Text>
+          <InfoTip title={VALUES_TITLE} text={pool ? POOL_RULES_NOTE : POINTS_RULES_NOTE} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-values`} />
+        </View>
+        <View style={styles.row}>
+          {input('Drop', 'drop', `${testIDPrefix}-drop`)}
+          {input('Middle drop', 'middleDrop', `${testIDPrefix}-middle-drop`)}
+        </View>
+        <View style={styles.row}>
+          {input('Full count', 'fullCount', `${testIDPrefix}-full-count`)}
+          {pool ? <View style={styles.input} /> : (
+            <TextInput
+              mode="outlined"
+              dense
+              label="Multiplier"
+              keyboardType="number-pad"
+              disabled={disabled}
+              value={draft.multiplier ?? ''}
+              placeholder="1"
+              left={<TextInput.Affix text="×" />}
+              onChangeText={(t) => onChange({ ...draft, multiplier: multiplierFieldInput(t) })}
+              error={parsedMultiplier.value === null}
+              style={styles.input}
+              testID={`${testIDPrefix}-multiplier`}
+              accessibilityLabel="Multiplier, 1 to 10,000"
+            />
+          )}
+        </View>
+        {!pool ? (
+          <View testID={`${testIDPrefix}-multiplier-block`}>
+            {parsedMultiplier.value === null ? (
+              <Text variant="bodySmall" style={{ color: colors.error }} testID={`${testIDPrefix}-multiplier-error`}>{MULTIPLIER_RANGE_TEXT}</Text>
+            ) : (
+              <Text variant="bodySmall" style={muted} testID={`${testIDPrefix}-multiplier-example`}>
+                {multiplierExample(multiplierValue, fullCountNumber)}{roundCount > 0 ? ` · ${multiplierRoundsNote(roundCount)}` : ''}
+              </Text>
+            )}
+          </View>
+        ) : null}
+      </View>
+      {pool ? (
+        <View style={[styles.gRow, styles.gHair, hair]} testID={`${testIDPrefix}-reentries-block`}>
+          <View style={styles.gLabelRow}>
+            <Text variant="bodyLarge" style={styles.gLabel}>Re-entries</Text>
+            <InfoTip title="Re-entries" text={[REENTRIES_TIP, `${REENTRY_SCORE_TITLE}: ${REENTRY_SCORE_HINT}`]} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-reentries`} />
+          </View>
+          <SegmentedChoice
+            value={draft.reentryMode}
+            disabled={disabled}
+            accessibilityLabel="Re-entries"
+            onChange={(v) => onChange({ ...draft, reentryMode: v })}
+            options={[
+              { value: 'unlimited', label: 'Unlimited', testID: `${testIDPrefix}-reentries-unlimited`, accessibilityLabel: 'Re-entries unlimited' },
+              { value: 'limited', label: 'Limited', testID: `${testIDPrefix}-reentries-limited`, accessibilityLabel: 'Re-entries limited' },
+            ]}
+          />
+          {draft.reentryMode === 'limited' ? (
+            <TextInput
+              mode="outlined"
+              dense
+              label={`Re-entries per player (0–${POOL_REENTRY_LIMIT_MAX})`}
+              keyboardType="number-pad"
+              disabled={disabled}
+              value={draft.reentryCount}
+              onChangeText={(t) => onChange({ ...draft, reentryCount: t.replace(/[^0-9]/g, '').slice(0, 2) })}
+              error={reentryLimit === -1 && draft.reentryCount !== ''}
+              style={styles.limitInput}
+              testID={`${testIDPrefix}-reentries-count`}
+            />
+          ) : null}
+          <Text variant="bodySmall" style={muted}>
+            {draft.reentryMode === 'unlimited' ? 'Out players may re-enter as often as they like while someone is still in.' : reentryLimit === 0 ? 'No re-entries: out is out.' : reentryLimit === 1 ? 'Once per player.' : reentryLimit && reentryLimit > 0 ? `Up to ${reentryLimit} times per player.` : draft.reentryCount === '' ? REENTRY_COUNT_EMPTY_HINT : 'Type a whole number.'}
+          </Text>
+          <Text variant="bodyLarge" style={[styles.gLabel, styles.subTitle]}>{REENTRY_SCORE_TITLE}</Text>
+          <EntryPlusChoice value={draft.reentryPlus} onChange={(v) => onChange({ ...draft, reentryPlus: v })} disabled={disabled} testID={`${testIDPrefix}-reentry-score`} what={REENTRY_SCORE_TITLE} />
+        </View>
+      ) : null}
+      {pool ? (
+        <View style={[styles.gRow, styles.gHair, hair]} testID={`${testIDPrefix}-late-entry-block`}>
+          <View style={styles.gLabelRow}>
+            <Text variant="bodyLarge" style={styles.gLabel}>{LATE_ENTRY_TITLE}</Text>
+            <InfoTip title={LATE_ENTRY_TITLE} text={LATE_ENTRY_HINT} topic={helpTopic} anchor={helpAnchor} testID={`${testIDPrefix}-tip-late-entry`} />
+          </View>
+          <EntryPlusChoice value={draft.lateEntryPlus} onChange={(v) => onChange({ ...draft, lateEntryPlus: v })} disabled={disabled} testID={`${testIDPrefix}-late-entry-score`} what="Late entry score" />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** Size-S: "Highest score" / "Highest score + 1" as one segmented row (B06). */
+function EntryPlusChoice({ value, onChange, disabled, testID, what }: { value: EntryPlus; onChange: (v: EntryPlus) => void; disabled: boolean; testID: string; what: string }) {
+  return (
+    <SegmentedChoice
+      value={String(value)}
+      disabled={disabled}
+      accessibilityLabel={what}
+      onChange={(v) => onChange(v === '1' ? 1 : 0)}
+      options={[
+        { value: '0', label: ENTRY_PLUS_LABELS[0], testID: `${testID}-highest`, accessibilityLabel: `${what}: ${ENTRY_PLUS_LABELS[0]}` },
+        { value: '1', label: ENTRY_PLUS_LABELS[1], testID: `${testID}-plus-one`, accessibilityLabel: `${what}: ${ENTRY_PLUS_LABELS[1]}` },
+      ]}
+    />
+  );
+}
+
 /** PR 24: "Highest score" / "Highest score + 1" for the re-entry and late-entry rules. */
 function EntryPlusRadios({ value, onChange, disabled, testID, what }: { value: EntryPlus; onChange: (v: EntryPlus) => void; disabled: boolean; testID: string; what: string }) {
   return (
@@ -237,4 +417,8 @@ const styles = StyleSheet.create({
   radios: { flexDirection: 'row', flexWrap: 'wrap' },
   radio: { paddingHorizontal: 0, paddingVertical: 0, marginRight: spacing.md },
   subTitle: { marginTop: spacing.xs },
+  gRow: { gap: spacing.sm, paddingVertical: spacing.sm },
+  gHair: { borderTopWidth: StyleSheet.hairlineWidth },
+  gLabelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  gLabel: { fontWeight: '500' },
 });
