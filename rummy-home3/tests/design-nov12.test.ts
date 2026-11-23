@@ -18,15 +18,15 @@ const walk = (dir: string): string[] =>
     return statSync(join(root, rel)).isDirectory() ? walk(rel) : rel.endsWith('.tsx') ? [rel] : [];
   });
 
-test('design: Clubhouse tokens — button green with a pressable edge, light and dark, and no green text for scores', () => {
+test('design: Felt & Brass tokens (D65) — button green with a pressable edge, light and dark, and no green text for scores', () => {
   const theme = src('constants/theme.ts');
-  assert.match(theme, /primary: '#15803D'/);
-  assert.match(theme, /primaryEdge: '#0E5A2A'/);
-  assert.match(theme, /primary: '#5FD68E'/);
-  assert.match(theme, /primaryEdge: '#2E9E5C'/);
-  assert.match(theme, /secondaryContainer: '#FFE38A'/, 'marigold accent');
-  assert.match(theme, /background: '#F6F6F1'/);
-  assert.match(theme, /background: '#0F1412'/);
+  assert.match(theme, /primary: '#0E4D2A'/);
+  assert.match(theme, /primaryEdge: '#083820'/);
+  assert.match(theme, /primary: '#7FD39F'/);
+  assert.match(theme, /primaryEdge: '#3FAF6E'/);
+  assert.match(theme, /secondaryContainer: '#F0DFAE'/, 'brass accent');
+  assert.match(theme, /background: '#F5F2E8'/);
+  assert.match(theme, /background: '#0C120E'/);
   // Positive scores read near-black, not green; seat 1 is teal so an avatar never looks like a button.
   assert.match(theme, /positive: '#17201B'/);
   assert.match(theme, /positive: '#EAEDE9'/);

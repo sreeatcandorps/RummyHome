@@ -384,6 +384,7 @@ test('13.7b New game is two screens: Players (Next) then Game type (Points / Poo
   const step = src('components/game/GameTypeStep.tsx');
   assert.match(step, /testID: 'game-type-points'/);
   assert.match(step, /testID: 'game-type-pool'/);
+  assert.match(step, /layout="grouped"/, 'Size-S (D68): the grouped form');
   assert.match(step, /SETTINGS_LINK = 'You can also set these defaults in Settings\.'/);
   assert.match(step, /testIDPrefix="new-game"/);
   assert.match(step, /testID="new-game-type-next"/, 'PR 24: the type step says Next; only the last step says Start');
@@ -495,9 +496,9 @@ test('13.9 scorecard: header shows initials / score (no player number since Nov 
 
 test('13.9b colours: every game (Points and Pool) is yellow, results green', () => {
   const theme = src('constants/theme.ts');
-  assert.match(theme, /stake: \{ container: '#FFE38A', on: '#3F2D00', accent: '#8A5A00' \},\n\s+pool: \{ container: '#FFE38A', on: '#3F2D00', accent: '#8A5A00' \}/, 'the same yellow for both (light)');
-  assert.match(theme, /stake: \{ container: '#5C4300', on: '#FFE8AE', accent: '#FFD45E' \},\n\s+pool: \{ container: '#5C4300', on: '#FFE8AE', accent: '#FFD45E' \}/, 'the same yellow for both (dark)');
-  assert.match(src('utils/resultsDetails.ts'), /--green: #15803D/i, 'results keep their green');
+  assert.match(theme, /stake: \{ container: '#F0DFAE', on: '#3E2E07', accent: '#8A6A1E' \},\n\s+pool: \{ container: '#F0DFAE', on: '#3E2E07', accent: '#8A6A1E' \}/, 'the same brass for both (light, D65)');
+  assert.match(theme, /stake: \{ container: '#4A3A10', on: '#F5E3B0', accent: '#E3BE63' \},\n\s+pool: \{ container: '#4A3A10', on: '#F5E3B0', accent: '#E3BE63' \}/, 'the same brass for both (dark)');
+  assert.match(src('utils/resultsDetails.ts'), /--green: #0E4D2A/i, 'results keep their green');
 });
 
 // ---------- Complete → Award → Result (13.10) ----------

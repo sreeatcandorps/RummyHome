@@ -14,7 +14,7 @@ import { MAKE_RESULT_FOLD_NOTE } from '../utils/resultsSave';
 
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
 
-const RESULTS_GREEN = /#15803D/i;
+const RESULTS_GREEN = /#0E4D2A/i;
 
 // ---------- Home (10.1) ----------
 
@@ -89,7 +89,7 @@ test('10.3 / 10.5: your own row says You and offers only Change initials; Profil
   assert.match(src('utils/gamePlayers.ts'), /item: 'my_initials', enabled: true/);
   const me = src('app/(tabs)/me.tsx');
   assert.match(me, /testID="me-edit-initials"/);
-  assert.match(me, /icon="pencil-outline"/, 'a small pencil, not a half-width Edit button');
+  assert.match(me, /title="Name" value=\{player\.name\} pen/, 'a small pencil on the row, not a half-width Edit button (Size-S: the row opens a sheet)');
   assert.doesNotMatch(me, />\s*Edit name\s*</, 'the big Edit name button is gone');
   assert.match(me, /setMyInitials/);
   assert.match(src('components/ui/PasscodeField.tsx'), /useState\(false\)/, 'hidden by default; the eye reveals');
