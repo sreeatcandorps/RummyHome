@@ -94,8 +94,8 @@ Sessions persist, so the cost driver is **accounts and devices, not play**. Two 
 | Sign-ups | 1,000 | ₹4,300 ($51) | ₹115 |
 | Forgot passcode / recovery (~5 %) | 50 | ₹215 | ₹6 |
 | Number changes + backups added (~15 %) | 150 | ₹645 | ₹17 |
-| **Number + passcode sign-in (Q24 b)** — sign-ins free | **1,200** | **≈ ₹5,200 ($61) a year** | **≈ ₹140 a year** |
-| Code-only sign-in (Q24 a): + new phone / reinstall / log-out, ~1.5 per account per year | +1,500 | **≈ ₹11,600 ($137) a year** | ≈ ₹310 |
+| **Number + passcode sign-in (D76)** — sign-ins free | **1,200** | **≈ ₹5,200 ($61) a year** | **≈ ₹140 a year** |
+| Code-only sign-in (not chosen): + new phone / reinstall / log-out, ~1.5 per account per year | +1,500 | **≈ ₹11,600 ($137) a year** | ≈ ₹310 |
 
 The "logs out and in a lot" person: in model (b) he costs nothing — passcode, no message. In model (a) a daily log-out /
 log-in is 30 codes = ₹130 ($1.54) a month *for that one person*; Supabase's limits cap any single number at 1 code per
@@ -146,8 +146,8 @@ tables, no "linking" screen.
 | Player ID | unchanged: one per account, assigned at first sign-up whichever method. |
 | Delete account (D72) | the 30-day grace covers both methods; the phone is released at the end of the grace, not before (so a recycled number cannot re-claim history). |
 
-Passcode: **not** for WhatsApp accounts (Q24). Sign-in = number + code; a persisted session means they type a code
-about once a year per phone. Email accounts keep the passcode exactly as today.
+Passcode (D76): **the same 6-digit passcode for both methods.** Sign-in = number + passcode (or email + passcode), no
+message; a WhatsApp code is sent only to prove a new number — sign-up, Change number, Forgot passcode.
 
 ## 5. Recovery when someone loses their number (or email)
 
