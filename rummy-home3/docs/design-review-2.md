@@ -578,6 +578,14 @@ card too without touching their screens. Palette B (D65) tokens throughout.
 **What does not change**: `PasscodeField` (digits hidden by default, eye toggles, PR 10b), the validation and error
 copy, `AuthShell`'s keyboard avoidance and landscape split, the help topic (`sign-in`), the `login-*` testIDs.
 
+**Card drawing notes (Sree, Nov 23: "Why is there a second line inside the Joker card from top to bottom that is
+touching the letters? Even the word 'Joker' on the left side is also not clear")**: the line was a crop artefact — five
+black columns from the source card's border left on the right edge of `joker-figure.png`, now trimmed (the build asset
+must be re-cut from the same source, not from the first PNG); the inner frame I had drawn is gone (real card faces have
+none); the indices are stacked letters in a real serif, not a shrunk vertical-text run, and the card panel is rendered
+at full size instead of upscaled. Made by Claude; the jester illustration came from the image generator in Claude's
+toolkit, the card, indices and screens are drawn in code.
+
 **Not the Bicycle artwork**: the figure was drawn for EZ Score; nothing from the US Playing Card Company's decks is
 copied. Keep it that way in the build — no "Bicycle" string, no rider, no their Joker.
 

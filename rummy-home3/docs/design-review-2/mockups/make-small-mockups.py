@@ -70,12 +70,13 @@ html,body{width:412px;background:var(--bg);color:var(--onbg);font-family:Roboto,
 .btn.out{border:1px solid var(--outline);color:var(--primary);flex:1}
 .felt{background:var(--felt);color:#fff;text-align:center;padding:26px 16px 70px}
 .felt .cardwrap{height:150px;display:flex;align-items:center;justify-content:center;margin-bottom:6px}
-.felt .pcard{position:relative;width:90px;height:140px;background:#FFFFFF;border-radius:7px;box-shadow:0 6px 16px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.25) inset;transform:rotate(-6deg)}
-.felt .pcard:after{content:"";position:absolute;inset:4px;border:1px solid #1E1E1E;border-radius:5px}
-.felt .pcard img{position:absolute;left:50%;top:50%;height:118px;transform:translate(-50%,-50%)}
-.felt .pcard .ix{position:absolute;font:700 6.5px/1 Georgia,"Times New Roman",serif;color:#1E1E1E;letter-spacing:.5px;writing-mode:vertical-rl;text-orientation:upright}
-.felt .pcard .ix.tl{left:7px;top:8px}
-.felt .pcard .ix.br{right:7px;bottom:8px;transform:rotate(180deg)}
+/* Sree, Nov 23: "Why is there a second line inside the Joker card … touching the letters?" — real card faces have no
+   inner frame; gone. Indices larger, a real serif that exists on the box, clear of the figure. */
+.felt .pcard{position:relative;width:90px;height:140px;background:#FFFFFF;border-radius:7px;box-shadow:0 6px 16px rgba(0,0,0,.45);transform:rotate(-6deg);overflow:hidden}
+.felt .pcard img{position:absolute;left:50%;top:50%;height:112px;transform:translate(-44%,-50%)}
+.felt .pcard .ix{position:absolute;font:700 9px/1.05 "Liberation Serif","DejaVu Serif",serif;color:#111;text-align:center;width:9px;white-space:pre-line}
+.felt .pcard .ix.tl{left:6px;top:7px}
+.felt .pcard .ix.br{right:6px;bottom:7px;transform:rotate(180deg)}
 .felt .logo{width:76px;height:76px;border-radius:18px;border:3px solid #F6F6F1;margin:0 auto 12px;background:#0E5A2A;display:flex;align-items:center;justify-content:center;font-size:34px}
 .lbl{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
 .lbl label{margin:0}
@@ -172,7 +173,7 @@ def signin():
     body = status()
     # Sree, Nov 23: "just get the Joker card" — an original jester in the classic Bicycle engraving style (not the
     # company's artwork, "ok" to that), on a bridge-size card (2¼ × 3½ — "the regular ones that are smaller in looking size").
-    card = f'<div class="cardwrap"><div class="pcard"><span class="ix tl">JOKER</span><img src="file://{HERE}/joker-figure.png"><span class="ix br">JOKER</span></div></div>'
+    card = f'<div class="cardwrap"><div class="pcard"><span class="ix tl">J\nO\nK\nE\nR</span><img src="file://{HERE}/joker-figure.png"><span class="ix br">J\nO\nK\nE\nR</span></div></div>'
     body += f'<div class="felt">{card}<h1>EZ Score: Rummy</h1><p>Sign in to keep score with your table</p></div>'
     body += '<div class="card">'
     body += '<div class="field"><label>Email</label><div class="box" style="font-variant-numeric:normal;color:var(--muted)">you@example.com</div></div>'
