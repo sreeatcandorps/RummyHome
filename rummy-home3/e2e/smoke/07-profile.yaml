@@ -8,7 +8,6 @@ tags: [smoke]
     visible: "Appearance"
     timeout: 15000
 - assertVisible: "Sree Test"
-- assertVisible: "Change passcode"
 # Size-S (D66): grouped rows — Name and Initials with a pen, the passcode dialog with the
 # fields first and the keyboard open — all three fields must stay on screen.
 - assertVisible:
@@ -17,7 +16,15 @@ tags: [smoke]
 - assertVisible:
     id: "me-edit-initials"
 - takeScreenshot: 07-profile
-- tapOn: "Change passcode"
+# Size-S: Change passcode sits in the Account group, a screen down; scroll to it first.
+- scrollUntilVisible:
+    element:
+      id: "me-change-passcode"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Change passcode"
+- tapOn:
+    id: "me-change-passcode"
 - extendedWaitUntil:
     visible:
       id: "passcode-current"
