@@ -24,7 +24,8 @@ numbers below). Every frame is from the Pixel 6 smoke run of `main` @ `f98f4ac2`
 > color changes?" The four S screens are above (§5, `small-*.png`); the colour question is answered in **§9** with
 > three palettes on the same four screens, light and dark (`palette-*.png`), recommendation **B · Felt & Brass**.
 > **Nov 23** — Sree: "Palette B" (**D65**); then "Yes to the Profile redesign" (**D66**). Still no code: he is
-> reviewing Settings, Game type and Sign in. §10 is the Profile build spec, ready for the first S PR on his "build".
+> then "Yes to the Settings redesign" (**D67**). Still no code: Game type and Sign in are under review. §10 is the
+> build spec per approved screen, ready for the first S PR on his "build".
 
 PR 15 (`design-audit.md`, Nov 17–18) fixed the **token** layer: one button component with two weights, one `Tag`,
 one `SearchField`, one dialog family, one date format, radii from a table, sentence-case headings. That work holds —
@@ -422,7 +423,9 @@ the three palettes, light above and dark below — `palette-profile.png`, `palet
 `palette-sign-in.png`. Generator: `make-palette-mockups.py` (reuses `make-small-mockups.py`; `--render` redoes the 24
 phones through headless Chrome, without it only the sheets are recomposed).
 
-## 10. Profile S — build spec (Sree, Nov 23: "Yes to the Profile redesign"; D66)
+## 10. Build specs for the approved S screens (Nov 23, nothing built)
+
+### 10.1 Profile (Sree: "Yes to the Profile redesign"; D66)
 
 Approved as drawn in `small-profile.png` (§3 in words). Not built yet — Sree: "No building yet". This section is what
 the first S PR does, so it can be cut the moment he says build; it also carries the B tokens (D65).
@@ -472,3 +475,39 @@ Home and one 13-player scorecard frame in light and dark for the token change. H
 **Scope note**: Settings, Game type and Sign in keep today's look until their own yes; for a build or two the shell is
 mixed. If Sree prefers one PR for all four once he has answered, the same spec applies per screen and the PR is one
 surface larger — his call in the Next-up line.
+
+### 10.2 Settings (Sree: "Yes to the Settings redesign"; D67)
+
+Approved as drawn in `small-settings.png`. Today: five `SectionCard`s (four with icon squares and a ⓘ each), Paper
+`SegmentedButtons` for the game type, `RulesForm` inside the cards with outlined `TextInput`s and `RadioButton` rows,
+a yellow hint block under the multiplier, and a filled Save with a text Reset at the bottom.
+
+**Screen** (`app/(screens)/settings.tsx`), top to bottom, same `SettingsGroup` as Profile:
+
+| Group | Rows / controls |
+| --- | --- |
+| New game starts as | Game type · `Points \| Pool` (`SegmentedChoice`), plain grey note "You can still switch on the Game type screen." |
+| Points defaults ⓘ | the `RulesForm` fields two per line — Drop · Middle drop / Full count · Multiplier — one outlined input style, the "A 30 is 30 · a Full count is 80 · ×1 unless you change it" hint moves behind the group's ⓘ (B03: hints are not yellow) |
+| Pool defaults ⓘ | Pool limit · `101 \| 201 \| 251 \| Other` (`SegmentedChoice`, Other reveals the input; today's chips), grey note "100 is in, 101 is out."; Drop · Middle drop / Full count; Re-entries · `Unlimited \| Limited` (+ the count input when Limited); Re-entry score · `Highest \| Highest + 1`; Late entry score · `Highest \| Highest + 1` — the three radio pairs become segmented rows (B06) |
+| More | Which setting wins · "Game settings › Settings › app defaults" · opens today's `SettingsPriority` as a sheet ⟶ Hidden & deleted · "Games you hid, games or results you deleted" · the existing screen |
+
+**Save**: the screen keeps today's explicit Save (defaults are a form, not a toggle list) — one filled Save in a
+`BottomBar`, Reset to app defaults as a text action beside it; the saved / error notice stays as the inline line
+above the bar (`accessibilityLiveRegion` as today). The `settings-*` testIDs stay on the same controls so flow 07's
+pool-limit and re-entry steps keep working (`settings-pool-limit-101`, `-custom`, `settings-pool-reentries-unlimited`,
+`-limited`, `-count`, `settings-save`).
+
+**Pieces**: `SettingsGroup` and `SegmentedChoice` from 10.1; `RulesForm` gains a `layout="grouped"` prop (rows with
+hairlines instead of its own paddings) and renders the re-entry / late-entry choices through `SegmentedChoice` when
+grouped — the Game type screen will use the same prop, so the form is written once. `SectionCard` leaves this screen
+(B12: 23 → 18 uses after Profile and Settings).
+
+**What does not change**: the rules model and validation (`draftFromRules`, limits), which setting wins (D-rules in
+`SettingsPriority`), the help topic ids, the Staging label.
+
+**Tests / flows**: `design-review-2-s.test.ts` adds: 0 `SectionCard` and 0 `SegmentedButtons` in `settings.tsx`,
+`RulesForm` grouped layout has no `RadioButton`, the four group headings in order, Save is the one `contained` button.
+Flow `07-profile.yaml` steps 07d / 07e / 07f keep their ids; the tap label "Game type, Drop, Middle drop, Full count"
+becomes the Profile row "Settings" (same as 10.1); assertions "Points defaults" / "Pool defaults" / "Re-entry score" /
+"Late entry" stay as text. Screenshot matrix: Settings light / dark × default / large font, Pool defaults with Limited
+re-entries open, the Which-setting-wins sheet.
