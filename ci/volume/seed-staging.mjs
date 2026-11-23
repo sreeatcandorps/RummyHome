@@ -81,6 +81,20 @@ async function asUser(client, uid, fn) {
 }
 
 const GUARDS = [['games', 'games_0_guard'], ['game_players', 'game_players_0_guard'], ['my_players', 'my_players_0_guard']];
+/** Everyone in `members` knows everyone. Chunked by owner (20 a time) so a 241-person circle is ~12 short statements
+ *  with a progress line, not one 58k-row insert that runs for minutes in silence. */
+async function knowEachOther(client, members) {
+  const CHUNK = 20;
+  if (members.length <= 2 * CHUNK) {
+    await client.query('select staging.know_each_other($1::uuid[])', [members]);
+    return;
+  }
+  for (let i = 0; i < members.length; i += CHUNK) {
+    await client.query('select staging.know_each_other_from($1::uuid[], $2::uuid[])', [members.slice(i, i + CHUNK), members]);
+    console.log(`  … know each other ${Math.min(i + CHUNK, members.length).toLocaleString()} / ${members.length.toLocaleString()} owners`);
+  }
+}
+
 async function guards(client, on) {
   for (const [table, trig] of GUARDS) await client.query(`alter table public.${table} ${on ? 'enable' : 'disable'} trigger ${trig}`);
 }
@@ -135,6 +149,7 @@ async function makeGames(client, recipes) {
       [JSON.stringify(batch)],
     );
     ids.push(...res.rows.map((r) => r.id));
+    if ((i / 200) % 10 === 9 && i + 200 < recipes.length) console.log(`  … games ${ids.length.toLocaleString()} / ${recipes.length.toLocaleString()}`);
   }
   return ids;
 }
@@ -176,8 +191,14 @@ async function main() {
   mkdirSync(OUT, { recursive: true });
   const S = SIZES;
   console.log(`# seed-staging SCALE=${SCALE} → ${JSON.stringify(S)}`);
-  const client = new pg.Client({ connectionString: DB_URL, statement_timeout: 600_000 });
+  // Nov 23 run 45246986120: the power user's 241-person circle (≈58k my_players rows through the per-row initials
+  // trigger) went silent for 44 min and the job hit its 45-min timeout — statement_timeout never fired, so the
+  // connection had died under us (no keepalive; the transaction pooler does not carry startup parameters).
+  // keepAlive keeps NAT from dropping the idle socket; query_timeout is client-side and fails instead of hanging;
+  // the big insert is chunked below so progress shows and no single statement runs for minutes.
+  const client = new pg.Client({ connectionString: DB_URL, statement_timeout: 600_000, query_timeout: 900_000, keepAlive: true, keepAliveInitialDelayMillis: 5_000 });
   await client.connect();
+  await client.query("set statement_timeout = '600s'").catch(() => {}); // honoured on the session pooler / direct; a no-op through the transaction pooler
   const t0 = performance.now();
   try {
     await client.query(readFileSync(path.join(HERE, 'seed-staging.sql'), 'utf8'));
@@ -193,7 +214,7 @@ async function main() {
     });
 
     await step('circles know each other', async () => {
-      for (const c of circles) await client.query('select staging.know_each_other($1::uuid[])', [c.map(personId)]);
+      for (const c of circles) await knowEachOther(client, c.map(personId));
       return circles.length;
     });
 
@@ -207,7 +228,7 @@ async function main() {
     const powerCircle = circles.find((c) => c.includes(POWER)) ?? circles[0];
     await step('power user: 400 My players', async () => {
       const known = sample(Array.from({ length: S.people - 1 }, (_, i) => i + 2), Math.max(0, Math.round(S.powerPlayers * 0.6)));
-      await client.query('select staging.know_each_other($1::uuid[])', [[POWER, ...known].map(personId)]);
+      await knowEachOther(client, [POWER, ...known].map(personId));
       await client.query('select staging.add_guests($1, $2)', [POWER, Math.round(S.powerPlayers * 0.4)]);
       return S.powerPlayers;
     });
