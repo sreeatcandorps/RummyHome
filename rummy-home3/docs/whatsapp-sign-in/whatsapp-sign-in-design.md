@@ -23,7 +23,7 @@ Decisions Sree needs to make are at the end (Q20–Q27 in `../decisions.md`).
   sign-in key, which is what the backup is here.
 - **Where I question the idea**: (a) it should be *WhatsApp*, not "phone" — SMS to India costs 25× more and OTP SMS
   is the #1 fraud target; SMS is at most a fallback button. (b) WhatsApp accounts **do** set the same 6-digit passcode — Sree's point that "you can still use the old number and a
-  password" makes the number a username like email, sign-ins free, one model for both (§5a; Q24 default flipped Nov 23). (c) Not before Google
+  password" makes the number a username like email, sign-ins free, one model for both (§5a; D76). (c) Not before Google
   approves the current review; it changes the Data safety form.
 
 ## 1. How it works (Supabase + Twilio Verify + Meta)
@@ -62,7 +62,7 @@ out and logging in a lot? … Do they also charge in cents in India too? When yo
 | Word | What it means here | Sends a WhatsApp message? |
 | --- | --- | --- |
 | **Sign-up** | first time: Create account → we must prove the number is theirs | **yes, one code** |
-| **Sign-in** | an existing account on a phone that does not hold a session: new phone, reinstall, after *Log out* | **depends on Q24** — code-only: yes; number + passcode: **no** |
+| **Sign-in** | an existing account on a phone that does not hold a session: new phone, reinstall, after *Log out* | **no** — number + passcode (D76) |
 | **Staying signed in** | the normal case: the app keeps a session for a year or more; opening the app, playing, closing it | no |
 | **Forgot passcode / recover** | they cannot get in the normal way | yes, one code |
 | **Change number / add backup** | Profile › Sign-in methods | yes, one code to the *new* contact |
@@ -87,7 +87,7 @@ everywhere and is 97 % of the cost. That is the whole argument for the Meta-dire
 
 ### 2.3 Numbers that mean something
 
-Sessions persist, so the cost driver is **accounts and devices, not play**. Two models (Q24 decides):
+Sessions persist, so the cost driver is **accounts and devices, not play**. Two models were costed; **D76 picked the first** (passcode), the second row stays for the record:
 
 | Year 1, 1,000 WhatsApp accounts | Codes | Cost via Twilio Verify | Cost via Meta direct |
 | --- | --- | --- | --- |
@@ -177,9 +177,8 @@ password, even though you have a new number. Once you go in, somewhere you have 
 
 He is right, and it points at the one design choice that matters: **if a WhatsApp account has a passcode, the number is
 just a username** — exactly like email. Supabase supports it (`signInWithPassword({ phone, password })`); the code is
-then only for proving a *new* number (sign-up, change number, forgot passcode). So Q24 is now recommended the other
-way: **WhatsApp accounts set the same 6-digit passcode email accounts do.** One model for both methods, sign-ins cost
-nothing, and his scenario works as he described it. The cases, with that model (Q24 b) and the backup contact (D75):
+then only for proving a *new* number (sign-up, change number, forgot passcode). Decided (D76): **WhatsApp accounts set the same 6-digit passcode email accounts do.** One model for both methods, sign-ins cost
+nothing, and his scenario works as he described it. The cases, with that model (D76) and the backup contact (D75):
 
 | Case | What happens | What they do |
 | --- | --- | --- |
@@ -262,7 +261,7 @@ Cases:
 - **Q21** Which entity owns the WhatsApp Business account — Candor PS LLC (Apple, D62) or MindWeave Tech (domain, support address, privacy policy)? Default: the one whose name the website and privacy policy show, MindWeave Tech; otherwise the site needs a "Candor PS" line.
 - ~~**Q22**~~ answered Nov 23 (D75): a backup contact is asked at sign-up with Skip and reminded once later; it is a second sign-in key.
 - **Q23** For accounts that skipped the backup and lost their only contact: support with Player ID + two game codes + the creator's confirmation, as the only path? Default: yes.
-- **Q24** WhatsApp accounts: (a) code-only sign-in, no passcode; or (b) **number + the same 6-digit passcode email accounts use**, code only to prove a new number. Sree: "you can still use the old number and a password, even though you have a new number." Default now **(b)**: one model for both methods, sign-ins cost nothing (§2.3), his number-change case works as described (§5a case 2).
+- ~~**Q24**~~ answered Nov 23 (D76): "Yes, use the same 6-digit passcode for WhatsApp and email accounts." Sign-in = number + passcode, no message; codes only prove a new number.
 - **Q25** SMS fallback button ("Use SMS instead") — on, or WhatsApp only? Default: off at launch (cost 2.5×, fraud surface); add if someone at a table cannot receive WhatsApp.
 - **Q26** Spend cap: Twilio alert at $20/mo and geo list India, US, Canada, UK, UAE, Australia? Default: yes.
 - **Q27** Later: WhatsApp for "game started" / results (utility template, opt-in, $0.0014–0.0034 each) instead of email for WhatsApp-only accounts? Default: not now; revisit after launch.
