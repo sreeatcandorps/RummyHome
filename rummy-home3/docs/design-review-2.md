@@ -23,8 +23,8 @@ numbers below). Every frame is from the Pixel 6 smoke run of `main` @ `f98f4ac2`
 > **Nov 21, 2:31 AM** — Sree: "What about the new designs? That's what I'm very interested in. Are we also doing any
 > color changes?" The four S screens are above (§5, `small-*.png`); the colour question is answered in **§9** with
 > three palettes on the same four screens, light and dark (`palette-*.png`), recommendation **B · Felt & Brass**.
-> **Nov 23** — Sree: "Palette B" (**D65**). Still no code: he is reviewing the S mockups screen by screen; the first
-> S PR carries the B tokens.
+> **Nov 23** — Sree: "Palette B" (**D65**); then "Yes to the Profile redesign" (**D66**). Still no code: he is
+> reviewing Settings, Game type and Sign in. §10 is the Profile build spec, ready for the first S PR on his "build".
 
 PR 15 (`design-audit.md`, Nov 17–18) fixed the **token** layer: one button component with two weights, one `Tag`,
 one `SearchField`, one dialog family, one date format, radii from a table, sentence-case headings. That work holds —
@@ -421,3 +421,54 @@ Pictures (`design-review-2/mockups/`): `palette-swatches.png` (the tokens side b
 the three palettes, light above and dark below — `palette-profile.png`, `palette-settings.png`, `palette-game-type.png`,
 `palette-sign-in.png`. Generator: `make-palette-mockups.py` (reuses `make-small-mockups.py`; `--render` redoes the 24
 phones through headless Chrome, without it only the sheets are recomposed).
+
+## 10. Profile S — build spec (Sree, Nov 23: "Yes to the Profile redesign"; D66)
+
+Approved as drawn in `small-profile.png` (§3 in words). Not built yet — Sree: "No building yet". This section is what
+the first S PR does, so it can be cut the moment he says build; it also carries the B tokens (D65).
+
+**Screen** (`app/(tabs)/me.tsx`, top to bottom): header block — avatar (seat colour 1), name, `email · Player #N`, one
+Help button in the top bar; then six groups with a small-caps heading each, hairline separators, no cards, no icon
+squares, no per-row ⓘ:
+
+| Group | Rows (label · value · tap) |
+| --- | --- |
+| Your table | Name · `Sree Test` · opens today's inline edit as a sheet ⟶ Initials on scorecards · `ST` ✎ · today's initials sheet ⟶ Player ID · `#1 · Share` · the share sheet |
+| Notifications | Phone · `No number yet` / the number · today's phone editor as a sheet, Save inside ⟶ Email · `Game started` (the switches that are on, "Off" when none) · a sub-page with today's switches and their one-line help |
+| Game defaults | Settings · `Points · −10 · −30 · −80` (the current defaults, one line) · the Settings screen |
+| Appearance | Theme · `Phone \| Light \| Dark` segmented, inline (the one control that stays) |
+| Help | Help & guide · "How each screen works, tricky cases" · the Help index (`me-help-index` keeps its testID) |
+| Account | Change passcode ⟶ Privacy policy ⟶ Delete account (red) ⟶ Log out (red, no chevron); version line under the list |
+
+Demo tools (admins only, today's `showDemo` block) become a seventh group **Admin** at the bottom, same rows.
+
+**Pieces**: `ListRow` (exists; gains a `value` slot on the right and loses its icon square here), new `SettingsGroup`
+(heading + rows + hairlines; takes `info` for the one-per-group ⓘ where a group needs it — none on Profile), new
+`SegmentedChoice` (2–3 options, 40 dp, outlined, selected = `secondaryContainer`; replaces the Appearance pill row and,
+in later S PRs, the B06 radios). **Zero `Button`s on the screen** (B01's target: 13 → 0); the only filled buttons are
+inside the sheets (Save) — one per sheet.
+
+**Tokens (D65, same PR)**: `constants/theme.ts` light `primary #0E4D2A`, `primaryContainer #D8ECDD`, `secondary
+#8A6A1E`, `secondaryContainer #F0DFAE`, `onSecondaryContainer #3E2E07`, `background #F5F2E8`, `outlineVariant
+#E6E1D3`; dark `background #0C120E`, `surface #141B16`, `primary #7FD39F`, `secondaryContainer #4A3A10`,
+`onSecondaryContainer #F5E3B0`; `brand.feltLight` follows `primary`; the one green in `public/scorecard.html` and its
+`web/` copy. Seat colours untouched. The whole app changes tint with this — that is the point of a token change — so
+the matrix for this PR includes one scorecard and one Home frame in both modes to show nothing else moved.
+
+**What does not change**: every behaviour behind the rows (name / initials / phone / e-mail saving and their errors,
+delete account's confirm, log out, the help index), the Paper dialogs (A09: `me-notice` stays), the Staging label on a
+staging build, the `#1` Player ID semantics (the share text is the same).
+
+**Tests to add / move**: `tests/design-review-2-s.test.ts` — 0 `<Button` and 0 `SectionCard` in `me.tsx`; the six
+group headings in order; `SegmentedChoice` used for Appearance; D65 hex values in `theme.ts`; `ListRow` has no icon
+square when `value` is set. `design-tokens.test.ts`'s Profile pins move with the screen. Flow `07-profile.yaml`:
+"Your initials on scorecards" → "Initials on scorecards"; the Settings tap label "Game type, Drop, Middle drop, Full
+count" → "Settings"; "Edit name" → tap the Name row; 07b scrolls to "Log out" as today; one new frame 07e dark.
+
+**Screenshot matrix for the PR**: Profile light / dark × default / large font; the Phone and Email sheets; plus one
+Home and one 13-player scorecard frame in light and dark for the token change. Help copy: the Profile topic in
+`constants/help.ts` re-written for rows instead of cards (one paragraph).
+
+**Scope note**: Settings, Game type and Sign in keep today's look until their own yes; for a build or two the shell is
+mixed. If Sree prefers one PR for all four once he has answered, the same spec applies per screen and the PR is one
+surface larger — his call in the Next-up line.
