@@ -153,7 +153,7 @@ B15 on), tests pinning the rules of §2 the way `tests/design-tokens.test.ts` pi
 | 5 | Home title: "Hi Sree" or "Your games"? | "Your games" (the greeting is in the avatar) |
 | 6 | The competitor screens you mentioned — send them; this document gets a §7 comparing shape by shape. | — |
 | 7 | Palette (§9): **A** keep the current Clubhouse, **B** Felt & Brass, or **C** Ink & Marigold? | **B** — same family as the icon, deeper green (text 8.9:1 instead of 4.6:1), brass instead of lemon yellow; a token change that rides along with S — **answered Nov 23: B** (D65) |
-| 8 | If B: dark mode stays green-black (as shown) or goes neutral black? | green-black as shown — the Sign-in band, the felt toast and the dark screens then share one tone — open; green-black is the default in the first S PR unless he says otherwise |
+| 8 | If B: dark mode stays green-black (as shown) or goes neutral black? **Nov 23, Sree: "I don't know what that dark mode thing is. Maybe I should see what it looks like first" → `mockups/dark-q8.png`, three S screens both ways.** | green-black as shown — the Sign-in band, the felt toast and the dark screens then share one tone — open; green-black is the default in the first S PR unless he says otherwise |
 
 ## 7. Competitor review (Sree, Nov 21) — and what we recommend
 
@@ -320,6 +320,15 @@ the picture and the rule must agree. It means changing D57's "+1" to "the seat b
 (one line of the 052 body, a migration 053 with the same shape) and the help copy. **Q13 asks Sree to confirm with
 the picture: Kiran at Priya's right (deals next, built) or Priya's left (deals last, his words).**
 
+**Answered, Nov 23** — Sree: *"New players always sit on the left side of the dealer. It could be a setting in the
+future, but for now, it's always left as a default."* So the Nov 21 reading stands (**D70**): a joiner takes the seat
+**before** the dealer (the dealer's left; dealt in last, deals last in the cycle, nobody else's turn moves). D57 is
+**superseded**; what 052's `add_seated_player` does today (seat + 1, deals next) is **wrong against this** and must
+change — one line of the body, as a migration 053 with the same shape and tests, plus the help copy and the
+notice copy above. "Could be a setting in the future" is noted, not built (D50: no setting until a table asks).
+Re-entry follows the same seat rule as recommended above, with Keep seat N. This is a code change, so it is a
+batch item for its own PR, not part of the S redesign PR.
+
 **Re-entry (pool).** Today a player who re-enters **keeps their seat** (`reenter_player` never touches
 `player_order`); only the score and the entry count change. Sree's rule moves them to the dealer's left as well.
 Recommend: yes as the default, through the same notice, with a **Keep seat N** button — the person who went out has
@@ -382,6 +391,91 @@ Mid-game the sheet's Done is `disabled` while the order is incomplete **or uncha
 the standard "Done = I'm finished" meaning; and the counter line under the list carries the state: "Everyone numbered
 · order unchanged" / "Everyone numbered · Sree moves 5 → 3, the next deal follows the new order". While numbering is
 incomplete Done stays grey and the line already says "3 of 6 numbered". Batch item 12.
+
+### 8.8 Scorecard columns — "10 is too much … it should show 5" (Sree, Nov 23)
+
+Sree: *"I think it can fit 10. 10 is too much … Do you think we can add a zoom button for the scorecard, right on top
+of it instead of the share? Or maybe I can keep it inside the menu by pressing plus or minus … it should show 5. 5 is
+the least zoom … for everybody else, you have to scroll … for some of the people that can't see properly, this might
+be too small … We've also sanitized to 5 only, so are you sure 10 is good?"*
+
+**What the code does today.** A player column is never narrower than **38 dp** (`MIN_COLUMN_WIDTH`), and the table
+shrinks columns until that floor before it lets anything scroll. On a Pixel-width screen (412 − 32 margins − 42 round
+column = 338 dp) that is **8.9 columns**, so 9–10 players show at once with **13-pt digits** — the CI frame
+(`scorecard-20p-before.png`, 20 players) shows exactly that. The floor was picked so a 13-player table fits without
+scrolling; it was never a readability choice. Now that sideways scrolling is solid (header and body in one offset,
+#117), "fit everything" does not need to be the default any more. **No, 10 is not good** for the people he means.
+
+**What the better apps do.**
+
+| | Visible columns | How you change it | Frozen |
+| --- | --- | --- | --- |
+| Google Sheets, Excel, Numbers (mobile) | whatever the zoom gives | **pinch** on the grid; zoom remembered per sheet | header row + first column |
+| ESPN / Cricbuzz / CricHeroes scorecards | fixed, ~4–6 stat columns | none — horizontal **scroll**, the name column never moves | name column |
+| Keep Score, Score Counter, the Uno / Yahtzee scorers | one column per player, 4–6 fit | none; bigger tables scroll | header |
+| Android itself | — | Settings › Display › **Font size**; apps are expected to honour it (we do, for row height) | — |
+
+The convention for a grid is pinch; the convention for a scorecard is a **fixed, readable column count and a frozen
+label column**. Nobody puts a zoom button in the top bar.
+
+**Recommendation (in order of what we'd build).**
+
+1. **Default 5 columns in portrait.** 338 / 5 = **67 dp** per column, which the existing size ladder already turns into
+   **18-pt digits** (`cellFontSize`: ≥ 64 → 18). Players 6–20 scroll sideways; the round column stays; a thin scroll
+   bar under the table says there is more. Five matches D54 ("we've sanitized to 5") and the results blocks, so the
+   two tables agree. New installs start here; nothing else about the table changes.
+2. **Pinch to zoom on the table**, snapping to **5 · 7 · All** (All = today's fit-to-38-dp). Snapping, not free zoom:
+   a snapped table always has whole columns and the same digit size per step, so it never looks half-rendered.
+3. **The same three as a row in ⋮ — "Columns 5 · 7 · All"** — for the people who will never pinch (the ones he is
+   worried about). One preference, **remembered on the phone for every game**, not per game: "I like it big" is a
+   property of the eyes, not the table.
+4. **Share stays in the top bar.** Sharing the result is the thing people do most (D50); the bar already has Share,
+   Help and ⋮. A + / − pair there is two more targets for one setting that is changed once. His "plus or minus in
+   the menu" is item 3 in different clothes; the segmented row is one tap instead of several.
+5. **Landscape ignores the setting and fits everyone** (915 − 32 − 48 = 835 dp → 20 players at 41 dp, 22 at the
+   floor); past 22 it scrolls. Five 167-dp columns in landscape would be silly, and landscape is for seeing the whole
+   table (§8.9).
+
+**Not recommended**: a zoom *button* replacing Share; free pinch zoom without snap points; a per-game setting;
+changing the 38-dp floor itself (All must still fit a 13-player table on one screen for the people who want that).
+
+**Cost**: a `columns` preference (`PreferencesContext`, like `appearance`), `columnLayout(width, count, compact,
+columns)` taking the count, a `PinchGestureHandler` around the table that maps scale to the next snap, the ⋮ row,
+one help line, flow 25 re-pinned to 5 visible. A small PR; **batch item**, not part of the S redesign.
+Picture: `scorecard-density.png` (the CI frame · 5 columns · the ⋮ row). Generator: `make-scorecard-density-mockup.py`.
+
+### 8.9 Landscape is for viewing — "I can barely see 2 rows" (Sree, Nov 23)
+
+Sree: *"When I do the landscape, it automatically fits the 11 players … I don't think we need the buttons on landscape.
+The landscape should only be for viewing. The undo button, add round, and complete: add round is not convenient in
+landscape anyway … I can barely see 2 rows … more space can be saved by pushing all those tags up, closer to the
+scorecard … instead of 2 rows, maybe 1 row. Also, completely remove those buttons on the bottom in landscape."*
+
+**Agree on all three, and it is cheaper than keeping them.** A Pixel 6 in landscape is **412 dp tall**: status 24 +
+header 56 + two rows of tags 88 + table header ~50 + the 44-dp bar with its paddings ~70 leaves **~120 dp for rows =
+2½ rows** at the compact 34-dp height. That is what he sees. The Add round page is a portrait page (a keypad and a
+column of players); Undo and Complete are dialogs that work in any orientation, but nobody rotates to reach them.
+
+**Proposed**: in landscape (`isShort`, phones only — tablets are not short and keep everything):
+
+| | Today | Proposed |
+| --- | --- | --- |
+| Top | 56-dp header (back · title · share · help · ⋮) + two rows of tags | **one 48-dp line**: back · "Scorecard · S2" · Points · 11 players · Round 61 (· View only) · share · help · ⋮ — the tags move into the header row, smaller |
+| Bottom | Undo · Add round · Complete | **nothing** — the bar is not rendered; the code stays, so it is one condition to bring back |
+| Under the table | Creator · Admin · Unique game ID | **not shown** in landscape (it is in portrait and on the share) |
+| Row tap | opens Edit round | **off** in landscape ("you have to come back to portrait to do everything else"); ⋮ stays, since Players, Log and Game settings are reading too and its dialogs work |
+| Rows visible | 2–3 | **6–7** |
+| Columns | fit all (11 at 76 dp) | fit all, as today; 20 players still fit at 41 dp; past 22 it scrolls (§8.8 item 5) |
+
+**One honest caveat**: the Round saved toast and the "pool is over — Complete" nudge (`poolOver` makes Complete filled)
+are portrait things too; in landscape the strip's Round tag is the only hint the game moved. Fine for a viewing mode.
+
+**Not recommended**: keeping a single "Add round" FAB in landscape (it opens a portrait page; the rotation is the
+annoyance, not the button); hiding ⋮ (it costs rows nothing and hiding it would strand the Log).
+
+**Cost**: `[id].tsx` — `isShort` already exists; the bar, footer and the row `onPress` get `!isShort`, the strip gets
+a one-line variant; `ScoreTable` unchanged. Flow 25 (landscape fling) re-pinned without the bar. **Batch item**, not
+part of the S redesign. Picture: `scorecard-landscape.png`. Generator: `make-scorecard-density-mockup.py`.
 
 ## 9. Colour — three palettes on the S screens (Sree, Nov 21, 2:31 AM)
 
