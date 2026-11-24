@@ -204,6 +204,11 @@ tags: [smoke]
 - takeScreenshot: 16n-awards-by-points-left
 # F13.23: in this pool the others' drop entries would leave the winner with less than them, so the
 # preset is greyed and refused with the pop-up; the selection stays on By points left.
+- scrollUntilVisible:
+    element:
+      id: "award-preset-drops"
+    direction: UP
+    timeout: 10000
 - tapOn:
     id: "award-preset-drops"
 - extendedWaitUntil:
@@ -213,12 +218,28 @@ tags: [smoke]
 - tapOn:
     id: "award-not-viable-ok"
 - assertNotVisible: "Not for this pool"
+- scrollUntilVisible:
+    element:
+      text: "Pool 500 · all given out"
+    direction: DOWN
+    timeout: 10000
 - assertVisible: "Pool 500 · all given out"
 # Custom starts from the numbers on screen: back to Winner takes all first so Sree holds 500, then type 400.
+# (On the 360-dp phone the chips and the table are never on screen together: scroll to each.)
+- scrollUntilVisible:
+    element:
+      id: "award-preset-winner"
+    direction: UP
+    timeout: 10000
 - tapOn:
     id: "award-preset-winner"
 - tapOn:
     id: "award-preset-custom"
+- scrollUntilVisible:
+    element:
+      id: "award-gets-00000000-0000-4000-8000-000000000001"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "award-gets-00000000-0000-4000-8000-000000000001"
 # One character per step: a fast "400" into the controlled field doubled characters on the emulator.
@@ -229,6 +250,11 @@ tags: [smoke]
 # One hideKeyboard only: a second one with the keyboard already closed acts as Back on Android and
 # leaves the Awards page.
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      text: "Pool 500 · 400 given out · 100 not given out"
+    direction: DOWN
+    timeout: 10000
 - assertVisible: "Pool 500 · 400 given out · 100 not given out"
 - takeScreenshot: 16p-awards-custom-not-all-given-out
 - tapOn:

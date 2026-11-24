@@ -29,7 +29,12 @@ tags: [smoke]
     text: "\\d+ games? · \\d+ players"
 - assertVisible:
     id: "results-save-button"
-# PR 8 design: ranked scores split, bordered bands of five games, the games list.
+# PR 8 design: ranked scores split, bordered bands of five games, the games list (below the fold on the 360-dp phone).
+- scrollUntilVisible:
+    element:
+      id: "results-band-table"
+    direction: DOWN
+    timeout: 10000
 - assertVisible:
     id: "results-band-table"
 - takeScreenshot: 06b-results-one-game
