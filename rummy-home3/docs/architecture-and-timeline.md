@@ -681,7 +681,9 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   New `publish-site.yml` builds the module from `public/` (`scripts/build-site-worker.mjs`), deploys it with
   **wrangler** on every merge to `main` that touches the site, and `scripts/verify-site.mjs` compares every live page
   with the build (body hash and an `x-ezscore-build` header naming the commit). The custom domain stays attached in
-  the dashboard; the token needs only Workers Scripts · Edit. Needs two repo secrets before the first publish.
+  the dashboard; the token needs only Workers Scripts · Edit. Needs two repo secrets before the first CI publish.
+  On Sree's yes the same module (main @ `a7018d7`, hash-checked against the repo build) was uploaded the same
+  evening through the Cloudflare API, and `verify-site.mjs` confirmed all eight live pages — Q6 closed.
 - Process (Sree's yes to the workflow review): staging seeds / migrations and merges of green, approved-spec PRs are
   pre-approved (D79, D80); at most three open PRs (D81); a five-line *For Sree* block on every PR and atop
   `next-up.md`, and on a PR CI keeps the video of each flow the change selected (D82); a bug is fixed when a test
