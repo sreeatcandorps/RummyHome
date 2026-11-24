@@ -180,10 +180,26 @@ tags: [smoke]
 - assertNotVisible: "Results"
 - takeScreenshot: 16l-pool-awards-from-complete
 - assertVisible: "5 entries (a re-entry counts twice) · pool 500 points"
+# The "all given out" line is under the table; below the fold on the 360-dp phone at font 1.3.
+- scrollUntilVisible:
+    element:
+      text: "Pool 500 · all given out"
+    direction: DOWN
+    timeout: 10000
 - assertVisible: "Pool 500 · all given out"
 - takeScreenshot: 16m-awards-winner-takes-all
+- scrollUntilVisible:
+    element:
+      id: "award-preset-left"
+    direction: UP
+    timeout: 10000
 - tapOn:
     id: "award-preset-left"
+- scrollUntilVisible:
+    element:
+      text: "Pool 500 · all given out"
+    direction: DOWN
+    timeout: 10000
 - assertVisible: "Pool 500 · all given out"
 - takeScreenshot: 16n-awards-by-points-left
 # F13.23: in this pool the others' drop entries would leave the winner with less than them, so the

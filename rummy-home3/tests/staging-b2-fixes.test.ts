@@ -28,14 +28,23 @@ test('bug 8: the Create account form pads for the keyboard on Android too (edge-
   assert.match(src, /export const KEYBOARD_BEHAVIOR = 'padding' as const;/);
   assert.doesNotMatch(src, /Platform\.OS === 'ios' \? 'padding'/, 'no iOS-only behavior');
   assert.equal((src.match(/behavior=\{KEYBOARD_BEHAVIOR\}/g) ?? []).length, 2, 'both KeyboardAvoidingViews use it');
+  // Run 45351979977 on the Pixel 6: the padding alone left the card where it was; the covered field must scroll up.
+  assert.match(src, /Keyboard\.addListener\('keyboardDidShow'/);
+  assert.match(src, /scrollResponderScrollNativeHandleToKeyboard\(input, FOCUSED_INPUT_GAP, true\)/);
+  assert.match(src, /if \(y \+ h \+ FOCUSED_INPUT_GAP <= e\.endCoordinates\.screenY\) return;/, 'a field already in view is left alone');
+  assert.equal((src.match(/ref=\{scrollRef\}/g) ?? []).length, 2, 'both ScrollViews are the target');
 });
 
 test('bug 8 proof flow: Create account focuses every field with the keyboard up (smoke 26)', () => {
   assert.ok(existsSync(path.join(ROOT, 'e2e/smoke/26-create-account-keyboard.yaml')));
   const flow = read('e2e/smoke/26-create-account-keyboard.yaml');
   for (const id of ['register-first-name', 'register-email', 'register-passcode', 'register-player-id']) {
-    assert.match(flow, new RegExp(`tapOn:\\s*\\n\\s*id: "${id}"`), `${id} is focused`);
+    assert.match(flow, new RegExp(`tapOn:\\s*\\n\\s*id: "${id}"\\s*\\n- inputText: "[^"]+"\\s*\\n- waitForAnimationToEnd\\s*\\n- assertVisible:\\s*\\n\\s*id: "${id}"`), `${id}: tapped, typed into, still in view with the keyboard up`);
   }
+  // The keyboard goes down between fields: the next tap meets the field the way a person does, and the
+  // passcode / Player ID are scrolled into view first (they sit below the fold on the Pixel 6).
+  assert.ok((flow.match(/- hideKeyboard/g) ?? []).length >= 4);
+  assert.match(flow, /scrollUntilVisible:\s*\n\s*element:\s*\n\s*id: "register-passcode"/);
   const screen = read('app/(auth)/register.tsx');
   for (const id of ['register-first-name', 'register-last-name', 'register-email', 'register-passcode', 'register-player-id']) {
     assert.match(screen, new RegExp(`testID="${id}"`), `${id} on the screen`);

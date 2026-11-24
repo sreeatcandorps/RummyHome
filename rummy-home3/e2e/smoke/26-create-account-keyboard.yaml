@@ -32,21 +32,33 @@ tags: [smoke]
       id: "register-first-name"
     timeout: 15000
 - takeScreenshot: 26-create-account
+# Each field the way a person meets it: keyboard down, the field in view, tap it, type — and it must still be
+# in view with the keyboard up. The passcode and Player ID are the ones that sat under the keyboard (bug 8).
 - tapOn:
     id: "register-first-name"
 - inputText: "Kavya"
+- waitForAnimationToEnd
 - assertVisible:
     id: "register-first-name"
 - takeScreenshot: 26b-create-account-name-keyboard
+- hideKeyboard
 - tapOn:
     id: "register-email"
 - inputText: "kavya@example.com"
+- waitForAnimationToEnd
 - assertVisible:
     id: "register-email"
 - takeScreenshot: 26c-create-account-email-keyboard
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "register-passcode"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "register-passcode"
 - inputText: "123456"
+- waitForAnimationToEnd
 - assertVisible:
     id: "register-passcode"
 - takeScreenshot: 26d-create-account-passcode-keyboard
@@ -59,6 +71,7 @@ tags: [smoke]
 - tapOn:
     id: "register-player-id"
 - inputText: "42"
+- waitForAnimationToEnd
 - assertVisible:
     id: "register-player-id"
 - takeScreenshot: 26e-create-account-player-id-keyboard

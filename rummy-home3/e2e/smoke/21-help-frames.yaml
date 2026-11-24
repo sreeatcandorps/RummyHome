@@ -93,10 +93,13 @@ tags: [smoke]
 - assertVisible: "Deleted results · .*"
 - takeScreenshot: 21b-hidden-deleted
 - tapOn: "Unhide"
+# The state is the proof; the toast is a few seconds long and was gone on the slow 360-dp emulator.
 - extendedWaitUntil:
-    visible: "Back on your Home."
+    visible: "Games I hid · 0"
     timeout: 15000
-- assertVisible: "Games I hid · 0"
+- assertVisible:
+    text: "Back on your Home."
+    optional: true
 - back
 - back
 # Profile comes back at the scroll position it was left at (Settings is below Appearance), so wait for the title.
