@@ -114,7 +114,12 @@ tags: [smoke]
     visible:
       id: "login-email"
     timeout: 20000
-# The email field focuses itself and the keyboard covers the bottom of the card (CI run 1).
+# The email field focuses itself and the keyboard covers the bottom of the card (CI run 1). On the tablet
+# (#126 run 45282297377) the keyboard had already closed itself by now, so hideKeyboard's ESCAPE acted as
+# Back on the root screen and the app exited: make sure the keyboard is up before asking it to go.
+- tapOn:
+    id: "login-email"
+- waitForAnimationToEnd
 - hideKeyboard
 - assertVisible: "Forgot passcode?"
 - assertVisible: "Create account"

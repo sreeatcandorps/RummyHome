@@ -33,7 +33,7 @@ tags: [nightly]
     timeout: 15000
 - assertVisible: "Mid-game · admins only · logged"
 - assertVisible: "30 rounds played.*"
-# Row 1 is the highest seat (20, Test Uniform); arrows on every numbered row.
+# Row 1 is the highest seat (20, Test Uniform); arrows on every numbered row — the top row only ▼ (D74).
 - assertVisible:
     id: "seat-name-1"
     text: "Test Uniform"
@@ -41,6 +41,8 @@ tags: [nightly]
     id: "seat-number-1"
     text: "20"
 - assertVisible:
+    id: "seat-down-1"
+- assertNotVisible:
     id: "seat-up-1"
 - takeScreenshot: 51-order-20p-top
 # Seat 11 (Test Juliet) deals next: round 30's dealer sat at 10. Seat 11 is row 10 (21 - 11).
@@ -66,10 +68,11 @@ tags: [nightly]
 - assertVisible:
     id: "seat-number-20"
     text: "1"
-# The counter sits under the last row, so with twenty players it is on screen only here.
+# The counter sits under the last row, so with twenty players it is on screen only here. Prefilled and
+# untouched it reads "Everyone numbered · order unchanged — Done closes" (#117).
 - assertVisible:
     id: "order-counter"
-    text: "Everyone numbered"
+    text: "Everyone numbered.*"
 # Clear: the rows fall back to today's seat order (Sree, Test Alpha … Test Uniform). Tap Test Romeo
 # (row 19) first: seat 20, "highest card", straight to the top; nobody deals yet.
 - tapOn:

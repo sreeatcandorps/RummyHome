@@ -125,6 +125,12 @@ tags: [smoke]
     direction: DOWN
     timeout: 10000
 - assertVisible: "Late entry"
+# Pixel 4a (nightly, Nov 23): the hint line is at the bottom edge and the two choices sit below the fold.
+- scrollUntilVisible:
+    element:
+      id: "settings-pool-late-entry-score-highest"
+    direction: DOWN
+    timeout: 10000
 - assertVisible:
     id: "settings-pool-late-entry-score-highest"
 - assertVisible:
