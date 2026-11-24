@@ -329,7 +329,7 @@ export function roundTableHtml(table: ResultsRoundTable, options: { gameIdInHead
 
 /** Shared by the PDF and public/r/index.html (kept in step by tests/results-design.test.ts). */
 export const RESULTS_DESIGN_CSS = `
-  :root { --ink: #17201B; --muted: #4E5752; --line: #DCDDD5; --green: #15803D; --on-lab: #fff; --edge: #0E5A2A; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; --amber: #FFE38A; --on-amber: #3F2D00; --band: #F1F1EB; --band-alt: #E9EAE2; --band-head: #DDEFE2; --band-head-alt: #D2E9DA; }
+  :root { --ink: #17201B; --muted: #4E5752; --line: #E6E1D3; --green: #0E4D2A; --on-lab: #fff; --edge: #083820; --win: #D6F5DF; --neg: #A8201A; --bg: #F6F6F1; --head: #EEEEE7; --amber: #FFE38A; --on-amber: #3F2D00; --band: #F1F1EB; --band-alt: #E9EAE2; --band-head: #DDEFE2; --band-head-alt: #D2E9DA; }
   body { font-family: -apple-system, Roboto, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); margin: 0; font-size: 16px; line-height: 1.3; }
   h1 { margin: 0; font-size: 28px; font-weight: 800; }
   h2 { font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
@@ -411,7 +411,7 @@ export const RESULTS_DESIGN_CSS = `
 export const GAME_PDF_VARS: Record<string, string> = {
   '--green': '#B57F00',
   '--on-lab': '#FFFFFF',
-  '--edge': '#8A5A00',
+  '--edge': '#8A6A1E',
   '--band-head': '#FFF3C4',
   '--band-head-alt': '#FFE9A3',
 };

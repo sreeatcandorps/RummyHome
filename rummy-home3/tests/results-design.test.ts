@@ -223,8 +223,8 @@ test('design: the /r/ web page carries the same CSS as the PDF, draws medals, ba
     assert.ok(line, `rule ${rule} in the CSS`);
     assert.ok(page.includes(line!.trim()), `web page shares the rule ${rule}`);
   });
-  assert.match(page, /#15803D/);
-  assert.doesNotMatch(page, /#FBF1E1|#17402F/, 'the parchment palette is gone');
+  assert.match(page, /#0E4D2A/);
+  assert.doesNotMatch(page, /#FBF1E1|#17402F|#15803D/, 'the parchment palette is gone; the Clubhouse green too (D65)');
   assert.match(page, /This result was edited/);
   assert.match(page, /This result was deleted/);
   assert.match(page, /@media \(min-width: 900px\)/, 'desktop unwraps the bands');
@@ -233,5 +233,5 @@ test('design: the /r/ web page carries the same CSS as the PDF, draws medals, ba
   assert.doesNotMatch(page, /Top 3|placeLabel/);
   const live = src('public/scorecard.html');
   assert.match(live, /blocks of|block/i);
-  assert.match(live, /#15803D/);
+  assert.match(live, /#0E4D2A/);
 });

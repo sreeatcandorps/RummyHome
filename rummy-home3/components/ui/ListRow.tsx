@@ -11,21 +11,31 @@ type ListRowProps = {
   left?: React.ReactNode;
   /** Replaces the default chevron, e.g. a switch. */
   right?: React.ReactNode;
+  /** Size-S (D66): the current value at the right, grey, before the chevron; "Sree Test", "No number yet". */
+  value?: string;
+  /** Size-S: a pen instead of the chevron, for rows that edit in place or in a sheet. */
+  pen?: boolean;
+  /** Size-S: no chevron at all (Log out). */
+  noChevron?: boolean;
   onPress?: () => void;
   tone?: 'default' | 'danger';
   accessibilityLabel?: string;
+  testID?: string;
 };
 
 /** Full-width tappable row used in settings, profile and other grouped lists. */
-export function ListRow({ title, description, icon, left, right, onPress, tone = 'default', accessibilityLabel }: ListRowProps) {
+export function ListRow({ title, description, icon, left, right, value, pen, noChevron, onPress, tone = 'default', accessibilityLabel, testID }: ListRowProps) {
   const theme = useAppTheme();
   const danger = tone === 'danger';
   const iconColor = danger ? theme.colors.error : theme.colors.onSurfaceVariant;
+  const trailing = right ?? (noChevron || !onPress ? null : (
+    <Icon source={pen ? 'pencil-outline' : 'chevron-right'} size={pen ? 20 : 22} color={theme.colors.onSurfaceVariant} />
+  ));
 
   const content = (
     <View style={styles.row}>
       {left ??
-        (icon ? (
+        (icon && value === undefined ? (
           <View
             style={[
               styles.iconWrap,
@@ -45,7 +55,12 @@ export function ListRow({ title, description, icon, left, right, onPress, tone =
           </Text>
         ) : null}
       </View>
-      {right ?? (onPress ? <Icon source="chevron-right" size={22} color={theme.colors.onSurfaceVariant} /> : null)}
+      {value !== undefined ? (
+        <Text variant="bodyMedium" style={[styles.value, { color: theme.colors.onSurfaceVariant }]} numberOfLines={1}>
+          {value}
+        </Text>
+      ) : null}
+      {trailing}
     </View>
   );
 
@@ -57,7 +72,8 @@ export function ListRow({ title, description, icon, left, right, onPress, tone =
       borderless
       style={styles.ripple}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityLabel={accessibilityLabel ?? (value !== undefined ? `${title}, ${value}` : title)}
+      testID={testID}
     >
       {content}
     </TouchableRipple>
@@ -90,5 +106,9 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '500',
+  },
+  value: {
+    maxWidth: '45%',
+    textAlign: 'right',
   },
 });

@@ -4,6 +4,7 @@ import { TextInput, Text, HelperText } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router, useLocalSearchParams } from 'expo-router';
 import { PasscodeField } from '@/components/ui/PasscodeField';
+import { JokerCard } from '@/components/ui/JokerCard';
 import { storage } from '../../utils/storage';
 import { authService } from '../../services/auth';
 import { isSupabaseConfigured } from '../../services/supabase';
@@ -100,31 +101,21 @@ export default function LoginScreen() {
       title="EZ Score: Rummy"
       subtitle="Sign in to keep score with your table"
       help="sign-in"
+      hero={<JokerCard />}
       footer={
         <>
-          <View style={styles.dividerRow}>
-            <View style={[styles.dividerLine, { backgroundColor: theme.colors.outlineVariant }]} />
-            <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-              New here?
-            </Text>
-            <View style={[styles.dividerLine, { backgroundColor: theme.colors.outlineVariant }]} />
+          {/* Size-S (D69, B01): one line, a text action, no pill; the B17 reassurance line is gone. */}
+          <View style={styles.newHere}>
+            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>New here?</Text>
+            <Button mode="text" compact onPress={() => router.push('/(auth)/register')} testID="login-create-account">
+              Create account
+            </Button>
           </View>
-
-          <Button
-            mode="outlined"
-            onPress={() => router.push('/(auth)/register')}
-            icon="account-plus-outline"
-            style={styles.pill}
-            contentStyle={styles.secondaryContent}
-          >
-            Create account
-          </Button>
-
-          <Text variant="bodySmall" style={[styles.footer, { color: theme.colors.onSurfaceVariant }]}>
-            {isSupabaseConfigured
-              ? 'Secure sign-in enabled'
-              : 'Local prototype mode: add Supabase env vars for production auth'}
-          </Text>
+          {isSupabaseConfigured ? null : (
+            <Text variant="bodySmall" style={[styles.footer, { color: theme.colors.onSurfaceVariant }]}>
+              Local prototype mode: add Supabase env vars for production auth
+            </Text>
+          )}
         </>
       }
     >
@@ -141,7 +132,6 @@ export default function LoginScreen() {
         returnKeyType="next"
         cursorColor={theme.colors.primary}
         selectionColor={theme.colors.primary}
-        left={<TextInput.Icon icon="email-outline" />}
         testID="login-email"
       />
 
@@ -197,14 +187,11 @@ const styles = StyleSheet.create({
   secondaryContent: {
     height: MIN_TOUCH_TARGET,
   },
-  dividerRow: {
+  newHere: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
+    justifyContent: 'center',
+    gap: spacing.xs,
   },
   footer: {
     textAlign: 'center',

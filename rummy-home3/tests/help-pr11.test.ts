@@ -178,8 +178,8 @@ test('HL11-5 mini helps (ⓘ): the Game type screen keeps only live feedback; ea
   assert.match(tip, /INFO_TIP_MORE = 'Full guide'/);
   assert.match(tip, /onDismiss=\{\(\) => setOpen\(false\)\}/, 'a tap outside closes it');
   const step = src('components/game/GameTypeStep.tsx');
-  assert.match(step, /testID="game-type-tip"/);
-  assert.match(step, /testID="kind-settings-tip"/);
+  assert.match(step, /testID: 'game-type-tip'/, 'the one ⓘ of the Game type group');
+  assert.match(step, /testID: 'kind-settings-tip'/, 'the one ⓘ of the settings group');
   assert.doesNotMatch(step, /supportingText="For this game only/, 'the card subtitle moved into the ⓘ');
   assert.doesNotMatch(step, /The admin gives awards once the pool is completed\.'\s*:/, 'the kind paragraph moved into the ⓘ');
   assert.match(step, /SETTINGS_LINK/, 'the Settings link stays — it is an action, not an explanation');
@@ -199,9 +199,11 @@ test('HL11-7 mini helps on every screen: each section keeps its title plus a ⓘ
   const screens: { file: string; tips: string[]; gone?: RegExp[]; keep?: RegExp[] }[] = [
     { file: 'app/(tabs)/index.tsx', tips: ['home-live-tip', 'home-recent-tip'], gone: [/supportingText=\{recentSupporting\}/], keep: [/recentSupporting/] },
     { file: 'components/home/DeletedGamesCard.tsx', tips: ['home-deleted-tip'], gone: [/supportingText=\{DELETED_GAMES_SUPPORTING\}/] },
-    { file: 'app/(screens)/settings.tsx', tips: ['settings-starts-tip', 'settings-points-tip', 'settings-pool-tip', 'settings-priority-tip', 'settings-hidden-tip'], keep: [/SETTINGS_PRIORITY\.map/, /helpTopic="settings"/] },
+    // Size-S (D67, design-review-2 B16): one ⓘ per group; the "starts as", priority and hidden groups say it in a note or a row description.
+    { file: 'app/(screens)/settings.tsx', tips: ['settings-points-tip', 'settings-pool-tip'], keep: [/SETTINGS_PRIORITY\.map/, /helpTopic="settings"/] },
     { file: 'app/(screens)/hidden-deleted.tsx', tips: ['hidden-games-tip', 'deleted-games-tip', 'deleted-results-tip'], keep: [/SUPPORT_CARD_BODY/] },
-    { file: 'app/(tabs)/me.tsx', tips: ['me-phone-tip', 'me-email-tip', 'me-demo-tip', 'me-account-tip'], keep: [/EMAIL_TIP/, /testID="me-help-index"/] },
+    // Size-S (D66): Profile has no ⓘ at all; the phone hint sits in its sheet, the e-mail help beside each switch.
+    { file: 'app/(tabs)/me.tsx', tips: [], keep: [/EmailPrefsDialog/, /testID="me-help-index"/] },
     { file: 'app/(screens)/results/index.tsx', tips: ['results-picker-tip', 'past-results-tip', 'deleted-results-note-tip'], keep: [/DELETED_SECTION_NOTE/, /<WhyLink why="giveAwardsFirst"/] },
     { file: 'app/(screens)/games/award.tsx', tips: ['award-split-tip'], gone: [/testID="award-hint"/], keep: [/SPLIT_TIP/, /AWARD_PRESETS\.map\(\(p\) => `\*\*\$\{p\.label\}\*\*: \$\{p\.hint\}`\)/] },
     { file: 'app/(screens)/games/final-scores.tsx', tips: ['final-scores-picture-tip'] },

@@ -227,7 +227,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       file: 'game-type',
       legend: [
         '**Points / Pool** switch. Switching reloads that kind\u2019s defaults.',
-        '**Pool limit**: 101 · 201 · 251 · Custom… (51–999). The line under it says what is in and what is out.',
+        '**Pool limit**: 101 · 201 · 251 · Other (51–999). The line under it says what is in and what is out.',
         '**Drop · Middle drop · Full count**: plus points in a pool, minus in Points.',
         '**Re-entries**: Unlimited, or Limited to N per player; Re-entry score and Late entry below it.',
         '**Next** goes on to Order of players; Start game is the last step.',
@@ -795,10 +795,10 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     screenshot: {
       file: 'me',
       legend: [
-        'Your name, email and #ID; **Share your Player ID** so a friend can link you.',
-        '**Change passcode**: the 6 digits you sign in with.',
-        '**Appearance**: Phone, Light or Dark.',
-        'Phone and Email. Scroll down for **Settings**, **Help & guide** and Log out.',
+        'Your name and #ID at the top; under **Your table**, tap a row to edit your name or initials, or the **Player ID** row to share it so a friend can link you.',
+        '**Notifications**: Phone and the Email switches, each in its own sheet.',
+        '**Game defaults** opens Settings; **Appearance**: Phone, Light or Dark.',
+        '**Account**: Change passcode, Privacy policy, Delete account, Log out.',
       ],
     },
     sections: [
@@ -835,7 +835,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       legend: [
         '**New game starts as**: Points or Pool is picked for you on Game type.',
         'Points defaults, with the Multiplier.',
-        'Pool defaults: limit, values, Re-entries, Re-entry score, Late entry. Below them the priority ladder (Game settings › Settings › Game defaults) and **Hidden & deleted**.',
+        'Pool defaults: limit, values, Re-entries, Re-entry score, Late entry. Under **More**: Which setting wins (Game settings › Settings › Game defaults) and **Hidden & deleted**. Save sits in the bar.',
       ],
     },
     sections: [
