@@ -596,6 +596,7 @@ jobs:
         env:
           SUITE: ${{ matrix.suite }}
           FLOW_FILTER: ${{ matrix.flows }}
+          VIDEO_SELECTED: ${{ needs.select.outputs.tier == 'pr' && '1' || '0' }}
           DEVICE_ROTATION: ${{ matrix.rotation }}
           DEVICE_FONT_SCALE: ${{ matrix.font }}
           MONKEY_EVENTS: ${{ matrix.monkeyEvents }}
