@@ -4,10 +4,22 @@ tags: [smoke]
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Your profile"
+# Size-S (#120): the grouped Profile is taller; at 360 dp × font 1.3 Appearance sits below the fold,
+# so wait for the identity row and assert Appearance after a scroll.
 - extendedWaitUntil:
-    visible: "Appearance"
+    visible: "Sree Test"
     timeout: 15000
-- assertVisible: "Sree Test"
+- scrollUntilVisible:
+    element:
+      text: "Appearance"
+    direction: DOWN
+    timeout: 15000
+- assertVisible: "Appearance"
+- scrollUntilVisible:
+    element:
+      text: "Sree Test"
+    direction: UP
+    timeout: 15000
 # Size-S (D66): grouped rows — Name and Initials with a pen, the passcode dialog with the
 # fields first and the keyboard open — all three fields must stay on screen.
 - assertVisible:
