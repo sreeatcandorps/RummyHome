@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { HelpTopicKey } from '@/constants/helpTopics';
@@ -22,6 +22,13 @@ type AuthShellProps = {
 };
 
 const FORM_MAX_WIDTH = 460;
+
+/**
+ * Both platforms pad for the keyboard. Android used to be left to the window (`adjustResize`), but with the
+ * edge-to-edge window of SDK 54 the window no longer shrinks, so the passcode field on Create account sat under
+ * the keyboard (staging build 2, bug 8). Padding moves the form up; the ScrollView keeps the focused input in view.
+ */
+export const KEYBOARD_BEHAVIOR = 'padding' as const;
 
 /** Shared chrome for sign-in screens: felt brand panel plus a form card. Side by side in landscape. */
 export function AuthShell({ title, subtitle, icon, hero, children, footer, help, helpAnchor }: AuthShellProps) {
@@ -66,10 +73,7 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
 
   if (isShort) {
     return (
-      <KeyboardAvoidingView
-        style={[styles.row, { backgroundColor: colors.background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={[styles.row, { backgroundColor: colors.background }]} behavior={KEYBOARD_BEHAVIOR}>
         <View
           style={[
             styles.sidePanel,
@@ -106,10 +110,7 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]} behavior={KEYBOARD_BEHAVIOR}>
       <ScrollView
         contentContainerStyle={[styles.stackContent, { paddingBottom: insets.bottom + spacing.xl }]}
         keyboardShouldPersistTaps="handled"

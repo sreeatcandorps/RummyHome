@@ -1,0 +1,70 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Staging build 2, bug 8 (Sree, Nov 23): on Create account the passcode field sat under the keyboard —
+# Android's edge-to-edge window (SDK 54) no longer resizes for it, and AuthShell only padded on iOS.
+# Rule from staging-b2-feedback.md: every form gets a flow that focuses each input and shows it with the
+# keyboard up. Fresh app (no session) → Create account → tap First name, Email, 6-digit passcode, Player ID
+# in turn, typing into each, screenshot with the keyboard open. The frames (and the PR video) are the proof
+# that the focused field is above the keyboard; nothing is submitted. Signs Sree back in at the end.
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 20000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: "login-email"
+    commands:
+      - stopApp
+      - launchApp
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 30000
+- hideKeyboard
+- tapOn: "Create account"
+- extendedWaitUntil:
+    visible:
+      id: "register-first-name"
+    timeout: 15000
+- takeScreenshot: 26-create-account
+- tapOn:
+    id: "register-first-name"
+- inputText: "Kavya"
+- assertVisible:
+    id: "register-first-name"
+- takeScreenshot: 26b-create-account-name-keyboard
+- tapOn:
+    id: "register-email"
+- inputText: "kavya@example.com"
+- assertVisible:
+    id: "register-email"
+- takeScreenshot: 26c-create-account-email-keyboard
+- tapOn:
+    id: "register-passcode"
+- inputText: "123456"
+- assertVisible:
+    id: "register-passcode"
+- takeScreenshot: 26d-create-account-passcode-keyboard
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "register-player-id"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "register-player-id"
+- inputText: "42"
+- assertVisible:
+    id: "register-player-id"
+- takeScreenshot: 26e-create-account-player-id-keyboard
+- hideKeyboard
+# Nothing is created. Back to Sree for whatever runs after this flow.
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: sree@test.local
