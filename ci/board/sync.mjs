@@ -11,7 +11,7 @@
 // (default 1), GITHUB_REPOSITORY (default sreeatcandorps/RummyHome). Inside Actions, GITHUB_EVENT_NAME +
 // GITHUB_EVENT_PATH pick the mode. No dependencies: Node 20 fetch + GraphQL.
 import { readFileSync, appendFileSync } from 'node:fs';
-import { checksState, issueStatus, noteFor, prStatus, STATUS } from './rules.mjs';
+import { checksState, issueStatus, noteFor, planOptions, prStatus, STATUS } from './rules.mjs';
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
@@ -47,7 +47,7 @@ async function gql(query, variables = {}) {
 // ---------- the board ----------
 async function loadProject() {
   const fields = `fields(first: 50) { nodes {
-    ... on ProjectV2SingleSelectField { id name dataType options { id name } }
+    ... on ProjectV2SingleSelectField { id name dataType options { id name color description } }
     ... on ProjectV2Field { id name dataType }
   } }`;
   const q = `query($owner: String!, $n: Int!) {
@@ -63,15 +63,31 @@ async function loadProject() {
   if (!p) throw new Error(`project ${PROJECT_OWNER}/projects/${PROJECT_NUMBER} not found or not visible to PROJECT_TOKEN`);
   const status = p.fields.nodes.find((f) => f?.name?.toLowerCase() === 'status' && f.options);
   if (!status) throw new Error('the board has no single-select field named "Status"');
+  const plan = planOptions(status.options);
+  let current = status.options;
+  if (plan.changed) {
+    log(`Status columns → ${plan.options.map((o) => o.name).join(' · ')} (was: ${status.options.map((o) => o.name).join(' · ')})`);
+    if (!DRY) {
+      try {
+        const d = await gql(`mutation($fid: ID!, $opts: [ProjectV2SingleSelectFieldOptionInput!]) {
+          updateProjectV2Field(input: { fieldId: $fid, singleSelectOptions: $opts }) {
+            projectV2Field { ... on ProjectV2SingleSelectField { options { id name } } } } }`, { fid: status.id, opts: plan.options });
+        current = d.updateProjectV2Field.projectV2Field.options;
+      } catch (e) {
+        throw new Error(`cannot update the Status columns (${e.message}). Add them by hand on the board: ${plan.options.map((o) => o.name).join(', ')}`);
+      }
+      changes.push(`Status columns: ${plan.options.map((o) => o.name).join(' · ')}`);
+    } else current = plan.options.map((o) => ({ id: o.id ?? `(new) ${o.name}`, name: o.name }));
+  }
   const options = {};
   for (const want of Object.values(STATUS)) {
-    const o = status.options.find((x) => x.name.trim().toLowerCase() === want.toLowerCase());
-    if (!o) throw new Error(`Status option "${want}" is missing on the board (have: ${status.options.map((x) => x.name).join(', ')})`);
+    const o = current.find((x) => x.name.trim().toLowerCase() === want.toLowerCase());
+    if (!o) throw new Error(`Status option "${want}" is missing on the board (have: ${current.map((x) => x.name).join(', ')})`);
     options[want] = o.id;
   }
   const note = p.fields.nodes.find((f) => f?.name?.toLowerCase() === 'note' && f.dataType === 'TEXT') ?? null;
   log(`board: ${p.title} · Status options ok${note ? ' · Note field present' : ' · no Note field (skipping notes)'}`);
-  return { id: p.id, statusFieldId: status.id, options, noteFieldId: note?.id ?? null };
+  return { id: p.id, statusFieldId: status.id, options, noteFieldId: note?.id ?? null, columnsChanged: plan.changed };
 }
 
 async function ensureItem(project, contentId) {
@@ -145,7 +161,7 @@ async function syncIssue(project, number) {
     { o: REPO_OWNER, r: REPO_NAME, n: number });
   const is = d.repository.issue;
   if (!is) { log(`  issue #${number}: not found`); return; }
-  const status = issueStatus({ state: is.state, labels: is.labels.nodes.map((l) => l.name) });
+  const status = issueStatus({ state: is.state, labels: is.labels.nodes.map((l) => l.name), title: is.title });
   log(`issue #${number} "${is.title.slice(0, 60)}" · ${is.state.toLowerCase()} → ${status}`);
   await place(project, 'issue', number, is.id, status, null);
 }
@@ -201,7 +217,8 @@ async function main() {
   const event = process.env.GITHUB_EVENT_NAME;
   const payload = process.env.GITHUB_EVENT_PATH ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8')) : {};
 
-  if (flag('--reconcile') || event === 'schedule' || event === 'workflow_dispatch') await reconcile(project);
+  // A column change can leave cards without a status (a removed option), so it re-files every card at once.
+  if (flag('--reconcile') || event === 'schedule' || event === 'workflow_dispatch' || project.columnsChanged) await reconcile(project);
   else if (opt('--pr')) await syncPr(project, Number(opt('--pr')));
   else if (opt('--issue')) await syncIssue(project, Number(opt('--issue')));
   else if (event === 'pull_request_target' || event === 'pull_request') await syncPr(project, payload.pull_request.number);
