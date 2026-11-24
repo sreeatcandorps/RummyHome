@@ -1,0 +1,86 @@
+# Publish the share site (https://ezscore.mindweavetech.com) on every merge to main that touches it, then
+# prove the live pages are the ones just built. Until Nov 23 the site was uploaded by hand and served the
+# Nov 12 build for eleven days, so shared pool links had no Standings (Q6).
+#
+# The site is the Cloudflare Worker `ezscore-site` (rummy-home3/site/wrangler.toml); the module is generated
+# from rummy-home3/public/ by scripts/build-site-worker.mjs, and scripts/verify-site.mjs compares every live
+# page with the build (body hash + x-ezscore-build header).
+#
+# Needs two repo secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN     an API token with "Account · Workers Scripts · Edit" on Sree@candorps.com's Account
+#   SITE_SUPABASE_ANON_KEY   the live project's anon (publishable) key — the same key the app ships with
+# Without them the job says so in its summary and publishes nothing.
+name: Publish share site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - rummy-home3/public/**
+      - rummy-home3/scripts/build-site-worker.mjs
+      - rummy-home3/scripts/verify-site.mjs
+      - rummy-home3/site/**
+      - .github/workflows/publish-site.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-site
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build, deploy and verify ezscore-site
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: https://gngcrplcldfiubvhcdin.supabase.co
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - id: secrets
+        name: Check the secrets are set
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+          HAS_KEY: ${{ secrets.SITE_SUPABASE_ANON_KEY != '' }}
+        run: |
+          if [ "$HAS_TOKEN" = true ] && [ "$HAS_KEY" = true ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+          echo "::warning title=Share site not published::Add the repo secrets CLOUDFLARE_API_TOKEN and SITE_SUPABASE_ANON_KEY (see the top of publish-site.yml)."
+          { echo '## Share site — not published'; echo; echo 'The repo secrets `CLOUDFLARE_API_TOKEN` and `SITE_SUPABASE_ANON_KEY` are not both set, so nothing was deployed. The live site still serves its previous build.'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build the Worker from public/
+        if: steps.secrets.outputs.ok == 'true'
+        working-directory: rummy-home3
+        env:
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SITE_SUPABASE_ANON_KEY }}
+          SITE_BUILD: ${{ github.sha }}
+        run: node scripts/build-site-worker.mjs
+
+      - name: Deploy
+        if: steps.secrets.outputs.ok == 'true'
+        working-directory: rummy-home3
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx --yes wrangler@4 deploy --config site/wrangler.toml --message "main ${GITHUB_SHA::7}"
+
+      - name: Verify the live pages are this build
+        if: steps.secrets.outputs.ok == 'true'
+        working-directory: rummy-home3
+        run: node scripts/verify-site.mjs
+
+      - name: Summary
+        if: steps.secrets.outputs.ok == 'true' && always()
+        run: |
+          {
+            echo '## Share site'
+            echo
+            echo "Build \`${GITHUB_SHA::7}\` → https://ezscore.mindweavetech.com — job status: **${{ job.status }}**."
+            echo 'Any page can be checked by hand: `curl -sI https://ezscore.mindweavetech.com/scorecard.html | grep x-ezscore-build`.'
+            echo 'Roll back: `npx wrangler@4 rollback --name ezscore-site` (or Cloudflare → Workers → ezscore-site → Deployments).'
+          } >> "$GITHUB_STEP_SUMMARY"

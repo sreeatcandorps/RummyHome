@@ -1,0 +1,10 @@
+# The share site, https://ezscore.mindweavetech.com — deployed by .github/workflows/publish-site.yml.
+# The module is generated: run scripts/build-site-worker.mjs first (it writes ../dist/worker/worker.js).
+# The custom domain is attached in the Cloudflare dashboard; with no `routes` key here wrangler leaves it
+# alone, so the API token needs only "Workers Scripts: Edit".
+name = "ezscore-site"
+main = "../dist/worker/worker.js"
+compatibility_date = "2026-10-01"
+account_id = "4ae2ccbce843d11f5672da005186e41c"
+workers_dev = false
+no_bundle = true
