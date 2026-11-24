@@ -1,11 +1,20 @@
 <!-- Keep every section. Delete the hints in parentheses, not the headings. -->
 
+## For Sree
+
+- **Decide:** (the one question for Sree, with the default taken if he does not answer — or "nothing, merge is pre-approved (D80)")
+- **A user will notice:** (one sentence, or "nothing — docs / tests / CI")
+- **Try it:** (link to the CI video of the changed screen from the dashboard comment, or why there is none)
+- **Risk:** (what could break, and how it would show)
+- **After merge:** (what happens next on its own — e.g. the share site republishes — and what still waits on Sree)
+
 ## Status
 
 - Based on: `main` @ `<sha>` (or: stacked on #<nn>)
 - Migration: none / `0NN_name.sql` written, **not applied** (migrations are applied only from merged `main`, after Sree's yes)
 - Unit + tsc: pass / fail (paste the count)
 - Device flows touched: (Maestro files changed, or "none")
+- Bug fix proof: (the test that fails on the parent commit and passes here, or the CI video; "n/a" when no bug is fixed — D83)
 - Decisions touched: (D-ids from `rummy-home3/docs/decisions.md` — every new or changed decision gets a line there in this PR)
 
 ## What Sree asked for → what changed

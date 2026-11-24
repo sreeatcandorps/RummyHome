@@ -21,6 +21,9 @@
 #   FLOW_FILTER     comma list of flow names to run (change-based selection); default: all
 #   VIDEO           off | fail | all — keep the per-flow screen recording never / on failure / always
 #   VIDEO_KEEP      regex of flow names whose recording is kept even on pass (default: fast-fling)
+#   VIDEO_SELECTED  1 = also keep the recording of every passing flow named in FLOW_FILTER (on a PR these
+#                   are the flows of the area the PR touched: the dashboard comment links them so Sree can
+#                   watch the change before an APK is built)
 #   APP_ID          package to watch for crashes and to kill; default com.mindweavetech.rummyhome
 #   DEVICE_ROTATION / DEVICE_FONT_SCALE   the device's resting orientation (0/1) and font scale
 #                   (the matrix's tablet runs landscape, the Pixel 7 Pro at 1.3) — hooks still override
@@ -207,7 +210,12 @@ for f in $(ls "$SET_DIR"/*.yaml 2>/dev/null | sort); do
     echo "PASS  $name  (${secs}s)"
     echo "$name,pass,$secs" >> "$OUT/results.csv"
     if [ "$VIDEO" != off ]; then
-      if [ "$VIDEO" = all ] || [[ "$name" =~ $VIDEO_KEEP ]]; then record_stop "$name" keep; else record_stop "$name" drop; fi
+      if [ "$VIDEO" = all ] || [[ "$name" =~ $VIDEO_KEEP ]] \
+         || { [ "${VIDEO_SELECTED:-0}" = 1 ] && [[ ",${FLOW_FILTER:-}," == *",$name,"* ]]; }; then
+        record_stop "$name" keep
+      else
+        record_stop "$name" drop
+      fi
     fi
   else
     if [ "$crashed" -eq 1 ]; then

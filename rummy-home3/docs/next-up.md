@@ -1,5 +1,17 @@
 # Next up — the one list
 
+## For Sree today
+
+1. **Your yes today:** ① merge #127 (how we work) once its CI is green — it is the PR that turns the automatic merges on, so it is the last of its kind that waits on you; a PR that changes the rules themselves always will (D80); ② in Play Console, answer the trader-status question (Q7, recommended "not a trader") — the one open item on our side of the Android review.
+2. **Shipped:** the share site is live with today's pages (Nov 23, your yes) — pool links show Standings; staging is seeded at half scale (#128); #111, #115, #116 and #121 are closed (folded into #129 or superseded).
+3. **In progress (three):** #127 how we work · #120 the Size-S redesign of Profile, Settings, Game type and Sign in (green, screenshots in) · #122 the emails batch (green). Both #120 and #122 merge under D80 once #127 is in, unless you want to look first. Nothing open touches the build Google is reviewing.
+4. **Open PRs: 4 counting, limit 3** — #120 #122 #127, plus #129 (docs only; merges right after #127 under D80). **Parked** (open for discussion, no work): #112 iPhone, #124 WhatsApp sign-in — until the Android app is approved.
+5. **Waiting on others:** Google's Play review; Apple enrolment needs the Candor PS D-U-N-S number.
+
+(Everything below is the detail the agents keep. The block above is rewritten every turn, five lines at most — D82.)
+
+## How this list works
+
 The ordered list of what is being built next, kept by the agent at the end of **every** turn (rule:
 `.cursor/rules/next-up.mdc`). Sree reads this, not the board, to know what is in flight and what comes
 after. Rule of the list: **the agent never stops** — when an item lands, the top item below it starts
@@ -9,14 +21,15 @@ How it relates to the rest:
 
 - **Board** ([projects/1](https://github.com/users/sreeatcandorps/projects/1)) — *state*: Spec · Waiting on Sree · Building · Ready to test · Done. Fills itself from PRs and issues (`ci/board/`). It does not say *order*; this file does.
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
-- **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes. Items below marked **Sree** wait on that yes; everything else the agent does on its own.
+- **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes, except the pre-approved list in `AGENTS.md` → Authority (D79 staging, D80 merges). Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-24 01:10 UTC (agent). Q28 answered (D79): clear read-only, wipe, rerun at 0.5 on Free. Fix PR #128: read-only clear + VACUUM FULL in the wipe path, pre-run size estimate that refuses, 95 % stop while seeding, workflow default scale 0.5 + size_limit_mb. Waits for Sree's merge yes, then Build Bot runs wipe on, scale 0.5. Nothing else started.
+Last updated: 2026-11-24 02:40 UTC (agent): Sree asked why #127 waits on him — it creates the automatic-merge rule, and a PR that changes the rules always needs his yes (now written into D80). Earlier: open PRs sorted for Sree; WhatsApp parked until the Android app is approved (his words); #111, #115, #116, #121 closed and folded into #129 by the other builder; main merged into #127, which keeps D79–D84 while main's staging decision becomes D86 (the same relabel #129 makes). Before that 01:10 UTC: Q28 answered (D86), #128 merged. 00:40 UTC: the workflow review (D79–D84). 2026-11-23 08:05 UTC: all four S screens yes (D66–D69), palette B (D65), #117 merged.
 
 ## In flight
 
 | # | Item | Where | Waiting on |
 | --- | --- | --- | --- |
+| 1 | **How we work (D79–D84)** — pre-approved staging actions and merges, at most three open PRs, five lines for Sree on every PR and here, CI keeps the video of each flow a PR touches, a bug is fixed when a test proves it, the share site builds / deploys / checks itself on merge, v1 cut. | #127 | **Sree**: merge; add `CLOUDFLARE_API_TOKEN` (Workers Scripts · Edit) and `SITE_SUPABASE_ANON_KEY` as repo secrets |
 | 2 | **Google Play review** — **in #117**: D63 icon set of AAB 15 (internal testing). | Play Console | Google; **Sree**: Q7 trader status |
 | 2a | **Design review 2** — Sree: "Go with Small now, mockups first" (Q11). Mockups of Profile / Settings / Game type / Sign in as grouped lists, light + dark, on the PR. **Colour** (Sree 2:31 AM: "Are we also doing any color changes?"): §9 puts three palettes on the same four screens, light + dark — A current, **B Felt & Brass (recommended)**, C Ink & Marigold. **Nov 23 — Sree: "Palette B" (D65), "Yes to the Profile redesign" (D66, spec §10.1), "Yes to the Settings redesign" (D67, spec §10.2), "Yes to the Game type redesign" (D68, spec §10.3), Sign in "the redesign is good, but … just get the Joker card" + keep the eye (D69, spec §10.4, re-mocked with an original bridge-size Joker)**; all four approved; "Mockups only, no building yet". | PR #111 | **Sree**: "build" for the first S PR (tokens D65 + Profile, Settings, Game type, Sign in); his look at the new Joker card; then "build" (one PR for Profile, or one for all four) |
 | 2b | **iPhone plan** — eight steps; Sree: enrol as **Candor PS** (D62). | PR #112 | **Sree**: the enrolment itself (D-U-N-S for Candor PS) |
@@ -35,7 +48,7 @@ here and go into the next batch when he picks.
 | --- | --- | --- | --- | --- |
 | **1** | **Scorecard header shimmer on a fast sideways scroll** — **in #117**: one sideways offset — the rows' scroller writes it on the UI thread, the header is a plain clipped view translated by it (no second scroller), a drag on the names drives the rows' scroller with a decay for flings; proof = `smoke/25` fling flow with its video kept (18 players). The two-scroller version (native counter-translate) still flashed the header back to column 1 for one frame at each hand-over `scrollTo` — seen in two CI videos, hence the single offset — *recurring; he reported it before* | "the zigzag, the faded look on the header … it's moving … a hazy look that moves a little bit. As soon as I take a screenshot, it becomes normal … if I scroll very slowly, it's completely fine. If I add any amount of speed, that's when it is screwing up." | The header and the rows are **two horizontal ScrollViews kept in step from the JS thread** (`ScoreTable.tsx` `syncFrom` → `scrollTo` on every `onScroll`, 16 ms throttle). In a fling the header lands one or two frames behind the rows, so the header cells shimmer against the body and a sliver of the previous column shows at the left edge; at rest (and in a screenshot) they converge. **Fix:** one native-driven offset — the rows' `Animated.event` (`useNativeDriver`) translates a plain header view inside a clipped container; no second ScrollView, no JS in the loop. **Proof:** a Maestro flow that flings the 18-player header; the device job's per-flow `screenrecord` video shows motion where screenshots cannot. | — (video) |
 | 2 | **Launcher icon cut by the circle mask** | "the Joker icon … square shape, but then it's a circle, so it's not very clean … zoom it out" | Foreground was the whole tile at 70 %; Android guarantees only the 66 dp circle. Joker alone as foreground at 50 %, tile green as background, monochrome layer, store icon full bleed, splash unchanged (D63). **Built** in #117 before the batching rule; 650 tests + safe-zone test pass. | `docs/app-icon/*.png` |
-| 3 | **Pool web link shows no Standings** — **in #117**: the page already had Standings; the link now also shows re-entries (↺ round, blue) and the entry count; **the republish is still Q6** | "for pool it doesn't show the standings … make sure the web link is showing as much information as the actual app" | **Not code: publishing.** The repo's page has had Standings since Nov 14; the live page is the Nov 12 build (byte-compared). → **Q6 republish by Build Bot.** Then small parity rows for the batch: dealer per round, awards once given, entries per player on the page. | `design-review-2.md` §7.4 |
+| 3 | **Pool web link shows no Standings** — **in #117**: the page already had Standings; the link now also shows re-entries (↺ round, blue) and the entry count; **republished Nov 23** | "for pool it doesn't show the standings … make sure the web link is showing as much information as the actual app" | **Not code: publishing.** The repo's page has had Standings since Nov 14; the live page is the Nov 12 build (byte-compared). → **Q6 republish by Build Bot.** Then small parity rows for the batch: dealer per round, awards once given, entries per player on the page. | `design-review-2.md` §7.4 |
 | 4 | **Awards "AWAR D" header wraps; "1 drops"** — **in #117**: Award column as wide as Gets and never wraps; "1 drop" | (on the Awards · P5 screen) | Give the Award column its width / `numberOfLines={1}`; plural helper. | `mockups/awards-mockup.png` |
 | 5 | **Awards: game name + pool limit** — *suggestion, awaits his pick* | "I don't see the pool count … show the game name and how much it was played for" | One line under the title: *Friday night · Pool 101 · drop 25 · 7 players*; same on the Final scores header. PDF, share picture and web page already carry the limit. | `mockups/awards-mockup.png` |
 | 6 | **Round saved (pool) dialog** — *suggestion, awaits his pick* | "the buttons and the text are all over the place … what if there are more players, will it scroll?" | Bottom sheet, one row per player with Re-enter on the row, pinned title/chips/buttons, list scrolls; Complete when one is left. **Also verify:** six "is out" lines in one round is impossible (the winner on 0 cannot go out) — the dialog may list every out player, not this round's. | `mockups/round-saved-mockup.png` |
@@ -50,28 +63,43 @@ here and go into the next batch when he picks.
 
 | # | Item | Why this order | Size | Needs from Sree |
 | --- | --- | --- | --- | --- |
-| 3 | **Republish the live scorecard page** so shared links show Pool and Standings (Q6) — **confirmed Nov 21: the live page is the Nov 12 build; Sree's "pool link has no standings" is this.** #113 is on main, so the page renders; live still serves the old page — every shared link today is wrong for a pool game. | A live-user bug, zero code. | tiny | yes to Build Bot |
-| 3a | **Staging seed, run 3 (Nov 24)**: scale 1 stopped at 14,000 / 18,500 games — Supabase Free's 500 MB limit put `ezscore-staging` in read-only mode (SQLSTATE 25006). **Q28 answered → D79**: "Clear the read-only lock, wipe staging and rerun the seed at half size on the free plan." **PR #128** (generator: session read-only off, wipe + VACUUM FULL, pre-run size estimate that refuses, 95 % stop; workflow default scale 0.5, `size_limit_mb` input). Then: Build Bot runs *Seed staging* with wipe **on**, scale **0.5**, size_limit_mb 500 (~30 min). | Sree D79 | small | **Sree**: yes to merge #128 |
-| 3b | **Staging, after #116**: seed `ezscore-staging` (Sree's yes), the first staging APK (Sree's yes), then V2 (the app on staging data) once Sree says build. | The project exists; this is the next thing that needs nothing more from him. | medium | the anon key (Build Bot), then "build" |
+| 3 | **The share site publishes itself on merge** (D83) — today's pages went live by hand on Nov 23 (Sree's yes); #127 makes every later merge that touches `public/` deploy and check itself. | So the live site can never drift from `main` again. | tiny | merge + the two secrets |
+| 3a | **Staging seed, run 3 (Nov 24)**: scale 1 stopped at 14,000 / 18,500 games — Supabase Free's 500 MB limit put `ezscore-staging` in read-only mode (SQLSTATE 25006). **Q28 answered → D86**: "Clear the read-only lock, wipe staging and rerun the seed at half size on the free plan." **PR #128** (generator: session read-only off, wipe + VACUUM FULL, pre-run size estimate that refuses, 95 % stop; workflow default scale 0.5, `size_limit_mb` input). Then: Build Bot runs *Seed staging* with wipe **on**, scale **0.5**, size_limit_mb 500 (~30 min). | Sree D86 | small | — (#128 merged Nov 24; #129 calibrates the size estimate, merges under D80 when green) |
+| 3b | **Seed staging** (`Seed staging` workflow, pre-approved by D79 once #127 is in), then the first staging APK (Sree's yes), then V2 (the app on staging data) once Sree says build. | The project and the workflow exist; seeding no longer waits. | medium | — (seed); yes (APK) |
+| 3c | **Open PRs down to three** (D81): done Nov 24 — #115 / #116 closed as superseded, #111 / #121 folded into #129. After #127 and #129 merge, the open PRs are #120 and #122. #112 (iPhone) and #124 (WhatsApp sign-in) are **parked**. | Fewer open PRs, less rebase-and-recheck. | tiny | — |
 | 4 | **Nightly red → green** after #109: re-run the Pixel 7 Pro / 4a / tablet smoke; whatever still fails is a real device bug and gets its own PR. | Keeps the test suite trusted; the three issues close themselves. | small | — |
 | 5 | **Points "left the table"** (Q9, the Points half of D58): admins mark a seat LEFT / BACK in Players · Admins; the column stays, Add round asks no score, the deal and the open card skip the seat (052's rotation already does). Mockup first. | The only place Pool has a state Points lacks; comes up in every long Points night. | medium (migration) | yes to the spec (Q9) |
 | 6 | **Unsaved-players dialog button** (Q3): B "Done · keep the 1 saved". | Tiny, already answered in the question. | tiny | confirm B |
 | 7 | **Find in database** help section with its own picture (Q5). | Help gap from the v12 review. | tiny | confirm "one Add players topic" |
 | 8 | **Board hygiene** — done Nov 21: Build Bot closed #8 #26 #27 #28 #30 #31 #42. Still open on purpose: #29 (the Telugu half is not built — item 11) and #34 (in review). Left: a `Priority` field so the board sorts like this file. | The Spec column no longer holds finished work. | tiny | create the `Priority` field (optional) |
-| 9 | **Other step-by-step tutorials** (Q10): Pool out / re-entry first, then the Dealer sheet, Add round signs, Results chain, multiplier change. `StepsSheet` is built; each is copy + a loop script. | Sree's "hardest spots" ask; the first one is the one people get wrong at the table. | small each | pick which, or "all, in that order" |
 | 10 | **Play listing**: 7" / 10" tablet screenshots from the tablet smoke job; a short promo video is optional. | Optional for a phone-first listing; cheap once the tablet job is green. | tiny | — |
-| 11 | **Telugu** (#29's second half): UI strings through an i18n table, Telugu first, English fallback. | Sree's audience; a real reach item, but every screen is touched. | large | yes, and who proofreads Telugu |
-| 12 | **WhatsApp / phone OTP for India** (#36): Supabase phone auth (Twilio / MSG91) beside e-mail. | Sign-up friction in India; costs per SMS. | medium | yes + an SMS provider account |
 | 13 | **Research docs while Play reviews**: Google Play scorekeeper sweep (#40), Indian Rummy variants (#37), monetization (#41), learning section (#38). Each a one-page doc in `docs/`, no app change. | They shape the listing text and the next quarter; they cost nothing but agent time. | small each | — |
 | 14 | **iPhone** (#35): steps 2–8 of `docs/ios/README.md` once Sree is enrolled — link EAS, first build, TestFlight on his iPad, the iOS fix pass + nightly simulator job, submit. | Waits on Apple; the agent's part is not on the critical path. | medium | Apple Developer Program enrolment (step 1) |
 | 15 | **Design review 2, size S** — build after Sree's yes on the mockups, one surface per PR with light + dark matrices: `Row` / `SettingsGroup` / `SegmentedChoice` components, then Profile, Settings, Game type, Sign in. | Sree: "Go with Small now, mockups first." | medium | yes per mockup screen |
+| 16 | **Turn the `AGENTS.md` rules into project skills** — spec-first / mockup-first, the screenshot matrix, the small-fixes batch, the PR write-up and the bug-proof rule, each a short skill the agent loads when it applies; `AGENTS.md` keeps one line each. | Shorter always-on rules; the agent applies the procedure on its own. Starts when an open-PR slot frees (D81). | small | — |
+
+## Parked (open for discussion, no code, not counted toward the three — D81)
+
+| PR | What | Un-park when |
+| --- | --- | --- |
+| #112 | iPhone plan: eight steps, who does each; the `app.json` iOS block | Candor PS is enrolled with Apple (D-U-N-S) |
+| #124 | WhatsApp sign-in: spec and mockups | the Android app is approved and live in Play (D84; Sree, Nov 23: "it's a lot of work … I want to be sure that the Android app is getting approved") |
+
+## After v1 is live in Play (D84 — not built before then)
+
+| Item | Why it waits | Size |
+| --- | --- | --- |
+| **Other step-by-step tutorials** (Q10): Pool out / re-entry first, then the Dealer sheet, Add round signs, Results chain, multiplier change. `StepsSheet` is built; each is copy + a loop script. | Sree's "hardest spots" ask; the first one is the one people get wrong at the table. | small each |
+| **Telugu** (#29's second half): UI strings through an i18n table, Telugu first, English fallback. | Sree's audience; a real reach item, but every screen is touched. | large |
+| **WhatsApp / phone OTP for India** (#36): Supabase phone auth (Twilio / MSG91) beside e-mail. | Sign-up friction in India; costs per SMS. | medium |
 
 ## Done recently (last five)
 
 | When | What | PR |
 | --- | --- | --- |
+| Nov 23 | Share site republished from `main` (`a7018d7`): every page checked live, pool links show Standings (Q6 closed) | — (Sree's yes) |
+| Nov 23 | Seed staging as a manual GitHub workflow, then keepalive + chunked seeding | #123, #125 |
 | Nov 21 | Web scorecard page fixed (TDZ since PR 14) + a test that executes the page script | #113 |
 | Nov 21 | New game halo: three breaths, native thread — CI taps 60–100 s → seconds | #109 |
 | Nov 21 | `docs/next-up.md` + rule; volume / test-environment plan (Q12) | #110 |
 | Nov 21 | Order of players tutorial (D61): four steps, forced first time, Show me, Help › Watch how, last-tap toast | #108 |
-| Nov 21 | Play listing: ten players sideways + regenerated assets | #107 |

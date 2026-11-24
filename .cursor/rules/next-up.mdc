@@ -11,15 +11,23 @@ down the priority list until everything is done."
 
 ## Every turn, before the summary
 
-1. Update `docs/next-up.md`: move what landed to **Done recently**, what started to **In flight**, re-order
-   **Next** if something changed, refresh *Last updated*. Same commit as the work when there is one; its own
-   docs-only commit otherwise.
-2. End the turn with a **Next up** line: the top unstarted item, and what you have already done toward it
+1. Rewrite the **For Sree today** block at the top of `docs/next-up.md` (D82): five lines, plain sentences —
+   what needs his yes today (numbered, one question each, with the default), what shipped since the last
+   block (pre-approved actions included), what is next, and the open-PR count against the limit of three.
+   It is the only part Sree is expected to read; keep it to five lines.
+2. Update the rest of `docs/next-up.md`: move what landed to **Done recently**, what started to **In flight**,
+   re-order **Next** if something changed, refresh *Last updated*. Same commit as the work when there is one;
+   its own docs-only commit otherwise.
+3. End the turn with a **Next up** line: the top unstarted item, and what you have already done toward it
    (mockup opened, branch cut, question asked). Never end on "done" or "let me know".
 
 ## What to start without asking
 
-- Anything in **Next** whose *Needs from Sree* is "—": start it.
+- Anything in **Next** whose *Needs from Sree* is "—": start it — unless three PRs are already open (D81;
+  parked PRs do not count).
+  Then finish one first: answer its review, get its CI green, fold it, or close it if it is superseded.
+- The pre-approved actions in `AGENTS.md` → Authority (D79, D80): staging seeds and staging migrations,
+  merges that meet every D80 condition. Do them, then list them under *Shipped*.
 - Anything with a screen: the **mockup / spec PR first** ("show, then build"), then build on his yes.
 - Anything that needs a yes: do every part that does not (branch, spec, tests, mockups), then ask once,
   in the Next-up line, with the question in one sentence.
@@ -35,11 +43,12 @@ plan / mockup documents and live-user bugs he asks to ship alone still get their
 
 ## What never happens without Sree's explicit yes (via Build Bot)
 
-Merging to `main`, applying a migration to live, cutting an EAS build, uploading to Play, closing his issues.
+Merging to `main` (except the D80 merges), applying a migration to live, cutting an EAS build (any profile),
+uploading to Play, closing his issues. Building anything D84 moved to *After v1*.
 
 ## Order of priority when the list is stale
 
-1. Anything live users see that is wrong (shared pages, crashes, data).
+1. Anything live users see that is wrong (shared pages, crashes, data). Fixed means checked live (D83).
 2. Red tests on `main` / nightly.
 3. Approved specs not yet built; open Q-numbers with a proposed answer.
 4. Listing / store items.
