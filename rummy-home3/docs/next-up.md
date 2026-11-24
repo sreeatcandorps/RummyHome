@@ -5,7 +5,7 @@
 1. **Your yes today:** ① merge #127 (how we work: the pre-approved list, the three-PR limit, the share site that publishes itself); ② add two GitHub secrets, `CLOUDFLARE_API_TOKEN` and `SITE_SUPABASE_ANON_KEY`, so the share site with Standings goes live on that merge; ③ close #115 and #116 (both folded into #117).
 2. **Shipped:** the staging seed workflow and its fixes (#123, #125) are on main, so staging can be seeded.
 3. **Next:** the share site publishes and is checked page by page; staging gets seeded (pre-approved once #127 is in); then the open PRs come down to three — #111, #121 and #126 qualify for a pre-approved merge, #120 once its screenshot matrix is filled.
-4. **Open PRs: 10, limit 3** — #111 #112 #115 #116 #120 #121 #122 #124 #126 #127.
+4. **Open PRs: 8 counting, limit 3** — #111 #115 #116 #120 #121 #122 #126 #127; parked (still open for discussion, not counted): #112 iPhone, #124 WhatsApp sign-in.
 5. **Waiting on others:** Google's Play review; Apple enrolment needs the Candor PS D-U-N-S number.
 
 (Everything below is the detail the agents keep. The block above is rewritten every turn, five lines at most — D82.)
@@ -65,7 +65,7 @@ here and go into the next batch when he picks.
 | --- | --- | --- | --- | --- |
 | 3 | **The live share site publishes itself** (Q6 → D83) — the live pages are the Nov 12 build, so every shared pool link has no Standings. #127 builds the `ezscore-site` Worker from `public/`, deploys it on merge and checks every live page against the build. | A live-user bug; the fix is the deploy itself. | tiny | merge + the two secrets |
 | 3b | **Seed staging** (`Seed staging` workflow, pre-approved by D79 once #127 is in), then the first staging APK (Sree's yes), then V2 (the app on staging data) once Sree says build. | The project and the workflow exist; seeding no longer waits. | medium | — (seed); yes (APK) |
-| 3c | **Open PRs down to three** (D81): close #115 / #116 (superseded); merge #111, #121, #126 under D80 and #120 once its matrix is filled; #124 (WhatsApp spec) stays a document under D84 — merge it as a doc or close it. | Ten open PRs is the rebase-and-recheck overhead the limit removes. | tiny | close #115 / #116 |
+| 3c | **Open PRs down to three** (D81): close #115 / #116 (superseded); merge #111, #121, #126 under D80 and #120 once its matrix is filled; #112 (iPhone) and #124 (WhatsApp sign-in) are **parked** — open for discussion, not counted. | Ten open PRs is the rebase-and-recheck overhead the limit removes. | tiny | close #115 / #116 |
 | 4 | **Nightly red → green** after #109: re-run the Pixel 7 Pro / 4a / tablet smoke; whatever still fails is a real device bug and gets its own PR. | Keeps the test suite trusted; the three issues close themselves. | small | — |
 | 5 | **Points "left the table"** (Q9, the Points half of D58): admins mark a seat LEFT / BACK in Players · Admins; the column stays, Add round asks no score, the deal and the open card skip the seat (052's rotation already does). Mockup first. | The only place Pool has a state Points lacks; comes up in every long Points night. | medium (migration) | yes to the spec (Q9) |
 | 6 | **Unsaved-players dialog button** (Q3): B "Done · keep the 1 saved". | Tiny, already answered in the question. | tiny | confirm B |
@@ -76,6 +76,13 @@ here and go into the next batch when he picks.
 | 14 | **iPhone** (#35): steps 2–8 of `docs/ios/README.md` once Sree is enrolled — link EAS, first build, TestFlight on his iPad, the iOS fix pass + nightly simulator job, submit. | Waits on Apple; the agent's part is not on the critical path. | medium | Apple Developer Program enrolment (step 1) |
 | 15 | **Design review 2, size S** — build after Sree's yes on the mockups, one surface per PR with light + dark matrices: `Row` / `SettingsGroup` / `SegmentedChoice` components, then Profile, Settings, Game type, Sign in. | Sree: "Go with Small now, mockups first." | medium | yes per mockup screen |
 | 16 | **Turn the `AGENTS.md` rules into project skills** — spec-first / mockup-first, the screenshot matrix, the small-fixes batch, the PR write-up and the bug-proof rule, each a short skill the agent loads when it applies; `AGENTS.md` keeps one line each. | Shorter always-on rules; the agent applies the procedure on its own. Starts when an open-PR slot frees (D81). | small | — |
+
+## Parked (open for discussion, no code, not counted toward the three — D81)
+
+| PR | What | Un-park when |
+| --- | --- | --- |
+| #112 | iPhone plan: eight steps, who does each; the `app.json` iOS block | Candor PS is enrolled with Apple (D-U-N-S) |
+| #124 | WhatsApp sign-in: spec and mockups | v1 is live in Play (D84) |
 
 ## After v1 is live in Play (D84 — not built before then)
 

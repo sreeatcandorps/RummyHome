@@ -23,7 +23,8 @@ down the priority list until everything is done."
 
 ## What to start without asking
 
-- Anything in **Next** whose *Needs from Sree* is "—": start it — unless three PRs are already open (D81).
+- Anything in **Next** whose *Needs from Sree* is "—": start it — unless three PRs are already open (D81;
+  parked PRs do not count).
   Then finish one first: answer its review, get its CI green, fold it, or close it if it is superseded.
 - The pre-approved actions in `AGENTS.md` → Authority (D79, D80): staging seeds and staging migrations,
   merges that meet every D80 condition. Do them, then list them under *Shipped*.
