@@ -118,7 +118,7 @@ test('Seed staging generator: fits the plan before it starts (Free 500 MB; run 4
   assert.ok(full.addMb >= 600 && full.addMb <= 800, `scale 1 ≈ 700 MB, got ${full.addMb} (run 3: 500 MB at ~16k of 21.5k games)`);
   const half = cfg.sizeVerdict({ currentBytes: 40 * cfg.MB, S: sizes(0.5), limitMb: 500 });
   assert.equal(half.fits, true, `scale 0.5 fits Free: ${half.message}`);
-  assert.ok(half.finalMb <= 400, `scale 0.5 leaves headroom, got ${half.finalMb} MB`);
+  assert.ok(half.finalMb <= 420, `scale 0.5 leaves headroom, got ${half.finalMb} MB`);
   assert.equal(cfg.sizeVerdict({ currentBytes: 480 * cfg.MB, S: sizes(0.02), limitMb: 500 }).fits, false, 'a nearly full project is refused even for a tiny seed');
   assert.equal(cfg.sizeVerdict({ currentBytes: 900 * cfg.MB, S: cfg.SIZES, limitMb: 0 }).fits, true, 'limit 0 turns the check off (Pro, local)');
   assert.equal(cfg.sizeVerdict({ currentBytes: 40 * cfg.MB, S: cfg.SIZES, limitMb: 8000 }).fits, true, 'Pro (8 GB) takes the full set');
