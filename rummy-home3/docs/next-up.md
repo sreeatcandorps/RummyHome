@@ -2,9 +2,9 @@
 
 ## For Sree today
 
-1. **Your yes today:** read [`player-linking-workflow.md`](player-linking-workflow.md) (how players get added and linked, no player number at sign-up) and answer Q29–Q33, or just "yes to the defaults"; "build columns and landscape" after batch 2 (§8.8 / §8.9 pictures).
+1. **Your yes today:** read [`player-linking-workflow.md`](player-linking-workflow.md) (how players get added and linked, no player number at sign-up) and answer Q29–Q33, or just "yes to the defaults"; skim [`business-analysis.md`](business-analysis.md) §0 (Q34–Q36); "build columns and landscape" after batch 2 (§8.8 / §8.9 pictures).
 2. **Shipped:** the share site publishes itself (secrets in; all 8 pages on `dfafeb8`); #132 (skills), #133 (board columns), #134, #120 (Size S), #122 (e-mails) merged.
-3. **In progress:** #131 batch 2 (initials row, the small-phone runs; merges when green); this workflow doc; the business analysis (Play sweep, variants, money, India) next.
+3. **In progress:** #131 batch 2 (initials row, the small-phone runs; merges when green); [`player-linking-workflow.md`](player-linking-workflow.md) and [`business-analysis.md`](business-analysis.md) (Play sweep, variants, money, India — Q34–Q36), one docs PR.
 4. **Open PRs: 2 counting** — #131, this doc PR. **Parked**: #112 iPhone plan, #124 WhatsApp design. **Brainstorming**: owner access / support menu; variants, WhatsApp, monetization, learning, tutorials (issues).
 5. **Waiting on others:** Google's Play review and Apple's review of the Candor PS enrolment (D-U-N-S done, Sree Nov 24) — both answer by e-mail.
 
@@ -83,7 +83,7 @@ here and go into the next batch when he picks.
 | 7 | **Find in database** help section with its own picture (Q5). | Help gap from the v12 review. | tiny | confirm "one Add players topic" |
 | 8 | **Board hygiene** — done Nov 21: Build Bot closed #8 #26 #27 #28 #30 #31 #42. Still open on purpose: #29 (the Telugu half is not built — item 11) and #34 (in review). Left: a `Priority` field so the board sorts like this file. | The Spec column no longer holds finished work. | tiny | create the `Priority` field (optional) |
 | 10 | **Play listing**: 7" / 10" tablet screenshots from the tablet smoke job; a short promo video is optional. | Optional for a phone-first listing; cheap once the tablet job is green. | tiny | — |
-| 13 | **Research docs while Play reviews**: Google Play scorekeeper sweep (#40), Indian Rummy variants (#37), monetization (#41), learning section (#38). Each a one-page doc in `docs/`, no app change. | They shape the listing text and the next quarter; they cost nothing but agent time. | small each | — |
+| 13 | **Research docs while Play reviews** — **first pass written Nov 24**: [`business-analysis.md`](business-analysis.md) covers the Play sweep (#40), variants (#37), money (#41) and India (the 2025 ban on online cash rummy). Learning section (#38) and the deep variants research come after WhatsApp sign-in (Sree). | Sree: "I want to see the business analysis and see what's the next thing we should solve." | small | Q34–Q36 |
 | 14 | **iPhone** (#35): steps 2–8 of `docs/ios/README.md` once Sree is enrolled — link EAS, first build, TestFlight on his iPad, the iOS fix pass + nightly simulator job, submit. | Waits on Apple; the agent's part is not on the critical path. | medium | Apple Developer Program enrolment (step 1) |
 | 15 | **Design review 2, next S screens** after #120: Order of players (the table ring, with 053), Players · Admins, Results, Home — each a mockup first, then its PR; `SectionCard` 23 → 0 over the run. | #120 ships the shell and four screens; the rest follow one at a time ("show, then build"). | medium each | per screen: look at the mockup, say build |
 | 16 | **Turn the `AGENTS.md` rules into project skills** — **PR open Nov 24**: five skills in `.cursor/skills/` (show-then-build, screenshot-matrix, pr-write-up, bug-proof, small-fixes-batch), `AGENTS.md` one line each, `scripts/compare-frames.py`, D87 (pictures open without a Cursor login). | Shorter always-on rules; the agent applies the procedure on its own. | small | **yes to merge** (it changes `AGENTS.md`, D80) |
