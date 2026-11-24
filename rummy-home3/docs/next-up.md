@@ -2,10 +2,10 @@
 
 ## For Sree today
 
-1. **Your yes today** — each explained on [`how-we-work.md`](how-we-work.md): ① add the two repo secrets (its §5); ② look at the Size S pictures (§6), then **"merge #120"** or what to change — it also recolours the shared web pages under `public/`, which D80 keeps for your yes; ③ look at the new e-mail (§6), then **"yes, switch the e-mails"** (the live sender name); ④ say **"build staging"** when you want the staging APK with the seeded data.
-2. **Shipped:** #127 (the rules), #130 (`how-we-work.md`, one page) and #122 (e-mails) merged; staging seeded at half scale — 1,000 people, 10,000 games, 390 MB of 500; the share site publishes itself from now on. Trader status was already "not a trader".
-3. **Started now (your "whatever's next, start"):** batch 2 — create-account keyboard, Delete dialog, arrows only on the selected player (D74), no tutorial auto-open, the red nightly flows, a new small-phone CI row; built and green on its branch, opens as a PR when this one lands. It takes **Q17 as the default** (Load / Clear demo data leaves Profile — say **keep** and it comes back). Mockups for Q18 (grouped cards) and Q19 (PDF table) wait on your pick.
-4. **Open PRs: 3 counting** — #120 (Size S, waits for ②), #129 (this one, docs; merges by itself), then the batch 2 PR. **Parked**, no work: #112 iPhone, #124 WhatsApp.
+1. **Your yes today:** ① the two repo secrets (you said within the hour; [`how-we-work.md`](how-we-work.md) has the steps) — then the share site publishes itself; ② **#132** (the builders' procedures as skills; it changes `AGENTS.md`, so it waits for you); ③ **#131** (batch 2) once its pictures are in.
+2. **Shipped:** #120 (Size S redesign), #122 (e-mails), #127 (the rules), #129, #130 (`how-we-work.md`) merged. Build Bot switches the e-mail sender address (your yes).
+3. **Started now:** the board's new columns — Brainstorming · To do · In progress · Waiting on Sree · Done · Live · Parked (this PR, merges itself, D80); the first staging app build from `main` (your "Build staging").
+4. **Open PRs: 3 counting** — #131 (batch 2), #132 (skills), the board PR. **Parked**, no work: #112 iPhone, #124 WhatsApp. **Brainstorming**: owner access / a support menu (below).
 5. **Waiting on others:** Google's Play review; Apple enrolment needs the Candor PS D-U-N-S number.
 
 (Everything below is the detail the agents keep. The block above is rewritten every turn, five lines at most — D82.)
@@ -19,11 +19,11 @@ after. Rule of the list: **the agent never stops** — when an item lands, the t
 
 How it relates to the rest:
 
-- **Board** ([projects/1](https://github.com/users/sreeatcandorps/projects/1)) — *state*: Spec · Waiting on Sree · Building · Ready to test · Done. Fills itself from PRs and issues (`ci/board/`). It does not say *order*; this file does.
+- **Board** ([projects/1](https://github.com/users/sreeatcandorps/projects/1)) — *state*: Brainstorming · To do · In progress · Waiting on Sree · Done · Live · Parked (Sree, Nov 24). Fills itself from PRs, issues and their labels (`ci/board/`). It does not say *order*; this file does.
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes, except the pre-approved list in `AGENTS.md` → Authority (D79 staging, D80 merges). Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-24 07:05 UTC (agent). #130 (`how-we-work.md`, the other builder's page with the Size S and e-mail pictures in `for-sree/`) merged; this PR rebased on it. #127 and #122 merged; Sree: "Whatever's next, let's just start working on each one of them right now" → batch 2's no-pick items started (12c), nightly red rows (12f) next. D78/D79 of the ca74 branches renumbered D85/D86 so #127's D79–D84 stand. Earlier (the other builder, 05:45 UTC): Q7 trader status was already done; #127 merged 03:30 UTC; a PR that changes the rules always needs Sree's yes (D80); WhatsApp parked until the Android app is approved; #111, #115, #116, #121 closed and folded into #129.
+Last updated: 2026-11-24 09:40 UTC (agent). Sree: #120 merged; "Yes, switch the emails"; board columns asked for (Brainstorming … Live, Parked apart) → `cursor/board-columns-f877`; owner access / support menu parked as a brainstorm (no build); "Build staging" → Build Bot builds the staging APK from `main`; secrets within the hour. Earlier: #130 (`how-we-work.md`, the other builder's page with the Size S and e-mail pictures in `for-sree/`) merged; this PR rebased on it. #127 and #122 merged; Sree: "Whatever's next, let's just start working on each one of them right now" → batch 2's no-pick items started (12c), nightly red rows (12f) next. D78/D79 of the ca74 branches renumbered D85/D86 so #127's D79–D84 stand. Earlier (the other builder, 05:45 UTC): Q7 trader status was already done; #127 merged 03:30 UTC; a PR that changes the rules always needs Sree's yes (D80); WhatsApp parked until the Android app is approved; #111, #115, #116, #121 closed and folded into #129.
 
 ## In flight
 
@@ -34,7 +34,7 @@ Last updated: 2026-11-24 07:05 UTC (agent). #130 (`how-we-work.md`, the other bu
 | 2a | **Design review 2** — the review document: B01–B20, S / M / L, §7 competitors, §8 APK-v17 suggestions, §9 palettes, §10 build specs. **Nov 23**: §8.8 scorecard columns (5 by default, pinch 5 · 7 · All, ⋮ Columns row) and §8.9 landscape view-only, with mockups; Q13 answered in §8.5; Q8 dark: `dark-q8.png` → Sree "Both are fine. Just choose one" → green-black (D71). | PR #111 | **Sree**: §8.8 / §8.9 yes or changes; merge when he is done reading |
 | 2j | **Seed staging via GitHub — #123** (`cursor/seed-staging-workflow-ca74`): `Seed staging` workflow_dispatch, `DB_URL` from the repo secret, `wipe` / `scale` inputs, `summary.json` artifact; fixes the `STAGING_REF` ReferenceError on the refusal path. | Sree: "can you run the seed step"; Build Bot: its box cannot open Postgres | **Sree**: add the `STAGING_DB_URL` secret, yes to merge #123; Build Bot: *Run workflow* |
 | 2i | **Batch 2 (b)** — `cursor/small-fixes-batch-2b-ca74`, off `main` 4c85d05: bugs 4 + 8, D74 arrows + tutorial, Q17 default, the five nightly reds, the `small` CI phone (rows 12c / 12f). #122 (D73 emails) merged Nov 24. | Sree: "Whatever's next, let's just start" | this PR to merge (D81: three open); then the PR, its CI, Sree's merge yes |
-| 2h | **Size-S build** — Palette B tokens (D65) + Profile (D66), Settings (D67), Game type (D68), Sign in with the fixed Joker card (D69): `SettingsGroup`, `SegmentedChoice`, `ListRow` value slot, `RulesForm layout="grouped"`, `JokerCard`; 653 tests, flows 07 / 21 re-pinned; opened on "Yeah, you can start the redesign, though." | PR #120 | CI (device frames → the matrix in the body), then **Sree**: look, then yes to merge |
+| 2h | **Size-S build** — Palette B tokens (D65) + Profile (D66), Settings (D67), Game type (D68), Sign in with the fixed Joker card (D69): `SettingsGroup`, `SegmentedChoice`, `ListRow` value slot, `RulesForm layout="grouped"`, `JokerCard`; 653 tests, flows 07 / 21 re-pinned; opened on "Yeah, you can start the redesign, though." | PR #120 | — (**merged** Nov 24, `4524a30`) |
 | 2b | **iPhone plan** — eight steps; Sree: enrol as **Candor PS** (D62). | PR #112 | **Sree**: the enrolment itself (D-U-N-S for Candor PS) |
 | 2e | **Volume V1 on 052** — 20 new ladder rows, 137/137 pass, `volume` job nightly. Rebased on main after #110. | PR #114 | CI green, then Build Bot merges (Sree's yes stands) |
 | 2f | **Staging** — Supabase `ezscore-staging` (ca-central-1, 001–052 applied by Build Bot). EAS `staging` profile ("EZ Score · Staging", `.staging` package) + the population generator (`ci/volume/seed-staging.mjs`, validated at 2 % locally, nightly check). **Seeding staging and the staging APK wait for Sree's yes.** **Sree said yes to staging for all testing (1:21 AM); he runs the seed and `eas build --profile staging` himself (run-book §8).** | in PR #117 | CI, then **Sree**: merge; yes to seed; yes to build
@@ -88,6 +88,12 @@ here and go into the next batch when he picks.
 | 15 | **Design review 2, next S screens** after #120: Order of players (the table ring, with 053), Players · Admins, Results, Home — each a mockup first, then its PR; `SectionCard` 23 → 0 over the run. | #120 ships the shell and four screens; the rest follow one at a time ("show, then build"). | medium each | per screen: look at the mockup, say build |
 | 16 | **Turn the `AGENTS.md` rules into project skills** — spec-first / mockup-first, the screenshot matrix, the small-fixes batch, the PR write-up and the bug-proof rule, each a short skill the agent loads when it applies; `AGENTS.md` keeps one line each. | Shorter always-on rules; the agent applies the procedure on its own. Starts when an open-PR slot frees (D81). | small | — |
 
+## Brainstorming (spec only: nothing decided, nothing built)
+
+| Item | Sree said | Ideas so far (for the discussion, not a plan) |
+| --- | --- | --- |
+| **Owner access / a support menu** | Nov 24: "Should I have special access to things in my app? For owners of apps, what kind of privileges should they usually keep in the app? … to fix anything sometimes … like this demo data loading … Almost like creating a support menu … Park it, don't do anything about it, but we could brainstorm." Owner accounts: sree@candorps.com, koneru2k@gmail.com. | Today only koneru2k@gmail.com is on the admin list (`utils/adminAccess.ts`), and the only thing it unlocks is Load / Clear demo data (leaving Profile in #131, Q17). Common practice: the owner's app is the same as everyone's; owner tools are **read-only diagnostics** (app version, which database, user id, last sync error, "copy for support") plus **test-only tools** (demo data, reset tutorials) in the staging app; real fixes to someone's data go through the Supabase dashboard or a logged script, not an in-app button. If an owner action ever writes data, the owner check moves to the server (a table plus a database rule), not an e-mail list inside the app. |
+
 ## Parked (open for discussion, no code, not counted toward the three — D81)
 
 | PR | What | Un-park when |
@@ -107,10 +113,8 @@ here and go into the next batch when he picks.
 
 | When | What | PR |
 | --- | --- | --- |
+| Nov 24 | Size S redesign: Palette B, Profile, Settings, Game type, Sign in (D65–D69) | #120 |
+| Nov 24 | E-mails (D73), the one page `how-we-work.md`, docs fold-in | #122, #130, #129 |
 | Nov 23 | How we work: pre-approved staging actions and merges, three open PRs, five lines for Sree, share site publishes itself (waits for the two secrets), v1 cut (D79–D84) | #127 |
 | Nov 23 | Share site republished from `main` (`a7018d7`): every page checked live, pool links show Standings (Q6 closed) | — (Sree's yes) |
 | Nov 23 | Seed staging as a manual GitHub workflow, then keepalive + chunked seeding | #123, #125 |
-| Nov 21 | Web scorecard page fixed (TDZ since PR 14) + a test that executes the page script | #113 |
-| Nov 21 | New game halo: three breaths, native thread — CI taps 60–100 s → seconds | #109 |
-| Nov 21 | `docs/next-up.md` + rule; volume / test-environment plan (Q12) | #110 |
-| Nov 21 | Order of players tutorial (D61): four steps, forced first time, Show me, Help › Watch how, last-tap toast | #108 |

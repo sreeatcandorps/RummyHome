@@ -34,6 +34,12 @@ said in one place.
 updated → Build Bot reads the top of `next-up.md` on `main` and tells Sree. Before answering "what's the status",
 Build Bot reads this page and the first five lines of `next-up.md`.
 
+**The board** ([projects/1](https://github.com/users/sreeatcandorps/projects/1)) moves its own cards from the PRs
+and issues (`ci/board/`): **Brainstorming** (still being thought through) → **To do** (decided, not started) →
+**In progress** (a builder is on it) → **Waiting on Sree** (needs his answer or yes) → **Done** (merged or closed)
+→ **Live** (in users' hands). **Parked** holds what is kept for discussion with no work. Build Bot moves a card by
+label: `brainstorm`, `parked`, `waiting-on-sree`, `in-progress` (work outside a PR), `live`.
+
 ---
 
 ## The rules

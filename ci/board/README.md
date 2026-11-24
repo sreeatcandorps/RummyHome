@@ -2,20 +2,36 @@
 
 The project board ([users/sreeatcandorps/projects/1](https://github.com/users/sreeatcandorps/projects/1)) updates itself from the PRs and issues. Workflow: `.github/workflows/board-sync.yml` · rules: `rules.mjs` (tested by `rules.test.mjs`) · code: `sync.mjs`.
 
-## Rules (Status field: Spec · Waiting on Sree · Building · Ready to test · Done)
+## Columns (Status field, in this order)
 
-| Event | Build PR | Spec / docs-only PR* | Issue |
-| --- | --- | --- | --- |
-| Opened / reopened / ready for review / new push | Building | Spec | opened: `found-by-tests` or `bug` → Building, else Spec |
-| Every check green on the head commit | Ready to test | Waiting on Sree | — |
-| A check red, or still running | Building | Spec | — |
-| Label `waiting-on-sree` added | Waiting on Sree | Waiting on Sree | Waiting on Sree |
-| Label removed | recomputed from the rows above | | |
-| Spec approved by Sree (label `approved`, or Status row `\| Approved \| yes … \|`) | — | **Done** (the build is its own PR) | — |
-| Merged or closed | Done (closed unmerged: Note "Closed without merge") | Done | closed → Done |
-| Draft | Building | Spec | — |
+Sree, Nov 24: "I want another category in the Kanban board that says something like 'we're still brainstorming' …
+Once it's brainstormed, then it moves to: To Do · In Progress · Waiting on Me · Live … If you postpone something,
+if you park something, then maybe that should be a different one."
 
-\* a PR is "spec" when it has label `spec` or `docs`, or its title starts "Spec" / "PR N spec", or says "docs only". The board-sync check itself is ignored when judging "green". A spec PR lands in Waiting on Sree only while he still has questions to answer; once approved (label `approved` or the `| Approved | yes |` row) it is Done. Not on the board yet → added. Every 2 hours (and on Actions › Board sync › Run workflow) every open PR / issue and every card is reconciled, so anything missed heals itself.
+**Brainstorming · To do · In progress · Waiting on Sree · Done · Live · Parked.** The sync writes these columns
+itself (`BOARD_OPTIONS` in `rules.mjs`): it renames *Spec* → *To do* and *Building* → *In progress* in place, so
+their cards stay, removes *Ready to test*, and re-files every card in the same run.
+
+| Event | PR | Issue |
+| --- | --- | --- |
+| Label `brainstorm` | Brainstorming | Brainstorming |
+| Label `parked`, or title starting "Parked:" | Parked | Parked |
+| Label `waiting-on-sree` | Waiting on Sree | Waiting on Sree |
+| Open, CI running / red, or a draft | In progress | — |
+| CI green and the PR's *For Sree* **Decide:** line asks him something (no Decide line: spec / docs PRs do) | Waiting on Sree | — |
+| CI green and the Decide line says "nothing …" (a pre-approved merge, D80) | In progress (Build Bot merges it) | — |
+| Spec PR approved (label `approved`, or Status row `\| Approved \| yes … \|`) | Done (the build is its own PR) | — |
+| Label `in-progress` (work outside a PR, e.g. the Play review) | — | In progress |
+| Open, none of the above | — | To do |
+| Merged or closed | Done (closed unmerged: Note "Closed without merge") | Done |
+| … and label `live` | Live | Live |
+
+**Live** means in users' hands. Build Bot adds the label `live` when that happens: app PRs when a Play release
+carrying them goes out, server or e-mail PRs when they are deployed, share-site PRs when *Publish share site*
+has checked the live pages. The precedence is the order of the rows: closed first, then brainstorm, parked,
+waiting.
+
+\* a PR is "spec" when it has label `spec` or `docs`, or its title starts "Spec" / "PR N spec", or says "docs only". The board-sync check itself is ignored when judging "green". Not on the board yet → added. Every 2 hours (and on Actions › Board sync › Run workflow) every open PR / issue and every card is reconciled, so anything missed heals itself.
 
 Optional **Note** text field (create it on the board if wanted): "In APK v11" / "Not in APK v11", read from the PR body's Status block row `| In [APK vN] … | yes / no |`.
 
