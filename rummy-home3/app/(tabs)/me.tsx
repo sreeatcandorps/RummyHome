@@ -255,6 +255,7 @@ export default function MeScreen() {
         <ListRow
           title="Initials on scorecards"
           value={initials}
+          valueMinChars={4}
           pen
           onPress={() => { setInitialsError(null); setEditingInitials(true); }}
           accessibilityLabel={`Your initials ${initials}${player.initials ? '' : ', from your name'}. Change your initials`}

@@ -83,12 +83,16 @@ test('Q17 (default, Nov 24): Load / Clear demo data left the Profile; the genera
   assert.ok(existsSync(path.join(ROOT, 'supabase/migrations/005_demo_data.sql')));
 });
 
-test('Profile initials row (Sree, Nov 24 3:28 PM PT): the value is just "ST", the title keeps its words and wraps before it is cut', () => {
+test('D89 (Sree, Nov 24): the Initials value is just the letters and never truncates; the title stays on one line and takes the rest', async () => {
   const me = read('app/(tabs)/me.tsx');
-  assert.match(me, /title="Initials on scorecards"\s*\n\s*value=\{initials\}/, 'the value is the initials alone');
+  assert.match(me, /title="Initials on scorecards"\s*\n\s*value=\{initials\}\s*\n\s*valueMinChars=\{4\}/, 'the value is the initials alone, with room for four letters');
   assert.doesNotMatch(me, /value=\{[^}]*from your name/, 'no "· from your name" suffix in the value');
   assert.match(me, /accessibilityLabel=\{`Your initials \$\{initials\}\$\{player\.initials \? '' : ', from your name'\}/, 'the screen reader still hears where they come from');
   const row = read('components/ui/ListRow.tsx');
-  assert.match(row, /\{title\}\s*<\/Text>/);
-  assert.match(row, /styles\.title[^\n]*numberOfLines=\{2\}/, 'the title may take two lines at 360 dp × font 1.3');
+  assert.match(row, /styles\.title[^\n]*numberOfLines=\{1\}/, 'the title is one line, tail-ellipsised; no two-line wrap');
+  assert.match(row, /minWidth: reserved, flexShrink: 0/, 'a reserved value never shrinks and has no 45 % cap');
+  const { reservedValueWidth } = await import('../utils/reservedWidth');
+  assert.equal(reservedValueWidth(4, 16, 1), 58);
+  assert.equal(reservedValueWidth(4, 16, 1.3), 75);
+  assert.ok(reservedValueWidth(4, 16, 1.3) > 4 * 16 * 1.3 * 0.65, 'wider than four average capitals at font 1.3');
 });
