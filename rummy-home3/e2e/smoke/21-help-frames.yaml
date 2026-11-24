@@ -90,8 +90,19 @@ tags: [smoke]
     timeout: 15000
 - assertVisible: "Unhide"
 - assertVisible: "Deleted games · .*"
+# The third card is below the fold at 360 dp × font 1.3; scroll to it, then back up to the Unhide chip.
+- scrollUntilVisible:
+    element:
+      text: "Deleted results · .*"
+    direction: DOWN
+    timeout: 10000
 - assertVisible: "Deleted results · .*"
 - takeScreenshot: 21b-hidden-deleted
+- scrollUntilVisible:
+    element:
+      text: "Unhide"
+    direction: UP
+    timeout: 10000
 - tapOn: "Unhide"
 # The state is the proof; the toast is a few seconds long and was gone on the slow 360-dp emulator.
 - extendedWaitUntil:
