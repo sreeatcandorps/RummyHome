@@ -46,7 +46,7 @@ export function ListRow({ title, description, icon, left, right, value, pen, noC
           </View>
         ) : null)}
       <View style={styles.text}>
-        <Text variant="bodyLarge" style={[styles.title, danger && { color: theme.colors.error }]} numberOfLines={1}>
+        <Text variant="bodyLarge" style={[styles.title, danger && { color: theme.colors.error }]} numberOfLines={2}>
           {title}
         </Text>
         {description ? (
@@ -55,6 +55,8 @@ export function ListRow({ title, description, icon, left, right, value, pen, noC
           </Text>
         ) : null}
       </View>
+      {/* Sree, Nov 24: the title gets the room first ("Initials on scorecards" at 360 dp × font 1.3 wraps to
+          two lines rather than being cut); the value takes only what it needs, up to 45 %. */}
       {value !== undefined ? (
         <Text variant="bodyMedium" style={[styles.value, { color: theme.colors.onSurfaceVariant }]} numberOfLines={1}>
           {value}
@@ -109,6 +111,7 @@ const styles = StyleSheet.create({
   },
   value: {
     maxWidth: '45%',
+    flexShrink: 0,
     textAlign: 'right',
   },
 });

@@ -82,3 +82,13 @@ test('Q17 (default, Nov 24): Load / Clear demo data left the Profile; the genera
   // The RPCs stay in the database until a later migration drops them (Q17's note); nothing in the app calls them.
   assert.ok(existsSync(path.join(ROOT, 'supabase/migrations/005_demo_data.sql')));
 });
+
+test('Profile initials row (Sree, Nov 24 3:28 PM PT): the value is just "ST", the title keeps its words and wraps before it is cut', () => {
+  const me = read('app/(tabs)/me.tsx');
+  assert.match(me, /title="Initials on scorecards"\s*\n\s*value=\{initials\}/, 'the value is the initials alone');
+  assert.doesNotMatch(me, /value=\{[^}]*from your name/, 'no "· from your name" suffix in the value');
+  assert.match(me, /accessibilityLabel=\{`Your initials \$\{initials\}\$\{player\.initials \? '' : ', from your name'\}/, 'the screen reader still hears where they come from');
+  const row = read('components/ui/ListRow.tsx');
+  assert.match(row, /\{title\}\s*<\/Text>/);
+  assert.match(row, /styles\.title[^\n]*numberOfLines=\{2\}/, 'the title may take two lines at 360 dp × font 1.3');
+});
