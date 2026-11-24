@@ -184,7 +184,7 @@ node ci/volume/seed-staging.mjs              # full population (SCALE=1); prints
 > is about that size. The dashboard shows it as a "Database is in read-only mode" banner (Settings › Database / Reports).
 > Consequences: every write fails, including `staging.wipe()`. Way out (Supabase docs): in one session
 > `set default_transaction_read_only = 'off'`, then delete / `vacuum`, or upgrade the project to Pro (8 GB). Choice for
-> Sree (Q28 → D79): *"Clear the read-only lock, wipe staging and rerun the seed at half size on the free plan."* So:
+> Sree (Q28 → D86): *"Clear the read-only lock, wipe staging and rerun the seed at half size on the free plan."* So:
 > the generator now (1) runs `set default_transaction_read_only = 'off'` on its session at connect, (2) after
 > `staging.wipe()` does `vacuum (full, analyze)` on the populated tables so the disk is really given back, (3) measures
 > `pg_database_size` and **refuses before seeding** (exit 3) when what this SCALE adds, by `BYTES_PER` in
