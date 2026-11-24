@@ -50,7 +50,7 @@ Same codebase either way.
 | Backend | Supabase (Auth + Postgres + RLS); live project plus **`ezscore-staging`** (Nov 21, same region, migrations only, seeded population, no real people) | Shared multi-user data without a custom server; staging takes the volume tests and the staging APK |
 | My players | `my_players` in `007_redesign.sql` | Per-account roster. Home and New game do not read every profile |
 | Scheduled DB job | **pg_cron** (Supabase extension), enabled on live Nov 15. The 045 job `purge-deleted-games` was **unscheduled the same day** (0 jobs) after Sree's rule that the app never permanently deletes games or results. PR 22 / migration 046 (written, not applied) replaces it with `archive-deleted-games` → `archive_deleted_games()`, 03:15 UTC nightly, non-destructive (`games.archived_at`) | Live has no scheduled job until 046 is applied; `purge_deleted_games()` exists there but nothing calls it |
-| Public scorecard | `https://ezscore.mindweavetech.com/scorecard.html` | Static HTML. `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__` are filled at publish time, not committed |
+| Public scorecard | `https://ezscore.mindweavetech.com/scorecard.html` — Cloudflare Worker `ezscore-site`, deployed by `publish-site.yml` on merge to `main` (Nov 23) | Static HTML inlined in one Worker. `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__` are filled at publish time, not committed |
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
 | Tutorials | `components/tutorial/StepsSheet.tsx` + `expo-haptics` (D61, Nov 20) | Step-by-step sheets drawn from the real components (no video / Lottie); seen-flags on `profiles.default_settings`; the light tap on the real last tap of the Order of players |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
@@ -353,7 +353,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; Clubhouse green design system (Nov 12). Appearance follows the phone by default; Profile › Appearance overrides it |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
-| Public scorecard | Static HTML on ezscore.mindweavetech.com. Placeholders filled by `scripts/inject-scorecard-config.mjs` at publish time. The key is not in git |
+| Public scorecard | Static HTML on ezscore.mindweavetech.com (Worker `ezscore-site`). Publishes itself on merge to `main` (`publish-site.yml`, D83) once the two repo secrets are set; the job checks every live page against the build. The key is not in git |
 | Expo Go local preview | Working |
 | EAS project linked on this PC | Done |
 | EAS env vars for Supabase | Done |
@@ -674,3 +674,15 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   second app (EZ Score · Staging, `.staging` package, own scheme) and `eas.json` a `staging` profile whose anon key is
   an EAS secret; `ci/volume/seed-staging.mjs` generates the §3 population deterministically and refuses every host
   but loopback or the staging ref. Seeding staging and the first staging APK wait for Sree's yes.
+
+### 2026-11-23 — The share site deploys from CI; how the agents work changes (D79–D84)
+- The share site is the Cloudflare Worker **`ezscore-site`** (every page inlined in one module), uploaded by hand
+  until now: the live pages were the Nov 12 build, so shared pool links showed no Standings for eleven days (Q6).
+  New `publish-site.yml` builds the module from `public/` (`scripts/build-site-worker.mjs`), deploys it with
+  **wrangler** on every merge to `main` that touches the site, and `scripts/verify-site.mjs` compares every live page
+  with the build (body hash and an `x-ezscore-build` header naming the commit). The custom domain stays attached in
+  the dashboard; the token needs only Workers Scripts · Edit. Needs two repo secrets before the first publish.
+- Process (Sree's yes to the workflow review): staging seeds / migrations and merges of green, approved-spec PRs are
+  pre-approved (D79, D80); at most three open PRs (D81); a five-line *For Sree* block on every PR and atop
+  `next-up.md`, and on a PR CI keeps the video of each flow the change selected (D82); a bug is fixed when a test
+  proves it (D83); Telugu, phone sign-in and the extra tutorials wait until v1 is live in Play (D84).

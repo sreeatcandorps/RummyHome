@@ -12,6 +12,9 @@
  *
  * Publish dist/* to https://ezscore.mindweavetech.com/ (same paths), together with
  * public/404.html, which forwards /r/<result id> links. Never commit dist/.
+ *
+ * The live site itself is no longer published from this output: .github/workflows/publish-site.yml
+ * builds it with scripts/build-site-worker.mjs on every merge to main.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';

@@ -14,6 +14,10 @@ Before suggesting a design, writing a spec, or building any UI change:
 
 - `main` is the product. Every branch starts from `main`; a stack is at most two PRs deep and short-lived.
 - One PR per feature, opened with the PR template. A UI PR is not done until its **screenshot matrix** (0 / 1 / 5 rounds × 4 / 13 players × portrait / landscape) is in the body.
+- **At most three open PRs at a time** (D81), plan and mockup PRs included. Before opening a fourth, get one merged or fold it into another. A PR made obsolete by a combined PR is closed the same day by the agent that opened it.
+- **Every PR opens with the five-line "For Sree" block** of the template (D82): what he must decide, what a user will notice, how to try it, the risk, what happens after merge. Everything below it is for agents and reviewers.
+- **Try it before the APK** (D82): a UI PR adds or updates the Maestro flow for the screen it changes. On a PR, CI keeps the video of every flow the change selected, and the dashboard comment links them; the "Try it" line points at that video (or says why there is none).
+- **A bug is fixed when a test proves it** (D83): the PR names the test that fails on the parent commit and passes on the PR. When no automated test can see the bug (a frame-level flicker), the PR links the CI video that shows it gone. A bug on something deployed (the share site, a migration) is fixed when the live thing is checked, not when the PR merges.
 - **Small things are batched, never one PR each** (Sree, Nov 21: "Don't make every little thing a PR. When I give you little things, combine all of them into one PR"). Every small fix, copy change or one-screen tweak goes on the **Small fixes batch** list in `rummy-home3/docs/next-up.md` with its diagnosis and, when it has a screen, a mockup; the batch is built as **one** PR when Sree says so. Open a PR of its own only for a feature, a migration, a plan / mockup document, or a live-user bug Sree asks to ship alone.
 - Run `npm run typecheck` and `npm test` in `rummy-home3/` before pushing; update the Maestro flows in `rummy-home3/e2e/` that your change breaks.
 - Update `rummy-home3/docs/architecture-and-timeline.md` when tooling, distribution or a major module changes (see `.cursor/rules/architecture-timeline.mdc`).
@@ -23,11 +27,14 @@ Before suggesting a design, writing a spec, or building any UI change:
 | Action | Who may do it |
 | --- | --- |
 | Open or update a PR, push a branch, run CI | any agent |
-| Merge to `main` | only after Sree says yes to **that** merge |
+| **Pre-approved (D79):** seed or wipe `ezscore-staging`; apply a migration to staging from a branch whose local-DB CI suite passed; rebase, combine, or close a superseded PR the agent opened | any agent, without asking; it is listed under *Shipped* in the next "For Sree" block |
+| **Pre-approved merge (D80):** a PR to `main` with all of: CI green; no migration for the live project; nothing under `rummy-home3/public/` (that publishes itself, D83); and either docs / tests / CI only, or it builds a spec or mockup Sree approved, cited by its D-id, with the screenshot matrix filled | Build Bot merges, without asking; it is listed under *Shipped* |
+| Merge any other PR to `main` | only after Sree says yes to **that** merge |
 | Apply a migration to the live Supabase project | only after Sree says yes to **that** migration, and only from merged `main` after the local-DB CI suite passed |
-| Build or publish an APK / store build | only after Sree says yes to **that** build |
+| Build or publish an APK / store build (any EAS profile) | only after Sree says yes to **that** build |
+| Close one of Sree's issues | only after Sree says yes |
 
-"Finish it", "go ahead" on a different question, or silence is **not** a yes. When in doubt, ask one question with a default and wait.
+"Finish it", "go ahead" on a different question, or silence is **not** a yes. When in doubt, ask one question with a default and wait. When a pre-approved action goes wrong (a seed fails, a merged PR turns `main` red), stop doing that kind of action, say so at the top of the "For Sree" block, and fix it first.
 
 ## Design principles (Sree, Nov 19 2026 — D50)
 
@@ -39,3 +46,5 @@ Before suggesting a design, writing a spec, or building any UI change:
 - Build Bot relays Sree word for word and adds nothing. The builder asks its own questions, few, each with the default it will use if there is no answer.
 - Quote Sree's words in the spec or PR body beside the interpretation, so a misread is visible.
 - Show, then build: a mockup or flowchart before code for anything a user will see.
+- **v1 is cut** (D84): Telugu, phone / WhatsApp sign-in and the extra step-by-step tutorials wait until the app is live in Play. Specs for them may sit as documents; nothing is built.
+- Write the first five lines of anything Sree reads (a PR, `docs/next-up.md`) for Sree: plain sentences, no file paths, the question he must answer first.
