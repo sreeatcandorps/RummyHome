@@ -176,6 +176,16 @@ node ci/volume/seed-staging.mjs              # full population (SCALE=1); prints
 > generator (games are kept while the union of seats fits 50, like a creator would). Timing from this run: results cost
 > ~0.9 s each through the pooler, so scale 1 (3,000 + 120 results, 20,000 games) is **about an hour**; the job timeout is
 > now 150 min. The three finished steps are idempotent (`on conflict do nothing`, deterministic ids): re-run without wipe is safe.
+> **Third run, scale 1, no wipe (run 45295537304, Nov 24 00:14–00:23 UTC, 9 min)**: people 0.4 s (already there),
+> circles 51.8 s, power My players 77.0 s (chunked, 241 owners), then games at ~2,000 per 48 s; at **14,000+ of 18,500**
+> Postgres answered `cannot execute INSERT in a read-only transaction` (SQLSTATE 25006, `PreventCommandIfReadOnly`)
+> inside `staging.make_game`. The generator did nothing wrong: Supabase switches a **Free-plan project to read-only mode
+> when its database passes the 500 MB disk limit**, and ~14,000 games with their rounds/scores on top of run 2's rows
+> is about that size. The dashboard shows it as a "Database is in read-only mode" banner (Settings › Database / Reports).
+> Consequences: every write fails, including `staging.wipe()`. Way out (Supabase docs): in one session
+> `set default_transaction_read_only = 'off'`, then delete / `vacuum`, or upgrade the project to Pro (8 GB). Choice for
+> Sree: (a) scale 0.5 with wipe on — fits Free; or (b) Pro for staging — scale 1 as planned. The wipe path of the
+> generator should also set `default_transaction_read_only = off` for its own session so it can clear a full project.
 # Later, to start over with the same population:  WIPE=1 node ci/volume/seed-staging.mjs
 ```
 

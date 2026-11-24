@@ -11,7 +11,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes. Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-23 08:05 UTC (agent), Sree: all four S screens yes (D66–D69, Sign in with the Joker card), specs §10, palette B (D65), palette options on #111 (Sree Nov 21 2:31 AM), #117 merged with main after #114, combined PR #117 built (Sree 1:21 AM), after #110 merged (`9b92a42`), staging created, Sree's APK v17 pass (icon, header shimmer, three screens, Order of players arrows + table + left of the dealer, Awards chips, Done grey), the batching rule.
+Last updated: 2026-11-24 00:40 UTC (agent). #126 merged (a7018d7). Full seed run 45295537304 failed at 14,000/18,500 games: Postgres read-only (SQLSTATE 25006) = Supabase Free 500 MB disk limit reached → staging is now read-only until space is freed or Pro. Q28 to Sree: scale 0.5 + wipe, or Pro for staging. Nothing built.
 
 ## In flight
 
@@ -51,6 +51,7 @@ here and go into the next batch when he picks.
 | # | Item | Why this order | Size | Needs from Sree |
 | --- | --- | --- | --- | --- |
 | 3 | **Republish the live scorecard page** so shared links show Pool and Standings (Q6) — **confirmed Nov 21: the live page is the Nov 12 build; Sree's "pool link has no standings" is this.** #113 is on main, so the page renders; live still serves the old page — every shared link today is wrong for a pool game. | A live-user bug, zero code. | tiny | yes to Build Bot |
+| 3a | **Staging seed, run 3 (Nov 24)**: scale 1 stopped at 14,000 / 18,500 games — Supabase Free's 500 MB disk limit put `ezscore-staging` in read-only mode (SQLSTATE 25006). Writes, including the wipe, now fail until space is freed (`set default_transaction_read_only = off` then delete / vacuum) or the project is on Pro. **Q28 (Sree)**: (a) scale 0.5 with wipe on, fits Free — default; or (b) Pro for staging, scale 1 as planned. Generator follow-up: the wipe path sets `default_transaction_read_only = off` for its session. | Sree: "Yes, merge and run full." — the full set does not fit the Free plan | small | **Sree**: Q28 |
 | 3b | **Staging, after #116**: seed `ezscore-staging` (Sree's yes), the first staging APK (Sree's yes), then V2 (the app on staging data) once Sree says build. | The project exists; this is the next thing that needs nothing more from him. | medium | the anon key (Build Bot), then "build" |
 | 4 | **Nightly red → green** after #109: re-run the Pixel 7 Pro / 4a / tablet smoke; whatever still fails is a real device bug and gets its own PR. | Keeps the test suite trusted; the three issues close themselves. | small | — |
 | 5 | **Points "left the table"** (Q9, the Points half of D58): admins mark a seat LEFT / BACK in Players · Admins; the column stays, Add round asks no score, the deal and the open card skip the seat (052's rotation already does). Mockup first. | The only place Pool has a state Points lacks; comes up in every long Points night. | medium (migration) | yes to the spec (Q9) |
