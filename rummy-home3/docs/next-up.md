@@ -11,7 +11,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes. Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-23 23:40 UTC (agent). WhatsApp spec PR #124 now carries `flows.md` (architecture + every flow, Mermaid + PNG) after Sree: "I never see a document where I can understand the whole architecture and specs" → D78 makes a spec + flows document the first thing in every feature PR (template + AGENTS.md). Q21/Q22/Q24 answered (D75–D77); Q20, Q23, Q25–Q27 open. #126 (seed: 50-player cap) checks finishing; Volume green. Nothing built.
+Last updated: 2026-11-23 23:40 UTC (agent). WhatsApp spec PR #124 now carries `flows.md` (architecture + every flow, Mermaid + PNG) after Sree: "I never see a document where I can understand the whole architecture and specs" → D85 makes a spec + flows document the first thing in every feature PR (template + AGENTS.md). Q21/Q22/Q24 answered (D75–D77); Q20, Q23, Q25–Q27 open. #126 (seed: 50-player cap) checks finishing; Volume green. Nothing built.
 
 ## In flight
 
