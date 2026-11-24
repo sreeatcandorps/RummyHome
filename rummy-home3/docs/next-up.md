@@ -2,10 +2,10 @@
 
 ## For Sree today
 
-1. **Your yes today:** ① merge #127 (how we work: the pre-approved list, the three-PR limit, parked PRs, the share site that publishes itself); ② when you have two minutes, add the GitHub secrets `CLOUDFLARE_API_TOKEN` and `SITE_SUPABASE_ANON_KEY` so later site changes publish on merge; ③ close #115 and #116 (both folded into #117).
-2. **Shipped:** the share site is live with today's pages (Nov 23, 4:38 PM PT, your yes) — shared pool links show Standings again, checked page by page; the staging seed workflow and its fixes (#123, #125) are on main.
-3. **Next:** staging gets seeded (pre-approved once #127 is in); then the open PRs come down to three — #111, #121 and #126 qualify for a pre-approved merge, #120 once its screenshot matrix is filled.
-4. **Open PRs: 8 counting, limit 3** — #111 #115 #116 #120 #121 #122 #126 #127; parked (still open for discussion, not counted): #112 iPhone, #124 WhatsApp sign-in.
+1. **Your yes today:** ① merge #127 (how we work); ② close #115 and #116 (both folded into #117); ③ merge #111 (design review docs, green) and #129 (staging seed size check, once green); ④ in Play Console, answer the trader-status question (Q7, recommended "not a trader") — the one open item on our side of the Android review.
+2. **Shipped:** the share site is live with today's pages (Nov 23, your yes) — pool links show Standings; staging seed fixes #126 and #128 are on main.
+3. **In progress (three):** #127 how we work · #120 the Size-S redesign of Profile, Settings, Game type and Sign in (green, screenshots in, waits your look) · #122 the emails batch (green, waits your "merge"). Nothing open touches the build Google is reviewing.
+4. **Open PRs: 8 counting, limit 3** — #111 #115 #116 #120 #121 #122 #127 #129; **parked** (open for discussion, no work): #112 iPhone, #124 WhatsApp sign-in. Steps ② and ③ bring it to four, and #121 (docs) to three once it is rebased.
 5. **Waiting on others:** Google's Play review; Apple enrolment needs the Candor PS D-U-N-S number.
 
 (Everything below is the detail the agents keep. The block above is rewritten every turn, five lines at most — D83.)
@@ -23,7 +23,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes, except the pre-approved list in `AGENTS.md` → Authority (D80 staging, D81 merges). Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-24 00:40 UTC (agent), the workflow review (D80–D85): For Sree block, v1 cut, share site self-publishing; before that 2026-11-23 08:05 UTC, Sree: all four S screens yes (D66–D69, Sign in with the Joker card), specs §10, palette B (D65), palette options on #111 (Sree Nov 21 2:31 AM), #117 merged with main after #114, combined PR #117 built (Sree 1:21 AM), after #110 merged (`9b92a42`), staging created, Sree's APK v17 pass (icon, header shimmer, three screens, Order of players arrows + table + left of the dealer, Awards chips, Done grey), the batching rule.
+Last updated: 2026-11-24 02:45 UTC (agent): open PRs sorted for Sree, WhatsApp parked (his words), #127 merged with main (its decisions renumbered D80–D85 because #128 took D79). Before that 01:10 UTC: Q28 answered (D79), #128 merged. 00:40 UTC: the workflow review (D80–D85). 2026-11-23 08:05 UTC: all four S screens yes (D66–D69), palette B (D65), #117 merged.
 
 ## In flight
 
@@ -64,8 +64,9 @@ here and go into the next batch when he picks.
 | # | Item | Why this order | Size | Needs from Sree |
 | --- | --- | --- | --- | --- |
 | 3 | **The share site publishes itself on merge** (D84) — today's pages went live by hand on Nov 23 (Sree's yes); #127 makes every later merge that touches `public/` deploy and check itself. | So the live site can never drift from `main` again. | tiny | merge + the two secrets |
+| 3a | **Staging seed, run 3 (Nov 24)**: scale 1 stopped at 14,000 / 18,500 games — Supabase Free's 500 MB limit put `ezscore-staging` in read-only mode (SQLSTATE 25006). **Q28 answered → D79**: "Clear the read-only lock, wipe staging and rerun the seed at half size on the free plan." **PR #128** (generator: session read-only off, wipe + VACUUM FULL, pre-run size estimate that refuses, 95 % stop; workflow default scale 0.5, `size_limit_mb` input). Then: Build Bot runs *Seed staging* with wipe **on**, scale **0.5**, size_limit_mb 500 (~30 min). | Sree D79 | small | — (#128 merged Nov 24; #129 calibrates the size estimate, merges under D81 when green) |
 | 3b | **Seed staging** (`Seed staging` workflow, pre-approved by D80 once #127 is in), then the first staging APK (Sree's yes), then V2 (the app on staging data) once Sree says build. | The project and the workflow exist; seeding no longer waits. | medium | — (seed); yes (APK) |
-| 3c | **Open PRs down to three** (D82): close #115 / #116 (superseded); merge #111, #121, #126 under D81 and #120 once its matrix is filled; #112 (iPhone) and #124 (WhatsApp sign-in) are **parked** — open for discussion, not counted. | Ten open PRs is the rebase-and-recheck overhead the limit removes. | tiny | close #115 / #116 |
+| 3c | **Open PRs down to three** (D82): close #115 / #116 (superseded); merge #111 (docs) and #129 (seed size) under D81 / Sree's yes; #121 (docs) rebased on main and merged; then the three in progress are #120, #122, #127. #112 (iPhone) and #124 (WhatsApp sign-in) are **parked**. | Fewer open PRs, less rebase-and-recheck. | tiny | close #115 / #116 |
 | 4 | **Nightly red → green** after #109: re-run the Pixel 7 Pro / 4a / tablet smoke; whatever still fails is a real device bug and gets its own PR. | Keeps the test suite trusted; the three issues close themselves. | small | — |
 | 5 | **Points "left the table"** (Q9, the Points half of D58): admins mark a seat LEFT / BACK in Players · Admins; the column stays, Add round asks no score, the deal and the open card skip the seat (052's rotation already does). Mockup first. | The only place Pool has a state Points lacks; comes up in every long Points night. | medium (migration) | yes to the spec (Q9) |
 | 6 | **Unsaved-players dialog button** (Q3): B "Done · keep the 1 saved". | Tiny, already answered in the question. | tiny | confirm B |
@@ -82,7 +83,7 @@ here and go into the next batch when he picks.
 | PR | What | Un-park when |
 | --- | --- | --- |
 | #112 | iPhone plan: eight steps, who does each; the `app.json` iOS block | Candor PS is enrolled with Apple (D-U-N-S) |
-| #124 | WhatsApp sign-in: spec and mockups | v1 is live in Play (D85) |
+| #124 | WhatsApp sign-in: spec and mockups | the Android app is approved and live in Play (D85; Sree, Nov 23: "it's a lot of work … I want to be sure that the Android app is getting approved") |
 
 ## After v1 is live in Play (D85 — not built before then)
 

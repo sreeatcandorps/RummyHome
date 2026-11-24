@@ -6,8 +6,13 @@
 # can never touch live. The URL is a GitHub secret: masked in logs, never echoed by this workflow or the script.
 #
 # Inputs:
-#   wipe   — "true" removes everything a previous seed created (staging.wipe()) before seeding again.
-#   scale  — fraction of the full population (1 = full set, ~10 min; 0.05 = a quick smoke of the generator).
+#   wipe   — "true" removes everything a previous seed created (staging.wipe()) before seeding again, then VACUUM FULLs
+#            the big tables so the disk is given back. The script first turns Supabase's read-only mode off for its own
+#            session, so a wipe works on a Free project that has hit its 500 MB limit (run 45295537304, Nov 24).
+#   scale  — fraction of the full population. 0.5 (default) is what fits the Free plan (≈ 350 MB, ~30 min);
+#            1 is the full set (≈ 700 MB — Pro only, ~1 h); 0.1 = 5–6 min; 0.05 = a quick smoke of the generator.
+#   size_limit_mb — the plan's disk limit (500 = Free). The script measures the database, refuses before seeding when the
+#            estimate for the scale would land within 10 % of it, and stops at 95 % while seeding. 0 turns the check off.
 # Output: ci/out/staging-seed/summary.json (counts + the staging test sign-in from the run-book; no keys, no URL) as the
 #         artifact "staging-seed-summary" and in the job summary.
 name: Seed staging
@@ -21,9 +26,14 @@ on:
         default: false
         type: boolean
       scale:
-        description: Population scale (1 = full set)
+        description: Population scale (0.5 fits the Free plan; 1 = full set, Pro only)
         required: false
-        default: '1'
+        default: '0.5'
+        type: string
+      size_limit_mb:
+        description: Disk limit of the plan in MB (500 = Free, 0 = no check)
+        required: false
+        default: '500'
         type: string
 
 permissions:
@@ -37,7 +47,7 @@ jobs:
   seed:
     name: Seed ezscore-staging (wipe=${{ inputs.wipe }}, scale=${{ inputs.scale }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 150   # the 10 % run (Nov 23) took 5.6 min with results at ~0.9 s each; scale 1 is ~55–60 min through the pooler, 0.5 about half
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,6 +71,7 @@ jobs:
           DB_URL: ${{ secrets.STAGING_DB_URL }}
           WIPE: ${{ inputs.wipe && '1' || '' }}
           SCALE: ${{ inputs.scale }}
+          SIZE_LIMIT_MB: ${{ inputs.size_limit_mb }}
           OUT: ci/out/staging-seed
         run: node ci/volume/seed-staging.mjs
       - name: Summary

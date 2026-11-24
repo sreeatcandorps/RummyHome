@@ -98,3 +98,40 @@ test('Seed staging generator: cannot hang silently (keepalive, client-side query
   assert.match(gen, /… games/);
   assert.match(sql, /function staging\.know_each_other_from\(p_owners uuid\[\], p_members uuid\[\]\)/);
 });
+
+test('Seed staging generator: a result never exceeds the app cap of 50 players; the job has time for the full set', () => {
+  const gen = src('../ci/volume/seed-staging.mjs');
+  assert.match(gen, /RESULT_PLAYER_CAP = 50/);
+  assert.match(gen, /fitResultPlayers\(client, gameIds\.slice\(0, maxGames\)\)/);
+  const wf = src('../.github/workflows/seed-staging.yml');
+  const minutes = Number(/timeout-minutes:\s*(\d+)/.exec(wf)?.[1]);
+  assert.ok(minutes >= 120, `timeout-minutes ${minutes} is too short for scale 1 (~1 h)`);
+});
+
+test('Seed staging generator: fits the plan before it starts (Free 500 MB; run 45295537304 went read-only at 14,000 games)', async () => {
+  const cfg = await import('../../ci/volume/seed-staging-config.mjs');
+  assert.equal(cfg.FREE_PLAN_MB, 500);
+  const sizes = (scale: number) => Object.fromEntries(Object.entries(cfg.SIZES).map(([k, v]) => [k, Math.max(1, Math.round((v as number) * scale))]));
+  // SIZES is read at import with SCALE=1 (no env in the test), so scaling it here is the same shape the driver sees.
+  const full = cfg.sizeVerdict({ currentBytes: 40 * cfg.MB, S: cfg.SIZES, limitMb: 500 });
+  assert.equal(full.fits, false, 'scale 1 is refused on Free');
+  assert.ok(full.addMb >= 600 && full.addMb <= 800, `scale 1 ≈ 700 MB, got ${full.addMb} (run 3: 500 MB at ~16k of 21.5k games)`);
+  const half = cfg.sizeVerdict({ currentBytes: 40 * cfg.MB, S: sizes(0.5), limitMb: 500 });
+  assert.equal(half.fits, true, `scale 0.5 fits Free: ${half.message}`);
+  assert.ok(half.finalMb <= 400, `scale 0.5 leaves headroom, got ${half.finalMb} MB`);
+  assert.equal(cfg.sizeVerdict({ currentBytes: 480 * cfg.MB, S: sizes(0.02), limitMb: 500 }).fits, false, 'a nearly full project is refused even for a tiny seed');
+  assert.equal(cfg.sizeVerdict({ currentBytes: 900 * cfg.MB, S: cfg.SIZES, limitMb: 0 }).fits, true, 'limit 0 turns the check off (Pro, local)');
+  assert.equal(cfg.sizeVerdict({ currentBytes: 40 * cfg.MB, S: cfg.SIZES, limitMb: 8000 }).fits, true, 'Pro (8 GB) takes the full set');
+  assert.match(half.message, /fits 500 MB/);
+
+  const gen = src('../ci/volume/seed-staging.mjs');
+  assert.match(gen, /set default_transaction_read_only = 'off'/, 'the wipe can run on a project Supabase has made read-only');
+  assert.match(gen, /vacuum \(full, analyze\)/, 'the disk is given back after a wipe');
+  assert.match(gen, /process\.exit\(3\)/, 'refuses before seeding when the estimate does not fit');
+  assert.match(gen, /sizeGuard\(client, `\$\{ids\.length\.toLocaleString\(\)\} games`\)/, 'stops while games are written, before the limit');
+  assert.match(gen, /SIZE_LIMIT_MB \* MB \* 0\.95/);
+  const wf = src('../.github/workflows/seed-staging.yml');
+  assert.match(wf, /SIZE_LIMIT_MB: \$\{\{ inputs\.size_limit_mb \}\}/);
+  assert.match(wf, /size_limit_mb:\n[^\n]*\n[^\n]*\n\s+default: '500'/);
+  assert.match(wf, /scale:\n[^\n]*\n[^\n]*\n\s+default: '0\.5'/, 'the default scale is the one that fits Free');
+});

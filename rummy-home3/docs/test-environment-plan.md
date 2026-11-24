@@ -169,13 +169,35 @@ node ci/volume/seed-staging.mjs              # full population (SCALE=1); prints
 > so the socket had died (no keepalive; the transaction pooler does not carry startup parameters). Fixed in the
 > generator: TCP keepalive, a client-side `query_timeout` that fails instead of hanging, the big insert chunked by
 > owner with progress lines, progress every 2,000 games. **Use the session pooler URL (port 5432) for the secret.**
-> The three finished steps are idempotent (`on conflict do nothing`, deterministic ids): re-run without wipe is safe.
+> **Second run, scale 0.1, session pooler (run 45278894409)**: all steps ran and reported — people 0.2 s, circles 4.6 s,
+> placeholders 1.4 s, power My players 0.8 s, 1,850 games 58.6 s, 150 power games 3.4 s, live 0.1 s, 300 results 260.9 s —
+> then "power user: 120 results" failed on the app's own guardrail, `Results can include at most 50 players`: the power
+> user's games draw from a 60-person pool and a result of up to 30 of them had more than 50 distinct players. Fixed in the
+> generator (games are kept while the union of seats fits 50, like a creator would). Timing from this run: results cost
+> ~0.9 s each through the pooler, so scale 1 (3,000 + 120 results, 20,000 games) is **about an hour**; the job timeout is
+> now 150 min. The three finished steps are idempotent (`on conflict do nothing`, deterministic ids): re-run without wipe is safe.
+> **Third run, scale 1, no wipe (run 45295537304, Nov 24 00:14–00:23 UTC, 9 min)**: people 0.4 s (already there),
+> circles 51.8 s, power My players 77.0 s (chunked, 241 owners), then games at ~2,000 per 48 s; at **14,000+ of 18,500**
+> Postgres answered `cannot execute INSERT in a read-only transaction` (SQLSTATE 25006, `PreventCommandIfReadOnly`)
+> inside `staging.make_game`. The generator did nothing wrong: Supabase switches a **Free-plan project to read-only mode
+> when its database passes the 500 MB disk limit**, and ~14,000 games with their rounds/scores on top of run 2's rows
+> is about that size. The dashboard shows it as a "Database is in read-only mode" banner (Settings › Database / Reports).
+> Consequences: every write fails, including `staging.wipe()`. Way out (Supabase docs): in one session
+> `set default_transaction_read_only = 'off'`, then delete / `vacuum`, or upgrade the project to Pro (8 GB). Choice for
+> Sree (Q28 → D79): *"Clear the read-only lock, wipe staging and rerun the seed at half size on the free plan."* So:
+> the generator now (1) runs `set default_transaction_read_only = 'off'` on its session at connect, (2) after
+> `staging.wipe()` does `vacuum (full, analyze)` on the populated tables so the disk is really given back, (3) measures
+> `pg_database_size` and **refuses before seeding** (exit 3) when what this SCALE adds, by `BYTES_PER` in
+> `seed-staging-config.mjs` (≈ 33 KB a game), would land within 10 % of `SIZE_LIMIT_MB` (default 500 = Free; 0 = off),
+> (4) checks the size after every step and every 2,000 games and **stops at 95 %** with a plain message instead of
+> letting Supabase lock the project, (5) prints the measured KB per game so the constants can be re-tuned. Estimates:
+> scale 1 ≈ +690 MB (Pro only), **scale 0.5 ≈ +345 MB (fits Free, the workflow default)**, 0.1 ≈ +70 MB.
 # Later, to start over with the same population:  WIPE=1 node ci/volume/seed-staging.mjs
 ```
 
 **Or from GitHub (Nov 23, the way it is actually run — Build Bot's box cannot open Postgres connections):** add the repo
 secret `STAGING_DB_URL` (the ezscore-staging transaction-pooler URI, Settings › Secrets and variables › Actions), then
-Actions › **Seed staging** › *Run workflow*: `wipe` on to start over, `scale` 1 for the full set. The summary is the
+Actions › **Seed staging** › *Run workflow*: `wipe` on to start over, `scale` 0.5 (default) for what fits the Free plan — 1 only on Pro — and `size_limit_mb` 500 (Free) / 8000 (Pro) / 0 (no check). The summary is the
 `staging-seed-summary` artifact and the job summary; the URL is a masked secret and is never printed.
 
 The URL carries the password: type it in the terminal, do not paste it into a file, a chat or an issue. The summary

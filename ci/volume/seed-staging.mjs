@@ -14,7 +14,13 @@
  *
  * Env: DB_URL   connection string (never printed)
  *      SCALE    0 < SCALE <= 1, scales every count (default 1). Minimums keep the shape at any scale.
- *      WIPE=1   remove everything this script created (people, guests, games, results) before seeding.
+ *      WIPE=1   remove everything this script created (people, guests, games, results) before seeding, then
+ *               VACUUM FULL the big tables so the disk is really given back (a Free project in read-only mode
+ *               needs that to come out of it).
+ *      SIZE_LIMIT_MB  the plan's disk limit (default 500, Supabase Free). Before seeding the script measures the
+ *               database and refuses when the estimate for this SCALE would land within 10 % of it; while seeding
+ *               it stops at 95 % instead of letting Supabase switch the project to read-only (run 45295537304).
+ *               0 turns both checks off (Pro, local).
  *      OUT      where summary.json goes (default ci/out/staging-seed)
  *
  * Seeding staging itself waits for Sree's yes (Q12); this script is the generator, not the trigger.
@@ -24,12 +30,29 @@ import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { performance } from 'node:perf_hooks';
-import { allowedTarget, SCALE, SIZES, STAGING_REF } from './seed-staging-config.mjs';
+import { allowedTarget, FREE_PLAN_MB, MB, SCALE, SIZES, STAGING_REF, sizeVerdict } from './seed-staging-config.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = process.env.OUT ?? path.join(HERE, '..', 'out', 'staging-seed');
 const DB_URL = process.env.DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
 const WIPE = process.env.WIPE === '1';
+const SIZE_LIMIT_MB = Number(process.env.SIZE_LIMIT_MB ?? FREE_PLAN_MB);
+
+/** Tables the population fills; VACUUM FULL after a wipe rewrites them compactly so the disk is given back. */
+const HEAVY = ['scores', 'rounds', 'game_players', 'games', 'my_players', 'event_log', 'game_result_games', 'result_versions', 'game_results', 'player_links', 'profiles'];
+
+async function dbBytes(client) {
+  return Number((await client.query('select pg_database_size(current_database())::bigint as b')).rows[0].b);
+}
+/** Stops the run while the project can still be written to: Supabase flips a Free project to read-only at the limit. */
+async function sizeGuard(client, where) {
+  if (SIZE_LIMIT_MB <= 0) return 0;
+  const bytes = await dbBytes(client);
+  if (bytes > SIZE_LIMIT_MB * MB * 0.95) {
+    throw new Error(`stopping at ${where}: the database is ${Math.round(bytes / MB)} MB, within 5 % of the ${SIZE_LIMIT_MB} MB limit. Wipe and rerun at a smaller SCALE, or raise SIZE_LIMIT_MB on a bigger plan.`);
+  }
+  return bytes;
+}
 
 const POWER = 1; // person #1 is "Sree at scale"
 const MONTHS = 18;
@@ -57,12 +80,14 @@ const guestId = (owner, g) => `d${owner.toString(16).padStart(7, '0')}-0000-4000
 const daysAgo = (d, minutes = 0) => new Date(Date.now() - d * 86400000 - minutes * 60000).toISOString();
 
 const steps = [];
+let stepClient = null;
 async function step(name, fn) {
   const t0 = performance.now();
   const out = await fn();
   const ms = Math.round(performance.now() - t0);
-  steps.push({ name, ms, out: typeof out === 'number' ? out : undefined });
-  console.log(`${name}${typeof out === 'number' ? ` → ${out.toLocaleString()}` : ''} (${(ms / 1000).toFixed(1)} s)`);
+  const bytes = stepClient ? await sizeGuard(stepClient, name) : 0;
+  steps.push({ name, ms, out: typeof out === 'number' ? out : undefined, dbMb: bytes ? Math.round(bytes / MB) : undefined });
+  console.log(`${name}${typeof out === 'number' ? ` → ${out.toLocaleString()}` : ''} (${(ms / 1000).toFixed(1)} s${bytes ? `, db ${Math.round(bytes / MB)} MB` : ''})`);
   return out;
 }
 
@@ -149,9 +174,28 @@ async function makeGames(client, recipes) {
       [JSON.stringify(batch)],
     );
     ids.push(...res.rows.map((r) => r.id));
-    if ((i / 200) % 10 === 9 && i + 200 < recipes.length) console.log(`  … games ${ids.length.toLocaleString()} / ${recipes.length.toLocaleString()}`);
+    if ((i / 200) % 10 === 9 && i + 200 < recipes.length) {
+      const bytes = await sizeGuard(client, `${ids.length.toLocaleString()} games`);
+      console.log(`  … games ${ids.length.toLocaleString()} / ${recipes.length.toLocaleString()}${bytes ? ` · db ${Math.round(bytes / MB)} MB` : ''}`);
+    }
   }
   return ids;
+}
+
+const RESULT_PLAYER_CAP = 50;
+async function fitResultPlayers(client, gameIds) {
+  const seats = (await client.query('select game_id, profile_id from public.game_players where game_id = any($1::uuid[])', [gameIds])).rows;
+  const byGame = new Map(gameIds.map((id) => [id, []]));
+  for (const row of seats) byGame.get(row.game_id)?.push(row.profile_id);
+  const players = new Set();
+  const picked = [];
+  for (const id of gameIds) {
+    const next = new Set([...players, ...byGame.get(id)]);
+    if (next.size > RESULT_PLAYER_CAP) { if (picked.length) break; else continue; }
+    picked.push(id);
+    for (const p of next) players.add(p);
+  }
+  return picked.length ? picked : gameIds.slice(0, 1);
 }
 
 /** Results through the real RPCs as the creator: awards first for pools, then declare; 3 % deleted and restored. */
@@ -164,8 +208,11 @@ async function declareResults(client, creator, gameIds, { maxGames = 30 } = {}) 
       await client.query('select public.set_pool_awards($1, $2::jsonb, $3::jsonb)', [id, JSON.stringify(awards), JSON.stringify({ presetLabel: 'Winner takes all' })]);
     }
   });
+  // The app refuses a result with more than 50 distinct players (008_results). Keep the games whose seats fit, in order,
+  // like a creator would: the 10 % staging run (Nov 23) tripped this with the power user's 60-person pool.
+  const picked = await fitResultPlayers(client, gameIds.slice(0, maxGames));
   return asUser(client, creator, async () => {
-    const r = await client.query('select public.declare_game_result($1::uuid[]) as r', [gameIds.slice(0, maxGames)]);
+    const r = await client.query('select public.declare_game_result($1::uuid[]) as r', [picked]);
     const resultId = r.rows[0].r.id ?? r.rows[0].r.resultId ?? r.rows[0].r;
     if (rand() < 0.03) {
       await client.query('select public.delete_result($1)', [resultId]);
@@ -199,10 +246,30 @@ async function main() {
   const client = new pg.Client({ connectionString: DB_URL, statement_timeout: 600_000, query_timeout: 900_000, keepAlive: true, keepAliveInitialDelayMillis: 5_000 });
   await client.connect();
   await client.query("set statement_timeout = '600s'").catch(() => {}); // honoured on the session pooler / direct; a no-op through the transaction pooler
+  // Supabase puts a Free project past its disk limit into read-only mode by setting default_transaction_read_only on;
+  // the documented way out is to turn it off for one session, delete, and vacuum. Harmless on a project that is not.
+  await client.query("set default_transaction_read_only = 'off'");
   const t0 = performance.now();
+  stepClient = client;
   try {
     await client.query(readFileSync(path.join(HERE, 'seed-staging.sql'), 'utf8'));
-    if (WIPE) await step('wipe previous population', async () => (await client.query('select staging.wipe() as n')).rows[0].n);
+    if (WIPE) {
+      stepClient = null; // the wipe is allowed to run on a full database; the guard starts after it
+      await step('wipe previous population', async () => (await client.query('select staging.wipe() as n')).rows[0].n);
+      await step('vacuum full (give the disk back)', async () => {
+        for (const t of [...HEAVY.map((t) => `public.${t}`), 'auth.users']) {
+          await client.query(`vacuum (full, analyze) ${t}`).catch((e) => console.log(`  (vacuum ${t} skipped: ${e.message})`));
+        }
+      });
+      stepClient = client;
+    }
+    const verdict = sizeVerdict({ currentBytes: await dbBytes(client), S, limitMb: SIZE_LIMIT_MB });
+    console.log(`# size: ${verdict.message}`);
+    if (!verdict.fits) {
+      console.error(`Refusing: this SCALE does not fit the ${SIZE_LIMIT_MB} MB plan (run 45295537304 filled the Free project at 14,000 games and it went read-only). Use a smaller SCALE, wipe first, or set SIZE_LIMIT_MB for a bigger plan.`);
+      await client.end();
+      process.exit(3);
+    }
     await guards(client, false);
 
     const circles = buildCircles(S);
@@ -243,7 +310,10 @@ async function main() {
         while ((r -= weights[k]) > 0) k++;
         recipes.push(gameRecipe(circles[k]));
       }
+      const before = await dbBytes(client);
       const ids = await makeGames(client, recipes);
+      const perGame = (await dbBytes(client) - before) / Math.max(1, ids.length);
+      console.log(`  measured ≈ ${(perGame / 1024).toFixed(1)} KB a game (BYTES_PER.game in seed-staging-config.mjs is the estimate)`);
       // 0.5 % reopened once (completed → active → completed), so the log shows it.
       const reopened = sample(ids, Math.max(1, Math.round(ids.length * 0.005)));
       await client.query(`update public.games set status = 'active', completed_at = null where id = any($1::uuid[]) and deleted_at is null`, [reopened]);
@@ -349,8 +419,9 @@ async function main() {
            (select count(*) from public.games where created_by = $1) as power_games,
            (select count(*) from public.game_results where declared_by = $1 and deleted_at is null) as power_results,
            (select count(*) from public.event_log) as log_rows`, [personId(POWER)])).rows[0];
+  const dbMb = Math.round(await dbBytes(client) / MB);
   await client.end();
-  const summary = { scale: SCALE, sizes: S, seconds: Math.round((performance.now() - t0) / 100) / 10, steps, counts, powerUser: { email: 'sree.koneru.1@staging.test', passcode: '123456' } };
+  const summary = { scale: SCALE, sizes: S, dbMb, sizeLimitMb: SIZE_LIMIT_MB, seconds: Math.round((performance.now() - t0) / 100) / 10, steps, counts, powerUser: { email: 'sree.koneru.1@staging.test', passcode: '123456' } };
   writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(summary, null, 2));
   console.log(`# done in ${summary.seconds} s`);
   console.log(JSON.stringify(counts));
