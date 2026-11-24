@@ -10,7 +10,7 @@ tags: [nightly]
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Results"
 - extendedWaitUntil:
-    visible: "Show results"
+    visible: "Select .*games"
     timeout: 15000
 - runFlow:
     when:
@@ -19,7 +19,13 @@ tags: [nightly]
     commands:
       - tapOn:
           id: "game-card-GAMEG1"
-- tapOn: "Show results"
+- scrollUntilVisible:
+    element:
+      id: "show-results"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "show-results"
 - extendedWaitUntil:
     visible: "Scores"
     timeout: 20000
