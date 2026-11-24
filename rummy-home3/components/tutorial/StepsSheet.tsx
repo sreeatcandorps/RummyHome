@@ -7,17 +7,15 @@ import { stepCounter, TUTORIAL_BACK, TUTORIAL_DONE, TUTORIAL_NEXT, TutorialStep 
 
 /**
  * The step-by-step sheet (D61): a title, "n of N", one step at a time — its heading, a looping demo
- * drawn by the caller, one line of text — and Back / Next, Got it on the last step. `forced` is the
- * first-time run: no tap outside, no Cancel, the only way out is through the steps (Sree: "force
- * them to see it the first time"). Opened again later (Show me, Help › Watch how) it can be dismissed.
+ * drawn by the caller, one line of text — and Back / Next, Got it on the last step. Opened on request
+ * only (Show me, Help › Watch how) and dismissable; D74 removed D61's first-time run that could not be tapped away.
  */
-export function StepsSheet({ visible, title, steps, renderDemo, forced = false, onDone, testID = 'steps-sheet' }: {
+export function StepsSheet({ visible, title, steps, renderDemo, onDone, testID = 'steps-sheet' }: {
   visible: boolean;
   title: string;
   steps: readonly TutorialStep[];
   /** The demo for one step; it should loop on its own while mounted. */
   renderDemo: (step: number) => React.ReactNode;
-  forced?: boolean;
   onDone: () => void;
   testID?: string;
 }) {
@@ -29,7 +27,7 @@ export function StepsSheet({ visible, title, steps, renderDemo, forced = false, 
   if (!current) return null;
   return (
     <Portal>
-      <Dialog visible={visible} onDismiss={forced ? undefined : onDone} dismissable={!forced} testID={testID}>
+      <Dialog visible={visible} onDismiss={onDone} testID={testID}>
         <Dialog.Title testID={`${testID}-title`}>{title}</Dialog.Title>
         <Dialog.Content style={styles.content}>
           <View style={styles.head}>
