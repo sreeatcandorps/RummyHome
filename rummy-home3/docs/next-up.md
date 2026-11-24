@@ -2,10 +2,10 @@
 
 ## For Sree today
 
-1. **Your yes today:** ① merge #127 (how we work) once its CI is green — it is the PR that turns the automatic merges on, so it is the last of its kind that waits on you; a PR that changes the rules themselves always will (D80); ② in Play Console, answer the trader-status question (Q7, recommended "not a trader") — the one open item on our side of the Android review.
-2. **Shipped:** the share site is live with today's pages (Nov 23, your yes) — pool links show Standings; staging is seeded at half scale (#128); #111, #115, #116 and #121 are closed (folded into #129 or superseded).
-3. **In progress (three):** #127 how we work · #120 the Size-S redesign of Profile, Settings, Game type and Sign in (green, screenshots in) · #122 the emails batch (green). Both #120 and #122 merge under D80 once #127 is in, unless you want to look first. Nothing open touches the build Google is reviewing.
-4. **Open PRs: 4 counting, limit 3** — #120 #122 #127, plus #129 (docs only; merges right after #127 under D80). **Parked** (open for discussion, no work): #112 iPhone, #124 WhatsApp sign-in — until the Android app is approved.
+1. **Your yes today** — three things, each explained on the new page [`how-we-work.md`](how-we-work.md): ① add the two repo secrets (step by step in its §5); ② look at the Size S pictures (§6), then "merge #120" or what to change; ③ look at the new e-mail (§6), then "yes, switch the e-mails" (#122's live sender name) or what to change.
+2. **Done:** #127 merged Nov 23, so the new rules are on; the share site is live with today's pages; staging is seeded at half size (390 of 500 MB). Trader status was already "not a trader" (Sree set it long ago); this list was wrong, now fixed.
+3. **In progress:** #120 Size S (green; waits for ① and ②) · #122 e-mails (green; Build Bot merging it under D80 on Sree's "Yes, merge qualifying green PRs without asking me"; the live switch waits for ③) · #129 docs (being rebased; merges by itself).
+4. **Open PRs:** three counting (#120, #122, #129), plus the docs PR for `how-we-work.md` that Sree asked for (merges by itself). **Parked**, no work: #112 iPhone, #124 WhatsApp sign-in.
 5. **Waiting on others:** Google's Play review; Apple enrolment needs the Candor PS D-U-N-S number.
 
 (Everything below is the detail the agents keep. The block above is rewritten every turn, five lines at most — D82.)
@@ -23,14 +23,14 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes, except the pre-approved list in `AGENTS.md` → Authority (D79 staging, D80 merges). Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-24 02:40 UTC (agent): Sree asked why #127 waits on him — it creates the automatic-merge rule, and a PR that changes the rules always needs his yes (now written into D80). Earlier: open PRs sorted for Sree; WhatsApp parked until the Android app is approved (his words); #111, #115, #116, #121 closed and folded into #129 by the other builder; main merged into #127, which keeps D79–D84 while main's staging decision becomes D86 (the same relabel #129 makes). Before that 01:10 UTC: Q28 answered (D86), #128 merged. 00:40 UTC: the workflow review (D79–D84). 2026-11-23 08:05 UTC: all four S screens yes (D66–D69), palette B (D65), #117 merged.
+Last updated: 2026-11-24 05:45 UTC (agent): Sree asked for one page with the rules, who does what and what is next → `how-we-work.md`, with the Size S and e-mail pictures in `for-sree/` so they open without a Cursor login; Q7 trader status was already done; #127 merged 03:30 UTC. 02:40 UTC: Sree asked why #127 waits on him — it creates the automatic-merge rule, and a PR that changes the rules always needs his yes (D80). Earlier: open PRs sorted for Sree; WhatsApp parked until the Android app is approved (his words); #111, #115, #116, #121 closed and folded into #129 by the other builder; main merged into #127, which keeps D79–D84 while main's staging decision becomes D86 (the same relabel #129 makes). Before that 01:10 UTC: Q28 answered (D86), #128 merged. 00:40 UTC: the workflow review (D79–D84). 2026-11-23 08:05 UTC: all four S screens yes (D66–D69), palette B (D65), #117 merged.
 
 ## In flight
 
 | # | Item | Where | Waiting on |
 | --- | --- | --- | --- |
-| 1 | **How we work (D79–D84)** — pre-approved staging actions and merges, at most three open PRs, five lines for Sree on every PR and here, CI keeps the video of each flow a PR touches, a bug is fixed when a test proves it, the share site builds / deploys / checks itself on merge, v1 cut. | #127 | **Sree**: merge; add `CLOUDFLARE_API_TOKEN` (Workers Scripts · Edit) and `SITE_SUPABASE_ANON_KEY` as repo secrets |
-| 2 | **Google Play review** — **in #117**: D63 icon set of AAB 15 (internal testing). | Play Console | Google; **Sree**: Q7 trader status |
+| 1 | **How we work, one page** — Sree, Nov 23: "Do you think you can create a nice document from all of these PRs so I can easily see what I should expect next? … with all the rules, so we can see what the rules are and what we're going to follow from now." `how-we-work.md`: what Sree does now, who is who and where to talk, the rules in plain words, every open item, the two secrets step by step, before / after pictures of #120 and the #122 e-mail. Docs only. | this PR | merges by itself (D80) once green |
+| 2 | **Google Play review** — **in #117**: D63 icon set of AAB 15 (internal testing). | Play Console | Google (trader status done: "not a trader") |
 | 2a | **Design review 2** — Sree: "Go with Small now, mockups first" (Q11). Mockups of Profile / Settings / Game type / Sign in as grouped lists, light + dark, on the PR. **Colour** (Sree 2:31 AM: "Are we also doing any color changes?"): §9 puts three palettes on the same four screens, light + dark — A current, **B Felt & Brass (recommended)**, C Ink & Marigold. **Nov 23 — Sree: "Palette B" (D65), "Yes to the Profile redesign" (D66, spec §10.1), "Yes to the Settings redesign" (D67, spec §10.2), "Yes to the Game type redesign" (D68, spec §10.3), Sign in "the redesign is good, but … just get the Joker card" + keep the eye (D69, spec §10.4, re-mocked with an original bridge-size Joker)**; all four approved; "Mockups only, no building yet". | PR #111 | **Sree**: "build" for the first S PR (tokens D65 + Profile, Settings, Game type, Sign in); his look at the new Joker card; then "build" (one PR for Profile, or one for all four) |
 | 2b | **iPhone plan** — eight steps; Sree: enrol as **Candor PS** (D62). | PR #112 | **Sree**: the enrolment itself (D-U-N-S for Candor PS) |
 | 2e | **Volume V1 on 052** — 20 new ladder rows, 137/137 pass, `volume` job nightly. Rebased on main after #110. | PR #114 | CI green, then Build Bot merges (Sree's yes stands) |
@@ -97,6 +97,7 @@ here and go into the next batch when he picks.
 
 | When | What | PR |
 | --- | --- | --- |
+| Nov 23 | How we work: pre-approved staging actions and merges, three open PRs, five lines for Sree, share site publishes itself (waits for the two secrets), v1 cut (D79–D84) | #127 |
 | Nov 23 | Share site republished from `main` (`a7018d7`): every page checked live, pool links show Standings (Q6 closed) | — (Sree's yes) |
 | Nov 23 | Seed staging as a manual GitHub workflow, then keepalive + chunked seeding | #123, #125 |
 | Nov 21 | Web scorecard page fixed (TDZ since PR 14) + a test that executes the page script | #113 |
