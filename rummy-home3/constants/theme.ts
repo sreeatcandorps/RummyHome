@@ -27,14 +27,16 @@ export const MIN_TOUCH_TARGET = 48;
 export const MAX_CONTENT_WIDTH = 760;
 
 /**
- * Clubhouse palette (docs/design/02-design-system.md). `felt` is the auth band; `cream`
- * is kept for the share sheets, which print on card stock; `gold` is the marigold accent.
+ * Felt & Brass palette (D65, Sree Nov 23: "Palette B"; docs/design-review-2.md §9). A deeper felt
+ * green than the Clubhouse set (text on it 8.9 : 1 instead of 4.6 : 1), brass where the lemon
+ * yellow was, warmer paper and hairlines. `felt` is the auth band; `cream` is kept for the share
+ * sheets, which print on card stock; `gold` is the brass accent. Seat colours and red are untouched.
  */
 export const brand = {
   felt: '#0B3B1F',
-  feltLight: '#15803D',
+  feltLight: '#0E4D2A',
   cream: '#F6F6F1',
-  gold: '#FFE38A',
+  gold: '#F0DFAE',
 } as const;
 
 /** Tabular digits keep score columns aligned. */
@@ -47,13 +49,13 @@ type GameTint = { container: string; on: string; accent: string };
  * the column heads in a result. Green is for results only. Blue is kept for a re-entered pool player.
  */
 const lightGameTypes: Record<'stake' | 'pool', GameTint> = {
-  stake: { container: '#FFE38A', on: '#3F2D00', accent: '#8A5A00' },
-  pool: { container: '#FFE38A', on: '#3F2D00', accent: '#8A5A00' },
+  stake: { container: '#F0DFAE', on: '#3E2E07', accent: '#8A6A1E' },
+  pool: { container: '#F0DFAE', on: '#3E2E07', accent: '#8A6A1E' },
 };
 
 const darkGameTypes: Record<'stake' | 'pool', GameTint> = {
-  stake: { container: '#5C4300', on: '#FFE8AE', accent: '#FFD45E' },
-  pool: { container: '#5C4300', on: '#FFE8AE', accent: '#FFD45E' },
+  stake: { container: '#4A3A10', on: '#F5E3B0', accent: '#E3BE63' },
+  pool: { container: '#4A3A10', on: '#F5E3B0', accent: '#E3BE63' },
 };
 
 /** Light tints kept for callers that do not have a theme handy. */
@@ -99,14 +101,14 @@ export const seatColor = (index: number, options?: { onDark?: boolean }) =>
 
 const lightColors = {
   ...MD3LightTheme.colors,
-  primary: '#15803D',
+  primary: '#0E4D2A',
   onPrimary: '#FFFFFF',
-  primaryContainer: '#D6F5DF',
+  primaryContainer: '#D8ECDD',
   onPrimaryContainer: '#0B3B1F',
-  secondary: '#8A5A00',
+  secondary: '#8A6A1E',
   onSecondary: '#FFFFFF',
-  secondaryContainer: '#FFE38A',
-  onSecondaryContainer: '#3F2D00',
+  secondaryContainer: '#F0DFAE',
+  onSecondaryContainer: '#3E2E07',
   tertiary: '#2B5FBF',
   onTertiary: '#FFFFFF',
   tertiaryContainer: '#DCE8FF',
@@ -115,34 +117,34 @@ const lightColors = {
   onError: '#FFFFFF',
   errorContainer: '#FFE1DD',
   onErrorContainer: '#5C0F0A',
-  background: '#F6F6F1',
-  onBackground: '#17201B',
+  background: '#F5F2E8',
+  onBackground: '#1A1F1B',
   surface: '#FFFFFF',
-  onSurface: '#17201B',
-  surfaceVariant: '#EEEEE7',
-  onSurfaceVariant: '#4E5752',
+  onSurface: '#1A1F1B',
+  surfaceVariant: '#ECE7DA',
+  onSurfaceVariant: '#5A615B',
   surfaceDisabled: 'rgba(23, 32, 27, 0.12)',
   onSurfaceDisabled: 'rgba(23, 32, 27, 0.38)',
-  outline: '#8A918C',
-  outlineVariant: '#DCDDD5',
+  outline: '#8E928A',
+  outlineVariant: '#E6E1D3',
   inverseSurface: '#2C332F',
   inverseOnSurface: '#F1F2EE',
-  inversePrimary: '#5FD68E',
+  inversePrimary: '#7FD39F',
   backdrop: 'rgba(23, 32, 27, 0.45)',
   elevation: {
     level0: 'transparent',
-    level1: '#FBFBF8',
-    level2: '#F6F6F1',
-    level3: '#F1F1EA',
-    level4: '#EFEFE8',
-    level5: '#EBEBE4',
+    level1: '#FAF8F2',
+    level2: '#F5F2E8',
+    level3: '#F0ECE0',
+    level4: '#EEE9DC',
+    level5: '#EAE5D6',
   },
   // App-specific roles.
   /** Search field, keypad well, empty cells, skeletons. */
-  surfaceSunken: '#EEEEE7',
+  surfaceSunken: '#ECE7DA',
   /** 4 px bottom edge of a filled green button; the Results button has its own. */
-  primaryEdge: '#0E5A2A',
-  secondaryEdge: '#E0B33A',
+  primaryEdge: '#083820',
+  secondaryEdge: '#CDB56F',
   /** Positive scores are near-black; the tint sits behind a winning cell. */
   positive: '#17201B',
   positiveContainer: '#D6F5DF',
@@ -171,7 +173,7 @@ const lightColors = {
   bandHeadAlt: '#D2E9DA',
   tableStripe: '#F9F9F5',
   tableLatest: '#EAF7EE',
-  hairline: '#E8E8E1',
+  hairline: '#E6E1D3',
   /** Pool: a re-entered player's header and standings row (D5). */
   reentry: '#2B5FBF',
   reentryContainer: '#DCE8FF',
@@ -179,14 +181,14 @@ const lightColors = {
 
 const darkColors: typeof lightColors = {
   ...MD3DarkTheme.colors,
-  primary: '#5FD68E',
-  onPrimary: '#04301A',
-  primaryContainer: '#1A4A2E',
-  onPrimaryContainer: '#CFF4DB',
-  secondary: '#FFD45E',
-  onSecondary: '#3F2D00',
-  secondaryContainer: '#5C4300',
-  onSecondaryContainer: '#FFE8AE',
+  primary: '#7FD39F',
+  onPrimary: '#063019',
+  primaryContainer: '#1A3F29',
+  onPrimaryContainer: '#CDEFD8',
+  secondary: '#E3BE63',
+  onSecondary: '#3E2E07',
+  secondaryContainer: '#4A3A10',
+  onSecondaryContainer: '#F5E3B0',
   tertiary: '#9DBCFF',
   onTertiary: '#0F2B63',
   tertiaryContainer: '#22406E',
@@ -195,19 +197,19 @@ const darkColors: typeof lightColors = {
   onError: '#4A0B07',
   errorContainer: '#7A1F1A',
   onErrorContainer: '#FFDAD6',
-  background: '#0F1412',
-  onBackground: '#EAEDE9',
-  surface: '#181E1B',
-  onSurface: '#EAEDE9',
-  surfaceVariant: '#1F2622',
-  onSurfaceVariant: '#BAC2BC',
+  background: '#0C120E',
+  onBackground: '#ECEBE4',
+  surface: '#141B16',
+  onSurface: '#ECEBE4',
+  surfaceVariant: '#1B231D',
+  onSurfaceVariant: '#B6BDB4',
   surfaceDisabled: 'rgba(234, 237, 233, 0.12)',
   onSurfaceDisabled: 'rgba(234, 237, 233, 0.38)',
-  outline: '#8A938D',
-  outlineVariant: '#343C38',
-  inverseSurface: '#EAEDE9',
+  outline: '#848C84',
+  outlineVariant: '#2A322C',
+  inverseSurface: '#ECEBE4',
   inverseOnSurface: '#2C332F',
-  inversePrimary: '#15803D',
+  inversePrimary: '#0E4D2A',
   backdrop: 'rgba(0, 0, 0, 0.6)',
   elevation: {
     level0: 'transparent',
@@ -217,9 +219,9 @@ const darkColors: typeof lightColors = {
     level4: '#252C28',
     level5: '#283029',
   },
-  surfaceSunken: '#111614',
-  primaryEdge: '#2E9E5C',
-  secondaryEdge: '#3F2D00',
+  surfaceSunken: '#101712',
+  primaryEdge: '#3FAF6E',
+  secondaryEdge: '#3E2E07',
   positive: '#EAEDE9',
   positiveContainer: '#1A4A2E',
   onPositiveContainer: '#EAEDE9',
@@ -245,7 +247,7 @@ const darkColors: typeof lightColors = {
   bandHeadAlt: '#214A30',
   tableStripe: '#1B211E',
   tableLatest: '#1B3326',
-  hairline: '#2A312D',
+  hairline: '#2A322C',
   reentry: '#9DBCFF',
   reentryContainer: '#22406E',
 };

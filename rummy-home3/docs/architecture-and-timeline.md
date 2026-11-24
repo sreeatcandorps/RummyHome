@@ -327,6 +327,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - `.github/workflows/nightly.yml` is the first file of the test tooling to reach `main` (one-file fast-forward, `18fa662`, under Sree's one-off no-merge exception): GitHub schedules only fire from the default branch, so this workflow dispatches CI's nightly tier at 09:00 UTC on the top code branch of the stack (`TARGET_REF`). The feature stack itself stays unmerged. GitHub Pages for the dashboard and the Projects auto-add rule still need Sree's clicks (PR 17 Q17.1 / Q17.3).
 - CI run 6 on PR 17: chaos / roles / two-device / monkey green; the realtime probe proved the local stack delivers CDC, so F4 was a stack flake. PR 19 (#46) carries the app fixes found by the suite: F1 log-out with a dead session, F2 offline wording, F3 pool-limit message placement, F6 20-player Standings starving the grid. No migration.
 
+### 2026-11-23 — Palette B tokens and the Size-S grouped-list shell (design review 2, no new dependency)
+- `constants/theme.ts` moved from the Clubhouse set to "Felt & Brass" (D65: felt `#0E4D2A`, brass `#F0DFAE`, paper `#F5F2E8`, light and dark); the web scorecard / results pages and the share card follow the same green. Seat colours and red are unchanged.
+- The approved S screens (Profile D66, Settings D67, Game type D68, Sign in D69) now share three UI pieces — `SettingsGroup`, `SegmentedChoice`, `ListRow` with a value slot — plus `RulesForm layout="grouped"` and the `JokerCard` hero in `AuthShell`. Paper's `SegmentedButtons`, `RadioButton` and `SectionCard` leave those four screens; the rest of the app keeps today's look until Sree says which screen is next (`docs/design-review-2.md` §10).
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.

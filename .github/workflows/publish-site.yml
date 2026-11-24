@@ -6,9 +6,16 @@
 # from rummy-home3/public/ by scripts/build-site-worker.mjs, and scripts/verify-site.mjs compares every live
 # page with the build (body hash + x-ezscore-build header).
 #
-# Needs two repo secrets (Settings → Secrets and variables → Actions):
-#   CLOUDFLARE_API_TOKEN     an API token with "Account · Workers Scripts · Edit" on Sree@candorps.com's Account
-#   SITE_SUPABASE_ANON_KEY   the live project's anon (publishable) key — the same key the app ships with
+# Needs two repo secrets (https://github.com/sreeatcandorps/RummyHome/settings/secrets/actions):
+#   CLOUDFLARE_API_TOKEN     a custom API token (dash.cloudflare.com → My Profile → API Tokens → Create Token →
+#                            Custom token) with one permission: Account · Workers Scripts · Edit, Account
+#                            Resources: Include · Sree@candorps.com's Account. That is all wrangler 4 calls for this
+#                            config (script upload, its workers.dev/preview setting, the service and settings reads):
+#                            site/wrangler.toml has no routes, so nothing at zone level is touched and the custom
+#                            domain stays as the dashboard set it. Zone · Workers Routes · Edit is harmless but unused.
+#   SITE_SUPABASE_ANON_KEY   the live project's legacy anon key (starts with eyJ), the same key the app ships with:
+#                            https://supabase.com/dashboard/project/gngcrplcldfiubvhcdin/settings/api-keys →
+#                            Legacy API Keys → anon / public. Never service_role.
 # Without them the job says so in its summary and publishes nothing.
 name: Publish share site
 

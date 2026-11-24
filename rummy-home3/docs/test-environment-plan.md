@@ -188,10 +188,18 @@ node ci/volume/seed-staging.mjs              # full population (SCALE=1); prints
 > the generator now (1) runs `set default_transaction_read_only = 'off'` on its session at connect, (2) after
 > `staging.wipe()` does `vacuum (full, analyze)` on the populated tables so the disk is really given back, (3) measures
 > `pg_database_size` and **refuses before seeding** (exit 3) when what this SCALE adds, by `BYTES_PER` in
-> `seed-staging-config.mjs` (≈ 33 KB a game), would land within 10 % of `SIZE_LIMIT_MB` (default 500 = Free; 0 = off),
+> `seed-staging-config.mjs` (≈ 35 KB a game, measured on CI), would land within 10 % of `SIZE_LIMIT_MB` (default 500 = Free; 0 = off),
 > (4) checks the size after every step and every 2,000 games and **stops at 95 %** with a plain message instead of
 > letting Supabase lock the project, (5) prints the measured KB per game so the constants can be re-tuned. Estimates:
-> scale 1 ≈ +690 MB (Pro only), **scale 0.5 ≈ +345 MB (fits Free, the workflow default)**, 0.1 ≈ +70 MB.
+> scale 1 ≈ +730 MB (Pro only), **scale 0.5 ≈ +365 MB (fits Free, the workflow default)**, 0.1 ≈ +75 MB.
+> **Fourth run — the one that stands (run 45308977125, Nov 24 01:58–02:25 UTC, 26.8 min, wipe on, scale 0.5)**: the
+> read-only clear worked — `wipe previous population → 2,359` people in 475 s on the locked project, `vacuum full` 4.6 s,
+> then `# size: 18 MB now + ≈ 344 MB … fits`. Steps: people 7 s, circles 19 s, placeholders 4 s, power My players 18 s,
+> 9,250 games 242 s (**measured 33.6 KB a game**, db 25 → 328 MB), 750 power games 24 s, live 0.5 s, 1,500 results
+> 767 s (~0.5 s each), 60 power results 41 s, huge table 4 s, caps 1 s, analyze 3 s. **Final size 390 MB** of 500.
+> Counts: 1,000 people, 179 guests, 10,041 games (40 live, 488 deleted, 104 archived, 3,029 pools), 198,529 rounds,
+> 1,332,626 scores, 1,560 results, 99,784 log rows; power user 793 games / 234 My players / 60 results.
+> Sign in as **sree.koneru.1@staging.test / 123456**. Staging is at 78 % of the Free limit: do not re-seed without wipe.
 # Later, to start over with the same population:  WIPE=1 node ci/volume/seed-staging.mjs
 ```
 

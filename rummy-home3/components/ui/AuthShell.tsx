@@ -11,6 +11,8 @@ type AuthShellProps = {
   subtitle?: string;
   /** Shown in place of the app icon, e.g. a lock for password reset. */
   icon?: string;
+  /** Replaces the badge altogether, e.g. the Joker card on Sign in (D69). */
+  hero?: React.ReactNode;
   children: React.ReactNode;
   /** Rendered under the form card, e.g. "Create account" links. */
   footer?: React.ReactNode;
@@ -22,7 +24,7 @@ type AuthShellProps = {
 const FORM_MAX_WIDTH = 460;
 
 /** Shared chrome for sign-in screens: felt brand panel plus a form card. Side by side in landscape. */
-export function AuthShell({ title, subtitle, icon, children, footer, help, helpAnchor }: AuthShellProps) {
+export function AuthShell({ title, subtitle, icon, hero, children, footer, help, helpAnchor }: AuthShellProps) {
   const { colors } = useAppTheme();
   const { insets, isShort, gutterLeft, gutterRight } = useLayout();
 
@@ -38,7 +40,7 @@ export function AuthShell({ title, subtitle, icon, children, footer, help, helpA
 
   const brand = (
     <View style={styles.brandText}>
-      {badge}
+      {hero ? <View style={styles.hero}>{hero}</View> : badge}
       <Text variant="headlineMedium" style={[styles.title, { color: colors.onFelt }]}>
         {title}
       </Text>
@@ -172,6 +174,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     maxWidth: FORM_MAX_WIDTH,
+  },
+  hero: {
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
   },
   badge: {
     width: 68,

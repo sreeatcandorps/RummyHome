@@ -25,15 +25,15 @@ export type SharePalette = {
 };
 
 export const SHARE_COLORS: SharePalette = {
-  frame: '#15803D',
+  frame: '#0E4D2A',
   onFrame: '#FFFFFF',
   onFrameMuted: 'rgba(255,255,255,0.85)',
   card: '#FFFFFF',
   ink: '#17201B',
   muted: '#4E5752',
-  line: '#DCDDD5',
+  line: '#E6E1D3',
   neg: '#A8201A',
-  note: '#FFE38A',
+  note: '#F0DFAE',
   onNote: '#3F2D00',
 };
 
