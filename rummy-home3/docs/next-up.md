@@ -2,7 +2,7 @@
 
 ## For Sree today
 
-1. **Your yes today:** ① merge #127 (how we work; its one red check, a broken emulator download, is being re-run); ② in Play Console, answer the trader-status question (Q7, recommended "not a trader") — the one open item on our side of the Android review.
+1. **Your yes today:** ① merge #127 (how we work) once its CI is green — it is the PR that turns the automatic merges on, so it is the last of its kind that waits on you; a PR that changes the rules themselves always will (D80); ② in Play Console, answer the trader-status question (Q7, recommended "not a trader") — the one open item on our side of the Android review.
 2. **Shipped:** the share site is live with today's pages (Nov 23, your yes) — pool links show Standings; staging is seeded at half scale (#128); #111, #115, #116 and #121 are closed (folded into #129 or superseded).
 3. **In progress (three):** #127 how we work · #120 the Size-S redesign of Profile, Settings, Game type and Sign in (green, screenshots in) · #122 the emails batch (green). Both #120 and #122 merge under D80 once #127 is in, unless you want to look first. Nothing open touches the build Google is reviewing.
 4. **Open PRs: 4 counting, limit 3** — #120 #122 #127, plus #129 (docs only; merges right after #127 under D80). **Parked** (open for discussion, no work): #112 iPhone, #124 WhatsApp sign-in — until the Android app is approved.
@@ -23,7 +23,7 @@ How it relates to the rest:
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
 - **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes, except the pre-approved list in `AGENTS.md` → Authority (D79 staging, D80 merges). Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-24 03:05 UTC (agent): open PRs sorted for Sree; WhatsApp parked until the Android app is approved (his words); #111, #115, #116, #121 closed and folded into #129 by the other builder; main merged into #127, which keeps D79–D84 while main's staging decision becomes D86 (the same relabel #129 makes). Before that 01:10 UTC: Q28 answered (D86), #128 merged. 00:40 UTC: the workflow review (D79–D84). 2026-11-23 08:05 UTC: all four S screens yes (D66–D69), palette B (D65), #117 merged.
+Last updated: 2026-11-24 02:40 UTC (agent): Sree asked why #127 waits on him — it creates the automatic-merge rule, and a PR that changes the rules always needs his yes (now written into D80). Earlier: open PRs sorted for Sree; WhatsApp parked until the Android app is approved (his words); #111, #115, #116, #121 closed and folded into #129 by the other builder; main merged into #127, which keeps D79–D84 while main's staging decision becomes D86 (the same relabel #129 makes). Before that 01:10 UTC: Q28 answered (D86), #128 merged. 00:40 UTC: the workflow review (D79–D84). 2026-11-23 08:05 UTC: all four S screens yes (D66–D69), palette B (D65), #117 merged.
 
 ## In flight
 

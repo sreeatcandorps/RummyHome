@@ -28,7 +28,7 @@ Before suggesting a design, writing a spec, or building any UI change:
 | --- | --- |
 | Open or update a PR, push a branch, run CI | any agent |
 | **Pre-approved (D79):** seed or wipe `ezscore-staging`; apply a migration to staging from a branch whose local-DB CI suite passed; rebase, combine, or close a superseded PR the agent opened | any agent, without asking; it is listed under *Shipped* in the next "For Sree" block |
-| **Pre-approved merge (D80):** a PR to `main` with all of: CI green; no migration for the live project; nothing under `rummy-home3/public/` (that publishes itself, D83); and either docs / tests / CI only, or it builds a spec or mockup Sree approved, cited by its D-id, with the screenshot matrix filled | Build Bot merges, without asking; it is listed under *Shipped* |
+| **Pre-approved merge (D80):** a PR to `main` with all of: CI green; no migration for the live project; nothing under `rummy-home3/public/` (that publishes itself, D83); and either docs / tests / CI only, or it builds a spec or mockup Sree approved, cited by its D-id, with the screenshot matrix filled. Never a PR that changes this table or the rules that grant it (`AGENTS.md`, `.cursor/rules/`): those always need Sree's yes | Build Bot merges, without asking; it is listed under *Shipped* |
 | Merge any other PR to `main` | only after Sree says yes to **that** merge |
 | Apply a migration to the live Supabase project | only after Sree says yes to **that** migration, and only from merged `main` after the local-DB CI suite passed |
 | Build or publish an APK / store build (any EAS profile) | only after Sree says yes to **that** build |
