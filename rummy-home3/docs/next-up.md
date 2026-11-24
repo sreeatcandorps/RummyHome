@@ -2,10 +2,10 @@
 
 ## For Sree today
 
-1. **Your yes today:** ① merge PR_HOW_WE_WORK (how we work: the pre-approved list, the three-PR limit, the share site that publishes itself); ② add two GitHub secrets, `CLOUDFLARE_API_TOKEN` and `SITE_SUPABASE_ANON_KEY`, so the share site with Standings goes live on that merge; ③ close #115 and #116 (both folded into #117).
+1. **Your yes today:** ① merge #127 (how we work: the pre-approved list, the three-PR limit, the share site that publishes itself); ② add two GitHub secrets, `CLOUDFLARE_API_TOKEN` and `SITE_SUPABASE_ANON_KEY`, so the share site with Standings goes live on that merge; ③ close #115 and #116 (both folded into #117).
 2. **Shipped:** the staging seed workflow and its fixes (#123, #125) are on main, so staging can be seeded.
-3. **Next:** the share site publishes and is checked page by page; staging gets seeded (pre-approved once PR_HOW_WE_WORK is in); then the open PRs come down to three — #111, #121 and #126 qualify for a pre-approved merge, #120 once its screenshot matrix is filled.
-4. **Open PRs: 10, limit 3** — #111 #112 #115 #116 #120 #121 #122 #124 #126 PR_HOW_WE_WORK.
+3. **Next:** the share site publishes and is checked page by page; staging gets seeded (pre-approved once #127 is in); then the open PRs come down to three — #111, #121 and #126 qualify for a pre-approved merge, #120 once its screenshot matrix is filled.
+4. **Open PRs: 10, limit 3** — #111 #112 #115 #116 #120 #121 #122 #124 #126 #127.
 5. **Waiting on others:** Google's Play review; Apple enrolment needs the Candor PS D-U-N-S number.
 
 (Everything below is the detail the agents keep. The block above is rewritten every turn, five lines at most — D82.)
@@ -29,7 +29,7 @@ Last updated: 2026-11-24 00:40 UTC (agent), the workflow review (D79–D84): For
 
 | # | Item | Where | Waiting on |
 | --- | --- | --- | --- |
-| 1 | **How we work (D79–D84)** — pre-approved staging actions and merges, at most three open PRs, five lines for Sree on every PR and here, CI keeps the video of each flow a PR touches, a bug is fixed when a test proves it, the share site builds / deploys / checks itself on merge, v1 cut. | PR_HOW_WE_WORK | **Sree**: merge; add `CLOUDFLARE_API_TOKEN` (Workers Scripts · Edit) and `SITE_SUPABASE_ANON_KEY` as repo secrets |
+| 1 | **How we work (D79–D84)** — pre-approved staging actions and merges, at most three open PRs, five lines for Sree on every PR and here, CI keeps the video of each flow a PR touches, a bug is fixed when a test proves it, the share site builds / deploys / checks itself on merge, v1 cut. | #127 | **Sree**: merge; add `CLOUDFLARE_API_TOKEN` (Workers Scripts · Edit) and `SITE_SUPABASE_ANON_KEY` as repo secrets |
 | 2 | **Google Play review** — **in #117**: D63 icon set of AAB 15 (internal testing). | Play Console | Google; **Sree**: Q7 trader status |
 | 2a | **Design review 2** — Sree: "Go with Small now, mockups first" (Q11). Mockups of Profile / Settings / Game type / Sign in as grouped lists, light + dark, on the PR. **Colour** (Sree 2:31 AM: "Are we also doing any color changes?"): §9 puts three palettes on the same four screens, light + dark — A current, **B Felt & Brass (recommended)**, C Ink & Marigold. **Nov 23 — Sree: "Palette B" (D65), "Yes to the Profile redesign" (D66, spec §10.1), "Yes to the Settings redesign" (D67, spec §10.2), "Yes to the Game type redesign" (D68, spec §10.3), Sign in "the redesign is good, but … just get the Joker card" + keep the eye (D69, spec §10.4, re-mocked with an original bridge-size Joker)**; all four approved; "Mockups only, no building yet". | PR #111 | **Sree**: "build" for the first S PR (tokens D65 + Profile, Settings, Game type, Sign in); his look at the new Joker card; then "build" (one PR for Profile, or one for all four) |
 | 2b | **iPhone plan** — eight steps; Sree: enrol as **Candor PS** (D62). | PR #112 | **Sree**: the enrolment itself (D-U-N-S for Candor PS) |
@@ -63,8 +63,8 @@ here and go into the next batch when he picks.
 
 | # | Item | Why this order | Size | Needs from Sree |
 | --- | --- | --- | --- | --- |
-| 3 | **The live share site publishes itself** (Q6 → D83) — the live pages are the Nov 12 build, so every shared pool link has no Standings. PR_HOW_WE_WORK builds the `ezscore-site` Worker from `public/`, deploys it on merge and checks every live page against the build. | A live-user bug; the fix is the deploy itself. | tiny | merge + the two secrets |
-| 3b | **Seed staging** (`Seed staging` workflow, pre-approved by D79 once PR_HOW_WE_WORK is in), then the first staging APK (Sree's yes), then V2 (the app on staging data) once Sree says build. | The project and the workflow exist; seeding no longer waits. | medium | — (seed); yes (APK) |
+| 3 | **The live share site publishes itself** (Q6 → D83) — the live pages are the Nov 12 build, so every shared pool link has no Standings. #127 builds the `ezscore-site` Worker from `public/`, deploys it on merge and checks every live page against the build. | A live-user bug; the fix is the deploy itself. | tiny | merge + the two secrets |
+| 3b | **Seed staging** (`Seed staging` workflow, pre-approved by D79 once #127 is in), then the first staging APK (Sree's yes), then V2 (the app on staging data) once Sree says build. | The project and the workflow exist; seeding no longer waits. | medium | — (seed); yes (APK) |
 | 3c | **Open PRs down to three** (D81): close #115 / #116 (superseded); merge #111, #121, #126 under D80 and #120 once its matrix is filled; #124 (WhatsApp spec) stays a document under D84 — merge it as a doc or close it. | Ten open PRs is the rebase-and-recheck overhead the limit removes. | tiny | close #115 / #116 |
 | 4 | **Nightly red → green** after #109: re-run the Pixel 7 Pro / 4a / tablet smoke; whatever still fails is a real device bug and gets its own PR. | Keeps the test suite trusted; the three issues close themselves. | small | — |
 | 5 | **Points "left the table"** (Q9, the Points half of D58): admins mark a seat LEFT / BACK in Players · Admins; the column stays, Add round asks no score, the deal and the open card skip the seat (052's rotation already does). Mockup first. | The only place Pool has a state Points lacks; comes up in every long Points night. | medium (migration) | yes to the spec (Q9) |
