@@ -353,7 +353,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
 | Theming (light/dark) | Done; Clubhouse green design system (Nov 12). Appearance follows the phone by default; Profile › Appearance overrides it |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
-| Public scorecard | Static HTML on ezscore.mindweavetech.com (Worker `ezscore-site`). Publishes itself on merge to `main` (`publish-site.yml`, D83) once the two repo secrets are set; the job checks every live page against the build. The key is not in git |
+| Public scorecard | Static HTML on ezscore.mindweavetech.com (Worker `ezscore-site`). Publishes itself on merge to `main` (`publish-site.yml`, D84) once the two repo secrets are set; the job checks every live page against the build. The key is not in git |
 | Expo Go local preview | Working |
 | EAS project linked on this PC | Done |
 | EAS env vars for Supabase | Done |
@@ -675,7 +675,7 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   an EAS secret; `ci/volume/seed-staging.mjs` generates the §3 population deterministically and refuses every host
   but loopback or the staging ref. Seeding staging and the first staging APK wait for Sree's yes.
 
-### 2026-11-23 — The share site deploys from CI; how the agents work changes (D79–D84)
+### 2026-11-23 — The share site deploys from CI; how the agents work changes (D80–D85)
 - The share site is the Cloudflare Worker **`ezscore-site`** (every page inlined in one module), uploaded by hand
   until now: the live pages were the Nov 12 build, so shared pool links showed no Standings for eleven days (Q6).
   New `publish-site.yml` builds the module from `public/` (`scripts/build-site-worker.mjs`), deploys it with
@@ -685,6 +685,6 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   On Sree's yes the same module (main @ `a7018d7`, hash-checked against the repo build) was uploaded the same
   evening through the Cloudflare API, and `verify-site.mjs` confirmed all eight live pages — Q6 closed.
 - Process (Sree's yes to the workflow review): staging seeds / migrations and merges of green, approved-spec PRs are
-  pre-approved (D79, D80); at most three open PRs (D81); a five-line *For Sree* block on every PR and atop
-  `next-up.md`, and on a PR CI keeps the video of each flow the change selected (D82); a bug is fixed when a test
-  proves it (D83); Telugu, phone sign-in and the extra tutorials wait until v1 is live in Play (D84).
+  pre-approved (D80, D81); at most three open PRs (D82); a five-line *For Sree* block on every PR and atop
+  `next-up.md`, and on a PR CI keeps the video of each flow the change selected (D83); a bug is fixed when a test
+  proves it (D84); Telugu, phone sign-in and the extra tutorials wait until v1 is live in Play (D85).

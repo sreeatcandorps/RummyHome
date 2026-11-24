@@ -8,7 +8,7 @@
 4. **Open PRs: 8 counting, limit 3** — #111 #115 #116 #120 #121 #122 #126 #127; parked (still open for discussion, not counted): #112 iPhone, #124 WhatsApp sign-in.
 5. **Waiting on others:** Google's Play review; Apple enrolment needs the Candor PS D-U-N-S number.
 
-(Everything below is the detail the agents keep. The block above is rewritten every turn, five lines at most — D82.)
+(Everything below is the detail the agents keep. The block above is rewritten every turn, five lines at most — D83.)
 
 ## How this list works
 
@@ -21,15 +21,15 @@ How it relates to the rest:
 
 - **Board** ([projects/1](https://github.com/users/sreeatcandorps/projects/1)) — *state*: Spec · Waiting on Sree · Building · Ready to test · Done. Fills itself from PRs and issues (`ci/board/`). It does not say *order*; this file does.
 - **`decisions.md`** — *what was decided and why* (D-numbers), and the open questions (Q-numbers). This file points at them; it does not repeat them.
-- **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes, except the pre-approved list in `AGENTS.md` → Authority (D79 staging, D80 merges). Items below marked **Sree** wait on that yes; everything else the agent does on its own.
+- **Build Bot** — merges, live migrations, EAS builds, Play uploads: each on Sree's explicit yes, except the pre-approved list in `AGENTS.md` → Authority (D80 staging, D81 merges). Items below marked **Sree** wait on that yes; everything else the agent does on its own.
 
-Last updated: 2026-11-24 00:40 UTC (agent), the workflow review (D79–D84): For Sree block, v1 cut, share site self-publishing; before that 2026-11-23 08:05 UTC, Sree: all four S screens yes (D66–D69, Sign in with the Joker card), specs §10, palette B (D65), palette options on #111 (Sree Nov 21 2:31 AM), #117 merged with main after #114, combined PR #117 built (Sree 1:21 AM), after #110 merged (`9b92a42`), staging created, Sree's APK v17 pass (icon, header shimmer, three screens, Order of players arrows + table + left of the dealer, Awards chips, Done grey), the batching rule.
+Last updated: 2026-11-24 00:40 UTC (agent), the workflow review (D80–D85): For Sree block, v1 cut, share site self-publishing; before that 2026-11-23 08:05 UTC, Sree: all four S screens yes (D66–D69, Sign in with the Joker card), specs §10, palette B (D65), palette options on #111 (Sree Nov 21 2:31 AM), #117 merged with main after #114, combined PR #117 built (Sree 1:21 AM), after #110 merged (`9b92a42`), staging created, Sree's APK v17 pass (icon, header shimmer, three screens, Order of players arrows + table + left of the dealer, Awards chips, Done grey), the batching rule.
 
 ## In flight
 
 | # | Item | Where | Waiting on |
 | --- | --- | --- | --- |
-| 1 | **How we work (D79–D84)** — pre-approved staging actions and merges, at most three open PRs, five lines for Sree on every PR and here, CI keeps the video of each flow a PR touches, a bug is fixed when a test proves it, the share site builds / deploys / checks itself on merge, v1 cut. | #127 | **Sree**: merge; add `CLOUDFLARE_API_TOKEN` (Workers Scripts · Edit) and `SITE_SUPABASE_ANON_KEY` as repo secrets |
+| 1 | **How we work (D80–D85)** — pre-approved staging actions and merges, at most three open PRs, five lines for Sree on every PR and here, CI keeps the video of each flow a PR touches, a bug is fixed when a test proves it, the share site builds / deploys / checks itself on merge, v1 cut. | #127 | **Sree**: merge; add `CLOUDFLARE_API_TOKEN` (Workers Scripts · Edit) and `SITE_SUPABASE_ANON_KEY` as repo secrets |
 | 2 | **Google Play review** — **in #117**: D63 icon set of AAB 15 (internal testing). | Play Console | Google; **Sree**: Q7 trader status |
 | 2a | **Design review 2** — Sree: "Go with Small now, mockups first" (Q11). Mockups of Profile / Settings / Game type / Sign in as grouped lists, light + dark, on the PR. **Colour** (Sree 2:31 AM: "Are we also doing any color changes?"): §9 puts three palettes on the same four screens, light + dark — A current, **B Felt & Brass (recommended)**, C Ink & Marigold. **Nov 23 — Sree: "Palette B" (D65), "Yes to the Profile redesign" (D66, spec §10.1), "Yes to the Settings redesign" (D67, spec §10.2), "Yes to the Game type redesign" (D68, spec §10.3), Sign in "the redesign is good, but … just get the Joker card" + keep the eye (D69, spec §10.4, re-mocked with an original bridge-size Joker)**; all four approved; "Mockups only, no building yet". | PR #111 | **Sree**: "build" for the first S PR (tokens D65 + Profile, Settings, Game type, Sign in); his look at the new Joker card; then "build" (one PR for Profile, or one for all four) |
 | 2b | **iPhone plan** — eight steps; Sree: enrol as **Candor PS** (D62). | PR #112 | **Sree**: the enrolment itself (D-U-N-S for Candor PS) |
@@ -63,9 +63,9 @@ here and go into the next batch when he picks.
 
 | # | Item | Why this order | Size | Needs from Sree |
 | --- | --- | --- | --- | --- |
-| 3 | **The share site publishes itself on merge** (D83) — today's pages went live by hand on Nov 23 (Sree's yes); #127 makes every later merge that touches `public/` deploy and check itself. | So the live site can never drift from `main` again. | tiny | merge + the two secrets |
-| 3b | **Seed staging** (`Seed staging` workflow, pre-approved by D79 once #127 is in), then the first staging APK (Sree's yes), then V2 (the app on staging data) once Sree says build. | The project and the workflow exist; seeding no longer waits. | medium | — (seed); yes (APK) |
-| 3c | **Open PRs down to three** (D81): close #115 / #116 (superseded); merge #111, #121, #126 under D80 and #120 once its matrix is filled; #112 (iPhone) and #124 (WhatsApp sign-in) are **parked** — open for discussion, not counted. | Ten open PRs is the rebase-and-recheck overhead the limit removes. | tiny | close #115 / #116 |
+| 3 | **The share site publishes itself on merge** (D84) — today's pages went live by hand on Nov 23 (Sree's yes); #127 makes every later merge that touches `public/` deploy and check itself. | So the live site can never drift from `main` again. | tiny | merge + the two secrets |
+| 3b | **Seed staging** (`Seed staging` workflow, pre-approved by D80 once #127 is in), then the first staging APK (Sree's yes), then V2 (the app on staging data) once Sree says build. | The project and the workflow exist; seeding no longer waits. | medium | — (seed); yes (APK) |
+| 3c | **Open PRs down to three** (D82): close #115 / #116 (superseded); merge #111, #121, #126 under D81 and #120 once its matrix is filled; #112 (iPhone) and #124 (WhatsApp sign-in) are **parked** — open for discussion, not counted. | Ten open PRs is the rebase-and-recheck overhead the limit removes. | tiny | close #115 / #116 |
 | 4 | **Nightly red → green** after #109: re-run the Pixel 7 Pro / 4a / tablet smoke; whatever still fails is a real device bug and gets its own PR. | Keeps the test suite trusted; the three issues close themselves. | small | — |
 | 5 | **Points "left the table"** (Q9, the Points half of D58): admins mark a seat LEFT / BACK in Players · Admins; the column stays, Add round asks no score, the deal and the open card skip the seat (052's rotation already does). Mockup first. | The only place Pool has a state Points lacks; comes up in every long Points night. | medium (migration) | yes to the spec (Q9) |
 | 6 | **Unsaved-players dialog button** (Q3): B "Done · keep the 1 saved". | Tiny, already answered in the question. | tiny | confirm B |
@@ -75,16 +75,16 @@ here and go into the next batch when he picks.
 | 13 | **Research docs while Play reviews**: Google Play scorekeeper sweep (#40), Indian Rummy variants (#37), monetization (#41), learning section (#38). Each a one-page doc in `docs/`, no app change. | They shape the listing text and the next quarter; they cost nothing but agent time. | small each | — |
 | 14 | **iPhone** (#35): steps 2–8 of `docs/ios/README.md` once Sree is enrolled — link EAS, first build, TestFlight on his iPad, the iOS fix pass + nightly simulator job, submit. | Waits on Apple; the agent's part is not on the critical path. | medium | Apple Developer Program enrolment (step 1) |
 | 15 | **Design review 2, size S** — build after Sree's yes on the mockups, one surface per PR with light + dark matrices: `Row` / `SettingsGroup` / `SegmentedChoice` components, then Profile, Settings, Game type, Sign in. | Sree: "Go with Small now, mockups first." | medium | yes per mockup screen |
-| 16 | **Turn the `AGENTS.md` rules into project skills** — spec-first / mockup-first, the screenshot matrix, the small-fixes batch, the PR write-up and the bug-proof rule, each a short skill the agent loads when it applies; `AGENTS.md` keeps one line each. | Shorter always-on rules; the agent applies the procedure on its own. Starts when an open-PR slot frees (D81). | small | — |
+| 16 | **Turn the `AGENTS.md` rules into project skills** — spec-first / mockup-first, the screenshot matrix, the small-fixes batch, the PR write-up and the bug-proof rule, each a short skill the agent loads when it applies; `AGENTS.md` keeps one line each. | Shorter always-on rules; the agent applies the procedure on its own. Starts when an open-PR slot frees (D82). | small | — |
 
-## Parked (open for discussion, no code, not counted toward the three — D81)
+## Parked (open for discussion, no code, not counted toward the three — D82)
 
 | PR | What | Un-park when |
 | --- | --- | --- |
 | #112 | iPhone plan: eight steps, who does each; the `app.json` iOS block | Candor PS is enrolled with Apple (D-U-N-S) |
-| #124 | WhatsApp sign-in: spec and mockups | v1 is live in Play (D84) |
+| #124 | WhatsApp sign-in: spec and mockups | v1 is live in Play (D85) |
 
-## After v1 is live in Play (D84 — not built before then)
+## After v1 is live in Play (D85 — not built before then)
 
 | Item | Why it waits | Size |
 | --- | --- | --- |
