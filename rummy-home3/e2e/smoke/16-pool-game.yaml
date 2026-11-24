@@ -27,6 +27,13 @@ tags: [smoke]
 - takeScreenshot: 16b-game-type-points
 - tapOn:
     id: "game-type-pool"
+# Size-S (#120, D68): the grouped Game type is taller; at 360 dp × font 1.3 the Re-entries row is at
+# the bottom edge and Unlimited below it. Scroll to the segment, don't assume.
+- scrollUntilVisible:
+    element:
+      text: "Unlimited"
+    direction: DOWN
+    timeout: 15000
 - assertVisible: "Re-entries"
 - assertVisible: "Unlimited"
 - takeScreenshot: 16c-game-type-pool
