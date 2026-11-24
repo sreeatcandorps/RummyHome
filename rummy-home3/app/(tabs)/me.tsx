@@ -254,7 +254,7 @@ export default function MeScreen() {
         <ListRow title="Name" value={player.name} pen onPress={() => setEditing('name')} accessibilityLabel={`Name, ${player.name}. Edit name`} testID="me-edit-name" />
         <ListRow
           title="Initials on scorecards"
-          value={player.initials ? initials : `${initials} · from your name`}
+          value={initials}
           pen
           onPress={() => { setInitialsError(null); setEditingInitials(true); }}
           accessibilityLabel={`Your initials ${initials}${player.initials ? '' : ', from your name'}. Change your initials`}
