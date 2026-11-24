@@ -188,10 +188,10 @@ node ci/volume/seed-staging.mjs              # full population (SCALE=1); prints
 > the generator now (1) runs `set default_transaction_read_only = 'off'` on its session at connect, (2) after
 > `staging.wipe()` does `vacuum (full, analyze)` on the populated tables so the disk is really given back, (3) measures
 > `pg_database_size` and **refuses before seeding** (exit 3) when what this SCALE adds, by `BYTES_PER` in
-> `seed-staging-config.mjs` (≈ 33 KB a game), would land within 10 % of `SIZE_LIMIT_MB` (default 500 = Free; 0 = off),
+> `seed-staging-config.mjs` (≈ 35 KB a game, measured on CI), would land within 10 % of `SIZE_LIMIT_MB` (default 500 = Free; 0 = off),
 > (4) checks the size after every step and every 2,000 games and **stops at 95 %** with a plain message instead of
 > letting Supabase lock the project, (5) prints the measured KB per game so the constants can be re-tuned. Estimates:
-> scale 1 ≈ +690 MB (Pro only), **scale 0.5 ≈ +345 MB (fits Free, the workflow default)**, 0.1 ≈ +70 MB.
+> scale 1 ≈ +730 MB (Pro only), **scale 0.5 ≈ +365 MB (fits Free, the workflow default)**, 0.1 ≈ +75 MB.
 # Later, to start over with the same population:  WIPE=1 node ci/volume/seed-staging.mjs
 ```
 
