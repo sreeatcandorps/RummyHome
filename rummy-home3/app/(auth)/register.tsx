@@ -213,6 +213,7 @@ export default function RegisterScreen() {
           mode="outlined"
           disabled={loading}
           style={styles.nameInput}
+          testID="register-first-name"
         />
         <TextInput
           label="Last name"
@@ -221,6 +222,7 @@ export default function RegisterScreen() {
           mode="outlined"
           disabled={loading}
           style={styles.nameInput}
+          testID="register-last-name"
         />
       </View>
 
@@ -237,12 +239,13 @@ export default function RegisterScreen() {
         autoComplete="email"
         disabled={loading}
         left={<TextInput.Icon icon="email-outline" />}
+        testID="register-email"
       />
 
       <HelperText type="info" visible>
         We send a link to confirm this email. It is how you sign in.
       </HelperText>
-      <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} />
+      <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} testID="register-passcode" />
       <HelperText type="info" visible>
         Numbers only. This is what you sign in with.
       </HelperText>
@@ -259,6 +262,7 @@ export default function RegisterScreen() {
         keyboardType="number-pad"
         disabled={loading}
         left={<TextInput.Icon icon="pound" />}
+        testID="register-player-id"
       />
       <HelperText type="info" visible>
         Enter your player ID if you were given one by an organizer; otherwise leave it empty.
