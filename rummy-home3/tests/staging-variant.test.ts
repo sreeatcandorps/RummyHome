@@ -98,3 +98,12 @@ test('Seed staging generator: cannot hang silently (keepalive, client-side query
   assert.match(gen, /… games/);
   assert.match(sql, /function staging\.know_each_other_from\(p_owners uuid\[\], p_members uuid\[\]\)/);
 });
+
+test('Seed staging generator: a result never exceeds the app cap of 50 players; the job has time for the full set', () => {
+  const gen = src('../ci/volume/seed-staging.mjs');
+  assert.match(gen, /RESULT_PLAYER_CAP = 50/);
+  assert.match(gen, /fitResultPlayers\(client, gameIds\.slice\(0, maxGames\)\)/);
+  const wf = src('../.github/workflows/seed-staging.yml');
+  const minutes = Number(/timeout-minutes:\s*(\d+)/.exec(wf)?.[1]);
+  assert.ok(minutes >= 120, `timeout-minutes ${minutes} is too short for scale 1 (~1 h)`);
+});

@@ -169,7 +169,13 @@ node ci/volume/seed-staging.mjs              # full population (SCALE=1); prints
 > so the socket had died (no keepalive; the transaction pooler does not carry startup parameters). Fixed in the
 > generator: TCP keepalive, a client-side `query_timeout` that fails instead of hanging, the big insert chunked by
 > owner with progress lines, progress every 2,000 games. **Use the session pooler URL (port 5432) for the secret.**
-> The three finished steps are idempotent (`on conflict do nothing`, deterministic ids): re-run without wipe is safe.
+> **Second run, scale 0.1, session pooler (run 45278894409)**: all steps ran and reported — people 0.2 s, circles 4.6 s,
+> placeholders 1.4 s, power My players 0.8 s, 1,850 games 58.6 s, 150 power games 3.4 s, live 0.1 s, 300 results 260.9 s —
+> then "power user: 120 results" failed on the app's own guardrail, `Results can include at most 50 players`: the power
+> user's games draw from a 60-person pool and a result of up to 30 of them had more than 50 distinct players. Fixed in the
+> generator (games are kept while the union of seats fits 50, like a creator would). Timing from this run: results cost
+> ~0.9 s each through the pooler, so scale 1 (3,000 + 120 results, 20,000 games) is **about an hour**; the job timeout is
+> now 150 min. The three finished steps are idempotent (`on conflict do nothing`, deterministic ids): re-run without wipe is safe.
 # Later, to start over with the same population:  WIPE=1 node ci/volume/seed-staging.mjs
 ```
 

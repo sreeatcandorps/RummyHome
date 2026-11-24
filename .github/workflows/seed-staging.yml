@@ -7,7 +7,7 @@
 #
 # Inputs:
 #   wipe   — "true" removes everything a previous seed created (staging.wipe()) before seeding again.
-#   scale  — fraction of the full population (1 = full set, ~10 min; 0.05 = a quick smoke of the generator).
+#   scale  — fraction of the full population (1 = full set, ~1 h through the pooler; 0.1 = 5–6 min; 0.05 = a quick smoke of the generator).
 # Output: ci/out/staging-seed/summary.json (counts + the staging test sign-in from the run-book; no keys, no URL) as the
 #         artifact "staging-seed-summary" and in the job summary.
 name: Seed staging
@@ -37,7 +37,7 @@ jobs:
   seed:
     name: Seed ezscore-staging (wipe=${{ inputs.wipe }}, scale=${{ inputs.scale }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 150   # the 10 % run (Nov 23) took 5.6 min with results at ~0.9 s each; scale 1 is ~55–60 min through the pooler
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
