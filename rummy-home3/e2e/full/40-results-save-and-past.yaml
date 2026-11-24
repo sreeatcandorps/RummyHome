@@ -52,6 +52,11 @@ tags: [nightly]
       id: "result-delete"
     direction: DOWN
     timeout: 15000
+# Edge-to-edge draws the last button under the translucent 3-button bar and a tap at the bottom edge lands on
+# the system Home button (#131 run 2 on this flow; smoke/12 run 4 before it): nudge the page up by a third.
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
 - takeScreenshot: 40c-delete-this-result
 - tapOn:
     id: "result-delete"
@@ -89,6 +94,11 @@ tags: [nightly]
       id: "result-delete"
     direction: DOWN
     timeout: 15000
+# Edge-to-edge draws the last button under the translucent 3-button bar and a tap at the bottom edge lands on
+# the system Home button (#131 run 2 on this flow; smoke/12 run 4 before it): nudge the page up by a third.
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
 - tapOn:
     id: "result-delete"
 - extendedWaitUntil:
