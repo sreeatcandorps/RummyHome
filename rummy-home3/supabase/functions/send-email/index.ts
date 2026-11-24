@@ -1,6 +1,7 @@
 // Email through Resend (sender scores@mindweavetech.com).
 // Deploy:
-//   supabase secrets set RESEND_API_KEY=re_xxx RESEND_FROM="EZ Score <scores@mindweavetech.com>" --project-ref gngcrplcldfiubvhcdin
+//   supabase secrets set RESEND_API_KEY=re_xxx RESEND_FROM="EZ Score: Rummy <scores@mindweavetech.com>" --project-ref gngcrplcldfiubvhcdin
+//   (D73: the sender name is the Play listing name, "EZ Score: Rummy"; it lives in the secret, not here)
 //   supabase functions deploy send-email --project-ref gngcrplcldfiubvhcdin
 // Without RESEND_API_KEY the function returns sent:false and the app tells you to copy the link.
 //
@@ -71,8 +72,15 @@ type OutboxRow = {
   attempts: number;
 };
 
+/**
+ * D73 (Sree, Nov 23: "Can we ignore that long link? That doesn't look good."): the button is the link, so the
+ * HTML carries no raw URL. The plain-text part still does, for text-only mail apps. One grey line says the
+ * link is a bearer token.
+ */
+const LINK_NOTE = '<p style="font-size:13px;color:#5F6368">Anyone with this link can see the scores, so forward it only to people at the table.</p>';
+
 const button = (href: unknown, label: string, alt = false) =>
-  `<a href="${escapeHtml(href)}" style="display:inline-block;background:${alt ? '#E7E0D4' : '#17402F'};color:${alt ? '#1B1F1C' : '#FBF1E1'};padding:10px 16px;border-radius:8px;text-decoration:none;margin-right:8px">${label}</a>`;
+  `<a href="${escapeHtml(href)}" style="display:inline-block;background:${alt ? '#ECE7DA' : '#0E4D2A'};color:${alt ? '#1A1F1B' : '#FFFFFF'};padding:10px 16px;border-radius:8px;text-decoration:none;margin-right:8px">${label}</a>`;
 
 /**
  * Subject and body for one queued row. Game and result emails end with their own unsubscribe
@@ -115,9 +123,9 @@ function render(row: OutboxRow): { subject: string; html: string; text: string }
     const g = typeof p.gameLabel === 'string' && p.gameLabel ? `Game ${p.gameLabel}` : 'A game';
     const subject = `${g} has started · live scores`;
     const html = `<p>Hi ${name},</p>
-<p>${escapeHtml(p.creatorName ?? 'A player')} started ${escapeHtml(g)}${p.startedAt ? ` on ${escapeHtml(when(p.startedAt))}` : ''}.</p>
-<p><a href="${escapeHtml(p.url)}" style="display:inline-block;background:#17402F;color:#FBF1E1;padding:10px 16px;border-radius:8px;text-decoration:none">Open the live scorecard</a></p>
-<p style="font-size:13px;color:#444">Or copy this link: ${escapeHtml(p.url)}</p>${footer}`;
+<p>${escapeHtml(p.creatorName ?? 'A player')} started <strong>${escapeHtml(g)}</strong> just now. The scorecard updates as rounds are saved.</p>
+<p>${button(p.url, 'Open the live scorecard')}</p>
+${LINK_NOTE}${footer}`;
     const text = `Hi ${p.playerName ?? 'there'},\n\n${p.creatorName ?? 'A player'} started ${g}. Live scores: ${p.url}\n\nUnsubscribe: ${unsubscribe}`;
     return { subject, html, text };
   }
@@ -128,8 +136,8 @@ function render(row: OutboxRow): { subject: string; html: string; text: string }
   const html = `<p>Hi ${name},</p>
 <p>${escapeHtml(p.declarerName ?? 'A player')} saved a result${p.declaredAt ? ` on ${escapeHtml(when(p.declaredAt))}` : ''}: ${escapeHtml(p.gameCount)} ${Number(p.gameCount) === 1 ? 'game' : 'games'}, ${escapeHtml(p.playerCount)} players.</p>
 <p>You placed <strong>${Number.isFinite(place) ? escapeHtml(ordinal(place)) : '—'}</strong> with <strong>${Number.isFinite(points) ? (points > 0 ? '+' : '') + points : '—'}</strong> points.</p>
-<p><a href="${escapeHtml(p.url)}" style="display:inline-block;background:#17402F;color:#FBF1E1;padding:10px 16px;border-radius:8px;text-decoration:none">See the full result</a></p>
-<p style="font-size:13px;color:#444">Or copy this link: ${escapeHtml(p.url)}</p>${footer}`;
+<p>${button(p.url, 'See the full result')}</p>
+${LINK_NOTE}${footer}`;
   const text = `Hi ${p.playerName ?? 'there'},\n\nA result was saved. You placed ${Number.isFinite(place) ? ordinal(place) : '—'} with ${points} points. Full result: ${p.url}\n\nUnsubscribe: ${unsubscribe}`;
   return { subject, html, text };
 }
@@ -266,7 +274,7 @@ Deno.serve(async (request) => {
     if (gameError || !game) return json({ sent: false, message: 'Only a game admin can email this scorecard.' }, 403);
     to = Array.isArray(body.emails) ? body.emails.map((email: string) => String(email)) : [];
     subject = `Rummy scorecard ${body.gameLabel || game.share_code}`;
-    html = `<p>A live Rummy scorecard is ready.</p><p>Started ${escapeHtml(body.startedAt || '')}. ${escapeHtml(body.gameLabel ? `Game ${body.gameLabel}` : `Game ${game.share_code}`)}.</p><p><a href="${escapeHtml(body.url)}">Open the scorecard</a></p>`;
+    html = `<p>A live Rummy scorecard is ready: <strong>${escapeHtml(body.gameLabel ? `Game ${body.gameLabel}` : `Game ${game.share_code}`)}</strong>${body.startedAt ? `, started ${escapeHtml(body.startedAt)}` : ''}.</p><p>${button(body.url, 'Open the live scorecard')}</p>${LINK_NOTE}`;
   } else {
     return json({ sent: false, message: 'Unknown email.' }, 400);
   }
