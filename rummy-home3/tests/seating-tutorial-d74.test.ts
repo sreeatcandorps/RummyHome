@@ -131,3 +131,10 @@ test('D74: never opens by itself — Show me on the screen, Watch how in Help; t
   assert.match(flow, /text: "1 of 3"/);
   assert.doesNotMatch(flow, /1 of 4|forced/);
 });
+
+test('D74 mockup: the selected row lifts out — primary outline, a gap above and below, filled arrows', () => {
+  const src = readFileSync(path.join(__dirname, '..', 'components', 'game', 'OrderOfPlayers.tsx'), 'utf8');
+  assert.match(src, /rowFocused: \{ borderWidth: 2, borderBottomWidth: 2, borderRadius: radius\.md, marginVertical: spacing\.xs \}/);
+  assert.match(src, /focused && \[styles\.rowFocused, \{ backgroundColor: colors\.primaryContainer, borderColor: colors\.primary \}\]/);
+  assert.equal((src.match(/mode=\{focused \? 'contained' : undefined\} containerColor=\{focused \? colors\.primary : undefined\} iconColor=\{focused \? colors\.onPrimary/g) ?? []).length, 2);
+});

@@ -89,7 +89,8 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
             style={[
               styles.row,
               { height: rowHeight, borderColor: colors.outlineVariant },
-              focused && { backgroundColor: colors.primaryContainer },
+              // D74 mockup: the selected row lifts out — a primary outline, a gap above and below, filled arrows.
+              focused && [styles.rowFocused, { backgroundColor: colors.primaryContainer, borderColor: colors.primary }],
               player.out && { opacity: 0.6 },
             ]}
             accessibilityRole="button"
@@ -133,12 +134,12 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
                 {seat === draft.base.length ? (
                   <View style={styles.arrowSlot} />
                 ) : (
-                  <IconButton icon="chevron-up" size={22} iconColor={focused ? colors.primary : colors.onSurfaceVariant} disabled={disabled} onPress={() => onChange(stepNumbered(draft, id, 1))} accessibilityLabel={`Move ${player.name} up`} style={styles.arrow} testID={`${testIDPrefix}-up-${index + 1}`} />
+                  <IconButton icon="chevron-up" size={ARROW_ICON} mode={focused ? 'contained' : undefined} containerColor={focused ? colors.primary : undefined} iconColor={focused ? colors.onPrimary : colors.onSurfaceVariant} disabled={disabled} onPress={() => onChange(stepNumbered(draft, id, 1))} accessibilityLabel={`Move ${player.name} up`} style={styles.arrow} testID={`${testIDPrefix}-up-${index + 1}`} />
                 )}
                 {seat === draft.base.length - draft.numbered.length + 1 ? (
                   <View style={styles.arrowSlot} />
                 ) : (
-                  <IconButton icon="chevron-down" size={22} iconColor={focused ? colors.primary : colors.onSurfaceVariant} disabled={disabled} onPress={() => onChange(stepNumbered(draft, id, -1))} accessibilityLabel={`Move ${player.name} down`} style={styles.arrow} testID={`${testIDPrefix}-down-${index + 1}`} />
+                  <IconButton icon="chevron-down" size={ARROW_ICON} mode={focused ? 'contained' : undefined} containerColor={focused ? colors.primary : undefined} iconColor={focused ? colors.onPrimary : colors.onSurfaceVariant} disabled={disabled} onPress={() => onChange(stepNumbered(draft, id, -1))} accessibilityLabel={`Move ${player.name} down`} style={styles.arrow} testID={`${testIDPrefix}-down-${index + 1}`} />
                 )}
               </View>
             ) : (
@@ -155,9 +156,11 @@ export function OrderOfPlayers({ players, draft, onChange, dealsNext, disabled =
 }
 
 const ARROWS_WIDTH = 96;
+const ARROW_ICON = 22;
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderRadius: radius.sm, paddingHorizontal: spacing.xs },
+  rowFocused: { borderWidth: 2, borderBottomWidth: 2, borderRadius: radius.md, marginVertical: spacing.xs },
   seatNo: { width: 24, height: 24, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
   seatNoText: { fontWeight: '800' },
   // The name keeps at least a few letters whatever else the row carries (font 1.3: it had collapsed to nothing).
@@ -165,6 +168,6 @@ const styles = StyleSheet.create({
   arrows: { flexDirection: 'row', alignItems: 'center', width: ARROWS_WIDTH, justifyContent: 'flex-end' },
   arrowsGap: { width: ARROWS_WIDTH },
   arrow: { margin: 0 },
-  arrowSlot: { width: 22 + 2 * 8, height: 22 + 2 * 8 },
+  arrowSlot: { width: ARROW_ICON + 2 * 8, height: ARROW_ICON + 2 * 8 },
   counter: { paddingTop: spacing.xs, paddingHorizontal: spacing.xs },
 });
