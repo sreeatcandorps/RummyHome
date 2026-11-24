@@ -688,3 +688,10 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   pre-approved (D79, D80); at most three open PRs (D81); a five-line *For Sree* block on every PR and atop
   `next-up.md`, and on a PR CI keeps the video of each flow the change selected (D82); a bug is fixed when a test
   proves it (D83); Telugu, phone sign-in and the extra tutorials wait until v1 is live in Play (D84).
+
+### 2026-11-24 — Agent procedures move into project skills (D87)
+- The step-by-step procedures in `AGENTS.md` (show then build, screenshot matrix, PR write-up, bug proof, small-fixes
+  batch) became five project skills under `.cursor/skills/`, loaded only when they apply; `AGENTS.md` keeps one line
+  each and its authority table unchanged. New `scripts/compare-frames.py` turns two sets of CI device frames into
+  "today | after" pictures. Pictures for Sree are committed to the public repo and linked by raw URL, because
+  Cursor artifact links need a login and the CI dashboard prunes old runs (D87).
