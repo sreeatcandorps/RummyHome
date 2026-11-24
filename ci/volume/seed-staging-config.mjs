@@ -14,9 +14,9 @@ export function allowedTarget(url) {
 export const FREE_PLAN_MB = 500;
 export const MB = 1024 * 1024;
 /** Bytes each unit adds, indexes and log rows included. Calibrated on run 3 (Nov 24): ~500 MB after ~16,000 games
- *  (mean 20 rounds × 7 players), 2,000 people and ~115k My-players rows → ~31 KB a game; rounded up. The driver
+ *  (mean 20 rounds × 7 players), 2,000 people and ~115k My-players rows → ~31 KB a game; the 2 % CI run measured 35 KB, which is what is used. The driver
  *  prints the measured bytes per game after the games step so these can be re-tuned from any run. */
-export const BYTES_PER = { game: 33 * 1024, person: 4 * 1024, myPlayersRow: 200, result: 6 * 1024, hugeRound: 20 * 260 };
+export const BYTES_PER = { game: 35 * 1024, person: 4 * 1024, myPlayersRow: 200, result: 6 * 1024, hugeRound: 20 * 260 };
 
 /** Rough My-players rows: everyone in a circle knows everyone (≈ 19 others), plus the power user's circle. */
 export function myPlayersRows(S) {
