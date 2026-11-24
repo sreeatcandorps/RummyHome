@@ -17,7 +17,7 @@
  *               flows that cover the touched area are added by name (FLOW_FILTER); infra changes
  *               (ci/, e2e/, seeds, workflow) run every suite on the reference phone.
  *   nightly     full + chaos + roles + two-device + monkey(5k) on the reference phone, smoke on the
- *               small / large-font / tablet devices, the volume job (database ladder + stress).
+ *               small / large-font / tablet devices + the 360-dp font-1.3 phone, the volume job (database ladder + stress).
  *   prerelease  nightly + full on every device + monkey(20k).
  * Docs-only changes run nothing on a device.
  */
@@ -28,7 +28,10 @@ export const DEVICES = {
   pixel6: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_6', rotation: 0, font: '1.0', label: 'Pixel 6 · API 34 (reference)' },
   pixel4a: { api: 30, arch: 'x86_64', target: 'default', profile: 'pixel_4a', rotation: 0, font: '1.0', label: 'Pixel 4a · API 30 (small, old)' },
   pixel7pro: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_7_pro', rotation: 0, font: '1.3', label: 'Pixel 7 Pro · API 34 · font 1.3' },
-  tablet: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_tablet', rotation: 1, font: '1.0', label: 'Pixel Tablet · API 34 · landscape' },
+  tablet: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_tablet', rotation: 1, font: '1.0', label: 'Pixel Tablet · API 34 · upright (rotation 1 of a landscape-natural device)' },
+  // Staging build 2 (Sree, Nov 23): five of eight bugs were a narrow phone or a big font. The Pixel 4a image
+  // at density 480 is a 360 × 780 dp window (run-suite.sh sets it), and the font at 1.3 on top.
+  small: { api: 30, arch: 'x86_64', target: 'default', profile: 'pixel_4a', rotation: 0, font: '1.3', density: 480, label: 'Pixel 4a at 360 dp · API 30 · font 1.3 (small)' },
 };
 
 /** Paths that never need a device. */
@@ -115,6 +118,7 @@ export function select({ event = 'pull_request', tier, files = [], message = '' 
       job('pixel4a', pre ? 'full' : 'smoke'),
       job('pixel7pro', pre ? 'full' : 'smoke'),
       job('tablet', pre ? 'full' : 'smoke'),
+      job('small', pre ? 'full' : 'smoke'),
     );
     if (pre) plan.jobs.push(job('pixel4a', 'chaos'), job('tablet', 'chaos'));
     // Volume (the database ladder + stress budgets, ~5 min on a plain runner) runs every night since
@@ -147,6 +151,7 @@ export function select({ event = 'pull_request', tier, files = [], message = '' 
       job('pixel6', 'two-device'),
       job('pixel6', 'monkey', [], { monkeyEvents: 1500 }),
     );
+    if (appChanged) plan.jobs.push(job('small', 'smoke'));
     const fullNote = touchedFull.length ? ` + the ${touchedFull.length} edited full flow(s)` : '';
     plan.reason = forceAll ? `[ui-all] in the commit message: every suite on the reference phone${fullNote}`
       : changed.length === 0 ? 'no file list: every suite on the reference phone'
@@ -170,9 +175,11 @@ export function select({ event = 'pull_request', tier, files = [], message = '' 
   if (extra.chaos.length) plan.jobs.push(job('pixel6', 'chaos', uniq(extra.chaos)));
   if (extra.roles.length) plan.jobs.push(job('pixel6', 'roles', uniq(extra.roles)));
   if (twoDevice) plan.jobs.push(job('pixel6', 'two-device'));
+  // Every app change also runs the smoke set once on the small phone at font 1.3 (staging build 2's lesson).
+  plan.jobs.push(job('small', 'smoke'));
   plan.reason = areas.length
-    ? `app change in: ${areas.join(', ')} → smoke + ${plan.jobs.length - 1} targeted job(s)`
-    : 'app change outside the mapped areas → smoke only';
+    ? `app change in: ${areas.join(', ')} → smoke + ${plan.jobs.length - 2} targeted job(s) + smoke on the small phone`
+    : 'app change outside the mapped areas → smoke on the reference and the small phone';
   return plan;
 }
 
