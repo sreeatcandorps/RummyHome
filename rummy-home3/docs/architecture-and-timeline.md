@@ -55,7 +55,7 @@ Same codebase either way.
 | Tutorials | `components/tutorial/StepsSheet.tsx` + `expo-haptics` (D61, Nov 20) | Step-by-step sheets drawn from the real components (no video / Lottie); seen-flags on `profiles.default_settings`; the light tap on the real last tap of the Order of players |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / staging (EZ Score · Staging, `.staging` package, points at `ezscore-staging`) / production | Real store binaries |
-| Device UI tests | Maestro + `reactivecircus/android-emulator-runner` in GitHub Actions (`ci/ui/`, `rummy-home3/e2e/`); four emulator profiles, six suites, `adb monkey`, two-emulator races; dashboard on the `gh-pages` branch (GitHub Pages) | Flows on the real APK, screenshots and videos of every run, bugs filed as issues; no EAS credits, no production data, $0 on the public repo |
+| Device UI tests | Maestro + `reactivecircus/android-emulator-runner` in GitHub Actions (`ci/ui/`, `rummy-home3/e2e/`); five emulator rows (Pixel 6 · 4a · 7 Pro at font 1.3 · Tablet · 4a at 360 dp with font 1.3), six suites, `adb monkey`, two-emulator races; dashboard on the `gh-pages` branch (GitHub Pages) | Flows on the real APK, screenshots and videos of every run, bugs filed as issues; no EAS credits, no production data, $0 on the public repo |
 | OTA | `expo-updates`, on for the production profile only (`EXPO_UPDATES_ENABLED` in `eas.json` → `app.config.js`). Preview/development APKs run their embedded JS | Fix JS during the 14-day test without new Play review every time; preview builds can't be replaced by a stale update |
 | Version codes | `appVersionSource: "remote"` in `eas.json` | EAS tracks Android versionCode; no manual bumps in `app.json` |
 | Secrets for builds | EAS Environment Variables (`EXPO_PUBLIC_SUPABASE_*`) | `.env.local` never reaches EAS builders |
@@ -699,3 +699,6 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   each and its authority table unchanged. New `scripts/compare-frames.py` turns two sets of CI device frames into
   "today | after" pictures. Pictures for Sree are committed to the public repo and linked by raw URL, because
   Cursor artifact links need a login and the CI dashboard prunes old runs (D87).
+
+### 2026-11-24 — The `small` CI phone (batch 2 PR)
+- CI device plan gains a fifth row, `small`: the Pixel 4a image at density 480 (a 360 × 780 dp window, `adb shell wm density` from `DEVICE_DENSITY`) with font 1.3; smoke on every app PR, full nightly. Reason: five of the eight staging-build-2 bugs were a narrow phone or a big font and the PR gate ran smoke on the Pixel 6 only. The `tablet` row was never landscape (the Pixel Tablet's natural orientation is landscape; rotation 1 is upright) — relabelled, flows re-pinned.
