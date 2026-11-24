@@ -8,14 +8,12 @@ import { authService } from '@/services/auth';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-import { isAdminEmail } from '@/utils/adminAccess';
 import { sharePlayerId } from '@/utils/invite';
 import { normalizePhone, phoneProblem } from '@/utils/phone';
 import { playerIdBadge } from '@/utils/myPlayersList';
 import { playersService } from '@/services/players';
 import { assignInitials, defaultInitials } from '@/utils/initials';
 import { InitialsDialog } from '@/components/players/InitialsDialog';
-import { clearDemoData, loadDemoData } from '@/services/demoSeed';
 import { DEFAULT_EMAIL_PREFS, EmailPrefs, emailsService } from '@/services/emails';
 import { ChangePasscodeDialog } from '@/components/auth/ChangePasscodeDialog';
 import { DeleteAccountDialog } from '@/components/account/DeleteAccountDialog';
@@ -66,8 +64,6 @@ export default function MeScreen() {
   const [savingPhone, setSavingPhone] = useState(false);
   const [phoneState, setPhoneState] = useState<PhoneState>({ kind: 'idle' });
   const [defaults, setDefaults] = useState<string | null>(null);
-  const [showDemo, setShowDemo] = useState(false);
-  const [demoBusy, setDemoBusy] = useState<null | 'load' | 'clear'>(null);
   const [notice, setNotice] = useState<string | null>(null);
   // A09: pop-up notices are Paper dialogs, never Alert.alert. `then` runs after OK (account deleted → sign-in).
   const [popup, setPopup] = useState<{ title: string; message: string; icon?: string; then?: () => void } | null>(null);
@@ -91,12 +87,6 @@ export default function MeScreen() {
       setPlayer(current);
       setSavedPhone(current.phone ?? '');
       userSettingsService.getAll(current.id).then((all) => setDefaults(defaultsSummary(all.startsAs, all.startsAs === 'pool' ? all.pool : all.points))).catch(() => {});
-      let email = current.email ?? null;
-      if (isSupabaseConfigured) {
-        const { data } = await supabase.auth.getSession();
-        email = data.session?.user.email ?? email;
-      }
-      setShowDemo(isAdminEmail(email));
       setEmailPrefs(await emailsService.getPrefs());
       playersService.listMyPlayers(current.id).then((mine) => {
         const labels = assignInitials(mine.map((player) => ({ id: player.id, name: player.name, initials: player.initials, addedAt: player.addedAt })));
@@ -223,23 +213,6 @@ export default function MeScreen() {
     }
   };
 
-  const runDemo = async (action: 'load' | 'clear') => {
-    setDemoBusy(action);
-    try {
-      if (action === 'load') {
-        const result = await loadDemoData();
-        setPopup({ title: 'Demo data loaded', message: `${result.hostName} is in the sample games.`, icon: 'check-circle-outline' });
-      } else {
-        await clearDemoData();
-        setPopup({ title: 'Demo data cleared', message: 'Sample players and games were removed.', icon: 'check-circle-outline' });
-      }
-    } catch (err) {
-      setPopup({ title: 'Demo data failed', message: err instanceof Error ? err.message : 'Something went wrong.', icon: 'alert-circle-outline' });
-    } finally {
-      setDemoBusy(null);
-    }
-  };
-
   if (loading && !player) {
     return <Screen><LoadingRows /></Screen>;
   }
@@ -340,13 +313,6 @@ export default function MeScreen() {
         <ListRow title="Delete account" tone="danger" onPress={() => setDeleteOpen(true)} testID="delete-account" />
         <ListRow title="Log out" tone="danger" noChevron onPress={logout} testID="me-log-out" />
       </SettingsGroup>
-
-      {showDemo ? (
-        <SettingsGroup title="Admin" note="Sample players and games for this account. Load adds them; Clear removes them." testID="me-admin">
-          <ListRow title="Load demo data" description={demoBusy === 'load' ? 'Loading…' : undefined} onPress={demoBusy ? undefined : () => runDemo('load')} testID="me-demo-load" />
-          <ListRow title="Clear demo data" description={demoBusy === 'clear' ? 'Clearing…' : undefined} onPress={demoBusy ? undefined : () => runDemo('clear')} testID="me-demo-clear" />
-        </SettingsGroup>
-      ) : null}
 
       {VERSION_LABEL ? (
         <Text variant="labelSmall" style={[styles.version, { color: colors.onSurfaceVariant }]} accessibilityLabel={`App version ${VERSION_LABEL}`}>
