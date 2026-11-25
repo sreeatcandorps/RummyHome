@@ -394,6 +394,8 @@ incomplete Done stays grey and the line already says "3 of 6 numbered". Batch it
 
 ### 8.8 Scorecard columns — "10 is too much … it should show 5" (Sree, Nov 23)
 
+> **Revised Nov 24** (D90: 5 · 7 · **Max**, not All): the spec to build is [`columns-landscape-spec.md`](columns-landscape-spec.md). This section is the Nov 23 proposal.
+
 Sree: *"I think it can fit 10. 10 is too much … Do you think we can add a zoom button for the scorecard, right on top
 of it instead of the share? Or maybe I can keep it inside the menu by pressing plus or minus … it should show 5. 5 is
 the least zoom … for everybody else, you have to scroll … for some of the people that can't see properly, this might
@@ -445,6 +447,8 @@ one help line, flow 25 re-pinned to 5 visible. A small PR; **batch item**, not p
 Picture: `scorecard-density.png` (the CI frame · 5 columns · the ⋮ row). Generator: `make-scorecard-density-mockup.py`.
 
 ### 8.9 Landscape is for viewing — "I can barely see 2 rows" (Sree, Nov 23)
+
+> **Revised Nov 24** (D89: the table alone, no bar, no tags, no "View only"): the spec to build is [`columns-landscape-spec.md`](columns-landscape-spec.md). This section is the Nov 23 proposal.
 
 Sree: *"When I do the landscape, it automatically fits the 11 players … I don't think we need the buttons on landscape.
 The landscape should only be for viewing. The undo button, add round, and complete: add round is not convenient in
