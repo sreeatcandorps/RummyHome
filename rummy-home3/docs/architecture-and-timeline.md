@@ -343,7 +343,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | --- | --- |
 | Auth (email/passcode, session refresh, app-only OTP recovery) | Done in the app; OTP email live via Resend since Nov 9. Phone pass pending |
 | Profiles / Player ID + share | Done |
-| Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
+| Find players | By Player ID only (D113): the app sends only a number; until `053` is applied the server still answers names and emails for anyone calling the API. From New game it also seats the player |
 | New game (Points / Pool, my players) | Done. Four steps (PR 24): Players (Next) → Game type with this game's settings prefilled from Settings (Next) → Order of players (tap to number) → Co-admin → Start game. Creator is not pre-seated; Add players (full screen) / Add player from database |
 | Game table + score entry | Done, portrait + landscape. Add round: grid, presets, keypad, Balance gate, explicit 0, big losses in red. Complete game, Final scores, and Players are their own pages. Apply `014_save_round_atomic.sql` for the one-transaction save |
 | Home | Done. Results → every live game → Recent (every Completed/Closed game, newest first, no filter). History screen redirects home |
@@ -717,6 +717,15 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   dealer keeps the round through the 052 override when needed. Re-entry is unchanged. The app predicts the same
   seat (`planJoin`) for local games and for the one-line notice on Add players. Rollback restores the 052 body;
   CI's rollback replay and pgTAP cover it. Live only after Sree's yes to 054.
+### 2026-11-26 — Find players by Player ID only (053, D113); invite is a plain message (D106)
+- Migration `053_player_id_search_only.sql` (written, **not applied**) turns `search_players` into an exact Player ID
+  lookup: one registered account, its name shortened to first name + last initial (`short_player_name`), or nothing.
+  Names, initials and emails are no longer searchable through the API, so typing two letters can no longer list
+  people from the whole database. Same signature, so older app builds keep working; `search_my_players` (the
+  user's own players) is unchanged. The app's Find in database is a number keypad with a Search button.
+- Invite to EZ Score shares a plain get-the-app message; the one-time sign-up (claim) link is gone from the app.
+  The claim RPCs stay on the server so links already sent still open until they expire. Link to Player ID (025)
+  is now the one way to move an initials player's games to an account. D70's seat change becomes migration 054.
 ### 2026-11-25 — EZ Score: Rummy is live on Google Play (Production 15, 1.1.0)
 - Google approved the review; build 15 (1.1.0) is published to Production (Play Console: "Last published on November
   25, 2026", 0 policy tasks). Internal testing stays active, so staging builds still go to testers first.

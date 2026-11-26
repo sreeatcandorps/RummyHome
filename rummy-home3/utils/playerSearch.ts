@@ -1,7 +1,3 @@
-export type PlayerSearchMode = 'none' | 'email' | 'text';
-
-const FULL_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 /** Same two letters the list avatar shows: first character of each word. */
 export function listInitials(name: string): string {
   return (name || '')
@@ -15,19 +11,35 @@ export function listInitials(name: string): string {
 }
 
 /**
- * Find rules: two characters before a name or player ID search, a full email
- * or nobody, and a phone number matches nobody.
+ * Find on EZ Score (D113): the only query is an exact Player ID, "57" or "#57", spaces allowed
+ * around it. Anything else (a name, initials, an email, "57a") is not a query: null.
  */
-export function playerSearchMode(raw: string): PlayerSearchMode {
-  const query = raw.trim();
-  if (query.length < 2) return 'none';
-  if (FULL_EMAIL.test(query)) return 'email';
-  if (query.includes('@')) return 'none';
+export function parsePlayerIdQuery(raw: string): number | null {
+  const digits = (raw ?? '').trim().replace(/^#\s*/, '');
+  if (!/^\d{1,12}$/.test(digits)) return null;
+  const n = Number(digits);
+  return n >= 1 ? n : null;
+}
 
-  const digits = query.replace(/\D/g, '');
-  const letters = /[a-z]/i.test(query);
-  if (!letters && digits.length >= 6) return 'none';
-  return 'text';
+/**
+ * The name a Player ID lookup shows: first name + last initial ("Ravi Kumar" -> "Ravi K."), one word as
+ * it is. The server applies the same rule (053 short_player_name), so typing numbers never reveals a full name.
+ */
+export function shortPlayerName(name: string | null | undefined): string {
+  const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return 'Rummy Player';
+  if (words.length === 1) return words[0];
+  return `${words[0]} ${words[words.length - 1][0].toUpperCase()}.`;
+}
+
+/** The one result card's line: "#57 · Ravi K.". */
+export function playerIdResultLine(playerNo: number, name: string): string {
+  return `#${playerNo} · ${shortPlayerName(name)}`;
+}
+
+/** A Player ID nobody has: "No one has #58.". */
+export function noOneHasLine(playerNo: number): string {
+  return `No one has #${playerNo}.`;
 }
 
 export type SearchablePlayer = {
