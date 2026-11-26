@@ -54,6 +54,7 @@ test('bug 8 proof flow: Create account focuses every field with the keyboard up 
 test('CI: the small phone (Pixel 4a at 360 dp, font 1.3) runs the smoke set on every app PR and the full set nightly', () => {
   assert.equal(DEVICES.small.profile, 'pixel_4a');
   assert.equal(DEVICES.small.density, 480);
+  assert.equal(DEVICES.small.api, 34, 'the API 30 snapshot hung three PR runs (12h); the small phone runs on the reference image');
   assert.equal(DEVICES.small.font, '1.3');
   assert.match(DEVICES.tablet.label, /upright/, 'the tablet job is not landscape (rotation 1 of a landscape-natural device)');
   const pr = select({ event: 'pull_request', files: ['rummy-home3/components/ui/AuthShell.tsx'] });

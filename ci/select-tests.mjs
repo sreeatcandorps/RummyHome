@@ -29,9 +29,11 @@ export const DEVICES = {
   pixel4a: { api: 30, arch: 'x86_64', target: 'default', profile: 'pixel_4a', rotation: 0, font: '1.0', label: 'Pixel 4a · API 30 (small, old)' },
   pixel7pro: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_7_pro', rotation: 0, font: '1.3', label: 'Pixel 7 Pro · API 34 · font 1.3' },
   tablet: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_tablet', rotation: 1, font: '1.0', label: 'Pixel Tablet · API 34 · upright (rotation 1 of a landscape-natural device)' },
-  // Staging build 2 (Sree, Nov 23): five of eight bugs were a narrow phone or a big font. The Pixel 4a image
-  // at density 480 is a 360 × 780 dp window (run-suite.sh sets it), and the font at 1.3 on top.
-  small: { api: 30, arch: 'x86_64', target: 'default', profile: 'pixel_4a', rotation: 0, font: '1.3', density: 480, label: 'Pixel 4a at 360 dp · API 30 · font 1.3 (small)' },
+  // Staging build 2 (Sree, Nov 23): five of eight bugs were a narrow phone or a big font. The Pixel 4a profile
+  // at density 480 is a 360 × 780 dp window (run-suite.sh sets it), and the font at 1.3 on top. On the API 34
+  // image like the reference rows: the API 30 snapshot came back "booted" with no input / settings service in
+  // three of four PR runs and the job hung to its 90-min timeout (next-up 12h); `pixel4a` keeps API 30 nightly.
+  small: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_4a', rotation: 0, font: '1.3', density: 480, label: 'Pixel 4a at 360 dp · API 34 · font 1.3 (small)' },
 };
 
 /** Paths that never need a device. */
