@@ -6,6 +6,8 @@ import { scoreTextStyle, scoreTone } from '@/utils/scoreTone';
 import { actual, shortNumber, spokenExact } from '@/utils/multiplier';
 import {
   cellFontSize,
+  columnChoices,
+  ColumnChoice,
   columnLayout,
   DEALER_BAR,
   dealsBadge,
@@ -17,7 +19,10 @@ import {
   fitInitialsFontSize,
   initialsWidthIn,
   newestRoundOffset,
+  pinchStep,
+  stepColumnChoice,
   TABLE_MAX_FONT_SCALE,
+  visibleColumns,
 } from '@/utils/scorecardLayout';
 
 export type ScoreColumn = {
@@ -82,7 +87,14 @@ type ScoreTableProps = {
    * of the screen. Unset: the card fills its parent (Points, landscape).
    */
   hugRows?: number;
+  /** D90 (portrait): how many player columns share the width — 5, 7 or as many as fit. Unset: all of them (landscape). */
+  columnChoice?: ColumnChoice;
+  /** D90: a pinch on the table snaps to the next choice; without this the table does not pinch. */
+  onColumnChoiceChange?: (choice: ColumnChoice) => void;
 };
+
+type Touch = { pageX: number; pageY: number };
+const touchDistance = (touches: Touch[]) => Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY);
 
 
 /** Pool (PR 24): the re-entry round shows the start score with this mark beside it; the typed score is saved, not shown. */
@@ -269,6 +281,8 @@ export function ScoreTable({
   footer,
   onRoundPress,
   hugRows,
+  columnChoice,
+  onColumnChoiceChange,
 }: ScoreTableProps) {
   // Pools never multiply; Points multiply while the view toggle is on.
   const factor = !pool && showActual && multiplier > 1 ? multiplier : 1;
@@ -296,7 +310,8 @@ export function ScoreTable({
     listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => { sidewaysX.current = event.nativeEvent.contentOffset.x; },
   }), [bodyX]);
 
-  const { roundColumnWidth, columnWidth, contentWidth, scrollsSideways } = columnLayout(tableWidth, columns.length, compact);
+  const visible = columnChoice ? visibleColumns(columnChoice, tableWidth, compact) : undefined;
+  const { roundColumnWidth, columnWidth, contentWidth, scrollsSideways } = columnLayout(tableWidth, columns.length, compact, visible);
   const maxSideways = useRef(0);
   maxSideways.current = Math.max(0, contentWidth - (tableWidth - roundColumnWidth));
   const sidewaysTo = (x: number) => {
@@ -324,6 +339,44 @@ export function ScoreTable({
     },
     onPanResponderTerminate: () => {},
   }), [scrollsSideways]);
+
+  // D90: two fingers anywhere on the table snap 5 · 7 · Max; one finger still scrolls (headerPan / the
+  // scrollers). Built like headerPan on PanResponder, so no gesture library. The table's own scrollers are
+  // switched off while the two fingers are down so they cannot take the gesture over.
+  const [pinching, setPinching] = useState(false);
+  const pinchFrom = useRef(0);
+  const pinchState = useRef({ columnChoice, onColumnChoiceChange, choices: columnChoices(tableWidth, compact) });
+  pinchState.current = { columnChoice, onColumnChoiceChange, choices: columnChoices(tableWidth, compact) };
+  const pinch = useMemo(() => {
+    const twoFingers = (e: { nativeEvent: { touches: Touch[] } }) =>
+      Boolean(pinchState.current.columnChoice && pinchState.current.onColumnChoiceChange) && e.nativeEvent.touches.length === 2;
+    const end = () => { pinchFrom.current = 0; setPinching(false); };
+    return PanResponder.create({
+      onStartShouldSetPanResponderCapture: twoFingers,
+      onMoveShouldSetPanResponderCapture: twoFingers,
+      onPanResponderGrant: (e) => {
+        stopFling();
+        pinchFrom.current = e.nativeEvent.touches.length === 2 ? touchDistance(e.nativeEvent.touches) : 0;
+        setPinching(true);
+      },
+      onPanResponderMove: (e) => {
+        const { touches } = e.nativeEvent;
+        if (touches.length !== 2) return;
+        const distance = touchDistance(touches);
+        if (!pinchFrom.current) { pinchFrom.current = distance; return; }
+        const step = pinchStep(distance / pinchFrom.current);
+        if (!step) return;
+        pinchFrom.current = distance;
+        const { columnChoice: current, onColumnChoiceChange: change, choices } = pinchState.current;
+        if (!current || !change) return;
+        const next = stepColumnChoice(current, choices, step);
+        if (next !== current) change(next);
+      },
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderRelease: end,
+      onPanResponderTerminate: end,
+    });
+  }, []);
 
   const fontSize = cellFontSize(columnWidth);
   const rowHeight = rowHeightFor(columnWidth, columns.length, compact, fontScale);
@@ -548,7 +601,7 @@ export function ScoreTable({
   // PR 24: the card border is split so the pinned header carries the top edge and the scrolling body the bottom.
   const edge = { borderColor: colors.outlineVariant };
   return (
-    <View style={hugging ? styles.tableHug : styles.table} onLayout={handleLayout} testID="score-table">
+    <View style={hugging ? styles.tableHug : styles.table} onLayout={handleLayout} {...pinch.panHandlers} testID="score-table">
       {tableWidth > 0 ? (
         <>
           {/* Pinned header: the corner stays put; the header cells follow the rows' sideways offset on the UI thread. */}
@@ -566,7 +619,7 @@ export function ScoreTable({
             style={hugging ? [styles.none, { maxHeight: maxBodyHeight }] : styles.flex}
             onContentSizeChange={handleContentSizeChange}
             showsVerticalScrollIndicator={roundCount > 0}
-            scrollEnabled={roundCount > 0}
+            scrollEnabled={roundCount > 0 && !pinching}
             onLayout={(e) => { viewportHeight.current = e.nativeEvent.layout.height; }}
             testID="score-table-rows"
           >
@@ -579,7 +632,7 @@ export function ScoreTable({
                   ref={bodyRef}
                   horizontal
                   style={styles.flex}
-                  scrollEnabled={scrollsSideways}
+                  scrollEnabled={scrollsSideways && !pinching}
                   showsHorizontalScrollIndicator={scrollsSideways}
                   onScrollBeginDrag={stopFling}
                   onScroll={trackBody}
