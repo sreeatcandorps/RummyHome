@@ -69,9 +69,10 @@ test('e2e: every id: a flow taps or asserts exists as a testID in the app', () =
     const literal = sources.includes(`testID="${id}"`) || sources.includes(`testID: '${id}'`);
     // PR 24: a cell that carries its id only in one state (`reentryHere ? \`score-reentry-${index + 1}\` : undefined`).
     const conditional = prefix !== id && sources.includes(`? \`${prefix}\${`);
-    const templated = prefix !== id && sources.includes(`testID={\`${prefix}\${`);
+    // D90: an options array may build its ids too (`testID: \`columns-choice-${choice}\``).
+    const templated = prefix !== id && (sources.includes(`testID={\`${prefix}\${`) || sources.includes(`testID: \`${prefix}\${`));
     // PR 13: a word segment may also be the hole (`award-preset-${p.key}` ↔ award-preset-left).
-    const wordHole = [...id.matchAll(/-/g)].some((m) => sources.includes(`testID={\`${id.slice(0, m.index! + 1)}\${`));
+    const wordHole = [...id.matchAll(/-/g)].some((m) => sources.includes(`testID={\`${id.slice(0, m.index! + 1)}\${`) || sources.includes(`testID: \`${id.slice(0, m.index! + 1)}\${`));
     const viaPrefixProp = prefixed.some((re) => re.test(id));
     assert.ok(literal || templated || wordHole || viaPrefixProp || conditional, `no testID for ${id} in app/ or components/`);
   }
@@ -119,4 +120,45 @@ test('e2e: the workflow runs the device plan (PR 17: select → apk → ui matri
   const runFlows = readFileSync(join(repo, 'ci/ui/run-flows.sh'), 'utf8');
   assert.match(runFlows, /\*landscape\*\) rotate 1/, 'landscape flows rotate the emulator');
   assert.match(runFlows, /--quarantine/, 'known-bugs never fail the job');
+});
+
+// Small phone (360 dp, font 1.3) flakes of Nov 26: the sign-in wait, a long scroll on a slow runner, and a Home
+// that comes back from a game still scrolled down. These pin the fixes so a later edit does not undo them.
+test('e2e: ensure-signed-in recognises the Sign in screen with the keypad covering its button', () => {
+  const lib = read('e2e/lib/ensure-signed-in.yaml');
+  const wait = /text: "([^"]+)"/.exec(lib)?.[1] ?? '';
+  const matches = (text: string) => new RegExp(`^(?:${wait})$`).test(text);
+  assert.ok(matches('New game'), 'Home');
+  assert.ok(matches('Sign in'), 'the button');
+  assert.ok(matches('Sign in to keep score with your table'), 'the subtitle, which stays above the keypad');
+  assert.ok(matches('Email'), "the field's own label, which is always above the keypad");
+  assert.ok(!matches('Recent'), 'not a Home-only word that other screens also show');
+  // The keypad opens by itself 350 ms after Sign in appears: a hideKeyboard before the email field is a Back press.
+  assert.doesNotMatch(lib.split('sign-in.yaml')[0], /hideKeyboard/);
+  const signIn = read('e2e/lib/sign-in.yaml');
+  assert.ok(signIn.indexOf('tapOn:\n    id: "login-email"') < signIn.indexOf('hideKeyboard'), 'tap the email field before any hideKeyboard');
+  for (const id of ['login-passcode', 'login-submit']) {
+    assert.match(signIn, new RegExp(`scrollUntilVisible:\\n    element:\\n      id: "${id}"`), `${id} is scrolled into view before the tap`);
+  }
+});
+
+test('e2e: smoke flows scroll long enough on a slow runner, and Home is scrolled back to its top after a game', () => {
+  const smoke = flows.filter((f) => f.startsWith('e2e/smoke'));
+  for (const f of smoke) {
+    const text = read(f);
+    for (const m of text.matchAll(/^- scrollUntilVisible:\n((?:[ ]+.*\n?)+)/gm)) {
+      const block = m[1];
+      if (/optional:|centerElement:/.test(block)) continue;
+      const timeout = Number(/timeout: (\d+)/.exec(block)?.[1] ?? 0);
+      assert.ok(timeout >= 30000, `${f}: a scroll with a ${timeout} ms timeout (the slowest passing scroll took 14 s on CI; 15 s lost the race on #150)`);
+    }
+  }
+  for (const f of ['e2e/smoke/03-scorecard-landscape.yaml', 'e2e/smoke/11-scorecard-20-players-landscape.yaml']) {
+    const card = /id: "game-card-GAME[A-Z0-9]+"\n    direction: DOWN\n    timeout: (\d+)/.exec(read(f));
+    assert.ok(card && Number(card[1]) >= 60000, `${f}: the sideways Home list is two cards tall, give the card 60 s`);
+  }
+  const top = read('e2e/lib/home-top.yaml');
+  assert.match(top, /element: "New game"\n    direction: UP/);
+  assert.match(read('e2e/smoke/03-scorecard-landscape.yaml'), /- back\n(?:#.*\n)*- runFlow: \.\.\/lib\/home-top\.yaml/, 'flow 03 scrolls Home to the top after Back');
+  assert.equal([...read('e2e/smoke/22-play-listing-frames.yaml').matchAll(/lib\/home-top\.yaml/g)].length, 2, 'flow 22 does after each Back');
 });

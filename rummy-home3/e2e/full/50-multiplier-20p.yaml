@@ -66,14 +66,26 @@ tags: [nightly]
 - assertVisible: ".*\\(exact\\).*"
 - takeScreenshot: 50b-exact-points-20p
 - tapOn: "Close"
-# Landscape: the same short numbers, nothing clipped.
+# Landscape: the same short numbers, nothing clipped. D89: the table alone, so no chip and no menu.
 - setOrientation: LANDSCAPE_LEFT
+- extendedWaitUntil:
+    visible:
+      id: "score-table"
+    timeout: 120000
+- runFlow:
+    when:
+      visible:
+        id: "landscape-table-only"
+    commands:
+      - assertNotVisible:
+          id: "multiplier-chip"
+      - assertNotVisible: "Scorecard menu"
+- takeScreenshot: 50c-scorecard-20p-x10000-landscape
+- setOrientation: PORTRAIT
 - extendedWaitUntil:
     visible:
       id: "multiplier-chip"
     timeout: 120000
-- takeScreenshot: 50c-scorecard-20p-x10000-landscape
-- setOrientation: PORTRAIT
 # Back to ×1 so game F is unchanged for the other nightly flows.
 - tapOn: "Scorecard menu"
 - tapOn: "Game settings"

@@ -14,7 +14,7 @@ tags: [smoke]
     element:
       id: "game-card-GAMEE1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEE1"
 - extendedWaitUntil:
@@ -40,14 +40,14 @@ tags: [smoke]
 - scrollUntilVisible:
     element: "New game"
     direction: UP
-    timeout: 15000
+    timeout: 30000
 
 # 2. Hidden & deleted with one hidden game: hide game H, open Settings › Hidden & deleted, unhide.
 - scrollUntilVisible:
     element:
       id: "game-card-GAMEH1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEH1"
 - extendedWaitUntil:
@@ -61,7 +61,7 @@ tags: [smoke]
 - scrollUntilVisible:
     element: "New game"
     direction: UP
-    timeout: 15000
+    timeout: 30000
 - tapOn: "Your profile"
 # Size-S (#120): Appearance is below the fold at 360 dp × font 1.3; wait for the title, scroll to the row.
 - extendedWaitUntil:
@@ -70,12 +70,12 @@ tags: [smoke]
 - scrollUntilVisible:
     element: "Appearance"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - scrollUntilVisible:
     element:
       id: "me-settings"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "me-settings"
 - extendedWaitUntil:
@@ -87,7 +87,7 @@ tags: [smoke]
     element:
       id: "settings-hidden-deleted"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "settings-hidden-deleted"
 - extendedWaitUntil:
@@ -100,14 +100,14 @@ tags: [smoke]
     element:
       text: "Deleted results · .*"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible: "Deleted results · .*"
 - takeScreenshot: 21b-hidden-deleted
 - scrollUntilVisible:
     element:
       text: "Unhide"
     direction: UP
-    timeout: 10000
+    timeout: 30000
 - tapOn: "Unhide"
 # The state is the proof; the toast is a few seconds long and was gone on the slow 360-dp emulator. The card
 # shrinks when its one row leaves, and on the 360-dp phone the header ends up above the viewport: scroll to it.
@@ -118,7 +118,7 @@ tags: [smoke]
     element:
       text: "Games I hid · 0"
     direction: UP
-    timeout: 15000
+    timeout: 30000
 - assertVisible:
     text: "Back on your Home."
     optional: true
@@ -133,7 +133,7 @@ tags: [smoke]
 - scrollUntilVisible:
     element: "Log out"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn: "Log out"
 - extendedWaitUntil:
     visible:
@@ -153,7 +153,7 @@ tags: [smoke]
     element:
       text: "Create account"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - assertVisible: "Create account"
 - takeScreenshot: 21c-sign-in
 - runFlow: ../lib/sign-in.yaml

@@ -33,7 +33,7 @@ tags: [smoke]
     element:
       text: "Create account"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn: "Create account"
 - extendedWaitUntil:
     visible:
@@ -62,7 +62,7 @@ tags: [smoke]
     element:
       id: "register-passcode"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "register-passcode"
 - inputText: "123456"

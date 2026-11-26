@@ -79,7 +79,7 @@ tags: [smoke]
 - scrollUntilVisible:
     element: "Clear form"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertNotVisible: "Player ID"
 - takeScreenshot: 27d-create-account-form-no-player-id
 - runFlow:

@@ -45,7 +45,7 @@ tags: [smoke]
     element:
       id: "login-submit"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "login-submit"
 - extendedWaitUntil:
@@ -60,7 +60,7 @@ tags: [smoke]
     element:
       id: "login-submit"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "login-submit"
 - extendedWaitUntil:
@@ -78,7 +78,7 @@ tags: [smoke]
 - scrollUntilVisible:
     element: "Log out"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn: "Log out"
 - extendedWaitUntil:
     visible:

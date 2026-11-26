@@ -115,13 +115,94 @@ export type ColumnLayout = {
   scrollsSideways: boolean;
 };
 
-/** Columns share the width left of the round column; under the minimum they keep 38 dp and the table scrolls. */
-export function columnLayout(tableWidth: number, columnCount: number, compact: boolean): ColumnLayout {
-  const roundColumnWidth = compact ? 48 : 42;
+export const roundColumnWidthFor = (compact: boolean) => (compact ? 48 : 42);
+
+/**
+ * Columns share the width left of the round column; under the minimum they keep 38 dp and the table scrolls.
+ * D90: `visible` caps how many player columns share that width (portrait 5 · 7 · Max); the rest are a
+ * sideways swipe away. Fewer players than the cap share the width as before. Unset: no cap (landscape).
+ */
+export function columnLayout(tableWidth: number, columnCount: number, compact: boolean, visible?: number): ColumnLayout {
+  const roundColumnWidth = roundColumnWidthFor(compact);
   const available = Math.max(tableWidth - roundColumnWidth, 0);
-  const fitWidth = columnCount ? available / columnCount : available;
+  const shown = visible ? Math.min(columnCount, Math.max(1, visible)) : columnCount;
+  const fitWidth = shown ? available / shown : available;
   const columnWidth = Math.max(MIN_COLUMN_WIDTH, fitWidth);
-  return { roundColumnWidth, columnWidth, contentWidth: columnWidth * columnCount, scrollsSideways: fitWidth < MIN_COLUMN_WIDTH };
+  return { roundColumnWidth, columnWidth, contentWidth: columnWidth * columnCount, scrollsSideways: shown < columnCount || fitWidth < MIN_COLUMN_WIDTH };
+}
+
+/** D90 (Sree, Nov 24): "5, 7, and then max" — the portrait scorecard's column choices. */
+export type ColumnChoice = 5 | 7 | 'max';
+export const COLUMN_CHOICE_DEFAULT: ColumnChoice = 5;
+export const COLUMN_CHOICE_KEY = 'scorecardColumns';
+export const COLUMN_CHOICE_LABEL: Record<`${ColumnChoice}`, string> = { 5: '5', 7: '7', max: 'Max' };
+
+/** Max: as many player columns as fit at MIN_COLUMN_WIDTH, from the table's own width (never fewer than one). */
+export function maxColumns(tableWidth: number, compact: boolean): number {
+  return Math.max(1, Math.floor(Math.max(tableWidth - roundColumnWidthFor(compact), 0) / MIN_COLUMN_WIDTH));
+}
+
+/** How many player columns a choice shows on this table; 5 and 7 never exceed Max. */
+export function visibleColumns(choice: ColumnChoice, tableWidth: number, compact: boolean): number {
+  const max = maxColumns(tableWidth, compact);
+  return choice === 'max' ? max : Math.min(choice, max);
+}
+
+/** The segments on offer: "5 · 7 · Max", or "5 · Max" when 7 would show the same columns as Max. */
+export function columnChoices(tableWidth: number, compact: boolean): ColumnChoice[] {
+  return maxColumns(tableWidth, compact) > 7 ? [5, 7, 'max'] : [5, 'max'];
+}
+
+/** A stored 7 on a phone where 7 is Max reads as Max, so the segment control always has one lit. */
+export function shownChoice(choice: ColumnChoice, choices: ColumnChoice[]): ColumnChoice {
+  return choices.includes(choice) ? choice : 'max';
+}
+
+export const readColumnChoice = (raw: string | null | undefined): ColumnChoice =>
+  raw === '7' ? 7 : raw === 'max' ? 'max' : raw === '5' ? 5 : COLUMN_CHOICE_DEFAULT;
+export const writeColumnChoice = (choice: ColumnChoice): string => String(choice);
+
+/**
+ * Pinch snaps, never zooms smoothly: once the fingers' distance has grown or shrunk by this factor the
+ * table steps one choice (spread = fewer, bigger columns; pinch = more), and the gesture measures afresh.
+ */
+export const PINCH_SNAP = 1.25;
+
+/** +1 = one step towards Max (fingers together), -1 = one step towards 5 (fingers apart), 0 = not yet. */
+export function pinchStep(ratio: number): -1 | 0 | 1 {
+  if (!(ratio > 0)) return 0;
+  if (ratio >= PINCH_SNAP) return -1;
+  if (ratio <= 1 / PINCH_SNAP) return 1;
+  return 0;
+}
+
+export function stepColumnChoice(choice: ColumnChoice, choices: ColumnChoice[], step: -1 | 0 | 1): ColumnChoice {
+  const at = choices.indexOf(shownChoice(choice, choices));
+  return choices[Math.min(choices.length - 1, Math.max(0, at + step))];
+}
+
+/**
+ * D89 (Sree, Nov 24): "landscape is landscape, no buttons, nothing, no three dots, just to see the
+ * scorecard." Which parts of the scorecard screen are drawn: in landscape only the table, and a tap on it
+ * opens nothing. `landscapeEditing` is the park switch (LANDSCAPE_EDITING in hooks/useLayout): on, landscape
+ * gets today's chrome back.
+ */
+export type ScorecardChrome = {
+  /** The Stack header: back, title, Share, Help, ⋮. */
+  header: boolean;
+  /** Tags, Actual toggle, deleted banner, completed line + Give awards, pool-over hint. */
+  strip: boolean;
+  /** Undo / Add round / Complete. */
+  bottomBar: boolean;
+  /** Creator / Admin / Unique game ID under the rounds. */
+  footer: boolean;
+  /** Round number, header total and DEALS badge taps. */
+  taps: boolean;
+};
+
+export function scorecardChrome(landscape: boolean, landscapeEditing: boolean): ScorecardChrome {
+  const on = !landscape || landscapeEditing;
+  return { header: on, strip: on, bottomBar: on, footer: on, taps: on };
 }
 
 /** The strip chip: "10 players" from the seats in the game, not from who has scores. */

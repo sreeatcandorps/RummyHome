@@ -11,7 +11,7 @@ GitHub Pages is switched on).
 
 | Folder | Runs | Blocks |
 | --- | --- | --- |
-| `lib/` | shared pieces (`ensure-signed-in`, `sign-in`, `sign-in-as` with an EMAIL, `open-break-game` with a CODE, `fill-round-*`), never run on their own | — |
+| `lib/` | shared pieces (`ensure-signed-in`, `sign-in`, `sign-in-as` with an EMAIL, `open-break-game` with a CODE, `home-top` after Back from a game, `fill-round-*`), never run on their own | — |
 | `smoke/` | every pull request that touches app code, and in the nightly | yes: a failed flow fails the job |
 | `full/` | nightly and pre-release whole; on a PR only the flows for the touched area (`FLOW_FILTER`) | yes |
 | `chaos/` | break-the-app (PR 17): double taps, bad input, huge numbers, offline + reconnect, kill mid-save, 20 × 60 scorecard, pool with 19 outs. Every suite on an infra PR, the area's flows on an app PR, whole set nightly. Videos are kept for every flow | nightly / pre-release yes; on a PR a red chaos flow warns and lands on the dashboard |
@@ -75,7 +75,7 @@ missing!", the first bug the break-the-app runs found).
 | V | `GAMEV1` | pool 101, active, 13 seats × 6 rounds, Test Alpha back for round 3 at ↺20 (highest), Test Bravo back for round 5 at ↺41 (highest + 1) | `smoke/20` (PR 24: Points-style header, standings pane, footer inside the card, ↺ cells and grey-above, Edit round from the round number, landscape full width with Standings below; saves nothing) |
 | H | `GAMEH1` | active, 3 players, no rounds | `smoke/14` (Rummy with a positive pot: -40 share, confirm, saves round 1; PR 3 / 037), `full/32` (Add players to this game: R K and C D in, Total 3 → 5, Return to game, then Otto Outsider #5 as non-playing admin; R K and C D removed again at the end; PR 7), `full/80` (count warnings; saves nothing), `smoke/21` (Hide game, Hidden & deleted frame, Unhide) |
 | G | `GAMEG1` | completed, 6 seated, no rounds | `smoke/12` (seated players with no rounds make a 6-player result; saves and closes G; PR 9 / PR 10b: Delete this result → Undo, then Delete again from the result page → Deleted + Restore, so G ends Closed), `smoke/15` (shares G's result, then Delete asks first; nothing deleted), `full/41` (Final scores card in marigold and the results share dialog in green; nothing sent), `full/42` (D49: reopens Closed G from the ⋮ menu — the dialog names its result; the Log row; G completed again; the result shows Out of date in the list and on its page; nothing deleted, G ends Completed, not Closed) |
-| F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11`, `full/20`, `full/21` (font scale 1.3, with A), `full/50` (PR 14: ×10,000 — Large multiplier confirm, short totals, Exact sheet, landscape; sets ×1 again at the end), `full/51` (PR 21 / PR 24: Order of players with 20 players — prefilled with arrows, deals-next seat, Clear then Test Uniform numbered first and back, the Log row) |
+| F | `GAMEF1` | active, 20 players × 30 rounds | `smoke/10–11` (11: D89, landscape is the table alone), `smoke/28` (D90: 5 columns by default, ⋮ › Columns › Max and back to 5), `smoke/29` (D90: a swipe on the names row brings in the 6th player), `full/20`, `full/21` (font scale 1.3, with A), `full/50` (PR 14: ×10,000 — Large multiplier confirm, short totals, Exact sheet, landscape; sets ×1 again at the end), `full/51` (PR 21 / PR 24: Order of players with 20 players — prefilled with arrows, deals-next seat, Clear then Test Uniform numbered first and back, the Log row) |
 
 Order matters inside the smoke set (A gains a round, then is completed). `smoke/16` and `smoke/19` each start a game of their own through the four New game steps (PR 24: Order of players is set before Start; no pop-up) and delete it at the end. Everything else has its own
 game so the sets stay independent of each other. `full/60` switches Appearance to Dark and back to
@@ -92,6 +92,11 @@ Phone; it runs last in the full set so the other screenshots are light.
   `game-card-<share code>`, `results-save-button`, `results-unsaved-banner`). Add a `testID` in the app
   rather than tapping by coordinates.
 - Wait with `extendedWaitUntil` after navigation; the emulator is slower than a phone.
+- Smoke flows also run on the 360-dp phone at font 1.3 on a shared runner: give every `scrollUntilVisible` 30 s (60 s for a
+  game card in the sideways Home list, which is two cards tall); it returns as soon as the element shows. Home keeps its
+  scroll position across Back, so after leaving a game use `../lib/home-top.yaml` before looking for `New game`.
+- Never wait for Sign in by its button alone (the keypad covers it on that phone); `ensure-signed-in` waits for Home, the
+  subtitle or the Email label.
 - End with `takeScreenshot: <nn>-<screen>[-dark|-landscape]`. The gallery groups variants of the same
   screen by that name.
 - Dismiss dialogs with `back` rather than a button that may be below the fold.

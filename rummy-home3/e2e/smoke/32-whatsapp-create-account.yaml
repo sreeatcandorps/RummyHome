@@ -30,7 +30,7 @@ tags: [smoke]
     element:
       id: "login-create-account"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "login-create-account"
 - extendedWaitUntil:
@@ -67,7 +67,7 @@ tags: [smoke]
     element:
       id: "register-submit"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - takeScreenshot: 32a-whatsapp-create-account-keyboard
 - tapOn:
     id: "register-submit"
@@ -88,7 +88,7 @@ tags: [smoke]
     element:
       id: "register-verify"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "register-verify"
 # D75: the backup step offers an email; Skip for now goes Home.
