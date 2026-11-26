@@ -462,10 +462,11 @@ export default function MeScreen() {
             changing={Boolean(methodSheet === 'email' ? methods?.email : methods?.phone)}
             country={waCountry}
             onDismiss={() => setMethodSheet(null)}
-            onSent={(to) => {
+            onSent={(to, done) => {
               const channel = methodSheet;
               setMethodSheet(null);
-              router.push({ pathname: '/(screens)/confirm-code', params: { channel, to } });
+              if (done) load();
+              else router.push({ pathname: '/(screens)/confirm-code', params: { channel, to } });
             }}
           />
         ) : null}

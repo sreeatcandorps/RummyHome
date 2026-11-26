@@ -57,6 +57,10 @@ export function BackupStep({ signedUpWith, country: startCountry, onDone }: {
         setError(outcome.message);
         return;
       }
+      if ('done' in outcome && outcome.done) {
+        onDone();
+        return;
+      }
       setSentTo(target);
     } finally {
       setLoading(false);

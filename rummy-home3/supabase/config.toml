@@ -57,6 +57,29 @@ double_confirm_changes = false
 # Tests insert confirmed users directly into auth.users; no mail flow is exercised locally.
 enable_confirmations = false
 
+# WhatsApp sign-in (D124). Supabase sends WhatsApp codes only through Twilio or Twilio Verify, so a provider
+# must be on for `channel: 'whatsapp'` to be accepted. These are placeholders, not keys: nothing is ever sent
+# from this stack, because every number the app and Maestro use locally is in [auth.sms.test_otp] below, and
+# Supabase answers those with the fixed code before it calls any provider. Real Twilio Verify keys go only into
+# the staging / live dashboards (Authentication › Providers › Phone), never into this file.
+[auth.sms]
+enable_signup = true
+enable_confirmations = true
+# One code per number per interval applies to the test numbers too; short, so Send a new code can be tested.
+max_frequency = "5s"
+
+[auth.sms.twilio_verify]
+enabled = true
+account_sid = "local-test-only"
+message_service_sid = "local-test-only"
+auth_token = "local-test-only"
+
+# Test numbers, no + (E.164 digits) → the fixed code. e2e/README.md lists what each is for.
+[auth.sms.test_otp]
+919000000001 = "123456"
+919000000002 = "123456"
+919000000003 = "123456"
+
 [edge_runtime]
 enabled = false
 

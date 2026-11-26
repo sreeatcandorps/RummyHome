@@ -49,6 +49,35 @@ select gen_random_uuid(), u.id, u.id::text, 'email',
    and not exists (select 1 from auth.identities i where i.user_id = u.id and i.provider = 'email');
 
 -- ---------------------------------------------------------------------------
+-- WhatsApp accounts (D124): no email, a confirmed number, passcode 123456. Their numbers are test numbers in
+-- supabase/config.toml [auth.sms.test_otp] (code 123456), so no message is ever sent.
+--   …000f01  +91 90000 00002  Wendy Whatsapp  -> smoke/33-whatsapp-sign-in
+--   …000f02  +91 90000 00003  Farah Forgot    -> smoke/34-whatsapp-forgot-passcode (sets a new passcode)
+-- +91 90000 00001 has no account: smoke/32-whatsapp-create-account creates it.
+-- ---------------------------------------------------------------------------
+insert into auth.users (instance_id, id, aud, role, phone, encrypted_password, phone_confirmed_at,
+                        raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+                        confirmation_token, recovery_token, email_change, email_change_token_new,
+                        email_change_token_current, phone_change, phone_change_token, reauthentication_token,
+                        is_sso_user, is_anonymous)
+values
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-8000-000000000f01', 'authenticated', 'authenticated',
+   '919000000002', crypt('123456', gen_salt('bf')), now(), '{"provider":"phone","providers":["phone"]}',
+   '{"display_name":"Wendy Whatsapp","first_name":"Wendy","last_name":"Whatsapp"}', now() - interval '10 days', now(),
+   '', '', '', '', '', '', '', '', false, false),
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-8000-000000000f02', 'authenticated', 'authenticated',
+   '919000000003', crypt('123456', gen_salt('bf')), now(), '{"provider":"phone","providers":["phone"]}',
+   '{"display_name":"Farah Forgot","first_name":"Farah","last_name":"Forgot"}', now() - interval '9 days', now(),
+   '', '', '', '', '', '', '', '', false, false);
+
+insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+select gen_random_uuid(), u.id, u.id::text, 'phone',
+       jsonb_build_object('sub', u.id::text, 'phone', u.phone, 'email_verified', false, 'phone_verified', true),
+       now(), u.created_at, now()
+  from auth.users u
+ where u.id in ('00000000-0000-4000-8000-000000000f01', '00000000-0000-4000-8000-000000000f02');
+
+-- ---------------------------------------------------------------------------
 -- Game E: undo fixture
 -- ---------------------------------------------------------------------------
 insert into public.games (id, created_by, status, game_type, settings, share_code, created_at)
