@@ -706,7 +706,8 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   side is a dashboard template on both projects (`supabase/templates/confirm-code.html`,
   `docs/signup-code-template.md`), set by Build Bot after the merge, staging first. Link e-mails already sent still
   confirm, and Sign in offers *Enter the code* for an unconfirmed address. The optional Player ID box left Create
-  account (D105); linking by Player ID stays on My players. No migration.
+  account (D105); linking by Player ID stays on My players. No migration. Merged Nov 26 (#151, `897a9a7d`). The live
+  template switches only after the next Play release: the code e-mail has no link, and 1.1.0 has no code box (D126).
 
 ### 2026-11-24 — The `small` CI phone (batch 2 PR)
 - CI device plan gains a fifth row, `small`: the Pixel 4a profile on the API 34 image at density 480 (a 360 × 780 dp window, `adb shell wm density` from `DEVICE_DENSITY`) with font 1.3; smoke on every app PR, full nightly. Started on the API 30 image; moved to API 34 after its cached snapshot hung three PR runs (12h). Reason: five of the eight staging-build-2 bugs were a narrow phone or a big font and the PR gate ran smoke on the Pixel 6 only. The `tablet` row was never landscape (the Pixel Tablet's natural orientation is landscape; rotation 1 is upright) — relabelled, flows re-pinned.
@@ -720,7 +721,8 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   dropping them.
 
 ### 2026-11-26 — Find players by Player ID only (053, D113); invite is a plain message (D106)
-- Migration `053_player_id_search_only.sql` (written, **not applied**) turns `search_players` into an exact Player ID
+- Migration `053_player_id_search_only.sql` (merged as #150; **applied to live** Nov 26 by Build Bot from `main`
+  `1ece816a`, row counts unchanged before and after) turns `search_players` into an exact Player ID
   lookup: one registered account, its name shortened to first name + last initial (`short_player_name`), or nothing.
   Names, initials and emails are no longer searchable through the API, so typing two letters can no longer list
   people from the whole database. Same signature, so older app builds keep working; `search_my_players` (the
@@ -728,11 +730,19 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
 - Invite to EZ Score shares a plain get-the-app message; the one-time sign-up (claim) link is gone from the app.
   The claim RPCs stay on the server so links already sent still open until they expire. Link to Player ID (025)
   is now the one way to move an initials player's games to an account. D70's seat change becomes migration 054.
+
+### 2026-11-26 — The next staging APK ships without WhatsApp (D126, D117 superseded)
+- Distribution order is now: staging APK from `main` with everything except WhatsApp (054 on live, 053 + 054 and
+  the code e-mail on staging first) → Sree tests → a later build adds WhatsApp sign-in (#153, migration 055) once
+  the Twilio / Meta sender works on staging. The live code e-mail follows the next Play release, not the merge.
+- CI: the AVD snapshot step is capped at 8 minutes and cached only when it finishes, and the Maestro install
+  retries (#163), after one 88-minute snapshot hang and one Maestro download 504 on Nov 26.
+
 ### 2026-11-25 — EZ Score: Rummy is live on Google Play (Production 15, 1.1.0)
 - Google approved the review; build 15 (1.1.0) is published to Production (Play Console: "Last published on November
   25, 2026", 0 policy tasks). Internal testing stays active, so staging builds still go to testers first.
 - Distribution is now: EAS build → Internal testing (staging) → Production on Sree's yes. The next Production release
-  carries WhatsApp sign-in (D116, D117), so its Data safety form adds the phone number; the 30-day delete grace (D72)
+  was to carry WhatsApp sign-in (D116, D117; since D126 WhatsApp comes one build later), so its Data safety form adds the phone number; the 30-day delete grace (D72)
   changes the "deleted within" answer when it is built.
 - Unblocked by the approval: the Play developer name change to "MindWeave" (D118) and the delete-account grace (D72,
   still needs Sree's go). D84's other "after live" items (Telugu, more tutorials) have no approved spec yet and stay
