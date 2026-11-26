@@ -105,9 +105,15 @@ tags: [smoke]
     direction: UP
     timeout: 10000
 - tapOn: "Unhide"
-# The state is the proof; the toast is a few seconds long and was gone on the slow 360-dp emulator.
+# The state is the proof; the toast is a few seconds long and was gone on the slow 360-dp emulator. The card
+# shrinks when its one row leaves, and on the 360-dp phone the header ends up above the viewport: scroll to it.
 - extendedWaitUntil:
-    visible: "Games I hid · 0"
+    notVisible: "Unhide"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Games I hid · 0"
+    direction: UP
     timeout: 15000
 - assertVisible:
     text: "Back on your Home."

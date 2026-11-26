@@ -135,6 +135,11 @@ tags: [smoke]
       id: "result-code"
     direction: DOWN
     timeout: 15000
+# The scroll stops as soon as the row counts as visible, which on the 360-dp phone is under the translucent
+# 3-button bar; the page pads past the bar, so a nudge brings the row clear (a no-op at the very end).
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
 - assertVisible: "Unique result ID · .*"
 - takeScreenshot: 12f2-result-foot-unique-id
 - scrollUntilVisible:

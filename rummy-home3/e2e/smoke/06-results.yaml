@@ -70,5 +70,9 @@ tags: [smoke]
     direction: UP
     visibilityPercentage: 20
     timeout: 25000
-- assertVisible:
-    text: "\\d+ games? · \\d+ players"
+# The "N games · N players" line sits above the Scores block; one more short scroll for the line itself.
+- scrollUntilVisible:
+    element:
+      text: "\\d+ games? · \\d+ players"
+    direction: UP
+    timeout: 15000
