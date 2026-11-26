@@ -11,6 +11,15 @@ set -uo pipefail
 log=/tmp/supabase-start.log
 show_log() { sed -E 's/((key|secret|token)[^:=]*[:=] *)[^ ]+/\1[masked]/I' "$log" | tail -"${1:-8}"; }
 
+# The mail catcher starts even with `-x inbucket` on the current CLI, and on Nov 26 its default host port 54324
+# was held by something on the runner that a Docker restart did not release. Auth reaches it inside Docker's
+# network, so its host port is only for people: in CI, give it a free one (the working copy only).
+if [ -n "${CI:-}" ] && [ -f supabase/config.toml ] && ! grep -q '^\[inbucket\]' supabase/config.toml; then
+  mail_port=$(python3 -c 'import socket; s = socket.socket(); s.bind(("", 0)); print(s.getsockname()[1])')
+  printf '\n[inbucket]\nenabled = true\nport = %s\n' "$mail_port" >> supabase/config.toml
+  echo "mail catcher on host port $mail_port"
+fi
+
 for attempt in 1 2 3 4; do
   if supabase start "$@" > "$log" 2>&1; then
     show_log 40
