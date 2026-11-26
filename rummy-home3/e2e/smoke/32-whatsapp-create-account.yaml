@@ -1,0 +1,104 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# D124 Create account by WhatsApp, end to end on the local Supabase with no sender: +91 90000 00001 is a test
+# number in supabase/config.toml [auth.sms.test_otp], so Supabase answers it with the fixed code 123456 and
+# never calls Twilio. The emulator is en-US with a US SIM, so the form starts on Email (D125) and the number box
+# on +1; typing the number with its own +91 moves the picker to India (a + code wins).
+# Keyboard rule (Sree, Nov 23): every tap happens with the keypad open; buttons are scrolled into view, the
+# keypad is never hidden first. Ends with Sree signed back in.
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 20000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: "login-email"
+    commands:
+      - stopApp
+      - launchApp
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 30000
+- tapOn:
+    id: "login-create-account"
+- extendedWaitUntil:
+    visible:
+      id: "register-first-name"
+    timeout: 15000
+# D125: outside India Create account starts on Email.
+- assertVisible:
+    id: "register-email"
+- tapOn:
+    id: "register-way-whatsapp"
+- extendedWaitUntil:
+    visible:
+      id: "register-number"
+    timeout: 10000
+- assertVisible: "We send a 6-digit code to this number on WhatsApp to confirm it."
+- assertVisible: "Country code, United States \\+1. Change"
+- tapOn:
+    id: "register-first-name"
+- inputText: "Asha"
+- tapOn:
+    id: "register-last-name"
+- inputText: "Rao"
+- tapOn:
+    id: "register-number"
+- inputText: "+919000000001"
+- extendedWaitUntil:
+    visible: "Country code, India \\+91. Change"
+    timeout: 5000
+- tapOn:
+    id: "register-passcode"
+- inputText: "482913"
+- scrollUntilVisible:
+    element:
+      id: "register-submit"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: 32a-whatsapp-create-account-keyboard
+- tapOn:
+    id: "register-submit"
+# The D101 code step with WhatsApp words; the number masked, with its country code.
+- extendedWaitUntil:
+    visible: "Check WhatsApp"
+    timeout: 20000
+- assertVisible: "We sent a 6-digit code to WhatsApp \\+91 90xxx xx001"
+- assertVisible: "Code from WhatsApp"
+- assertVisible: "Confirm and sign in"
+- assertVisible: "Send a new code.*"
+- assertVisible: "Wrong number\\?"
+- takeScreenshot: 32b-whatsapp-code-step-keyboard
+- tapOn:
+    id: "register-code"
+- inputText: "123456"
+- scrollUntilVisible:
+    element:
+      id: "register-verify"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "register-verify"
+# D75: the backup step offers an email; Skip for now goes Home.
+- extendedWaitUntil:
+    visible: "Add a backup"
+    timeout: 20000
+- assertVisible: "If you ever lose this WhatsApp number.*"
+- takeScreenshot: 32c-whatsapp-backup-step
+- tapOn:
+    id: "backup-skip"
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 30000
+- assertVisible: "Hi Asha"
+- takeScreenshot: 32d-whatsapp-home
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: sree@test.local

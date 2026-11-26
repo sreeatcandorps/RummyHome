@@ -50,8 +50,12 @@ export const FORGOT_WHATSAPP_TEXT = {
 export default function ForgotPasscodeScreen() {
   const theme = useAppTheme();
   const params = useLocalSearchParams<{ email?: string; whatsapp?: string }>();
-  const paramNumber = typeof params.whatsapp === 'string' ? parseStoredPhone(params.whatsapp) : null;
-  const [method, setMethod] = useState<SignInMethod>(paramNumber ? 'whatsapp' : 'email');
+  // Sign in's Forgot passcode? link says which way it was on (`whatsapp`, maybe with the number typed so far).
+  const wantsWhatsApp = typeof params.whatsapp === 'string';
+  const paramNumber = wantsWhatsApp ? parseStoredPhone(params.whatsapp) : null;
+  const [method, setMethod] = useState<SignInMethod>(wantsWhatsApp ? 'whatsapp' : 'email');
+  // The defaults arrive a moment after the screen; they never undo a choice already made on it.
+  const touched = useRef({ method: false, country: false });
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
   const [waCountry, setWaCountry] = useState(paramNumber?.country ?? DEFAULT_WHATSAPP_COUNTRY);
@@ -74,12 +78,12 @@ export default function ForgotPasscodeScreen() {
 
   // D125: the way last used on this phone, else the phone's country.
   useEffect(() => {
-    if (params.email || paramNumber) return;
+    if (paramNumber) return;
     let live = true;
     loadSignInDefaults(true).then((defaults) => {
       if (!live) return;
-      setMethod(defaults.method);
-      setWaCountry(whatsAppCountry(defaults.country) ?? DEFAULT_WHATSAPP_COUNTRY);
+      if (!params.email && !wantsWhatsApp && !touched.current.method) setMethod(defaults.method);
+      if (!touched.current.country) setWaCountry(whatsAppCountry(defaults.country) ?? DEFAULT_WHATSAPP_COUNTRY);
     }).catch(() => {});
     return () => { live = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -327,14 +331,14 @@ export default function ForgotPasscodeScreen() {
     >
       {step === 'email' ? (
         <>
-          <SignInMethodSwitch value={method} onChange={(value) => { setMethod(value); setError(''); }} disabled={loading} testIDPrefix="forgot" />
+          <SignInMethodSwitch value={method} onChange={(value) => { touched.current.method = true; setMethod(value); setError(''); }} disabled={loading} testIDPrefix="forgot" />
           {method === 'whatsapp' ? (
             <>
               <WhatsAppNumberField
                 country={waCountry}
-                onCountryChange={setWaCountry}
+                onCountryChange={(next) => { touched.current.country = true; setWaCountry(next); }}
                 value={waNumber}
-                onChangeText={setWaNumber}
+                onChangeText={(next) => { touched.current.country = true; setWaNumber(next); }}
                 disabled={loading}
                 onSubmitEditing={sendWhatsAppCode}
                 testID="forgot-number"

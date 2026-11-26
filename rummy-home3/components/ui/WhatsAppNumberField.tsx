@@ -18,7 +18,7 @@ export function WhatsAppNumberField({ country, onCountryChange, value, onChangeT
   disabled?: boolean;
   autoFocus?: boolean;
   onSubmitEditing?: () => void;
-  testID?: string;
+  testID: string;
 }) {
   const { colors } = useAppTheme();
   const [open, setOpen] = useState(false);
@@ -44,7 +44,7 @@ export function WhatsAppNumberField({ country, onCountryChange, value, onChangeT
             disabled={disabled}
             accessibilityRole="button"
             accessibilityLabel={`Country code, ${country.name} +${country.callingCode}. Change`}
-            testID={testID ? `${testID}-country` : undefined}
+            testID={`${testID}-country`}
             style={[styles.picker, { borderColor: colors.outline, opacity: disabled ? 0.5 : 1 }]}
           >
             <Text variant="titleMedium">{country.flag}</Text>
@@ -58,7 +58,7 @@ export function WhatsAppNumberField({ country, onCountryChange, value, onChangeT
             key={item.code}
             title={`${item.flag} ${item.name} (+${item.callingCode})`}
             onPress={() => { onCountryChange(item); setOpen(false); }}
-            testID={testID ? `${testID}-country-${item.code}` : undefined}
+            testID={`${testID}-country-${item.code}`}
           />
         ))}
       </Menu>
