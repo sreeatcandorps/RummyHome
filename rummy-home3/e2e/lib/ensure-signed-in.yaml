@@ -28,7 +28,7 @@ appId: com.mindweavetech.rummyhome
 - runFlow:
     when:
       visible:
-        text: "Sign in|Hi (?!Sree$).+"
+        text: "Sign in.*|Hi (?!Sree$).+"
     file: fix-account.yaml
 - extendedWaitUntil:
     visible: "New game"

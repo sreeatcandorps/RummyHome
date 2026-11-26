@@ -220,7 +220,7 @@ test('ensure-signed-in: makes sure Sree is signed in, signing another account ou
   const lib = read('rummy-home3', 'e2e', 'lib', 'ensure-signed-in.yaml');
   const fix = read('rummy-home3', 'e2e', 'lib', 'fix-account.yaml');
   assert.match(lib, /Hi \(\?!Sree\$\)\.\+/, 'any other greeting on Home triggers the fix');
-  assert.match(lib, /Sign in\|Hi/, 'the login screen triggers it too, in the same single check');
+  assert.match(lib, /Sign in\.\*\|Hi/, 'the login screen triggers it too, in the same single check, by its subtitle when the keypad hides the button');
   assert.equal((lib.match(/^\s+when:/gm) ?? []).length, 1, 'one `when` on the fast path (they cost a wait when the element is absent)');
   assert.match(lib, /file: fix-account\.yaml/);
   assert.match(fix, /tapOn: "Log out"/);
