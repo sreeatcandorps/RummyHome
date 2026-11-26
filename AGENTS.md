@@ -43,9 +43,23 @@ Before suggesting a design, writing a spec, or building any UI change:
 - **Keep it simple.** "We have to keep this app simple and not complicate it. A lot of times, people just play the game, do the results, and then they send it to each other, and it's done. No one cares about having a super accurate history … I don't want to over-engineer it."
 - In practice: when options differ in bookkeeping, pick the one with the fewest states and dialogs. A warning beats a refusal. A saved result is a snapshot, not a ledger; it never changes, and a stale one is simply marked (D49). Add history or audit detail only when a real case from use asks for it.
 
+## Agents and models (Sree, Nov 25 2026 — D92–D94)
+
+- **Main agent**: the Claude Opus 5.5 agent Sree talks to through Build Bot. It keeps how we work, the docs and the board, runs the daily sweep, and starts a subagent (its own cloud machine, its own branch) for each piece of work, with the model below. It opens the subagent's PR and answers for it.
+- **Models** (D92):
+
+| Job | Model |
+| --- | --- |
+| Features and specs (the default) | Claude Opus 5.5 |
+| Design (mockups, design reviews) and hard work: migrations, changes across many screens, a bug nobody has found | Claude Fable |
+| Writing and fixing tests | Claude Sonnet 5.5 |
+| Research and read-only checks | Grok 4.7 |
+
+- **Daily sweep** (D93): once a day the Main agent reads every PR merged or opened since the last sweep, the open issues and the board, and brings `decisions.md`, `next-up.md`, `how-we-work.md` and `architecture-and-timeline.md` up to date in one docs PR. One owner, so nothing falls between two agents (D91).
+
 ## Talking to Sree
 
-- Build Bot relays Sree word for word and adds nothing. The builder asks its own questions, few, each with the default it will use if there is no answer.
+- Build Bot relays Sree word for word and adds nothing, and ends every message to Sree with the five *For Sree today* lines from the top of `docs/next-up.md` on `main` (D93). The builder asks its own questions, few, each with the default it will use if there is no answer.
 - Quote Sree's words in the spec or PR body beside the interpretation, so a misread is visible.
 - Show, then build (`show-then-build` skill): a picture before code for anything a user will see.
 - **v1 is cut** (D84): Telugu, phone / WhatsApp sign-in and the extra step-by-step tutorials wait until the app is live in Play. Specs for them may sit as documents; nothing is built.

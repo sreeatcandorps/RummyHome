@@ -13,8 +13,8 @@ What is next, and what needs Sree today, is not on this page: it is the first fi
 | --- | --- |
 | **Sree** | Decides. Says yes or no. |
 | **Build Bot** (Grok, on the phone) | **The one place Sree talks.** Passes Sree's words to the builders exactly as said, adds nothing (D08). Does the merges, builds and live changes Sree said yes to, and the pre-approved merges (D80). Shows Sree the pictures and PRs. |
-| **App builder** (Claude in Cursor) | The app's screens, the e-mails, the staging database. |
-| **Process builder** (Claude in Cursor) | How we work, CI and tests, publishing the share site. |
+| **Main agent** (Claude Opus 5.5 in Cursor) | The one agent Build Bot talks to. Keeps how we work, the docs and the board, runs the daily sweep (D93), and starts a helper agent for each piece of work: Opus 5.5 for features, Fable for design and hard work, Sonnet 5.5 for tests, Grok 4.7 for research (D92). |
+| **App builder** (Claude in Cursor) | Finishing batch 2 (#131). New app work after that is started by the Main agent. |
 
 **Cursor or Grok?** Talk in Build Bot; it works on the phone. Open Cursor only to look at something more
 closely on a computer. If Sree does decide something in Cursor, the builder writes it into `decisions.md` and
@@ -32,7 +32,7 @@ said in one place.
 
 **How a message travels:** Sree → Build Bot (word for word) → builder → a PR or a commit, plus `next-up.md`
 updated → Build Bot reads the top of `next-up.md` on `main` and tells Sree. Before answering "what's the status",
-Build Bot reads this page and the first five lines of `next-up.md`.
+Build Bot reads this page and the first five lines of `next-up.md`. Every message Build Bot sends Sree ends with those five lines, so Sree never has to open the file (D93).
 
 **The board** ([projects/1](https://github.com/users/sreeatcandorps/projects/1)) moves its own cards from the PRs
 and issues (`ci/board/`): **Brainstorming** (still being thought through) → **To do** (decided, not started) →
