@@ -34,7 +34,7 @@ test('per-player menu (unified, item 5): Invite · Link · Edit initials · Edit
   const viewer = seatMenu({ id: 'w', name: 'W', seatRole: 'spectator' }, game, 'me', true);
   assert.deepEqual(viewer, []);
   assert.equal(SEAT_MENU_LABEL.link_id, 'Link to Player ID');
-  assert.equal(SEAT_MENU_LABEL.invite, 'Invite to register');
+  assert.equal(SEAT_MENU_LABEL.invite, 'Invite to EZ Score');
   // The same menu on My players: no game roles; Remove from My players at the end.
   assert.deepEqual(myPlayerMenu({ id: 'u', status: 'unregistered', managedBy: 'me' }, 'me').map((m) => m.item), ['invite', 'link_id', 'edit_initials', 'edit_name', 'remove_from_list']);
   assert.deepEqual(myPlayerMenu({ id: 'a', status: 'registered' }, 'me').map((m) => m.item), ['edit_initials', 'remove_from_list']);
