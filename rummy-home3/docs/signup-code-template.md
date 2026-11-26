@@ -1,15 +1,18 @@
 # Create account code e-mail — what Build Bot sets (D101)
 
 The app half of D101 (Create account confirms with a 6-digit code typed into the app) is built on
-`cursor/signup-code-no-player-id-7d0d`. The e-mail half is one Supabase dashboard setting per project. **Build Bot sets
-it after that branch merges: staging first, then live.** Until then each project keeps sending its old link e-mail,
-and the app still copes: the link confirms the account, then the person signs in.
+`cursor/signup-code-no-player-id-7d0d` (merged as #151, Nov 26). The e-mail half is one Supabase dashboard setting per
+project. **Build Bot sets it on staging before the staging APK, and on live only once the next Play release is out
+(D126).** Until then each project keeps sending its old link e-mail, and the new app still copes: the link confirms the
+account, then the person signs in.
 
 ## Order
 
 1. **Staging** (`ezscore-staging`, ref `erurahfybkxemgtkfzkn`): set the subject and body below. Sign up on a staging
    build with a fresh address; the e-mail must show a 6-digit code and no button or link; typing it signs you in.
-2. **Live** (ref `gngcrplcldfiubvhcdin`): the same subject and body, only after step 1 worked.
+2. **Live** (ref `gngcrplcldfiubvhcdin`): the same subject and body, only after step 1 worked **and the Play release
+   with #151 is live** (D126). The e-mail carries no link, and Play's 1.1.0 has no box for the code: switched earlier,
+   anyone signing up on 1.1.0 could not confirm.
 
 ## Dashboard › Authentication › Email Templates › Confirm signup
 
