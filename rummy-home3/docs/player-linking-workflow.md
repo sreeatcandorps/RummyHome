@@ -1,5 +1,7 @@
 # Adding and linking players — revised workflow (proposal, not built)
 
+**Read "Revised Nov 25" first.** §0–§6 are the Nov 24 proposal; its phone / email matching (§3 B) is replaced.
+
 Written Nov 24 for Sree to go through. Nothing here is built, and nothing changes in the app until he says which parts
 he wants.
 
@@ -10,6 +12,84 @@ he wants.
 > Players section … inviting someone to the app, I think I want to keep them separate … If that user uses that link to
 > download and then actually log in, will there be context to remember? … think about those who use WhatsApp and those
 > who use email."
+
+## Revised Nov 25: one way, the Player ID (replaces §3's phone / email matching)
+
+> Sree, Nov 25: "we don't want to reveal other people's names when you type in a name … find people in the database
+> only by their player number and nothing else … You have to type in the player number and then say 'search' … if
+> someone's in a hurry, just do the initials … The more I think about it, the more it feels like we should force them
+> to download the app, and then they just give you the new player ID … what if he gives you a wrong player ID … you
+> got to also think of players in India, so you can't make it too techy … I don't want to offer three different
+> options."
+
+Picture (opens on a phone):
+[`linking-player-id.png`](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/linking-one-way-f877/rummy-home3/docs/design-review-2/mockups/linking-player-id.png).
+
+**Recommendation: one way to find someone, their Player ID, and initials for everyone else.**
+
+1. **They have the app** → ask "what's your Player ID?" (it is on their Profile), type the number, tap **Search**,
+   check the name that comes back, **Add to game**. Their scores go to their account from round 1; nothing to link.
+2. **No app, or in a hurry** → **Add by initials** (D112) and play. When they get the app, they tell you their Player
+   ID; the player's ⋮ › **Link to Player ID**; they get a request and tap **Yes**; the old games move to them.
+
+No name search, no phone numbers, no emails, no contacts, no sign-up links. **Sree's instinct is right**, and the
+phone / email matching this page proposed on Nov 24 (§3 B) is dropped: it is the most work (contacts permission, a
+migration, two matching paths, WhatsApp sign-in not built yet) for the least common case.
+
+### Where each piece stands today
+
+| Piece | Today | After this |
+| --- | --- | --- |
+| Find in database by **name or initials** | **Built and live.** Two letters list up to 20 people from the whole database (`search_players`, migration 012). This is the privacy hole Sree spotted. | **Removed** — on the server, not just the screen, so the API cannot list names either. |
+| Find by **Player ID** (`#57`) | **Built** in the same box (exact number). | The only search. Number keypad, a **Search** button, nothing shown while typing. |
+| Find by full **email** | **Built** (exact address). It tells anyone whether an address has an account. | **Removed** (same reason as names). |
+| **Add by initials** | **Built**; the faster version is approved (D112, small batch 3). | Unchanged. |
+| **Link to Player ID** + email + Home card + **Yes / Not me** | **Built** (migration 025): the admin sees whose number it is and how many games move; the person must say Yes; requests expire in 7 days. | Unchanged — it becomes the one way to link. |
+| Player ID on **Profile** | **Built.** | Unchanged (number only, D103). |
+| A phone, WhatsApp number or email **saved on a player**; pick from **contacts** | **Not built** — only proposed on Nov 24 (§3 B). | **Not built.** Dropped. |
+| **WhatsApp sign-in** | Planned, parked until the Play review passes (#124, D84). | Unchanged. It changes how people *sign in*, not how they are found. |
+| Shared **sign-up link** (old way A) | Built; retiring (D106). | Retires with this. |
+| **Player ID box on Create account** (old way C) | Built; coming off (D105). | Gone. |
+
+On "WhatsApp is just a phone number": yes. WhatsApp sign-in is a code sent to the person's phone number over WhatsApp;
+the number is the account. It does not need to be in anyone's contacts, and it does not change this flow.
+
+### Tested against apps people use
+
+| App | How you add someone | What it teaches |
+| --- | --- | --- |
+| **GPay / PhonePe / Paytm (UPI)** | Type a UPI ID or number; the app shows the account holder's name ("RAVI KUMAR") before you pay. | Every Indian phone user knows "type the ID, check the name, then confirm". That is screens 1–2. |
+| **Free Fire / BGMI / Ludo King** | Add a friend by their numeric player ID (UID) or a room code. | Asking a friend for their game ID is normal in India, young and old. |
+| **Dream11 / MPL** | Join a private contest by a code a friend sends. | Codes over WhatsApp work; nobody browses a directory. |
+| **WhatsApp groups** | From contacts, or an invite link. | Needs the contacts permission and a phone number as identity; heavier than a game scorer needs. |
+| **Splitwise** | Add by email or phone; matched when that person signs up. | Works, but makes duplicate accounts when they sign up with another email or number, and needs contacts. This was the Nov 24 proposal. |
+| **Venmo** | Search people by name. | The counter-example: public name search is how Venmo became a privacy story. |
+| **Score-keeping apps** (Scorekeeper, Score Counter) | Type names; no accounts. | = our initials path. Fine for a quick game. |
+
+### The awkward cases
+
+| Case | What happens |
+| --- | --- |
+| **Wrong Player ID** | Two checks. The admin sees the name ("#57 · Ravi K.") or "No one has #58" before anything happens. When linking old games, the person must also tap **Yes**; "Not me" cancels. If a wrong person is added to a new game, the admin removes the seat (a seat with no scores is free to remove), and the other person can hide the game. |
+| **Privacy** | Names are never searched. Only an exact number shows one name, shortened to first name + last initial ("Ravi K."), so typing random numbers gives nothing useful. |
+| **They don't know their Player ID** | It is on Profile; the invite message and the Help page say so. |
+| **No app and never getting it** | They stay as initials, and the admin's scores for them are kept forever. |
+| **They get the app months later** | Link to Player ID from the player's ⋮; every old game moves when they say Yes. |
+| **Two admins seated the same person by initials** | Each admin sends a link request; the person says Yes to each. |
+
+### What would change (when Sree says build)
+
+1. **Find on EZ Score** screen: Player ID only, number keypad, **Search** button, one result card with the name shortened
+   ("Ravi K."), **Add to game**. Replaces today's name / initials / email list.
+2. **Server**: `search_players` answers only an exact Player ID (one migration; names, initials and emails return
+   nothing).
+3. **Invite to EZ Score** message (D106): "I keep our rummy scores in EZ Score. Get it here: … then send me your Player
+   ID (it's on your Profile)."
+4. **The "how to add players" card** (D108, low priority) has two lines: "Has the app? Ask for their Player ID." / "No
+   app? Add their initials; link them later with their Player ID."
+5. The sign-up link retires (D106) and the Player ID box comes off Create account (D105, already planned).
+
+Not built: phone / email on a player, contacts, install-referrer (D107).
 
 ## 0. The short version
 
