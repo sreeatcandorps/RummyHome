@@ -633,6 +633,16 @@ What 051 does (rollback: `supabase/rollback/rollback_051_pool_limit_unlocked.sql
 - Before 051 (APK v12 on the live database until 18:46 UTC Nov 19) Game settings offered the change but the 042 trigger refused it (PT423 "Rounds have been saved. The pool limit is locked…"), shown in the dialog's error line; nothing is half-applied.
 - Tests 32 and 33 (041 / 042) no longer assert the lock; they assert the change goes through.
 
+D70 (Sree, Q13, Nov 23: "New players always sit on the left side of the dealer") — **written, not applied** (runs after 052; live only after Sree's yes to this migration, from merged `main`):
+
+29. `supabase/migrations/054_join_left_of_dealer.sql`
+
+What 054 does (rollback: `supabase/rollback/rollback_054_join_left_of_dealer.sql`, the 052 body; pgTAP: `supabase/tests/44_join_left_of_dealer_054.sql`, 40 checks, and `43_dealer_052.sql` re-pinned; replay hook `HAS_054`):
+
+- `add_seated_player` only (same signature, security definer, grants): once rounds exist a newcomer takes the seat **before** whoever deals the round being played (the dealer's left, the seat that deals last); the dealer and everyone after move up one. A dealer at seat 1 has the last seat on their left, so the newcomer takes the last seat and no number moves. Before round 1: the last seat, as before.
+- When the newcomer lands straight after the last round's dealer (they would take this round's deal), the round being played is pinned to its dealer with the 052 override (follow), used once by `save_round`. No Log row beyond the usual `player_added`.
+- Re-entry (`reenter_player`) is unchanged: a player who re-enters keeps their seat. Adds no column, changes no row by itself.
+
 Read-only checks that go with 021 (nothing is changed):
 
 ```sql
