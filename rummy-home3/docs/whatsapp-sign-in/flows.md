@@ -9,7 +9,7 @@ found and linked only by Player ID). WhatsApp is a way to **sign in**, never a w
 or WhatsApp, goes through **one code step** (flow 3), the screen the email sign-up already uses (D101).
 
 Decisions these flows follow: D75 (backup at sign-up with Skip, one reminder), D76 (one 6-digit passcode; sign-in sends
-no message), D77 (EZ Score: Rummy / MindWeave Tech / Candor PS LLC), D101 (code typed in the app), D105 (no Player ID
+no message), D77, D118, D119 (EZ Score / MindWeave / Candor PS LLC), D101 (code typed in the app), D105 (no Player ID
 box), D113 (Player ID only; nobody's number shown to anyone else), D116 (build it before the freeze).
 
 ## 1. Architecture — what talks to what
@@ -29,7 +29,7 @@ flowchart LR
     MG["Messaging Service<br/>holds the WhatsApp sender"]
   end
   subgraph meta["Meta"]
-    WABA["WhatsApp Business account<br/>Portfolio: MindWeave Tech · legal: Candor PS LLC<br/>display name «EZ Score: Rummy»"]
+    WABA["WhatsApp Business account<br/>Portfolio: MindWeave · legal: Candor PS LLC<br/>display name «EZ Score»"]
   end
   RES["Resend SMTP<br/>email codes"]
   WA(("WhatsApp<br/>on the player's phone"))

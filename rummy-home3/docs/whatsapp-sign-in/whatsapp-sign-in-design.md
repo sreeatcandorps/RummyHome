@@ -23,13 +23,13 @@ In this order. **[staging]** means the WhatsApp staging APK cannot get a real Wh
 **[live]** means only going live waits for it. **None of the steps holds up writing the code**: the tests use
 Supabase test numbers with fixed codes, so the build starts the day Sree says yes to the pictures.
 
-1. **[staging]** Create the Meta Business Portfolio at business.facebook.com: legal business name *Candor PS LLC*, business name *MindWeave Tech* (D77), Sree as admin. Free.
-2. **[live]** Make sure the DBA *MindWeave Tech* is filed for Candor PS LLC, and say yes to the small PR that adds *"MindWeave Tech is a trade name (DBA) of Candor PS LLC."* to the footer of ezscore.mindweavetech.com and to the privacy policy (Meta checks that the names agree before step 6).
-3. **[staging]** Upgrade the Twilio account to paid (a card and a $20 first top-up) and buy a US local number, about $1.15 a month, that has never been on WhatsApp or WhatsApp Business.
-4. **[staging]** In the Twilio Console, run WhatsApp *Self Sign-up* with that number: it creates the WhatsApp Business Account inside the step 1 portfolio and links it to Twilio (about an hour); the display name is *EZ Score: Rummy*.
-5. **[live]** Wait for Meta's display-name review of *EZ Score: Rummy* (usually a day or two); if Meta rejects it, fix what the email says and resubmit.
+1. **[staging]** Create the Meta Business Portfolio at business.facebook.com (or use Candor PS's, if one exists): legal business name *Candor PS LLC*, business name *MindWeave* (D118), website ezscore.mindweavetech.com, Sree as admin. Free.
+2. **[live]** File the California DBA *MindWeave* for Candor PS LLC (D121): a Fictitious Business Name statement at the county clerk, then the newspaper notice for four weeks. Build Bot fills the forms; Sree signs and pays. It links the business name Meta shows (MindWeave) to the legal name on the EIN letter, so it is done before step 6. The website says only *MindWeave* (D123: "CandorPS shouldn't even show up unless it's mandatory").
+3. **[staging]** Upgrade the Twilio account to paid (a card and a $20 first top-up) and buy a new US local number, about $1.15 a month, used only for the codes (D120, Sree: "Q47: use a new Twilio number").
+4. **[staging]** In the Twilio Console, run WhatsApp *Self Sign-up* with that number: it creates the WhatsApp Business Account inside the step 1 portfolio and links it to Twilio (about an hour); the display name is *EZ Score* (D119).
+5. **[live]** Wait for Meta's display-name review of *EZ Score* (usually a day or two); if Meta rejects it, fix what the email says and resubmit.
 6. **[live]** Start business verification in Meta's Security Centre with the EIN letter (CP 575 or 147C) for Candor PS LLC, the address exactly as on the letter; it is free and can take one to two weeks or more, so start it the same day as step 4.
-7. **[staging]** In Twilio, create a Messaging Service holding the WhatsApp sender, then a Verify service named *EZ Score: Rummy* with 6-digit codes, pick that Messaging Service on its WhatsApp tab, set a usage alert at $20 a month (Q26), and allow only India, US, Canada, UK, UAE and Australia.
+7. **[staging]** In Twilio, create a Messaging Service holding the WhatsApp sender, then a Verify service named *EZ Score* with 6-digit codes, pick that Messaging Service on its WhatsApp tab, set a usage alert at $20 a month (Q26), and allow only India, US, Canada, UK, UAE and Australia.
 8. **[staging]** Put the Twilio Account SID, Auth Token and Verify Service SID into the **staging** Supabase project only (Authentication › Sign In / Providers › Phone › Twilio Verify, WhatsApp on), or add them as Cloud Agent secrets and Build Bot does it; live gets them only after Sree has tried the staging APK and says yes.
 
 **Costs.** The Twilio number is about $1.15 a month. Each code that is typed correctly costs about $0.05 to Twilio,
@@ -57,7 +57,7 @@ the display name and business verification are free. For 1,000 WhatsApp accounts
 - **The real work is paperwork** (the checklist above): Meta portfolio, WhatsApp account through Twilio, display name,
   business verification. Verification can take weeks, so it starts now; it holds up going live, not the build.
 - **Cheap.** About $0.05 per sign-up; sign-ins free; no SMS at launch (Q25).
-- **When.** Before the code freeze (D116): the main staging APK first, then a WhatsApp staging APK built on it (§9).
+- **When.** Before the code freeze (D116), and in the next staging APK: the APK waits for WhatsApp (D117, Sree: "Q46: yes, the staging APK should wait for WhatsApp").
 
 ## 1. How it works (Supabase + Twilio Verify + Meta)
 
@@ -159,16 +159,16 @@ Mindweave, and then the next layer is CandorPS if they ever need it."*
 
 | Layer | Name | Where it appears |
 | --- | --- | --- |
-| What players see | **EZ Score: Rummy** | WhatsApp display name, email sender, store listing |
-| Brand / DBA | **MindWeave Tech** | Business Portfolio name, ezscore.mindweavetech.com, support address, privacy policy |
+| What players see | **EZ Score** (WhatsApp, D119) · **EZ Score: Rummy** (store listing, email sender) | WhatsApp display name; the app's own name |
+| Brand | **MindWeave** (D118; no "Tech") | Business Portfolio name, ezscore.mindweavetech.com, support address, privacy policy |
 | Legal | **Candor PS LLC** | the portfolio's legal business name, the verification document (EIN letter), Apple (D62) |
 
-Meta checks that the display name, the website and the document **agree**. A DBA is the normal way: legal name
-Candor PS LLC, business name MindWeave Tech, and the website says how they connect, in one footer line on
-ezscore.mindweavetech.com and in the privacy policy: *"MindWeave Tech is a trade name (DBA) of Candor PS LLC."* If the
-DBA is not filed with the state yet, file it first; Meta may ask for the DBA certificate when the names differ.
-The website and privacy policy publish themselves from `public/`, so that line is its own small PR with Sree's yes
-(D83).
+Meta checks that the display name, the website and the document **agree**. The legal name on the EIN letter is
+Candor PS LLC; the portfolio shows MindWeave and the website says only MindWeave (D123). The California DBA (D121)
+is the paper that ties MindWeave to Candor PS LLC, and Meta may ask for it when the two names differ, so it is filed
+before business verification (checklist step 2). Sree on the names: *"Let's just call it MindWeave, simple, like
+Google"*, *"just say EZ Score … all of the scoring apps will be called EZ Score"*, and *"CandorPS shouldn't even
+show up unless it's mandatory."*
 
 What was re-checked on Nov 26 (Twilio and Meta docs), and what changed from the Nov 23 text:
 
@@ -180,7 +180,7 @@ What was re-checked on Nov 26 (Twilio and Meta docs), and what changed from the 
 - **Self Sign-up** (Twilio Console › Messaging › Senders › WhatsApp senders) opens Meta's pop-up, creates the WABA
   inside our portfolio and links it to Twilio; about an hour. Twilio keeps one WABA per Twilio account. **New since
   Nov 23:** the sender must be put in a **Messaging Service**, and the Verify service's WhatsApp tab points at it.
-- **Display name.** Meta reviews *EZ Score: Rummy* after registration. If rejected, the sender is held at 250
+- **Display name.** Meta reviews *EZ Score* after registration. If rejected, the sender is held at 250
   messages a day and can be cut off, so it blocks going live. The store listing and the website are the evidence
   that the name is ours.
 - **Business verification** (Meta Security Centre): legal name, address, phone, website, and one document; for a US
@@ -193,7 +193,7 @@ What was re-checked on Nov 26 (Twilio and Meta docs), and what changed from the 
 - **Twilio Verify service.** Code length 6; WhatsApp channel on, pointing at the Messaging Service; the usage alert
   at $20 a month and the six countries (Q26).
 - **Keys to Supabase, staging first.** Account SID, Auth Token, Verify Service SID go into `ezscore-staging` only.
-  Live gets them after Sree tries the WhatsApp staging APK and says yes to that step (§9).
+  Live gets them after Sree tries the staging APK and says yes to that step (§9).
 
 Risks: a mismatch between the legal name, the website and the display name is the usual rejection; a number already
 on WhatsApp cannot be used; the WABA must be in the company portfolio, not Sree's personal Facebook, or it dies with
@@ -334,9 +334,8 @@ Every picture is a 360-dp phone (Sree's phone width), light mode.
    APK; steps 2, 5, 6 only for going live. Verification is the long wait, so it starts first.
 2. **On Sree's yes to the pictures**: one app PR, built and tested entirely on Supabase test numbers (no Twilio, no
    Meta). The Maestro flows run on CI with fixed codes.
-3. **The main staging APK goes first**, unchanged by this work. The **WhatsApp staging APK** is the next build on
-   staging, after Sree's yes to that build, once checklist step 8 is done: Sree signs up with his own number and gets
-   a real code.
+3. **One staging APK with everything, WhatsApp included** (D117). It is built on Sree's yes once the other pending
+   items have landed and checklist step 8 is done; Sree signs up with his own number and gets a real code.
 4. **Live**, each step on its own yes: the Twilio keys in live Supabase, the Play Data safety edit, the store build.
    Live waits for the display name (step 5) and business verification (step 6).
 5. **Then the freeze** (D116): "If the WhatsApp integration is done, I think I will have an app that works
@@ -372,8 +371,9 @@ step's words for both channels.
 ## 10. Decisions for Sree
 
 - ~~**Q20**~~ **answered Nov 25 (D116)**: go, and before the freeze. Sree: "There's no reason to wait for that!"
-- ~~**Q21**~~ answered Nov 23 (D77): players see EZ Score: Rummy; brand / DBA MindWeave Tech; legal name Candor PS
-  LLC. Needs the DBA line on the website and privacy policy (checklist step 2).
+- ~~**Q21**~~ answered Nov 23 (D77), revised Nov 25: players see EZ Score (WhatsApp, D119) and EZ Score: Rummy (the
+  app); brand MindWeave (D118); legal name Candor PS LLC, kept off player-facing pages (D123); the California DBA ties
+  them together (D121).
 - ~~**Q22**~~ answered Nov 23 (D75): a backup contact is asked at sign-up with Skip and reminded once; it is a second
   way in.
 - ~~**Q23**~~ **decided by default (D116)**: an account with no backup that lost its only contact gets support with

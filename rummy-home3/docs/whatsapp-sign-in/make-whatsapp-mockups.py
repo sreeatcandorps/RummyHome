@@ -251,7 +251,7 @@ body{position:relative;min-height:620px}
 
 def wa_message():
     return ('<div class="status"><span>2:35</span><span>▾ ▲ ▮</span></div>'
-            '<div class="top"><div class="av">E</div><div><div class="n">EZ Score: Rummy</div><div class="s">Business account</div></div></div>'
+            '<div class="top"><div class="av">E</div><div><div class="n">EZ Score</div><div class="s">Business account</div></div></div>'
             '<div class="day"><span>Today</span></div>'
             '<div class="msg"><b>482913</b> is your verification code. For your security, do not share this code.'
             '<div class="t">2:34 PM</div></div><div class="cta">⧉ Copy code</div><div class="bar"></div>')
@@ -264,10 +264,10 @@ sheet('(b) The 6-digit code step — the same screen for email and WhatsApp',
         'Today\'s step from the sign-up code PR. The "Is this you?" note under it goes: since D113 nobody is matched by email or number.'),
        ('WhatsApp (same component)', render('code-wa', lambda: code_step('wa')),
         'Only the icon, the title, the label and "Wrong number?" change. The number is shown with the middle hidden. '
-        'Six digits sign you in at once; the same step is used for Forgot passcode and for adding or changing a number.'),
+        'Confirm and sign in signs you in (a tap, as in #151); the same step is used for Forgot passcode and for adding or changing a number.'),
        ('The message in WhatsApp', render_plain('wa-msg', wa_message(), WA_CSS),
         'Meta\'s fixed authentication message (Twilio sends it; the wording is not ours). The sender is our approved name, '
-        'EZ Score: Rummy. Copy code fills the box when pasted.')],
+        'EZ Score (D119). Copy code fills the box when pasted.')],
       'wa-code-step.png')
 
 
