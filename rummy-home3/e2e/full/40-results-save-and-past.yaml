@@ -24,6 +24,11 @@ tags: [nightly]
       id: "show-results"
     direction: DOWN
     timeout: 15000
+# Nudge the page up before the tap: at the bottom edge the button sits under the 3-button bar on the small
+# phone and the tap lands on Home (flow 06, API 34 run).
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
 - tapOn:
     id: "show-results"
 - extendedWaitUntil:
