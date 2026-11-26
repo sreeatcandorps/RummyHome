@@ -20,6 +20,8 @@ type ListRowProps = {
    * capped at 45 % of the row.
    */
   valueMinChars?: number;
+  /** `action`: the value is the thing to do ("Add a backup"), in the primary colour and bold. */
+  valueTone?: 'muted' | 'action';
   /** Size-S: a pen instead of the chevron, for rows that edit in place or in a sheet. */
   pen?: boolean;
   /** Size-S: no chevron at all (Log out). */
@@ -31,7 +33,7 @@ type ListRowProps = {
 };
 
 /** Full-width tappable row used in settings, profile and other grouped lists. */
-export function ListRow({ title, description, icon, left, right, value, valueMinChars, pen, noChevron, onPress, tone = 'default', accessibilityLabel, testID }: ListRowProps) {
+export function ListRow({ title, description, icon, left, right, value, valueMinChars, valueTone = 'muted', pen, noChevron, onPress, tone = 'default', accessibilityLabel, testID }: ListRowProps) {
   const theme = useAppTheme();
   const { fontScale } = useWindowDimensions();
   const reserved = valueMinChars ? reservedValueWidth(valueMinChars, theme.fonts.bodyMedium.fontSize, fontScale) : undefined;
@@ -67,7 +69,7 @@ export function ListRow({ title, description, icon, left, right, value, valueMin
       {value !== undefined ? (
         <Text
           variant="bodyMedium"
-          style={[reserved === undefined ? styles.value : { minWidth: reserved, flexShrink: 0, textAlign: 'right' }, { color: theme.colors.onSurfaceVariant }]}
+          style={[reserved === undefined ? styles.value : { minWidth: reserved, flexShrink: 0, textAlign: 'right' }, valueTone === 'action' ? { color: theme.colors.primary, fontWeight: '700' } : { color: theme.colors.onSurfaceVariant }]}
           numberOfLines={1}
         >
           {value}

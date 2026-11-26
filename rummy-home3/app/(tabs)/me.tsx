@@ -2,9 +2,12 @@ import React, { useCallback, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 import { NoticeDialog } from '@/components/ui/NoticeDialog';
 import { Icon, Portal, Text } from 'react-native-paper';
-import { router, useFocusEffect, useNavigation } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
-import { authService } from '@/services/auth';
+import { authService, readSignInMethods, SignInMethods } from '@/services/auth';
+import { loadSignInDefaults } from '@/services/deviceCountry';
+import { SignInMethodDialog } from '@/components/account/SignInMethodDialog';
+import { DEFAULT_WHATSAPP_COUNTRY, formatWhatsAppNumber, WhatsAppCountry, whatsAppCountry } from '@/utils/countries';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
@@ -47,8 +50,15 @@ export function defaultsSummary(startsAs: 'points' | 'pool', rules: PointsRules)
   return `${startsAs === 'pool' ? 'Pool' : 'Points'} · ${n(rules.drop)} · ${n(rules.middleDrop)} · ${n(rules.fullCount)}`;
 }
 
-/** Group headings, top to bottom (design-review-2 §10.1). */
-export const PROFILE_GROUPS = ['Your table', 'Notifications', 'Game defaults', 'Appearance', 'Help', 'Account'] as const;
+/** Group headings, top to bottom (design-review-2 §10.1; Sign-in methods from the WhatsApp spec §8(d)). */
+export const PROFILE_GROUPS = ['Sign-in methods', 'Your table', 'Notifications', 'Game defaults', 'Appearance', 'Help', 'Account'] as const;
+
+/** The line under Sign-in methods (`wa-profile.png`). */
+export function signInMethodsNote(methods: Pick<SignInMethods, 'email' | 'phone'>): string {
+  if (methods.email && methods.phone) return 'Either one signs you in with the same passcode. Only you see these.';
+  if (methods.phone) return 'If you lose this number, a backup email is the way back in.';
+  return 'If you lose this email, a backup WhatsApp number is the way back in.';
+}
 
 export default function MeScreen() {
   const { colors } = useAppTheme();
@@ -74,6 +84,12 @@ export default function MeScreen() {
   const [savingInitials, setSavingInitials] = useState(false);
   const [initialsError, setInitialsError] = useState<string | null>(null);
   const [takenInitials, setTakenInitials] = useState<Map<string, string>>(new Map());
+  // WhatsApp spec §8(d): the ways in, read from Supabase Auth (the number is kept only there, D113).
+  const [methods, setMethods] = useState<SignInMethods | null>(null);
+  const [methodSheet, setMethodSheet] = useState<null | 'email' | 'whatsapp'>(null);
+  const [waCountry, setWaCountry] = useState<WhatsAppCountry>(DEFAULT_WHATSAPP_COUNTRY);
+  // Home's "Add a backup way in" card opens this screen with add=email|whatsapp.
+  const params = useLocalSearchParams<{ add?: string }>();
 
   const load = useCallback(async () => {
     setError(null);
@@ -87,6 +103,10 @@ export default function MeScreen() {
       setPlayer(current);
       setSavedPhone(current.phone ?? '');
       userSettingsService.getAll(current.id).then((all) => setDefaults(defaultsSummary(all.startsAs, all.startsAs === 'pool' ? all.pool : all.points))).catch(() => {});
+      if (isSupabaseConfigured) {
+        readSignInMethods().then(setMethods).catch(() => {});
+        loadSignInDefaults(false).then((d) => setWaCountry(whatsAppCountry(d.country) ?? DEFAULT_WHATSAPP_COUNTRY)).catch(() => {});
+      }
       setEmailPrefs(await emailsService.getPrefs());
       playersService.listMyPlayers(current.id).then((mine) => {
         const labels = assignInitials(mine.map((player) => ({ id: player.id, name: player.name, initials: player.initials, addedAt: player.addedAt })));
@@ -102,6 +122,12 @@ export default function MeScreen() {
   useFocusEffect(useCallback(() => {
     load();
   }, [load]));
+
+  React.useEffect(() => {
+    if (params.add !== 'email' && params.add !== 'whatsapp') return;
+    setMethodSheet(params.add);
+    router.setParams({ add: undefined } as never);
+  }, [params.add]);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({ title: 'Profile' });
@@ -194,8 +220,10 @@ export default function MeScreen() {
 
   const [passcodeOpen, setPasscodeOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // The passcode check signs in with whichever way the account has: the email, else the WhatsApp number (D76).
+  const passcodeLogin = methods?.email ?? player?.email ?? (methods?.phone ? `+${methods.phone.replace(/^\+/, '')}` : '');
   const changePasscode = () => {
-    if (!player?.email || !isSupabaseConfigured) {
+    if (!passcodeLogin || !isSupabaseConfigured) {
       setNotice('Passcodes belong to online accounts. This build is running without the account service.');
       return;
     }
@@ -249,6 +277,29 @@ export default function MeScreen() {
           </Text>
         </View>
       </View>
+
+      {methods ? (
+        <SettingsGroup title="Sign-in methods" note={signInMethodsNote(methods)} testID="me-sign-in-methods">
+          {(methods.phone && !methods.email
+            ? (['whatsapp', 'email'] as const)
+            : (['email', 'whatsapp'] as const)).map((kind) => {
+            const value = kind === 'email' ? methods.email : (methods.phone ? formatWhatsAppNumber(methods.phone) : null);
+            const title = kind === 'email' ? 'Email' : 'WhatsApp';
+            return (
+              <ListRow
+                key={kind}
+                title={title}
+                value={value ?? 'Add a backup'}
+                valueTone={value ? 'muted' : 'action'}
+                onPress={() => setMethodSheet(kind)}
+                accessibilityLabel={value ? `${title}, ${value}. Change` : `${title}: add a backup way in`}
+                testID={`me-method-${kind}`}
+              />
+            );
+          })}
+          <ListRow title="Passcode" value="Change" onPress={changePasscode} testID="me-change-passcode" />
+        </SettingsGroup>
+      ) : null}
 
       <SettingsGroup title="Your table" testID="me-your-table">
         <ListRow title="Name" value={player.name} pen onPress={() => setEditing('name')} accessibilityLabel={`Name, ${player.name}. Edit name`} testID="me-edit-name" />
@@ -309,7 +360,7 @@ export default function MeScreen() {
       </SettingsGroup>
 
       <SettingsGroup title="Account" note={notice ?? undefined} testID="me-account">
-        <ListRow title="Change passcode" onPress={changePasscode} testID="me-change-passcode" />
+        {methods ? null : <ListRow title="Change passcode" onPress={changePasscode} testID="me-change-passcode" />}
         <ListRow title="Privacy policy" onPress={() => Linking.openURL(PRIVACY_PAGE_URL).catch(() => {})} testID="me-privacy" />
         <ListRow title="Delete account" tone="danger" onPress={() => setDeleteOpen(true)} testID="delete-account" />
         <ListRow title="Log out" tone="danger" noChevron onPress={logout} testID="me-log-out" />
@@ -372,6 +423,19 @@ export default function MeScreen() {
             testID="me-phone-dialog"
           />
         ) : null}
+        {methodSheet ? (
+          <SignInMethodDialog
+            kind={methodSheet}
+            changing={Boolean(methodSheet === 'email' ? methods?.email : methods?.phone)}
+            country={waCountry}
+            onDismiss={() => setMethodSheet(null)}
+            onSent={(to) => {
+              const channel = methodSheet;
+              setMethodSheet(null);
+              router.push({ pathname: '/(screens)/confirm-code', params: { channel, to } });
+            }}
+          />
+        ) : null}
         {editing === 'email' ? (
           <EmailPrefsDialog prefs={emailPrefs} error={emailError} onToggle={toggleEmail} onDismiss={() => setEditing(null)} />
         ) : null}
@@ -379,7 +443,7 @@ export default function MeScreen() {
 
       <ChangePasscodeDialog
         visible={passcodeOpen}
-        email={player?.email ?? ''}
+        email={passcodeLogin}
         onDismiss={() => setPasscodeOpen(false)}
         onChanged={() => {
           setPasscodeOpen(false);
