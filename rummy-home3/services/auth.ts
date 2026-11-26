@@ -164,17 +164,17 @@ const afterSignIn = async (userId: string | null) => {
 
 export const whatsAppAuth = {
   ...whatsAppCore,
-  async signUp(input: PhoneSignUpInput) {
+  signUp: async (input: PhoneSignUpInput) => {
     const result = await whatsAppCore.signUp(input);
     if (result.ok && result.session) await afterSignIn(result.userId);
     return result;
   },
-  async signIn(phone: string, passcode: string) {
+  signIn: async (phone: string, passcode: string) => {
     const result = await whatsAppCore.signIn(phone, passcode);
     if (result.ok) await afterSignIn(result.userId);
     return result;
   },
-  async verifyCode(purpose: PhoneCodePurpose, phone: string, code: string) {
+  verifyCode: async (purpose: PhoneCodePurpose, phone: string, code: string) => {
     const result = await whatsAppCore.verifyCode(purpose, phone, code);
     if (result.ok) await afterSignIn(await authService.getCurrentUserId());
     return result;

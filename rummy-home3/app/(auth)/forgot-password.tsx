@@ -43,7 +43,7 @@ export const FORGOT_WHATSAPP_TEXT = {
 } as const;
 
 /**
- * Forgot passcode, all inside the app. Email (today's reset): email → 6-digit code from the email + new passcode →
+ * Forgot passcode, all inside the app. Email (today's reset): email → 6-digit OTP + new passcode →
  * back to Sign in with the new passcode. WhatsApp (D124): number → the shared code step → Set a new passcode →
  * Home, signed in. No browser page, no link needed.
  */
