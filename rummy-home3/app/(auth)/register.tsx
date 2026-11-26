@@ -36,6 +36,8 @@ export default function RegisterScreen() {
   const confirmParam = typeof params.confirm === 'string' && params.confirm.includes('@') ? normalizeEmail(params.confirm) : null;
   const whatsappParam = typeof params.whatsapp === 'string' ? parseStoredPhone(params.whatsapp) : null;
   const [method, setMethod] = useState<SignInMethod>(whatsappParam ? 'whatsapp' : 'email');
+  // The defaults arrive a moment after the screen; they never undo a choice already made on it.
+  const touched = useRef({ method: false, country: false });
   const [firstName, setFirstName] = React.useState('');
   const [lastName, setLastName] = React.useState('');
   const [email, setEmail] = React.useState(confirmParam ?? '');
@@ -64,8 +66,8 @@ export default function RegisterScreen() {
     let live = true;
     loadSignInDefaults(false).then((defaults) => {
       if (!live) return;
-      setMethod(defaults.method);
-      setWaCountry(whatsAppCountry(defaults.country) ?? DEFAULT_WHATSAPP_COUNTRY);
+      if (!touched.current.method) setMethod(defaults.method);
+      if (!touched.current.country) setWaCountry(whatsAppCountry(defaults.country) ?? DEFAULT_WHATSAPP_COUNTRY);
     }).catch(() => {});
     return () => { live = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -316,7 +318,7 @@ export default function RegisterScreen() {
         </View>
       }
     >
-      <SignInMethodSwitch value={method} onChange={(next) => { setMethod(next); setError(''); setNumberInUse(false); }} disabled={loading} testIDPrefix="register" />
+      <SignInMethodSwitch value={method} onChange={(next) => { touched.current.method = true; setMethod(next); setError(''); setNumberInUse(false); }} disabled={loading} testIDPrefix="register" />
 
       <Text variant="titleSmall" style={styles.groupLabel}>
         Your name
@@ -349,9 +351,9 @@ export default function RegisterScreen() {
         <>
           <WhatsAppNumberField
             country={waCountry}
-            onCountryChange={setWaCountry}
+            onCountryChange={(next) => { touched.current.country = true; setWaCountry(next); }}
             value={waNumber}
-            onChangeText={setWaNumber}
+            onChangeText={(next) => { touched.current.country = true; setWaNumber(next); }}
             disabled={loading}
             testID="register-number"
           />
