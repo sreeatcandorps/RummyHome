@@ -1,0 +1,59 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# D113 (Q30): Find in database is a Player ID box. Names are never searched; the number keypad and
+# Search find one person ("#5 · Otto O.", seed.sql gives Otto Outsider Player ID 5), and a number
+# nobody has reads "No one has #99999.". D108: the how-to-add card sits at the top of My players.
+# Nothing is added, so later flows see the same My players.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn:
+    text: "My players.*"
+- extendedWaitUntil:
+    visible: "Harish Test"
+    timeout: 15000
+- assertVisible:
+    id: "how-to-add-card"
+- assertVisible: "Has the app? Ask for their Player ID and search it."
+- takeScreenshot: 31a-my-players-how-to-add
+- tapOn: "Find in database"
+- extendedWaitUntil:
+    visible:
+      id: "player-id-input"
+    timeout: 15000
+- assertVisible: "Ask them for their Player ID. It is on their Profile."
+- inputText: "5"
+# Nothing is looked up while typing.
+- assertNotVisible:
+    id: "player-id-result"
+- takeScreenshot: 31b-player-id-typed
+- tapOn:
+    id: "player-id-search"
+- extendedWaitUntil:
+    visible:
+      id: "player-id-result"
+    timeout: 15000
+- assertVisible: "#5 · Otto O."
+- assertNotVisible: "Otto Outsider"
+- assertVisible: "Add to My players"
+- hideKeyboard
+- takeScreenshot: 31c-player-id-result
+- tapOn:
+    id: "player-id-input"
+- eraseText: 6
+- inputText: "99999"
+# Typing again clears the card until Search.
+- assertNotVisible:
+    id: "player-id-result"
+- tapOn:
+    id: "player-id-search"
+- extendedWaitUntil:
+    visible:
+      id: "player-id-none"
+    timeout: 15000
+- assertVisible: "No one has #99999."
+- hideKeyboard
+- takeScreenshot: 31d-player-id-no-one-has
+- back
+- extendedWaitUntil:
+    visible: "Harish Test"
+    timeout: 15000

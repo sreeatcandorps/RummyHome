@@ -181,7 +181,9 @@ test('item 5: Edit name stays in the ⋮ menu; one menu on both screens', () => 
   assert.ok(items.includes('edit_name'), 'Edit name kept (approved)');
   assert.ok(items.includes('link_id'));
   assert.equal(existsSync(path.join(process.cwd(), 'components/players/RegisterPlayersDialog.tsx')), false, 'the Register popup component is deleted');
-  for (const component of ['PlayerActionMenu', 'LinkPlayerDialog', 'LinkRequestSentDialog', 'InviteToRegisterDialog', 'EditNameDialog']) {
+  // D106: Invite to EZ Score is a plain share; the sign-up (claim) link dialog is gone.
+  assert.equal(existsSync(path.join(process.cwd(), 'components/players/InviteToRegisterDialog.tsx')), false, 'the sign-up link dialog is deleted');
+  for (const component of ['PlayerActionMenu', 'LinkPlayerDialog', 'LinkRequestSentDialog', 'EditNameDialog']) {
     assert.match(src('app/(tabs)/players.tsx'), new RegExp(`<${component}`), `My players uses ${component}`);
     assert.match(src('app/(screens)/games/players.tsx'), new RegExp(`<${component}`), `the game's Players page uses ${component}`);
   }

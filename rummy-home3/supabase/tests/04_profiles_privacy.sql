@@ -27,10 +27,10 @@ select tests.logout();
 select is((select display_name from public.profiles where id = '00000000-0000-4000-8000-000000000002'), 'Harish Test', 'outsider update of another profile touches 0 rows');
 select tests.login('00000000-0000-4000-8000-000000000005');
 
--- Find player (search_players): a partial email matches nobody; a full email or a name does
+-- Find player (search_players): Player ID only since 053 (D113); no email, partial or full, and no name
 select is((select count(*) from public.search_players('harish@'))::int, 0, 'search: partial email matches nobody');
-select is((select count(*) from public.search_players('harish@test.local'))::int, 1, 'search: full email matches one');
-select is((select count(*) from public.search_players('Har'))::int, 1, 'search: name prefix matches');
+select is((select count(*) from public.search_players('harish@test.local'))::int, 0, 'search: a full email matches nobody (053)');
+select is((select count(*) from public.search_players('Har'))::int, 0, 'search: a name matches nobody (053)');
 
 -- 019 (B): email, phone and zip_code are the owner's alone. SELECT on profiles is granted per
 -- column to authenticated, so reading a contact column (or `select *`) is refused outright;
