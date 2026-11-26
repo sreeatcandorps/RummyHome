@@ -26,7 +26,7 @@ tags: [smoke]
 - assertVisible: "2 ready · 1 needs a 2nd letter"
 - assertVisible: "Save 2 players"
 - assertVisible: "QX.*"
-- takeScreenshot: 26-add-typing-save-bar
+- takeScreenshot: 30-add-typing-save-bar
 - tapOn: "Save 2 players"
 - extendedWaitUntil:
     visible: ".*2 players saved and seated"
@@ -37,13 +37,13 @@ tags: [smoke]
 - assertVisible: "Playing in this game · .* in green"
 - assertVisible:
     id: "add-players-done"
-- takeScreenshot: 26b-saved-list
+- takeScreenshot: 30b-saved-list
 - tapOn: "Remove ZQ.* from this game"
 - extendedWaitUntil:
     visible: ".*1 player saved and seated"
     timeout: 5000
 - assertNotVisible: "Saved ZQ.*"
-- takeScreenshot: 26c-after-remove
+- takeScreenshot: 30c-after-remove
 - tapOn:
     id: "add-players-add-more"
 - extendedWaitUntil:
@@ -57,7 +57,7 @@ tags: [smoke]
     visible: ".*2 players saved and seated"
     timeout: 20000
 - assertVisible: "Saved VK.*"
-- takeScreenshot: 26d-saved-after-add-more
+- takeScreenshot: 30d-saved-after-add-more
 - tapOn:
     id: "add-players-done"
 - extendedWaitUntil:
@@ -66,7 +66,7 @@ tags: [smoke]
 - assertVisible: "Remove QX.*"
 - assertVisible: "Remove VK.*"
 - assertNotVisible: "Remove ZQ.*"
-- takeScreenshot: 26e-back-on-new-game
+- takeScreenshot: 30e-back-on-new-game
 # Back after typing without Save asks once (D112; replaces D97).
 - tapOn: "Add by initials"
 - extendedWaitUntil:
@@ -83,11 +83,11 @@ tags: [smoke]
 - assertVisible: "Save AB and go back"
 - assertVisible:
     id: "add-players-discard"
-- takeScreenshot: 26f-back-dialog
+- takeScreenshot: 30f-back-dialog
 - tapOn:
     id: "add-players-discard"
 - extendedWaitUntil:
     visible: "Add by initials"
     timeout: 15000
 - assertNotVisible: "Remove AB.*"
-- takeScreenshot: 26g-discarded
+- takeScreenshot: 30g-discarded
