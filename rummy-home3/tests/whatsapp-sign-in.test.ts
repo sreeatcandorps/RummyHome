@@ -21,6 +21,7 @@ import {
   NUMBER_IN_USE_MESSAGE,
   NUMBER_PASSCODE_MISMATCH,
   PhoneAuthLike,
+  readSignInMethodsFrom,
 } from '../utils/whatsappAuth';
 import {
   codeStepIcon,
@@ -333,6 +334,21 @@ test('Profile › Sign-in methods: Email, WhatsApp, Passcode; Change passcode mo
   assert.match(sheet, /We send a code on WhatsApp to the new number\. Your account, Player ID, passcode and games stay the same\./);
   assert.match(sheet, /KeyboardAvoidingView/, 'the sheet stays above the keypad');
   assert.match(src('app/(screens)/_layout.tsx'), /name="confirm-code" options=\{\{ headerShown: false \}\}/);
+});
+
+test('Sign-in methods: read from the server, or from the session on the phone when that request fails', async () => {
+  const held = { email: 'sree@test.local', phone: '', user_metadata: { backup_reminder: 'dismissed' } };
+  const session = async () => ({ data: { session: { user: held } } });
+  const fromServer = await readSignInMethodsFrom({
+    getUser: async () => ({ data: { user: { email: null, phone: '919000000002', user_metadata: {} } } }),
+    getSession: async () => { throw new Error('not asked when the server answers'); },
+  });
+  assert.deepEqual(fromServer, { email: null, phone: '919000000002', backupReminder: null });
+  const expected = { email: 'sree@test.local', phone: null, backupReminder: 'dismissed' };
+  assert.deepEqual(await readSignInMethodsFrom({ getUser: async () => ({ data: { user: null }, error: { message: 'Network request failed' } }), getSession: session }), expected);
+  assert.deepEqual(await readSignInMethodsFrom({ getUser: async () => { throw new Error('Network request failed'); }, getSession: session }), expected);
+  assert.equal(await readSignInMethodsFrom({ getUser: async () => ({ data: { user: null } }), getSession: async () => ({ data: { session: null } }) }), null);
+  assert.match(src('services/auth.ts'), /readSignInMethodsFrom\(supabase\.auth/);
 });
 
 test('Forgot passcode by WhatsApp: the code, then Set a new passcode with whose account it is, and Not you?', () => {

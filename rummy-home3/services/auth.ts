@@ -15,7 +15,16 @@ import { sessionNeedsRefresh } from '@/utils/sessionFreshness';
 import { EmailInUseError, isEmailInUseError, isRepeatedSignUp } from '@/utils/signUpOutcome';
 import { DeleteAccountSummary, SUPPORT_EMAIL } from '@/utils/accountDeletion';
 import { NOT_READY_MESSAGE } from '@/utils/notReady';
-import { makeEmailChange, makeWhatsAppAuth, PhoneAuthLike, PhoneCodePurpose, PhoneSignUpInput } from '@/utils/whatsappAuth';
+import {
+  makeEmailChange,
+  makeWhatsAppAuth,
+  PhoneAuthLike,
+  PhoneCodePurpose,
+  PhoneSignUpInput,
+  readSignInMethodsFrom,
+  SignInMethods,
+  UserAuthLike,
+} from '@/utils/whatsappAuth';
 
 /** set_my_initials (040) is not on this database yet. */
 export const OWN_INITIALS_NOT_READY = NOT_READY_MESSAGE;
@@ -192,18 +201,10 @@ export const emailChange = {
   },
 };
 
-/** The ways in of the signed-in account, as Supabase Auth holds them (the WhatsApp number lives only there, D113). */
-export type SignInMethods = { email: string | null; phone: string | null; backupReminder: 'dismissed' | null };
+export type { SignInMethods };
 
-export async function readSignInMethods(): Promise<SignInMethods | null> {
-  const { data } = await supabase.auth.getUser();
-  const user = data.user;
-  if (!user) return null;
-  return {
-    email: user.email || null,
-    phone: user.phone || null,
-    backupReminder: (user.user_metadata as { backup_reminder?: string } | undefined)?.backup_reminder === 'dismissed' ? 'dismissed' : null,
-  };
+export function readSignInMethods(): Promise<SignInMethods | null> {
+  return readSignInMethodsFrom(supabase.auth as unknown as UserAuthLike);
 }
 
 /** Home's "Add a backup way in" card: Not now hides it for good, on every phone (D75). */

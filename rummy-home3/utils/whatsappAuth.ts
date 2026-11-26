@@ -170,3 +170,30 @@ export function makeEmailChange(auth: PhoneAuthLike, redirectTo?: string) {
 }
 
 export type EmailChange = ReturnType<typeof makeEmailChange>;
+
+/** The ways in of the signed-in account, as Supabase Auth holds them (the WhatsApp number lives only there, D113). */
+export type SignInMethods = { email: string | null; phone: string | null; backupReminder: 'dismissed' | null };
+
+type AuthUserLike = { email?: string | null; phone?: string | null; user_metadata?: { backup_reminder?: string } | null } | null | undefined;
+
+/** The slice of `supabase.auth` that reads the signed-in user. */
+export type UserAuthLike = {
+  getUser(): Promise<{ data: { user: AuthUserLike } | null; error?: unknown }>;
+  getSession(): Promise<{ data: { session: { user: AuthUserLike } | null } | null; error?: unknown }>;
+};
+
+/**
+ * getUser asks the server. When that request fails (offline, a slow network), the user held in this phone's
+ * session answers instead, so Profile still lists the ways in rather than dropping Sign-in methods.
+ */
+export async function readSignInMethodsFrom(auth: UserAuthLike): Promise<SignInMethods | null> {
+  const fresh = await auth.getUser().catch(() => null);
+  const held = fresh?.data?.user ? null : await auth.getSession().catch(() => null);
+  const user = fresh?.data?.user ?? held?.data?.session?.user ?? null;
+  if (!user) return null;
+  return {
+    email: user.email || null,
+    phone: user.phone || null,
+    backupReminder: user.user_metadata?.backup_reminder === 'dismissed' ? 'dismissed' : null,
+  };
+}

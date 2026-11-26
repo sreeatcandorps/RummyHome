@@ -27,9 +27,11 @@ tags: [smoke]
     direction: DOWN
     timeout: 10000
 # The passcode dialog with the fields first and the keyboard open — all three fields must stay on screen.
+# Scroll up to the group's heading, not to the Passcode row: scrolling up to the row can stop with only its
+# bottom edge showing under the Profile header, where its id counts as visible but its title is hidden. The
+# heading sits above the rows, so once it shows the whole group is on screen.
 - scrollUntilVisible:
-    element:
-      id: "me-change-passcode"
+    element: "Sign-in methods"
     direction: UP
     timeout: 10000
 - assertVisible: "Passcode"
