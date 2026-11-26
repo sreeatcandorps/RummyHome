@@ -1,13 +1,13 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
-# D61 the Order of players tutorial, as Ravi Kumar (demo@test.local, seed-listing.sql) — the one
-# seeded account that has not seen it (every other profile is flagged in seed-listing.sql). New game
-# with Ravi and three of his placeholders → Game type → Next → Order of players: the four-step sheet
-# comes up forced (no Cancel, nothing outside closes it): "Everyone draws a card" → Next → "Tap the
-# highest card first" → Next → "The last tap deals" → Next → "Wrong tap? Fix it" → Got it. The screen
-# shows the one-line how-to with Show me. Tapping the four rows highest to lowest ends with the toast
-# "Lowest card — <name> deals round 1" on the last tap. Show me opens the steps again, dismissable;
-# Got it closes them. No game is started; the flow signs Sree back in at the end. Runs after smoke/23.
+# D61 + D74 the Order of players tutorial, as Ravi Kumar (demo@test.local, seed-listing.sql). New game
+# with Ravi and three of his placeholders → Game type → Next → Order of players: nothing opens by
+# itself (D74 — Sree: "I don't want it to pop up as a default anymore"); the screen shows the one-line
+# how-to with Show me. Show me opens the three steps, dismissable: "Everyone draws a card" → Next →
+# "Tap the highest card first" → Next → "Wrong tap? Fix it" → Got it; Back works. Tapping the four rows
+# highest to lowest ends with the toast "Lowest card — <name> deals round 1" on the last tap; the
+# selected row alone shows ▲ ▼, a second tap deselects and every row's arrows return. Help › New game ›
+# Order of players has Watch how. No game is started; the flow signs Sree back in at the end. Runs after smoke/23.
 ---
 - runFlow:
     file: ../lib/sign-in-as.yaml
@@ -34,56 +34,13 @@ tags: [smoke]
     timeout: 15000
 - tapOn:
     id: "new-game-type-next"
-# First time here: the steps come up on their own, forced.
+# D74: nothing opens on its own. The screen under it: one line and Show me, nobody numbered yet.
 - extendedWaitUntil:
     visible:
-      id: "seating-tutorial"
+      id: "order-how-to-line"
     timeout: 20000
-- assertVisible:
-    id: "seating-tutorial-title"
-    text: "How to seat the table"
-- assertVisible:
-    id: "seating-tutorial-step-title"
-    text: "1  Everyone draws a card"
-- assertVisible:
-    id: "seating-tutorial-counter"
-    text: "1 of 4"
 - assertNotVisible:
-    id: "seating-tutorial-back"
-- assertNotVisible: "Cancel"
-- takeScreenshot: 24-tutorial-step-1-draw
-- tapOn:
-    id: "seating-tutorial-next"
-- assertVisible:
-    id: "seating-tutorial-step-title"
-    text: "2  Tap the highest card first"
-- assertVisible:
-    id: "seating-tutorial-back"
-- takeScreenshot: 24b-tutorial-step-2-highest-first
-- tapOn:
-    id: "seating-tutorial-next"
-- assertVisible:
-    id: "seating-tutorial-step-title"
-    text: "3  The last tap deals"
-- takeScreenshot: 24c-tutorial-step-3-last-tap-deals
-- tapOn:
-    id: "seating-tutorial-next"
-- assertVisible:
-    id: "seating-tutorial-step-title"
-    text: "4  Wrong tap\\? Fix it"
-- assertVisible:
-    id: "seating-tutorial-counter"
-    text: "4 of 4"
-- assertNotVisible:
-    id: "seating-tutorial-next"
-- takeScreenshot: 24d-tutorial-step-4-fix-it
-- tapOn:
-    id: "seating-tutorial-done"
-- extendedWaitUntil:
-    notVisible:
-      id: "seating-tutorial"
-    timeout: 10000
-# The screen under it: one line and Show me, nobody numbered yet.
+    id: "seating-tutorial"
 - assertVisible:
     id: "order-how-to-line"
     text: "Tap players from the highest card to the lowest."
@@ -92,7 +49,59 @@ tags: [smoke]
 - assertVisible:
     id: "order-counter"
     text: "0 of 4 numbered"
-- takeScreenshot: 24e-order-one-line-show-me
+- takeScreenshot: 24-order-one-line-show-me-no-popup
+# Show me opens the three steps; Back and Next work; Got it closes them.
+- tapOn:
+    id: "order-how-to-show-me"
+- extendedWaitUntil:
+    visible:
+      id: "seating-tutorial"
+    timeout: 10000
+- assertVisible:
+    id: "seating-tutorial-title"
+    text: "How to seat the table"
+- assertVisible:
+    id: "seating-tutorial-step-title"
+    text: "1  Everyone draws a card"
+- assertVisible:
+    id: "seating-tutorial-counter"
+    text: "1 of 3"
+- assertNotVisible:
+    id: "seating-tutorial-back"
+- assertNotVisible: "Cancel"
+- takeScreenshot: 24b-tutorial-step-1-draw
+- tapOn:
+    id: "seating-tutorial-next"
+- assertVisible:
+    id: "seating-tutorial-step-title"
+    text: "2  Tap the highest card first"
+- assertVisible:
+    id: "seating-tutorial-back"
+- takeScreenshot: 24c-tutorial-step-2-highest-first-last-deals
+- tapOn:
+    id: "seating-tutorial-back"
+- assertVisible:
+    id: "seating-tutorial-counter"
+    text: "1 of 3"
+- tapOn:
+    id: "seating-tutorial-next"
+- tapOn:
+    id: "seating-tutorial-next"
+- assertVisible:
+    id: "seating-tutorial-step-title"
+    text: "3  Wrong tap\\? Fix it"
+- assertVisible:
+    id: "seating-tutorial-counter"
+    text: "3 of 3"
+- assertNotVisible:
+    id: "seating-tutorial-next"
+- takeScreenshot: 24d-tutorial-step-3-fix-it
+- tapOn:
+    id: "seating-tutorial-done"
+- extendedWaitUntil:
+    notVisible:
+      id: "seating-tutorial"
+    timeout: 10000
 # Seat the table: the rows are Ravi, Anil, Kiran, Meena in pick order. Highest card first (Meena, row 4),
 # then Kiran, then Anil, then Ravi last — the lowest card. The last tap brings the toast.
 - tapOn:
@@ -110,39 +119,43 @@ tags: [smoke]
     id: "order-counter"
     text: "Everyone numbered"
 - assertVisible: "Lowest card — you deal round 1"
-- takeScreenshot: 24f-order-last-tap-toast
+- takeScreenshot: 24e-order-last-tap-toast
 - assertVisible:
     id: "seat-deals-next"
-# Show me plays the steps again; this time they can be closed.
-- tapOn:
-    id: "order-how-to-show-me"
-- extendedWaitUntil:
-    visible:
-      id: "seating-tutorial"
-    timeout: 10000
+# D74: Ravi (row 4, seat 1, the last tap) is selected — his ▲ shows and nobody else's; seat 1 has no ▼.
 - assertVisible:
-    id: "seating-tutorial-counter"
-    text: "1 of 4"
+    id: "seat-up-4"
+- assertNotVisible:
+    id: "seat-down-4"
+- assertNotVisible:
+    id: "seat-up-2"
+- assertNotVisible:
+    id: "seat-up-3"
+- takeScreenshot: 24f-order-selected-row-arrows-only
+# Tap him again: nobody selected, every numbered row shows its arrows (the top row has no ▲).
 - tapOn:
-    id: "seating-tutorial-next"
-- tapOn:
-    id: "seating-tutorial-back"
+    id: "seat-row-4"
 - assertVisible:
-    id: "seating-tutorial-counter"
-    text: "1 of 4"
-- takeScreenshot: 24g-tutorial-show-me-again
+    id: "seat-up-2"
+- assertVisible:
+    id: "seat-up-3"
+- assertVisible:
+    id: "seat-down-1"
+- assertNotVisible:
+    id: "seat-up-1"
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
+- takeScreenshot: 24g-order-deselected-all-arrows
+# Select Anil (row 3): only his arrows.
 - tapOn:
-    id: "seating-tutorial-next"
-- tapOn:
-    id: "seating-tutorial-next"
-- tapOn:
-    id: "seating-tutorial-next"
-- tapOn:
-    id: "seating-tutorial-done"
-- extendedWaitUntil:
-    notVisible:
-      id: "seating-tutorial"
-    timeout: 10000
+    id: "seat-row-3"
+- assertVisible:
+    id: "seat-up-3"
+- assertNotVisible:
+    id: "seat-up-2"
+- assertNotVisible:
+    id: "seat-up-4"
 # Help › New game › Order of players has the Watch how button.
 - tapOn: "Help"
 - extendedWaitUntil:
@@ -164,8 +177,9 @@ tags: [smoke]
     visible:
       id: "seating-tutorial"
     timeout: 10000
-- tapOn:
-    id: "seating-tutorial-next"
+- assertVisible:
+    id: "seating-tutorial-counter"
+    text: "1 of 3"
 - tapOn:
     id: "seating-tutorial-next"
 - tapOn:

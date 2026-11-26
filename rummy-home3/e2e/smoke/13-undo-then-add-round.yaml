@@ -5,6 +5,12 @@ tags: [smoke]
 # Fixture: game E (GAMEE1), 4 players, round 1 saved; sree is creator and seated.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
+# Four live games on Home: on the 360-dp phone (font 1.3) game E is below the fold.
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEE1"
+    direction: DOWN
+    timeout: 15000
 - tapOn:
     id: "game-card-GAMEE1"
 - extendedWaitUntil:

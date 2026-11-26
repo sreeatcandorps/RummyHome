@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Image, Keyboard, KeyboardAvoidingView, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { HelpTopicKey } from '@/constants/helpTopics';
@@ -23,10 +23,43 @@ type AuthShellProps = {
 
 const FORM_MAX_WIDTH = 460;
 
+/**
+ * Both platforms pad for the keyboard. Android used to be left to the window (`adjustResize`), but with the
+ * edge-to-edge window of SDK 54 the window no longer shrinks, so the passcode field on Create account sat under
+ * the keyboard (staging build 2, bug 8). Padding shrinks the ScrollView; `useScrollToFocusedInput` then brings the
+ * focused field above the keyboard once the keyboard has its final height.
+ */
+export const KEYBOARD_BEHAVIOR = 'padding' as const;
+
+/** Space kept between the focused field's bottom edge and the keyboard. */
+export const FOCUSED_INPUT_GAP = spacing.lg;
+
+/**
+ * Once the keyboard is up, a focused input that it covers is scrolled to sit just above it; one already in view
+ * is left alone. Android's own ScrollView does this when it shrinks, but not reliably for a field tapped low on
+ * the screen (the case bug 8 described), so it is done here too, on `keyboardDidShow` — the padding has settled.
+ */
+export function useScrollToFocusedInput(scrollRef: React.RefObject<ScrollView | null>) {
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', (e) => {
+      const input = TextInput.State.currentlyFocusedInput();
+      const scroll = scrollRef.current;
+      if (!input || !scroll) return;
+      input.measureInWindow((_x, y, _w, h) => {
+        if (y + h + FOCUSED_INPUT_GAP <= e.endCoordinates.screenY) return;
+        scroll.getScrollResponder().scrollResponderScrollNativeHandleToKeyboard(input, FOCUSED_INPUT_GAP, true);
+      });
+    });
+    return () => sub.remove();
+  }, [scrollRef]);
+}
+
 /** Shared chrome for sign-in screens: felt brand panel plus a form card. Side by side in landscape. */
 export function AuthShell({ title, subtitle, icon, hero, children, footer, help, helpAnchor }: AuthShellProps) {
   const { colors } = useAppTheme();
   const { insets, isShort, gutterLeft, gutterRight } = useLayout();
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToFocusedInput(scrollRef);
 
   const badge = (
     <View style={[styles.badge, { backgroundColor: colors.onFelt }]}>
@@ -66,10 +99,7 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
 
   if (isShort) {
     return (
-      <KeyboardAvoidingView
-        style={[styles.row, { backgroundColor: colors.background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={[styles.row, { backgroundColor: colors.background }]} behavior={KEYBOARD_BEHAVIOR}>
         <View
           style={[
             styles.sidePanel,
@@ -84,6 +114,7 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
           {brand}
         </View>
         <ScrollView
+          ref={scrollRef}
           style={styles.flex}
           contentContainerStyle={[
             styles.sideContent,
@@ -106,11 +137,9 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]} behavior={KEYBOARD_BEHAVIOR}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.stackContent, { paddingBottom: insets.bottom + spacing.xl }]}
         keyboardShouldPersistTaps="handled"
       >

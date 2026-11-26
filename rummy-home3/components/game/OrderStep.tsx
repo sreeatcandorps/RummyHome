@@ -36,7 +36,7 @@ export function OrderStep({ players, draft, onChange, onBack, onNext, nextIsStar
   const { colors } = useAppTheme();
   const complete = orderComplete(draft);
   const dealsNext = orderComplete(draft) ? nextDealerFor(displayOrder(draft), null, 0) : undefined;
-  // D61: the first visit opens the steps forced; Show me opens them again.
+  // D74: the steps open from Show me only (D61's forced first visit is gone).
   const tutorial = useTutorial('seating');
   const [toast, setToast] = useState<string | null>(null);
 
@@ -60,7 +60,7 @@ export function OrderStep({ players, draft, onChange, onBack, onNext, nextIsStar
         </SectionCard>
         {error ? <Text variant="bodyMedium" style={{ color: colors.error, paddingHorizontal: spacing.md }} testID="new-game-problem">{error}</Text> : null}
       </Screen>
-      <SeatingTutorial visible={tutorial.visible} forced={tutorial.forced} onDone={tutorial.done} />
+      <SeatingTutorial visible={tutorial.visible} onDone={tutorial.done} />
       <Toast message={toast} onDismiss={() => setToast(null)} aboveBar testID="order-lowest-card-toast" />
       <BottomBar style={styles.bottom}>
         <Button mode="outlined" onPress={onBack} disabled={creating} icon="arrow-left" contentStyle={styles.barContent} style={styles.back} accessibilityLabel="Back to game type" testID="new-game-order-back">

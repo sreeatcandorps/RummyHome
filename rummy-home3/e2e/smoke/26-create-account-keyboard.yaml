@@ -1,0 +1,90 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# Staging build 2, bug 8 (Sree, Nov 23): on Create account the passcode field sat under the keyboard —
+# Android's edge-to-edge window (SDK 54) no longer resizes for it, and AuthShell only padded on iOS.
+# Rule from staging-b2-feedback.md: every form gets a flow that focuses each input and shows it with the
+# keyboard up. Fresh app (no session) → Create account → tap First name, Email, 6-digit passcode, Player ID
+# in turn, typing into each, screenshot with the keyboard open. The frames (and the PR video) are the proof
+# that the focused field is above the keyboard; nothing is submitted. Signs Sree back in at the end.
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 20000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: "login-email"
+    commands:
+      - stopApp
+      - launchApp
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 30000
+- hideKeyboard
+# Size-S (#120, D69): with the hero card the New here? line can sit below the fold at 360 dp × font 1.3
+# (the email field focuses itself, so the keyboard's padding is still settling); scroll to it, then tap.
+- scrollUntilVisible:
+    element:
+      text: "Create account"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Create account"
+- extendedWaitUntil:
+    visible:
+      id: "register-first-name"
+    timeout: 15000
+- takeScreenshot: 26-create-account
+# Each field the way a person meets it: keyboard down, the field in view, tap it, type — and it must still be
+# in view with the keyboard up. The passcode and Player ID are the ones that sat under the keyboard (bug 8).
+- tapOn:
+    id: "register-first-name"
+- inputText: "Kavya"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "register-first-name"
+- takeScreenshot: 26b-create-account-name-keyboard
+- hideKeyboard
+- tapOn:
+    id: "register-email"
+- inputText: "kavya@example.com"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "register-email"
+- takeScreenshot: 26c-create-account-email-keyboard
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "register-passcode"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "register-passcode"
+- inputText: "123456"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "register-passcode"
+- takeScreenshot: 26d-create-account-passcode-keyboard
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "register-player-id"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "register-player-id"
+- inputText: "42"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "register-player-id"
+- takeScreenshot: 26e-create-account-player-id-keyboard
+- hideKeyboard
+# Nothing is created. Back to Sree for whatever runs after this flow.
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: sree@test.local

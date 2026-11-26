@@ -102,9 +102,17 @@ export const orderComplete = (draft: OrderDraft) => draft.numbered.length === dr
 export function tapPlayer(draft: OrderDraft, id: string): OrderDraft {
   if (!draft.base.includes(id)) return draft;
   if (!draft.numbered.includes(id)) return { ...draft, numbered: [id, ...draft.numbered], focus: id };
+  // Once everyone is numbered the row tap is a selection: tap the selected row again and nobody is selected (D74).
+  if (orderComplete(draft)) return { ...draft, focus: draft.focus === id ? null : id };
   if (isLastNumbered(draft, id)) return { ...draft, numbered: draft.numbered.slice(1), focus: id };
   return { ...draft, focus: id };
 }
+
+/**
+ * D74 (Sree, Nov 21 / 23): at rest every numbered row shows its ▲ ▼; once a row is selected only that row's
+ * arrows show — the selection is the sign. The top row has no ▲ and the lowest seat no ▼.
+ */
+export const showsArrows = (draft: OrderDraft, id: string) => draft.numbered.includes(id) && (draft.focus == null || draft.focus === id);
 
 /**
  * ▲ / ▼ on a numbered player; unnumbered players have no arrows. `direction` is the seat change:
@@ -121,8 +129,15 @@ export const clearOrder = (draft: OrderDraft): OrderDraft => ({ ...draft, number
 /** Whether Done would change anything (mid-game: Done stays off until it would). */
 export const orderChanged = (draft: OrderDraft) => !sameOrder(draft.base, displayOrder(draft));
 
-/** The player ID (#42) joins the row only where it fits: a row 330 dp wide or more (a phone row inside the card is ~347 dp). */
-export const showsPlayerCode = (rowWidth: number) => rowWidth >= 330;
+/**
+ * The player ID (#42) joins the row only where it fits: a row 330 dp wide or more (a phone row inside the
+ * card is ~347 dp), measured in text-size units — at font 1.3 a 347-dp row holds what a 267-dp row holds
+ * (Pixel 7 Pro nightly, Nov 23: the name collapsed to nothing beside the ID, the tag and the arrows).
+ */
+export const showsPlayerCode = (rowWidth: number, fontScale = 1) => rowWidth / Math.max(fontScale, 1) >= 330;
+
+/** The "highest card" tag in full on a wide row; "highest" where the name would otherwise be squeezed. */
+export const highestCardTag = (rowWidth: number, fontScale = 1) => (showsPlayerCode(rowWidth, fontScale) ? HIGHEST_CARD_TAG : HIGHEST_CARD_TAG_SHORT);
 
 /** The sheet's menu item and Done exist only while the game is Active (Q21.7). */
 export const canChangeSeating = (game: { isComplete: boolean; closedAt?: string | null; deletedAt?: string | null } | null | undefined, canScore: boolean) =>
@@ -137,6 +152,7 @@ export const SEATING_MENU_SUBLINE = 'Mid-game · admins only · logged';
 // The three-line how-to of Nov 19 moved into the step-by-step tutorial (utils/tutorials.ts, D61); the screen keeps one line.
 /** Small tag on the first tap's row while the order is being built. */
 export const HIGHEST_CARD_TAG = 'highest card';
+export const HIGHEST_CARD_TAG_SHORT = 'highest';
 export const EVERY_PLAYER_NEEDS_A_SEAT = 'Every player needs a seat.';
 
 /** "Pool · 6 seats · 1 out" for a pool; the mid-game subline otherwise. */
