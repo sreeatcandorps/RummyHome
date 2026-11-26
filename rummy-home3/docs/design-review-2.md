@@ -235,6 +235,36 @@ fourth appears (up to the per-day cap), so "add three people quickly" becomes "a
 
 Picture: `initials-mockup.png`.
 
+### 8.3a Add by initials, revised for Q44 (Sree, Nov 25)
+
+> "If I want to add 3 people … just use the keyboard on the bottom, so I don't have to even go up and click on Save
+> … Done should take me back to the screen and show me, 'Okay, hey, these are the 3 players' … should we just have
+> 2 Done buttons? What if he goes back and deletes something, or he edits something? … he needs to see clearly that
+> those 3 are getting saved … one extra confirmation before you take him away."
+
+**Recommendation: one button that changes job: Save N players, then Done. Not two Done buttons**: the same word
+doing two different things is how people tap through by mistake. This is the pattern WhatsApp's *New group* uses
+(pick people, then a confirm step with one Create button) and Splitwise's *Add people* (type, then the list, then
+Done). Picture: [`add-players-q44.png`](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/main/rummy-home3/docs/design-review-2/mockups/add-players-q44.png).
+
+1. **Type.** One letter per box; the cursor jumps on by itself (F → L → next row); a new row appears when the last
+   one fills. The keyboard's own action key reads **Save**, and a **Save N players** button sits just above the
+   keyboard, so the thumb never goes to the top. The count only includes rows with both letters.
+2. **See what was saved.** The keyboard goes down and the screen lists every new player with a ✓ ("Sree K · new
+   player") or a ! when the initials changed ("HG was taken → saved as HG2"). Each row has **Edit** and **Remove**.
+   The seated chips below show them in green. The only way on is **Done** (and *+ Add more* to type again).
+3. **Done** goes back to Players · Admins, with no further dialog.
+
+| Case | What happens |
+| --- | --- |
+| A row with one letter | It is left out of the count and stays on screen; Save saves the rest. |
+| The same initials twice in one batch, or initials already in My players | Shown while typing ("HG is taken → saves as HG2"), so nothing surprises him after Save. |
+| Edit after Save | Opens that row with up to three letters (D14); saving it updates the row in place. |
+| Remove after Save | Takes the player out of this game at once; the player stays in My players (a seat with no scores is free to remove). |
+| ← or Android back with unsaved letters | One question: "2 players not saved yet": **Save SK** / **Discard** (D97's dialog). |
+| Small phone, keyboard covering the screen | The Save button rides on top of the keyboard; the rows scroll above it. |
+| Double tap on Save | The button is disabled while saving. |
+
 ### 8.4 Order of players — "arrows only on the selected player" (Sree, Nov 21)
 
 **Sree's words**: "show the arrows on all the rows initially; once a player is selected, only his arrows show — that
