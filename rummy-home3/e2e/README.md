@@ -11,7 +11,7 @@ GitHub Pages is switched on).
 
 | Folder | Runs | Blocks |
 | --- | --- | --- |
-| `lib/` | shared pieces (`ensure-signed-in`, `sign-in`, `sign-in-as` with an EMAIL, `open-break-game` with a CODE, `fill-round-*`), never run on their own | — |
+| `lib/` | shared pieces (`ensure-signed-in`, `sign-in`, `sign-in-as` with an EMAIL, `open-break-game` with a CODE, `home-top` after Back from a game, `fill-round-*`), never run on their own | — |
 | `smoke/` | every pull request that touches app code, and in the nightly | yes: a failed flow fails the job |
 | `full/` | nightly and pre-release whole; on a PR only the flows for the touched area (`FLOW_FILTER`) | yes |
 | `chaos/` | break-the-app (PR 17): double taps, bad input, huge numbers, offline + reconnect, kill mid-save, 20 × 60 scorecard, pool with 19 outs. Every suite on an infra PR, the area's flows on an app PR, whole set nightly. Videos are kept for every flow | nightly / pre-release yes; on a PR a red chaos flow warns and lands on the dashboard |
@@ -86,6 +86,11 @@ Phone; it runs last in the full set so the other screenshots are light.
   `game-card-<share code>`, `results-save-button`, `results-unsaved-banner`). Add a `testID` in the app
   rather than tapping by coordinates.
 - Wait with `extendedWaitUntil` after navigation; the emulator is slower than a phone.
+- Smoke flows also run on the 360-dp phone at font 1.3 on a shared runner: give every `scrollUntilVisible` 30 s (60 s for a
+  game card in the sideways Home list, which is two cards tall); it returns as soon as the element shows. Home keeps its
+  scroll position across Back, so after leaving a game use `../lib/home-top.yaml` before looking for `New game`.
+- Never wait for Sign in by its button alone (the keypad covers it on that phone); `ensure-signed-in` waits for Home, the
+  subtitle or the Email label.
 - End with `takeScreenshot: <nn>-<screen>[-dark|-landscape]`. The gallery groups variants of the same
   screen by that name.
 - Dismiss dialogs with `back` rather than a button that may be below the fold.

@@ -15,12 +15,12 @@ tags: [smoke]
     element:
       text: "Past results"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - scrollUntilVisible:
     element:
       text: "Open results from .*"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn: "Open results from .*"
 - extendedWaitUntil:
     visible: "Scores"
@@ -48,7 +48,7 @@ tags: [smoke]
     element:
       id: "result-delete"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 # Edge-to-edge draws the last button under the translucent 3-button bar and a tap at the bottom edge
 # lands on the system Home button (run 4); centerElement cannot centre an element near the end of the
 # page (run 5), so nudge the page up by a third instead. At the very end the screen padding keeps the

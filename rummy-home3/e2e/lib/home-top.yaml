@@ -1,0 +1,9 @@
+appId: com.mindweavetech.rummyhome
+# Back on Home after a game: the list keeps the scroll position it had when a card was tapped, so on the
+# 360-dp phone (at font 1.3, and especially sideways) "New game" can sit above the fold and a plain wait for it
+# times out. Scroll up until it shows; returns at once when it is already there.
+---
+- scrollUntilVisible:
+    element: "New game"
+    direction: UP
+    timeout: 30000
