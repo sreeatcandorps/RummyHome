@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { Player } from '@/types/player';
 import { isEphemeralTestEmail } from '@/utils/playerFilters';
-import { matchesMyPlayer, playerSearchMode } from '@/utils/playerSearch';
+import { matchesMyPlayer, parsePlayerIdQuery, shortPlayerName } from '@/utils/playerSearch';
 import { MY_PLAYERS_PAGE_SIZE, MY_PLAYERS_SEARCH_LIMIT, MyPlayersCursor, MyPlayersSort, sortMyPlayers } from '@/utils/myPlayersList';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { queryCache } from '@/utils/queryCache';
@@ -207,13 +207,13 @@ export const playersService = {
   },
 
   /**
-   * Name, player ID, or a full email address. Results never include an email
-   * or a phone number. A partial email and any phone-shaped query match nobody.
+   * Find on EZ Score (D113): an exact Player ID ("57" or "#57") gives that one registered account, its
+   * name shortened to "Ravi K.", or nobody. Names, initials and emails are never searched, here or on
+   * the server (053); the user's own players are searched with searchMyPlayers.
    */
   async searchPlayers(query: string): Promise<Player[]> {
-    const mode = playerSearchMode(query);
-    if (mode === 'none') return [];
-    const trimmed = query.trim();
+    const playerNo = parsePlayerIdQuery(query);
+    if (playerNo === null) return [];
 
     if (!isSupabaseConfigured) {
       const { storage } = await import('@/utils/storage');
@@ -221,48 +221,27 @@ export const playersService = {
       const found = players.filter((player) => {
         // The database is registered players only. Unregistered ones live in their creator's My players.
         if (player.managedBy || (player.status && player.status !== 'registered')) return false;
-        if (mode === 'email') return (player.email ?? '').toLowerCase() === trimmed.toLowerCase();
-        const haystack = `${player.name} ${player.playerCode ?? ''}`.toLowerCase();
-        return haystack.includes(trimmed.toLowerCase());
+        return player.playerNo === playerNo || player.playerCode === `#${playerNo}`;
       });
-      return found.map(publicPlayer);
+      return found.slice(0, 1).map((player) => ({ ...publicPlayer(player), name: shortPlayerName(player.name), playerNo }));
     }
 
     const rpc = await withTimeout(
-      supabase.rpc('search_players', { p_query: trimmed }),
+      supabase.rpc('search_players', { p_query: String(playerNo) }),
       REQUEST_TIMEOUT_MS,
       'Couldn’t search players.',
     );
-    if (!rpc.error) {
-      return (rpc.data ?? []).map((row: { id: string; display_name: string; player_code: string | null }) => ({
-        id: row.id,
-        name: row.display_name || 'Rummy Player',
-        playerCode: row.player_code ?? undefined,
-        role: 'player' as const,
-      }));
+    // A server without search_players is too old to know Player IDs; it finds nobody.
+    if (rpc.error) {
+      if (missingRpc(rpc.error)) return [];
+      throw rpc.error;
     }
-    if (!missingRpc(rpc.error)) throw rpc.error;
-
-    // Pre-011 server. Email is not a readable column for other accounts (019), so an
-    // email search without the RPC matches nobody rather than erroring.
-    if (mode === 'email') return [];
-    const columns = 'id, display_name, player_code, first_name, last_name';
-    const request = supabase
-      .from('profiles')
-      .select(columns)
-      .or([
-        `display_name.ilike.%${trimmed.replace(/[,]/g, '')}%`,
-        `first_name.ilike.%${trimmed.replace(/[,]/g, '')}%`,
-        `last_name.ilike.%${trimmed.replace(/[,]/g, '')}%`,
-        `player_code.ilike.%${trimmed.replace(/[,]/g, '')}%`,
-      ].join(','))
-      .limit(20);
-    const { data, error } = await request;
-    if (error) throw error;
-    return (data ?? []).map((row) => ({
+    // Before 053 the server sends the full name for an exact ID; shorten it here too.
+    return (rpc.data ?? []).slice(0, 1).map((row: { id: string; display_name: string; player_code: string | null }) => ({
       id: row.id,
-      name: row.display_name || [row.first_name, row.last_name].filter(Boolean).join(' ') || 'Rummy Player',
+      name: shortPlayerName(row.display_name),
       playerCode: row.player_code ?? undefined,
+      playerNo,
       role: 'player' as const,
     }));
   },
