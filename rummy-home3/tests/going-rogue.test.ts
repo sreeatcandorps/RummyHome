@@ -131,7 +131,7 @@ test('the scorecard draws a deleted game read-only with the banner, and Home has
   assert.ok(page.includes('<DeletedGameBanner'), 'the banner is on the scorecard');
   assert.ok(page.includes('const canScoreNow = canScore && !deleted;'), 'no scoring on a deleted game');
   assert.ok(page.includes('const canManageNow = canManage && !deleted;'), 'no Delete / Players · Admins on a deleted game');
-  assert.match(page, /\{!game\.isComplete && canScoreNow \? \(\s*<BottomBar/, 'the bottom bar is gone');
+  assert.match(page, /\{chrome\.bottomBar && !game\.isComplete && canScoreNow \? \(\s*<BottomBar/, 'the bottom bar is gone');
   assert.ok(page.includes('{deleted ? null : <IconButton icon="share-variant"'), 'no share icon on a deleted game');
   const banner = src('components/game/DeletedGameBanner.tsx');
   for (const id of ['deleted-game-banner', 'deleted-game-ask', 'deleted-game-restore', 'deleted-game-asked-line']) assert.ok(banner.includes(`testID="${id}"`), id);
