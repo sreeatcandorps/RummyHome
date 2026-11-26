@@ -28,6 +28,10 @@ tags: [nightly]
     start: 95%, 40%
     end: 5%, 40%
     duration: 1500
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
 # "TU" is also round 20's dealer label in the fixed RND column, so the header TU is the second one.
 - extendedWaitUntil:
     visible:

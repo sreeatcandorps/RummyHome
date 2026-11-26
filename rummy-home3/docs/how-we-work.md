@@ -1,6 +1,6 @@
 # How we work
 
-*Last updated Nov 23, 2026, 10:10 PM PT.* The plain-words version of the rules in `AGENTS.md` and
+*Last updated Nov 26, 2026, 6:20 AM PT.* The plain-words version of the rules in `AGENTS.md` and
 `decisions.md`. If this page and `AGENTS.md` ever disagree, `AGENTS.md` wins, and the builder fixes this page.
 What is next, and what needs Sree today, is not on this page: it is the first five lines of
 [`next-up.md`](next-up.md).
@@ -14,7 +14,7 @@ What is next, and what needs Sree today, is not on this page: it is the first fi
 | **Sree** | Decides. Says yes or no. |
 | **Build Bot** (Grok, on the phone) | **The one place Sree talks.** Passes Sree's words to the builders exactly as said, adds nothing (D08). Does the merges, builds and live changes Sree said yes to, and the pre-approved merges (D80). Shows Sree the pictures and PRs. |
 | **Main agent** (Claude Opus 5.5 in Cursor) | The one agent Build Bot talks to. Keeps how we work, the docs and the board, runs the daily sweep (D93), and starts a helper agent for each piece of work: Opus 5.5 for features, Fable for design and hard work, Sonnet 5.5 for tests, Grok 4.7 for research (D92). |
-| **App builder** (Claude in Cursor) | Finishing batch 2 (#131). New app work after that is started by the Main agent. |
+| **App builder** (Claude in Cursor) | Finished batch 2 (#131, merged Nov 26). New app work is started by the Main agent as helpers. |
 
 **Cursor or Grok?** Talk in Build Bot; it works on the phone. Open Cursor only to look at something more
 closely on a computer. If Sree does decide something in Cursor, the builder writes it into `decisions.md` and

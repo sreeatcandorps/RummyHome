@@ -10,11 +10,23 @@ env:
 - eraseText: 80
 - inputText: ${EMAIL}
 - hideKeyboard
+# Sign in is a scrolling page: at 360 dp × font 1.3 (sideways: 360 dp tall) the passcode cells or the button can
+# start below the fold, so bring each into view before tapping it (a no-op when it is already there).
+- scrollUntilVisible:
+    element:
+      id: "login-passcode"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
     id: "login-passcode"
 - eraseText: 12
 - inputText: ${PASSCODE}
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "login-submit"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
     id: "login-submit"
 - extendedWaitUntil:

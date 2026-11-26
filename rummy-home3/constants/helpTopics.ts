@@ -286,7 +286,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         'The rounds, newest at the bottom. Tap a cell to see the exact points.',
         '**Add round** (admins) opens the round sheet; **Undo** removes the last round.',
         'Share icon: the live link, and once complete **Share final scores** (the picture, or the full details as a PDF).',
-        '⋮ menu: Game settings, Players · Admins, Order of players, Dealer, Edit round, Log, Hide, Delete.',
+        '⋮ menu: Game settings, Players · Admins, Order of players, Dealer, Edit round, Log, Columns, Hide, Delete.',
         'Foot, inside the card under the last round: creator, admins and the Unique game ID (tap to copy). It scrolls with the rounds.',
       ],
     },
@@ -295,7 +295,8 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'The table',
         bullets: [
           'One column per seat, one row per round. Points: minus numbers in the players\u2019 colours, the winner\u2019s plus in green. Pool: plus points; the winner\u2019s <<0>>.',
-          'Landscape shows more columns; with many players the table scrolls sideways and the initials stay pinned.',
+          'Five player columns to start. Pinch the table, or ⋮ › **Columns**, for **5 · 7 · Max** (Max fits as many as the phone can show); the phone remembers it for every game. Swipe the names or the scores sideways for the rest; the round numbers stay put.',
+          'Turn the phone sideways to see the table alone, with no buttons or menu. Turn it upright to add a round.',
           'Tap **Add round** for the next round; the dealer shown in the header is who deals it. Wrong dealer? Tap DEALS (or ⋮ › **Dealer**), pick the round and who really deals, then follow from there or change that round only.',
         ],
       },
@@ -319,7 +320,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
           'The limit line under the title (**Limit 101 · 100 in, 101 out**) and the number out. A player at or past the limit is [OUT]; **Re-enter** (admins) brings them back at the re-entry score — the highest score still in, or that plus 1 (the game\u2019s **Re-entry score** setting).',
           'The re-entry round shows that score with ↺ beside it (105 → ↺106); the typed score is kept but not shown. That player\u2019s cells in the rounds above turn grey; the ↺ row and everything after keep their normal colours. Tap a round number to edit that round.',
           '**Standings** list everyone by points left; drops left count down from the Full count. Portrait: the table is a card of at most five round rows, newest at the bottom (swipe inside it for earlier rounds); Standings take the rest. Landscape: the full table alone.',
-          '**Complete** asks once in a dialog; a pool then goes to **Awards** and on to the Final screen. The Completed scorecard shows the Awards block (or **Give awards** while they are not given; in landscape the button sits in the strip).',
+          '**Complete** asks once in a dialog; a pool then goes to **Awards** and on to the Final screen. The Completed scorecard shows the Awards block (or **Give awards** while they are not given).',
         ],
       },
       {

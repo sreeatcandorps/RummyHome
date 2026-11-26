@@ -150,7 +150,7 @@ test('design: scorecard — G badge, tinted dealer column, signed near-black tot
 
   const scorecard = src('app/(screens)/games/[id].tsx');
   // PR 24: the footer is part of the table card (its `footer` slot), right under the last round row.
-  assert.match(scorecard, /footer=\{idFooter\}/, 'the footer is drawn inside the table card, under the last round row (PR 24)');
+  assert.match(scorecard, /footer=\{chrome\.footer \? idFooter : undefined\}/, 'the footer is drawn inside the table card, under the last round row (PR 24)');
   assert.doesNotMatch(scorecard, /\{table\}\s+\{poolBelow\}\s+\{idFooter\}/, 'no longer a sibling under the card');
   assert.match(scorecard, /\{gameLabel\}<\/Text>/, 'the badge is the S/P label (028), not a G-number');
   assert.doesNotMatch(scorecard, /`G\$\{game\.gameNumber\}`/);

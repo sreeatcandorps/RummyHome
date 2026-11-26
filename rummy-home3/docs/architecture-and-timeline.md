@@ -361,7 +361,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Expo Go local preview | Working |
 | EAS project linked on this PC | Done |
 | EAS env vars for Supabase | Done |
-| Play Console listing + closed test | **Waiting** on Google verification |
+| Google Play | **Live in Production** (Nov 25 2026): build 15, version 1.1.0, published under the Candor PS organization account (developer name "MindWeave Tech", to become "MindWeave", D118). Internal testing stays active for staging builds |
 | iOS App Store | Not started (same Expo app later) |
 | Full website / web app | Not required for v1 (privacy page only) |
 
@@ -718,3 +718,13 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   (`business-analysis.md` §4). No migration: `prize_sessions`, `prize_session_games`, `prize_entries`,
   `token_ledger`, `games.prize` and the five `*_prize_*` RPCs stay in the database, unused, until Sree says yes to
   dropping them.
+
+### 2026-11-25 — EZ Score: Rummy is live on Google Play (Production 15, 1.1.0)
+- Google approved the review; build 15 (1.1.0) is published to Production (Play Console: "Last published on November
+  25, 2026", 0 policy tasks). Internal testing stays active, so staging builds still go to testers first.
+- Distribution is now: EAS build → Internal testing (staging) → Production on Sree's yes. The next Production release
+  carries WhatsApp sign-in (D116, D117), so its Data safety form adds the phone number; the 30-day delete grace (D72)
+  changes the "deleted within" answer when it is built.
+- Unblocked by the approval: the Play developer name change to "MindWeave" (D118) and the delete-account grace (D72,
+  still needs Sree's go). D84's other "after live" items (Telugu, more tutorials) have no approved spec yet and stay
+  after the code freeze unless Sree moves them.
