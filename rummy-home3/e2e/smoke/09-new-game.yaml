@@ -1,9 +1,9 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
 # New game: the picker lists recent players (you first, no "You" tag and no "Registered" tag — PR 7,
-# D7.2); Add new players opens. PR 6: typing H + T when Harish
-# Test already holds HT saves the new player as HT2 (digit in red) with the sentence "Harish Test is
-# already HT. This new player is HT2."; cell 1 jumps to cell 2 on its own. Leaves one new player
+# D7.2); Add by initials opens. PR 6 / D112: typing H + T when Harish
+# Test already holds HT says "Harish Test is already HT. This new player is HT2." while typing; Save 1 player
+# saves HT2 (digit in red) and lists it under "1 player saved and seated"; Done goes back. Leaves one new player
 # (HT2) in sree's My players and in the draft; no game is created (creating one would add a live
 # game other flows do not expect).
 ---
@@ -20,31 +20,35 @@ tags: [smoke]
 - takeScreenshot: 09-new-game
 - tapOn: "Add by initials"
 - extendedWaitUntil:
-    visible: "Add new players by initials"
+    visible: "Row 1 first initial"
     timeout: 15000
-# PR 10b: the heading lost ", 3 at a time"; the cells read F / L; no "· Unregistered" after a save.
-- assertVisible: "First-name initial · Last-name initial"
-- assertVisible: "Row 1 first initial"
-- assertVisible: "Row 3 last initial"
-- assertNotVisible: "Row 4 first initial"
-- hideKeyboard
-- assertVisible: "Done adding players"
+# D112: one row to start, the Save bar above the keyboard; a second row appears when the first fills.
+- assertVisible: "First-name letter · last-name letter. The cursor moves on by itself."
+- assertNotVisible: "Row 2 first initial"
+- assertVisible:
+    id: "add-players-save"
 - takeScreenshot: 09b-add-new-players
 - tapOn: "Row 1 first initial"
 - inputText: "H"
 - inputText: "T"
-- hideKeyboard
-- tapOn: "Save row 1"
-- extendedWaitUntil:
-    visible: "Saved HT2"
-    timeout: 15000
+- assertVisible: "Row 2 first initial"
+# The clash shows while typing, before Save (PR 6 sentence, D112).
 - assertVisible: "Harish Test is already HT. This new player is HT2."
+- assertVisible: "1 ready"
+- assertVisible: "Save 1 player"
+- tapOn: "Save 1 player"
+- extendedWaitUntil:
+    visible: ".*1 player saved and seated"
+    timeout: 15000
+- assertVisible: "Saved HT2"
+- assertVisible: "Harish Test is already HT"
 - assertNotVisible: "HTE"
 - assertVisible: "Edit initials for HT2"
+- assertVisible: "Remove HT2 from this game"
 - assertNotVisible: ".*Unregistered.*"
 - takeScreenshot: 09c-add-new-players-clash-ht2
-# After Save the next row's cell takes focus, so the keyboard may cover Done.
-- hideKeyboard
+# After Save the next row's cell may take focus and the keypad cover Done: scroll to it with the keypad up (no
+# hideKeyboard, which is a Back press when no keypad is showing).
 - scrollUntilVisible:
     element: "Done adding players"
     direction: DOWN

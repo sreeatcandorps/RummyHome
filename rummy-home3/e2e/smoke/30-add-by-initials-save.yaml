@@ -1,0 +1,93 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# D112 (Q44, design-review-2 §8.3a): Add by initials as drawn. From New game, type Q X, Z Q and a lone V:
+# the bar above the keyboard reads "2 ready · 1 needs a 2nd letter" / Save 2 players. Save lists both
+# under "2 players saved and seated" with Edit / Remove; Remove takes ZQ out of this game (it stays in My
+# players). + Add more goes back to the V row; K makes VK, Save 1 player, Done returns to New game with QX
+# and VK seated and ZQ not. A second visit types A B and taps ←: "AB is not saved yet" / Save AB and go
+# back / Discard; Discard leaves. Leaves QX, ZQ and VK in sree's My players; no game is created.
+# Letters are matched with ".*" so a retried run (QX2 …) still passes.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "New game"
+- extendedWaitUntil:
+    visible: "Add by initials"
+    timeout: 15000
+- tapOn: "Add by initials"
+- extendedWaitUntil:
+    visible: "Row 1 first initial"
+    timeout: 15000
+- tapOn: "Row 1 first initial"
+- inputText: "Q"
+- inputText: "X"
+- inputText: "Z"
+- inputText: "Q"
+- inputText: "V"
+- assertVisible: "2 ready · 1 needs a 2nd letter"
+- assertVisible: "Save 2 players"
+- assertVisible: "QX.*"
+- takeScreenshot: 30-add-typing-save-bar
+- tapOn: "Save 2 players"
+- extendedWaitUntil:
+    visible: ".*2 players saved and seated"
+    timeout: 20000
+- assertVisible: "Saved QX.*"
+- assertVisible: "Saved ZQ.*"
+- assertVisible: "Edit initials for QX.*"
+- assertVisible: "Playing in this game · .* in green"
+- assertVisible:
+    id: "add-players-done"
+- takeScreenshot: 30b-saved-list
+- tapOn: "Remove ZQ.* from this game"
+- extendedWaitUntil:
+    visible: ".*1 player saved and seated"
+    timeout: 5000
+- assertNotVisible: "Saved ZQ.*"
+- takeScreenshot: 30c-after-remove
+- tapOn:
+    id: "add-players-add-more"
+- extendedWaitUntil:
+    visible: "0 ready · 1 needs a 2nd letter"
+    timeout: 5000
+- tapOn: "Row 1 last initial"
+- inputText: "K"
+- assertVisible: "Save 1 player"
+- tapOn: "Save 1 player"
+- extendedWaitUntil:
+    visible: ".*2 players saved and seated"
+    timeout: 20000
+- assertVisible: "Saved VK.*"
+- takeScreenshot: 30d-saved-after-add-more
+- tapOn:
+    id: "add-players-done"
+- extendedWaitUntil:
+    visible: "Add by initials"
+    timeout: 15000
+- assertVisible: "Remove QX.*"
+- assertVisible: "Remove VK.*"
+- assertNotVisible: "Remove ZQ.*"
+- takeScreenshot: 30e-back-on-new-game
+# Back after typing without Save asks once (D112; replaces D97).
+- tapOn: "Add by initials"
+- extendedWaitUntil:
+    visible: "Row 1 first initial"
+    timeout: 15000
+- tapOn: "Row 1 first initial"
+- inputText: "A"
+- inputText: "B"
+- tapOn:
+    id: "add-players-back"
+- extendedWaitUntil:
+    visible: "AB is not saved yet"
+    timeout: 5000
+- assertVisible: "Save AB and go back"
+- assertVisible:
+    id: "add-players-discard"
+- takeScreenshot: 30f-back-dialog
+- tapOn:
+    id: "add-players-discard"
+- extendedWaitUntil:
+    visible: "Add by initials"
+    timeout: 15000
+- assertNotVisible: "Remove AB.*"
+- takeScreenshot: 30g-discarded

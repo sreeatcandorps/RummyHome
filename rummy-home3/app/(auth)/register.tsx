@@ -1,15 +1,15 @@
-import { normalizeEmail, parsePlayerNo } from '@/utils/playerIdentity';
+import { normalizeEmail } from '@/utils/playerIdentity';
 import { COUNTRIES, Country, DEFAULT_COUNTRY, internationalPhone, phoneForCountryProblem, postalProblem } from '@/utils/countries';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { PENDING_PLAYER_NO_KEY } from '@/services/playerIdentity';
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Text, HelperText, Menu, Portal } from 'react-native-paper';
 import { NoticeDialog } from '@/components/ui/NoticeDialog';
 import { Button } from '@/components/ui/AppButton';
-import { router } from 'expo-router';
+import { OtpField } from '@/components/ui/OtpField';
+import { router, useLocalSearchParams } from 'expo-router';
 import { storage } from '../../utils/storage';
-import { authService } from '../../services/auth';
+import { authService, signUpCodeClient } from '../../services/auth';
+import { cleanSignUpCode, resendSignUpCode, SIGNUP_CODE_TEXT, SIGNUP_RESEND_COOLDOWN_S, verifySignUpCode } from '@/utils/signUpCode';
 import { isSupabaseConfigured, supabase } from '../../services/supabase';
 import { formatAuthError } from '../../utils/authErrors';
 import { AuthShell } from '../../components/ui/AuthShell';
@@ -20,14 +20,20 @@ import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/
 
 export default function RegisterScreen() {
   const theme = useAppTheme();
+  // Sign in with an unconfirmed address sends `confirm=<email>`: straight to the code step.
+  const params = useLocalSearchParams<{ confirm?: string }>();
+  const confirmParam = typeof params.confirm === 'string' && params.confirm.includes('@') ? normalizeEmail(params.confirm) : null;
   const [firstName, setFirstName] = React.useState('');
   const [lastName, setLastName] = React.useState('');
-  const [email, setEmail] = React.useState('');
+  const [email, setEmail] = React.useState(confirmParam ?? '');
   const [phone, setPhone] = React.useState('');
   const [phoneOpen, setPhoneOpen] = useState(false);
   const [zip, setZip] = React.useState('');
-  const [playerIdText, setPlayerIdText] = React.useState('');
-  const [checkEmail, setCheckEmail] = useState<string | null>(null);
+  // D101: after sign-up the email gets a 6-digit code, typed here; no confirm link.
+  const [codeFor, setCodeFor] = useState<string | null>(confirmParam);
+  const [code, setCode] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const [info, setInfo] = useState('');
   // A09: a Paper notice, not Alert.alert; OK carries on to the next screen.
   const [created, setCreated] = useState<{ message: string; to: '/(tabs)' | '/(auth)/login' } | null>(null);
   const [passcode, setPasscode] = React.useState('');
@@ -36,6 +42,12 @@ export default function RegisterScreen() {
   
   const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   const [countryOpen, setCountryOpen] = useState(false);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((value) => value - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   const clearFields = () => {
     setFirstName('');
@@ -76,6 +88,26 @@ export default function RegisterScreen() {
     return true;
   };
 
+  /** The form's name and contact on the new profile row; needs a session (right after sign-up or the code). */
+  const saveProfile = async (userId: string) => {
+    if (!firstName || !lastName) return;
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        phone: internationalPhone(country, phone) || null,
+        zip_code: zip.trim() || null,
+        display_name: `${firstName} ${lastName}`,
+        email: normalizeEmail(email),
+      })
+      .eq('id', userId);
+
+    if (profileError) {
+      console.warn('Profile update after signup failed:', profileError.message);
+    }
+  };
+
   const handleRegister = async () => {
     if (!validateForm()) return;
     
@@ -91,10 +123,6 @@ export default function RegisterScreen() {
 
       const displayName = `${firstName} ${lastName}`;
       const zipCode = zip.trim() || null;
-      const claimNo = playerIdText.trim() ? parsePlayerNo(playerIdText) : null;
-      if (playerIdText.trim() && claimNo == null) throw new Error('A player ID is a number, like #42.');
-      // Sent to the creator after the first sign-in (once the email is confirmed).
-      if (claimNo != null) await AsyncStorage.setItem(PENDING_PLAYER_NO_KEY, String(claimNo));
       const cleanEmail = normalizeEmail(email);
       const authData = isSupabaseConfigured
         ? await authService.signUp(cleanEmail, passcode, displayName, { phone: formattedPhone || null, zip_code: zipCode })
@@ -103,21 +131,7 @@ export default function RegisterScreen() {
       if (!authData.user) throw new Error('Failed to create user');
 
       if (isSupabaseConfigured && authData.session) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            first_name: firstName,
-            last_name: lastName,
-            phone: formattedPhone || null,
-            zip_code: zipCode,
-            display_name: displayName,
-            email: cleanEmail,
-          })
-          .eq('id', authData.user.id);
-
-        if (profileError) {
-          console.warn('Profile update after signup failed:', profileError.message);
-        }
+        await saveProfile(authData.user.id);
       }
 
       if (!isSupabaseConfigured) {
@@ -143,7 +157,10 @@ export default function RegisterScreen() {
       }
 
       if (isSupabaseConfigured && !authData.session) {
-        setCheckEmail(cleanEmail);
+        setCode('');
+        setInfo('');
+        setCooldown(SIGNUP_RESEND_COOLDOWN_S);
+        setCodeFor(cleanEmail);
         return;
       }
 
@@ -162,20 +179,107 @@ export default function RegisterScreen() {
     }
   };
 
-  if (checkEmail) {
+  const handleVerify = async () => {
+    if (!codeFor) return;
+    setError('');
+    setInfo('');
+    setLoading(true);
+    try {
+      const outcome = await verifySignUpCode(signUpCodeClient, codeFor, code);
+      if (!outcome.ok) {
+        setError(outcome.message);
+        return;
+      }
+      // Signed in: the root layout's SIGNED_IN listener opens Home, as a sign-up with a session does.
+      const userId = await authService.getCurrentUserId();
+      if (userId) await saveProfile(userId);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!codeFor) return;
+    setError('');
+    setInfo('');
+    setLoading(true);
+    try {
+      const outcome = await resendSignUpCode(signUpCodeClient, codeFor);
+      if (!outcome.ok) {
+        setError(outcome.message);
+        return;
+      }
+      setCode('');
+      setCooldown(SIGNUP_RESEND_COOLDOWN_S);
+      setInfo(SIGNUP_CODE_TEXT.sent(codeFor));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const backToForm = () => {
+    if (!email && codeFor) setEmail(codeFor);
+    setCodeFor(null);
+    setCode('');
+    setError('');
+    setInfo('');
+  };
+
+  if (codeFor) {
     return (
-      <AuthShell title="Check your email" subtitle={`We sent a confirmation link to ${checkEmail}.`} help="sign-in" helpAnchor="create-account">
-        <Text variant="bodyMedium">
-          Open the link to confirm your email, then sign in with your email and 6-digit passcode. If you opened a link from a friend, you will be asked “Is this you?” the first time you sign in.
-        </Text>
-        <Button mode="outlined" icon="email-sync-outline" style={{ marginTop: 16 }}
-          onPress={() => authService.resendConfirmation(checkEmail).then(() => setError('Sent again.')).catch((e) => setError(formatAuthError(e)))}>
-          Resend the link
+      <AuthShell
+        title={SIGNUP_CODE_TEXT.title}
+        subtitle={SIGNUP_CODE_TEXT.subtitle(codeFor)}
+        icon="email-check-outline"
+        help="sign-in"
+        helpAnchor="create-account"
+        keepCardInView
+        footer={
+          <Text variant="bodySmall" style={[styles.note, { color: theme.colors.onSurfaceVariant }]}>
+            {SIGNUP_CODE_TEXT.inviteNote}
+          </Text>
+        }
+      >
+        <OtpField
+          value={code}
+          onChangeText={(text) => setCode(cleanSignUpCode(text))}
+          disabled={loading}
+          autoFocus
+          label={SIGNUP_CODE_TEXT.fieldLabel}
+          placeholder={SIGNUP_CODE_TEXT.placeholder}
+          testID="register-code"
+        />
+        {error ? <HelperText type="error" visible>{error}</HelperText> : null}
+        {info ? <HelperText type="info" visible>{info}</HelperText> : null}
+        <Button
+          mode="contained"
+          onPress={handleVerify}
+          loading={loading}
+          disabled={loading}
+          style={styles.pill}
+          contentStyle={styles.primaryContent}
+          labelStyle={styles.primaryLabel}
+          testID="register-verify"
+        >
+          {SIGNUP_CODE_TEXT.verify}
         </Button>
-        {error ? <HelperText type="info" visible>{error}</HelperText> : null}
-        <Button mode="contained" style={{ marginTop: 8 }} onPress={() => router.replace({ pathname: '/(auth)/login', params: { email: checkEmail } })}>
-          Go to sign in
+        <Button
+          mode="text"
+          onPress={handleResend}
+          disabled={loading || cooldown > 0}
+          contentStyle={styles.secondaryContent}
+          testID="register-resend"
+        >
+          {cooldown > 0 ? SIGNUP_CODE_TEXT.resendIn(cooldown) : SIGNUP_CODE_TEXT.resend}
         </Button>
+        <View style={styles.footerRow}>
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+            {SIGNUP_CODE_TEXT.wrongAddress}
+          </Text>
+          <Button mode="text" onPress={backToForm} disabled={loading} compact testID="register-go-back">
+            {SIGNUP_CODE_TEXT.goBack}
+          </Button>
+        </View>
       </AuthShell>
     );
   }
@@ -243,29 +347,11 @@ export default function RegisterScreen() {
       />
 
       <HelperText type="info" visible>
-        We send a link to confirm this email. It is how you sign in.
+        We email you a 6-digit code to confirm it. It is how you sign in.
       </HelperText>
       <PasscodeField value={passcode} onChangeText={setPasscode} disabled={loading} testID="register-passcode" />
       <HelperText type="info" visible>
         Numbers only. This is what you sign in with.
-      </HelperText>
-
-      <Text variant="titleSmall" style={styles.groupLabel}>
-        Player ID <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>Optional</Text>
-      </Text>
-      <TextInput
-        label="Player ID"
-        placeholder="#42"
-        value={playerIdText}
-        onChangeText={(t) => setPlayerIdText(t.replace(/[^0-9#]/g, '').slice(0, 13))}
-        mode="outlined"
-        keyboardType="number-pad"
-        disabled={loading}
-        left={<TextInput.Icon icon="pound" />}
-        testID="register-player-id"
-      />
-      <HelperText type="info" visible>
-        Enter your player ID if you were given one by an organizer; otherwise leave it empty.
       </HelperText>
 
       <Button mode="text" onPress={() => setPhoneOpen((open) => !open)} icon={phoneOpen ? 'chevron-up' : 'chevron-down'}>
@@ -404,6 +490,11 @@ const styles = StyleSheet.create({
   },
   secondaryContent: {
     height: MIN_TOUCH_TARGET,
+  },
+  note: {
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: spacing.sm,
   },
   footerRow: {
     flexDirection: 'row',

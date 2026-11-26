@@ -7,7 +7,6 @@ import {
   INITIALS_PATTERN,
   initialsCellsProblem,
   initialsProblem,
-  NEW_PLAYER_ROWS_MAX,
   pickFreeInitials,
   splitInitials,
   suggestInitials,
@@ -67,19 +66,18 @@ test('6.1: the two cells — one letter, then one or two letters or digits', () 
   assert.match(initialsCellsProblem('', '')!, /one letter, then one or two more/);
 });
 
-test('row cap: three rows per visit, title and heading; Delete only for rows saved this visit (PR 10b)', () => {
-  assert.equal(NEW_PLAYER_ROWS_MAX, 3);
+test('D112 rows: one row to start, a new row when the last fills; one character per box; Edit, then Remove after Save', () => {
   const screen = read('app/(screens)/players/add.tsx');
-  assert.match(screen, /export const ADD_PLAYERS_HEADING = 'Add new players by initials';/, 'PR 10b heading (Q10.7)');
-  assert.match(screen, /Array\.from\(\{ length: NEW_PLAYER_ROWS_MAX \}, blank\)/);
-  assert.doesNotMatch(screen, /blank\(\)\]/, 'no fourth row is ever appended');
-  assert.doesNotMatch(screen, /deleteNewPlayer/, 'no per-row delete icon in the grid');
-  assert.match(screen, /onDelete=\{deleteRow\}/, 'the editor dialog offers Delete for a row saved this visit (Q10.8)');
-  assert.match(screen, /createPlayerByInitials\(ownerId, row\.first \+ row\.last\)/, 'the initials are cell 1 + cell 2');
-  assert.match(screen, /maxLength=\{1\}/, 'cell 1 holds one character');
-  assert.match(screen, /maxLength=\{2\}/, 'cell 2 holds up to two');
-  assert.match(screen, /lastInputs\.current\[row\.key\]\?\.focus\(\)/, 'cell 1 jumps on');
-  assert.equal((screen.match(/<InitialsDialog/g) ?? []).length, 1, 'one shared editor, one Edit per row');
+  assert.match(screen, /export const ADD_PLAYERS_HEADING = 'Add new players by initials';/, 'the ⓘ title');
+  assert.match(screen, /useState<Row\[\]>\(\(\) => \[blank\(\)\]\)/, 'the screen opens on one empty row');
+  assert.match(screen, /if \(needsNewRow\(next\)\) next = \[\.\.\.next, blank\(\)\];/, 'a new row appears when the last fills');
+  assert.match(screen, /createPlayerByInitials\(ownerId, typedOf\(row\)\)/, 'the initials are box 1 + box 2');
+  assert.match(screen, /maxLength=\{1\}/, 'each box holds one character');
+  assert.doesNotMatch(screen, /maxLength=\{2\}/, 'box 2 no longer takes two (D112: one letter per box; Edit takes three)');
+  assert.match(screen, /if \(first\) lastInputs\.current\[row\.key\]\?\.focus\(\)/, 'box 1 jumps on');
+  assert.match(screen, /pendingFocus\.current = after\.key/, 'box 2 jumps to the next row');
+  assert.equal((screen.match(/<InitialsDialog/g) ?? []).length, 1, 'one shared editor, one Edit per saved row');
+  assert.doesNotMatch(screen, /onDelete=/, 'Remove is its own button on the saved row, not inside Edit');
   assert.match(screen, /title: ADD_PLAYERS_TITLE/);
 });
 
