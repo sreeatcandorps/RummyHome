@@ -27,7 +27,7 @@ export function formatAuthError(error: unknown): string {
   }
 
   if (lower.includes('email not confirmed')) {
-    return 'This email is not confirmed yet. Check your inbox for the confirmation link, then try signing in again.';
+    return 'This email is not confirmed yet. Tap Enter the code and type the 6-digit code from the email.';
   }
 
   if (lower.includes('password should be at least')) {

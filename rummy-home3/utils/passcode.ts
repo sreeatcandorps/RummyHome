@@ -92,7 +92,7 @@ export function passcodeErrorMessage(raw: unknown): string {
     return 'No connection. Check your internet and try again.';
   }
   if (/email not confirmed/.test(lower)) {
-    return 'Confirm your email first using the link we sent when you signed up.';
+    return 'Confirm your email first: on Sign in, tap Enter the code and type the 6-digit code from the email.';
   }
   return message.replace(/passwords?/gi, (word) => (word.toLowerCase().endsWith('s') ? 'passcodes' : 'passcode'));
 }

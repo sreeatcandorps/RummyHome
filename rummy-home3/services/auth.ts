@@ -3,6 +3,7 @@ import { normalizeEmail } from '@/utils/playerIdentity';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { authRedirectUrl } from '@/utils/authRedirect';
 import type { PasscodeAuthClient } from '@/utils/passcodeFlow';
+import type { SignUpCodeClient } from '@/utils/signUpCode';
 import { ProfileDefaults } from '@/types/database';
 import { Player } from '@/types/player';
 import { DEFAULT_PROFILE_SETTINGS } from '@/utils/scoring';
@@ -134,6 +135,22 @@ export const passcodeClient: PasscodeAuthClient = {
   },
 };
 
+/** Create account's code step (utils/signUpCode.ts, D101) talks to Supabase through this adapter. */
+export const signUpCodeClient: SignUpCodeClient = {
+  async verify(email, code) {
+    const { data, error } = await supabase.auth.verifyOtp({ email: normalizeEmail(email), token: code, type: 'signup' });
+    if (!error && data.session?.user) {
+      forgetProfile();
+      await storage.setCurrentPlayer(data.session.user.id);
+    }
+    return { error: errorText(error) };
+  },
+  async resend(email) {
+    const { error } = await supabase.auth.resend({ type: 'signup', email: normalizeEmail(email), options: { emailRedirectTo: authRedirectUrl() } });
+    return { error: errorText(error) };
+  },
+};
+
 export const authService = {
   async signIn(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -174,7 +191,7 @@ export const authService = {
     return data;
   },
 
-  /** Sends the sign-up confirmation link again (Supabase email confirmation). */
+  /** Sends the sign-up confirmation email again; with the D101 template it carries the code (see signUpCodeClient). */
   async resendConfirmation(email: string) {
     const { error } = await supabase.auth.resend({ type: 'signup', email: normalizeEmail(email), options: { emailRedirectTo: authRedirectUrl() } });
     if (error) throw error;
