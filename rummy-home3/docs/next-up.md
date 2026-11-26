@@ -32,7 +32,7 @@ Last updated: 2026-11-26 05:30 UTC (batch 2 builder). #131 rebased again on `mai
 | 1 | Batch 2: Create-account keyboard, Delete dialog, order-of-players arrows, demo data out, small-phone fixes | #131 (batch 2 builder) | its last test run |
 | 2 | Scorecard: 5 · 7 · Max columns, landscape is the table alone | #138 (Opus 5.5 helper) | its phone run, then Sree's look at the screenshots |
 | 3 | Settle removed | #143 (Opus 5.5 helper) | its tests |
-| 4 | Create account: no Player ID box (D105) and the 6-digit code (D101), one PR (same screen) | next Opus 5.5 helper, after #131 | #131 merged; Build Bot sets the e-mail template on staging, then live |
+| 4 | Create account: no Player ID box (D105) and the 6-digit code (D101), one PR (same screen) | built on `cursor/signup-code-no-player-id-7d0d` (Opus 5.5 helper); the Main agent opens the PR | #131 merged, then a rebase (drop flow 26's step 26e); after the merge Build Bot sets the e-mail template from `signup-code-template.md` on staging, then live |
 | 5 | Small batch 3: Add players as drawn (D112, Sree "this is good to go now"; replaces D97), Find in database help (D98), Player ID row number only (D103), PDF Final scores first (D104) | next helper (Opus 5.5), when a build slot frees | a free slot of the three (D96); after #131 merges, since both touch Add players |
 | 6 | The staging APK | Build Bot | 1–5 merged, then **Sree's yes** to build |
 
