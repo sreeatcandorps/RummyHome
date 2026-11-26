@@ -3,9 +3,9 @@
 ## For Sree today
 
 1. **Your yes today:** nothing open. Tomorrow after 12 PM PT with Build Bot: Twilio's ID check, the $20 upgrade, then **Buy** on the new number (S1–S2).
-2. **Shipped:** **EZ Score: Rummy 1.1.0 is live on Google Play** (Nov 25; the public page shows Install); #143, #146; D113–D123 recorded.
-3. **Being built tonight:** green — #148, #149, #150; #151 has its keyboard fix ready; testing — #131, #138; WhatsApp sign-in #153 (on test numbers until the keys exist); the MindWeave website #155.
-4. **Then, in order:** the seat rule (D70) → WhatsApp (being built; real keys after your Twilio steps tomorrow) → the APK on your yes → you test → "code freeze" → iPhone; the delete grace after the freeze (D122).
+2. **Shipped:** **EZ Score: Rummy 1.1.0 is live on Google Play** (Nov 25; the public page shows Install); #143, #146, #131 (batch 2); D113–D125 recorded.
+3. **Being built tonight:** testing — #138 (merge next), #148, #155; rebased on the new main, pushing after #138 — #147, #149, #150, #151, WhatsApp sign-in #153 (on test numbers until the keys exist); the seat rule (D70) has started.
+4. **Then, in order:** the seat rule (D70, being built) → WhatsApp (being built; real keys after your Twilio steps tomorrow) → the APK on your yes → you test → "code freeze" → iPhone; the delete grace after the freeze (D122).
 5. **Waiting on others:** Meta, once the WhatsApp setup starts; Apple's enrolment of Candor PS.
 
 ## Sree's steps — the agents remind you at the right time (Sree, Nov 25: "I assume you're going to remind me of all these things at the right time, so don't lose any of this")
