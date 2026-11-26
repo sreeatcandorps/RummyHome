@@ -235,7 +235,7 @@ fourth appears (up to the per-day cap), so "add three people quickly" becomes "a
 
 Picture: `initials-mockup.png`.
 
-### 8.3a Add by initials, revised for Q44 (Sree, Nov 25)
+### 8.3a Add by initials, revised for Q44 (Sree, Nov 25) — approved as drawn, D112
 
 > "If I want to add 3 people … just use the keyboard on the bottom, so I don't have to even go up and click on Save
 > … Done should take me back to the screen and show me, 'Okay, hey, these are the 3 players' … should we just have
