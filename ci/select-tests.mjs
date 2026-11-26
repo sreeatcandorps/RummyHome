@@ -28,7 +28,9 @@ export const DEVICES = {
   pixel6: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_6', rotation: 0, font: '1.0', label: 'Pixel 6 · API 34 (reference)' },
   pixel4a: { api: 30, arch: 'x86_64', target: 'default', profile: 'pixel_4a', rotation: 0, font: '1.0', label: 'Pixel 4a · API 30 (small, old)' },
   pixel7pro: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_7_pro', rotation: 0, font: '1.3', label: 'Pixel 7 Pro · API 34 · font 1.3' },
-  tablet: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_tablet', rotation: 1, font: '1.0', label: 'Pixel Tablet · API 34 · landscape' },
+  // D89: a sideways scorecard has no buttons, so the tablet rests upright and the *landscape* flows turn it
+  // (docs/test-plan/devices.md D4: "landscape flows only").
+  tablet: { api: 34, arch: 'x86_64', target: 'default', profile: 'pixel_tablet', rotation: 0, font: '1.0', label: 'Pixel Tablet · API 34 · landscape flows turn it' },
 };
 
 /** Paths that never need a device. */

@@ -83,6 +83,7 @@ tags: [smoke]
     visible: "Scorecard( · .*)?"
     timeout: 15000
 # Landscape: the table keeps the whole width (all 13 columns, TL last); no standings in landscape (Nov 18).
+# D89: the table alone — no header, ⋮, Share or bar; D42's re-entry marks stay.
 - setOrientation: LANDSCAPE_LEFT
 - extendedWaitUntil:
     visible:
@@ -98,6 +99,12 @@ tags: [smoke]
     id: "pool-standings-pane"
 - assertNotVisible:
     id: "pool-standings"
+- assertVisible:
+    id: "score-reentry-2"
+- assertNotVisible: "Add round"
+- assertNotVisible: "Scorecard menu"
+- assertNotVisible:
+    id: "scorecard-share-icon"
 - takeScreenshot: 20d-pool-13p-landscape
 - setOrientation: PORTRAIT
 # Back in portrait the standings are there again, under the five-row card.
