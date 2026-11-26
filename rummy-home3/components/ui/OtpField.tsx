@@ -11,6 +11,8 @@ type OtpFieldProps = {
   autoFocus?: boolean;
   label?: string;
   placeholder?: string;
+  /** The icon in the box: the envelope for an email code, WhatsApp's for a WhatsApp code. */
+  icon?: string;
   testID?: string;
 };
 
@@ -19,7 +21,7 @@ type OtpFieldProps = {
  * One real TextInput (no per-digit cells), so the keyboard opens on the first tap and the
  * OS can offer the code from SMS/mail autofill. Pasted text is reduced to its digits.
  */
-export function OtpField({ value, onChangeText, disabled, autoFocus, label = 'OTP', placeholder = '6-digit OTP', testID }: OtpFieldProps) {
+export function OtpField({ value, onChangeText, disabled, autoFocus, label = 'OTP', placeholder = '6-digit OTP', icon = 'email-check-outline', testID }: OtpFieldProps) {
   const inputRef = useRef<NativeInput>(null);
 
   useEffect(() => {
@@ -48,7 +50,7 @@ export function OtpField({ value, onChangeText, disabled, autoFocus, label = 'OT
       autoCapitalize="none"
       returnKeyType="done"
       disabled={disabled}
-      left={<TextInput.Icon icon="email-check-outline" />}
+      left={<TextInput.Icon icon={icon} />}
       right={
         value && !disabled ? (
           <TextInput.Icon icon="close-circle" onPress={() => onChangeText('')} accessibilityLabel={`Clear ${label}`} forceTextInputFocus />

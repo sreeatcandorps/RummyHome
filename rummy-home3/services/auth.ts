@@ -15,6 +15,7 @@ import { sessionNeedsRefresh } from '@/utils/sessionFreshness';
 import { EmailInUseError, isEmailInUseError, isRepeatedSignUp } from '@/utils/signUpOutcome';
 import { DeleteAccountSummary, SUPPORT_EMAIL } from '@/utils/accountDeletion';
 import { NOT_READY_MESSAGE } from '@/utils/notReady';
+import { makeEmailChange, makeWhatsAppAuth, PhoneAuthLike, PhoneCodePurpose, PhoneSignUpInput } from '@/utils/whatsappAuth';
 
 /** set_my_initials (040) is not on this database yet. */
 export const OWN_INITIALS_NOT_READY = NOT_READY_MESSAGE;
@@ -119,8 +120,11 @@ export const passcodeClient: PasscodeAuthClient = {
     const { error } = await supabase.auth.updateUser(nonce ? { password: next, nonce } : { password: next });
     return { error: errorText(error) };
   },
-  async checkCurrent(email, current) {
-    const { error } = await supabase.auth.signInWithPassword({ email: normalizeEmail(email), password: current });
+  async checkCurrent(login, current) {
+    // An account that signs in by WhatsApp only has no email: its number is the username (D76).
+    const { error } = await supabase.auth.signInWithPassword(login.includes('@')
+      ? { email: normalizeEmail(login), password: current }
+      : { phone: login, password: current });
     return { error: errorText(error) };
   },
   async requestReauthentication() {
@@ -150,6 +154,79 @@ export const signUpCodeClient: SignUpCodeClient = {
     return { error: errorText(error) };
   },
 };
+
+/** WhatsApp sign-in (D124): every code request carries channel whatsapp; never `auth.resend` (utils/whatsappAuth.ts). */
+const whatsAppCore = makeWhatsAppAuth(supabase.auth as unknown as PhoneAuthLike);
+const afterSignIn = async (userId: string | null) => {
+  forgetProfile();
+  if (userId) await storage.setCurrentPlayer(userId);
+};
+
+export const whatsAppAuth = {
+  ...whatsAppCore,
+  async signUp(input: PhoneSignUpInput) {
+    const result = await whatsAppCore.signUp(input);
+    if (result.ok && result.session) await afterSignIn(result.userId);
+    return result;
+  },
+  async signIn(phone: string, passcode: string) {
+    const result = await whatsAppCore.signIn(phone, passcode);
+    if (result.ok) await afterSignIn(result.userId);
+    return result;
+  },
+  async verifyCode(purpose: PhoneCodePurpose, phone: string, code: string) {
+    const result = await whatsAppCore.verifyCode(purpose, phone, code);
+    if (result.ok) await afterSignIn(await authService.getCurrentUserId());
+    return result;
+  },
+};
+
+/** A backup email, or a changed one: a code to the new address (verifyOtp type email_change). */
+const emailChangeCore = makeEmailChange(supabase.auth as unknown as PhoneAuthLike, authRedirectUrl());
+export const emailChange = {
+  sendCode: (email: string) => emailChangeCore.sendCode(normalizeEmail(email)),
+  async verifyCode(email: string, code: string) {
+    const result = await emailChangeCore.verifyCode(normalizeEmail(email), code);
+    if (result.ok) forgetProfile();
+    return result;
+  },
+};
+
+/** The ways in of the signed-in account, as Supabase Auth holds them (the WhatsApp number lives only there, D113). */
+export type SignInMethods = { email: string | null; phone: string | null; backupReminder: 'dismissed' | null };
+
+export async function readSignInMethods(): Promise<SignInMethods | null> {
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
+  if (!user) return null;
+  return {
+    email: user.email || null,
+    phone: user.phone || null,
+    backupReminder: (user.user_metadata as { backup_reminder?: string } | undefined)?.backup_reminder === 'dismissed' ? 'dismissed' : null,
+  };
+}
+
+/** Home's "Add a backup way in" card: Not now hides it for good, on every phone (D75). */
+export async function dismissBackupReminder(): Promise<void> {
+  await supabase.auth.updateUser({ data: { backup_reminder: 'dismissed' } });
+}
+
+/**
+ * "Not you?" on Set a new passcode (WhatsApp spec §5a case 5): the number was recycled to someone new. The
+ * code proved they hold it, so 055 takes it off the old account (which keeps its email, if any); the new
+ * holder then creates an account with it.
+ */
+export async function releaseMyWhatsAppNumber(): Promise<void> {
+  const { error } = await (supabase.rpc as any)('release_my_whatsapp_number');
+  if (error) {
+    if (missingRpc(error)) throw new Error(NOT_READY_MESSAGE);
+    throw error;
+  }
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+  await storage.setCurrentPlayer(null);
+  gameCache.clear();
+  queryCache.clear();
+}
 
 export const authService = {
   async signIn(email: string, password: string) {
