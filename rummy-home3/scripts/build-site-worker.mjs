@@ -71,7 +71,7 @@ export default { async fetch(req){
   if(p==='/unsubscribe') p='/unsubscribe.html';
   if(p==='/link') p='/link.html';
   if(/^\\/r\\/[0-9a-f-]{36}$/i.test(p)) p='/r';
-  if(p==='/') return new Response("<!doctype html><meta charset=utf-8><title>EZ Score: Rummy</title><h1>EZ Score: Rummy</h1><p>by MindWeave (Candor PS LLC). <a href=\\"/get\\">Get the app</a></p>",{headers:HTML});
+  if(p==='/') return new Response("<!doctype html><meta charset=utf-8><title>EZ Score: Rummy</title><h1>EZ Score: Rummy</h1><p>by MindWeave. <a href=\\"/get\\">Get the app</a></p>",{headers:HTML});
   const b=P[p];
   if(!b) return new Response(P['/404.html'],{status:404,headers:{'content-type':'text/html; charset=utf-8','x-ezscore-build':BUILD}});
   return new Response(b,{headers:HTML});
