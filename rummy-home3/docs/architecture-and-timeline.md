@@ -354,7 +354,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | CI (GitHub Actions) | Done on PR 7: unit + tsc, local Supabase DB suite (migrations, rollbacks, pgTAP, concurrency), report per run. Device UI tests (PR 1, Nov 13): Maestro flows on an Android emulator against a runner-built APK. PR 17 (Nov 15): change-based plan, four devices × six suites (chaos, roles, two-device, monkey added), volume job, gh-pages dashboard, auto-filed bugs. Nightly needs `nightly.yml` on `main` (it dispatches CI on the stack top) and Pages switched on once. See `docs/testing-strategy.md` |
 | Game admins | Done in the app. Players/Admins page: Add admin by Player ID (non-player, open or completed games), Game admins on Complete game and the final-scores picture |
 | Pool games | Done in the app (PR 13): plus-only scores, outs and re-entry, Standings, Complete → Award → Result. `041_pool.sql` (Nov 14) and `042_pool_reentries_and_limit_lock.sql` (Nov 15) are on the live database. PR 24 (Nov 17): Points-style header, footer inside the card, 70 / 30 portrait, stacked landscape, ↺ re-entry cells, Re-entry score / Late entry rules; `047_reentry_and_late_entry_score.sql` written, **not applied** |
-| Settle / prize sessions | Hidden. Flag off. Tables and screens kept, not shown |
+| Settle / prize sessions | **Removed** from the app (D110, Nov 25). Its tables and RPCs stay in the database, unused, until a later migration Sree says yes to |
 | Theming (light/dark) | Done; Clubhouse green design system (Nov 12). Appearance follows the phone by default; Profile › Appearance overrides it |
 | Supabase schema + RLS helpers | Apply `006`, then `007_redesign.sql`, then `008_results.sql`. `005` only if you use demo data |
 | Public scorecard | Static HTML on ezscore.mindweavetech.com (Worker `ezscore-site`). Publishes itself on merge to `main` (`publish-site.yml`, D83) once the two repo secrets are set; the job checks every live page against the build. The key is not in git |
@@ -699,3 +699,11 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   each and its authority table unchanged. New `scripts/compare-frames.py` turns two sets of CI device frames into
   "today | after" pictures. Pictures for Sree are committed to the public repo and linked by raw URL, because
   Cursor artifact links need a login and the CI dashboard prunes old runs (D87).
+
+### 2026-11-25 — The hidden Settle / prize-sessions module is deleted (D110)
+- Settle (coin balances across finished games, hidden behind `EXPO_PUBLIC_SETTLE_ENABLED` since PR 13) is gone from
+  the app: its two screens, the sessions and token-ledger services, the coin math and the flag. Why: Google Play
+  forbids "companion functionality" for real-money games and India's 2025 Act bans online real-money games
+  (`business-analysis.md` §4). No migration: `prize_sessions`, `prize_session_games`, `prize_entries`,
+  `token_ledger`, `games.prize` and the five `*_prize_*` RPCs stay in the database, unused, until Sree says yes to
+  dropping them.

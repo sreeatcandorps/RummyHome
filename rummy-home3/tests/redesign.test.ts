@@ -5,8 +5,7 @@ import { userAdminsGame } from '../utils/gameAccess';
 import { inviteMessage, INVITE_URL } from '../utils/inviteLink';
 import { matchesMyPlayer, playerSearchMode } from '../utils/playerSearch';
 import { HELP } from './_helpLegacy';
-import { pointsGameLabel, settleEnabled } from '../constants/features';
-import { coinSum, openingBalances, stakePrizeShares, validateLegs } from '../utils/prizeSession';
+import { pointsGameLabel } from '../constants/features';
 
 test('find search is a full email, a name, or nothing for a phone', () => {
   assert.equal(playerSearchMode('a'), 'none');
@@ -38,49 +37,20 @@ test('today uses the local calendar day', () => {
   assert.equal(isLocalToday(new Date(2026, 9, 27, 23, 0).toISOString(), now), false);
 });
 
-test('only an admin of the game can settle it', () => {
+test('only an admin of the game admins it', () => {
   const game = { createdBy: 'host', adminIds: ['keeper'] };
   assert.equal(userAdminsGame(game, 'host'), true);
   assert.equal(userAdminsGame(game, 'keeper'), true);
   assert.equal(userAdminsGame(game, 'player'), false);
 });
 
-test('settle stays hidden and results talk about places', () => {
-  assert.equal(settleEnabled, false);
+test('no money words and results talk about places', () => {
   assert.equal(pointsGameLabel(), 'Points');
   const shown = [HELP.home, HELP.newGame, HELP.scorecard, HELP.scoreEntry, HELP.players, HELP.me, HELP.results].join('\n');
   assert.doesNotMatch(shown, /settle|prize|stake|coins|ledger|payment|money/i);
   assert.match(HELP.home, /Results/);
   assert.match(HELP.results, /place/);
   assert.match(HELP.results, /winner/);
-});
-
-test('opening balances are each player points', () => {
-  const shares = stakePrizeShares([
-    { id: 'a', points: 40 },
-    { id: 'b', points: -30 },
-  ]);
-  assert.deepEqual(shares, { a: 40, b: -30 });
-  const opening = openingBalances([{
-    id: 'g',
-    gameType: 'stake',
-    players: [
-      { id: 'a', points: 40 },
-      { id: 'b', points: -50 },
-    ],
-  }]);
-  assert.equal(coinSum(opening), -10);
-});
-
-test('a payment that does not add to 0 cannot be saved', () => {
-  assert.equal(validateLegs([
-    { profileId: 'a', amount: -20 },
-    { profileId: 'b', amount: 10 },
-  ]).ok, false);
-  assert.equal(validateLegs([
-    { profileId: 'a', amount: -20 },
-    { profileId: 'b', amount: 20 },
-  ]).ok, true);
 });
 
 test('invite is the get page and not an email form', () => {

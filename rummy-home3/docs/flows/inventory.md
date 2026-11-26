@@ -1,6 +1,6 @@
 # Screen, pop-up and warning inventory (from code)
 
-Screens **31** (+ 8 redirect-only routes) · Pop-ups **60** · Warnings **40** · Emails **7**. "Tests" = number of test files whose text contains one of the item's signals (see `data/inventory.mjs`).
+Screens **31** (+ 6 redirect-only routes) · Pop-ups **60** · Warnings **40** · Emails **7**. "Tests" = number of test files whose text contains one of the item's signals (see `data/inventory.mjs`).
 
 ## Screens
 
@@ -48,8 +48,6 @@ Screens **31** (+ 8 redirect-only routes) · Pop-ups **60** · Warnings **40** �
 | `app/(screens)/players/[id].tsx` | S05 My players |
 | `app/(screens)/players/[id]/edit.tsx` | S06 Me |
 | `app/(screens)/games/history.tsx` | S04 Home |
-| `app/(screens)/sessions/[id].tsx` | S04 Home (settleEnabled off) |
-| `app/(screens)/settle/index.tsx` | S04 Home (settleEnabled off) |
 
 ## Pop-ups (dialogs, sheets, menus, toasts, modals)
 
