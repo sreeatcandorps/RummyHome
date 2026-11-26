@@ -29,7 +29,6 @@ import { canShareResults } from '@/utils/scorecardSheet';
 import { shareLiveScorecard } from '@/utils/shareImage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
-import { settleEnabled } from '@/constants/features';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { useLayout } from '@/hooks/useLayout';
 import { useMenuThenShare } from '@/hooks/useMenuThenShare';
@@ -504,7 +503,7 @@ export default function GameScreen() {
       <Text style={[styles.numberText, { color: theme.gameTypes[game.gameType === 'pool' ? 'pool' : 'stake'].on }]}>{gameLabel}</Text>
     </View>
   ) : null;
-  const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : settleEnabled ? 'cash-multiple' : 'numeric'} />;
+  const typeTag = <Tag label={gameTypeLabel(game.gameType)} tone={game.gameType} icon={game.gameType === 'pool' ? 'trophy-outline' : 'numeric'} />;
   const awardsLabel = poolStatusLabel(game);
   const statusTag = deleted ? (
     <Tag label="Deleted" tone="danger" icon="delete-outline" testID="status-tag" />

@@ -190,5 +190,4 @@ test('A19: EmptyState everywhere — no plain "None yet" text', () => {
     assert.doesNotMatch(code(src(file)), />None yet/, `${file}: plain "None yet" text (use EmptyState)`);
   }
   assert.match(src('app/(screens)/results/index.tsx'), /<EmptyState icon="podium" title="No results yet"/);
-  assert.match(src('app/(screens)/sessions/[id].tsx'), /<EmptyState icon="cash-multiple" title="No entries yet"/);
 });
