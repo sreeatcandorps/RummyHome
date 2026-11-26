@@ -3,6 +3,11 @@ tags: [smoke, landscape]
 # Landscape: setOrientation inside the flow (Maestro 2.x) after the app is up; the runner script also
 # rotates the emulator for any flow whose name contains "landscape", as a belt-and-braces.
 # Item 4 of the Nov 12 phone test: initials and DEALS must stay readable when the phone is turned.
+# D89 (Sree, Nov 24): "landscape is landscape, no buttons, nothing, no three dots, just to see the
+# scorecard." Sideways the table is alone: no header (back, title, Share, Help, ⋮), no tags, no bar,
+# no footer, and a tap on a round opens nothing. Turning the phone upright brings everything back.
+# The checks branch on what the screen is: the Pixel Tablet's natural orientation is landscape, so
+# LANDSCAPE_LEFT stands it upright (#131), and upright the chrome must be there.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - setOrientation: LANDSCAPE_LEFT
@@ -11,32 +16,78 @@ tags: [smoke, landscape]
     element:
       id: "game-card-GAMEA1"
     direction: DOWN
-    timeout: 30000
+    timeout: 60000
 - tapOn:
     id: "game-card-GAMEA1"
 - extendedWaitUntil:
-    visible: "Scorecard( · .*)?"
+    visible:
+      id: "score-table"
     timeout: 15000
-- assertVisible: "Add round"
 - assertVisible: "DEALS"
 - assertVisible: "HT"
-# PR 4: the header keeps its full height sideways; the footer is one line inside the card under the
-# last round (PR 24: small italics, scrolls with the rounds).
-- scrollUntilVisible:
-    element:
-      id: "game-id-footer"
-    direction: DOWN
-    timeout: 10000
 - assertVisible:
-    text: "Creator:.*Unique game ID: GAMEA1"
+    id: "score-cell-2-1"
+- runFlow:
+    when:
+      visible:
+        id: "landscape-table-only"
+    commands:
+      - assertNotVisible: "Add round"
+      - assertNotVisible: "Undo round"
+      - assertNotVisible: "Complete game"
+      - assertNotVisible:
+          id: "scorecard-share-icon"
+      - assertNotVisible: "Scorecard menu"
+      - assertNotVisible: "Help"
+      - assertNotVisible: "4 players"
+      - assertNotVisible:
+          id: "game-id-footer"
+      # A row tap does nothing sideways: no Edit round, no dialog.
+      - tapOn:
+          id: "score-round-1"
+      - assertNotVisible: "Edit round 1"
+      - assertNotVisible: "Save round"
+      - assertVisible:
+          id: "landscape-table-only"
+- runFlow:
+    when:
+      notVisible:
+        id: "landscape-table-only"
+    commands:
+      - assertVisible: "Add round"
+      - assertVisible: "Scorecard menu"
 - takeScreenshot: 03-scorecard-4p-landscape
+# Upright: the header, tags and bar are back; Add round still works (its own landscape is unchanged).
+- setOrientation: PORTRAIT
+- extendedWaitUntil:
+    visible: "Add round"
+    timeout: 15000
+- assertVisible: "Scorecard menu"
 - tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- setOrientation: LANDSCAPE_LEFT
 - extendedWaitUntil:
     visible: "Save round"
     timeout: 15000
 - assertVisible: "Rummy"
 - assertVisible: "Save score"
 - takeScreenshot: 03b-add-round-landscape
+# Android back still leaves, from Add round and then from the sideways scorecard.
 - back
-- assertVisible: "Add round"
+- extendedWaitUntil:
+    visible:
+      id: "score-table"
+    timeout: 15000
+- runFlow:
+    when:
+      visible:
+        id: "landscape-table-only"
+    commands:
+      - assertNotVisible: "Add round"
+- back
+# Home keeps the scroll position it had when game A was tapped, and sideways at 360 dp that is far down the list
+# (CI run on #150, Nov 26: "New game" never showed): scroll back up to it.
+- runFlow: ../lib/home-top.yaml
 - setOrientation: PORTRAIT

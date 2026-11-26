@@ -50,7 +50,7 @@ test('D47 B: the pool layout is decided by width > height, the compact chrome st
   assert.match(layout, /const isLandscape = width > height;/);
   assert.match(layout, /const isShort = height < 520;/);
   const screen = src('app/(screens)/games/[id].tsx');
-  assert.match(screen, /const \{ isShort, isLandscape, insets, gutterLeft, gutterRight \} = useLayout\(\);/);
+  assert.match(screen, /const \{ width, isShort, isLandscape, insets, gutterLeft, gutterRight \} = useLayout\(\);/);
   assert.match(screen, /const sideways = isLandscape;/);
   assert.match(screen, /hugRows=\{pool && !sideways \? POOL_CARD_MAX_ROWS : undefined\}/, 'upright: the five-row card');
   assert.match(screen, /\{sideways \? \(\s*<View\s+style=\{\[\s*styles\.landscapeBody,/, 'sideways: the table alone, on a tablet too');

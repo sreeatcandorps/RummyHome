@@ -1,0 +1,36 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# D90 (Sree, Nov 24): "They'll probably touch the header to move because they want to see the next
+# player." Game F upright at the default five columns: the 6th player is off to the right; a slow swipe on
+# the names row (not the scores) brings them in, and the scores under the names follow.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEF1"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "game-card-GAMEF1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertVisible:
+    id: "score-header-initials-1"
+- assertNotVisible:
+    id: "score-header-initials-7"
+- swipe:
+    from:
+      id: "score-table-header-scroller"
+    direction: LEFT
+    duration: 2000
+- extendedWaitUntil:
+    visible:
+      id: "score-header-initials-6"
+    timeout: 10000
+- assertVisible:
+    id: "score-header-initials-7"
+- assertVisible:
+    id: "score-cell-6-.*"
+- takeScreenshot: 29-scorecard-names-swiped-to-6th
+- back

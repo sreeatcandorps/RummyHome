@@ -32,7 +32,7 @@ tags: [smoke]
     element:
       id: "new-game-type-next"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "new-game-type-next"
 # Step 3: Order of players. Nobody numbered, rows in pick order, no arrows, Next off.

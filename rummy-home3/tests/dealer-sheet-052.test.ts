@@ -88,7 +88,7 @@ test('052 the sheet\u2019s lines: card says, consequences, nothing-to-save', () 
 test('052 the pieces are wired: menu item, DEALS badge opens the sheet, OPENS tag, Log kind, migration, help', () => {
   const screen = read('app/(screens)/games/[id].tsx');
   assert.match(screen, /title=\{DEALER_MENU_ITEM\}[^\n]*testID="game-menu-dealer"/);
-  assert.match(screen, /onDealerPress=\{canChangeSeating\(game, canScoreNow\) \? \(\) => setDealerSheet\(true\) : undefined\}/);
+  assert.match(screen, /onDealerPress=\{chrome\.taps && canChangeSeating\(game, canScoreNow\) \? \(\) => setDealerSheet\(true\) : undefined\}/);
   assert.match(screen, /opensId=\{opensId\}/);
   assert.match(screen, /<DealerSheet/);
   assert.match(screen, /gamesService\.setRoundDealer\(game\.id, change\)/);

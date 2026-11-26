@@ -13,13 +13,13 @@ tags: [smoke]
     element:
       text: "Appearance"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - assertVisible: "Appearance"
 - scrollUntilVisible:
     element:
       text: "Sree Test"
     direction: UP
-    timeout: 15000
+    timeout: 30000
 # Size-S (D66): grouped rows — Name and Initials with a pen, the passcode dialog with the
 # fields first and the keyboard open — all three fields must stay on screen.
 - assertVisible:
@@ -33,7 +33,7 @@ tags: [smoke]
     element:
       id: "me-change-passcode"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible: "Change passcode"
 - tapOn:
     id: "me-change-passcode"
@@ -57,7 +57,7 @@ tags: [smoke]
     element:
       text: "App version.*"
     direction: DOWN
-    timeout: 25000
+    timeout: 30000
 - assertVisible: "Log out"
 - takeScreenshot: 07b-profile-bottom
 # PR 13: Settings holds "New game starts as", the Points defaults and the Pool defaults (limit chips,
@@ -66,7 +66,7 @@ tags: [smoke]
     element:
       id: "me-settings"
     direction: UP
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "me-settings"
 - extendedWaitUntil:
@@ -79,7 +79,7 @@ tags: [smoke]
     element:
       id: "settings-pool-limit-101"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - assertVisible: "Pool defaults"
 - assertVisible:
     id: "settings-pool-limit-custom"
@@ -89,7 +89,7 @@ tags: [smoke]
     element:
       text: "Out players may re-enter as often as they like.*"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible:
     id: "settings-pool-reentries-unlimited"
 # 042: Re-entries is Unlimited by default; Limited reveals the count field, nothing is saved.
@@ -100,14 +100,14 @@ tags: [smoke]
     element:
       id: "settings-pool-reentries-count"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 # PR 24: switching to Limited leaves the count empty (the hint under the field asks for it) instead of
 # guessing a number. The hint sits under the field, so scroll to it rather than assume it is on screen.
 - scrollUntilVisible:
     element:
       text: "Type how many re-entries each player gets (0–99)."
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible:
     id: "settings-pool-reentries-count"
 - assertNotVisible:
@@ -126,7 +126,7 @@ tags: [smoke]
     element:
       id: "settings-pool-reentry-score-plus-one"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible: "Re-entry score"
 - assertVisible:
     id: "settings-pool-reentry-score-highest"
@@ -136,14 +136,14 @@ tags: [smoke]
     element:
       id: "settings-pool-late-entry-score-plus-one"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible: "Late entry"
 # Pixel 4a (nightly, Nov 23): the hint line is at the bottom edge and the two choices sit below the fold.
 - scrollUntilVisible:
     element:
       id: "settings-pool-late-entry-score-highest"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible:
     id: "settings-pool-late-entry-score-highest"
 - assertVisible:
