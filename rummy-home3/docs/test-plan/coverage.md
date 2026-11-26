@@ -32,9 +32,7 @@ Gaps are listed as `—` and each has a flow assigned here, so the gap column is
 | `(screens)/results/index` | Results picker | F14 | `smoke/06`, `12`, `15` | |
 | `(screens)/results/view` | Show results (unsaved) | F14 | `smoke/06` | |
 | `(screens)/results/[id]` | Saved result | F14 | `smoke/12`, `15`, `full/40`, `41` | |
-| `(screens)/settle/index` | Settle (behind `settleEnabled`, off) | — | — | flagged off; test only if the flag comes back (Q16.9) |
-| `(screens)/sessions/[id]` | Session (behind `settleEnabled`, off) | — | — | same (Q16.9) |
-| `(screens)/players/index`, `players/new` | Players list / New player (legacy) | F15 | — | same (Q16.9) |
+| `(screens)/players/index`, `players/new` | Players list / New player (legacy) | F15 | — | confirm route still reachable; if not, delete it (Q16.9) |
 | `(screens)/players/[id]` | Player detail | F02, F15 | — | **N** `full/33` |
 | `(screens)/players/[id]/edit` | Edit player | F15 | — | **N** `full/33` |
 | `web/scorecard.html`, `/r/` result page | Public pages | F19 | D, U, volume screenshots | **N** Playwright `web/*.spec.ts` |

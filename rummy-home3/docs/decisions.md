@@ -104,6 +104,12 @@ this file exists so nobody has to read five specs and a chat log to know the cur
 | D10 | 2026-11-13 | Results design (PR 8): single-game share never says Results; one game's picture is the standings card in the marigold frame. | results-design, `final-scores.tsx` | active |
 | D09 | 2026-11-12 | Clubhouse green design system. | design-audit.md, PR 11 | active |
 
+## Nov 25: Sree's answers to the open questions
+
+| ID | Date | Decision | Where | Status |
+| --- | --- | --- | --- | --- |
+| D110 | 2026-11-25 | **Delete the hidden Settle / prize-sessions feature**, as its own PR. The database tables stay until a later migration Sree says yes to. (Q35.) Sree: "delete the hidden settle money. Yes, please delete it, whatever it is." | `app/(screens)/settle`, `sessions`, `services/sessions.ts`, `utils/prizeSession.ts`, `constants/features.ts` | built in this PR (tables kept): unused in the database until that migration are the tables `prize_sessions`, `prize_session_games`, `prize_entries`, `token_ledger`, the column `games.prize`, and the RPCs `create_prize_session`, `get_prize_session`, `list_prize_sessions`, `add_prize_entry`, `update_prize_entry` |
+
 ## Process
 
 | ID | Date | Decision | Where | Status |
@@ -139,7 +145,7 @@ this file exists so nobody has to read five specs and a chat log to know the cur
 | Q32 | 2026-11-24 | **Android install referrer so a link tapped before installing still works.** Sree: "will there be context to remember?" §5: Android yes, iPhone not reliably. | no, not needed with Q30 | open |
 | Q33 | 2026-11-24 | **"Adding a player" card in My players: two items; Player-ID linking only in ⋮ and Help.** Sree: "a little tutorial right there in the My Players section." §3. | yes | open |
 | Q34 | 2026-11-24 | **Money: free with no ads through v1 and WhatsApp; a one-time Pro for extras later; never stakes or settling.** `business-analysis.md` §4. | yes | open |
-| Q35 | 2026-11-24 | **Delete the hidden Settle / prize-sessions feature** (off since PR 13; Play's real-money "companion functionality" rule and India's 2025 Act). §4. | yes, its own PR | open |
+| Q35 | 2026-11-24 | **Delete the hidden Settle / prize-sessions feature** (off since PR 13; Play's real-money "companion functionality" rule and India's 2025 Act). §4. | yes, its own PR | answered Nov 25 → D110 |
 | Q36 | 2026-11-24 | **Next variant: Deals Rummy, then Gin, both after WhatsApp sign-in.** Sree: "see which ones we should tackle first … probably after the WhatsApp." §3. | yes | open |
 | Q16 | 2026-11-23 | **Create account: a 6-digit code typed in the app instead of a confirm link.** Sree (staging build 2): "I don't like how the name comes out as Supabase Auth … it says 'site not reached' and goes to a localhost … make it very clear: confirm the email, then sign in." Recommended: Supabase's `{{ .Token }}` confirmation (`verifyOtp` type `signup` returns a session) — no Site URL, no redirect, no landing page, one step; sender `EZ Score: Rummy` via the Resend SMTP live already uses; the same OTP box as Forgot passcode. `staging-b2-feedback.md`, `b2-signup-code.png`. | `register.tsx`, `services/auth.ts`, `supabase/templates/confirm-code.html`, both projects' Auth config | asked |
 | Q17 | 2026-11-23 | **Remove Load / Clear demo data from Profile.** Sree: "there's something called 'Load Demo Data.' I don't even know if you're using this, but it shows this bug." The Nov 6 generator makes a pool game that migration 041's rule refuses; the staging population generator (#117) replaced its purpose. Recommended: delete the rows, `services/demoSeed.ts`, `utils/demoData.ts`; keep the RPCs (drop in a later migration). D50. | `me.tsx` Admin group | asked |
