@@ -126,7 +126,7 @@ test('A20: header right is share · help · menu — scorecard and saved result;
 
 // ---- A07 / A21: one SearchField, one pair of labels ----
 
-test('A07: My players, New game and Find in database use the one SearchField with the one placeholder; no Searchbar elsewhere', () => {
+test('A07: My players and New game use the one SearchField with the one placeholder; Find in database is the Player ID box (D113); no Searchbar elsewhere', () => {
   for (const file of uiFiles()) {
     if (file === 'components/ui/SearchField.tsx') continue;
     assert.doesNotMatch(code(src(file)), /\bSearchbar\b/, `${file} uses Paper's Searchbar directly — use SearchField`);
@@ -138,7 +138,8 @@ test('A07: My players, New game and Find in database use the one SearchField wit
   assert.equal(SEARCH_PLACEHOLDER, 'Search name, initials or #ID');
   assert.match(src('app/(tabs)/players.tsx'), /<SearchField value=\{query\} onChangeText=\{setQuery\} style=\{styles\.search\} testID="my-players-search" \/>/);
   assert.match(src('app/(screens)/games/new.tsx'), /<SearchField value=\{query\} onChangeText=\{setQuery\} style=\{\[styles\.search, styles\.flex\]\} testID="picker-search" \/>/);
-  assert.match(src('app/(screens)/players/new.tsx'), /<SearchField[\s\S]*?testID="find-search"/);
+  assert.doesNotMatch(src('app/(screens)/players/new.tsx'), /<SearchField/, 'Find in database never searches names (D113)');
+  assert.match(src('app/(screens)/players/new.tsx'), /<PlayerIdBox/);
   assert.doesNotMatch(src('app/(screens)/players/new.tsx'), /Name or player ID/, 'the old placeholder is gone');
 });
 

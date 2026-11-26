@@ -3,18 +3,17 @@ import test from 'node:test';
 import { isLocalToday } from '../utils/localDay';
 import { userAdminsGame } from '../utils/gameAccess';
 import { inviteMessage, INVITE_URL } from '../utils/inviteLink';
-import { matchesMyPlayer, playerSearchMode } from '../utils/playerSearch';
+import { matchesMyPlayer, parsePlayerIdQuery } from '../utils/playerSearch';
 import { HELP } from './_helpLegacy';
 import { pointsGameLabel } from '../constants/features';
 
-test('find search is a full email, a name, or nothing for a phone', () => {
-  assert.equal(playerSearchMode('a'), 'none');
-  assert.equal(playerSearchMode('Sree'), 'text');
-  assert.equal(playerSearchMode('SK82'), 'text');
-  assert.equal(playerSearchMode('sree@example.com'), 'email');
-  assert.equal(playerSearchMode('sree@'), 'none');
-  assert.equal(playerSearchMode('555-123-4567'), 'none');
-  assert.equal(playerSearchMode('+1 555 123 4567'), 'none');
+test('find search is a Player ID only: names, emails and phones are not queries (D113)', () => {
+  assert.equal(parsePlayerIdQuery('a'), null);
+  assert.equal(parsePlayerIdQuery('Sree'), null);
+  assert.equal(parsePlayerIdQuery('SK82'), null);
+  assert.equal(parsePlayerIdQuery('sree@example.com'), null);
+  assert.equal(parsePlayerIdQuery('555-123-4567'), null);
+  assert.equal(parsePlayerIdQuery('#82'), 82);
 });
 
 test('my list search matches a name, initials, or player ID, and never an email', () => {
@@ -55,5 +54,5 @@ test('no money words and results talk about places', () => {
 
 test('invite is the get page and not an email form', () => {
   assert.equal(INVITE_URL, 'https://ezscore.mindweavetech.com/get');
-  assert.match(inviteMessage(), /Play EZ Score: Rummy with me: https:\/\/ezscore\.mindweavetech\.com\/get/);
+  assert.match(inviteMessage(), /Get it here: https:\/\/ezscore\.mindweavetech\.com\/get /);
 });
