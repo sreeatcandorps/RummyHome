@@ -247,21 +247,31 @@ doing two different things is how people tap through by mistake. This is the pat
 (pick people, then a confirm step with one Create button) and Splitwise's *Add people* (type, then the list, then
 Done). Picture: [`add-players-q44.png`](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/main/rummy-home3/docs/design-review-2/mockups/add-players-q44.png).
 
-1. **Type.** One letter per box; the cursor jumps on by itself (F → L → next row); a new row appears when the last
-   one fills. The keyboard's own action key reads **Save**, and a **Save N players** button sits just above the
-   keyboard, so the thumb never goes to the top. The count only includes rows with both letters.
-2. **See what was saved.** The keyboard goes down and the screen lists every new player with a ✓ ("Sree K · new
-   player") or a ! when the initials changed ("HG was taken → saved as HG2"). Each row has **Edit** and **Remove**.
-   The seated chips below show them in green. The only way on is **Done** (and *+ Add more* to type again).
-3. **Done** goes back to Players · Admins, with no further dialog.
+**Revised Nov 25, 8:28 PM.** Sree: "make sure the keyboard is below the initials. If he's trying to add 8 players
+at the same time, it has to automatically scroll up so he can see what he's typing" and "It doesn't know that SK is
+[Sree K] … you can't show that the new player is [Sree K]. That's not possible." Both are in the picture now.
+
+1. **Type.** The rows are on top and the keyboard is below them. One letter per box; the cursor jumps on by itself
+   (F → L → next row); a new row appears when the last one fills. The keyboard's own action key reads **Save**, and a
+   **Save N players** button sits just above the keyboard, so the thumb never goes to the top. The count only
+   includes rows with both letters. A new player shows only the letters typed ("SK · new player"): initials carry
+   no name. The only name the app can show is someone already in My players ("Harish G is already HG. This new
+   player is HG2.", the existing `clashSentence`).
+2. **Many players.** The list scrolls up by itself as each row fills, so the row being typed always sits just above
+   the Save bar and the keyboard (8 players: rows 1–2 slide up out of view, a line says so, a swipe down shows them).
+3. **See what was saved.** The keyboard goes down and the screen lists every new player with a ✓ ("SK · new
+   player") or a ! when the initials changed ("HG2 · Harish G is already HG"). Each row has **Edit** and **Remove**.
+   The seated players below show them in green. The only way on is **Done** (and *+ Add more* to type again).
+4. **Done** goes back to Players · Admins, with no further dialog.
 
 | Case | What happens |
 | --- | --- |
 | A row with one letter | It is left out of the count and stays on screen; Save saves the rest. |
-| The same initials twice in one batch, or initials already in My players | Shown while typing ("HG is taken → saves as HG2"), so nothing surprises him after Save. |
+| The same initials twice in one batch, or initials already in My players | Shown while typing ("Harish G is already HG. This new player is HG2."), so nothing surprises him after Save. |
+| 8 or more rows, keyboard up | The list scrolls so the row with the cursor is just above the Save bar; earlier rows stay a swipe away. |
 | Edit after Save | Opens that row with up to three letters (D14); saving it updates the row in place. |
 | Remove after Save | Takes the player out of this game at once; the player stays in My players (a seat with no scores is free to remove). |
-| ← or Android back with unsaved letters | One question: "2 players not saved yet": **Save SK** / **Discard** (D97's dialog). |
+| ← or Android back after typing, without tapping Save | One question, only then: "SK is not saved yet": **Save SK and go back** / **Discard**. A row with one letter is left out either way. This replaces D97's "Done · keep the 1 saved" wording, since there is no Done while typing. |
 | Small phone, keyboard covering the screen | The Save button rides on top of the keyboard; the rows scroll above it. |
 | Double tap on Save | The button is disabled while saving. |
 
