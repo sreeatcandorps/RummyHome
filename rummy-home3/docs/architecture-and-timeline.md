@@ -341,7 +341,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 
 | Area | Status |
 | --- | --- |
-| Auth (email/passcode, session refresh, app-only OTP recovery) | Done in the app; OTP email live via Resend since Nov 9. Phone pass pending |
+| Auth (email/passcode, session refresh, app-only OTP recovery, sign-up code) | Done in the app; OTP email live via Resend since Nov 9. Sign-up confirms with a typed code (D101) once Build Bot sets the Confirm signup template on both projects. Phone pass pending |
 | Profiles / Player ID + share | Done |
 | Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
 | New game (Points / Pool, my players) | Done. Four steps (PR 24): Players (Next) → Game type with this game's settings prefilled from Settings (Next) → Order of players (tap to number) → Co-admin → Start game. Creator is not pre-seated; Add players (full screen) / Add player from database |
@@ -699,6 +699,14 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   each and its authority table unchanged. New `scripts/compare-frames.py` turns two sets of CI device frames into
   "today | after" pictures. Pictures for Sree are committed to the public repo and linked by raw URL, because
   Cursor artifact links need a login and the CI dashboard prunes old runs (D87).
+
+### 2026-11-26 — Create account confirms with a typed code; no Player ID box (D101, D105)
+- Sign-up no longer depends on a confirm link and a web page to land on: Supabase's Confirm signup e-mail carries
+  `{{ .Token }}` and the app verifies it (`verifyOtp` type `signup`), which signs the person in at once. The e-mail
+  side is a dashboard template on both projects (`supabase/templates/confirm-code.html`,
+  `docs/signup-code-template.md`), set by Build Bot after the merge, staging first. Link e-mails already sent still
+  confirm, and Sign in offers *Enter the code* for an unconfirmed address. The optional Player ID box left Create
+  account (D105); linking by Player ID stays on My players. No migration.
 
 ### 2026-11-25 — The hidden Settle / prize-sessions module is deleted (D110)
 - Settle (coin balances across finished games, hidden behind `EXPO_PUBLIC_SETTLE_ENABLED` since PR 13) is gone from
