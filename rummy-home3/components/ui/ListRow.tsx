@@ -13,6 +13,8 @@ type ListRowProps = {
   right?: React.ReactNode;
   /** Size-S (D66): the current value at the right, grey, before the chevron; "Sree Test", "No number yet". */
   value?: string;
+  /** `action`: the value is the thing to do ("Add a backup"), in the primary colour and bold. */
+  valueTone?: 'muted' | 'action';
   /** Size-S: a pen instead of the chevron, for rows that edit in place or in a sheet. */
   pen?: boolean;
   /** Size-S: no chevron at all (Log out). */
@@ -24,7 +26,7 @@ type ListRowProps = {
 };
 
 /** Full-width tappable row used in settings, profile and other grouped lists. */
-export function ListRow({ title, description, icon, left, right, value, pen, noChevron, onPress, tone = 'default', accessibilityLabel, testID }: ListRowProps) {
+export function ListRow({ title, description, icon, left, right, value, valueTone = 'muted', pen, noChevron, onPress, tone = 'default', accessibilityLabel, testID }: ListRowProps) {
   const theme = useAppTheme();
   const danger = tone === 'danger';
   const iconColor = danger ? theme.colors.error : theme.colors.onSurfaceVariant;
@@ -56,7 +58,11 @@ export function ListRow({ title, description, icon, left, right, value, pen, noC
         ) : null}
       </View>
       {value !== undefined ? (
-        <Text variant="bodyMedium" style={[styles.value, { color: theme.colors.onSurfaceVariant }]} numberOfLines={1}>
+        <Text
+          variant="bodyMedium"
+          style={[styles.value, valueTone === 'action' ? { color: theme.colors.primary, fontWeight: '700' } : { color: theme.colors.onSurfaceVariant }]}
+          numberOfLines={1}
+        >
           {value}
         </Text>
       ) : null}
