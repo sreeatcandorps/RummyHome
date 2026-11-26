@@ -351,6 +351,12 @@ test('Sign-in methods: read from the server, or from the session on the phone wh
   assert.match(src('services/auth.ts'), /readSignInMethodsFrom\(supabase\.auth/);
 });
 
+test('WhatsApp number field: focusing it scrolls the auth card up, so the passcode under it clears the keypad', () => {
+  const field = src('components/ui/WhatsAppNumberField.tsx');
+  assert.match(field, /const revealCard = useRevealCard\(\);/);
+  assert.match(field, /onFocus=\{revealCard\}/);
+});
+
 test('Forgot passcode by WhatsApp: the code, then Set a new passcode with whose account it is, and Not you?', () => {
   const forgot = src('app/(auth)/forgot-password.tsx');
   assert.match(forgot, /This is the account of \$\{who\}\./);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Icon, Menu, Text, TextInput } from 'react-native-paper';
+import { useRevealCard } from '@/components/ui/AuthShell';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { splitPlusNumber, WHATSAPP_COUNTRIES, WhatsAppCountry } from '@/utils/countries';
 
@@ -22,6 +23,7 @@ export function WhatsAppNumberField({ country, onCountryChange, value, onChangeT
 }) {
   const { colors } = useAppTheme();
   const [open, setOpen] = useState(false);
+  const revealCard = useRevealCard();
 
   const change = (text: string) => {
     const plus = splitPlusNumber(text, country);
@@ -74,6 +76,7 @@ export function WhatsAppNumberField({ country, onCountryChange, value, onChangeT
         autoFocus={autoFocus}
         returnKeyType="done"
         onSubmitEditing={onSubmitEditing}
+        onFocus={revealCard}
         disabled={disabled}
         accessibilityLabel={label}
         testID={testID}
