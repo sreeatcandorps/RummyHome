@@ -68,9 +68,10 @@ test('e2e: every id: a flow taps or asserts exists as a testID in the app', () =
     const literal = sources.includes(`testID="${id}"`) || sources.includes(`testID: '${id}'`);
     // PR 24: a cell that carries its id only in one state (`reentryHere ? \`score-reentry-${index + 1}\` : undefined`).
     const conditional = prefix !== id && sources.includes(`? \`${prefix}\${`);
-    const templated = prefix !== id && sources.includes(`testID={\`${prefix}\${`);
+    // D90: an options array may build its ids too (`testID: \`columns-choice-${choice}\``).
+    const templated = prefix !== id && (sources.includes(`testID={\`${prefix}\${`) || sources.includes(`testID: \`${prefix}\${`));
     // PR 13: a word segment may also be the hole (`award-preset-${p.key}` ↔ award-preset-left).
-    const wordHole = [...id.matchAll(/-/g)].some((m) => sources.includes(`testID={\`${id.slice(0, m.index! + 1)}\${`));
+    const wordHole = [...id.matchAll(/-/g)].some((m) => sources.includes(`testID={\`${id.slice(0, m.index! + 1)}\${`) || sources.includes(`testID: \`${id.slice(0, m.index! + 1)}\${`));
     const viaPrefixProp = prefixed.some((re) => re.test(id));
     assert.ok(literal || templated || wordHole || viaPrefixProp || conditional, `no testID for ${id} in app/ or components/`);
   }
