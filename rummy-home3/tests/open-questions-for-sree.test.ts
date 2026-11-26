@@ -44,6 +44,11 @@ test('parsers: ranges expand, answered rows are not open', () => {
   assert.deepEqual(openQuestionIds(table), ['Q1', 'Q4']);
 });
 
+test('no table row in decisions.md starts with "||" (such a row hides its ID from the check below)', () => {
+  const bad = doc('docs/decisions.md').split('\n').filter((l) => l.startsWith('||'));
+  assert.deepEqual(bad.map((l) => l.slice(0, 12)), []);
+});
+
 test('every open or asked question is in the For Sree block', () => {
   const open = openQuestionIds(doc('docs/decisions.md'));
   assert.ok(open.length > 0, 'the Open table parsed');
