@@ -5,7 +5,7 @@
 1. **Your yes today:** read the [sign-up and linking plan](https://github.com/sreeatcandorps/RummyHome/blob/main/rummy-home3/docs/player-linking-workflow.md) (Q30, still open); Q44 (no Save button in Add players); the iPhone plan (Q41–Q43).
 2. **Shipped:** #137 (Main agent, models by job, the daily check); your Nov 25 answers are recorded as decisions D97–D111.
 3. **Build PRs running: 3 of 3** — #131 batch 2, #138 columns / landscape, and the Settle removal (an Opus 5.5 helper, started Nov 25 evening).
-4. **Queued:** after #131, the Player ID box off Create account (D105) and the 6-digit code (D101); the next small batch: D97 / Q44, D98, D103, D104.
+4. **Queued:** after #131, the Player ID box off Create account (D105) and the 6-digit code (D101); the next small batch: D97, D98, D103, D104 (Q44 only once you answer).
 5. **Waiting on others:** Google's Play review — it answers by e-mail.
 
 (Everything below is the detail the agents keep. The block above is rewritten every turn, five lines at most — D82.)
@@ -79,7 +79,7 @@ here and go into the next batch when he picks.
 | 4 | **Nightly red → green** after #109: re-run the Pixel 7 Pro / 4a / tablet smoke; whatever still fails is a real device bug and gets its own PR. | Keeps the test suite trusted; the three issues close themselves. | small | — |
 | 5 | ~~Points "left the table"~~ — **dropped Nov 25 (D99)**: "Just leave the player blank … it's overengineering." | — | — | — |
 | 5b | **Delete account with a 30-day grace** (D72): deactivate at once, sign in within 30 days = Keep / Delete now, day-30 cron runs 026's tombstone; copy on Profile / `/delete-account` / privacy / Data safety. Spec `docs/delete-account-grace.md`, dialogs **approved as drawn** (#111). | Sree: "Okay, that's fine. Make sure you build this after Google approves the current review." · "Yes to the delete account dialogs as drawn" | medium (migration + cron) | **Google approves the current review**, then his go |
-| 6 | **Add players: "Done · keep the 1 saved" (D97), or no per-row Save at all (Q44)** — next small batch with row 7. | Sree: "We don't even need the save button, I think." | tiny | Q44 |
+| 6 | **Add players: "Done · keep the 1 saved" (D97)** — next small batch. Dropping the per-row Save (Q44, with row 7) stays out of the batch until Sree answers. | Sree: "We don't even need the save button, I think." | tiny | — (D97); **Q44** for the rest |
 | 7 | **Find in database** help section with its own picture (D98) — next small batch. Also D103 (Player ID row: number only, no share icon) and D104 (PDF Final scores first). | Sree said yes Nov 25. | tiny | — |
 | 8 | **Board hygiene** — done Nov 21: Build Bot closed #8 #26 #27 #28 #30 #31 #42. Still open on purpose: #29 (the Telugu half is not built — item 11) and #34 (in review). Left: a `Priority` field so the board sorts like this file. | The Spec column no longer holds finished work. | tiny | create the `Priority` field (optional) |
 | 10 | **Play listing**: 7" / 10" tablet screenshots from the tablet smoke job; a short promo video is optional. | Optional for a phone-first listing; cheap once the tablet job is green. | tiny | — |
