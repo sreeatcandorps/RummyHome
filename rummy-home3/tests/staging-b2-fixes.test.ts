@@ -84,7 +84,7 @@ test('Q17 (default, Nov 24): Load / Clear demo data left the Profile; the genera
   assert.ok(existsSync(path.join(ROOT, 'supabase/migrations/005_demo_data.sql')));
 });
 
-test('D89 (Sree, Nov 24): the Initials value is just the letters and never truncates; the title stays on one line and takes the rest', async () => {
+test('D95 (Sree, Nov 24): the Initials value is just the letters and never truncates; the title stays on one line and takes the rest', async () => {
   const me = read('app/(tabs)/me.tsx');
   assert.match(me, /title="Initials on scorecards"\s*\n\s*value=\{initials\}\s*\n\s*valueMinChars=\{4\}/, 'the value is the initials alone, with room for four letters');
   assert.doesNotMatch(me, /value=\{[^}]*from your name/, 'no "· from your name" suffix in the value');
