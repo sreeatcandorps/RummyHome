@@ -33,7 +33,7 @@ tags: [nightly]
     timeout: 15000
 - assertVisible: "Mid-game · admins only · logged"
 - assertVisible: "30 rounds played.*"
-# Row 1 is the highest seat (20, Test Uniform); arrows on every numbered row.
+# Row 1 is the highest seat (20, Test Uniform); arrows on every numbered row — the top row only ▼ (D74).
 - assertVisible:
     id: "seat-name-1"
     text: "Test Uniform"
@@ -41,6 +41,8 @@ tags: [nightly]
     id: "seat-number-1"
     text: "20"
 - assertVisible:
+    id: "seat-down-1"
+- assertNotVisible:
     id: "seat-up-1"
 - takeScreenshot: 51-order-20p-top
 # Seat 11 (Test Juliet) deals next: round 30's dealer sat at 10. Seat 11 is row 10 (21 - 11).
@@ -48,7 +50,7 @@ tags: [nightly]
     element:
       id: "seat-row-10"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - assertVisible:
     id: "seat-name-10"
     text: "Test Juliet"
@@ -59,17 +61,18 @@ tags: [nightly]
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - assertVisible:
     id: "seat-name-20"
     text: "Sree Test"
 - assertVisible:
     id: "seat-number-20"
     text: "1"
-# The counter sits under the last row, so with twenty players it is on screen only here.
+# The counter sits under the last row, so with twenty players it is on screen only here. Prefilled and
+# untouched it reads "Everyone numbered · order unchanged — Done closes" (#117).
 - assertVisible:
     id: "order-counter"
-    text: "Everyone numbered"
+    text: "Everyone numbered.*"
 # Clear: the rows fall back to today's seat order (Sree, Test Alpha … Test Uniform). Tap Test Romeo
 # (row 19) first: seat 20, "highest card", straight to the top; nobody deals yet.
 - tapOn:
@@ -83,14 +86,14 @@ tags: [nightly]
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-1"
     direction: UP
-    timeout: 15000
+    timeout: 45000
 - assertVisible:
     id: "seat-name-1"
     text: "Test Romeo"
@@ -111,133 +114,133 @@ tags: [nightly]
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-19"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-19"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - assertVisible:
@@ -281,6 +284,8 @@ tags: [nightly]
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000
+# Scrolls in this sheet get 45 s: with the 30-round × 20-player scorecard behind the dialog each hierarchy
+# fetch takes 5–9 s, and 15 s ran out two swipes short of row 20 (Pixel 6 full, Nov 26).
 # Put the order back (TU seat 20 … Sree seat 1) so game F is unchanged for the other nightly flows:
 # Clear (rows: TU, ST, TA … TR), tap TU (row 1, seat 20), then row 20 nineteen times (TR 19 … TA 2,
 # Sree 1).
@@ -297,140 +302,140 @@ tags: [nightly]
     element:
       id: "seat-row-1"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-1"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - scrollUntilVisible:
     element:
       id: "seat-row-20"
     direction: DOWN
-    timeout: 15000
+    timeout: 45000
 - tapOn:
     id: "seat-row-20"
 - assertVisible:

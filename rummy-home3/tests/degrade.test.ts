@@ -14,7 +14,7 @@ test('a missing database update is a short message with no SQL', () => {
   assert.equal(formatSupabaseError(new Error(raw)), NOT_READY_MESSAGE);
   assert.equal(withoutDeveloperInstructions('Paste the Supabase anon key into ANON_KEY'), NOT_READY_MESSAGE);
   assert.doesNotMatch(NOT_READY_MESSAGE, /sql|migration|supabase|editor/i);
-  for (const file of ['services/playerIdentity.ts', 'services/players.ts', 'services/games.ts', 'services/results.ts', 'services/demoSeed.ts']) {
+  for (const file of ['services/playerIdentity.ts', 'services/players.ts', 'services/games.ts', 'services/results.ts']) {
     assert.doesNotMatch(read(file), /supabase\/migrations\/\d+/);
   }
 });

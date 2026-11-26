@@ -212,13 +212,14 @@ test('X24-10c mid-game: the sheet opens prefilled so one move is one tap; Done s
   const same = [...four].reverse().reduce((acc, id) => tapPlayer(acc, id), clearOrder(d));
   assert.ok(orderComplete(same) && !orderChanged(same));
   assert.ok(showsPlayerCode(347) && !showsPlayerCode(300), 'the player ID shows only when the row is wide enough (a Pixel 6 row inside the card is ~347 dp)');
+  assert.ok(!showsPlayerCode(347, 1.3), 'at font 1.3 the same row is too narrow for the ID (Pixel 7 Pro nightly: the name collapsed)');
 });
 
 test('X24-10d the component and sheet: no chips panel, no "Keep this order", arrows only on numbered rows, Clear and Done', () => {
   const list = read('components/game/OrderOfPlayers.tsx');
-  assert.match(list, /\{numbered \? \(\s*<View style=\{styles\.arrows\}>/, 'arrows render for numbered rows only');
+  assert.match(list, /\{numbered && showsArrows\(draft, id\) \? \(\s*<View style=\{styles\.arrows\}>/, 'arrows render for numbered rows only (D74: and only the selected row while one is selected)');
   assert.match(list, /onPress=\{\(\) => onChange\(tapPlayer\(draft, id\)\)\}/, 'a row tap goes through tapPlayer');
-  assert.match(list, /showsPlayerCode\(rowWidth\)/, 'the player ID shows when it fits');
+  assert.match(list, /showsPlayerCode\(rowWidth, fontScale\)/, 'the player ID shows when it fits, in text-size units');
   assert.ok(!list.includes('Keep this order') && !list.includes('Picked up'));
   const sheet = read('components/game/SeatingSheet.tsx');
   assert.match(sheet, /startOrder\(base, true\)/, 'mid-game opens prefilled');
@@ -291,9 +292,10 @@ test('X24-1 no "stake" in user-facing copy', () => {
   }
 });
 
-test('D59: the lowest numbered seat renders no down arrow; the up arrow stays', () => {
+test('D59 + D74: the lowest numbered seat renders no down arrow; the top row no up arrow', () => {
   const list = read('components/game/OrderOfPlayers.tsx');
   assert.match(list, /seat === draft\.base\.length - draft\.numbered\.length \+ 1 \? \(\s*<View style=\{styles\.arrowSlot\} \/>/);
   assert.match(list, /icon="chevron-down"[^\n]*disabled=\{disabled\} onPress/);
-  assert.match(list, /icon="chevron-up"[^\n]*disabled=\{disabled \|\| seat === draft\.base\.length\}/);
+  assert.match(list, /seat === draft\.base\.length \? \(\s*<View style=\{styles\.arrowSlot\} \/>/, 'D74: the top row has no ▲ (was a disabled grey chevron)');
+  assert.match(list, /icon="chevron-up"[^\n]*disabled=\{disabled\} onPress/);
 });

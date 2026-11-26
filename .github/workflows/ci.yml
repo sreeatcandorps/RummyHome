@@ -620,6 +620,7 @@ jobs:
           VIDEO_SELECTED: ${{ needs.select.outputs.tier == 'pr' && '1' || '0' }}
           DEVICE_ROTATION: ${{ matrix.rotation }}
           DEVICE_FONT_SCALE: ${{ matrix.font }}
+          DEVICE_DENSITY: ${{ matrix.density }}
           MONKEY_EVENTS: ${{ matrix.monkeyEvents }}
           EMULATOR_SYSTEM_IMAGE: system-images;android-${{ matrix.api }};${{ matrix.target }};${{ matrix.arch }}
           EMULATOR_PROFILE: ${{ matrix.profile }}

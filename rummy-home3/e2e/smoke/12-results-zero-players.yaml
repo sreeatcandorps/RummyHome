@@ -9,18 +9,35 @@ tags: [smoke]
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Results"
 - extendedWaitUntil:
-    visible: "Show results"
+    visible: "Select .*games"
     timeout: 15000
-- runFlow:
-    when:
-      visible:
-        id: "game-card-GAMEA1"
-    commands:
-      - tapOn:
-          id: "game-card-GAMEA1"
+# Game A is there in smoke (05 completed it); on the 360-dp phone it can sit below the fold.
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEA1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEA1"
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEG1"
+    direction: DOWN
+    timeout: 15000
 - assertVisible:
     id: "game-card-GAMEG1"
-- tapOn: "Show results"
+- scrollUntilVisible:
+    element:
+      id: "show-results"
+    direction: DOWN
+    timeout: 15000
+# Nudge the page up before the tap: at the bottom edge the button sits under the 3-button bar on the small
+# phone and the tap lands on Home (flow 06, API 34 run).
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+- tapOn:
+    id: "show-results"
 - extendedWaitUntil:
     visible: "Scores"
     timeout: 20000
@@ -93,7 +110,12 @@ tags: [smoke]
 - launchApp
 - tapOn: "Results"
 - extendedWaitUntil:
-    visible: "Past results"
+    visible: "Select .*games"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Past results"
+    direction: DOWN
     timeout: 15000
 # PR 10b: the Past results rows carry no Delete chip; Delete lives on the result page only. Open
 # the row, Delete there, let the 10-second toast run out, then Results → Deleted + Restore.
@@ -113,6 +135,11 @@ tags: [smoke]
       id: "result-code"
     direction: DOWN
     timeout: 15000
+# The scroll stops as soon as the row counts as visible, which on the 360-dp phone is under the translucent
+# 3-button bar; the page pads past the bar, so a nudge brings the row clear (a no-op at the very end).
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
 - assertVisible: "Unique result ID · .*"
 - takeScreenshot: 12f2-result-foot-unique-id
 - scrollUntilVisible:
@@ -139,7 +166,12 @@ tags: [smoke]
 - launchApp
 - tapOn: "Results"
 - extendedWaitUntil:
-    visible: "Past results"
+    visible: "Select .*games"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: "Past results"
+    direction: DOWN
     timeout: 15000
 - scrollUntilVisible:
     element:

@@ -5,7 +5,7 @@ import test from 'node:test';
 // The planner lives with the CI tooling (ci/select-tests.mjs); this test keeps its map honest (T16-8).
 import * as plannerModule from '../../ci/select-tests.mjs';
 
-type Job = { device: string; suite: string; shard?: string; smokeFlows?: string; id?: string; flows: string; monkeyEvents?: number; api?: number; arch?: string; target?: string; profile?: string };
+type Job = { device: string; suite: string; shard?: string; smokeFlows?: string; id?: string; flows: string; monkeyEvents?: number; api?: number; arch?: string; target?: string; profile?: string; font?: string; density?: number };
 type Plan = { tier: string; ui: boolean; jobs: Job[]; volume: boolean; fileBugs: boolean; publish: boolean; reason: string };
 const { AREA_FLOWS, DEVICES, select, toMatrix } = plannerModule as unknown as {
   AREA_FLOWS: { area: string; flows: Record<string, string[]> }[];
@@ -34,7 +34,8 @@ test('PR 17 T16-8: an app change runs the smoke gate (two shards) plus the full 
   assert.equal(plan.ui, true);
   const suites = plan.jobs.map((j) => `${j.device}:${j.suite}${j.shard ? `-${j.shard}` : ''}`);
   // Nov 26: the full flows ride in the smoke job that owns their prerequisites; UI-only changes add no chaos job (nightly).
-  assert.deepEqual(suites, ['pixel6:smoke-a', 'pixel6:smoke-b']);
+  // The small phone (#131) runs the same two shards.
+  assert.deepEqual(suites, ['pixel6:smoke-a', 'pixel6:smoke-b', 'small:smoke-a', 'small:smoke-b']);
   assert.equal(plan.jobs[0].flows, '');
   assert.equal(plan.jobs[1].flows, '80-add-round-count-warnings');
   assert.equal(plan.fileBugs, false, 'a PR run files no issues unless asked');
@@ -48,9 +49,13 @@ test('PR 17 T16-8: a save-round change adds the offline / kill / two-device chec
   assert.ok(plan.jobs.find((j) => j.suite === 'chaos')!.flows.includes('c05-offline-save--net-off'));
 });
 
-test('PR 17 T16-8: an unmapped app change runs smoke only', () => {
+test('PR 17 T16-8: an unmapped app change runs smoke only — on the reference phone and the small one (Nov 24)', () => {
   const plan = select({ event: 'pull_request', files: ['rummy-home3/app.json'] });
-  assert.deepEqual(plan.jobs.map((j) => j.suite), ['smoke', 'smoke'], 'the two smoke shards');
+  assert.deepEqual(plan.jobs.map((j) => `${j.device}:${j.suite}`), ['pixel6:smoke', 'pixel6:smoke', 'small:smoke', 'small:smoke'], 'the two smoke shards on each phone');
+  const small = plan.jobs[2];
+  assert.equal(small.font, '1.3');
+  assert.equal(small.density, 480, 'Pixel 4a at density 480 = 360 dp wide');
+  assert.equal(small.profile, 'pixel_4a');
 });
 
 test('PR 17 T16-8: a test-infrastructure change runs every suite once on the reference phone', () => {
@@ -70,7 +75,7 @@ test('Nov 19: an infra change that edits full flows also runs those flows by nam
 
 test('PR 17 T16-8: commit-message tags — [ui-all] widens a PR, [file-bugs] lets it open issues', () => {
   const plan = select({ event: 'pull_request', files: ['rummy-home3/app.json'], message: 'fix thing [ui-all] [file-bugs]' });
-  assert.equal(plan.jobs.length, 6, 'two smoke shards + chaos + roles + two-device + monkey');
+  assert.equal(plan.jobs.length, 8, 'two smoke shards + chaos + roles + two-device + monkey, and the two shards on the small phone');
   assert.equal(plan.fileBugs, true);
 });
 
@@ -83,6 +88,7 @@ test('PR 17 T16-8: nightly = every suite on the reference phone, smoke on the ot
   assert.deepEqual(byDevice.get('pixel4a'), ['smoke']);
   assert.deepEqual(byDevice.get('pixel7pro'), ['smoke']);
   assert.deepEqual(byDevice.get('tablet'), ['smoke']);
+  assert.deepEqual(byDevice.get('small'), ['smoke']);
   assert.equal(plan.jobs.find((j) => j.suite === 'monkey')!.monkeyEvents, 5000);
   assert.equal(plan.volume, true, 'the volume job is nightly since Nov 21 (test-environment-plan V1)');
   assert.equal(plan.fileBugs, true);
@@ -91,7 +97,7 @@ test('PR 17 T16-8: nightly = every suite on the reference phone, smoke on the ot
 test('PR 17 T16-8: pre-release = full everywhere, 20k monkey, volume', () => {
   const plan = select({ event: 'workflow_dispatch', tier: 'prerelease' });
   assert.equal(plan.tier, 'prerelease');
-  for (const d of ['pixel4a', 'pixel7pro', 'tablet']) assert.ok(plan.jobs.some((j) => j.device === d && j.suite === 'full'), `${d} runs full`);
+  for (const d of ['pixel4a', 'pixel7pro', 'tablet', 'small']) assert.ok(plan.jobs.some((j) => j.device === d && j.suite === 'full'), `${d} runs full`);
   assert.equal(plan.jobs.find((j) => j.suite === 'monkey')!.monkeyEvents, 20000);
   assert.equal(plan.volume, true);
 });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Checkbox, Dialog, Portal, Text, TouchableRipple } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
@@ -60,7 +60,7 @@ export function DeleteAccountDialog({ visible, onDismiss, onDeleted }: Props) {
         <Dialog.Icon icon="account-remove-outline" color={colors.error} />
         <Dialog.Title style={styles.title}>{DELETE_ACCOUNT_TITLE}</Dialog.Title>
         <Dialog.ScrollArea style={styles.area}>
-          <View style={styles.body}>
+          <ScrollView contentContainerStyle={styles.body} testID="delete-account-scroll">
             <Text variant="titleSmall">Deleted now</Text>
             {DELETED_ITEMS.map((line) => (
               <Text key={line} variant="bodyMedium" style={styles.line}>{`\u2022 ${line}`}</Text>
@@ -85,7 +85,7 @@ export function DeleteAccountDialog({ visible, onDismiss, onDeleted }: Props) {
               </View>
             </TouchableRipple>
             {error ? <Text variant="bodySmall" style={{ color: colors.error }}>{error}</Text> : null}
-          </View>
+          </ScrollView>
         </Dialog.ScrollArea>
         <Dialog.Actions style={styles.actions}>
           <Button mode="outlined" onPress={close} disabled={busy} accessibilityLabel="Keep my account">Keep my account</Button>
@@ -109,7 +109,8 @@ export function DeleteAccountDialog({ visible, onDismiss, onDeleted }: Props) {
 const styles = StyleSheet.create({
   dialog: { borderRadius: radius.xl, maxWidth: 520, width: '92%', alignSelf: 'center', maxHeight: '90%' },
   title: { textAlign: 'center' },
-  area: { paddingHorizontal: 0 },
+  // The list is taller than a short phone (bug 4, staging build 2): the area must shrink and scroll, never sit under the buttons.
+  area: { paddingHorizontal: 0, flexShrink: 1 },
   body: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, gap: spacing.xs },
   heading: { marginTop: spacing.sm },
   line: { paddingLeft: spacing.xs },

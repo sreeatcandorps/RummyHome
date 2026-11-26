@@ -33,6 +33,13 @@ settle_device() {
   adb shell settings put system accelerometer_rotation 0
   adb shell settings put system user_rotation 0
   adb shell settings put global hide_error_dialogs 1
+  # The "small" matrix row: the Pixel 4a image at density 480 is a 360 × 780 dp window — the narrowest phone
+  # the app meets (staging build 2, Nov 23: five of eight bugs were width or font size).
+  if [ -n "${DEVICE_DENSITY:-}" ]; then
+    adb shell wm density "$DEVICE_DENSITY"
+    sleep 2
+    echo "density now: $(adb shell wm density 2>/dev/null | tr '\n' ' ')"
+  fi
   adb shell input keyevent 82
   adb shell input keyevent 3
   sleep 5

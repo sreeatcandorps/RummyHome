@@ -50,7 +50,13 @@ tags: [nightly]
 - back
 - tapOn: "Your profile"
 - extendedWaitUntil:
-    visible: "Appearance"
+    visible: "Profile"
+    timeout: 15000
+# Size-S (#120): Appearance is below the fold at 360 dp × font 1.3; scroll to it.
+- scrollUntilVisible:
+    element:
+      text: "Appearance"
+    direction: DOWN
     timeout: 15000
 - tapOn: "Help"
 - extendedWaitUntil:

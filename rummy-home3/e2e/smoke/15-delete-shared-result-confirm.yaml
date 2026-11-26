@@ -8,7 +8,13 @@ tags: [smoke]
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Results"
 - extendedWaitUntil:
-    visible: "Past results"
+    visible: "Results"
+    timeout: 15000
+# Past results is under the picker; below the fold on the 360-dp phone.
+- scrollUntilVisible:
+    element:
+      text: "Past results"
+    direction: DOWN
     timeout: 15000
 - scrollUntilVisible:
     element:

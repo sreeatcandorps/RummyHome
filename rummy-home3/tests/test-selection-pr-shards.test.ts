@@ -27,6 +27,10 @@ const E2E = path.join(__dirname, '..', 'e2e');
 const names = (set: string) => (existsSync(path.join(E2E, set)) ? readdirSync(path.join(E2E, set)).filter((f) => f.endsWith('.yaml')).map((f) => f.replace(/\.yaml$/, '')).sort() : []);
 const read = (...p: string[]) => readFileSync(path.join(ROOT, ...p), 'utf8');
 const suiteOf = (j: Job) => (j.shard ? `${j.suite}-${j.shard}` : j.suite);
+// The small phone (#131) runs the same two smoke shards on every app PR; the reference phone is what these plans vary.
+const ref = (jobs: Job[]) => jobs.filter((j) => j.device === 'pixel6');
+const SMALL = ['small:smoke-a', 'small:smoke-b'];
+const smallOf = (jobs: Job[]) => jobs.filter((j) => j.device === 'small').map((j) => `small:${suiteOf(j)}`);
 
 const SMOKE_FLOWS = ['smoke'].flatMap(names);
 const shards = Object.keys(SMOKE_SHARDS);
@@ -86,6 +90,7 @@ test('shards: the two are about the same size (measured smoke seconds of run 457
   const secs: Record<string, number> = {
     '01': 92, '02': 43, '03': 52, '04': 83, '05': 58, '06': 42, '07': 84, '08': 42, '09': 73, '10': 75, '11': 63, '12': 150, '13': 76, '14': 73, '15': 70,
     '16': 269, '17': 55, '18': 107, '19': 197, '20': 66, '21': 145, '22': 125, '23': 72, '24': 279, '25': 75,
+    '26': 85, // #131's run 45780988614
   };
   const total = (id: string) => SMOKE_SHARDS[id].smoke.reduce((n, f) => n + secs[f.slice(0, 2)], 0);
   const [a, b] = shards.map(total);
@@ -101,8 +106,9 @@ test('PR plan (a): a docs-only PR runs no device job', () => {
 
 test('PR plan (b): a scorecard UI PR is two smoke shards with the scorecard full flows inside them, nothing else', () => {
   const plan = select({ event: 'pull_request', files: ['rummy-home3/app/(screens)/games/[id].tsx', 'rummy-home3/components/game/ScoreTable.tsx'] });
-  assert.deepEqual(plan.jobs.map(suiteOf), ['smoke-a', 'smoke-b']);
-  const flows = plan.jobs.flatMap((j) => j.flows.split(',').filter(Boolean)).sort();
+  assert.deepEqual(ref(plan.jobs).map(suiteOf), ['smoke-a', 'smoke-b']);
+  assert.deepEqual(smallOf(plan.jobs), SMALL);
+  const flows = ref(plan.jobs).flatMap((j) => j.flows.split(',').filter(Boolean)).sort();
   assert.deepEqual(flows, ['20-scorecard-20-players-swipe', '21-scorecard-font-scale', '42-reopen-closed-game']);
   for (const j of plan.jobs) for (const f of j.flows.split(',').filter(Boolean)) assert.equal(shardOfFull(f), j.shard, `${f} runs in the shard that owns it`);
   assert.equal(plan.jobs.some((j) => ['full', 'chaos', 'roles', 'two-device', 'monkey'].includes(j.suite)), false, 'no separate full job; chaos / roles / two-device wait for the nightly');
@@ -111,7 +117,8 @@ test('PR plan (b): a scorecard UI PR is two smoke shards with the scorecard full
 
 test('PR plan (c): a migration PR adds roles, chaos and two-device (whole sets) to the two smoke shards', () => {
   const plan = select({ event: 'pull_request', files: ['rummy-home3/supabase/migrations/053_something.sql', 'rummy-home3/supabase/tests/053.sql'] });
-  assert.deepEqual(plan.jobs.map(suiteOf), ['smoke-a', 'smoke-b', 'chaos', 'roles', 'two-device']);
+  assert.deepEqual(ref(plan.jobs).map(suiteOf), ['smoke-a', 'smoke-b', 'chaos', 'roles', 'two-device']);
+  assert.deepEqual(smallOf(plan.jobs), SMALL);
   for (const j of plan.jobs.filter((x) => ['chaos', 'roles', 'two-device'].includes(x.suite))) assert.equal(j.flows, '', `${j.suite} runs whole`);
 });
 
@@ -151,7 +158,7 @@ test('nightly and pre-release are untouched: the whole smoke set on the other de
 
 test('the matrix gives each job its own id and carries the shard lists the runner reads', () => {
   const rows = toMatrix(select({ event: 'pull_request', files: ['rummy-home3/app.json'] })).include;
-  assert.deepEqual(rows.map((r) => r.id), ['smoke-a', 'smoke-b']);
+  assert.deepEqual(rows.map((r) => `${r.device}:${r.id}`), ['pixel6:smoke-a', 'pixel6:smoke-b', ...SMALL]);
   assert.equal(new Set(rows.map((r) => `${r.device}-${r.id}`)).size, rows.length, 'job and artifact names are unique');
   for (const r of rows) assert.deepEqual(r.smokeFlows.split(','), SMOKE_SHARDS[r.shard].smoke);
   const night = toMatrix(select({ event: 'schedule' })).include;

@@ -51,7 +51,7 @@ test('§10.1 Profile: six groups in order, rows not cards, zero Buttons, Appeara
   assert.match(me, /title="Delete account" tone="danger"[^\n]*testID="delete-account"/);
   assert.match(me, /title="Log out" tone="danger" noChevron/);
   assert.match(me, /testID="me-notice"/, 'A09: the notice dialog stays');
-  assert.match(me, /title="Admin"/, 'demo tools are the admins\u2019 seventh group');
+  assert.doesNotMatch(me, /title="Admin"/, 'Q17 (batch 2): the demo-data group is gone; six groups only');
   assert.match(me, /<EditFieldDialog[\s\S]*?title="Edit name"/);
   assert.match(me, /<EditFieldDialog[\s\S]*?keyboardType="phone-pad"/);
   assert.equal(emailPrefsSummary({ gameStarted: true, results: false }), 'Game started');
