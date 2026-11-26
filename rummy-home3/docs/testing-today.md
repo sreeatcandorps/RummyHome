@@ -42,8 +42,8 @@ never hide a failure for more than a night (that rule is already in `ci/select-t
 
 ## Who does it
 
-A Sonnet 5.5 test helper (D92), as one CI PR, **after batch 2 (#131) merges** — #131 changes the same CI files, so
-starting now would collide. It doesn't take a build slot (it changes tests, not the app). Proof in the PR: two app-PR
+A Sonnet 5.5 test helper (D92), as one CI PR, started Nov 25 at 9:20 PM PT (Sree: build through the night, D115).
+Batch 2 (#131) changes the same CI files, so whichever merges second rebases. Proof in the PR: two app-PR
 runs, before and after, with their times.
 
 Detail (tiers, devices, every flow): [`test-plan/automation.md`](test-plan/automation.md),
