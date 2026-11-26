@@ -57,7 +57,8 @@ test('e2e: every id: a flow taps or asserts exists as a testID in the app', () =
   assert.ok(ids.size >= 6, `flows reference testIDs (${ids.size})`);
   // PR 13: a form used on several screens builds its ids from a prefix prop (`${testIDPrefix}-limit-${limit}`);
   // such a template matches an id when the id ends with the template's literal tail (segments for the holes).
-  const prefixed = [...sources.matchAll(/testID=\{`\$\{[A-Za-z]+\}-([^`]+)`\}/g)].map((m) => new RegExp(
+  // A segmented option carries it as `testID: \`${testIDPrefix}-way-whatsapp\`` (SignInMethodSwitch).
+  const prefixed = [...sources.matchAll(/testID(?:=\{|: )`\$\{[A-Za-z]+\}-([^`]+)`/g)].map((m) => new RegExp(
     '-' + m[1].replace(/[.*+?^()|[\]\\]/g, '\\$&').replace(/\$\{[^}]+\}/g, '[^-]+') + '$',
   ));
   for (const id of ids) {

@@ -30,6 +30,9 @@ import { DeletedGamesCard } from '@/components/home/DeletedGamesCard';
 import { archiveService } from '@/services/archive';
 import { restoreGameNote } from '@/utils/archive';
 import { ASKED_TOAST, DeletedHomeGame } from '@/utils/deletedGames';
+import { dismissBackupReminder, readSignInMethods } from '@/services/auth';
+import { isSupabaseConfigured } from '@/services/supabase';
+import { BackupReminder, backupReminderFor } from '@/utils/backupReminder';
 
 const openGame = (id: string) => router.push(`/(screens)/games/${id}`);
 
@@ -67,6 +70,7 @@ export default function Dashboard() {
   /** True only when the server said there is no session — not when the server could not be reached. */
   const [signedOut, setSignedOut] = useState(false);
   const [notices, setNotices] = useState<string[]>([]);
+  const [backupReminder, setBackupReminder] = useState<BackupReminder | null>(null);
   // 045: games deleted in the last 30 days that this person scored in (or runs); Ask / Restore from the card.
   const [deletedGames, setDeletedGames] = useState<DeletedHomeGame[]>([]);
   const [deletedBusy, setDeletedBusy] = useState<string | null>(null);
@@ -102,6 +106,10 @@ export default function Dashboard() {
       if (plain.length) setNotices((cur) => [...cur, ...plain]);
       // Warm the first live games so tapping one opens the scorecard at once.
       splitHomeGames(home.games).live.slice(0, 2).forEach((game) => { gamesService.prefetchGame(game.id); });
+      if (isSupabaseConfigured) {
+        const finishedCount = splitHomeGames(home.games).recent.length;
+        readSignInMethods().then((methods) => setBackupReminder(backupReminderFor(methods, finishedCount))).catch(() => {});
+      }
     } catch (error) {
       setLoadError(formatSupabaseError(error));
     } finally {
@@ -312,6 +320,28 @@ export default function Dashboard() {
           <Button compact mode="text" onPress={() => setNotices((cur) => cur.filter((_, j) => j !== i))}>OK</Button>
         </SectionCard>
       ))}
+      {backupReminder ? (
+        <SectionCard title={backupReminder.title} icon="shield-key-outline" supportingText={backupReminder.text}>
+          <View style={styles.reminderActions} testID="home-backup-reminder">
+            <Button
+              compact
+              mode="contained"
+              onPress={() => router.push({ pathname: '/(tabs)/me', params: { add: backupReminder.add } })}
+              testID="home-backup-add"
+            >
+              {backupReminder.action}
+            </Button>
+            <Button
+              compact
+              mode="text"
+              onPress={() => { setBackupReminder(null); dismissBackupReminder().catch(() => {}); }}
+              testID="home-backup-not-now"
+            >
+              Not now
+            </Button>
+          </View>
+        </SectionCard>
+      ) : null}
       <Button
         mode="contained"
         icon="plus"
@@ -392,6 +422,7 @@ export default function Dashboard() {
 }
 
 const styles = StyleSheet.create({
+  reminderActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   hi: {
     fontWeight: '700',
     marginBottom: spacing.sm,

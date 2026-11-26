@@ -27,6 +27,7 @@ export default function ScreensLayout() {
         }}
       />
       <Stack.Screen name="profile" options={{ title: 'Me' }} />
+      <Stack.Screen name="confirm-code" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ title: 'Settings', headerRight: () => <HelpButton topic="settings" /> }} />
       <Stack.Screen name="hidden-deleted" options={{ title: 'Hidden & deleted', headerRight: () => <HelpButton topic="hidden-deleted" /> }} />
       <Stack.Screen

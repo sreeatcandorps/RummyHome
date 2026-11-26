@@ -5,6 +5,7 @@ tags: [nightly]
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Your profile"
+# Sign-in methods (D124) sits first and pushes Appearance below the fold: scroll to the choice.
 - extendedWaitUntil:
     visible: "Profile"
     timeout: 15000
@@ -14,6 +15,10 @@ tags: [nightly]
       text: "Appearance"
     direction: DOWN
     timeout: 15000
+- scrollUntilVisible:
+    element: "Dark"
+    direction: DOWN
+    timeout: 10000
 - tapOn: "Dark"
 - takeScreenshot: 60-profile-dark
 - launchApp
@@ -41,6 +46,7 @@ tags: [nightly]
     timeout: 15000
 - takeScreenshot: 60e-my-players-dark
 - tapOn: "Your profile"
+# Sign-in methods (D124) sits first and pushes Appearance below the fold: scroll to the choice.
 - extendedWaitUntil:
     visible: "Profile"
     timeout: 15000
@@ -50,6 +56,10 @@ tags: [nightly]
       text: "Appearance"
     direction: DOWN
     timeout: 15000
+- scrollUntilVisible:
+    element: "Light"
+    direction: DOWN
+    timeout: 10000
 # PR 5: Light is the default, so the set is left as a fresh install would be.
 - tapOn: "Light"
 - assertVisible: "Appearance"

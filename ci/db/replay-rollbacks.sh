@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–053) applied, check the function state after each, then re-apply the forward
+# has every migration (001–055) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,18 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 055 (D124 sign-in methods: the Auth email reaches the profile, the email lock accepts it, Not you?; rolled back first)
+HAS_055=f
+if [ -f "$RB/rollback_055_sign_in_methods.sql" ]; then
+  HAS_055=t
+  if apply "$RB/rollback_055_sign_in_methods.sql"; then tap ok "rollback_055 applies"; else tap fail "rollback_055 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists release_my_whatsapp_number)" = f ] && [ "$(fn_exists sync_profile_email_from_auth)" = f ] \
+    && [ "$(fn_has lock_profile_email 'auth.users')" = f ] \
+    && [ "$(q "select exists(select 1 from pg_trigger where tgname='on_auth_user_email_changed')")" = f ] \
+    && tap ok "after rollback_055 the email copy, its trigger and Not you? are gone; lock_profile_email is the 026 body" \
+    || tap fail "after rollback_055 the email copy, its trigger and Not you? should be gone"
+fi
 
 # 053 (D113: search_players answers an exact Player ID only, short_player_name; rolled back first)
 HAS_053=f
@@ -539,6 +551,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_051" = t ] && FORWARD="$FORWARD 051_pool_limit_unlocked"
 [ "$HAS_052" = t ] && FORWARD="$FORWARD 052_dealer"
 [ "$HAS_053" = t ] && FORWARD="$FORWARD 053_player_id_search_only"
+[ "$HAS_055" = t ] && FORWARD="$FORWARD 055_sign_in_methods"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -727,6 +740,11 @@ if [ "$HAS_052" = t ]; then
   [ "$(fn_exists set_round_dealer)" = t ] && [ "$(fn_exists current_dealer)" = t ] && [ "$(fn_has save_round next_dealer_profile_id)" = t ] \
     && [ "$(fn_has add_seated_player current_dealer)" = t ] \
     && tap ok "052 restored (Dealer RPC, override in save_round, join at dealer + 1)" || tap fail "052 restored"
+fi
+if [ "$HAS_055" = t ]; then
+  [ "$(fn_exists release_my_whatsapp_number)" = t ] && [ "$(fn_has lock_profile_email 'auth.users')" = t ] \
+    && [ "$(q "select exists(select 1 from pg_trigger where tgname='on_auth_user_email_changed')")" = t ] \
+    && tap ok "055 restored (email copy trigger, lock accepts the Auth email, Not you?)" || tap fail "055 restored"
 fi
 if [ "$HAS_053" = t ]; then
   [ "$(fn_exists short_player_name)" = t ] && [ "$(fn_has search_players short_player_name)" = t ] && [ "$(fn_has search_players ilike)" = f ] \

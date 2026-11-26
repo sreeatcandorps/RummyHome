@@ -789,7 +789,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     icon: 'account-circle-outline',
     purpose: 'Your account, your defaults, your phone\u2019s look.',
     needToKnow: [
-      'Your email is how you sign in. It cannot be changed for now.',
+      '**Sign-in methods** (top of Profile): your email and your WhatsApp number. Either one signs you in with the same passcode. Only you see them.',
       'Your **player ID** is what you give someone so they can find you. It is never used to sign in.',
       'Phone is optional and never texted.',
       '**Settings** are the defaults every new game starts with. Dark mode is saved on this phone only.',
@@ -798,26 +798,26 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     screenshot: {
       file: 'me',
       legend: [
-        'Your name and #ID at the top; under **Your table**, tap a row to edit your name or initials, or the **Player ID** row to share it so a friend can link you.',
+        'Your name and #ID at the top; under **Sign-in methods**, your email and WhatsApp number (tap one to change it, or **Add a backup**) and **Passcode**; under **Your table**, tap a row to edit your name or initials, or the **Player ID** row to share it so a friend can link you.',
         '**Notifications**: Phone and the Email switches, each in its own sheet.',
         '**Game defaults** opens Settings; **Appearance**: Phone, Light or Dark.',
-        '**Account**: Change passcode, Privacy policy, Delete account, Log out.',
+        '**Account**: Privacy policy, Delete account, Log out.',
       ],
     },
     sections: [
       {
         title: 'Account',
         bullets: [
-          '**Change passcode**: 6 digits, numbers only. **Sign out** keeps your data; sign in again any time.',
+          '**Change passcode** (under Sign-in methods): 6 digits, numbers only. **Sign out** keeps your data; sign in again any time.',
           'A deleted account can still be a seat in old games (shown as unregistered) but never an admin.',
         ],
       },
     ],
     tricky: [
-      { id: 'change-email', q: 'Can I change my email?', a: 'Not yet. It is your sign-in. Email support@ezscore.app with your Player ID if it must change.' },
+      { id: 'change-email', q: 'Can I change my email?', a: 'Yes: Profile › Sign-in methods › Email. We email a code to the new address; your account, Player ID, passcode and games stay the same.' },
     ],
     alsoSee: ['settings', 'sign-in', 'my-players'],
-    aliases: ['profile', 'account', 'passcode', 'sign out', 'delete account', 'dark mode'],
+    aliases: ['profile', 'account', 'passcode', 'sign out', 'delete account', 'dark mode', 'sign-in methods', 'whatsapp number'],
   },
 
   settings: {
@@ -898,30 +898,45 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     group: 'You',
     family: 'people',
     icon: 'login-variant',
-    purpose: 'Email and a 6-digit passcode; a code by email if you forget it.',
+    purpose: 'Your WhatsApp number or email, and a 6-digit passcode; a code if you forget it.',
     screenshot: {
       file: 'sign-in',
       legend: [
-        '**Email**: the address you created the account with. It is your sign-in and cannot be changed.',
+        '**WhatsApp** or **Email** at the top: the way you sign in. Either one works with the same passcode once both are on your account.',
         '**6-digit passcode**: numbers only; the eye shows what you typed.',
-        '**Forgot passcode?** emails a one-time code; type it back, then choose a new passcode.',
-        '**Create account**: name, email, passcode. Then type the 6-digit code we email you, and you are signed in.',
+        '**Forgot passcode?** sends a code to your WhatsApp or your email; type it back, then choose a new passcode.',
+        '**Create account**: name, WhatsApp number or email, passcode. Then type the 6-digit code we send you, and you are signed in.',
       ],
     },
     needToKnow: [
       'Your passcode is 6 digits. Numbers only.',
-      '**Forgot passcode** emails you a 6-digit code (OTP) to type back here, then you choose a new passcode. The OTP works once and expires in 15 minutes; your old passcode keeps working until the new one is saved.',
-      'Email is how you sign in. It cannot be changed later. Phone and zip code are optional; we never text you.',
+      '**Forgot passcode** sends you a 6-digit code to type back here, then you choose a new passcode. The code works once and expires in 15 minutes; your old passcode keeps working until the new one is saved.',
+      'Signing in sends no message: your number or email is only the name of your account, the passcode is the key. A code is sent only to create the account, to reset the passcode, or to add or change a way in.',
       'Came from a friend\u2019s invite? Type the code from the email, then tap **Yes** on \u201cIs this you?\u201d to move your past scores here.',
       'Already on a friend\u2019s scorecard? Tell them your Player ID (it is on Profile); they add it to your seat and you tap **Yes**. A Player ID is never used to sign in.',
     ],
     sections: [
       {
+        title: 'Sign in with WhatsApp',
+        bullets: [
+          'Tap **WhatsApp**, type your WhatsApp number with its country code, then your passcode. No message is sent.',
+          'Create account by WhatsApp: name, WhatsApp number, passcode. We send a 6-digit code to WhatsApp; type it and tap **Confirm and sign in**. **Wrong number? Go back** fixes the number.',
+          'The country code is filled in from your phone; tap it to pick another, or paste a number that starts with + and its code.',
+        ],
+      },
+      {
         title: 'Create account',
         bullets: [
-          'Name, email, 6-digit passcode. Country picker for the optional phone.',
-          'We email a 6-digit code. Type it in the app and tap **Confirm and sign in**; nothing opens in a browser. **Send a new code** works once a minute; **Go back** fixes a wrong address.',
+          'Name, then a way to sign in (WhatsApp or email), then a 6-digit passcode. With email, a country picker for the optional phone.',
+          'We send a 6-digit code to your WhatsApp or your email. Type it in the app and tap **Confirm and sign in**; nothing opens in a browser. **Send a new code** works once a minute; **Go back** fixes a wrong number or address.',
           'Closed the app before typing the code? Sign in with your email and passcode, then tap **Enter the code**.',
+        ],
+      },
+      {
+        title: 'Add a backup',
+        bullets: [
+          'Right after you create an account, the app offers the other way in: an email if you used WhatsApp, a WhatsApp number if you used email. **Skip for now** is fine.',
+          'Add it later in Profile › Sign-in methods. If you lose your number or your mailbox, the backup is the way back to your games.',
         ],
       },
       {
@@ -932,12 +947,14 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       },
     ],
     tricky: [
-      { id: 'otp-refused', q: 'The code is refused.', a: 'It is older than 15 minutes or was already used. Tap **Send a new code** (or **Send a new OTP** for a passcode reset); type the newest one. Check the spam folder.' },
+      { id: 'otp-refused', q: 'The code is refused.', a: 'It is older than 15 minutes or was already used. Tap **Send a new code** (or **Send a new OTP** for an email passcode reset); type the newest one. Check the spam folder.' },
       { id: 'no-email', q: 'No email with a code.', a: 'Check spam, then **Send a new code**. The address must be exactly the one you typed; if it is wrong, tap **Go back** and fix it.' },
+      { id: 'changed-number', q: 'I changed my number.', a: 'Still signed in: Profile › Sign-in methods › WhatsApp, type the new number, then the code we send to it. Signed out and the old number is gone: sign in with the old number and your passcode (no message is sent), then change it. Forgot the passcode too: Forgot passcode by your backup email.' },
+      { id: 'not-on-whatsapp', q: 'No WhatsApp message with a code.', a: 'Check the number and its country code; tap **Wrong number? Go back** to fix it, or **Send a new code** after a minute. The number must have WhatsApp. You can also use email instead.' },
       { id: 'confirm-button', q: 'My email has a Confirm button, not a code.', a: 'It was sent before the switch to codes. Tap the button once, then sign in with your email and passcode.' },
     ],
     alsoSee: ['me', 'my-players'],
-    aliases: ['login', 'register', 'forgot passcode', 'otp', 'reset', 'claim', 'is this you'],
+    aliases: ['login', 'register', 'forgot passcode', 'otp', 'reset', 'claim', 'is this you', 'whatsapp', 'backup', 'changed number'],
   },
 
   // ───────────────────────────── Rules ─────────────────────────────
@@ -1071,6 +1088,7 @@ export const ROUTE_TOPIC: Record<string, HelpTopicKey> = {
   '(auth)/login': 'sign-in',
   '(auth)/register': 'sign-in',
   '(auth)/forgot-password': 'sign-in',
+  '(screens)/confirm-code': 'me',
   claim: 'sign-in',
   '(screens)/games/new': 'new-game',
   '(screens)/games/[id]': 'scorecard',

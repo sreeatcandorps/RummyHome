@@ -41,6 +41,12 @@ Manygames (38 games); admins `a1` Arun Admin, `a2` Asha Coadmin (non-playing), `
 `p01`–`p20` Player One … Twenty; `s1` Sita Spectator; outsiders `o1`, `o2`. Flows sign in with
 `lib/sign-in-as.yaml` (`EMAIL`) and open a game with `lib/open-break-game.yaml` (`CODE`).
 
+WhatsApp sign-in (D124) runs on **test numbers**: `supabase/config.toml` `[auth.sms.test_otp]` gives each the fixed
+code `123456`, and Supabase answers them without calling Twilio, so nothing is ever sent. `+91 90000 00001` has no
+account (`smoke/32` creates it); `+91 90000 00002` Wendy Whatsapp (`smoke/33`, sign in) and `+91 90000 00003`
+Farah Forgot (`smoke/34`, sets a new passcode `654321`) are WhatsApp-only accounts in `seed-e2e.sql`, passcode
+`123456`. Every seeded account has dismissed Home's backup reminder (`seed-listing.sql`).
+
 | Break game | Share code | State at the start | Used by |
 | --- | --- | --- | --- |
 | BP1 | `BREAKP1` | Points, c1 + a1 admins, p01, p02, Mo Khan; s1 spectator; 3 rounds + an undone 4th (Round 4) | `chaos/c01` (saves round 4), `chaos/c04` (saves and undoes round 5), `roles/r01`, `roles/r02`, `two-device/*` (realtime saves one round, the race one more) |

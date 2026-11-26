@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { Image, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { HelpButton } from '@/components/ui/HelpButton';
@@ -22,7 +22,13 @@ type AuthShellProps = {
   /** When the keyboard opens, scroll so the bottom of the form card sits just above it (a short code form whose
    * buttons and links must stay reachable with the number pad up on a small phone). */
   keepCardInView?: boolean;
+  /** With keepCardInView: the footer counts too (Sign in's "New here? Create account" must stay reachable). */
+  keepFooterInView?: boolean;
 };
+
+/** A field inside the card that takes focus with the keypad already up (the passcode cells) asks to be followed. */
+const RevealCardContext = createContext<() => void>(() => {});
+export const useRevealCard = () => useContext(RevealCardContext);
 
 const FORM_MAX_WIDTH = 460;
 
@@ -58,7 +64,7 @@ export function useScrollToFocusedInput(scrollRef: React.RefObject<ScrollView | 
 }
 
 /** Shared chrome for sign-in screens: felt brand panel plus a form card. Side by side in landscape. */
-export function AuthShell({ title, subtitle, icon, hero, children, footer, help, helpAnchor, keepCardInView }: AuthShellProps) {
+export function AuthShell({ title, subtitle, icon, hero, children, footer, help, helpAnchor, keepCardInView, keepFooterInView }: AuthShellProps) {
   const { colors } = useAppTheme();
   const { insets, isShort, gutterLeft, gutterRight } = useLayout();
   const scrollRef = useRef<ScrollView>(null);
@@ -66,15 +72,40 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
   const viewportHeight = useRef(0);
   const cardTop = useRef(0);
   const cardBottom = useRef(0);
+  const footerBottom = useRef(0);
+  const columnRef = useRef<View>(null);
   const keyboardOpen = useRef(false);
+  const topInset = useRef(insets.top);
+  topInset.current = insets.top;
 
+  // Scroll so the card's bottom (and the footer's, when asked) sits just above the keypad, but never so far that
+  // the field being typed in leaves the top: on a phone too short for both, the field wins and the rest scrolls.
+  // The ScrollView starts under the status bar (edge-to-edge), so the field stops below the status bar, where a
+  // tap still reaches it.
   const scrollCardIntoView = () => {
-    const overflow = cardTop.current + cardBottom.current + spacing.md - viewportHeight.current;
-    if (overflow > 0) scrollRef.current?.scrollTo({ y: overflow, animated: true });
+    const bottom = Math.max(cardBottom.current, keepFooterInView ? footerBottom.current : 0);
+    const overflow = cardTop.current + bottom + spacing.md - viewportHeight.current;
+    if (overflow <= 0) return;
+    const scrollTo = (y: number) => scrollRef.current?.scrollTo({ y: Math.max(0, y), animated: true });
+    const focused = TextInput.State.currentlyFocusedInput?.();
+    const column = columnRef.current;
+    if (!focused || !column) {
+      scrollTo(overflow);
+      return;
+    }
+    focused.measureLayout(
+      column,
+      (_x, y) => scrollTo(Math.min(overflow, cardTop.current + y - spacing.md - topInset.current)),
+      () => scrollTo(overflow),
+    );
   };
 
   const followCard = () => {
     if (keepCardInView && keyboardOpen.current) scrollCardIntoView();
+  };
+
+  const revealCard = () => {
+    if (keepCardInView) setTimeout(followCard, 80);
   };
 
   useEffect(() => {
@@ -120,6 +151,17 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
     </View>
   );
 
+  const footerNode = footer ? (
+    <View
+      onLayout={(e) => {
+        footerBottom.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height;
+        followCard();
+      }}
+    >
+      {footer}
+    </View>
+  ) : null;
+
   const card = (
     <View
       style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}
@@ -140,93 +182,104 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
 
   if (isShort) {
     return (
-      <KeyboardAvoidingView style={[styles.row, { backgroundColor: colors.background }]} behavior={KEYBOARD_BEHAVIOR}>
-        <View
-          style={[
-            styles.sidePanel,
-            {
-              backgroundColor: colors.felt,
-              paddingLeft: gutterLeft,
-              paddingTop: insets.top + spacing.md,
-              paddingBottom: insets.bottom + spacing.md,
-            },
-          ]}
+      <RevealCardContext.Provider value={revealCard}>
+        <KeyboardAvoidingView
+          style={[styles.row, { backgroundColor: colors.background }]}
+          behavior={KEYBOARD_BEHAVIOR}
         >
-          {brand}
-        </View>
+          <View
+            style={[
+              styles.sidePanel,
+              {
+                backgroundColor: colors.felt,
+                paddingLeft: gutterLeft,
+                paddingTop: insets.top + spacing.md,
+                paddingBottom: insets.bottom + spacing.md,
+              },
+            ]}
+          >
+            {brand}
+          </View>
+          <ScrollView
+            ref={scrollRef}
+            onLayout={(e) => {
+              viewportHeight.current = e.nativeEvent.layout.height;
+              followCard();
+            }}
+            style={styles.flex}
+            contentContainerStyle={[
+              styles.sideContent,
+              {
+                paddingTop: insets.top + spacing.lg,
+                paddingBottom: insets.bottom + spacing.lg,
+                paddingRight: gutterRight,
+              },
+            ]}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View
+              ref={columnRef}
+              style={styles.formColumn}
+              onLayout={(e) => {
+                cardTop.current = e.nativeEvent.layout.y;
+              }}
+            >
+              {card}
+              {footerNode}
+            </View>
+          </ScrollView>
+          {helpButton}
+        </KeyboardAvoidingView>
+      </RevealCardContext.Provider>
+    );
+  }
+
+  return (
+    <RevealCardContext.Provider value={revealCard}>
+      <KeyboardAvoidingView
+        style={[styles.flex, { backgroundColor: colors.background }]}
+        behavior={KEYBOARD_BEHAVIOR}
+      >
         <ScrollView
           ref={scrollRef}
           onLayout={(e) => {
             viewportHeight.current = e.nativeEvent.layout.height;
             followCard();
           }}
-          style={styles.flex}
-          contentContainerStyle={[
-            styles.sideContent,
-            {
-              paddingTop: insets.top + spacing.lg,
-              paddingBottom: insets.bottom + spacing.lg,
-              paddingRight: gutterRight,
-            },
-          ]}
+          contentContainerStyle={[styles.stackContent, { paddingBottom: insets.bottom + spacing.xl }]}
           keyboardShouldPersistTaps="handled"
         >
           <View
-            style={styles.formColumn}
+            style={[
+              styles.band,
+              {
+                backgroundColor: colors.felt,
+                paddingTop: insets.top + spacing.xl,
+                paddingLeft: gutterLeft,
+                paddingRight: gutterRight,
+              },
+            ]}
+          >
+            <View style={styles.suit} pointerEvents="none">
+              <Icon source="cards-club" size={150} color="rgba(251, 241, 225, 0.05)" />
+            </View>
+            {brand}
+          </View>
+          <View
+            style={[styles.overlap, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}
             onLayout={(e) => {
               cardTop.current = e.nativeEvent.layout.y;
             }}
           >
-            {card}
-            {footer}
+            <View ref={columnRef} style={styles.formColumn}>
+              {card}
+              {footerNode}
+            </View>
           </View>
         </ScrollView>
         {helpButton}
       </KeyboardAvoidingView>
-    );
-  }
-
-  return (
-    <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]} behavior={KEYBOARD_BEHAVIOR}>
-      <ScrollView
-        ref={scrollRef}
-        onLayout={(e) => {
-          viewportHeight.current = e.nativeEvent.layout.height;
-          followCard();
-        }}
-        contentContainerStyle={[styles.stackContent, { paddingBottom: insets.bottom + spacing.xl }]}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View
-          style={[
-            styles.band,
-            {
-              backgroundColor: colors.felt,
-              paddingTop: insets.top + spacing.xl,
-              paddingLeft: gutterLeft,
-              paddingRight: gutterRight,
-            },
-          ]}
-        >
-          <View style={styles.suit} pointerEvents="none">
-            <Icon source="cards-club" size={150} color="rgba(251, 241, 225, 0.05)" />
-          </View>
-          {brand}
-        </View>
-        <View
-          style={[styles.overlap, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}
-          onLayout={(e) => {
-            cardTop.current = e.nativeEvent.layout.y;
-          }}
-        >
-          <View style={styles.formColumn}>
-            {card}
-            {footer}
-          </View>
-        </View>
-      </ScrollView>
-      {helpButton}
-    </KeyboardAvoidingView>
+    </RevealCardContext.Provider>
   );
 }
 

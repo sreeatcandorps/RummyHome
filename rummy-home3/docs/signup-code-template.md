@@ -58,3 +58,15 @@ Your EZ Score: Rummy code is {{ .Token }}
 
 No migration, no Site URL or redirect change: the code needs neither. Leave the redirect allow-list as it is so link
 e-mails already sent still land.
+
+## Dashboard › Authentication › Email Templates › Change email address (D124, with WhatsApp sign-in)
+
+Set together with the WhatsApp keys (staging first), from `supabase/templates/email-change-code.html`: subject
+`Your EZ Score: Rummy code is {{ .Token }}`, body the file without its comment. The app types the code back
+(`verifyOtp` type `email_change`) when a WhatsApp account adds a backup email, or anyone changes their email in
+Profile › Sign-in methods.
+
+| Setting | Value | Management API field |
+| --- | --- | --- |
+| Change email address › subject / body | as above | `mailer_subjects_email_change` / `mailer_templates_email_change_content` |
+| Providers › Email › Secure email change | **off**: the app asks for one code, sent to the new address. On, Supabase also mails the old address and waits for both codes, so a changed email would never finish | `mailer_secure_email_change_enabled` = `false` |

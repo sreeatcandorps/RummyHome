@@ -34,14 +34,79 @@ export const SIGNUP_CODE_ERRORS = {
   offline: 'No connection. Check your internet and try again.',
 } as const;
 
+/** Where the code went. The code step is one screen for both (D101, WhatsApp spec §8(b)); only these words differ. */
+export type CodeChannel = 'email' | 'whatsapp';
+
+/** The D101 step with WhatsApp words: the icon, the title, the label and "Wrong number?". */
+export const WHATSAPP_CODE_TEXT = {
+  title: 'Check WhatsApp',
+  /** `number` is already masked: "+91 98xxx xx210". */
+  subtitle: (number: string) => `We sent a 6-digit code to WhatsApp ${number}`,
+  fieldLabel: 'Code from WhatsApp',
+  placeholder: SIGNUP_CODE_TEXT.placeholder,
+  verify: SIGNUP_CODE_TEXT.verify,
+  resend: SIGNUP_CODE_TEXT.resend,
+  resendIn: SIGNUP_CODE_TEXT.resendIn,
+  sent: (number: string) => `A new code is on its way to WhatsApp ${number}. Use the newest one.`,
+  wrongAddress: 'Wrong number?',
+  goBack: SIGNUP_CODE_TEXT.goBack,
+} as const;
+
+export type CodeStepWords = {
+  title: string;
+  subtitle: (to: string) => string;
+  fieldLabel: string;
+  placeholder: string;
+  verify: string;
+  resend: string;
+  resendIn: (seconds: number) => string;
+  sent: (to: string) => string;
+  wrongAddress: string;
+  goBack: string;
+};
+
+export function codeStepText(channel: CodeChannel): CodeStepWords {
+  return channel === 'whatsapp' ? WHATSAPP_CODE_TEXT : SIGNUP_CODE_TEXT;
+}
+
+/** The icon at the top of the code step. */
+export function codeStepIcon(channel: CodeChannel): string {
+  return channel === 'whatsapp' ? 'whatsapp' : 'email-check-outline';
+}
+
+export const WHATSAPP_CODE_ERRORS = {
+  empty: 'Enter the 6-digit code from WhatsApp.',
+  wrongOrExpired: 'That code is wrong or has expired. Check the newest message, or tap Send a new code.',
+  /** Forgot passcode, when Twilio cannot deliver to the number (WhatsApp spec §5a). */
+  notOnWhatsApp: 'That number is not on WhatsApp any more. Sign in with your passcode, then change it in Profile.',
+  couldNotSend: 'We could not send a WhatsApp code to that number. Check it is the number you use on WhatsApp.',
+  notConfirmed: 'This number is not confirmed yet. Tap Enter the code and type the 6-digit code from WhatsApp.',
+} as const;
+
+/**
+ * A Supabase error from sending or checking a WhatsApp code (or an email-change code), in one plain sentence.
+ * `sms_send_failed` is Supabase's word for "Twilio could not send it"; the person never sees "SMS".
+ */
+export function whatsAppCodeErrorMessage(raw: unknown, stage: 'send' | 'verify', purpose?: 'sign-up' | 'recovery' | 'change', channel: CodeChannel = 'whatsapp'): string {
+  const message = typeof raw === 'string' ? raw : ((raw as { message?: string })?.message ?? '');
+  const code = typeof raw === 'object' && raw ? ((raw as { code?: string }).code ?? '') : '';
+  const lower = `${code} ${message}`.toLowerCase();
+  if (stage === 'send' && /sms_send_failed|error sending .*otp|provider/.test(lower)) {
+    return purpose === 'recovery' ? WHATSAPP_CODE_ERRORS.notOnWhatsApp : WHATSAPP_CODE_ERRORS.couldNotSend;
+  }
+  const plain = signUpCodeErrorMessage(raw);
+  if (plain === SIGNUP_CODE_ERRORS.wrongOrExpired && channel === 'whatsapp') return WHATSAPP_CODE_ERRORS.wrongOrExpired;
+  return plain;
+}
+
 /** What the person typed or pasted, reduced to at most six digits ("482 913" → "482913"). */
 export function cleanSignUpCode(text: string): string {
   return digitsOnly(text, EMAIL_CODE_LENGTH);
 }
 
 /** Null when the code is six digits; otherwise what to fix. Checked before the server, so a typo never spends the code. */
-export function signUpCodeProblem(code: string): string | null {
-  if (!code) return SIGNUP_CODE_ERRORS.empty;
+export function signUpCodeProblem(code: string, channel: CodeChannel = 'email'): string | null {
+  if (!code) return channel === 'whatsapp' ? WHATSAPP_CODE_ERRORS.empty : SIGNUP_CODE_ERRORS.empty;
   if (/\D/.test(code)) return SIGNUP_CODE_ERRORS.notDigits;
   if (!OTP_PATTERN.test(code)) return SIGNUP_CODE_ERRORS.length;
   return null;

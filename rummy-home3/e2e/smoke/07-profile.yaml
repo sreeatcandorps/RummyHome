@@ -4,37 +4,37 @@ tags: [smoke]
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Your profile"
-# Size-S (#120): the grouped Profile is taller; at 360 dp × font 1.3 Appearance sits below the fold,
-# so wait for the identity row and assert Appearance after a scroll.
+# D124: Sign-in methods sits under the name: Email, WhatsApp (Add a backup), and Passcode › Change, which moved
+# here from Account. Sree has only an email. It pushes Appearance below the fold on Pixel 6: scroll to it.
 - extendedWaitUntil:
-    visible: "Sree Test"
+    visible: "Sign-in methods"
     timeout: 15000
+- assertVisible: "Sree Test"
+- assertVisible: "sree@test.local"
+- assertVisible: "Add a backup"
+- takeScreenshot: 07-profile
+# Size-S (D66): grouped rows — Name and Initials with a pen, under Your table, now below Sign-in methods.
 - scrollUntilVisible:
     element:
-      text: "Appearance"
+      id: "me-edit-initials"
     direction: DOWN
     timeout: 30000
-- assertVisible: "Appearance"
-- scrollUntilVisible:
-    element:
-      text: "Sree Test"
-    direction: UP
-    timeout: 30000
-# Size-S (D66): grouped rows — Name and Initials with a pen, the passcode dialog with the
-# fields first and the keyboard open — all three fields must stay on screen.
 - assertVisible:
     id: "me-edit-name"
 - assertVisible: "Initials on scorecards"
-- assertVisible:
-    id: "me-edit-initials"
-- takeScreenshot: 07-profile
-# Size-S: Change passcode sits in the Account group, a screen down; scroll to it first.
 - scrollUntilVisible:
-    element:
-      id: "me-change-passcode"
+    element: "Appearance"
     direction: DOWN
     timeout: 30000
-- assertVisible: "Change passcode"
+# The passcode dialog with the fields first and the keyboard open — all three fields must stay on screen.
+# Scroll up to the group's heading, not to the Passcode row: scrolling up to the row can stop with only its
+# bottom edge showing under the Profile header, where its id counts as visible but its title is hidden. The
+# heading sits above the rows, so once it shows the whole group is on screen.
+- scrollUntilVisible:
+    element: "Sign-in methods"
+    direction: UP
+    timeout: 30000
+- assertVisible: "Passcode"
 - tapOn:
     id: "me-change-passcode"
 - extendedWaitUntil:

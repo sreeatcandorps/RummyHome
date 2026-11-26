@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, TextInput as NativeInput, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
+import { useRevealCard } from '@/components/ui/AuthShell';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 
 type PasscodeFieldProps = {
@@ -37,6 +38,7 @@ function Caret({ color }: { color: string }) {
 export function PasscodeField({ value, onChangeText, disabled, label = '6-digit passcode', autoFocus, testID }: PasscodeFieldProps) {
   const { colors } = useAppTheme();
   const [revealed, setRevealed] = useState(false);
+  const revealCard = useRevealCard();
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<NativeInput>(null);
   const digits = value.replace(/\D/g, '').slice(0, 6);
@@ -97,7 +99,7 @@ export function PasscodeField({ value, onChangeText, disabled, label = '6-digit 
           ref={inputRef}
           value={digits}
           onChangeText={(text) => onChangeText(text.replace(/\D/g, '').slice(0, 6))}
-          onFocus={() => setFocused(true)}
+          onFocus={() => { setFocused(true); revealCard(); }}
           onBlur={() => setFocused(false)}
           keyboardType="number-pad"
           inputMode="numeric"

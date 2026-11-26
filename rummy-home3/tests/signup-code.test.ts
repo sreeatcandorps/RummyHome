@@ -129,18 +129,20 @@ test('D101: signing in before the code is typed leads to the code step', () => {
   assert.match(login, /setUnconfirmed\(isEmailNotConfirmed\(err\)\)/);
   assert.match(login, /pathname: '\/\(auth\)\/register', params: \{ confirm: email\.trim\(\) \}/);
   const register = src('app/(auth)/register.tsx');
-  assert.match(register, /useLocalSearchParams<\{ confirm\?: string \}>/);
-  assert.match(register, /useState<string \| null>\(confirmParam\)/, 'confirm=<email> opens the code step');
+  assert.match(register, /useLocalSearchParams<\{ confirm\?: string; whatsapp\?: string \}>/);
+  assert.match(register, /useState<CodeFor \| null>\(confirmParam \? \{ channel: 'email', email: confirmParam \} : null\)/, 'confirm=<email> opens the code step');
 });
 
 test('D101: Create account shows the code step after sign-up and verifies in the app', () => {
   const register = src('app/(auth)/register.tsx');
-  assert.match(register, /setCodeFor\(cleanEmail\)/, 'no session after sign-up → the code step');
-  assert.match(register, /verifySignUpCode\(signUpCodeClient, codeFor, code\)/);
-  assert.match(register, /resendSignUpCode\(signUpCodeClient, codeFor\)/);
-  assert.match(register, /disabled=\{loading \|\| cooldown > 0\}/);
-  assert.match(register, /<OtpField[\s\S]*?testID="register-code"/);
+  assert.match(register, /setCodeFor\(\{ channel: 'email', email: cleanEmail \}\)/, 'no session after sign-up → the code step');
+  assert.match(register, /verifySignUpCode\(signUpCodeClient, codeFor\.email, code\)/);
+  assert.match(register, /resendSignUpCode\(signUpCodeClient, codeFor\.email\)/);
+  assert.match(register, /<CodeStep[\s\S]*?testIDPrefix="register"/, 'the shared code step (components/ui/CodeStep.tsx)');
   assert.doesNotMatch(register, /confirmation link|Resend the link|Open the link/);
+  const step = src('components/ui/CodeStep.tsx');
+  assert.match(step, /disabled=\{loading \|\| cooldown > 0\}/);
+  assert.match(step, /<OtpField[\s\S]*?testID=\{`\$\{testIDPrefix\}-code`\}/);
 
   const otp = src('components/ui/OtpField.tsx');
   assert.match(otp, /keyboardType="number-pad"/);
@@ -166,7 +168,7 @@ test('D101: the Confirm signup template shows the code large, with no link', () 
 });
 
 test('D101: help says code, not link, for Create account', () => {
-  assert.match(HELP.createAccount, /We email a 6-digit code\. Type it in the app/);
+  assert.match(HELP.createAccount, /We send a 6-digit code to your WhatsApp or your email\. Type it in the app/);
   assert.match(HELP.createAccount, /Enter the code/);
   assert.doesNotMatch(HELP.createAccount, /link/i);
 });
@@ -200,13 +202,51 @@ test('D105: nothing writes the pending player number any more; the reader stays 
 
 test('the code step keeps Go back above the number pad: inside the card, and the shell scrolls the card into view', () => {
   const register = src('app/(auth)/register.tsx');
-  const step = register.slice(register.indexOf('if (codeFor) {'), register.indexOf('</AuthShell>', register.indexOf('if (codeFor) {')));
-  assert.match(step, /keepCardInView/);
-  const footer = step.slice(step.indexOf('footer={'), step.indexOf('>\n        <OtpField'));
-  assert.doesNotMatch(footer, /register-go-back/, 'not in the footer under the card, where the pad covers it');
-  assert.ok(step.indexOf('register-go-back') > step.indexOf('register-resend'), 'right under Send a new code, in the card');
+  assert.match(register, /<CodeStep[\s\S]*?testIDPrefix="register"/);
+  const step = src('components/ui/CodeStep.tsx');
+  assert.match(step, /<AuthShell[^>]*keepCardInView/);
+  assert.doesNotMatch(step, /footer=\{/, 'nothing under the card, where the pad covers it');
+  assert.ok(step.indexOf('-go-back`') > step.indexOf('-resend`'), 'right under Send a new code, in the card');
+  assert.ok(step.indexOf('-go-back`') < step.indexOf('</AuthShell>'));
   const shell = src('components/ui/AuthShell.tsx');
   assert.match(shell, /keepCardInView\?: boolean/);
   assert.match(shell, /Keyboard\.addListener\(ios \? 'keyboardWillShow' : 'keyboardDidShow'/);
-  assert.match(shell, /scrollRef\.current\?\.scrollTo\(\{ y: overflow/);
+  assert.match(shell, /const overflow = cardTop\.current \+ bottom \+ spacing\.md - viewportHeight\.current/);
+  assert.match(shell, /scrollTo\(Math\.min\(overflow, cardTop\.current \+ y - spacing\.md - topInset\.current\)\)/, 'never past the field being typed in');
+});
+
+test('the field being typed in stops below the status bar, where a tap still reaches it', () => {
+  const shell = src('components/ui/AuthShell.tsx');
+  assert.match(shell, /const topInset = useRef\(insets\.top\);\s+topInset\.current = insets\.top;/);
+  assert.match(shell, /cardTop\.current \+ y - spacing\.md - topInset\.current/);
+});
+
+test('Sign in keeps Sign in and Create account above the keypad, also after the error line pushes them down', () => {
+  const login = src('app/(auth)/login.tsx');
+  assert.match(login, /<AuthShell[^>]*keepCardInView\s+keepFooterInView/);
+  assert.match(login, /footer=\{[\s\S]*testID="login-create-account"/, 'Create account is in the footer, outside the card');
+  const shell = src('components/ui/AuthShell.tsx');
+  assert.match(shell, /keepFooterInView \? footerBottom\.current : 0/);
+  assert.match(shell, /footerBottom\.current = e\.nativeEvent\.layout\.y \+ e\.nativeEvent\.layout\.height;\s+followCard\(\);/);
+  assert.match(shell, /<View\s+ref=\{columnRef\}[\s\S]*?\{card\}\s+\{footerNode\}/);
+  assert.match(shell, /cardBottom\.current = e\.nativeEvent\.layout\.y \+ e\.nativeEvent\.layout\.height;\s+followCard\(\);/);
+});
+
+test('Create account follows the passcode: focusing it with the keypad up scrolls Create account into view', () => {
+  assert.match(src('app/(auth)/register.tsx'), /<AuthShell[^>]*keepCardInView/);
+  const field = src('components/ui/PasscodeField.tsx');
+  assert.match(field, /const revealCard = useRevealCard\(\);/);
+  assert.match(field, /onFocus=\{\(\) => \{ setFocused\(true\); revealCard\(\); \}\}/);
+  assert.match(src('components/ui/AuthShell.tsx'), /<RevealCardContext\.Provider value=\{revealCard\}>/);
+});
+
+test('Send a new code counts down 60 s only after a code went out; from Sign in › Enter the code it is offered at once', () => {
+  const step = src('components/ui/CodeStep.tsx');
+  assert.match(step, /sentJustNow = true,/);
+  assert.match(step, /useState\(sentJustNow \? SIGNUP_RESEND_COOLDOWN_S : 0\)/);
+  const register = src('app/(auth)/register.tsx');
+  assert.match(register, /const \[codeJustSent, setCodeJustSent\] = useState\(!confirmParam\);/);
+  assert.match(register, /setCodeJustSent\(true\);\s+setCodeFor\(\{ channel: 'email', email: cleanEmail \}\);/);
+  assert.match(register, /sentJustNow=\{codeJustSent\}/);
+  assert.match(src('e2e/smoke/27-create-account-code.yaml'), /register\?confirm=[\s\S]*- assertVisible: "Send a new code"\n/);
 });
