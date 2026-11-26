@@ -91,6 +91,7 @@ test('shards: the two are about the same size (measured smoke seconds of run 457
     '01': 92, '02': 43, '03': 52, '04': 83, '05': 58, '06': 42, '07': 84, '08': 42, '09': 73, '10': 75, '11': 63, '12': 150, '13': 76, '14': 73, '15': 70,
     '16': 269, '17': 55, '18': 107, '19': 197, '20': 66, '21': 145, '22': 125, '23': 72, '24': 279, '25': 75,
     '26': 85, // #131's run 45780988614
+    '28': 79, '29': 47, // #153's run 45857710522 (Pixel 6 smoke)
   };
   const total = (id: string) => SMOKE_SHARDS[id].smoke.reduce((n, f) => n + secs[f.slice(0, 2)], 0);
   const [a, b] = shards.map(total);

@@ -72,13 +72,13 @@ const INFRA = [/^ci\//, /^\.github\//, /^rummy-home3\/e2e\//, /^rummy-home3\/sup
 export const SMOKE_SHARDS = {
   a: {
     smoke: ['01-home', '02-scorecard', '03-scorecard-landscape', '04-add-round', '05-complete-game', '06-results', '07-profile', '08-my-players', '09-new-game',
-      '12-results-zero-players', '15-delete-shared-result-confirm', '16-pool-game', '19-seating-order'],
+      '12-results-zero-players', '15-delete-shared-result-confirm', '16-pool-game', '17-pool-wide-initials-20p', '19-seating-order', '20-pool-13p-reentry'],
     full: ['10-sign-out-bad-passcode', '40-results-save-and-past', '41-share-images', '42-reopen-closed-game', '61-first-launch-light-night-phone'],
   },
   b: {
-    smoke: ['10-scorecard-20-players', '11-scorecard-20-players-landscape', '13-undo-then-add-round', '14-rummy-positive-pot', '17-pool-wide-initials-20p',
-      '18-multiplier-change', '20-pool-13p-reentry', '21-help-frames', '22-play-listing-frames', '23-dealer', '24-seating-tutorial', '25-scorecard-fast-fling',
-      '26-create-account-keyboard'],
+    smoke: ['10-scorecard-20-players', '11-scorecard-20-players-landscape', '13-undo-then-add-round', '14-rummy-positive-pot',
+      '18-multiplier-change', '21-help-frames', '22-play-listing-frames', '23-dealer', '24-seating-tutorial', '25-scorecard-fast-fling',
+      '26-create-account-keyboard', '28-scorecard-columns', '29-scorecard-names-swipe'],
     full: ['20-scorecard-20-players-swipe', '21-scorecard-font-scale', '30-players-admins-and-settings', '31-edit-initials-mid-game', '32-add-players-to-game',
       '50-help-notes', '50-multiplier-20p', '51-seating-20p', '60-dark-mode', '70-game-log', '80-add-round-count-warnings'],
   },
