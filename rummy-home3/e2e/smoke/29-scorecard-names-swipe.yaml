@@ -32,5 +32,5 @@ tags: [smoke]
     id: "score-header-initials-7"
 - assertVisible:
     id: "score-cell-6-.*"
-- takeScreenshot: 27-scorecard-names-swiped-to-6th
+- takeScreenshot: 29-scorecard-names-swiped-to-6th
 - back

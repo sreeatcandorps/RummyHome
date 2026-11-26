@@ -70,11 +70,16 @@ tags: [nightly]
 - setOrientation: LANDSCAPE_LEFT
 - extendedWaitUntil:
     visible:
-      id: "landscape-table-only"
+      id: "score-table"
     timeout: 120000
-- assertNotVisible:
-    id: "multiplier-chip"
-- assertNotVisible: "Scorecard menu"
+- runFlow:
+    when:
+      visible:
+        id: "landscape-table-only"
+    commands:
+      - assertNotVisible:
+          id: "multiplier-chip"
+      - assertNotVisible: "Scorecard menu"
 - takeScreenshot: 50c-scorecard-20p-x10000-landscape
 - setOrientation: PORTRAIT
 - extendedWaitUntil:

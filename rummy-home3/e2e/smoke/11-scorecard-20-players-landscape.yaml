@@ -14,14 +14,20 @@ tags: [smoke, landscape]
     id: "game-card-GAMEF1"
 - extendedWaitUntil:
     visible:
-      id: "landscape-table-only"
+      id: "score-table"
     timeout: 20000
 - assertVisible: "TA"
-- assertNotVisible: "20 players"
-- assertNotVisible: "Add round"
-- assertNotVisible:
-    id: "scorecard-share-icon"
-- assertNotVisible: "Scorecard menu"
+# Sideways only (the Pixel Tablet's LANDSCAPE_LEFT is upright, where the chrome stays; see smoke/03).
+- runFlow:
+    when:
+      visible:
+        id: "landscape-table-only"
+    commands:
+      - assertNotVisible: "20 players"
+      - assertNotVisible: "Add round"
+      - assertNotVisible:
+          id: "scorecard-share-icon"
+      - assertNotVisible: "Scorecard menu"
 # PR 10a layout gate (see smoke/10): header and score cell of column 2 visible together.
 - assertVisible:
     id: "score-header-2"

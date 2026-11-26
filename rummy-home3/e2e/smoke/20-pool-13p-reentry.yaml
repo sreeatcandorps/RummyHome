@@ -83,28 +83,35 @@ tags: [smoke]
     visible: "Scorecard( · .*)?"
     timeout: 15000
 # Landscape: the table keeps the whole width (all 13 columns, TL last); no standings in landscape (Nov 18).
-# D89: the table alone — no header, ⋮, Share or bar; D42's re-entry marks stay.
+# D89: the table alone — no header, ⋮, Share or bar; D42's re-entry marks stay. The sideways checks run only
+# when the screen is sideways: the Pixel Tablet's LANDSCAPE_LEFT stands it upright (#131), where the
+# standings, the chrome and the five-column default (D90) are correct.
 - setOrientation: LANDSCAPE_LEFT
 - extendedWaitUntil:
     visible:
-      id: "score-header-initials-8"
+      id: "score-header-initials-2"
     timeout: 15000
 - assertVisible:
-    id: "score-header-initials-8"
-    text: "TG"
-- assertVisible:
-    id: "score-header-initials-13"
-    text: "TL"
-- assertNotVisible:
-    id: "pool-standings-pane"
-- assertNotVisible:
-    id: "pool-standings"
-- assertVisible:
     id: "score-reentry-2"
-- assertNotVisible: "Add round"
-- assertNotVisible: "Scorecard menu"
-- assertNotVisible:
-    id: "scorecard-share-icon"
+- runFlow:
+    when:
+      visible:
+        id: "landscape-table-only"
+    commands:
+      - assertVisible:
+          id: "score-header-initials-8"
+          text: "TG"
+      - assertVisible:
+          id: "score-header-initials-13"
+          text: "TL"
+      - assertNotVisible:
+          id: "pool-standings-pane"
+      - assertNotVisible:
+          id: "pool-standings"
+      - assertNotVisible: "Add round"
+      - assertNotVisible: "Scorecard menu"
+      - assertNotVisible:
+          id: "scorecard-share-icon"
 - takeScreenshot: 20d-pool-13p-landscape
 - setOrientation: PORTRAIT
 # Back in portrait the standings are there again, under the five-row card.
