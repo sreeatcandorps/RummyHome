@@ -347,9 +347,10 @@ Every picture is a 360-dp phone (Sree's phone width), light mode.
 So the build PR is fast after Sree's yes. The build touches: **`components/ui/AuthShell.tsx`** (the *WhatsApp ·
 Email* switch, shared by Sign in, Create account and Forgot passcode); **`services/auth.ts`** (`signUpWithWhatsApp`,
 `signInWithPhone`, `sendPhoneCode`, `verifyPhoneCode`, `addOrChangePhone`, `addOrChangeEmail`; "send a new code"
-repeats the first call with `channel: 'whatsapp'`, never `auth.resend`); **`utils/signUpCode.ts`** (the D101 code
-step becomes one component that takes the channel: the WhatsApp title, subtitle, label and "Wrong number?" words,
-the masked number); **`app/(auth)/register.tsx`** (the switch, the WhatsApp fields, the code step, the backup step);
+repeats the first call with `channel: 'whatsapp'`, never `auth.resend`); **`utils/signUpCode.ts`** (the D101 words
+by channel: the WhatsApp title, subtitle, label, "Wrong number?" and the masked number); a new shared
+**`components/ui/CodeStep.tsx`** (the D101 code step lifted out of `register.tsx`, used by Create account, Forgot
+passcode, Profile and the backup step); **`app/(auth)/register.tsx`** (the switch, the WhatsApp fields, the backup step);
 **`app/(auth)/login.tsx`** (number + passcode); **`app/(auth)/forgot-password.tsx`** (WhatsApp code, *Set a new
 passcode*, the *Not you?* line); **`app/(tabs)/me.tsx`** (Sign-in methods group, Change passcode moved into it, the
 add/change sheet); **Home** (`app/(tabs)/index.tsx`, the one backup reminder card); **`constants/helpTopics.ts`**
@@ -382,9 +383,9 @@ step's words for both channels.
 - ~~**Q26**~~ **decided by default (D116)**: Twilio usage alert at $20 a month; India, US, Canada, UK, UAE and
   Australia only.
 - **Q27** (after v1, D84): WhatsApp for "game started" and results instead of email. Not now.
-- **New question** (the Main agent gives it its Q-number): the email form keeps its optional "phone and ZIP" contact fields, which we never text. Once a
-  WhatsApp number can be a way in, two kinds of phone number may confuse people. **Default: keep them as they are in
-  this build** and look again after launch; nothing is lost either way.
+- **New question** (the Main agent gives it its Q-number): the email form keeps its optional "phone and ZIP"
+  contact fields, which we never text. Once a WhatsApp number can be a way in, two kinds of phone number may confuse
+  people. **Default: keep them as they are in this build** and look again after launch; nothing is lost either way.
 - **Changed from Nov 23, named so nothing slips through** (design-review checklist item 6): the phone-keyed "Is this
   you?" claim step and its migration are gone (D113); there is no Remove for a sign-in method (D50); there is no
   CAPTCHA at launch (§6); the code step is the D101 screen, not a separate WhatsApp screen.

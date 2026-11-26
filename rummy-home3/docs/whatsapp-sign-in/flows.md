@@ -22,8 +22,7 @@ flowchart LR
     SESS[("Session, kept for a year+")]
   end
   subgraph supa["Supabase project · staging first, then live"]
-    AUTH["Auth: one user = one person<br/>email and/or phone + one passcode"]
-    DB[("profiles · players<br/>no phone column used for finding")]
+    AUTH["Auth: one user = one person<br/>email and/or WhatsApp number + one passcode<br/>the number is kept only here"]
   end
   subgraph tw["Twilio"]
     VER["Verify service<br/>makes and checks the code"]
@@ -43,8 +42,9 @@ flowchart LR
   AUTH -- "phone code" --> VER --> MG -- "authentication template" --> WA
   WABA -. "sender" .-> MG
   AUTH -- "email code" --> RES --> MAIL
-  AUTH --- DB
 ```
+
+Profiles, players and games are unchanged: no phone number is stored there or used to find anyone (D113).
 
 Who is paid: Twilio $0.05 for each code typed correctly; Meta ₹0.115 ($0.0014) for each WhatsApp code delivered to
 India, passed through Twilio; Resend free up to 3,000 emails a month. Signing in with a passcode sends nothing (D76).
@@ -121,9 +121,9 @@ line on a screen the person already sees, not an extra dialog (D50).
 ```mermaid
 flowchart TD
   A["Profile › Sign-in methods<br/>WhatsApp · Email · Passcode"] --> B{"Row tapped"}
-  B -- "WhatsApp: Add or Change number" --> C["Type the new number"] --> C2["Code on WhatsApp to the NEW number<br/>updateUser phone, channel whatsapp"] --> C3["Code step · flow 3"] --> Z["Row shows the new number"]
+  B -- "WhatsApp: Add or Change number" --> C["Type the new number"] --> C2["Code on WhatsApp to the NEW number<br/>updateUser phone, channel whatsapp"] --> C3["Code step · flow 3"] --> Z["Back to Profile<br/>the row shows the new one"]
   B -- "Email: Add a backup or Change" --> D["Type the address"] --> D2["Code to the NEW address<br/>updateUser email"] --> D3["Code step · flow 3"] --> Z
-  B -- "Passcode: Change" --> P["Today's Change passcode"] --> Z
+  B -- "Passcode: Change" --> P["Today's Change passcode"] --> Z2["Back to Profile"]
 ```
 
 There is no Remove: nobody can take away their last way in, and there is no dialog to explain why not (D50).
