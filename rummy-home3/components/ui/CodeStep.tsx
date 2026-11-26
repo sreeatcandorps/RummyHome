@@ -13,6 +13,9 @@ import { CodeChannel, cleanSignUpCode, codeStepIcon, codeStepText, SIGNUP_RESEND
  * after 60 s, and Go back. Email and WhatsApp are the same screen; only the icon, the title, the field label
  * and "Wrong address?" / "Wrong number?" change. Used by Create account, Forgot passcode, the backup step and
  * Profile › Sign-in methods. The caller says what Confirm and Send a new code do.
+ *
+ * Send a new code waits 60 s after a code goes out (Supabase sends one per address or number a minute). Opened
+ * from Sign in's "Enter the code", no code has just gone, so it is offered at once (as in #151).
  */
 export function CodeStep({
   channel,
@@ -25,6 +28,7 @@ export function CodeStep({
   helpAnchor,
   testIDPrefix,
   note,
+  sentJustNow = true,
 }: {
   channel: CodeChannel;
   /** The address, or the number already masked ("+91 98xxx xx210"). */
@@ -39,11 +43,13 @@ export function CodeStep({
   /** `register` gives register-code, register-verify, register-resend, register-go-back. */
   testIDPrefix: string;
   note?: string;
+  /** False when the step opens without having sent a code (Sign in › Enter the code for an unconfirmed address). */
+  sentJustNow?: boolean;
 }) {
   const theme = useAppTheme();
   const words = codeStepText(channel);
   const [code, setCode] = useState('');
-  const [cooldown, setCooldown] = useState(SIGNUP_RESEND_COOLDOWN_S);
+  const [cooldown, setCooldown] = useState(sentJustNow ? SIGNUP_RESEND_COOLDOWN_S : 0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');

@@ -211,6 +211,8 @@ export default function LoginScreen() {
       title="EZ Score: Rummy"
       subtitle="Sign in to keep score with your table"
       help="sign-in"
+      keepCardInView
+      keepFooterInView
       hero={<JokerCard />}
       footer={
         <>

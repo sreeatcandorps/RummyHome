@@ -48,6 +48,8 @@ export default function RegisterScreen() {
   const [waNumber, setWaNumber] = useState(whatsappParam?.national ?? '');
   // D101: after sign-up the email (or WhatsApp) gets a 6-digit code, typed here; no confirm link.
   const [codeFor, setCodeFor] = useState<CodeFor | null>(confirmParam ? { channel: 'email', email: confirmParam } : null);
+  // Sign in › Enter the code opens the step with no code just sent: Send a new code is offered at once.
+  const [codeJustSent, setCodeJustSent] = useState(!confirmParam);
   // D75: right after the code, the backup contact with Skip for now.
   const [backupAfter, setBackupAfter] = useState<SignInMethod | null>(null);
   // A09: a Paper notice, not Alert.alert; OK carries on to the next screen.
@@ -232,6 +234,7 @@ export default function RegisterScreen() {
       sendWelcomeEmail(cleanEmail, displayName).catch(() => {});
 
       if (!authData.session) {
+        setCodeJustSent(true);
         setCodeFor({ channel: 'email', email: cleanEmail });
         return;
       }
@@ -282,6 +285,7 @@ export default function RegisterScreen() {
         to={codeFor.email}
         helpAnchor="create-account"
         testIDPrefix="register"
+        sentJustNow={codeJustSent}
         note={SIGNUP_CODE_TEXT.inviteNote}
         onVerify={async (code) => {
           hold();
@@ -301,6 +305,7 @@ export default function RegisterScreen() {
       title="Create account"
       subtitle="Your name, then a way to sign in"
       help="sign-in"
+      keepCardInView
       helpAnchor="create-account"
       footer={
         <View style={styles.footerRow}>

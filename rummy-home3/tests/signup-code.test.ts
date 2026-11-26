@@ -211,5 +211,36 @@ test('the code step keeps Go back above the number pad: inside the card, and the
   const shell = src('components/ui/AuthShell.tsx');
   assert.match(shell, /keepCardInView\?: boolean/);
   assert.match(shell, /Keyboard\.addListener\(ios \? 'keyboardWillShow' : 'keyboardDidShow'/);
-  assert.match(shell, /scrollRef\.current\?\.scrollTo\(\{ y: overflow/);
+  assert.match(shell, /const overflow = cardTop\.current \+ bottom \+ spacing\.md - viewportHeight\.current/);
+  assert.match(shell, /scrollTo\(Math\.min\(overflow, cardTop\.current \+ y - spacing\.md\)\)/, 'never past the field being typed in');
+});
+
+test('Sign in keeps Sign in and Create account above the keypad, also after the error line pushes them down', () => {
+  const login = src('app/(auth)/login.tsx');
+  assert.match(login, /<AuthShell[^>]*keepCardInView\s+keepFooterInView/);
+  assert.match(login, /footer=\{[\s\S]*testID="login-create-account"/, 'Create account is in the footer, outside the card');
+  const shell = src('components/ui/AuthShell.tsx');
+  assert.match(shell, /keepFooterInView \? footerBottom\.current : 0/);
+  assert.match(shell, /footerBottom\.current = e\.nativeEvent\.layout\.y \+ e\.nativeEvent\.layout\.height;\s+followCard\(\);/);
+  assert.match(shell, /<View\s+ref=\{columnRef\}[\s\S]*?\{card\}\s+\{footerNode\}/);
+  assert.match(shell, /cardBottom\.current = e\.nativeEvent\.layout\.y \+ e\.nativeEvent\.layout\.height;\s+followCard\(\);/);
+});
+
+test('Create account follows the passcode: focusing it with the keypad up scrolls Create account into view', () => {
+  assert.match(src('app/(auth)/register.tsx'), /<AuthShell[^>]*keepCardInView/);
+  const field = src('components/ui/PasscodeField.tsx');
+  assert.match(field, /const revealCard = useRevealCard\(\);/);
+  assert.match(field, /onFocus=\{\(\) => \{ setFocused\(true\); revealCard\(\); \}\}/);
+  assert.match(src('components/ui/AuthShell.tsx'), /<RevealCardContext\.Provider value=\{revealCard\}>/);
+});
+
+test('Send a new code counts down 60 s only after a code went out; from Sign in › Enter the code it is offered at once', () => {
+  const step = src('components/ui/CodeStep.tsx');
+  assert.match(step, /sentJustNow = true,/);
+  assert.match(step, /useState\(sentJustNow \? SIGNUP_RESEND_COOLDOWN_S : 0\)/);
+  const register = src('app/(auth)/register.tsx');
+  assert.match(register, /const \[codeJustSent, setCodeJustSent\] = useState\(!confirmParam\);/);
+  assert.match(register, /setCodeJustSent\(true\);\s+setCodeFor\(\{ channel: 'email', email: cleanEmail \}\);/);
+  assert.match(register, /sentJustNow=\{codeJustSent\}/);
+  assert.match(src('e2e/smoke/27-create-account-code.yaml'), /register\?confirm=[\s\S]*- assertVisible: "Send a new code"\n/);
 });
