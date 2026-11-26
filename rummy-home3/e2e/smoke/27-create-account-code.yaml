@@ -1,0 +1,77 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# D101 (Sree, Nov 25: "yes, no email link"): Create account confirms with the 6-digit code from the email, typed
+# into the app. D105: the form has no Player ID box.
+# The CI database (local Supabase) has Confirm email off and no mail catcher, so a real sign-up there signs in at
+# once and no code is ever sent. The code step is reached the way Sign in reaches it for an unconfirmed address:
+# register?confirm=<email>. Typing a code checks the whole path to the server: GoTrue answers an unknown address
+# the way it answers a wrong or expired code, and the app must say so in plain words. A full verify needs a real
+# code (Inbucket in ci/db; see docs/signup-code-template.md). Nothing is created. Signs Sree back in at the end.
+---
+- clearState
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 20000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: "login-email"
+    commands:
+      - stopApp
+      - launchApp
+- extendedWaitUntil:
+    visible:
+      id: "login-email"
+    timeout: 30000
+- openLink: "rummy-home3://register?confirm=kavya.code@example.com"
+- extendedWaitUntil:
+    visible:
+      id: "register-code"
+    timeout: 20000
+- assertVisible: "Check your email"
+- assertVisible: "We sent a 6-digit code to kavya.code@example.com"
+- assertVisible: "Confirm and sign in"
+- assertVisible: "Send a new code"
+- assertVisible: "Wrong address?"
+- takeScreenshot: 27-create-account-code-keyboard
+- hideKeyboard
+- takeScreenshot: 27a-create-account-code
+# Empty: refused on the phone, the server is not asked.
+- tapOn:
+    id: "register-verify"
+- assertVisible: "Enter the 6-digit code from the email."
+# Pasted with the space the email shows: the box keeps the six digits.
+- tapOn:
+    id: "register-code"
+- inputText: "482 913"
+- waitForAnimationToEnd
+- assertVisible: "482913"
+- takeScreenshot: 27b-create-account-code-typed
+- hideKeyboard
+- tapOn:
+    id: "register-verify"
+- extendedWaitUntil:
+    visible: "That code is wrong or has expired.*"
+    timeout: 15000
+- takeScreenshot: 27c-create-account-code-wrong
+# Wrong address? Go back: the form, the address kept, and no Player ID box (D105).
+- tapOn:
+    id: "register-go-back"
+- extendedWaitUntil:
+    visible:
+      id: "register-first-name"
+    timeout: 10000
+- assertVisible: "kavya.code@example.com"
+- scrollUntilVisible:
+    element: "Clear form"
+    direction: DOWN
+    timeout: 10000
+- assertNotVisible: "Player ID"
+- takeScreenshot: 27d-create-account-form-no-player-id
+- runFlow:
+    file: ../lib/sign-in-as.yaml
+    env:
+      EMAIL: sree@test.local
