@@ -24,6 +24,8 @@
 #   VIDEO_SELECTED  1 = also keep the recording of every passing flow named in FLOW_FILTER (on a PR these
 #                   are the flows of the area the PR touched: the dashboard comment links them so Sree can
 #                   watch the change before an APK is built)
+#   VIDEO_FLOWS     the list VIDEO_SELECTED looks at; default: FLOW_FILTER. A smoke shard that runs its own flows
+#                   through FLOW_FILTER sets it empty so only the selected full flows keep their video.
 #   APP_ID          package to watch for crashes and to kill; default com.mindweavetech.rummyhome
 #   DEVICE_ROTATION / DEVICE_FONT_SCALE   the device's resting orientation (0/1) and font scale
 #                   (the matrix's tablet runs landscape, the Pixel 7 Pro at 1.3) — hooks still override
@@ -211,7 +213,7 @@ for f in $(ls "$SET_DIR"/*.yaml 2>/dev/null | sort); do
     echo "$name,pass,$secs" >> "$OUT/results.csv"
     if [ "$VIDEO" != off ]; then
       if [ "$VIDEO" = all ] || [[ "$name" =~ $VIDEO_KEEP ]] \
-         || { [ "${VIDEO_SELECTED:-0}" = 1 ] && [[ ",${FLOW_FILTER:-}," == *",$name,"* ]]; }; then
+         || { [ "${VIDEO_SELECTED:-0}" = 1 ] && [[ ",${VIDEO_FLOWS-${FLOW_FILTER:-}}," == *",$name,"* ]]; }; then
         record_stop "$name" keep
       else
         record_stop "$name" drop

@@ -35,6 +35,16 @@ const REASON = process.env.SELECT_REASON ?? '';
 const KEEP = Number(process.env.KEEP_RUNS ?? 15);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
+// A job's colour: its suite's status file(s). A PR smoke shard ("smoke-a") writes smoke.status, and full.status when
+// the selected full flows ran after it; both must be 0.
+function jobStatus(dir, suite) {
+  const base = suite.replace(/^(smoke)-[a-z]$/, '$1');
+  const names = base === 'smoke' ? ['smoke', 'full'] : [suite];
+  const found = names.map((n) => path.join(dir, `${n}.status`)).filter((f) => fs.existsSync(f)).map((f) => fs.readFileSync(f, 'utf8').trim());
+  if (found.length === 0) return null;
+  return found.every((v) => v === '0') ? '0' : '1';
+}
+
 // ---------- collect this run --------------------------------------------------------------------
 const jobs = [];
 if (fs.existsSync(ART)) {
@@ -61,7 +71,7 @@ if (fs.existsSync(ART)) {
       const videos = fs.existsSync(path.join(sdir, 'videos')) ? fs.readdirSync(path.join(sdir, 'videos')).filter((f) => f.endsWith('.mp4')).sort() : [];
       sets.push({ set, flows, crashes, screens, videos, src: sdir });
     }
-    const status = fs.existsSync(path.join(dir, `${suite}.status`)) ? fs.readFileSync(path.join(dir, `${suite}.status`), 'utf8').trim() : null;
+    const status = jobStatus(dir, suite);
     jobs.push({ artifact: art, device, suite, sets, status });
   }
 }

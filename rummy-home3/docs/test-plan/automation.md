@@ -42,11 +42,39 @@ can only make a PR faster, never hide a failure for more than a night.
 | `docs/**` only | unit (doc tests: testing-strategy codes, help tables, coverage) | none |
 | `package.json`, `app.json`, `eas.json`, `.github/**` | everything | whole smoke set |
 
-Rules as built: (1) the whole smoke set always runs on an app change; (2) `[ui-all]` in the head commit message runs
+Rules as built (superseded in part by §2a below, Nov 26): (1) the whole smoke set always runs on an app change; (2) `[ui-all]` in the head commit message runs
 every suite on the reference phone (labels cannot be set from the agent's read-only CLI, so the tag replaces the
 `full-ui` label), `[tier:nightly]` / `[tier:prerelease]` run that tier on a PR, `[file-bugs]` lets a PR run open issues;
 (3) a change under `ci/`, `.github/`, `e2e/` or the seeds runs every suite except full, plus the full flows that were edited, by name (the whole full set stays nightly); a docs-only change runs nothing on a device;
 an app path outside the map runs smoke only; (4) the plan is printed in the `select` job summary.
+
+## 2a. The PR plan since Nov 26 (Sree: "optimized for efficiency, speed, but then also thoroughness")
+
+Before: an app PR ran the 25 smoke flows on one emulator (~40 min) **and** a second emulator re-ran the same 25 before
+its few full flows, plus roles / chaos / two-device whenever a screen in their area changed. About an hour from push to green.
+
+| What | Rule (all in `ci/select-tests.mjs`; `tests/test-selection-pr-shards.test.ts` pins it) |
+| --- | --- |
+| One smoke pass | The PR smoke gate is **two jobs, `smoke-a` and `smoke-b`**, on two emulators, each from the same seeded data. The selected full flows run **in the same job right after its smoke flows** (`run-suite.sh`: `SMOKE_FLOWS`, then `FLOW_FILTER`), so there is no separate PR `full` job. The nightly and pre-release `full` job is unchanged. |
+| The shards | `SMOKE_SHARDS`: flows that build on an earlier flow share a shard and keep their order. **a** (13 flows, ~21 min): 01–06, 12, 15 (game A, then G's saved result), 07, 08, 09, 16, 19 (new games); full 10, 40, 41, 42, 61. **b** (12 flows, ~20 min): 13, 14, 18, 21, 23 (games E and H), 10, 11, 25 (F), 17, 20, 22, 24; full 20, 21, 30, 31, 32, 50 ×2, 51, 60, 70, 80. A test fails if a smoke or full flow is in no shard, in two, out of file order, or apart from the flow it needs. |
+| Deep suites | chaos / roles / two-device run on a PR **only** when the diff touches `DEEP_AREAS`: sign-in (`(auth)`, `services/auth`, `me.tsx`), the database (`supabase/migrations|functions|rollback`: all three, whole sets), sync (`services/realtime`, `gameCache`: offline / kill / reconnect + two-device), a service that writes (`games`: rounds, completion, offline, kill + two-device; `players`; `archive`, `results`). Everything else is the nightly's. Infra changes (`ci/`, `.github/`, `e2e/`, seeds) still run every suite once. |
+| Docs only | Nothing runs on a device when the diff vs base is docs only (as before) **or** when everything that changed since this PR's last green device run is `*.md` / `docs/` (`ci/since-green.mjs`: the newest earlier successful run of this branch whose `ui-…smoke…` jobs all passed, then `git diff` of its head against the new head). A rebase that pulls in only docs therefore costs nothing; if the old head cannot be found or fetched, or anything is odd, the plan runs as usual. `[ui-all]` always runs. |
+| Cascade guard | `e2e/lib/ensure-signed-in.yaml` ends every flow's start on Home as `sree@test.local`: when Home greets somebody else ("Hi Ravi") or shows the login screen, `fix-account.yaml` logs out through Profile if needed and signs Sree in. The fast path is the one `when` check the file already had. |
+
+Thoroughness is unchanged: every flow still runs in the nightly (full + chaos + roles + two-device + monkey on the
+reference phone, smoke on three more devices) and in the pre-release tier; a PR can only be faster, never hide a
+failure for more than a night.
+
+| PR | Device jobs | Device wall clock after the APK (emulators in parallel) |
+| --- | --- | --- |
+| Docs only, or only docs since the last green run | none | 0 |
+| Scorecard / screen change (no sign-in, database, sync or write service) | `smoke-a`, `smoke-b` (+ the area's full flows inside them) | ~30–32 min (was ~48 min) |
+| Migration | `smoke-a`, `smoke-b`, chaos, roles, two-device | ~30–32 min (the others are shorter: roles ~8, two-device ~10, whole chaos ~20–25) |
+| `ci/`, `.github/`, `e2e/` or seeds | smoke-a, smoke-b, chaos, roles, two-device, monkey | ~30–32 min |
+
+Per job: ~8.5 min start-up (local Supabase, emulator, Maestro; measured on #143) + the shard's smoke (~20–21 min) +
+its full flows (0–4 min). Push to green adds the ~8 min APK build before the emulators, so ~40 min instead of ~57.
+A third shard would bring the device jobs to ~23 min; it is one more list in `SMOKE_SHARDS` (rebalance by the seconds in the test).
 
 ## 3. Flakiness policy
 

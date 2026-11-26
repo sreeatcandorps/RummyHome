@@ -10,7 +10,10 @@
 # Or download the "test-report-<branch>" artifact and open report.md.
 #
 # Device UI tests (PR 17): the "select" job reads the change and picks the plan — per PR the smoke gate
-# plus the deeper flows for the touched area, nightly every suite (full, chaos, roles, two-device,
+# split over two emulators (smoke-a, smoke-b) with the full flows of the touched area run right after each
+# shard's smoke on the same emulator, chaos / roles / two-device only when the diff touches what they test
+# (auth, database, sync, services that write), no device at all for docs-only changes or a push that only
+# adds docs since the last green device run; nightly every suite (full, chaos, roles, two-device,
 # monkey) on the reference phone and smoke on three other devices, pre-release everything plus volume.
 # "apk" builds the app once (Gradle, pointed at the runner's throw-away local Supabase), the "ui"
 # matrix drives it on emulators with Maestro (rummy-home3/e2e), "dashboard" publishes screenshots,
@@ -318,6 +321,9 @@ jobs:
     name: Pick the device plan
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
     outputs:
       tier: ${{ steps.plan.outputs.tier }}
       ui: ${{ steps.plan.outputs.ui }}
@@ -335,6 +341,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+      # A push that only adds docs to a PR whose last device run was green needs no emulator (ci/since-green.mjs
+      # writes the changed paths only when it is certain which run that was; no file = the plan runs as usual).
+      - name: What changed since this PR's last green device run?
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: node ci/since-green.mjs
+
       - id: plan
         env:
           EVENT: ${{ github.event_name }}
@@ -347,6 +365,7 @@ jobs:
           if [ "$EVENT" = pull_request ]; then
             FILES="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || true)"
             MESSAGE="$(git log -1 --format=%B "$HEAD_SHA" || true)"
+            if [ -f ci/out/since-files.txt ]; then export SELECT_SINCE_FILES="$(cat ci/out/since-files.txt)"; fi
           fi
           TIER="$INPUT_TIER"
           case "$MESSAGE" in *"[tier:prerelease]"*) TIER=prerelease ;; *"[tier:nightly]"*) TIER=nightly ;; esac
@@ -459,7 +478,7 @@ jobs:
           if-no-files-found: error
 
   ui:
-    name: ui-${{ matrix.device }}-${{ matrix.suite }}
+    name: ui-${{ matrix.device }}-${{ matrix.id }}
     needs: [select, apk]
     if: needs.select.outputs.ui == 'true'
     runs-on: ubuntu-latest
@@ -595,6 +614,8 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         env:
           SUITE: ${{ matrix.suite }}
+          SHARD: ${{ matrix.shard }}
+          SMOKE_FLOWS: ${{ matrix.smokeFlows }}
           FLOW_FILTER: ${{ matrix.flows }}
           VIDEO_SELECTED: ${{ needs.select.outputs.tier == 'pr' && '1' || '0' }}
           DEVICE_ROTATION: ${{ matrix.rotation }}
@@ -622,7 +643,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ui-${{ needs.select.outputs.slug }}-${{ matrix.device }}-${{ matrix.suite }}
+          name: ui-${{ needs.select.outputs.slug }}-${{ matrix.device }}-${{ matrix.id }}
           path: ci/out/ui
           if-no-files-found: warn
 
