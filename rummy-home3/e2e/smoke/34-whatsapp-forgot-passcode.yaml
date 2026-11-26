@@ -64,8 +64,11 @@ tags: [smoke]
     timeout: 10000
 - tapOn:
     id: "forgot-verify"
+# The card follows the keypad so Type it again stays above it; on the small phone that scrolls the title
+# "Set a new passcode" off the top, so wait for the new passcode cells instead.
 - extendedWaitUntil:
-    visible: "Set a new passcode"
+    visible:
+      id: "forgot-new-passcode"
     timeout: 20000
 - assertVisible: "This is the account of Farah Forgot.*"
 - assertVisible: "Not you\\?"
