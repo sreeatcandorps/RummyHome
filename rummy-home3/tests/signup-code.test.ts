@@ -129,18 +129,20 @@ test('D101: signing in before the code is typed leads to the code step', () => {
   assert.match(login, /setUnconfirmed\(isEmailNotConfirmed\(err\)\)/);
   assert.match(login, /pathname: '\/\(auth\)\/register', params: \{ confirm: email\.trim\(\) \}/);
   const register = src('app/(auth)/register.tsx');
-  assert.match(register, /useLocalSearchParams<\{ confirm\?: string \}>/);
-  assert.match(register, /useState<string \| null>\(confirmParam\)/, 'confirm=<email> opens the code step');
+  assert.match(register, /useLocalSearchParams<\{ confirm\?: string; whatsapp\?: string \}>/);
+  assert.match(register, /useState<CodeFor \| null>\(confirmParam \? \{ channel: 'email', email: confirmParam \} : null\)/, 'confirm=<email> opens the code step');
 });
 
 test('D101: Create account shows the code step after sign-up and verifies in the app', () => {
   const register = src('app/(auth)/register.tsx');
-  assert.match(register, /setCodeFor\(cleanEmail\)/, 'no session after sign-up → the code step');
-  assert.match(register, /verifySignUpCode\(signUpCodeClient, codeFor, code\)/);
-  assert.match(register, /resendSignUpCode\(signUpCodeClient, codeFor\)/);
-  assert.match(register, /disabled=\{loading \|\| cooldown > 0\}/);
-  assert.match(register, /<OtpField[\s\S]*?testID="register-code"/);
+  assert.match(register, /setCodeFor\(\{ channel: 'email', email: cleanEmail \}\)/, 'no session after sign-up → the code step');
+  assert.match(register, /verifySignUpCode\(signUpCodeClient, codeFor\.email, code\)/);
+  assert.match(register, /resendSignUpCode\(signUpCodeClient, codeFor\.email\)/);
+  assert.match(register, /<CodeStep[\s\S]*?testIDPrefix="register"/, 'the shared code step (components/ui/CodeStep.tsx)');
   assert.doesNotMatch(register, /confirmation link|Resend the link|Open the link/);
+  const step = src('components/ui/CodeStep.tsx');
+  assert.match(step, /disabled=\{loading \|\| cooldown > 0\}/);
+  assert.match(step, /<OtpField[\s\S]*?testID=\{`\$\{testIDPrefix\}-code`\}/);
 
   const otp = src('components/ui/OtpField.tsx');
   assert.match(otp, /keyboardType="number-pad"/);
@@ -166,7 +168,7 @@ test('D101: the Confirm signup template shows the code large, with no link', () 
 });
 
 test('D101: help says code, not link, for Create account', () => {
-  assert.match(HELP.createAccount, /We email a 6-digit code\. Type it in the app/);
+  assert.match(HELP.createAccount, /We send a 6-digit code to your WhatsApp or your email\. Type it in the app/);
   assert.match(HELP.createAccount, /Enter the code/);
   assert.doesNotMatch(HELP.createAccount, /link/i);
 });
