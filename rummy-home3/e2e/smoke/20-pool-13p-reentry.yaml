@@ -56,19 +56,6 @@ tags: [smoke]
     direction: DOWN
 - assertVisible:
     id: "score-cell-2-1"
-# A tap on the round number edits that round (the re-entry round too). Round 3 is in view here on every
-# phone; at font 1.3 (Pixel 7 Pro, nightly Nov 23) the card holds three rows, so after scrolling to the
-# footer it was not.
-- tapOn:
-    id: "score-round-3"
-- extendedWaitUntil:
-    visible: "Edit round 3"
-    timeout: 15000
-- takeScreenshot: 20c-pool-edit-reentry-round
-- back
-- extendedWaitUntil:
-    visible: "Scorecard( · .*)?"
-    timeout: 15000
 - swipe:
     from:
       id: "pool-table-pane"
@@ -84,23 +71,47 @@ tags: [smoke]
 - assertVisible:
     text: "Unique game ID: GAMEV1"
 - takeScreenshot: 20b-pool-13p-footer-inside-card
+# A tap on the round number edits that round (the re-entry round too).
+- tapOn:
+    id: "score-round-3"
+- extendedWaitUntil:
+    visible: "Edit round 3"
+    timeout: 15000
+- takeScreenshot: 20c-pool-edit-reentry-round
+- back
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 15000
 # Landscape: the table keeps the whole width (all 13 columns, TL last); no standings in landscape (Nov 18).
-# D89: the table alone — no header, ⋮, Share or bar; D42's re-entry marks stay.
+# D89: the table alone — no header, ⋮, Share or bar; D42's re-entry marks stay. The sideways checks run only
+# when the screen is sideways: the Pixel Tablet's LANDSCAPE_LEFT stands it upright (#131), where the
+# standings, the chrome and the five-column default (D90) are correct.
 - setOrientation: LANDSCAPE_LEFT
 - extendedWaitUntil:
     visible:
-      id: "score-header-initials-8"
+      id: "score-header-initials-2"
     timeout: 15000
 - assertVisible:
-    id: "score-header-initials-8"
-    text: "TG"
-- assertVisible:
-    id: "score-header-initials-13"
-    text: "TL"
-# "No standings sideways" (D47 B) is pinned by tests/d46-d47-nov18.test.ts, not asserted here: the Pixel
-# Tablet's natural orientation is landscape, so LANDSCAPE_LEFT turns it upright and the standings show.
-- assertVisible:
     id: "score-reentry-2"
+- runFlow:
+    when:
+      visible:
+        id: "landscape-table-only"
+    commands:
+      - assertVisible:
+          id: "score-header-initials-8"
+          text: "TG"
+      - assertVisible:
+          id: "score-header-initials-13"
+          text: "TL"
+      - assertNotVisible:
+          id: "pool-standings-pane"
+      - assertNotVisible:
+          id: "pool-standings"
+      - assertNotVisible: "Add round"
+      - assertNotVisible: "Scorecard menu"
+      - assertNotVisible:
+          id: "scorecard-share-icon"
 - takeScreenshot: 20d-pool-13p-landscape
 - setOrientation: PORTRAIT
 # Back in portrait the standings are there again, under the five-row card.

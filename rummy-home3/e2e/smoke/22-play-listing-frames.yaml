@@ -30,10 +30,13 @@ tags: [smoke, landscape]
     visible:
       id: "score-header-2"
     timeout: 15000
-- assertVisible:
-    id: "landscape-table-only"
-- assertNotVisible: "10 players"
-- assertNotVisible: "Add round"
+- runFlow:
+    when:
+      visible:
+        id: "landscape-table-only"
+    commands:
+      - assertNotVisible: "10 players"
+      - assertNotVisible: "Add round"
 - takeScreenshot: 22c-points-10p-landscape
 - setOrientation: PORTRAIT
 - extendedWaitUntil:
