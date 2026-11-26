@@ -4,7 +4,8 @@ import { exactSubline, multiplierLabel, multiplyScores } from '@/utils/multiplie
 import { buildRoundTable, PdfSection, ResultsRoundTable } from '@/utils/resultsDetails';
 import { buildScoresCard, ShareCard } from '@/utils/shareCard';
 import { AwardNote, PoolSeat } from '@/types/game';
-import { EMPTY_SEAT, isOut, poolTotal } from '@/utils/pool';
+import { EMPTY_SEAT, isOut, pointsLeft, poolTotal } from '@/utils/pool';
+import { firstAppearanceOrder, initialsById } from '@/utils/playerInitials';
 
 import { formatWhen } from '@/utils/formatWhen';
 
@@ -136,6 +137,76 @@ export function poolPdfSections(input: {
   ];
 }
 
+export const FINAL_SCORES_TITLE = 'Final scores';
+
+/** Places for rows already in order: equal keys share a place, the next place skips (1, 2, 2, 4). */
+export function placesOf(keys: (string | number)[]): number[] {
+  return keys.map((key, index) => {
+    let first = index;
+    while (first > 0 && keys[first - 1] === key) first -= 1;
+    return first + 1;
+  });
+}
+
+/** Pool status beside the score, as the scorecard says it: "49 left", or "Out · round 3". */
+export function poolStatus(total: number, seat: PoolSeat, limit: number): string {
+  return seat.outRound ? `Out · round ${seat.outRound}` : `${pointsLeft(total, limit)} left`;
+}
+
+/**
+ * D104 (Q19): the game PDF opens with the final scores as a table, in the order of the Final
+ * screen's picture. Points: Place · Player · Total, the winner tinted, "Totals add to 0" as the
+ * last row. Pool: Place · Player · (Award) · Score · Status ("49 left" / "Out · round 3").
+ * Every numeric column and its heading are right-aligned.
+ */
+export function finalScoresSection(input: {
+  summary: { id: string; name: string; total: number }[];
+  initials: Map<string, string>;
+  totals: Record<string, number>;
+  totalSum: number;
+  pool?: FinalScoresPool;
+  multiplierLine?: string | null;
+}): PdfSection {
+  const { summary, initials, totals, pool } = input;
+  const awards = pool?.awards ?? null;
+  const who = (id: string, name: string) => (initials.get(id) ? `${name} · ${initials.get(id)}` : name);
+  const lines = input.multiplierLine ? [input.multiplierLine] : undefined;
+  if (!pool) {
+    const places = placesOf(summary.map((row) => row.total));
+    const rows = summary.map((row, index) => [String(places[index]), who(row.id, row.name), formatPoints(row.total)]);
+    const highlight = summary.map((row, index) => (places[index] === 1 && row.total > 0 ? index : -1)).filter((index) => index >= 0);
+    return {
+      title: FINAL_SCORES_TITLE,
+      ...(lines ? { lines } : {}),
+      table: { heads: ['Place', 'Player', 'Total'], rows, align: ['left', 'left', 'right'], highlight, foot: ['', 'Totals add to', formatPoints(input.totalSum)] },
+    };
+  }
+  const seatOfId = (id: string) => pool.seats[id] ?? EMPTY_SEAT;
+  const keys = summary.map((row) => (awards ? awards[row.id] ?? 0 : `${isOut(seatOfId(row.id))}|${totals[row.id] ?? 0}`));
+  const places = placesOf(keys);
+  const rows = summary.map((row, index) => {
+    const score = totals[row.id] ?? 0;
+    return [
+      String(places[index]),
+      who(row.id, row.name),
+      ...(awards ? [formatPoints(awards[row.id] ?? 0)] : []),
+      String(score),
+      poolStatus(score, seatOfId(row.id), pool.limit),
+    ];
+  });
+  const winner = (id: string) => (awards ? (awards[id] ?? 0) > 0 : !isOut(seatOfId(id)));
+  const highlight = summary.map((row, index) => (places[index] === 1 && winner(row.id) ? index : -1)).filter((index) => index >= 0);
+  return {
+    title: FINAL_SCORES_TITLE,
+    table: {
+      heads: ['Place', 'Player', ...(awards ? ['Award'] : []), 'Score', 'Status'],
+      rows,
+      align: ['left', 'left', ...(awards ? ['right' as const] : []), 'right', 'right'],
+      highlight,
+    },
+  };
+}
+
 export function chunk<T>(items: T[], size: number): T[][] {
   if (size <= 0) return [items];
   const rows: T[][] = [];
@@ -221,11 +292,13 @@ export function buildFinalScoresSheet(input: {
   const totals = Object.fromEntries(players.map((player) => [player.id, player.total]));
   const inCount = pool ? players.filter((p) => !isOut(pool.seats[p.id])).length : 0;
   const poolLine = pool ? `${inCount} in · ${players.length - inCount} out · limit ${pool.limit}${awards ? ' · awards given' : ''}` : undefined;
+  const detailGame = { id: input.game.id, name: input.game.shareCode ?? label, label, date: input.game.date, scores: totals, rounds: scores, roundCount, multiplier: multiplier > 1 ? multiplier : undefined };
+  const initials = initialsById(firstAppearanceOrder(input.players, [detailGame]));
   const table = buildRoundTable(
-    { id: input.game.id, name: input.game.shareCode ?? label, label, date: input.game.date, scores: totals, rounds: scores, roundCount, multiplier: multiplier > 1 ? multiplier : undefined },
+    detailGame,
     0,
     input.players,
-    undefined,
+    initials,
     pool
       ? {
           cell: (playerId, roundIndex, value) => poolRoundCellText(pool.seats[playerId] ?? EMPTY_SEAT, roundIndex, value),
@@ -234,9 +307,17 @@ export function buildFinalScoresSheet(input: {
       : {},
   );
   const totalSum = players.reduce((sum, player) => sum + player.total, 0);
-  const pdfSections: PdfSection[] = pool
-    ? poolPdfSections({ pool, players, order: summary.map((row) => row.id) })
-    : [{ title: 'Totals', lines: [totalsLine(totalSum), ...(multiplier > 1 ? [`${multiplierLabel(multiplier)}: every number here is the actual points.`] : [])] }];
+  const pdfSections: PdfSection[] = [
+    finalScoresSection({
+      summary,
+      initials,
+      totals,
+      totalSum,
+      pool,
+      multiplierLine: multiplier > 1 ? `${multiplierLabel(multiplier)}: every number here is the actual points.` : null,
+    }),
+    ...(pool ? poolPdfSections({ pool, players, order: summary.map((row) => row.id) }) : []),
+  ];
   const card = buildScoresCard({
     title: awards ? `Awards · ${finalScoresHeading(input.game).replace(/^Final scores · /, '')}` : finalScoresHeading(input.game),
     tone: 'game',

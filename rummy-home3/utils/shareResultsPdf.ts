@@ -89,9 +89,9 @@ export async function shareResultsPdf(details: ResultsDetails, createdAt?: strin
 }
 
 /**
- * One game's full details as a phone-page PDF (Nov 18): the pool's limit and drops, every player's
- * pool score, entries, put in, gets, award and out round, re-entries, and every round five players to
- * a block. Points: totals and ×N. The web build prints the page instead.
+ * One game's full details as a phone-page PDF (Nov 18): the Final scores table first (D104), then for
+ * a pool its limit and drops, every player's pool score, entries, put in, gets, award and out round,
+ * re-entries; then every round five players to a block. The web build prints the page instead.
  */
 export async function shareFinalScoresPdf(sheet: FinalScoresSheet): Promise<string> {
   const html = roundsPdfHtml({

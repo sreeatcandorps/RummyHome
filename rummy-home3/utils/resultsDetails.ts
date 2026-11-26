@@ -492,10 +492,21 @@ export const UNIQUE_GAME_ID_LABEL = 'Unique game ID';
  * foot, with the short label ("Game S10 · Unique game ID · EJMEYV").
  */
 /** A block of the single-game PDF above the rounds (Nov 18): a heading, lines, and/or a small table. */
+export type PdfColumnAlign = 'left' | 'right';
+
 export type PdfSection = {
   title: string;
   lines?: string[];
-  table?: { heads: string[]; rows: string[][] };
+  table?: {
+    heads: string[];
+    rows: string[][];
+    /** Per column; a heading always sits on the same side as its numbers (D104). Default: first column left, the rest right. */
+    align?: PdfColumnAlign[];
+    /** Row indexes tinted as the winner. */
+    highlight?: number[];
+    /** A last row under a rule, e.g. "Totals add to 0". */
+    foot?: string[];
+  };
 };
 
 const DETAIL_CSS = `
@@ -504,17 +515,32 @@ const DETAIL_CSS = `
   table.det th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; }
   table.det th:first-child, table.det td:first-child { text-align: left; white-space: normal; }
   table.det td:first-child { font-weight: 600; }
+  table.det th.l, table.det td.l { text-align: left; white-space: normal; }
+  table.det th.r, table.det td.r { text-align: right; }
+  table.det tr.win td { background: var(--win); }
+  table.det tr.foot td { border-top: 2px solid var(--green); border-bottom: 0; font-weight: 700; }
   table.det tr:last-child td { border-bottom: 0; }
   table.det { page-break-inside: avoid; break-inside: avoid; }
+  table.rb th { text-align: right; }
+  table.rb th.rn { text-align: left; }
 `;
+
+/** The side of column `index`: as given, else the first column left and the rest right. */
+export function columnAlign(align: PdfColumnAlign[] | undefined, index: number): PdfColumnAlign {
+  return align?.[index] ?? (index === 0 ? 'left' : 'right');
+}
 
 export function pdfSectionHtml(section: PdfSection): string {
   const lines = (section.lines ?? []).map((line) => `<p class="meta">${escapeHtml(line)}</p>`).join('');
-  const table = section.table
-    ? `<table class="det"><thead><tr>${section.table.heads.map((head) => `<th>${escapeHtml(head)}</th>`).join('')}</tr></thead>`
-      + `<tbody>${section.table.rows.map((row) => `<tr>${row.map((cell) => `<td class="${pointsClass(cell)}">${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+  const table = section.table;
+  const side = (index: number) => (columnAlign(table?.align, index) === 'left' ? 'l' : 'r');
+  const highlight = new Set(table?.highlight ?? []);
+  const html = table
+    ? `<table class="det"><thead><tr>${table.heads.map((head, index) => `<th class="${side(index)}">${escapeHtml(head)}</th>`).join('')}</tr></thead>`
+      + `<tbody>${table.rows.map((row, rowIndex) => `<tr${highlight.has(rowIndex) ? ' class="win"' : ''}>${row.map((cell, index) => `<td class="${side(index)} ${pointsClass(cell)}">${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}`
+      + `${table.foot ? `<tr class="foot">${table.foot.map((cell, index) => `<td class="${side(index)}">${escapeHtml(cell)}</td>`).join('')}</tr>` : ''}</tbody></table>`
     : '';
-  return `<div class="section"><h2>${escapeHtml(section.title)}</h2>${lines}${table}</div>`;
+  return `<div class="section"><h2>${escapeHtml(section.title)}</h2>${lines}${html}</div>`;
 }
 
 export function roundsPdfHtml(input: { heading: string; lines: string[]; sections?: PdfSection[]; table: ResultsRoundTable; footer: string; iconDataUri?: string | null }): string {

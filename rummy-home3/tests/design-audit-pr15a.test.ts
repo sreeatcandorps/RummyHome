@@ -238,12 +238,12 @@ test('Nov 18 (replaces Q11.14): the Awards bar is Not now + Save awards the firs
   assert.equal(sameAwards(sheet, null), false, 'nothing saved yet → not the same');
 });
 
-test('Q11.18: Add new players has a header Back arrow that behaves like Done; the back gesture does too', () => {
+test('Q11.18 + D112: Add by initials has a header Back arrow; it and the back gesture ask once only when typed rows are unsaved', () => {
   const add = src('app/(screens)/players/add.tsx');
-  assert.match(add, /headerLeft: \(\) => <IconButton icon="arrow-left" onPress=\{\(\) => doneRef\.current\(\)\}[^>]*testID="add-players-back"/);
+  assert.match(add, /headerLeft: \(\) => <IconButton icon="arrow-left" onPress=\{\(\) => backRef\.current\(\)\}[^>]*testID="add-players-back"/);
   assert.match(add, /gestureEnabled: true/);
-  assert.match(add, /event\.preventDefault\(\);\s*doneRef\.current\(\);/, 'a swipe or hardware back routes through Done (unsaved letters ask first)');
-  assert.match(add, /doneRef\.current = done;/);
+  assert.match(add, /backRef\.current = \(\) => \(shouldAsk\(\) \? setUnsavedOpen\(true\) : leave\(\)\);/);
+  assert.match(add, /if \(!shouldAsk\(\)\) \{\s*leaving\.current = true;\s*return;\s*\}\s*event\.preventDefault\(\);/, 'a swipe or hardware back asks only when Save would keep something');
   assert.doesNotMatch(add, /headerLeft: \(\) => null/);
   const layout = src('app/(screens)/_layout.tsx');
   const routeTitle = layout.includes("title: 'Add by initials'") ? "title: 'Add by initials'" : "title: 'Add new players'";

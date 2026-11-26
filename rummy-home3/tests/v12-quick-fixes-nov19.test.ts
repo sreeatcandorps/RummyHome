@@ -20,22 +20,21 @@ test('v12 #1: the help picture is sized from the card width at the picture ratio
   assert.doesNotMatch(page, /aspectRatio: 0\.72/, 'the old letterboxing ratio is gone');
 });
 
-test('v12 #3/#4/#5: Add by initials — no sample letters, Save beside the boxes, count + Done under the rows, Unsaved players', () => {
+// D112 (Q44, Nov 25) supersedes v12 #3 and #5: no per-row Save, no Done while typing; one Save bar rides on the keyboard.
+test('v12 #4 + D112: Add by initials — no sample letters; one Save bar above the keyboard; the saved list ends in + Add more / Done', () => {
   const screen = src('app/(screens)/players/add.tsx');
-  assert.match(screen, /export const FIRST_PLACEHOLDER = '';/);
-  assert.match(screen, /export const LAST_PLACEHOLDER = '';/);
-  assert.match(screen, /export const UNSAVED_TITLE = 'Unsaved players';/);
-  assert.match(screen, /one letter only\.`/, 'the dialog is only about half-filled rows');
-  assert.match(screen, /const complete = unsavedRows\.filter\(\(row\) => row\.first && row\.last/, 'rows with both letters are saved on Done');
-  assert.match(screen, /testID="add-players-done-row"[\s\S]*?testID="add-players-count"[\s\S]*?testID="add-players-done"/, 'count and Done share the row under the cards');
-  assert.match(screen, /<\/ScrollView>/);
-  assert.doesNotMatch(screen, /<BottomBar>/, 'Done is no longer under the keyboard');
-  // Save / Edit comes straight after the two boxes; the saved label sits to its right.
-  const saveAt = screen.indexOf('accessibilityLabel={`Save row ${index + 1}`}');
-  const middleAt = screen.indexOf('<View style={styles.middle}>');
-  assert.ok(saveAt > 0 && middleAt > saveAt, 'button before the text');
-  // The strip of seated players follows the Done row.
-  assert.match(screen, /testID="add-players-done-row"[\s\S]*?<SelectedPlayersStrip/);
+  assert.doesNotMatch(screen, /placeholder=/, 'v12 #4: the boxes stay empty');
+  assert.doesNotMatch(screen, /Save row \$\{/, 'D112: the per-row Save button is gone');
+  assert.doesNotMatch(screen, /UNSAVED_TITLE|unsavedLeaveLabel|keep the/, 'D97 wording is superseded');
+  assert.match(screen, /<KeyboardAvoidingView[^>]*keyboardVerticalOffset=\{topY\}/, 'the Save bar rides on top of the keyboard');
+  assert.match(screen, /<\/ScrollView>\s*<BottomBar testID="add-players-save-bar">[\s\S]*?testID="add-players-count"[\s\S]*?testID="add-players-save"/, 'the bar sits under the rows, above the keyboard');
+  assert.match(screen, /returnKeyType="done"/);
+  assert.match(screen, /returnKeyLabel: KEYBOARD_SAVE_LABEL/, 'the keyboard key reads Save on Android');
+  assert.match(screen, /onSubmitEditing=\{\(\) => \{ saveAll\(\)/, 'either Save saves');
+  assert.match(screen, /disabled=\{saving \|\| ready\.length === 0\}/, 'disabled while saving (no double tap)');
+  assert.match(screen, /testID="add-players-saved-list"[\s\S]*?<SelectedPlayersStrip[\s\S]*?newIds=\{savedIds\}/, 'the seated chips under the saved list highlight the new ones');
+  assert.match(screen, /testID="add-players-add-more"[\s\S]*?testID="add-players-done"/, '+ Add more, then Done');
+  assert.match(screen, /onPress=\{leave\}[\s\S]{0,400}testID="add-players-done"/, 'Done leaves with no further dialog');
 });
 
 test('v12 #6: Order of players rows never below the 48 dp touch target', () => {

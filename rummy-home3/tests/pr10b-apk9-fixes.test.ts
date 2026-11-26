@@ -64,13 +64,10 @@ test('10.6 Add round: every saved cell is light green whatever the score; three 
 test('10.4 Add players: heading, F / L placeholders, one RPC per save, Backspace walks back, Done guards unsaved rows, Delete for this visit', () => {
   const screen = src('app/(screens)/players/add.tsx');
   assert.match(screen, /export const ADD_PLAYERS_HEADING = 'Add new players by initials';/);
-  assert.match(screen, /export const FIRST_PLACEHOLDER = '';/, 'v12 point 4: no sample letters');
-  assert.match(screen, /export const LAST_PLACEHOLDER = '';/);
-  assert.match(screen, /return `\$\{saved\} of \$\{NEW_PLAYER_ROWS_MAX\} players saved\. \$\{unsaved\} \$\{unsaved === 1 \? 'row has' : 'rows have'\} one letter only\.`;/, 'the Done pop-up summary (v12 point 3)');
+  assert.doesNotMatch(screen, /placeholder=/, 'v12 point 4: no sample letters in the boxes');
   assert.match(screen, /event\.nativeEvent\.key !== 'Backspace'/, 'Backspace in an empty cell walks back');
   assert.match(screen, /lastInputs\.current\[above\.key\]\?\.focus\(\)/, 'row n cell 1 → row n−1 cell 2');
-  assert.match(screen, /testID="add-players-unsaved"/, 'Go back / Discard dialog');
-  assert.match(screen, /onDelete=\{deleteRow\}/);
+  assert.match(screen, /testID="add-players-unsaved"/, 'the back dialog (D112: Save SK and go back / Discard)');
   assert.doesNotMatch(screen, /· Unregistered/, 'the redundant status word is gone');
   const identity = src('services/playerIdentity.ts');
   assert.match(identity, /playersService\.rememberMyPlayer\(ownerId, \{ \.\.\.player, initials: row\.initials \?\? value \}\)/, 'the RPC already added the row to My players: the phone only remembers it');
