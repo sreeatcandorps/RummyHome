@@ -456,7 +456,11 @@ tags: [nightly]
 - assertVisible:
     id: "score-header-initials-1"
     text: "ST"
-# Column 20 is off the right edge in portrait (nine columns fit): swipe the table left, then check it.
+# Column 20 is off the right edge in portrait (five columns by default, D90): swipe the table left, then check it.
+- swipe:
+    start: 95%, 40%
+    end: 5%, 40%
+    duration: 1500
 - swipe:
     start: 95%, 40%
     end: 5%, 40%

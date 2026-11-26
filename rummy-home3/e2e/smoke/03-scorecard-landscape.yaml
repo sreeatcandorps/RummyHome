@@ -3,6 +3,9 @@ tags: [smoke, landscape]
 # Landscape: setOrientation inside the flow (Maestro 2.x) after the app is up; the runner script also
 # rotates the emulator for any flow whose name contains "landscape", as a belt-and-braces.
 # Item 4 of the Nov 12 phone test: initials and DEALS must stay readable when the phone is turned.
+# D89 (Sree, Nov 24): "landscape is landscape, no buttons, nothing, no three dots, just to see the
+# scorecard." Sideways the table is alone: no header (back, title, Share, Help, ⋮), no tags, no bar,
+# no footer, and a tap on a round opens nothing. Turning the phone upright brings everything back.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - setOrientation: LANDSCAPE_LEFT
@@ -15,28 +18,57 @@ tags: [smoke, landscape]
 - tapOn:
     id: "game-card-GAMEA1"
 - extendedWaitUntil:
-    visible: "Scorecard( · .*)?"
+    visible:
+      id: "landscape-table-only"
     timeout: 15000
-- assertVisible: "Add round"
 - assertVisible: "DEALS"
 - assertVisible: "HT"
-# PR 4: the header keeps its full height sideways; the footer is one line inside the card under the
-# last round (PR 24: small italics, scrolls with the rounds).
-- scrollUntilVisible:
-    element:
-      id: "game-id-footer"
-    direction: DOWN
-    timeout: 10000
 - assertVisible:
-    text: "Creator:.*Unique game ID: GAMEA1"
+    id: "score-cell-2-1"
+- assertNotVisible: "Add round"
+- assertNotVisible: "Undo round"
+- assertNotVisible: "Complete game"
+- assertNotVisible:
+    id: "scorecard-share-icon"
+- assertNotVisible: "Scorecard menu"
+- assertNotVisible: "Help"
+- assertNotVisible: "4 players"
+- assertNotVisible:
+    id: "game-id-footer"
 - takeScreenshot: 03-scorecard-4p-landscape
+# A row tap does nothing sideways: no Edit round, no dialog.
+- tapOn:
+    id: "score-round-1"
+- assertNotVisible: "Edit round 1"
+- assertNotVisible: "Save round"
+- assertVisible:
+    id: "landscape-table-only"
+# Upright again: the header, tags and bar are back; Add round still works (its own landscape is unchanged).
+- setOrientation: PORTRAIT
+- extendedWaitUntil:
+    visible: "Add round"
+    timeout: 15000
+- assertVisible: "Scorecard menu"
 - tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- setOrientation: LANDSCAPE_LEFT
 - extendedWaitUntil:
     visible: "Save round"
     timeout: 15000
 - assertVisible: "Rummy"
 - assertVisible: "Save score"
 - takeScreenshot: 03b-add-round-landscape
+# Android back still leaves; back on the sideways scorecard, still no bar.
 - back
-- assertVisible: "Add round"
+- extendedWaitUntil:
+    visible:
+      id: "landscape-table-only"
+    timeout: 15000
+- assertNotVisible: "Add round"
+- back
+- extendedWaitUntil:
+    visible: "New game"
+    timeout: 15000
 - setOrientation: PORTRAIT

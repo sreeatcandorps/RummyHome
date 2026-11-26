@@ -3,7 +3,8 @@ tags: [nightly]
 # PR 4: with the phone font at 1.3x (ci/ui/run-flows.sh sets it for any flow named *font-scale*) the
 # header box is sized from its three lines, so initials, totals and DEALS stay whole, and the footer
 # still shows. Game E (4 players, active — smoke/05 completes game A, and a Completed game has no DEALS)
-# portrait, then Game F (20 players) for the narrow columns.
+# portrait, then Game F (20 players): five columns by default (D90), then ⋮ › Columns › Max for the
+# narrowest 38-dp columns, and back to 5 so the next flows start from the default.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - scrollUntilVisible:
@@ -36,3 +37,19 @@ tags: [nightly]
 - assertVisible: "TA"
 - assertVisible: "20 players"
 - takeScreenshot: 21b-scorecard-20p-font-scale
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "columns-choice-max"
+- extendedWaitUntil:
+    notVisible:
+      id: "game-menu-columns"
+    timeout: 5000
+- assertVisible: "TA"
+- takeScreenshot: 21c-scorecard-20p-max-font-scale
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "columns-choice-5"
+- extendedWaitUntil:
+    notVisible:
+      id: "game-menu-columns"
+    timeout: 5000

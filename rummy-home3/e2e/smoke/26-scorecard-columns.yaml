@@ -1,0 +1,61 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# D90 (Sree, Nov 24): "How about 5, 7, and then max? … Let's start with 5 as the default." Game F (20
+# players) upright: five player columns by default; ⋮ › Columns › Max fits as many 38-dp columns as the
+# phone allows (9 on a Pixel 6, 8 on a Pixel 4a); back to 5. The choice is remembered on the phone, so the
+# flow ends on 5 for the flows after it. A pinch snaps the same setting (unit-tested; Maestro cannot pinch).
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEF1"
+    direction: DOWN
+    timeout: 15000
+- tapOn:
+    id: "game-card-GAMEF1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertVisible:
+    id: "score-header-initials-5"
+- assertNotVisible:
+    id: "score-header-initials-7"
+- takeScreenshot: 26-scorecard-20p-five-columns
+- tapOn: "Scorecard menu"
+- extendedWaitUntil:
+    visible:
+      id: "game-menu-columns"
+    timeout: 5000
+- assertVisible: "Columns"
+- assertVisible:
+    id: "columns-choice-5"
+- assertVisible:
+    id: "columns-choice-max"
+- takeScreenshot: 26b-scorecard-menu-columns
+- tapOn:
+    id: "columns-choice-max"
+- extendedWaitUntil:
+    notVisible:
+      id: "game-menu-columns"
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: "score-header-initials-8"
+    timeout: 10000
+- assertVisible:
+    id: "score-cell-8-.*"
+- takeScreenshot: 26c-scorecard-20p-max-columns
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "columns-choice-5"
+- extendedWaitUntil:
+    notVisible:
+      id: "game-menu-columns"
+    timeout: 5000
+- extendedWaitUntil:
+    notVisible:
+      id: "score-header-initials-7"
+    timeout: 10000
+- assertVisible:
+    id: "score-header-initials-5"
+- back

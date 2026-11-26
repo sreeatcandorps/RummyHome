@@ -24,12 +24,16 @@ tags: [smoke, landscape]
     timeout: 20000
 - assertVisible: "10 players"
 - takeScreenshot: 22b-points-10p-portrait
+# D89: sideways is the table alone (no tags, header or bar), so the frame is all scores.
 - setOrientation: LANDSCAPE_LEFT
 - extendedWaitUntil:
     visible:
       id: "score-header-2"
     timeout: 15000
-- assertVisible: "10 players"
+- assertVisible:
+    id: "landscape-table-only"
+- assertNotVisible: "10 players"
+- assertNotVisible: "Add round"
 - takeScreenshot: 22c-points-10p-landscape
 - setOrientation: PORTRAIT
 - extendedWaitUntil:
