@@ -540,13 +540,21 @@ jobs:
 
       - name: Install Maestro
         run: |
-          curl -Ls "https://get.maestro.mobile.dev" | bash
+          # get.maestro.mobile.dev answers 504 now and then; the installer is safe to re-run.
+          set -o pipefail
+          for attempt in 1 2 3 4; do
+            if curl -fLs --retry 3 --retry-all-errors "https://get.maestro.mobile.dev" | bash \
+              && "$HOME/.maestro/bin/maestro" --version >/dev/null; then break; fi
+            [ "$attempt" = 4 ] && { echo "::error::Maestro install failed four times"; exit 1; }
+            echo "::warning::Maestro install failed (attempt $attempt), retrying"
+            sleep $((attempt * 15))
+          done
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
           "$HOME/.maestro/bin/maestro" --version
 
       # ---- emulator: snapshot cached per device ---------------------------------------------------
       - name: AVD cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         id: avd-cache
         with:
           path: |
@@ -554,8 +562,13 @@ jobs:
             ~/.android/adb*
           key: avd-${{ matrix.api }}-${{ matrix.arch }}-${{ matrix.target }}-${{ matrix.profile }}-v3
 
+      # Saving the snapshot on exit has hung once for 88 min after a 28 s boot. Cap it; on a hang the
+      # suite boots cold instead (about 30 s) and nothing half-written is cached.
       - name: Create the AVD and a boot snapshot (cache miss only)
+        id: avd-snapshot
         if: steps.avd-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 8
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api }}
@@ -566,6 +579,24 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
+
+      - name: Save the AVD snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true' && steps.avd-snapshot.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api }}-${{ matrix.arch }}-${{ matrix.target }}-${{ matrix.profile }}-v3
+
+      - name: Clear a hung snapshot emulator
+        if: steps.avd-cache.outputs.cache-hit != 'true' && steps.avd-snapshot.outcome != 'success'
+        run: |
+          pkill -9 -f qemu-system || true
+          pkill -9 -f '/emulator/emulator' || true
+          adb kill-server || true
+          rm -rf ~/.android/avd/*.avd/snapshots ~/.android/avd/*.avd/*.lock
+          echo "::warning title=AVD snapshot skipped::snapshot step failed or timed out; the suite boots cold"
 
       - name: Run ${{ matrix.suite }} on ${{ matrix.label }}
         uses: reactivecircus/android-emulator-runner@v2
