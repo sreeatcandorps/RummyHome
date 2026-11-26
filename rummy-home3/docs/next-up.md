@@ -2,9 +2,9 @@
 
 ## For Sree today
 
-1. **Your yes today:** the iPhone plan (Q41–Q43) — the iPhone starts after the code freeze (D114).
+1. **Your yes today:** count only the PRs being written, up to five open (Q45); the iPhone plan (Q41–Q43) — the iPhone starts after the code freeze (D114).
 2. **Shipped:** #143 (Settle removed), #146 (the Player ID plan); your OK is recorded as D113 (Player ID only, names not searchable) and D114 (code freeze before the iPhone).
-3. **Build PRs running: 3 of 3** — #131 batch 2, #138 columns / landscape, small batch 3 (Add players + PDF; helper building, PR soon). Testing never takes a slot: [how we test today](https://github.com/sreeatcandorps/RummyHome/blob/cursor/q30-freeze-testing-f877/rummy-home3/docs/testing-today.md).
+3. **Build PRs: 3 of 3** — being written: small batch 3 (Add players + PDF); finished, phone tests running: #131 batch 2, #138 columns / landscape. Testing never takes a slot: [how we test today](https://github.com/sreeatcandorps/RummyHome/blob/cursor/q30-freeze-testing-f877/rummy-home3/docs/testing-today.md).
 4. **Before the iPhone, in order:** #131 → #138 → Create account (no Player ID box + 6-digit code) → small batch 3 → Player ID only (D113) → faster tests → the staging APK on your yes → code freeze → iPhone.
 5. **Waiting on others:** Google's Play review — it answers by e-mail.
 
