@@ -44,8 +44,6 @@ export const REDIRECT_ROUTES = [
   { file: 'app/(screens)/players/[id].tsx', to: 'S05 My players' },
   { file: 'app/(screens)/players/[id]/edit.tsx', to: 'S06 Me' },
   { file: 'app/(screens)/games/history.tsx', to: 'S04 Home' },
-  { file: 'app/(screens)/sessions/[id].tsx', to: 'S04 Home (settleEnabled off)' },
-  { file: 'app/(screens)/settle/index.tsx', to: 'S04 Home (settleEnabled off)' },
 ];
 
 export const POPUPS = [

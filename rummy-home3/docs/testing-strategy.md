@@ -15,7 +15,6 @@ Flow view, roles, devices, automation tiers and the break-the-app programme: [`t
 | Who sees a game | `tests/friday.test.ts` | Creator, seated player, spectator, same email, outsider |
 | Who can score | `tests/friday.test.ts` | Creator and game admin yes; player and spectator no |
 | Share token | `tests/friday.test.ts` | 48-hex token, link is not localhost |
-| Prize coins | `tests/friday.test.ts` | Stake uses points; pool prize splits to 0; entries must net to 0; session settles at all zeros |
 | Auth copy | `tests/auth-errors.test.ts`, `tests/friday.test.ts` | Duplicate email tells the person to sign in; reset URL is not localhost |
 
 ## Integration (Supabase / RLS)
@@ -198,7 +197,7 @@ Only after S + N are green, with the matrix above as the checklist. Someone who 
 - One points game completed from Done. Home → Results shows places. Home has no Settle button.
 - A new account’s welcome email arrives from `scores@mindweavetech.com`.
 
-Pass when Home has New game, Results, and Recent, and none of Settle, Active, History, or All players. Settle stays off. `EXPO_PUBLIC_SETTLE_ENABLED` stays unset.
+Pass when Home has New game, Results, and Recent, and none of Settle, Active, History, or All players. Settle was deleted (D110).
 
 ## PR 3 test cases (Add round colours, count warnings, Rummy negative share, migration 037)
 
