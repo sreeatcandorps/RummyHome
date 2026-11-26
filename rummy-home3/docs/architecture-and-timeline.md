@@ -52,6 +52,7 @@ Same codebase either way.
 | Scheduled DB job | **pg_cron** (Supabase extension), enabled on live Nov 15. The 045 job `purge-deleted-games` was **unscheduled the same day** (0 jobs) after Sree's rule that the app never permanently deletes games or results. PR 22 / migration 046 (written, not applied) replaces it with `archive-deleted-games` → `archive_deleted_games()`, 03:15 UTC nightly, non-destructive (`games.archived_at`) | Live has no scheduled job until 046 is applied; `purge_deleted_games()` exists there but nothing calls it |
 | Public scorecard | `https://ezscore.mindweavetech.com/scorecard.html` — Cloudflare Worker `ezscore-site`, deployed by `publish-site.yml` on merge to `main` (Nov 23) | Static HTML inlined in one Worker. `__SUPABASE_URL__` and `__SUPABASE_ANON_KEY__` are filled at publish time, not committed |
 | Local cache | AsyncStorage | Offline/session helpers only — not the system of record |
+| WhatsApp sign-in (D124, built Nov 26, not yet on a phone) | Supabase Auth phone provider → **Twilio Verify**, channel `whatsapp`; `expo-cellular` + `expo-localization` for the starting way and country code (D125, no permission) | The number is a username with the passcode (D76); a code only for sign-up, Forgot passcode and a number change. Local Supabase and CI use test numbers with a fixed code, so no sender is called. Staging / live need Twilio Verify keys in the dashboard (Sree's S1–S5) and a new APK (two native modules) |
 | Tutorials | `components/tutorial/StepsSheet.tsx` + `expo-haptics` (D61, Nov 20) | Step-by-step sheets drawn from the real components (no video / Lottie); seen-flags on `profiles.default_settings`; the light tap on the real last tap of the Order of players |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / staging (EZ Score · Staging, `.staging` package, points at `ezscore-staging`) / production | Real store binaries |
@@ -331,6 +332,10 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 - `constants/theme.ts` moved from the Clubhouse set to "Felt & Brass" (D65: felt `#0E4D2A`, brass `#F0DFAE`, paper `#F5F2E8`, light and dark); the web scorecard / results pages and the share card follow the same green. Seat colours and red are unchanged.
 - The approved S screens (Profile D66, Settings D67, Game type D68, Sign in D69) now share three UI pieces — `SettingsGroup`, `SegmentedChoice`, `ListRow` with a value slot — plus `RulesForm layout="grouped"` and the `JokerCard` hero in `AuthShell`. Paper's `SegmentedButtons`, `RadioButton` and `SectionCard` leave those four screens; the rest of the app keeps today's look until Sree says which screen is next (`docs/design-review-2.md` §10).
 
+### 2026-11-26 — WhatsApp sign-in built (D124, migration 055 written, not applied)
+- Create account, Sign in and Forgot passcode get a WhatsApp · Email switch; WhatsApp uses Supabase's phone provider set to Twilio Verify with the WhatsApp channel. "Send a new code" repeats the first request, because Supabase's resend always sends an SMS for a phone. The D101 code step is shared by email and WhatsApp; Profile gains *Sign-in methods* and Home one backup reminder.
+- Two native modules join (`expo-cellular`, `expo-localization`) for D125's defaults, so the next APK must be a new build, not an OTA. `055_sign_in_methods.sql` copies a confirmed email change from Auth to the profile and adds `release_my_whatsapp_number()` for *Not you?*; staging under D79, live only on Sree's yes. Nothing reaches a real WhatsApp until Twilio Verify keys are set on staging.
+
 ### Now
 - Play Console personal account under Google verification (~days).
 - EAS side ready to build once Play app exists / you’re ready to upload.
@@ -342,6 +347,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Area | Status |
 | --- | --- |
 | Auth (email/passcode, session refresh, app-only OTP recovery, sign-up code) | Done in the app; OTP email live via Resend since Nov 9. Sign-up confirms with a typed code (D101) once Build Bot sets the Confirm signup template on both projects. Phone pass pending |
+| WhatsApp sign-in (D124) | Built on its branch, tested on local test numbers (unit, pgTAP, Maestro smoke 32–34). Waiting on Twilio Verify keys for staging, migration 055 on staging, and a new staging APK (D117) |
 | Profiles / Player ID + share | Done |
 | Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
 | New game (Points / Pool, my players) | Done. Four steps (PR 24): Players (Next) → Game type with this game's settings prefilled from Settings (Next) → Order of players (tap to number) → Co-admin → Start game. Creator is not pre-seated; Add players (full screen) / Add player from database |
