@@ -20,21 +20,31 @@ tags: [smoke]
       text: "Sree Test"
     direction: UP
     timeout: 15000
-# Size-S (D66): grouped rows — Name and Initials with a pen, the passcode dialog with the
-# fields first and the keyboard open — all three fields must stay on screen.
+- assertVisible: "Sree Test"
+# D124: Sign-in methods sits under the name: Email, WhatsApp (Add a backup), and Passcode › Change, which moved
+# here from Account. Sree has only an email.
+- extendedWaitUntil:
+    visible: "Sign-in methods"
+    timeout: 15000
+- assertVisible: "sree@test.local"
+- assertVisible: "Add a backup"
+- takeScreenshot: 07-profile
+# Size-S (D66): grouped rows — Name and Initials with a pen, under Your table, now below Sign-in methods.
+- scrollUntilVisible:
+    element:
+      id: "me-edit-initials"
+    direction: DOWN
+    timeout: 10000
 - assertVisible:
     id: "me-edit-name"
 - assertVisible: "Initials on scorecards"
-- assertVisible:
-    id: "me-edit-initials"
-- takeScreenshot: 07-profile
-# Size-S: Change passcode sits in the Account group, a screen down; scroll to it first.
+# The passcode dialog with the fields first and the keyboard open — all three fields must stay on screen.
 - scrollUntilVisible:
     element:
       id: "me-change-passcode"
-    direction: DOWN
+    direction: UP
     timeout: 10000
-- assertVisible: "Change passcode"
+- assertVisible: "Passcode"
 - tapOn:
     id: "me-change-passcode"
 - extendedWaitUntil:
