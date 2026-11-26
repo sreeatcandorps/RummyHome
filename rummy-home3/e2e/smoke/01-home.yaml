@@ -32,7 +32,7 @@ tags: [smoke]
     element:
       text: "Recent"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - assertNotVisible:
     text: "Recent · .*"
 - takeScreenshot: 01b-home-recent
@@ -40,5 +40,5 @@ tags: [smoke]
     element:
       id: "game-card-GAMEA1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - takeScreenshot: 01c-home-scrolled

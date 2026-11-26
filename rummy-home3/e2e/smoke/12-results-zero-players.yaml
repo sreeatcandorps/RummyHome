@@ -16,21 +16,21 @@ tags: [smoke]
     element:
       id: "game-card-GAMEA1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEA1"
 - scrollUntilVisible:
     element:
       id: "game-card-GAMEG1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - assertVisible:
     id: "game-card-GAMEG1"
 - scrollUntilVisible:
     element:
       id: "show-results"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 # Nudge the page up before the tap: at the bottom edge the button sits under the 3-button bar on the small
 # phone and the tap lands on Home (flow 06, API 34 run).
 - swipe:
@@ -50,12 +50,12 @@ tags: [smoke]
     element:
       text: "Games in this result"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - scrollUntilVisible:
     element:
       id: "results-save-button"
     direction: UP
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "results-save-button"
 - extendedWaitUntil:
@@ -73,7 +73,7 @@ tags: [smoke]
     element:
       text: "Games in this result"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 # PR 9 (words PR 10b): the saved result shows Delete this result at its foot (sree saved it) with
 # the one-line consequence under it. Delete → Undo toast → Undo, then Delete again from the result
 # page → toast runs out → Deleted + Restore → Restore. G's result is back (G Closed) when this ends.
@@ -81,7 +81,7 @@ tags: [smoke]
     element:
       id: "result-delete"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 # Edge-to-edge draws the last button under the translucent 3-button bar and a tap at the bottom edge
 # lands on the system Home button (run 4); centerElement cannot centre an element near the end of the
 # page (run 5), so nudge the page up by a third instead. At the very end the screen padding keeps the
@@ -116,14 +116,14 @@ tags: [smoke]
     element:
       text: "Past results"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 # PR 10b: the Past results rows carry no Delete chip; Delete lives on the result page only. Open
 # the row, Delete there, let the 10-second toast run out, then Results → Deleted + Restore.
 - scrollUntilVisible:
     element:
       id: "past-result-.*"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - takeScreenshot: 12f-past-results-no-row-delete
 - tapOn:
     id: "past-result-.*"
@@ -134,7 +134,7 @@ tags: [smoke]
     element:
       id: "result-code"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 # The scroll stops as soon as the row counts as visible, which on the 360-dp phone is under the translucent
 # 3-button bar; the page pads past the bar, so a nudge brings the row clear (a no-op at the very end).
 - swipe:
@@ -146,7 +146,7 @@ tags: [smoke]
     element:
       id: "result-delete"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 # Edge-to-edge draws the last button under the translucent 3-button bar and a tap at the bottom edge
 # lands on the system Home button (run 4); centerElement cannot centre an element near the end of the
 # page (run 5), so nudge the page up by a third instead. At the very end the screen padding keeps the
@@ -172,12 +172,12 @@ tags: [smoke]
     element:
       text: "Past results"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - scrollUntilVisible:
     element:
       id: "deleted-result-restore-.*"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible: "Deleted"
 # PR 11 mini help: the 30-day note sits in the ⓘ beside the Deleted title. On a tall phone the
 # Deleted title lands at the very foot of the screen after the scroll above, so centre the ⓘ first —

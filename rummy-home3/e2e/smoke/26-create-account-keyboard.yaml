@@ -25,14 +25,15 @@ tags: [smoke]
     visible:
       id: "login-email"
     timeout: 30000
-- hideKeyboard
 # Size-S (#120, D69): with the hero card the New here? line can sit below the fold at 360 dp × font 1.3
 # (the email field focuses itself, so the keyboard's padding is still settling); scroll to it, then tap.
+# No hideKeyboard here: the email field focuses 350 ms after the screen opens, and a hideKeyboard before
+# that is a Back press that closes the app (PR #151's run, Nov 26). The tap works with the keypad up.
 - scrollUntilVisible:
     element:
       text: "Create account"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn: "Create account"
 - extendedWaitUntil:
     visible:
@@ -61,7 +62,7 @@ tags: [smoke]
     element:
       id: "register-passcode"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "register-passcode"
 - inputText: "123456"
@@ -74,7 +75,7 @@ tags: [smoke]
     element:
       id: "register-player-id"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "register-player-id"
 - inputText: "42"

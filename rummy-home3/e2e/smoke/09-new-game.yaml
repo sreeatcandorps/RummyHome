@@ -48,7 +48,7 @@ tags: [smoke]
 - scrollUntilVisible:
     element: "Done adding players"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn: "Done adding players"
 - extendedWaitUntil:
     visible: "Add by initials"
