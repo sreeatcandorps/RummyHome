@@ -4,7 +4,7 @@ tags: [nightly]
 # picker as "Add players to this game": the big yellow circle reads Total 3 (seated only, D7.1),
 # "Added now: 0"; tapping R K and C D makes it Total 5 / "Added now: 2 (yellow ring)" and the D70
 # notice names their seats (left of the dealer); Return to game lands on the scorecard with RK and CD columns. Then Add non-playing admin #5 (Otto
-# Outsider) lists him under "Admins not playing" with no column. Cleanup: R K and C D are removed
+# Outsider; the Player ID lookup shows him as "Otto O." since 053, D113) lists him under "Admins not playing" with no column. Cleanup: R K and C D are removed
 # again (their only scores are 0) so full/80 sees the 3-column game it expects; Otto stays an
 # admin, which changes no column and no total.
 ---
@@ -83,14 +83,14 @@ tags: [nightly]
 - hideKeyboard
 - tapOn: "Look up Player ID"
 - extendedWaitUntil:
-    visible: "Otto Outsider"
+    visible: "Otto O\\."
     timeout: 15000
 - takeScreenshot: 32e-non-playing-admin-preview
 - tapOn: "Confirm add admin"
 - extendedWaitUntil:
     visible: "Admins not playing"
     timeout: 15000
-- assertVisible: "Otto Outsider"
+- assertVisible: "Otto O(utsider|\\.)"
 - takeScreenshot: 32f-admins-not-playing
 # Cleanup: remove the two added players (scores all 0) so the game H fixture is 3 columns again.
 - tapOn: "Options for R K"
@@ -122,4 +122,4 @@ tags: [nightly]
     visible: "Add round"
     timeout: 15000
 - assertNotVisible: "RK"
-- assertNotVisible: "Otto Outsider"
+- assertNotVisible: "Otto O(utsider|\\.)"
