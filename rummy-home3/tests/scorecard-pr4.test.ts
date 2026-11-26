@@ -131,5 +131,5 @@ test('A4-6 / PR 10a: header pinned above one vertical scroller, rows in one side
   const screen = src('app/(screens)/games/[id].tsx');
   assert.match(screen, /<GameIdFooter game=\{game\} members=\{members\} compact=\{isShort\} \/>/);
   // PR 24 (Sree, Nov 17): the footer moved inside the card, directly under the last round row, so it scrolls with the rounds.
-  assert.match(screen, /footer=\{idFooter\}/, 'the footer is the table card\'s footer slot');
+  assert.match(screen, /footer=\{chrome\.footer \? idFooter : undefined\}/, 'the footer is the table card\'s footer slot');
 });

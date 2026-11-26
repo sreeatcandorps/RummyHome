@@ -31,7 +31,9 @@ import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { settleEnabled } from '@/constants/features';
 import { HelpButton } from '@/components/ui/HelpButton';
-import { useLayout } from '@/hooks/useLayout';
+import { LANDSCAPE_EDITING, useLayout } from '@/hooks/useLayout';
+import { useColumnChoice } from '@/hooks/useColumnChoice';
+import { SegmentedChoice } from '@/components/ui/SegmentedChoice';
 import { useMenuThenShare } from '@/hooks/useMenuThenShare';
 import { ScoreColumn, ScoreTable } from '@/components/game/ScoreTable';
 import { BottomBar } from '@/components/ui/BottomBar';
@@ -44,7 +46,7 @@ import { SeatingSheet } from '@/components/game/SeatingSheet';
 import { DealerSheet } from '@/components/game/DealerSheet';
 import { canChangeSeating, SEATING_MENU_ITEM } from '@/utils/seating';
 import { GameIdFooter } from '@/components/game/GameIdFooter';
-import { playersChipLabel, POOL_CARD_MAX_ROWS } from '@/utils/scorecardLayout';
+import { COLUMN_CHOICE_LABEL, ColumnChoice, columnChoices, playersChipLabel, POOL_CARD_MAX_ROWS, readColumnChoice, scorecardChrome, shownChoice } from '@/utils/scorecardLayout';
 import { gameSettingsMenuTitle, rulesFromGame } from '@/utils/gameSettings';
 import { canReopenGame, reopenClearsAwards, reopenUncloses, REOPEN_CLEARS_AWARDS_NOTE } from '@/utils/gameStatus';
 import { reopenClosedLines, type ResultForGame } from '@/utils/results';
@@ -66,10 +68,15 @@ export default function GameScreen() {
   const router = useRouter();
   const theme = useAppTheme();
   const { colors } = theme;
-  const { isShort, isLandscape, insets, gutterLeft, gutterRight } = useLayout();
+  const { width, isShort, isLandscape, insets, gutterLeft, gutterRight } = useLayout();
   // D47 B (Sree, Nov 18): "sideways" is wider than tall, on every device. A phone turned sideways is also
   // short (compact chrome); a tablet turned sideways is not, but it still gets the table alone.
   const sideways = isLandscape;
+  // D89: sideways is the table and nothing else, until the parked tablet mode switches the chrome back on.
+  const chrome = scorecardChrome(sideways, LANDSCAPE_EDITING);
+  // D90: portrait 5 · 7 · Max, from the width the portrait table gets (the screen less its side padding).
+  const [columnChoice, setColumnChoice] = useColumnChoice();
+  const columnOptions = columnChoices(width - insets.left - insets.right - spacing.sm * 2, isShort);
   // Seed from the last-known copy so returning from Add round shows the new row at once; the fresh load follows.
   const cachedGame = gamesService.peekGame(typeof id === 'string' ? id : null);
   const cachedSeats = gamesService.peekSeats(typeof id === 'string' ? id : null);
@@ -564,7 +571,7 @@ export default function GameScreen() {
       }}
       nextDealerId={nextDealerId}
       opensId={opensId}
-      onDealerPress={canChangeSeating(game, canScoreNow) ? () => setDealerSheet(true) : undefined}
+      onDealerPress={chrome.taps && canChangeSeating(game, canScoreNow) ? () => setDealerSheet(true) : undefined}
       rotationStarts={rotationStartRounds}
       leaderIds={leaderIds}
       compact={isShort}
@@ -572,13 +579,15 @@ export default function GameScreen() {
       pool={pool}
       multiplier={multiplier}
       showActual={showActual}
-      onTotalPress={pool ? undefined : () => setExactOpen(true)}
-      emptyMessage={game.isComplete ? 'This game was closed with no rounds.' : 'No rounds yet. Tap Add round to score the first hand.'}
-      footer={idFooter}
+      onTotalPress={pool || !chrome.taps ? undefined : () => setExactOpen(true)}
+      emptyMessage={game.isComplete ? 'This game was closed with no rounds.' : chrome.bottomBar ? 'No rounds yet. Tap Add round to score the first hand.' : 'No rounds yet.'}
+      footer={chrome.footer ? idFooter : undefined}
       // PR 24: a tap on a round number edits that round (the re-entry round too); the menu's Edit round stays.
-      onRoundPress={canScoreNow && !game.isComplete && !deleted ? openEditRound : undefined}
+      onRoundPress={chrome.taps && canScoreNow && !game.isComplete && !deleted ? openEditRound : undefined}
       // Pool upright (Nov 18): Sree's 5-line rule — see ScoreTable.hugRows.
       hugRows={pool && !sideways ? POOL_CARD_MAX_ROWS : undefined}
+      columnChoice={sideways ? undefined : columnChoice}
+      onColumnChoiceChange={sideways ? undefined : setColumnChoice}
     />
   );
 
@@ -634,7 +643,7 @@ export default function GameScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Stack.Screen
         options={{
-          headerShown: true,
+          headerShown: chrome.header,
           title: screenTitle('Scorecard', game),
           headerStyle: { backgroundColor: colors.background },
           headerRight: () => (
@@ -662,6 +671,18 @@ export default function GameScreen() {
                   <Menu.Item leadingIcon="lock-open-variant-outline" title="Reopen game" testID="game-menu-reopen" onPress={() => { setMenuOpen(false); openReopen(); }} />
                 ) : null}
                 <Menu.Item leadingIcon="history" onPress={openLog} title="Log" testID="game-menu-log" />
+                {sideways ? null : (
+                  <View style={styles.columnsRow} testID="game-menu-columns">
+                    <Text variant="bodyLarge" style={{ color: colors.onSurface }}>Columns</Text>
+                    <SegmentedChoice
+                      value={String(shownChoice(columnChoice, columnOptions)) as `${ColumnChoice}`}
+                      onChange={(value) => { setColumnChoice(readColumnChoice(value)); setMenuOpen(false); }}
+                      options={columnOptions.map((choice) => ({ value: String(choice) as `${ColumnChoice}`, label: COLUMN_CHOICE_LABEL[choice], testID: `columns-choice-${choice}` }))}
+                      accessibilityLabel="Columns"
+                      style={styles.columnsChoice}
+                    />
+                  </View>
+                )}
                 {deleted ? null : <Menu.Item leadingIcon="eye-off-outline" onPress={hideGame} title="Hide game" />}
                 {canManageNow ? (
                   <Menu.Item leadingIcon="delete-outline" onPress={openDelete} title="Delete game" titleStyle={{ color: colors.error }} />
@@ -672,44 +693,50 @@ export default function GameScreen() {
         }}
       />
 
-      <View style={[styles.infoStrip, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
-        {deleted && game.deletion ? (
-          <DeletedGameBanner deletion={game.deletion} viewerId={userId} busy={archiving} onAsk={askRestore} onRestore={restoreGame} />
-        ) : null}
-        <View style={styles.metaRow}>
-          {numberBadge}
-          {typeTag}
-          {playersTag}
-          {statusTag}
-          <MultiplierChip multiplier={multiplier} onPress={() => setExactOpen(true)} testID="multiplier-chip" />
-          {!canScoreNow && !game.isComplete && !deleted ? <Tag label="View only" icon="eye-outline" /> : null}
-        </View>
-        <ActualToggle multiplier={multiplier} on={showActual} onChange={setShowActual} />
-        {game.isComplete && !deleted ? (
-          <View style={styles.completedRow}>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="completed-line">
-              {pool && game.awardedAt ? 'Completed and awarded.' : 'Completed.'}
-            </Text>
-            {/* A sideways pool has no awards card (no standings pane), so the admin's way to the awards sits in the strip. */}
-            {pool && sideways && canManageNow && !game.closedAt ? (
-              <Button compact mode="text" icon="trophy-outline" onPress={openAwards} testID="strip-give-awards">
-                {game.awardedAt ? 'Change awards' : 'Give awards'}
-              </Button>
-            ) : null}
+      {chrome.strip ? (
+        <View style={[styles.infoStrip, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
+          {deleted && game.deletion ? (
+            <DeletedGameBanner deletion={game.deletion} viewerId={userId} busy={archiving} onAsk={askRestore} onRestore={restoreGame} />
+          ) : null}
+          <View style={styles.metaRow}>
+            {numberBadge}
+            {typeTag}
+            {playersTag}
+            {statusTag}
+            <MultiplierChip multiplier={multiplier} onPress={() => setExactOpen(true)} testID="multiplier-chip" />
+            {!canScoreNow && !game.isComplete && !deleted ? <Tag label="View only" icon="eye-outline" /> : null}
           </View>
-        ) : poolOver ? (
-          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="pool-over-hint">
-            One player is left in. Complete the pool, or re-enter someone below.
-          </Text>
-        ) : null}
-      </View>
+          <ActualToggle multiplier={multiplier} on={showActual} onChange={setShowActual} />
+          {game.isComplete && !deleted ? (
+            <View style={styles.completedRow}>
+              <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="completed-line">
+                {pool && game.awardedAt ? 'Completed and awarded.' : 'Completed.'}
+              </Text>
+              {/* A sideways pool has no awards card (no standings pane), so the admin's way to the awards sits in the strip. */}
+              {pool && sideways && canManageNow && !game.closedAt ? (
+                <Button compact mode="text" icon="trophy-outline" onPress={openAwards} testID="strip-give-awards">
+                  {game.awardedAt ? 'Change awards' : 'Give awards'}
+                </Button>
+              ) : null}
+            </View>
+          ) : poolOver ? (
+            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="pool-over-hint">
+              One player is left in. Complete the pool, or re-enter someone below.
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
 
       {sideways ? (
         <View
           style={[
             styles.landscapeBody,
             { paddingLeft: gutterLeft, paddingRight: gutterRight },
+            // No header above and no bar below: the table clears the status bar and the gesture bar itself.
+            !chrome.header && { paddingTop: insets.top + spacing.xs },
+            !chrome.bottomBar && { paddingBottom: insets.bottom + spacing.xs },
           ]}
+          testID="landscape-table-only"
         >
           {table}
         </View>
@@ -732,7 +759,7 @@ export default function GameScreen() {
           </View>
         </View>
       )}
-      {!game.isComplete && canScoreNow ? (
+      {chrome.bottomBar && !game.isComplete && canScoreNow ? (
         <BottomBar fullWidth>
           {undoButton}
           {addRoundButton}
@@ -998,6 +1025,15 @@ const styles = StyleSheet.create({
   },
   landscapeBody: {
     flex: 1,
+  },
+  columnsRow: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+    minWidth: 200,
+  },
+  columnsChoice: {
+    alignSelf: 'stretch',
   },
   completeAction: {
     flex: 1.25,
