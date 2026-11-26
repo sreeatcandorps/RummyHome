@@ -113,6 +113,11 @@ export default function GameScreen() {
   // Nov 18 end flow: Complete is a dialog here, not a page.
   const [completeOpen, setCompleteOpen] = useState(false);
 
+  // The ⋮ menu hangs off the header; turning sideways takes the header away, so the menu goes with it.
+  useEffect(() => {
+    if (!chrome.header) setMenuOpen(false);
+  }, [chrome.header]);
+
   // Mount is covered by useFocusEffect below (it fires on focus, which includes the first mount): one load, not two.
   useEffect(() => {
     if (!isSupabaseConfigured || typeof id !== 'string') return;
