@@ -25,6 +25,12 @@ tags: [smoke]
     visible:
       id: "login-email"
     timeout: 30000
+# Sign in opens with the cursor in Email and the keypad up; the screen keeps Create account above the keypad.
+- scrollUntilVisible:
+    element:
+      id: "login-create-account"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "login-create-account"
 - extendedWaitUntil:

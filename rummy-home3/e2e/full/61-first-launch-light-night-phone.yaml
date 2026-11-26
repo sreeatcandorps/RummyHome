@@ -10,6 +10,7 @@ tags: [nightly]
 - assertVisible: "New game"
 - takeScreenshot: 61-home-first-launch-night-phone
 - tapOn: "Your profile"
+# Sign-in methods (D124) sits first and pushes Appearance below the fold: scroll to the choice.
 - extendedWaitUntil:
     visible: "Profile"
     timeout: 15000
@@ -19,4 +20,8 @@ tags: [nightly]
       text: "Appearance"
     direction: DOWN
     timeout: 15000
+- scrollUntilVisible:
+    element: "Light"
+    direction: DOWN
+    timeout: 10000
 - takeScreenshot: 61b-profile-first-launch-night-phone

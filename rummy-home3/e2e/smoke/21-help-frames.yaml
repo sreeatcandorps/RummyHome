@@ -68,6 +68,10 @@ tags: [smoke]
     visible: "Profile"
     timeout: 15000
 - scrollUntilVisible:
+    element: "Appearance"
+    direction: DOWN
+    timeout: 10000
+- scrollUntilVisible:
     element:
       id: "me-settings"
     direction: DOWN
