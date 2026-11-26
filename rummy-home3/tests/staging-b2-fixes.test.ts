@@ -6,7 +6,7 @@ import * as plannerModule from '../../ci/select-tests.mjs';
 
 type Job = { device: string; suite: string };
 const { DEVICES, select } = plannerModule as unknown as {
-  DEVICES: Record<string, { profile: string; density?: number; font: string; label: string }>;
+  DEVICES: Record<string, { api: number; profile: string; density?: number; font: string; label: string }>;
   select: (input: { event?: string; files?: string[] }) => { jobs: Job[] };
 };
 
