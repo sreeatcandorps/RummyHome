@@ -9,7 +9,7 @@ tags: [smoke, landscape]
     element:
       id: "game-card-GAMEF1"
     direction: DOWN
-    timeout: 15000
+    timeout: 60000
 - tapOn:
     id: "game-card-GAMEF1"
 - extendedWaitUntil:

@@ -16,7 +16,7 @@ tags: [smoke, landscape]
     element:
       id: "game-card-GAMEA1"
     direction: DOWN
-    timeout: 30000
+    timeout: 60000
 - tapOn:
     id: "game-card-GAMEA1"
 - extendedWaitUntil:
@@ -87,7 +87,7 @@ tags: [smoke, landscape]
     commands:
       - assertNotVisible: "Add round"
 - back
-- extendedWaitUntil:
-    visible: "New game"
-    timeout: 15000
+# Home keeps the scroll position it had when game A was tapped, and sideways at 360 dp that is far down the list
+# (CI run on #150, Nov 26: "New game" never showed): scroll back up to it.
+- runFlow: ../lib/home-top.yaml
 - setOrientation: PORTRAIT

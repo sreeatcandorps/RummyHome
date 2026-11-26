@@ -5,9 +5,12 @@ appId: com.mindweavetech.rummyhome
 - launchApp
 - extendedWaitUntil:
     visible:
-      # Sign in's subtitle as well as its button: with the keypad up on a 360-dp phone at font 1.3 the button
-      # can sit under it (the small-phone run on #151, Nov 26).
-      text: "New game|Sign in|Sign in to keep score.*"
+      # Home, or anything that only the sign-in screen shows. The "Sign in" button alone is not enough: the
+      # email field focuses itself 350 ms after the screen opens, and on the 360-dp phone at font 1.3 the
+      # keypad (with its "Suggest contact names?" strip) then covers the button, so it is not in the screen's
+      # hierarchy at all (small-phone runs on #151 and #147, Nov 26: every flow failed here). The subtitle
+      # and the field's own label stay above the keypad whichever way the phone is held.
+      text: "New game|Sign in.*|Email"
     timeout: 30000
 - runFlow:
     when:

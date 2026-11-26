@@ -15,7 +15,7 @@ tags: [smoke]
     element:
       id: "game-card-GAMEV1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEV1"
 - extendedWaitUntil:

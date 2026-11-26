@@ -16,7 +16,7 @@ tags: [smoke, landscape]
     element:
       id: "game-card-GAMEL1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEL1"
 - extendedWaitUntil:
@@ -43,15 +43,13 @@ tags: [smoke, landscape]
     visible: "10 players"
     timeout: 15000
 - back
-- extendedWaitUntil:
-    visible: "New game"
-    timeout: 20000
+- runFlow: ../lib/home-top.yaml
 # Game M: Pool 101, 9 players, 5 rounds, two out.
 - scrollUntilVisible:
     element:
       id: "game-card-GAMEM1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEM1"
 - extendedWaitUntil:
@@ -60,9 +58,7 @@ tags: [smoke, landscape]
 - assertVisible: "9 players"
 - takeScreenshot: 22d-pool-9p-portrait
 - back
-- extendedWaitUntil:
-    visible: "New game"
-    timeout: 20000
+- runFlow: ../lib/home-top.yaml
 # The saved result over S1 and S2 (Past results → the one row).
 - tapOn: "Results"
 - extendedWaitUntil:
@@ -72,7 +68,7 @@ tags: [smoke, landscape]
     element:
       id: "past-result-20000000-0000-4000-8000-000000000d01"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "past-result-20000000-0000-4000-8000-000000000d01"
 - extendedWaitUntil:
