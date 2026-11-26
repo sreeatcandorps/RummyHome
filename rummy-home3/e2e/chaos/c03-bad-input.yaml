@@ -111,10 +111,14 @@ tags: [chaos]
 - inputText: "😀"
 - inputText: "1"
 - hideKeyboard
-- assertVisible: "Done adding players"
+# D112: nothing typed is ready, so Save stays plain and disabled and Back leaves with no dialog.
+- assertVisible: "0 ready"
+- assertVisible: "Save"
+- assertNotVisible: ".*not saved yet"
 - assertNotVisible: "Something went wrong"
 - takeScreenshot: c03-initials-symbols
-- tapOn: "Done adding players"
+- tapOn:
+    id: "add-players-back"
 - extendedWaitUntil:
     visible: "Add by initials"
     timeout: 15000

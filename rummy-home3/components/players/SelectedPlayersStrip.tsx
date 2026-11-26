@@ -23,6 +23,8 @@ type Props = {
    * chip is new and green.
    */
   savedIds?: ReadonlySet<string>;
+  /** Add by initials after Save: only these chips are green, the rest quiet grey. */
+  newIds?: ReadonlySet<string>;
   /** A chip being removed on the server; it dims and ignores taps. */
   busyId?: string | null;
 };
@@ -32,7 +34,7 @@ type Props = {
  * the person back to the list), the name, and the × that takes them out.
  * Shared by New game, Add players to game, and the screens they open.
  */
-export function SelectedPlayersStrip({ picks, onRemove, onReturn, title, emptyText, savedIds, busyId }: Props) {
+export function SelectedPlayersStrip({ picks, onRemove, onReturn, title, emptyText, savedIds, newIds, busyId }: Props) {
   const { colors } = useAppTheme();
   return (
     <View style={styles.root}>
@@ -50,7 +52,7 @@ export function SelectedPlayersStrip({ picks, onRemove, onReturn, title, emptyTe
             key={pick.id}
             pick={pick}
             color={seatColor(index)}
-            look={chipLook(pick.id, savedIds)}
+            look={chipLook(pick.id, savedIds, newIds)}
             busy={busyId === pick.id}
             onRemove={() => onRemove(pick.id)}
             onReturn={() => (onReturn ?? onRemove)(pick.id)}

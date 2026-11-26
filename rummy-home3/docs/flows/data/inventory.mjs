@@ -104,7 +104,7 @@ export const POPUPS = [
   { id: 'P46', kind: 'dialog', name: 'Can’t remove this player (picker)', file: 'app/(screens)/games/new.tsx', screens: ['S10'], trigger: '× on a saved seat with scores (add mode)', signals: ['Can’t remove this player', "Can't remove this player"] },
   { id: 'P47', kind: 'dialog', name: 'Large multiplier (Game type)', file: 'components/game/GameTypeStep.tsx', screens: ['S09'], trigger: 'Start with multiplier ≥ ×1,000', signals: ['multiplier-high-confirm', 'multiplier-high-keep', 'Large multiplier'] },
   // Add by initials
-  { id: 'P48', kind: 'dialog', name: 'Unsaved letters', file: 'app/(screens)/players/add.tsx', screens: ['S12'], trigger: 'Back with letters typed and not saved', signals: ['add-players-unsaved', 'Unsaved letters'] },
+  { id: 'P48', kind: 'dialog', name: 'Not saved yet (Save SK and go back / Discard, D112)', file: 'app/(screens)/players/add.tsx', screens: ['S12'], trigger: 'Back with ready rows typed and not saved', signals: ['add-players-unsaved', 'not saved yet'] },
   // Results
   { id: 'P49', kind: 'dialog', name: 'Deselect games?', file: 'app/(screens)/results/index.tsx', screens: ['S21'], trigger: 'Turning off a status chip that hides a ticked game', signals: ['deselect-confirm', 'Deselect games'] },
   { id: 'P50', kind: 'dialog', name: 'Give awards first', file: 'app/(screens)/results/index.tsx', screens: ['S21'], trigger: 'Ticking a completed pool without awards', signals: ['GIVE_AWARDS_FIRST', 'Give awards first'] },
