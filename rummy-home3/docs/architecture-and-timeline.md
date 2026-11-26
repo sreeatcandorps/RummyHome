@@ -710,3 +710,10 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   (`business-analysis.md` §4). No migration: `prize_sessions`, `prize_session_games`, `prize_entries`,
   `token_ledger`, `games.prize` and the five `*_prize_*` RPCs stay in the database, unused, until Sree says yes to
   dropping them.
+
+### 2026-11-26 — Migration 054: a mid-game joiner sits to the dealer's left (D70), written, not applied
+- `054_join_left_of_dealer.sql` replaces only `add_seated_player`'s seat rule (052's dealer + 1, D57): a newcomer
+  takes the seat before whoever deals the round being played, so they deal last and nobody's turn moves; the
+  dealer keeps the round through the 052 override when needed. Re-entry is unchanged. The app predicts the same
+  seat (`planJoin`) for local games and for the one-line notice on Add players. Rollback restores the 052 body;
+  CI's rollback replay and pgTAP cover it. Live only after Sree's yes to 054.
