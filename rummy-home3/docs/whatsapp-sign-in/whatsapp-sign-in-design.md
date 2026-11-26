@@ -306,11 +306,11 @@ passcode screen covers the recycled-number case.
 Every picture is a 360-dp phone (Sree's phone width), light mode.
 
 - **(a) Create account** (`wa-create-account.png`). A *WhatsApp · Email* switch at the top of the card. WhatsApp:
-  first and last name, *WhatsApp number* with the country picker (+91 first when the phone is set to India; the six
+  first and last name, *WhatsApp number* with the country picker (its code filled in from the phone's country, §8.1; the six
   countries only), the hint *"We send a 6-digit code to this number on WhatsApp to confirm it."*, the 6-digit passcode
   with *"Numbers only. You sign in with your number and this passcode."*, **Create account**, *Clear form*. Email:
   today's form from the sign-up code PR, unchanged under the switch. No Player ID box on either (D105). The switch
-  starts on WhatsApp when the phone is set to India, on Email elsewhere.
+  starts on WhatsApp in India and on Email elsewhere (§8.1).
 - **(b) The code step** (`wa-code-step.png`). The **same screen and component** as the email step (D101): one
   `OtpField`, **Confirm and sign in**, *Send a new code* with a 60-second countdown, *Wrong number? Go back*. The
   WhatsApp words: title *Check WhatsApp*, *"We sent a 6-digit code to WhatsApp +91 98xxx xx210"* (the middle of the
@@ -327,6 +327,29 @@ Every picture is a 360-dp phone (Sree's phone width), light mode.
 - **Help** (`help-design.md`): the sign-in page gains "Sign in with WhatsApp", "I changed my number" and "Add a
   backup". The Account topic's "Can I change my email? Not yet." becomes "Profile › Sign-in methods › Email".
 - **Words**: "code", never "OTP"; "WhatsApp number", never "mobile"; numbers shown with the country code.
+
+### 8.1 Which way and which country code come first (D125)
+
+Sree (Nov 25): "I think maybe in the US, you want to have the email selected as a default, and in India, WhatsApp.
+Also, depending on the location, I think the country code should automatically populate for WhatsApp, right?"
+
+- **The phone's country** is read without asking for any permission, and never from GPS. Travelers keep their home
+  default:
+  1. the SIM's country (Android, `expo-cellular`);
+  2. else the phone's region setting (`expo-localization`; on iPhone this is Settings › Region, which the SIM check
+     cannot read on new iPhones);
+  3. else unknown.
+  The SIM comes first because many Indian Android phones keep the factory language *English (United States)*, so
+  their region reads US. A region-only rule would start most Indian players on Email.
+- **Create account** starts on **WhatsApp when the country is India**, and on **Email** everywhere else, including
+  unknown.
+- **The country code** is filled in from the same country when it is one of the six (India, US, Canada, UK, UAE,
+  Australia); otherwise, or when unknown, **+91**, since WhatsApp sign-in is for India first. A number pasted with its
+  own "+" code replaces the filled-in code.
+- **Sign in and Forgot passcode** start on the way last used on this phone (§8(c)); the country rule applies only
+  before anyone has signed in on it.
+- **The switch and the country picker always work**: the default is only where the screen starts. Nothing is saved
+  about the country; it is read each time the screen opens.
 
 ## 9. Build plan (before the code freeze, D116)
 
