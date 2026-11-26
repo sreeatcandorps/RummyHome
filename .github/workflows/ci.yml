@@ -49,6 +49,10 @@ concurrency:
 
 env:
   NODE_VERSION: 22
+  # Pinned: under `latest`, a CLI release can fail every PR's database job at once (Nov 26: CLI v3 refused the
+  # `[inbucket]` table that ci/supabase-start.sh wrote).
+  # Raise it in a PR of its own, so the bump is the only change its CI judges.
+  SUPABASE_CLI_VERSION: 3.4.0
 
 jobs:
   unit:
@@ -170,7 +174,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
           github-token: ${{ github.token }}
 
       - name: Start a throw-away local Supabase (Postgres only, no Studio/mail/edge)
@@ -414,7 +418,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
           github-token: ${{ github.token }}
 
       # The local anon key is the same on every runner (the CLI's fixed demo JWT), so the APK built here
@@ -498,7 +502,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
           github-token: ${{ github.token }}
 
       # ---- database: migrations + the UI fixtures + the break-the-app roster -----------------------
@@ -667,7 +671,7 @@ jobs:
           cache-dependency-path: ci/package-lock.json
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: ${{ env.SUPABASE_CLI_VERSION }}
           github-token: ${{ github.token }}
       - name: Start a throw-away local Supabase, seed it
         working-directory: rummy-home3
