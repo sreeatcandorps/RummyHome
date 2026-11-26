@@ -160,6 +160,7 @@ this file exists so nobody has to read five specs and a chat log to know the cur
 
 | ID | Date | Question | Default in use | Status |
 | --- | --- | --- | --- | --- |
+| Q49 | 2026-11-25 | **Build the 30-day delete grace (D72) now, so it is in the APK with WhatsApp?** You said "build this after Google approves the current review"; Google approved on Nov 25. The dialogs are approved as drawn; it needs one migration (054 or 055) and a daily job. | yes, build it now; it waits for the APK like WhatsApp | asked |
 | Q48 | 2026-11-25 | **File a DBA ("MindWeave" as a trade name of Candor PS LLC)?** Not needed for WhatsApp: Meta checks the legal name (Candor PS LLC) against the EIN letter, and the site now names Candor PS LLC beside MindWeave. Most states expect one when a business trades under another name, and it is cheap; where to file depends on the state Candor PS LLC was formed in. | not now, not a blocker; file later in Candor PS LLC's state | asked |
 | Q47 | 2026-11-25 | **Which phone number sends the WhatsApp codes?** Candor PS's number would stop working in the WhatsApp app for good (calls and texts still work), and it ties the company line to the app. | a new Twilio number, about $1.15 a month, used only for the codes | asked |
 | Q46 | 2026-11-25 | **Does the next staging APK wait for WhatsApp sign-in?** | no, build the APK without it | answered Nov 25 → D117 (yes, it waits) |
