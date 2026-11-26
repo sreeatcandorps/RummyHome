@@ -12,7 +12,7 @@
 
 | # | Step | When | Build Bot does | Sree does | Status |
 | --- | --- | --- | --- | --- | --- |
-| S1 | Twilio account, upgraded to paid | now | fills the forms | sign-up with his e-mail, his phone check, 2FA, the card (first top-up about $20) | **now** (Sree, Nov 25: "let's keep moving this") |
+| S1 | Twilio account, upgraded to paid | now | opens Upgrade in the existing account | the card and the first $20 top-up | **now**: the account exists (sree@candorps.com), a trial with no card, suspended at −$0.19, no numbers (Build Bot, Nov 25); Build Bot asked Sree about the $20 |
 | S2 | Buy the new Twilio number, $20 a month alert (D120) | after S1 | picks a US local number, sets the alert | clicks **Buy** | next |
 | S3 | Meta Business Portfolio: legal name Candor PS LLC, business name MindWeave | after S2 | checks whether Candor already has one; fills the form | Facebook sign-in, the confirmation e-mail | waiting |
 | S4 | WhatsApp sign-up inside Twilio: display name **EZ Score** (D119), the S2 number | after S3 | picks portfolio, name, number | Facebook sign-in in Meta's window, the final **Finish** | waiting |
