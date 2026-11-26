@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/AppButton';
 import { Tag } from '@/components/ui/Tag';
 import { HELP_TOPICS, HelpFamily, HelpTopic } from '@/constants/helpTopics';
 import { MAX_CONTENT_WIDTH, radius, spacing, useAppTheme } from '@/constants/theme';
-import { flagKey, tutorialsService } from '@/services/tutorials';
 import { helpShotSize } from '@/utils/helpShot';
 import { TutorialKey, WATCH_HOW } from '@/utils/tutorials';
 
@@ -60,9 +59,9 @@ export function HelpPage({ topic, anchor }: { topic: HelpTopic; anchor?: string 
   // v12 point 1 (Sree, Nov 19): the picture is sized from the card's measured width, never its pixel width.
   const [shotWidth, setShotWidth] = useState(0);
   const shot = topic.screenshot ? HELP_SCREENSHOTS[topic.screenshot.file] : undefined;
-  // D61: Watch how (20 s) under a section plays its tutorial, never forced; watching it here counts as seen.
+  // D61: Watch how (20 s) under a section plays its tutorial.
   const [watching, setWatching] = useState<TutorialKey | null>(null);
-  const watched = () => { if (watching) void tutorialsService.markSeen(flagKey(watching, 'tutorial')); setWatching(null); };
+  const watched = () => setWatching(null);
 
   const mark = useCallback((id: string) => (e: LayoutChangeEvent) => {
     positions.current[id] = e.nativeEvent.layout.y;
@@ -165,7 +164,7 @@ export function HelpPage({ topic, anchor }: { topic: HelpTopic; anchor?: string 
         </View>
       </View>
     </ScrollView>
-      <SeatingTutorial visible={watching === 'seating'} forced={false} onDone={watched} />
+      <SeatingTutorial visible={watching === 'seating'} onDone={watched} />
     </>
   );
 }

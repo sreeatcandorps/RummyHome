@@ -12,7 +12,7 @@ tags: [full]
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Results"
 - extendedWaitUntil:
-    visible: "Show results"
+    visible: "Select .*games"
     timeout: 15000
 # G still open (no smoke/12 before this flow): save its result now so it is Closed.
 - runFlow:
@@ -27,7 +27,13 @@ tags: [full]
           commands:
             - tapOn:
                 id: "game-card-GAMEA1"
-      - tapOn: "Show results"
+      - scrollUntilVisible:
+          element:
+            id: "show-results"
+          direction: DOWN
+          timeout: 15000
+      - tapOn:
+          id: "show-results"
       - extendedWaitUntil:
           visible: "Scores"
           timeout: 20000
@@ -138,7 +144,7 @@ tags: [full]
 - tapOn:
     id: "result-stale-new"
 - extendedWaitUntil:
-    visible: "Show results"
+    visible: "Select .*games"
     timeout: 15000
 - scrollUntilVisible:
     element:

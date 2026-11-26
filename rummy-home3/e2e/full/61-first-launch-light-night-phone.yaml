@@ -11,6 +11,12 @@ tags: [nightly]
 - takeScreenshot: 61-home-first-launch-night-phone
 - tapOn: "Your profile"
 - extendedWaitUntil:
-    visible: "Appearance"
+    visible: "Profile"
+    timeout: 15000
+# Size-S (#120): Appearance is below the fold at 360 dp × font 1.3; scroll to it.
+- scrollUntilVisible:
+    element:
+      text: "Appearance"
+    direction: DOWN
     timeout: 15000
 - takeScreenshot: 61b-profile-first-launch-night-phone

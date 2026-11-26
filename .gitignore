@@ -1,6 +1,6 @@
-# dependencies
-node_modules/
-**/node_modules/
+# dependencies (no trailing slash: a node_modules symlink in a worktree must stay out too)
+node_modules
+**/node_modules
 
 # Expo / React Native
 .expo/

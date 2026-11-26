@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Icon, Text, TouchableRipple } from 'react-native-paper';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '@/constants/theme';
+import { reservedValueWidth } from '@/utils/reservedWidth';
 
 type ListRowProps = {
   title: string;
@@ -13,6 +14,12 @@ type ListRowProps = {
   right?: React.ReactNode;
   /** Size-S (D66): the current value at the right, grey, before the chevron; "Sree Test", "No number yet". */
   value?: string;
+  /**
+   * D95 (Sree, Nov 24): reserve room for this many characters of the value at the current font scale, so the
+   * value is never cut ("ST", "SREE"); the title takes what is left and ellipsises. Without it the value is
+   * capped at 45 % of the row.
+   */
+  valueMinChars?: number;
   /** Size-S: a pen instead of the chevron, for rows that edit in place or in a sheet. */
   pen?: boolean;
   /** Size-S: no chevron at all (Log out). */
@@ -24,8 +31,10 @@ type ListRowProps = {
 };
 
 /** Full-width tappable row used in settings, profile and other grouped lists. */
-export function ListRow({ title, description, icon, left, right, value, pen, noChevron, onPress, tone = 'default', accessibilityLabel, testID }: ListRowProps) {
+export function ListRow({ title, description, icon, left, right, value, valueMinChars, pen, noChevron, onPress, tone = 'default', accessibilityLabel, testID }: ListRowProps) {
   const theme = useAppTheme();
+  const { fontScale } = useWindowDimensions();
+  const reserved = valueMinChars ? reservedValueWidth(valueMinChars, theme.fonts.bodyMedium.fontSize, fontScale) : undefined;
   const danger = tone === 'danger';
   const iconColor = danger ? theme.colors.error : theme.colors.onSurfaceVariant;
   const trailing = right ?? (noChevron || !onPress ? null : (
@@ -56,7 +65,11 @@ export function ListRow({ title, description, icon, left, right, value, pen, noC
         ) : null}
       </View>
       {value !== undefined ? (
-        <Text variant="bodyMedium" style={[styles.value, { color: theme.colors.onSurfaceVariant }]} numberOfLines={1}>
+        <Text
+          variant="bodyMedium"
+          style={[reserved === undefined ? styles.value : { minWidth: reserved, flexShrink: 0, textAlign: 'right' }, { color: theme.colors.onSurfaceVariant }]}
+          numberOfLines={1}
+        >
           {value}
         </Text>
       ) : null}

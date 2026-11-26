@@ -60,8 +60,8 @@ export function SeatingSheet({ visible, players, pool, dealerIds, roundCount, on
   const complete = orderComplete(draft);
   const changed = orderChanged(draft);
   const note = midGameSeatingNote(roundCount);
-  // D61: the first time anyone opens this (here or at New game) the steps come up forced.
-  const tutorial = useTutorial('seating', visible);
+  // D74: the steps open from Show me only.
+  const tutorial = useTutorial('seating');
 
   const save = async () => {
     setSaving(true);
@@ -103,7 +103,7 @@ export function SeatingSheet({ visible, players, pool, dealerIds, roundCount, on
           <Button mode="contained" onPress={changed ? save : onDismiss} loading={saving} disabled={saving || !complete} testID="seating-done">{SEATING_DONE}</Button>
         </Dialog.Actions>
       </Dialog>
-      {visible ? <SeatingTutorial visible={tutorial.visible} forced={tutorial.forced} onDone={tutorial.done} /> : null}
+      {visible ? <SeatingTutorial visible={tutorial.visible} onDone={tutorial.done} /> : null}
     </Portal>
   );
 }

@@ -1,36 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-import { flagKey, tutorialsService } from '@/services/tutorials';
+import { useCallback, useState } from 'react';
 import { TutorialKey } from '@/utils/tutorials';
 
 /**
- * One tutorial's showing (D61). On the first visit to the screen (`active` true, flag not seen) it
- * opens forced; `show()` opens it again on request (Show me, Help › Watch how), dismissable.
- * `done()` closes it and remembers the person has seen it.
+ * One tutorial's showing. It opens only on request — Show me on the screen, Watch how in Help — and
+ * closes on Got it or a tap outside. D74 (Sree, Nov 23: "I don't want it to pop up as a default
+ * anymore") replaced D61's forced first-time run; the `seen` flag on the profile is no longer read.
  */
-export function useTutorial(key: TutorialKey, active = true) {
+export function useTutorial(_key: TutorialKey) {
   const [visible, setVisible] = useState(false);
-  const [forced, setForced] = useState(false);
-  const [checked, setChecked] = useState(false);
-  const flag = flagKey(key, 'tutorial');
-
-  useEffect(() => {
-    if (!active || checked) return;
-    let cancelled = false;
-    tutorialsService.seen(flag).then((seen) => {
-      if (cancelled) return;
-      setChecked(true);
-      if (!seen) { setForced(true); setVisible(true); }
-    });
-    return () => { cancelled = true; };
-  }, [active, checked, flag]);
-
-  const show = useCallback(() => { setForced(false); setVisible(true); }, []);
-  const done = useCallback(() => {
-    setVisible(false);
-    setForced(false);
-    setChecked(true);
-    void tutorialsService.markSeen(flag);
-  }, [flag]);
-
-  return { visible, forced, show, done };
+  const show = useCallback(() => setVisible(true), []);
+  const done = useCallback(() => setVisible(false), []);
+  return { visible, show, done };
 }
