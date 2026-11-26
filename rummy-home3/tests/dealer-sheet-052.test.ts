@@ -112,5 +112,5 @@ test('052 the pieces are wired: menu item, DEALS badge opens the sheet, OPENS ta
   assert.match(service, /nextDealerOverride: game\.next_dealer_profile_id/);
   const help = read('constants/helpTopics.ts');
   assert.match(help, /item: 'Dealer', does: 'Pick any round/);
-  assert.match(help, /Someone joins mid-game: they sit right after whoever is dealing/);
+  assert.match(help, /Someone joins mid-game: they sit to the dealer\\'s left, so they deal last/);
 });

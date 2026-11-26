@@ -167,6 +167,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         bullets: [
           'From the scorecard ⋮ › **Players · Admins › Add new player** the same screen opens in add mode. **Total** is how many will be playing: the faces already in the game plus the ones ringed yellow you are adding now. Admins who do not play are not counted.',
           'Tap a player below to add them; they get 0 for every round already played. **Return to game** seats everyone you added.',
+          'Once a round is played, a new player sits to the dealer\u2019s left and deals last. The line above **Return to game** names the seat, for example "Ravi sits at seat 4, between Anu and Bala — left of the dealer." To seat them elsewhere, use ⋮ › **Order of players** afterwards.',
           'The × on a face removes a player only while every one of their round scores is 0. Once they have a score, edit the round first.',
         ],
       },
@@ -191,7 +192,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
           'Once everyone is numbered, tap a player and use the ▲ ▼ arrows to move them one seat; tap them again to deselect. While one is selected only their arrows show; the top row has no ▲ and the lowest seat has no ▼.',
           '**Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
           'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens prefilled, so one move is one tap; **Done** saves it, the Log records it, played rounds keep their dealer and the next deal follows the new order.',
-          'Someone joins mid-game: they sit right after whoever is dealing (the dealer\'s seat + 1), deal the round after this one, and nobody loses a turn. Move them from Order of players if the table sat them elsewhere. A pool player who is out keeps the seat; the deal and the open card skip it.',
+          'Someone joins mid-game: they sit to the dealer\'s left, so they deal last. The dealer still deals this round, and nobody else\'s turn moves. Move them from Order of players if the table sat them elsewhere. A pool player who is out keeps the seat; the deal and the open card skip it.',
         ],
       },
       {

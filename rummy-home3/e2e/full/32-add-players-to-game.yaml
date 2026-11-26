@@ -2,8 +2,8 @@ appId: com.mindweavetech.rummyhome
 tags: [nightly]
 # PR 7: from Players/Admins of game H (3 players, round 1 from smoke/14), Add new player opens the
 # picker as "Add players to this game": the big yellow circle reads Total 3 (seated only, D7.1),
-# "Added now: 0"; tapping R K and C D makes it Total 5 / "Added now: 2 (yellow ring)"; Return to
-# game lands on the scorecard with RK and CD columns. Then Add non-playing admin #5 (Otto
+# "Added now: 0"; tapping R K and C D makes it Total 5 / "Added now: 2 (yellow ring)" and the D70
+# notice names their seats (left of the dealer); Return to game lands on the scorecard with RK and CD columns. Then Add non-playing admin #5 (Otto
 # Outsider) lists him under "Admins not playing" with no column. Cleanup: R K and C D are removed
 # again (their only scores are 0) so full/80 sees the 3-column game it expects; Otto stays an
 # admin, which changes no column and no total.
@@ -54,6 +54,10 @@ tags: [nightly]
     direction: UP
     timeout: 15000
 - assertVisible: "Added now: 2 (yellow ring)"
+# D70 (054): round 1 is played and Harish (seat 2) deals round 2, so both newcomers sit to his left.
+- assertVisible:
+    id: "join-seat-notice"
+    text: "R K and C D sit at seats 2–3, between .+ and .+ — left of the dealer\\."
 - takeScreenshot: 32c-add-players-total-5
 - tapOn: "Return to game"
 - extendedWaitUntil:
