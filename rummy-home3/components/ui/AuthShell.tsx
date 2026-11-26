@@ -75,9 +75,13 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
   const footerBottom = useRef(0);
   const columnRef = useRef<View>(null);
   const keyboardOpen = useRef(false);
+  const topInset = useRef(insets.top);
+  topInset.current = insets.top;
 
   // Scroll so the card's bottom (and the footer's, when asked) sits just above the keypad, but never so far that
   // the field being typed in leaves the top: on a phone too short for both, the field wins and the rest scrolls.
+  // The ScrollView starts under the status bar (edge-to-edge), so the field stops below the status bar, where a
+  // tap still reaches it.
   const scrollCardIntoView = () => {
     const bottom = Math.max(cardBottom.current, keepFooterInView ? footerBottom.current : 0);
     const overflow = cardTop.current + bottom + spacing.md - viewportHeight.current;
@@ -91,7 +95,7 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
     }
     focused.measureLayout(
       column,
-      (_x, y) => scrollTo(Math.min(overflow, cardTop.current + y - spacing.md)),
+      (_x, y) => scrollTo(Math.min(overflow, cardTop.current + y - spacing.md - topInset.current)),
       () => scrollTo(overflow),
     );
   };

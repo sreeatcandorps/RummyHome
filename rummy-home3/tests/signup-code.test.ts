@@ -212,7 +212,13 @@ test('the code step keeps Go back above the number pad: inside the card, and the
   assert.match(shell, /keepCardInView\?: boolean/);
   assert.match(shell, /Keyboard\.addListener\(ios \? 'keyboardWillShow' : 'keyboardDidShow'/);
   assert.match(shell, /const overflow = cardTop\.current \+ bottom \+ spacing\.md - viewportHeight\.current/);
-  assert.match(shell, /scrollTo\(Math\.min\(overflow, cardTop\.current \+ y - spacing\.md\)\)/, 'never past the field being typed in');
+  assert.match(shell, /scrollTo\(Math\.min\(overflow, cardTop\.current \+ y - spacing\.md - topInset\.current\)\)/, 'never past the field being typed in');
+});
+
+test('the field being typed in stops below the status bar, where a tap still reaches it', () => {
+  const shell = src('components/ui/AuthShell.tsx');
+  assert.match(shell, /const topInset = useRef\(insets\.top\);\s+topInset\.current = insets\.top;/);
+  assert.match(shell, /cardTop\.current \+ y - spacing\.md - topInset\.current/);
 });
 
 test('Sign in keeps Sign in and Create account above the keypad, also after the error line pushes them down', () => {
