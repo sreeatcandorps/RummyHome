@@ -10,7 +10,7 @@ tags: [nightly]
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "Results"
 - extendedWaitUntil:
-    visible: "Show results"
+    visible: "Select .*games"
     timeout: 15000
 - runFlow:
     when:
@@ -19,7 +19,18 @@ tags: [nightly]
     commands:
       - tapOn:
           id: "game-card-GAMEG1"
-- tapOn: "Show results"
+- scrollUntilVisible:
+    element:
+      id: "show-results"
+    direction: DOWN
+    timeout: 15000
+# Nudge the page up before the tap: at the bottom edge the button sits under the 3-button bar on the small
+# phone and the tap lands on Home (flow 06, API 34 run).
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+- tapOn:
+    id: "show-results"
 - extendedWaitUntil:
     visible: "Scores"
     timeout: 20000
@@ -46,6 +57,11 @@ tags: [nightly]
       id: "result-delete"
     direction: DOWN
     timeout: 15000
+# Edge-to-edge draws the last button under the translucent 3-button bar and a tap at the bottom edge lands on
+# the system Home button (#131 run 2 on this flow; smoke/12 run 4 before it): nudge the page up by a third.
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
 - takeScreenshot: 40c-delete-this-result
 - tapOn:
     id: "result-delete"
@@ -83,6 +99,11 @@ tags: [nightly]
       id: "result-delete"
     direction: DOWN
     timeout: 15000
+# Edge-to-edge draws the last button under the translucent 3-button bar and a tap at the bottom edge lands on
+# the system Home button (#131 run 2 on this flow; smoke/12 run 4 before it): nudge the page up by a third.
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
 - tapOn:
     id: "result-delete"
 - extendedWaitUntil:

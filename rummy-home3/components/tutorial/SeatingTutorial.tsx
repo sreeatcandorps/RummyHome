@@ -8,18 +8,17 @@ import { displayRows, orderComplete, SEAT_ROW_MIN_HEIGHT, seatNumberOf, isFirstN
 import { DEMO_FRAME_MS, DEMO_PLAYERS, DemoFrame, SEATING_STEPS, SEATING_TUTORIAL_TITLE, seatingDemoFrames } from '@/utils/tutorials';
 
 /**
- * The Order of players tutorial (D61): four steps over the live screen, each a loop of the real
- * rows — seat circle, avatar, name, the card drawn, a finger that taps — scripted in
- * `utils/tutorials.ts`. Not a video: it follows the theme and the font size, weighs nothing, and
- * changes with the rows. `forced` is the first-time run (no way out but through the steps).
+ * The Order of players tutorial (D61, D74): three steps over the live screen, each a loop of the real
+ * rows — seat circle, avatar, name, a finger that taps — scripted in `utils/tutorials.ts`. Not a
+ * video: it follows the theme and the font size, weighs nothing, and changes with the rows. No card
+ * pictures (Sree: "in some places even Joker is highest") and it opens only from Show me / Watch how.
  */
-export function SeatingTutorial({ visible, forced, onDone }: { visible: boolean; forced: boolean; onDone: () => void }) {
+export function SeatingTutorial({ visible, onDone }: { visible: boolean; onDone: () => void }) {
   return (
     <StepsSheet
       visible={visible}
       title={SEATING_TUTORIAL_TITLE}
       steps={SEATING_STEPS}
-      forced={forced}
       onDone={onDone}
       renderDemo={(step) => <SeatingDemo step={step} />}
       testID="seating-tutorial"
@@ -65,11 +64,6 @@ function DemoRows({ frame }: { frame: DemoFrame }) {
             <Text variant="bodyMedium" style={[styles.name, { color: colors.onSurface }]} numberOfLines={1}>{player.name}</Text>
             {deals ? <Text variant="labelSmall" style={{ color: colors.primary }}>deals</Text> : null}
             {highest ? <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>highest card</Text> : null}
-            {frame.cards ? (
-              <View style={[styles.card, { borderColor: colors.outline, backgroundColor: colors.surface }]}>
-                <Text variant="labelMedium" style={{ color: player.red ? colors.error : colors.onSurface, fontWeight: '800' }}>{player.card}</Text>
-              </View>
-            ) : null}
             {finger ? (
               <View style={styles.finger} pointerEvents="none" testID="demo-finger">
                 <Icon source="gesture-tap" size={28} color={colors.tertiary} />
@@ -87,6 +81,5 @@ const styles = StyleSheet.create({
   seatNo: { width: 24, height: 24, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
   seatNoText: { fontWeight: '800', fontSize: 14 },
   name: { flex: 1, minWidth: 0 },
-  card: { minWidth: 34, paddingHorizontal: 6, height: 28, borderRadius: radius.xs, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   finger: { position: 'absolute', left: 96, top: 8 },
 });
