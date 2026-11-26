@@ -1,5 +1,7 @@
 # Automation tiers and change-based selection (PR 16 test plan, part 4)
 
+Today's times, cost and the speed-up plan (Nov 25): [`../testing-today.md`](../testing-today.md). The time budgets below are the PR 16 targets; app PRs take ~50–60 min today.
+
 ## 1. Tiers
 
 | Tier | Runs | Time budget | Contents | Blocks merge? |

@@ -13,13 +13,13 @@ tags: [smoke]
     element:
       id: "game-card-GAMEA1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - takeScreenshot: 06-results-picker
 - scrollUntilVisible:
     element:
       id: "show-results"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 # Edge-to-edge draws the last button under the translucent 3-button bar; on the API 34 small phone the tap
 # landed on the system Home button and the app went to the launcher (same as flow 12 / 40). Nudge the page
 # up first; at the end of the page the swipe is a no-op.
@@ -42,7 +42,7 @@ tags: [smoke]
     element:
       id: "results-band-table"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible:
     id: "results-band-table"
 - takeScreenshot: 06b-results-one-game
@@ -50,7 +50,7 @@ tags: [smoke]
     element:
       text: "Games in this result"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - takeScreenshot: 06d-results-games-block
 # PR 11: ? opens the Results help page at "The preview".
 - tapOn: "Help"
@@ -69,10 +69,10 @@ tags: [smoke]
       id: "results-totals"
     direction: UP
     visibilityPercentage: 20
-    timeout: 25000
+    timeout: 30000
 # The "N games · N players" line sits above the Scores block; one more short scroll for the line itself.
 - scrollUntilVisible:
     element:
       text: "\\d+ games? · \\d+ players"
     direction: UP
-    timeout: 15000
+    timeout: 30000

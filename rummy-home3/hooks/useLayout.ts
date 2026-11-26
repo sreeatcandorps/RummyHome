@@ -3,6 +3,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { spacing } from '@/constants/theme';
 
 /**
+ * D89 park switch. Off: a sideways scorecard is the table alone (no header, tags, menu or bar). The
+ * landscape chrome behind it is kept for a future tablet mode (Sree, Nov 24: "don't delete all that code.
+ * Just park it"); true brings it back. See `scorecardChrome` in utils/scorecardLayout.
+ */
+export const LANDSCAPE_EDITING = false;
+
+/**
  * Orientation-aware layout helpers. Phones in landscape are short, so
  * `isShort` drives the compact chrome; `isWide` unlocks two-column layouts.
  */

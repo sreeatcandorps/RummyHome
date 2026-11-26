@@ -1,6 +1,6 @@
 # Adding and linking players — revised workflow (proposal, not built)
 
-**Read "Revised Nov 25" first.** §0–§6 are the Nov 24 proposal; its phone / email matching (§3 B) is replaced.
+**Read "Revised Nov 25" first — approved by Sree Nov 25 (D113).** §0–§6 are the Nov 24 proposal; its phone / email matching (§3 B) is replaced.
 
 Written Nov 24 for Sree to go through. Nothing here is built, and nothing changes in the app until he says which parts
 he wants.

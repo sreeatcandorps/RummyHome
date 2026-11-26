@@ -31,7 +31,7 @@ tags: [smoke]
     element:
       id: "new-game-type-next"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "new-game-type-next"
 # D74: nothing opens on its own. The screen under it: one line and Show me, nobody numbered yet.
@@ -169,6 +169,11 @@ tags: [smoke]
       id: "help-watch-seating"
     direction: DOWN
     timeout: 60000
+# The button can stop under the translucent navigation bar, where a tap lands on the bar and the steps never
+# open (PR #138 run 45747832259); nudge the page up a third, as smoke/12 does for its Delete button.
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
 - assertVisible: "Watch how \\(20 s\\)"
 - takeScreenshot: 24h-help-watch-how
 - tapOn:

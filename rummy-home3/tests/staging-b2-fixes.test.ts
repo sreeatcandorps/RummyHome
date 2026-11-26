@@ -71,7 +71,9 @@ test('nightly reds (Nov 23): flows 07 / 20 / 21 / 51 take the small phone, font 
   assert.match(read('e2e/smoke/07-profile.yaml'), /scrollUntilVisible:\s*\n\s*element:\s*\n\s*id: "settings-pool-late-entry-score-highest"/);
   const f20 = read('e2e/smoke/20-pool-13p-reentry.yaml');
   assert.ok(f20.indexOf('id: "score-round-3"') < f20.indexOf('id: "game-id-footer"'), 'round 3 is tapped before the footer scroll');
-  assert.doesNotMatch(f20, /assertNotVisible:\s*\n\s*id: "pool-standings(-pane)?"/, 'the tablet job is upright');
+  const sideways = f20.indexOf('id: "landscape-table-only"');
+  const noStandings = f20.search(/assertNotVisible:\s*\n\s*id: "pool-standings(-pane)?"/);
+  assert.ok(noStandings === -1 || (sideways !== -1 && noStandings > sideways), 'the tablet job is upright: "no standings" only when the screen is sideways');
   assert.match(read('e2e/smoke/21-help-frames.yaml'), /id: "login-email"\s*\n- waitForAnimationToEnd\s*\n- hideKeyboard/);
   assert.match(read('e2e/full/51-seating-20p.yaml'), /text: "Everyone numbered\.\*"/);
 });

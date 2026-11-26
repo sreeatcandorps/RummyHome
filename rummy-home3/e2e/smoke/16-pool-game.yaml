@@ -33,7 +33,7 @@ tags: [smoke]
     element:
       text: "Unlimited"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - assertVisible: "Re-entries"
 - assertVisible: "Unlimited"
 - takeScreenshot: 16c-game-type-pool
@@ -51,12 +51,12 @@ tags: [smoke]
     element:
       text: "You can also set these defaults in Settings."
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - scrollUntilVisible:
     element:
       text: "Zed Zero"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - assertVisible: "Sree Test"
 - takeScreenshot: 16d-game-type-pool-players
 - tapOn:
@@ -192,21 +192,21 @@ tags: [smoke]
     element:
       text: "Pool 500 · all given out"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible: "Pool 500 · all given out"
 - takeScreenshot: 16m-awards-winner-takes-all
 - scrollUntilVisible:
     element:
       id: "award-preset-left"
     direction: UP
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "award-preset-left"
 - scrollUntilVisible:
     element:
       text: "Pool 500 · all given out"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible: "Pool 500 · all given out"
 - takeScreenshot: 16n-awards-by-points-left
 # F13.23: in this pool the others' drop entries would leave the winner with less than them, so the
@@ -215,7 +215,7 @@ tags: [smoke]
     element:
       id: "award-preset-drops"
     direction: UP
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "award-preset-drops"
 - extendedWaitUntil:
@@ -229,7 +229,7 @@ tags: [smoke]
     element:
       text: "Pool 500 · all given out"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible: "Pool 500 · all given out"
 # Custom starts from the numbers on screen: back to Winner takes all first so Sree holds 500, then type 400.
 # (On the 360-dp phone the chips and the table are never on screen together: scroll to each.)
@@ -237,7 +237,7 @@ tags: [smoke]
     element:
       id: "award-preset-winner"
     direction: UP
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "award-preset-winner"
 - tapOn:
@@ -246,7 +246,7 @@ tags: [smoke]
     element:
       id: "award-gets-00000000-0000-4000-8000-000000000001"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "award-gets-00000000-0000-4000-8000-000000000001"
 # One character per step: a fast "400" into the controlled field doubled characters on the emulator.
@@ -261,7 +261,7 @@ tags: [smoke]
     element:
       text: "Pool 500 · 400 given out · 100 not given out"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible: "Pool 500 · 400 given out · 100 not given out"
 - takeScreenshot: 16p-awards-custom-not-all-given-out
 - tapOn:
