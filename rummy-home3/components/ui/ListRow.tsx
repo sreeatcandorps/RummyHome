@@ -15,7 +15,7 @@ type ListRowProps = {
   /** Size-S (D66): the current value at the right, grey, before the chevron; "Sree Test", "No number yet". */
   value?: string;
   /**
-   * D89 (Sree, Nov 24): reserve room for this many characters of the value at the current font scale, so the
+   * D92 (Sree, Nov 24): reserve room for this many characters of the value at the current font scale, so the
    * value is never cut ("ST", "SREE"); the title takes what is left and ellipsises. Without it the value is
    * capped at 45 % of the row.
    */
