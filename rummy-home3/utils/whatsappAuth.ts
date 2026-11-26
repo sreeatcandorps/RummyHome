@@ -147,15 +147,16 @@ export type WhatsAppAuth = ReturnType<typeof makeWhatsAppAuth>;
  */
 export function makeEmailChange(auth: PhoneAuthLike, redirectTo?: string) {
   return {
-    async sendCode(email: string): Promise<SignUpCodeOutcome> {
-      const { error } = await auth.updateUser({ email }, redirectTo ? { emailRedirectTo: redirectTo } : undefined);
+    /** `done`: a project with email confirmations off (the local test stack) changes the address at once, no code. */
+    async sendCode(email: string): Promise<SignUpCodeOutcome & { done?: boolean }> {
+      const { data, error } = await auth.updateUser({ email }, redirectTo ? { emailRedirectTo: redirectTo } : undefined);
       if (error) {
         if (/email_exists|already been registered|already registered/i.test(`${error.code ?? ''} ${error.message ?? ''}`)) {
           return { ok: false, message: 'That email already has an account.' };
         }
         return { ok: false, message: passcodeErrorMessage(error) };
       }
-      return { ok: true };
+      return data?.user?.email === email ? { ok: true, done: true } : { ok: true };
     },
     async verifyCode(email: string, code: string): Promise<SignUpCodeOutcome> {
       const clean = cleanSignUpCode(code);

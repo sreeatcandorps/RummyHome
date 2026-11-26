@@ -31,8 +31,8 @@ export function SignInMethodDialog({ kind, changing, country: startCountry, onSe
   kind: 'email' | 'whatsapp';
   changing: boolean;
   country: WhatsAppCountry;
-  /** The code is on its way to `to` (an email, or "+<digits>"). */
-  onSent: (to: string) => void;
+  /** The code is on its way to `to` (an email, or "+<digits>"); `done` when it changed at once, with no code. */
+  onSent: (to: string, done: boolean) => void;
   onDismiss: () => void;
 }) {
   const { colors } = useAppTheme();
@@ -58,7 +58,7 @@ export function SignInMethodDialog({ kind, changing, country: startCountry, onSe
         setError(outcome.message);
         return;
       }
-      onSent(to);
+      onSent(to, 'done' in outcome && Boolean(outcome.done));
     } finally {
       setBusy(false);
     }

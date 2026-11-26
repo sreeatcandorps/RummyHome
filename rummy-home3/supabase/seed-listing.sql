@@ -316,3 +316,11 @@ update public.games set closed_at = now() - interval '24 hours' where id in ('10
 update public.profiles
    set default_settings = coalesce(default_settings, '{}'::jsonb) || '{"seatingTutorialSeen": true}'::jsonb
  where id <> '00000000-0000-4000-8000-000000000d01';
+
+-- ---------------------------------------------------------------------------
+-- D75 / D124 Home's one "Add a backup way in" card shows after the first saved game for an account with one way
+-- in, until Not now (kept in the account's user data). Every seeded account has said Not now, so the flows meet
+-- Home as before; an account smoke/32 creates on the device starts without it.
+-- ---------------------------------------------------------------------------
+update auth.users
+   set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb) || '{"backup_reminder": "dismissed"}'::jsonb;
