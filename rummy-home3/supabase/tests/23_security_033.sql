@@ -116,7 +116,7 @@ select tests.logout();
 -- ---------- 4. the app's signed-in flows ----------
 select tests.login(:SREE);
 select lives_ok($$ select public.add_my_player('00000000-0000-4000-8000-000000000005') $$, 'sree adds a player to My players');
-select is((select count(*)::int from public.search_players('Har')), 1, 'sree searches players');
+select is((select count(*)::int from public.search_players((select public_player_no::text from public.profiles where id = '00000000-0000-4000-8000-000000000002'))), 1, 'sree searches players (by Player ID, 053)');
 select lives_ok($$ select * from public.list_my_player_links() $$, 'sree lists player links');
 select lives_ok($$ select * from public.list_claim_requests() $$, 'sree lists claim requests');
 select lives_ok($$ select * from public.list_prize_sessions() $$, 'sree lists prize sessions');
