@@ -55,6 +55,8 @@ Dashboard › Authentication, project `erurahfybkxemgtkfzkn` (or Management API 
 | URL Configuration › Redirect URLs | `https://sreeatcandorps.github.io/Games/`, `https://sreeatcandorps.github.io/Games/**`, `ezscore://auth/callback` | `uri_allow_list` (comma-separated) |
 | SMTP Settings › Enable custom SMTP | on; host `smtp.resend.com`, port `465`, user `resend`, password = the Resend API key (same as live's `RESEND_API_KEY`), sender `scores@mindweavetech.com`, sender name `EZ Score: Rummy` | `smtp_host`, `smtp_port`, `smtp_user`, `smtp_pass`, `smtp_admin_email`, `smtp_sender_name` |
 | Email Templates › Reset password | `supabase/templates/recovery-passcode.html`, subject "Your EZ Score: Rummy OTP" (= live) | `mailer_templates_recovery_content`, `mailer_subjects_recovery` |
-| Email Templates › Confirm signup | today: live's current template (default body, Resend sender). With Q16: the code template (`{{ .Token }}`), subject "Your EZ Score: Rummy code is {{ .Token }}" | `mailer_templates_confirmation_content`, `mailer_subjects_confirmation` |
+| Email Templates › Confirm signup | D101 (Q16 answered): `supabase/templates/confirm-code.html` (`{{ .Token }}`, no link), subject "Your EZ Score: Rummy code is {{ .Token }}". Exact text to paste: [`signup-code-template.md`](signup-code-template.md) | `mailer_templates_confirmation_content`, `mailer_subjects_confirmation` |
 
-Live keeps what it has until Q16 is decided; then both projects get the code template in the same change.
+D101's app side is built on `cursor/signup-code-no-player-id-7d0d` (a code step on Create account; Sign in offers
+**Enter the code** for an unconfirmed address). After it merges, Build Bot sets the code template on staging first,
+checks one sign-up, then live. Until then both projects keep their link e-mail, which the app still handles.

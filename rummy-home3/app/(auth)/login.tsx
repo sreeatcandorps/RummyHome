@@ -12,6 +12,7 @@ import { formatAuthError } from '../../utils/authErrors';
 import { AuthShell } from '../../components/ui/AuthShell';
 import { MIN_TOUCH_TARGET, radius, spacing, useAppTheme } from '../../constants/theme';
 import { takeStartupNotice } from '../../utils/startupNotice';
+import { isEmailNotConfirmed, SIGNUP_CODE_TEXT } from '../../utils/signUpCode';
 
 export default function LoginScreen() {
   const theme = useAppTheme();
@@ -21,6 +22,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(typeof params.notice === 'string' ? params.notice : '');
+  const [unconfirmed, setUnconfirmed] = useState(false);
 
   const emailRef = useRef<NativeInput>(null);
 
@@ -60,6 +62,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     setError('');
+    setUnconfirmed(false);
 
     try {
       if (isSupabaseConfigured) {
@@ -91,6 +94,7 @@ export default function LoginScreen() {
     } catch (err) {
       console.error('Login error:', err);
       setError(formatAuthError(err));
+      setUnconfirmed(isEmailNotConfirmed(err));
     } finally {
       setLoading(false);
     }
@@ -146,6 +150,16 @@ export default function LoginScreen() {
         <HelperText type="error" visible={!!error}>
           {error}
         </HelperText>
+      ) : null}
+      {unconfirmed ? (
+        <Button
+          mode="outlined"
+          icon="email-check-outline"
+          onPress={() => router.push({ pathname: '/(auth)/register', params: { confirm: email.trim() } })}
+          testID="login-enter-code"
+        >
+          {SIGNUP_CODE_TEXT.enterCode}
+        </Button>
       ) : null}
 
       <Button
