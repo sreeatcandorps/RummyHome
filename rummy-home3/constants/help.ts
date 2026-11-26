@@ -7,8 +7,6 @@
 export const PLAYERS_NOTE =
   'A player must be registered in the database to see their games in the app. Anyone can watch a game live, without the app or registering, when the admin shares the live link.';
 
-export const EMPTY_SETTLE = 'Finished games stay on Home under Recent.';
-
 export const FIND_HANDOFF =
   "Can't find them? Use Find in database, or Add by initials if they are not registered yet, then come back.";
 

@@ -41,7 +41,7 @@ function routeKeys(): string[] {
 }
 
 test('HL11-1 every route has a help topic; every topic has a purpose, 3–5 Need to know lines, a Tricky case and Also see', () => {
-  const routes = routeKeys().filter((r) => !r.startsWith('(screens)/help/') && r !== 'index' && !r.startsWith('(screens)/settle') && !r.startsWith('(screens)/sessions/'));
+  const routes = routeKeys().filter((r) => !r.startsWith('(screens)/help/') && r !== 'index');
   for (const route of routes) {
     const topic = ROUTE_TOPIC[route] ?? ROUTE_TOPIC[route.replace(/\/index$/, '')];
     assert.ok(topic, `${route} has no help topic`);

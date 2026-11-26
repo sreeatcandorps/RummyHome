@@ -10,7 +10,6 @@ import { homeService } from '@/services/home';
 import { playersService } from '@/services/players';
 import { myPlayersAccessibilityLabel, myPlayersBadge } from '@/utils/homeButtons';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-import { settleEnabled } from '@/constants/features';
 import { HOME_GAME_LIMIT } from '@/services/home';
 import { RECENT_PAGE, recentPaging, splitHomeGames } from '@/utils/homeGames';
 import { LINK_COMPLETE_TITLE, LinkOutcome, linkCompleteMessage, LinkRequestForMe } from '@/utils/linkPlayer';
@@ -215,12 +214,6 @@ export default function Dashboard() {
     </View>
   );
 
-  const settleButton = settleEnabled ? (
-    <Button mode="outlined" icon="scale-balance" onPress={() => router.push('/(screens)/settle')} style={styles.settle}>
-      Settle
-    </Button>
-  ) : null;
-
   const liveCard = (
     <SectionCard
       title={live.length ? `Live · ${live.length}` : 'Live'}
@@ -355,7 +348,6 @@ export default function Dashboard() {
         <View style={styles.columns}>
           <View style={styles.column}>
             {resultsButton}
-            {settleButton}
             {liveCard}
           </View>
           <View style={styles.column}>{recent}{deletedCard}</View>
@@ -380,7 +372,6 @@ export default function Dashboard() {
           {top}
           <View>
             {resultsButton}
-            {settleButton}
             {liveCard}
             <View style={styles.sectionGap} />
             <SectionCard title={recentTitle} icon="history" tip={recentTip} part="top" style={recentStyle} />
@@ -448,9 +439,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
     letterSpacing: 0.2,
-  },
-  settle: {
-    marginBottom: spacing.md,
   },
   gameGap: {
     marginBottom: spacing.sm,

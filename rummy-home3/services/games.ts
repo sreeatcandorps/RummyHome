@@ -55,11 +55,6 @@ type AddRoundInput = {
   pool?: boolean;
 };
 
-type CompleteGameInput = {
-  prize?: number | null;
-  prizeShares?: Record<string, number> | null;
-};
-
 export const missingRpc = (error: unknown) => {
   const code = (error as { code?: string })?.code;
   const message = ((error as { message?: string })?.message ?? '').toLowerCase();
@@ -135,7 +130,6 @@ export const legacyGameFromServer = (
     shareCode: game.share_code ?? undefined,
     viewToken: game.view_token ?? undefined,
     createdBy: game.created_by ?? undefined,
-    prize: game.prize ?? null,
     prizeShares: (game.prize_shares as Record<string, number> | null) ?? null,
     awardedAt: game.awarded_at ?? null,
     awardNote: (game.award_note as Game['awardNote']) ?? null,
@@ -986,7 +980,7 @@ export const gamesService = {
     return this.getGame(gameId);
   },
 
-  async completeGame(gameId: string, settlement?: CompleteGameInput) {
+  async completeGame(gameId: string) {
     if (!isSupabaseConfigured) {
       const game = await this.getGame(gameId);
       if (!game) return null;
@@ -994,34 +988,15 @@ export const gamesService = {
         ...game,
         isComplete: true,
         completedAt: game.completedAt ?? new Date().toISOString(),
-        prize: settlement?.prize ?? game.prize ?? null,
-        prizeShares: settlement?.prizeShares ?? game.prizeShares ?? null,
       };
       await storage.updateGame(updatedGame);
       return updatedGame;
     }
 
-    const completedAt = new Date().toISOString();
-    const patch: {
-      status: 'completed';
-      completed_at: string;
-      prize?: number | null;
-      prize_shares?: Record<string, number> | null;
-    } = { status: 'completed', completed_at: completedAt };
-    if (settlement) {
-      patch.prize = settlement.prize ?? null;
-      patch.prize_shares = settlement.prizeShares ?? null;
-    }
-
-    const { error } = await supabase.from('games').update(patch).eq('id', gameId);
-    if (error && settlement && missingColumn(error)) {
-      const retry = await supabase
-        .from('games')
-        .update({ status: 'completed', completed_at: completedAt })
-        .eq('id', gameId);
-      if (retry.error) throw retry.error;
-      return this.getGame(gameId);
-    }
+    const { error } = await supabase
+      .from('games')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .eq('id', gameId);
     if (error) throw error;
     return this.getGame(gameId);
   },

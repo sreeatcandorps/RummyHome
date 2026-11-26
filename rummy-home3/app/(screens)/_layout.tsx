@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router';
 import { HelpButton } from '@/components/ui/HelpButton';
-import { settleEnabled } from '@/constants/features';
 import { useAppTheme } from '@/constants/theme';
 
 export default function ScreensLayout() {
@@ -41,14 +40,6 @@ export default function ScreensLayout() {
       <Stack.Screen name="games/log" options={{ title: 'Log' }} />
       <Stack.Screen name="games/final-scores" options={{ title: 'Final scores', headerRight: () => <HelpButton topic="final-scores" /> }} />
       <Stack.Screen
-        name="sessions/[id]"
-        options={{
-          title: settleEnabled ? 'Settle' : 'Home',
-          headerShown: settleEnabled,
-          headerRight: undefined,
-        }}
-      />
-      <Stack.Screen
         name="results/index"
         options={{ title: 'Results', headerRight: () => <HelpButton topic="results" /> }}
       />
@@ -59,14 +50,6 @@ export default function ScreensLayout() {
       <Stack.Screen
         name="results/[id]"
         options={{ title: 'Results', headerRight: () => <HelpButton topic="results" anchor="a-saved-result" /> }}
-      />
-      <Stack.Screen
-        name="settle/index"
-        options={{
-          title: settleEnabled ? 'Settle' : 'Home',
-          headerShown: settleEnabled,
-          headerRight: undefined,
-        }}
       />
       <Stack.Screen name="players/index" options={{ title: 'Players' }} />
       <Stack.Screen

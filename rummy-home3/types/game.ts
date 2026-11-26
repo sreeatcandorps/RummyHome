@@ -56,8 +56,6 @@ export type Game = {
   /** Unguessable token for the public live scorecard. */
   viewToken?: string;
   createdBy?: string;
-  /** Legacy column (pre-041); never shown. */
-  prize?: number | null;
   /** Pool (041): awards per player, saved on the Awards screen once the pool is Completed. Null = awards pending. */
   prizeShares?: Record<string, number> | null;
   /** Pool (041): when awards were last saved. Null = awards pending; such a pool cannot join a result. */
