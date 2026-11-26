@@ -197,3 +197,16 @@ test('D105: nothing writes the pending player number any more; the reader stays 
   const identity = src('services/playerIdentity.ts');
   assert.match(identity, /async flushPendingPlayerNo\(me: Player\)[\s\S]*?if \(!raw\) return null;/, 'nothing stored → nothing sent');
 });
+
+test('the code step keeps Go back above the number pad: inside the card, and the shell scrolls the card into view', () => {
+  const register = src('app/(auth)/register.tsx');
+  const step = register.slice(register.indexOf('if (codeFor) {'), register.indexOf('</AuthShell>', register.indexOf('if (codeFor) {')));
+  assert.match(step, /keepCardInView/);
+  const footer = step.slice(step.indexOf('footer={'), step.indexOf('>\n        <OtpField'));
+  assert.doesNotMatch(footer, /register-go-back/, 'not in the footer under the card, where the pad covers it');
+  assert.ok(step.indexOf('register-go-back') > step.indexOf('register-resend'), 'right under Send a new code, in the card');
+  const shell = src('components/ui/AuthShell.tsx');
+  assert.match(shell, /keepCardInView\?: boolean/);
+  assert.match(shell, /Keyboard\.addListener\(ios \? 'keyboardWillShow' : 'keyboardDidShow'/);
+  assert.match(shell, /scrollRef\.current\?\.scrollTo\(\{ y: overflow/);
+});

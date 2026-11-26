@@ -36,6 +36,11 @@ tags: [smoke]
 - assertVisible: "Confirm and sign in"
 - assertVisible: "Send a new code"
 - assertVisible: "Wrong address?"
+# The number pad must not cover the way back (Sree, Nov 23: keyboard-covering bugs on small phones are what CI
+# has to catch). The field focuses itself; with the pad up, Go back is still on screen.
+- waitForAnimationToEnd
+- assertVisible:
+    id: "register-go-back"
 - takeScreenshot: 27-create-account-code-keyboard
 - hideKeyboard
 - takeScreenshot: 27a-create-account-code
@@ -56,6 +61,12 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "That code is wrong or has expired.*"
     timeout: 15000
+# The error line makes the card taller; with the pad up again, Go back still sits above it and takes the tap.
+- tapOn:
+    id: "register-code"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "register-go-back"
 - takeScreenshot: 27c-create-account-code-wrong
 # Wrong address? Go back: the form, the address kept, and no Player ID box (D105).
 - tapOn:

@@ -233,15 +233,11 @@ export default function RegisterScreen() {
         icon="email-check-outline"
         help="sign-in"
         helpAnchor="create-account"
+        keepCardInView
         footer={
-          <View style={styles.footerRow}>
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-              {SIGNUP_CODE_TEXT.wrongAddress}
-            </Text>
-            <Button mode="text" onPress={backToForm} disabled={loading} compact testID="register-go-back">
-              {SIGNUP_CODE_TEXT.goBack}
-            </Button>
-          </View>
+          <Text variant="bodySmall" style={[styles.note, { color: theme.colors.onSurfaceVariant }]}>
+            {SIGNUP_CODE_TEXT.inviteNote}
+          </Text>
         }
       >
         <OtpField
@@ -276,9 +272,14 @@ export default function RegisterScreen() {
         >
           {cooldown > 0 ? SIGNUP_CODE_TEXT.resendIn(cooldown) : SIGNUP_CODE_TEXT.resend}
         </Button>
-        <Text variant="bodySmall" style={[styles.note, { color: theme.colors.onSurfaceVariant }]}>
-          {SIGNUP_CODE_TEXT.inviteNote}
-        </Text>
+        <View style={styles.footerRow}>
+          <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+            {SIGNUP_CODE_TEXT.wrongAddress}
+          </Text>
+          <Button mode="text" onPress={backToForm} disabled={loading} compact testID="register-go-back">
+            {SIGNUP_CODE_TEXT.goBack}
+          </Button>
+        </View>
       </AuthShell>
     );
   }

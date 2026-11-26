@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Image, Keyboard, KeyboardAvoidingView, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Image, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { HelpButton } from '@/components/ui/HelpButton';
 import { HelpTopicKey } from '@/constants/helpTopics';
@@ -19,6 +19,9 @@ type AuthShellProps = {
   /** The help page the ? opens (sign-in pages share one). */
   help?: HelpTopicKey;
   helpAnchor?: string;
+  /** When the keyboard opens, scroll so the bottom of the form card sits just above it (a short code form whose
+   * buttons and links must stay reachable with the number pad up on a small phone). */
+  keepCardInView?: boolean;
 };
 
 const FORM_MAX_WIDTH = 460;
@@ -55,11 +58,43 @@ export function useScrollToFocusedInput(scrollRef: React.RefObject<ScrollView | 
 }
 
 /** Shared chrome for sign-in screens: felt brand panel plus a form card. Side by side in landscape. */
-export function AuthShell({ title, subtitle, icon, hero, children, footer, help, helpAnchor }: AuthShellProps) {
+export function AuthShell({ title, subtitle, icon, hero, children, footer, help, helpAnchor, keepCardInView }: AuthShellProps) {
   const { colors } = useAppTheme();
   const { insets, isShort, gutterLeft, gutterRight } = useLayout();
   const scrollRef = useRef<ScrollView>(null);
   useScrollToFocusedInput(scrollRef);
+  const viewportHeight = useRef(0);
+  const cardTop = useRef(0);
+  const cardBottom = useRef(0);
+  const keyboardOpen = useRef(false);
+
+  const scrollCardIntoView = () => {
+    const overflow = cardTop.current + cardBottom.current + spacing.md - viewportHeight.current;
+    if (overflow > 0) scrollRef.current?.scrollTo({ y: overflow, animated: true });
+  };
+
+  const followCard = () => {
+    if (keepCardInView && keyboardOpen.current) scrollCardIntoView();
+  };
+
+  useEffect(() => {
+    if (!keepCardInView) return;
+    const ios = Platform.OS === 'ios';
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // The window shrinks after the keyboard event on Android; measure once the new height has landed.
+    const show = Keyboard.addListener(ios ? 'keyboardWillShow' : 'keyboardDidShow', () => {
+      keyboardOpen.current = true;
+      timer = setTimeout(scrollCardIntoView, 80);
+    });
+    const hide = Keyboard.addListener(ios ? 'keyboardWillHide' : 'keyboardDidHide', () => {
+      keyboardOpen.current = false;
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+      if (timer) clearTimeout(timer);
+    };
+  }, [keepCardInView]);
 
   const badge = (
     <View style={[styles.badge, { backgroundColor: colors.onFelt }]}>
@@ -86,7 +121,13 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
   );
 
   const card = (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
+    <View
+      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}
+      onLayout={(e) => {
+        cardBottom.current = e.nativeEvent.layout.y + e.nativeEvent.layout.height;
+        followCard();
+      }}
+    >
       {children}
     </View>
   );
@@ -115,6 +156,10 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
         </View>
         <ScrollView
           ref={scrollRef}
+          onLayout={(e) => {
+            viewportHeight.current = e.nativeEvent.layout.height;
+            followCard();
+          }}
           style={styles.flex}
           contentContainerStyle={[
             styles.sideContent,
@@ -126,7 +171,12 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.formColumn}>
+          <View
+            style={styles.formColumn}
+            onLayout={(e) => {
+              cardTop.current = e.nativeEvent.layout.y;
+            }}
+          >
             {card}
             {footer}
           </View>
@@ -140,6 +190,10 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
     <KeyboardAvoidingView style={[styles.flex, { backgroundColor: colors.background }]} behavior={KEYBOARD_BEHAVIOR}>
       <ScrollView
         ref={scrollRef}
+        onLayout={(e) => {
+          viewportHeight.current = e.nativeEvent.layout.height;
+          followCard();
+        }}
         contentContainerStyle={[styles.stackContent, { paddingBottom: insets.bottom + spacing.xl }]}
         keyboardShouldPersistTaps="handled"
       >
@@ -159,7 +213,12 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
           </View>
           {brand}
         </View>
-        <View style={[styles.overlap, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}>
+        <View
+          style={[styles.overlap, { paddingLeft: gutterLeft, paddingRight: gutterRight }]}
+          onLayout={(e) => {
+            cardTop.current = e.nativeEvent.layout.y;
+          }}
+        >
           <View style={styles.formColumn}>
             {card}
             {footer}
