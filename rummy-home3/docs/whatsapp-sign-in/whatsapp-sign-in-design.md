@@ -10,11 +10,11 @@ build: these pictures come first, and code starts on Sree's yes to them. **The o
 pictures in §8 right?** If there is no answer, nothing is built; the build waits for that yes.
 
 Pictures (open on a phone, no login):
-[Create account](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/whatsapp-spec-refresh-253d/rummy-home3/docs/whatsapp-sign-in/wa-create-account.png) ·
-[Code step](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/whatsapp-spec-refresh-253d/rummy-home3/docs/whatsapp-sign-in/wa-code-step.png) ·
-[Sign in](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/whatsapp-spec-refresh-253d/rummy-home3/docs/whatsapp-sign-in/wa-sign-in.png) ·
-[Profile](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/whatsapp-spec-refresh-253d/rummy-home3/docs/whatsapp-sign-in/wa-profile.png) ·
-[Backup (D75)](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/whatsapp-spec-refresh-253d/rummy-home3/docs/whatsapp-sign-in/wa-backup.png).
+[Create account](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/whatsapp-spec-f877/rummy-home3/docs/whatsapp-sign-in/wa-create-account.png) ·
+[Code step](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/whatsapp-spec-f877/rummy-home3/docs/whatsapp-sign-in/wa-code-step.png) ·
+[Sign in](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/whatsapp-spec-f877/rummy-home3/docs/whatsapp-sign-in/wa-sign-in.png) ·
+[Profile](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/whatsapp-spec-f877/rummy-home3/docs/whatsapp-sign-in/wa-profile.png) ·
+[Backup (D75)](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/whatsapp-spec-f877/rummy-home3/docs/whatsapp-sign-in/wa-backup.png).
 Flows: [`flows.md`](flows.md) (`flows-1.png` … `flows-9.png`).
 
 ## Sree's paperwork checklist
