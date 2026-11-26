@@ -183,12 +183,13 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'Order of players',
         watch: 'seating',
         bullets: [
-          'New to it? **Watch how (20 s)** below plays the four steps; the screen also opens them the first time you reach it, and **Show me** on the screen plays them again.',
+          'New to it? **Watch how (20 s)** below plays the three steps; **Show me** on the screen plays them too.',
           'Draw a card each for the seating position.',
           'Tap players from the highest card to the lowest, in that order. The first tap goes on top with the highest seat number; the last tap is **seat 1**.',
           'Seat 1 deals round 1. The highest seat gets the first open card. Every round the deal moves up one seat, and the open card goes to the seat before the dealer. The scorecard columns follow the seats, seat 1 first.',
-          'Wrong tap? Tap the latest player again to take the number back; tap any other numbered player to highlight them.',
-          'Numbered rows show small ▲ ▼ arrows that nudge a player one seat; the lowest seat has no ▼, there is nowhere lower to go. **Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
+          'Wrong tap? Tap the latest player again to take the number back.',
+          'Once everyone is numbered, tap a player and use the ▲ ▼ arrows to move them one seat; tap them again to deselect. While one is selected only their arrows show; the top row has no ▲ and the lowest seat has no ▼.',
+          '**Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
           'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens prefilled, so one move is one tap; **Done** saves it, the Log records it, played rounds keep their dealer and the next deal follows the new order.',
           'Someone joins mid-game: they sit right after whoever is dealing (the dealer\'s seat + 1), deal the round after this one, and nobody loses a turn. Move them from Order of players if the table sat them elsewhere. A pool player who is out keeps the seat; the deal and the open card skip it.',
         ],
@@ -202,7 +203,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       },
     ],
     tricky: [
-      { id: 'not-in-list', q: 'The person I want is not in the list.', a: 'They are not in your My players yet. **Find in database** if they have an account (name or #ID), **Add by initials** if they do not. Both seat them in this game at once.' },
+      { id: 'not-in-list', q: 'The person I want is not in the list.', a: 'They are not in your My players yet. **Find in database** if they have an account (by their Player ID), **Add by initials** if they do not. Both seat them in this game at once.' },
       { id: 'who-deals', q: 'Who deals first?', a: 'Seat 1 in the **Order of players** you set before Start: the lowest card, the last player you tapped. Every round the deal moves up one seat and the open card goes to the seat before the dealer; played rounds keep their dealer.' },
       { id: 'twenty', q: 'Why can I not add a 21st player?', a: 'A game holds up to 20 players. Start a second game for the rest.' },
     ],
@@ -285,7 +286,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         'The rounds, newest at the bottom. Tap a cell to see the exact points.',
         '**Add round** (admins) opens the round sheet; **Undo** removes the last round.',
         'Share icon: the live link, and once complete **Share final scores** (the picture, or the full details as a PDF).',
-        '⋮ menu: Game settings, Players · Admins, Order of players, Dealer, Edit round, Log, Hide, Delete.',
+        '⋮ menu: Game settings, Players · Admins, Order of players, Dealer, Edit round, Log, Columns, Hide, Delete.',
         'Foot, inside the card under the last round: creator, admins and the Unique game ID (tap to copy). It scrolls with the rounds.',
       ],
     },
@@ -294,7 +295,8 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'The table',
         bullets: [
           'One column per seat, one row per round. Points: minus numbers in the players\u2019 colours, the winner\u2019s plus in green. Pool: plus points; the winner\u2019s <<0>>.',
-          'Landscape shows more columns; with many players the table scrolls sideways and the initials stay pinned.',
+          'Five player columns to start. Pinch the table, or ⋮ › **Columns**, for **5 · 7 · Max** (Max fits as many as the phone can show); the phone remembers it for every game. Swipe the names or the scores sideways for the rest; the round numbers stay put.',
+          'Turn the phone sideways to see the table alone, with no buttons or menu. Turn it upright to add a round.',
           'Tap **Add round** for the next round; the dealer shown in the header is who deals it. Wrong dealer? Tap DEALS (or ⋮ › **Dealer**), pick the round and who really deals, then follow from there or change that round only.',
         ],
       },
@@ -318,7 +320,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
           'The limit line under the title (**Limit 101 · 100 in, 101 out**) and the number out. A player at or past the limit is [OUT]; **Re-enter** (admins) brings them back at the re-entry score — the highest score still in, or that plus 1 (the game\u2019s **Re-entry score** setting).',
           'The re-entry round shows that score with ↺ beside it (105 → ↺106); the typed score is kept but not shown. That player\u2019s cells in the rounds above turn grey; the ↺ row and everything after keep their normal colours. Tap a round number to edit that round.',
           '**Standings** list everyone by points left; drops left count down from the Full count. Portrait: the table is a card of at most five round rows, newest at the bottom (swipe inside it for earlier rounds); Standings take the rest. Landscape: the full table alone.',
-          '**Complete** asks once in a dialog; a pool then goes to **Awards** and on to the Final screen. The Completed scorecard shows the Awards block (or **Give awards** while they are not given; in landscape the button sits in the strip).',
+          '**Complete** asks once in a dialog; a pool then goes to **Awards** and on to the Final screen. The Completed scorecard shows the Awards block (or **Give awards** while they are not given).',
         ],
       },
       {
@@ -594,7 +596,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'Linking an account',
         bullets: [
           '**Link to Player ID** needs the account\u2019s Player ID and its email together, and moves the player in every game they are in. It refuses if that account already plays in one of those games.',
-          '**Invite to register** sends a sign-up link that is good once for 14 days; when the person signs up with it, their scores move to their account.',
+          '**Invite to EZ Score** sends a plain \u201cget the app\u201d message asking for their Player ID; once they have it, **Link to Player ID** moves their scores.',
         ],
       },
       {
@@ -608,7 +610,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     menu: {
       title: 'The row ⋮, in order',
       rows: [
-        { item: 'Invite to register', does: 'Sends a sign-up link (one use, 14 days).', who: 'Admins', hidden: 'Registered player' },
+        { item: 'Invite to EZ Score', does: 'Sends the get-the-app message.', who: 'Admins', hidden: 'Registered player' },
         { item: 'Link to Player ID', does: 'Joins this seat to an existing account by ID + email.', who: 'Admins', hidden: 'Registered player' },
         { item: 'Edit initials', does: 'This game\u2019s column letters.', who: 'Admins' },
         { item: 'Edit name', does: 'Rename an unregistered player.', who: 'Admins', hidden: 'Registered player' },
@@ -714,7 +716,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'Unregistered players',
         bullets: [
-          'The **Unregistered** tile at the bottom shows how many have not signed up and filters the list to them. Each row\u2019s ⋮ has **Invite to register** (a sign-up link, good once for 14 days) and **Link to Player ID**.',
+          'The **Unregistered** tile at the bottom shows how many have not signed up and filters the list to them. Each row\u2019s ⋮ has **Invite to EZ Score** (the get-the-app message) and **Link to Player ID**.',
         ],
       },
     ],
@@ -723,14 +725,14 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       rows: [
         { item: 'Change initials', does: 'Any free 2–3 letters for this player in your list.', who: 'You' },
         { item: 'Edit name', does: 'Rename a player you added by initials.', who: 'You', hidden: 'Registered player' },
-        { item: 'Invite to register', does: 'A sign-up link (one use, 14 days).', who: 'You', hidden: 'Registered player' },
+        { item: 'Invite to EZ Score', does: 'The get-the-app message.', who: 'You', hidden: 'Registered player' },
         { item: 'Link to Player ID', does: 'Join this entry to an existing account by ID + email.', who: 'You', hidden: 'Registered player' },
         { item: 'Remove from My players', does: 'Only your list changes; games and results stay.', who: 'You' },
       ],
     },
     tricky: [
       { id: 'three-letters', q: 'Why does a player have three letters?', a: 'Two of your players share the first-and-last-letter form; the one added first keeps it. **Change initials** to pick any 2–3 letters you like.' },
-      { id: 'no-games', q: 'A player says they cannot see the game.', a: 'They are not registered, or the game sits under a different player. **Invite to register** or **Link to Player ID** moves the scores to their account.' },
+      { id: 'no-games', q: 'A player says they cannot see the game.', a: 'They are not registered, or the game sits under a different player. **Invite to EZ Score**, then **Link to Player ID** moves the scores to their account.' },
     ],
     alsoSee: ['add-players', 'new-game', 'players-admins'],
     aliases: ['players', 'initials', 'unregistered', 'frequent', 'alphabetical'],
@@ -745,15 +747,15 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     needToKnow: [
       '**Add by initials**: three rows at a time. Cell 1 takes one letter and jumps on; cell 2 takes one or two letters or digits. The initials are the player\u2019s name for now.',
       'Each row saves on its own. Saved players show as [Unregistered] until they sign up. There is no delete here; remove a player from the previous screen. Tap **Done** to go back; nothing else closes this screen.',
-      '**Find in database**: registered players only. Type at least two letters of a name, or a player ID such as 42.',
-      '**+ My players** adds the person to your list (it does not seat them). From New game, **+ Add** seats the person in this game and adds them to My players at the same time.',
+      '**Find in database**: registered players only, by Player ID. Ask them for it (it is on their Profile), type the number and tap **Search**. Names are never searched.',
+      '**Add to My players** adds the person to your list (it does not seat them). From New game, **Add to game** seats the person in this game and adds them to My players at the same time.',
     ],
     screenshot: {
       file: 'add-players',
       legend: [
         'Add by initials: three rows, two cells each; **Save** on a row keeps it.',
         'A saved row shows the letters the app picked; tap to change them.',
-        '**Done** goes back; rows you saved are already in. Find in database is the other way in: search by name or #ID.',
+        '**Done** goes back; rows you saved are already in. Find in database is the other way in: search by Player ID.',
       ],
     },
     sections: [
@@ -766,12 +768,13 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'Find in database',
         bullets: [
+          'One number shows one name, shortened (\u201c#57 · Ravi K.\u201d), or \u201cNo one has #58.\u201d Check it is the person in front of you before you add.',
           '\u201cIn your player list\u201d means they are already there. Not in the database? Go back and use Add by initials.',
         ],
       },
     ],
     tricky: [
-      { id: 'not-found', q: 'Find in database finds nobody.', a: 'They have no account yet (or a different name). Use **Add by initials**; **Invite to register** later moves the scores to their account.' },
+      { id: 'not-found', q: 'Find in database finds nobody.', a: 'The number is wrong, or they have no account yet. Check the number with them, or use **Add by initials**; **Link to Player ID** later moves the scores to their account.' },
       { id: 'done-only', q: 'Why is Done the only way out?', a: 'Every row saves on its own as you type, so there is nothing to cancel. Done just goes back.' },
     ],
     alsoSee: ['my-players', 'new-game', 'players-admins'],

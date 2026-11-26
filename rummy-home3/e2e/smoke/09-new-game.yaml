@@ -47,6 +47,12 @@ tags: [smoke]
 - assertVisible: "Remove HT2 from this game"
 - assertNotVisible: ".*Unregistered.*"
 - takeScreenshot: 09c-add-new-players-clash-ht2
+# After Save the next row's cell may take focus and the keypad cover Done: scroll to it with the keypad up (no
+# hideKeyboard, which is a Back press when no keypad is showing).
+- scrollUntilVisible:
+    element: "Done adding players"
+    direction: DOWN
+    timeout: 30000
 - tapOn: "Done adding players"
 - extendedWaitUntil:
     visible: "Add by initials"

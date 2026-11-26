@@ -8,7 +8,7 @@ import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
 import { LinkPlayerDialog } from '@/components/players/LinkPlayerDialog';
 import { LinkRequestSentDialog } from '@/components/players/LinkRequestSentDialog';
-import { InviteToRegisterDialog } from '@/components/players/InviteToRegisterDialog';
+import { HowToAddCard } from '@/components/players/HowToAddCard';
 import { EditNameDialog } from '@/components/players/EditNameDialog';
 import { myPlayerMenu, SeatMenu, SeatMenuItem } from '@/utils/gamePlayers';
 import { LinkRequestOutcome } from '@/utils/linkPlayer';
@@ -126,7 +126,6 @@ export default function PlayersTab() {
   const [linkRequests, setLinkRequests] = useState<Record<string, PendingLink>>({});
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [sheet, setSheet] = useState<
-    | { kind: 'invite'; player: Player }
     | { kind: 'link'; player: Player }
     | { kind: 'link_sent'; outcome: LinkRequestOutcome }
     | { kind: 'edit_name'; player: Player }
@@ -301,7 +300,7 @@ export default function PlayersTab() {
   const act = (item: SeatMenuItem, player: Player) => {
     setMenuFor(null);
     const full = unregistered[player.id] ? { ...player, ...unregistered[player.id], initials: player.initials, addedAt: player.addedAt } : player;
-    if (item === 'invite') setSheet({ kind: 'invite', player: full });
+    if (item === 'invite') shareInvite().catch(() => {});
     else if (item === 'link_id') setSheet({ kind: 'link', player: full });
     else if (item === 'edit_name') setSheet({ kind: 'edit_name', player: full });
     else if (item === 'edit_initials') { setInitialsError(null); setSelected(player); setEditingInitials(true); }
@@ -396,6 +395,7 @@ export default function PlayersTab() {
   return (
     <View style={styles.flex}>
     <Screen>
+      <HowToAddCard />
       <SearchField value={query} onChangeText={setQuery} style={styles.search} testID="my-players-search" />
       <View style={styles.controls}>
         <View style={styles.sortGroup}>
@@ -499,9 +499,6 @@ export default function PlayersTab() {
           onConfirm={() => { const who = removeTarget; setRemoveTarget(null); if (who) remove(who); }}
           testID="remove-my-player"
         />
-        {sheet?.kind === 'invite' && me ? (
-          <InviteToRegisterDialog player={sheet.player} owner={me} onDismiss={() => { setSheet(null); load(); }} />
-        ) : null}
         {sheet?.kind === 'link' && me ? (
           <LinkPlayerDialog
             player={sheet.player}

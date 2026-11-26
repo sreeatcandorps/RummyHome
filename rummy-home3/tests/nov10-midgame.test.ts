@@ -25,10 +25,9 @@ test('final scores are sorted highest first; ties keep seat order', () => {
 test('an invited (pending) seat reads "Pending registration" everywhere', () => {
   assert.equal(registrationLabel({ status: 'pending' }), 'Pending registration');
   const page = read('app/(screens)/games/players.tsx');
-  assert.match(page, /Pending registration/);
   assert.doesNotMatch(page, /=== 'Pending'/);
-  // Optimistic: the seat is marked invited the moment the link exists, and the roster reloads when the share sheet closes.
-  assert.match(page, /setInvited\(\(current\) => new Set\(\[\.\.\.current, sheet\.seat\.id\]\)\)/);
+  // D106: Invite no longer makes a sign-up link, so a seat is pending only when the server says so (an old link).
+  assert.match(page, /visibleRegistration\(registrationLabel\(seat, Boolean\(linkRequest\)\)\)/);
   assert.match(page, /AppState\.addEventListener\('change'/);
   assert.match(read('utils/myPlayersList.ts'), /Pending registration/);
 });

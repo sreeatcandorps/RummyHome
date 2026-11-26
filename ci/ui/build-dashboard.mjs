@@ -41,7 +41,7 @@ if (fs.existsSync(ART)) {
   for (const art of fs.readdirSync(ART).sort()) {
     const dir = path.join(ART, art);
     if (!fs.statSync(dir).isDirectory()) continue;
-    const m = art.match(/-(pixel6|pixel4a|pixel7pro|tablet)-([a-z-]+)$/);
+    const m = art.match(/-(pixel6|pixel4a|pixel7pro|tablet|small)-([a-z-]+)$/);
     const device = m?.[1] ?? 'device';
     const suite = m?.[2] ?? 'suite';
     const SET_ORDER = ['smoke', 'full', 'chaos', 'roles', 'two-device', 'monkey', 'known-bugs'];

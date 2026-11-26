@@ -55,7 +55,7 @@ Same codebase either way.
 | Tutorials | `components/tutorial/StepsSheet.tsx` + `expo-haptics` (D61, Nov 20) | Step-by-step sheets drawn from the real components (no video / Lottie); seen-flags on `profiles.default_settings`; the light tap on the real last tap of the Order of players |
 | Repo | GitHub `sreeatcandorps/RummyHome`, branch `main` | Single mainline; no long-lived feature branches by choice |
 | Cloud builds | EAS Build profiles: development / preview / staging (EZ Score · Staging, `.staging` package, points at `ezscore-staging`) / production | Real store binaries |
-| Device UI tests | Maestro + `reactivecircus/android-emulator-runner` in GitHub Actions (`ci/ui/`, `rummy-home3/e2e/`); four emulator profiles, six suites, `adb monkey`, two-emulator races; dashboard on the `gh-pages` branch (GitHub Pages) | Flows on the real APK, screenshots and videos of every run, bugs filed as issues; no EAS credits, no production data, $0 on the public repo |
+| Device UI tests | Maestro + `reactivecircus/android-emulator-runner` in GitHub Actions (`ci/ui/`, `rummy-home3/e2e/`); five emulator rows (Pixel 6 · 4a · 7 Pro at font 1.3 · Tablet · 4a at 360 dp with font 1.3), six suites, `adb monkey`, two-emulator races; dashboard on the `gh-pages` branch (GitHub Pages) | Flows on the real APK, screenshots and videos of every run, bugs filed as issues; no EAS credits, no production data, $0 on the public repo |
 | OTA | `expo-updates`, on for the production profile only (`EXPO_UPDATES_ENABLED` in `eas.json` → `app.config.js`). Preview/development APKs run their embedded JS | Fix JS during the 14-day test without new Play review every time; preview builds can't be replaced by a stale update |
 | Version codes | `appVersionSource: "remote"` in `eas.json` | EAS tracks Android versionCode; no manual bumps in `app.json` |
 | Secrets for builds | EAS Environment Variables (`EXPO_PUBLIC_SUPABASE_*`) | `.env.local` never reaches EAS builders |
@@ -343,7 +343,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | --- | --- |
 | Auth (email/passcode, session refresh, app-only OTP recovery) | Done in the app; OTP email live via Resend since Nov 9. Phone pass pending |
 | Profiles / Player ID + share | Done |
-| Find players (name, player ID, exact email, +) | Done; needs `007` on the live database. From New game it also seats the player |
+| Find players | By Player ID only (D113): the app sends only a number; until `053` is applied the server still answers names and emails for anyone calling the API. From New game it also seats the player |
 | New game (Points / Pool, my players) | Done. Four steps (PR 24): Players (Next) → Game type with this game's settings prefilled from Settings (Next) → Order of players (tap to number) → Co-admin → Start game. Creator is not pre-seated; Add players (full screen) / Add player from database |
 | Game table + score entry | Done, portrait + landscape. Add round: grid, presets, keypad, Balance gate, explicit 0, big losses in red. Complete game, Final scores, and Players are their own pages. Apply `014_save_round_atomic.sql` for the one-transaction save |
 | Home | Done. Results → every live game → Recent (every Completed/Closed game, newest first, no filter). History screen redirects home |
@@ -361,7 +361,7 @@ Do **not** paste Expo passwords into chat. Username on Expo may look different f
 | Expo Go local preview | Working |
 | EAS project linked on this PC | Done |
 | EAS env vars for Supabase | Done |
-| Play Console listing + closed test | **Waiting** on Google verification |
+| Google Play | **Live in Production** (Nov 25 2026): build 15, version 1.1.0, published under the Candor PS organization account (developer name "MindWeave Tech", to become "MindWeave", D118). Internal testing stays active for staging builds |
 | iOS App Store | Not started (same Expo app later) |
 | Full website / web app | Not required for v1 (privacy page only) |
 
@@ -700,6 +700,9 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   "today | after" pictures. Pictures for Sree are committed to the public repo and linked by raw URL, because
   Cursor artifact links need a login and the CI dashboard prunes old runs (D87).
 
+### 2026-11-24 — The `small` CI phone (batch 2 PR)
+- CI device plan gains a fifth row, `small`: the Pixel 4a profile on the API 34 image at density 480 (a 360 × 780 dp window, `adb shell wm density` from `DEVICE_DENSITY`) with font 1.3; smoke on every app PR, full nightly. Started on the API 30 image; moved to API 34 after its cached snapshot hung three PR runs (12h). Reason: five of the eight staging-build-2 bugs were a narrow phone or a big font and the PR gate ran smoke on the Pixel 6 only. The `tablet` row was never landscape (the Pixel Tablet's natural orientation is landscape; rotation 1 is upright) — relabelled, flows re-pinned.
+
 ### 2026-11-25 — The hidden Settle / prize-sessions module is deleted (D110)
 - Settle (coin balances across finished games, hidden behind `EXPO_PUBLIC_SETTLE_ENABLED` since PR 13) is gone from
   the app: its two screens, the sessions and token-ledger services, the coin math and the flag. Why: Google Play
@@ -707,3 +710,22 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   (`business-analysis.md` §4). No migration: `prize_sessions`, `prize_session_games`, `prize_entries`,
   `token_ledger`, `games.prize` and the five `*_prize_*` RPCs stay in the database, unused, until Sree says yes to
   dropping them.
+
+### 2026-11-26 — Find players by Player ID only (053, D113); invite is a plain message (D106)
+- Migration `053_player_id_search_only.sql` (written, **not applied**) turns `search_players` into an exact Player ID
+  lookup: one registered account, its name shortened to first name + last initial (`short_player_name`), or nothing.
+  Names, initials and emails are no longer searchable through the API, so typing two letters can no longer list
+  people from the whole database. Same signature, so older app builds keep working; `search_my_players` (the
+  user's own players) is unchanged. The app's Find in database is a number keypad with a Search button.
+- Invite to EZ Score shares a plain get-the-app message; the one-time sign-up (claim) link is gone from the app.
+  The claim RPCs stay on the server so links already sent still open until they expire. Link to Player ID (025)
+  is now the one way to move an initials player's games to an account. D70's seat change becomes migration 054.
+### 2026-11-25 — EZ Score: Rummy is live on Google Play (Production 15, 1.1.0)
+- Google approved the review; build 15 (1.1.0) is published to Production (Play Console: "Last published on November
+  25, 2026", 0 policy tasks). Internal testing stays active, so staging builds still go to testers first.
+- Distribution is now: EAS build → Internal testing (staging) → Production on Sree's yes. The next Production release
+  carries WhatsApp sign-in (D116, D117), so its Data safety form adds the phone number; the 30-day delete grace (D72)
+  changes the "deleted within" answer when it is built.
+- Unblocked by the approval: the Play developer name change to "MindWeave" (D118) and the delete-account grace (D72,
+  still needs Sree's go). D84's other "after live" items (Telugu, more tutorials) have no approved spec yet and stay
+  after the code freeze unless Sree moves them.

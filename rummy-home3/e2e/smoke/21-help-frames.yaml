@@ -14,7 +14,7 @@ tags: [smoke]
     element:
       id: "game-card-GAMEE1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEE1"
 - extendedWaitUntil:
@@ -40,14 +40,14 @@ tags: [smoke]
 - scrollUntilVisible:
     element: "New game"
     direction: UP
-    timeout: 15000
+    timeout: 30000
 
 # 2. Hidden & deleted with one hidden game: hide game H, open Settings › Hidden & deleted, unhide.
 - scrollUntilVisible:
     element:
       id: "game-card-GAMEH1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEH1"
 - extendedWaitUntil:
@@ -61,16 +61,17 @@ tags: [smoke]
 - scrollUntilVisible:
     element: "New game"
     direction: UP
-    timeout: 15000
+    timeout: 30000
 - tapOn: "Your profile"
+# Size-S (#120): Appearance is below the fold at 360 dp × font 1.3; wait for the title, scroll to the row.
 - extendedWaitUntil:
-    visible: "Appearance"
+    visible: "Profile"
     timeout: 15000
 - scrollUntilVisible:
     element:
       id: "me-settings"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "me-settings"
 - extendedWaitUntil:
@@ -82,7 +83,7 @@ tags: [smoke]
     element:
       id: "settings-hidden-deleted"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "settings-hidden-deleted"
 - extendedWaitUntil:
@@ -90,13 +91,33 @@ tags: [smoke]
     timeout: 15000
 - assertVisible: "Unhide"
 - assertVisible: "Deleted games · .*"
+# The third card is below the fold at 360 dp × font 1.3; scroll to it, then back up to the Unhide chip.
+- scrollUntilVisible:
+    element:
+      text: "Deleted results · .*"
+    direction: DOWN
+    timeout: 30000
 - assertVisible: "Deleted results · .*"
 - takeScreenshot: 21b-hidden-deleted
+- scrollUntilVisible:
+    element:
+      text: "Unhide"
+    direction: UP
+    timeout: 30000
 - tapOn: "Unhide"
+# The state is the proof; the toast is a few seconds long and was gone on the slow 360-dp emulator. The card
+# shrinks when its one row leaves, and on the 360-dp phone the header ends up above the viewport: scroll to it.
 - extendedWaitUntil:
-    visible: "Back on your Home."
+    notVisible: "Unhide"
     timeout: 15000
-- assertVisible: "Games I hid · 0"
+- scrollUntilVisible:
+    element:
+      text: "Games I hid · 0"
+    direction: UP
+    timeout: 30000
+- assertVisible:
+    text: "Back on your Home."
+    optional: true
 - back
 - back
 # Profile comes back at the scroll position it was left at (Settings is below Appearance), so wait for the title.
@@ -108,15 +129,27 @@ tags: [smoke]
 - scrollUntilVisible:
     element: "Log out"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn: "Log out"
 - extendedWaitUntil:
     visible:
       id: "login-email"
     timeout: 20000
-# The email field focuses itself and the keyboard covers the bottom of the card (CI run 1).
+# The email field focuses itself and the keyboard covers the bottom of the card (CI run 1). On the tablet
+# (#126 run 45282297377) the keyboard had already closed itself by now, so hideKeyboard's ESCAPE acted as
+# Back on the root screen and the app exited: make sure the keyboard is up before asking it to go.
+- tapOn:
+    id: "login-email"
+- waitForAnimationToEnd
 - hideKeyboard
 - assertVisible: "Forgot passcode?"
+# Size-S (#120, D69): the hero card makes the page taller; at 360 dp × font 1.3 the New here? line sits
+# under where the keyboard was until the padding settles. Scroll to it rather than assume.
+- scrollUntilVisible:
+    element:
+      text: "Create account"
+    direction: DOWN
+    timeout: 30000
 - assertVisible: "Create account"
 - takeScreenshot: 21c-sign-in
 - runFlow: ../lib/sign-in.yaml

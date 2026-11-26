@@ -50,8 +50,9 @@ test('no table row in decisions.md starts with "||" (such a row hides its ID fro
 });
 
 test('every open or asked question is in the For Sree block', () => {
-  const open = openQuestionIds(doc('docs/decisions.md'));
-  assert.ok(open.length > 0, 'the Open table parsed');
+  const decisions = doc('docs/decisions.md');
+  assert.ok(/\n## Open[^\n]*\n\n\| ID \|/.test(decisions), 'decisions.md has the Open table');
+  const open = openQuestionIds(decisions);
   const block = forSreeBlock(doc('docs/next-up.md'));
   assert.ok(block.length > 0, 'next-up.md has a "For Sree today" block');
   const named = mentionedIds(block);

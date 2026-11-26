@@ -6,6 +6,12 @@ tags: [smoke]
 # The flow then puts the multiplier back to ×1 so game E reads the same for smoke/13 and full/30, 70.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
+# Four live games on Home: on the 360-dp phone (font 1.3) game E is below the fold.
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEE1"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEE1"
 - extendedWaitUntil:

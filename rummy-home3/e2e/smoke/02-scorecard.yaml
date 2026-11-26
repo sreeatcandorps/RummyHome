@@ -7,7 +7,7 @@ tags: [smoke]
     element:
       id: "game-card-GAMEA1"
     direction: DOWN
-    timeout: 15000
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEA1"
 - extendedWaitUntil:
@@ -29,7 +29,7 @@ tags: [smoke]
     element:
       id: "game-id-footer"
     direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - assertVisible:
     text: "Creator:.*"
 - assertVisible:
