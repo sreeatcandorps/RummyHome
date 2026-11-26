@@ -4,7 +4,7 @@
 -- CI uses the real stack (`supabase start`); this file is never applied there.
 --
 -- It provides: roles anon / authenticated / service_role, the auth schema with
--- auth.users, auth.uid(), auth.jwt(), auth.role(), the supabase_realtime
+-- auth.users (with the phone columns), auth.identities, auth.uid(), auth.jwt(), auth.role(), the supabase_realtime
 -- publication, pgcrypto, and pgTAP.
 
 do $$
@@ -57,7 +57,30 @@ create table if not exists auth.users (
   raw_app_meta_data jsonb,
   raw_user_meta_data jsonb,
   created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  phone text unique,
+  phone_confirmed_at timestamptz,
+  phone_change text default '',
+  phone_change_token text default '',
+  phone_change_sent_at timestamptz
+);
+-- 055 (D124) reads and clears the phone columns; older stubs gain them here.
+alter table auth.users add column if not exists phone text unique;
+alter table auth.users add column if not exists phone_confirmed_at timestamptz;
+alter table auth.users add column if not exists phone_change text default '';
+alter table auth.users add column if not exists phone_change_token text default '';
+alter table auth.users add column if not exists phone_change_sent_at timestamptz;
+
+create table if not exists auth.identities (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  provider_id text not null,
+  provider text not null,
+  identity_data jsonb not null,
+  last_sign_in_at timestamptz,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique (provider_id, provider)
 );
 
 create or replace function auth.uid()
