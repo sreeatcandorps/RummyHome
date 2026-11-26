@@ -112,7 +112,7 @@ test('the pool PDF has the limit and drops, every player with pool score, entrie
   assert.equal(noAwards[1].title, 'Players');
 });
 
-test('the sheet carries the PDF sections; shareFinalScoresPdf prints them above Round by round; Points gets a Totals block', () => {
+test('the sheet carries the PDF sections; shareFinalScoresPdf prints them above Round by round; Final scores comes first (D104)', () => {
   const game = { id: 'p1', gameNumber: 4, gameType: 'pool', date: '2026-11-18T19:00:00Z', completedAt: '2026-11-18T21:00:00Z', isComplete: true } as const;
   const players = [{ id: 'a', name: 'Sree' }, { id: 'b', name: 'Zed' }, { id: 'c', name: 'Ravi' }];
   const scores = { a: [12, 20, 20], b: [50, 30, 21], c: [40, 25, 9] };
@@ -122,7 +122,7 @@ test('the sheet carries the PDF sections; shareFinalScoresPdf prints them above 
     scores,
     pool: { limit: 101, fullCount: 80, drop: 20, seats, awards: { a: 300, b: -100, c: -200 }, awardNote: { presetLabel: 'Winner takes all', entry: 100, poolTotal: 400, givenOut: 400 } },
   });
-  assert.equal(sheet.pdfSections[0].title, 'Pool');
+  assert.deepEqual(sheet.pdfSections.map((s) => s.title), ['Final scores', 'Pool', 'Players and awards', 'Re-entries']);
   // Columns by first name (Ravi, Sree, Zed): the round table reads like the scorecard.
   assert.deepEqual(sheet.table.rows[2].cells, ['↺51', '20', '21 out']);
   assert.deepEqual(sheet.table.totals, ['60', '52', '101 out']);
@@ -133,8 +133,8 @@ test('the sheet carries the PDF sections; shareFinalScoresPdf prints them above 
   assert.match(pdfSectionHtml({ title: 'T', table: { heads: ['A'], rows: [['<b>']] } }), /&lt;b&gt;/, 'cells are escaped');
 
   const pointsSheet = buildFinalScoresSheet({ game, players, scores: { a: [-20, 10], b: [10, -30], c: [10, 20] }, multiplier: 100 });
-  assert.equal(pointsSheet.pdfSections[0].title, 'Totals');
-  assert.match(pointsSheet.pdfSections[0].lines![0], /^Totals add to 0$/);
-  assert.match(pointsSheet.pdfSections[0].lines![1], /×100/);
+  assert.deepEqual(pointsSheet.pdfSections.map((s) => s.title), ['Final scores'], 'Points: the Final scores table replaces the Totals line');
+  assert.deepEqual(pointsSheet.pdfSections[0].table?.foot, ['', 'Totals add to', '0']);
+  assert.match(pointsSheet.pdfSections[0].lines![0], /×100/);
   assert.match(src('utils/shareResultsPdf.ts'), /sections: sheet\.pdfSections/);
 });
