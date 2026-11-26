@@ -242,7 +242,7 @@ export default function ForgotPasscodeScreen() {
 
   if (step === 'wa-new' || step === 'wa-not-you') {
     return (
-      <AuthShell title={FORGOT_WHATSAPP_TEXT.newTitle} subtitle={maskWhatsAppNumber(sentTo)} icon="lock-reset" help="sign-in">
+      <AuthShell title={FORGOT_WHATSAPP_TEXT.newTitle} subtitle={maskWhatsAppNumber(sentTo)} icon="lock-reset" help="sign-in" keepCardInView>
         {step === 'wa-not-you' ? (
           <>
             <Text variant="titleMedium" style={styles.fieldTitle}>{FORGOT_WHATSAPP_TEXT.notYouTitle}</Text>

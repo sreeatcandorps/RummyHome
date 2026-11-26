@@ -363,6 +363,7 @@ test('Forgot passcode by WhatsApp: the code, then Set a new passcode with whose 
   assert.match(forgot, /notYou: 'Not you\?'/);
   assert.match(forgot, /whatsAppAuth\.sendCode\('recovery'/);
   assert.match(forgot, /releaseMyWhatsAppNumber\(\)/);
+  assert.match(forgot, /<AuthShell title=\{FORGOT_WHATSAPP_TEXT\.newTitle\}[^>]*keepCardInView>/, 'Type it again clears the keypad on a small phone');
   assert.match(src('services/auth.ts'), /rpc as any\)\('release_my_whatsapp_number'\)/);
 });
 
