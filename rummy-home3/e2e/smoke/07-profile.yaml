@@ -27,7 +27,16 @@ tags: [smoke]
 - assertVisible: "Initials on scorecards"
 - assertVisible:
     id: "me-edit-initials"
+# D103: the Player ID row is the number only; no share icon, and a tap opens no share sheet.
+- assertVisible:
+    id: "me-player-id"
+- assertNotVisible: ".*Share your Player ID.*"
 - takeScreenshot: 07-profile
+- tapOn:
+    id: "me-player-id"
+- assertNotVisible: "Add me on EZ Score.*"
+- assertVisible:
+    id: "me-edit-initials"
 # Size-S: Change passcode sits in the Account group, a screen down; scroll to it first.
 - scrollUntilVisible:
     element:

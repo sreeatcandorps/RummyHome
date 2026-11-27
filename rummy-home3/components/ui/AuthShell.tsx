@@ -5,6 +5,7 @@ import { HelpButton } from '@/components/ui/HelpButton';
 import { HelpTopicKey } from '@/constants/helpTopics';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
+import { cardScrollY } from '@/utils/cardScroll';
 
 type AuthShellProps = {
   title: string;
@@ -38,6 +39,13 @@ export const KEYBOARD_BEHAVIOR = 'padding' as const;
 export const FOCUSED_INPUT_GAP = spacing.lg;
 
 /**
+ * Android 11+ reports the keyboard's height once, as it opens; React Native sends no event when it grows. The
+ * suggestion strip or a one-time banner ("Suggest contact names?") arrives a moment later on top of that height, so
+ * `keepCardInView` keeps this much room above the reported keyboard, as long as the card's top stays on screen.
+ */
+export const KEYBOARD_STRIP_ROOM = Platform.OS === 'android' ? 48 : 0;
+
+/**
  * Once the keyboard is up, a focused input that it covers is scrolled to sit just above it; one already in view
  * is left alone. Android's own ScrollView does this when it shrinks, but not reliably for a field tapped low on
  * the screen (the case bug 8 described), so it is done here too, on `keyboardDidShow` — the padding has settled.
@@ -69,8 +77,8 @@ export function AuthShell({ title, subtitle, icon, hero, children, footer, help,
   const keyboardOpen = useRef(false);
 
   const scrollCardIntoView = () => {
-    const overflow = cardTop.current + cardBottom.current + spacing.md - viewportHeight.current;
-    if (overflow > 0) scrollRef.current?.scrollTo({ y: overflow, animated: true });
+    const y = cardScrollY({ cardTop: cardTop.current, cardBottom: cardBottom.current, viewport: viewportHeight.current, gap: spacing.md, room: KEYBOARD_STRIP_ROOM });
+    if (y > 0) scrollRef.current?.scrollTo({ y, animated: true });
   };
 
   const followCard = () => {

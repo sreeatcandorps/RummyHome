@@ -117,6 +117,7 @@ export function HelpPage({ topic, anchor }: { topic: HelpTopic; anchor?: string 
               <View key={s.title} style={styles.section} onLayout={mark(slug(s.title))}>
                 <Text variant="titleMedium" style={styles.sectionTitle}>{s.title}</Text>
                 <HelpBullets lines={s.bullets} />
+                {s.shot ? <SectionShot file={s.shot.file} legend={s.shot.legend} label={`${s.title}, annotated`} /> : null}
                 {s.watch ? (
                   <Button mode="outlined" icon="play-circle-outline" onPress={() => setWatching(s.watch ?? null)} style={styles.watch} testID={`help-watch-${s.watch}`}>{WATCH_HOW}</Button>
                 ) : null}
@@ -169,6 +170,32 @@ export function HelpPage({ topic, anchor }: { topic: HelpTopic; anchor?: string 
   );
 }
 
+/** A section's own picture (D98): cropped to the part of the screen it explains, so its ratio comes from the file. */
+function SectionShot({ file, legend, label }: { file: string; legend: string[]; label: string }) {
+  const { colors } = useAppTheme();
+  const [width, setWidth] = useState(0);
+  const source = HELP_SCREENSHOTS[file];
+  const meta = source && typeof Image.resolveAssetSource === 'function' ? Image.resolveAssetSource(source) : null;
+  const ratio = meta?.width && meta?.height ? meta.width / meta.height : undefined;
+  return (
+    <View style={styles.sectionShot}>
+      {source ? (
+        <View onLayout={(e) => setWidth(Math.floor(e.nativeEvent.layout.width))} testID={`help-section-shot-${file}`}>
+          {width > 0 ? (
+            <Image
+              source={source}
+              style={[styles.shot, helpShotSize(width, 480, ratio), { borderColor: colors.outlineVariant }]}
+              resizeMode="contain"
+              accessibilityLabel={label}
+            />
+          ) : null}
+        </View>
+      ) : null}
+      <HelpBullets lines={legend} numbered />
+    </View>
+  );
+}
+
 function AlsoSeeChip({ topic }: { topic: HelpTopic }) {
   const family = useFamilyColors(topic.family);
   return (
@@ -183,6 +210,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.lg, paddingBottom: spacing.xxl, alignItems: 'center' },
   column: { width: '100%', maxWidth: MAX_CONTENT_WIDTH, gap: spacing.md },
   watch: { alignSelf: 'flex-start', marginTop: spacing.sm },
+  sectionShot: { gap: spacing.md, marginTop: spacing.sm },
   hero: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderRadius: radius.lg },
   heroIcon: { width: 48, height: 48, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   heroText: { flex: 1, gap: 2 },
