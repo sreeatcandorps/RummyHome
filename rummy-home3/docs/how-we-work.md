@@ -1,6 +1,6 @@
 # How we work
 
-*Last updated Nov 26, 2026, 6:20 AM PT.* The plain-words version of the rules in `AGENTS.md` and
+*Last updated Nov 27, 2026, 10:25 AM PT.* The plain-words version of the rules in `AGENTS.md` and
 `decisions.md`. If this page and `AGENTS.md` ever disagree, `AGENTS.md` wins, and the builder fixes this page.
 What is next, and what needs Sree today, is not on this page: it is the first five lines of
 [`next-up.md`](next-up.md).
@@ -65,6 +65,17 @@ label: `brainstorm`, `parked`, `waiting-on-sree`, `in-progress` (work outside a 
 - Closing Sree's issues.
 
 A yes counts only for that exact action. "Go ahead" on a different question, or silence, is not a yes.
+
+### No ask of Sree's is lost (D132)
+
+- Every ask Build Bot relays gets a number **the same turn**: a D-row in `decisions.md` when it is decided, a
+  Q-row when it needs Sree's answer. Never "suggestion, awaits his pick" without a Q-number.
+- Every open Q is in the first lines of `next-up.md`, the lines Build Bot reads to Sree, with its default.
+- **Who checks:** a test on every push (`tests/asks-have-numbers.test.ts` and `tests/open-questions-for-sree.test.ts`)
+  fails when a row waits on Sree with no Q-number, when an open Q is missing from Sree's lines, or when Sree's
+  lines name a Q that `decisions.md` on `main` does not have. The Main agent's daily sweep lists every message
+  from Sree since the last sweep, each beside its D or Q. Build Bot checks Sree's asks against `main` once a
+  week, on Fridays, the way it did on Nov 27.
 
 ### How the work is done
 
