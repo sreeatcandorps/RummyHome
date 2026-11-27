@@ -46,7 +46,7 @@ can only make a PR faster, never hide a failure for more than a night.
 
 Rules as built (superseded in part by §2a below, Nov 26): (1) the whole smoke set always runs on an app change; (2) `[ui-all]` in the head commit message runs
 every suite on the reference phone (labels cannot be set from the agent's read-only CLI, so the tag replaces the
-`full-ui` label), `[tier:nightly]` / `[tier:prerelease]` run that tier on a PR, `[file-bugs]` lets a PR run open issues;
+`full-ui` label), `[tier:nightly]` / `[tier:prerelease]` run that tier on a PR, `[file-bugs]` lets a PR run open issues, `[ui-devices]` adds the smoke shards on the Pixel 4a (API 30) and the Pixel Tablet and the volume job, the rows that otherwise run only at night (a flow fix that only the tablet could judge is then checked before it merges);
 (3) a change under `ci/`, `.github/`, `e2e/` or the seeds runs every suite except full, plus the full flows that were edited, by name (the whole full set stays nightly); a docs-only change runs nothing on a device;
 an app path outside the map runs smoke only; (4) the plan is printed in the `select` job summary.
 

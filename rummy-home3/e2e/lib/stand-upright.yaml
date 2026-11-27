@@ -1,0 +1,22 @@
+appId: com.mindweavetech.rummyhome
+# After `setOrientation: PORTRAIT`: make sure the screen really is upright. On a phone PORTRAIT is upright. On the
+# Pixel Tablet (natural orientation landscape) PORTRAIT turns it sideways, where D89 shows the scorecard table alone
+# (no Add round, header, tags or standings) and the flows' upright checks cannot pass (nightly Nov 26, tablet row:
+# smoke/03, 20 and 22 waited for "Add round", the standings and "10 players" on a table-alone screen). The tablet's
+# LANDSCAPE_LEFT is the upright one (smoke/03, #131), so when the table-alone marker is still there after the
+# turn, this stands the tablet back up.
+#
+# First give a phone its moment to finish turning (the marker goes away); the tablet never drops it, so that wait
+# runs out (optional) and the check below turns it. No `env:` here, nothing to pass.
+---
+- extendedWaitUntil:
+    notVisible:
+      id: "landscape-table-only"
+    timeout: 5000
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: "landscape-table-only"
+    commands:
+      - setOrientation: LANDSCAPE_LEFT

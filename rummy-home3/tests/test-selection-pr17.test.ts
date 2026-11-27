@@ -170,3 +170,19 @@ test('Nov 18 two-device: the T2 flow accepts the "Scorecard · S1" title and the
   assert.match(filer, /state: 'closed', state_reason: 'completed'/, 'a green flow closes its open issue');
   assert.match(filer, /if \(!ACT\) \{ console\.log\(`would close/, 'never on a dry run');
 });
+
+test('nightly Nov 26: [ui-devices] in the head commit message adds the Pixel 4a and Tablet smoke shards to a PR (the rows only the nightly had)', () => {
+  const devices = (message: string, files: string[]) => select({ event: 'pull_request', files, message }).jobs
+    .filter((j) => j.device === 'pixel4a' || j.device === 'tablet').map((j) => `${j.device}:${j.suite}-${j.shard}`).sort();
+  const want = ['pixel4a:smoke-a', 'pixel4a:smoke-b', 'tablet:smoke-a', 'tablet:smoke-b'];
+  assert.deepEqual(devices('fix flows [ui-devices]', ['rummy-home3/e2e/smoke/03-scorecard-landscape.yaml']), want, 'an infra / flow change');
+  assert.deepEqual(devices('fix thing [ui-devices]', ['rummy-home3/app/(screens)/games/[id].tsx']), want, 'an app change');
+  assert.deepEqual(devices('fix thing', ['rummy-home3/app/(screens)/games/[id].tsx']), [], 'without the tag a PR never runs them');
+  assert.deepEqual(devices('docs [ui-devices]', ['rummy-home3/docs/next-up.md']), [], 'docs only still runs nothing');
+  const plan = select({ event: 'pull_request', files: ['rummy-home3/e2e/smoke/03-scorecard-landscape.yaml'], message: 'x [ui-devices]' });
+  assert.match(plan.reason, /Pixel Tablet/);
+  assert.equal(plan.volume, true, 'the volume job (3 minutes) rides along: it is the other nightly-only check');
+  assert.equal(select({ event: 'pull_request', files: ['rummy-home3/e2e/smoke/03-scorecard-landscape.yaml'], message: 'x' }).volume, false);
+  const matrix = toMatrix(plan).include.filter((j) => j.device === 'tablet').map((j) => j.id);
+  assert.deepEqual(matrix, ['smoke-a', 'smoke-b'], 'job and artifact names stay unique per device and shard');
+});

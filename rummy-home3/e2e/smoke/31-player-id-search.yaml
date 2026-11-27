@@ -53,6 +53,24 @@ tags: [smoke]
 - assertVisible: "No one has #99999."
 - hideKeyboard
 - takeScreenshot: 31d-player-id-no-one-has
+# D98: the ? opens Add players help at its Find in database section, which has its own picture.
+- tapOn: "Help"
+- extendedWaitUntil:
+    visible:
+      id: "help-page-add-players"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "help-section-shot-find-in-database"
+    direction: DOWN
+    timeout: 30000
+- assertVisible: "Find in database, annotated"
+- takeScreenshot: 31e-help-find-in-database
+- back
+- extendedWaitUntil:
+    visible:
+      id: "player-id-input"
+    timeout: 15000
 - back
 - extendedWaitUntil:
     visible: "Harish Test"

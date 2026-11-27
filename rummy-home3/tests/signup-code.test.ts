@@ -15,6 +15,7 @@ import {
   verifySignUpCode,
 } from '../utils/signUpCode';
 import { formatAuthError } from '../utils/authErrors';
+import { cardScrollY } from '../utils/cardScroll';
 import { HELP } from './_helpLegacy';
 
 const src = (file: string) => readFileSync(path.join(process.cwd(), file), 'utf8');
@@ -208,5 +209,45 @@ test('the code step keeps Go back above the number pad: inside the card, and the
   const shell = src('components/ui/AuthShell.tsx');
   assert.match(shell, /keepCardInView\?: boolean/);
   assert.match(shell, /Keyboard\.addListener\(ios \? 'keyboardWillShow' : 'keyboardDidShow'/);
-  assert.match(shell, /scrollRef\.current\?\.scrollTo\(\{ y: overflow/);
+  assert.match(shell, /const y = cardScrollY\(/);
+  assert.match(shell, /if \(y > 0\) scrollRef\.current\?\.scrollTo\(\{ y, animated: true \}\)/);
+});
+
+test('12i (a): the empty code box shows its hint at a normal size, so "6-digit code" fits at 360 dp × font 1.3', () => {
+  const otp = src('components/ui/OtpField.tsx');
+  assert.match(otp, /style=\{value \? styles\.input : styles\.hint\}/);
+  assert.match(otp, /contentStyle=\{value \? styles\.content : undefined\}/, 'no letter spacing on the hint');
+  const size = (name: string) => Number(otp.match(new RegExp(`${name}: \\{ fontSize: (\\d+)`))?.[1]);
+  assert.equal(size('input'), 26, 'the typed digits stay large');
+  assert.ok(size('hint') <= 18, `the hint is ${size('hint')}`);
+  assert.equal(SIGNUP_CODE_TEXT.placeholder, '6-digit code');
+});
+
+test('12i (b): typing or pasting a code clears the error from an empty Confirm tap', () => {
+  const register = src('app/(auth)/register.tsx');
+  assert.match(register, /onChangeText=\{\(text\) => \{\s*setCode\(cleanSignUpCode\(text\)\);\s*setError\(''\);\s*\}\}/);
+  const flow = src('e2e/smoke/27-create-account-code.yaml');
+  const typed = flow.indexOf('- takeScreenshot: 27b-create-account-code-typed');
+  assert.ok(flow.lastIndexOf(`- assertNotVisible: "${SIGNUP_CODE_ERRORS.empty}"`, typed) > flow.indexOf('- inputText: "482 913"'), 'flow 27 checks the error is gone before 27b');
+});
+
+test('12i (c): the card keeps room above the keyboard for the suggestion strip Android adds after reporting its height', () => {
+  const shell = src('components/ui/AuthShell.tsx');
+  assert.match(shell, /export const KEYBOARD_STRIP_ROOM = Platform\.OS === 'android' \? 48 : 0;/);
+  assert.match(shell, /room: KEYBOARD_STRIP_ROOM/);
+  const gap = 16;
+  const room = 48;
+  // 360 × 780 dp at font 1.3 (run 45844832254, frame 27): the card's bottom 16 dp above the reported keypad, under the banner.
+  const small = { cardTop: 228, cardBottom: 270, viewport: 470, gap, room };
+  const y = cardScrollY(small);
+  assert.equal(y, 92);
+  assert.ok(small.viewport - (small.cardTop + small.cardBottom - y) >= gap + room, 'Go back clears the strip');
+  // The room never pushes the card's top off screen.
+  assert.equal(cardScrollY({ cardTop: 60, cardBottom: 450, viewport: 480, gap, room }), 60);
+  // A card taller than the space keeps its bottom in view, as before (landscape).
+  assert.equal(cardScrollY({ cardTop: 228, cardBottom: 270, viewport: 130, gap, room }), 384);
+  // Plenty of room (Pixel 6): no scroll.
+  assert.equal(cardScrollY({ cardTop: 200, cardBottom: 270, viewport: 700, gap, room }), 0);
+  // iOS reports every height change, so no room there: the old rule.
+  assert.equal(cardScrollY({ ...small, room: 0 }), 44);
 });

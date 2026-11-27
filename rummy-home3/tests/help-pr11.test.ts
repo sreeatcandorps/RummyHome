@@ -264,6 +264,34 @@ test('HL11-8 help copy matches PR 24 (#82): four-step New game, Order of players
   assert.match(plainHelpText(helpTopicText('game-log')), /order of players/);
 });
 
+test('HL11-9 D98: Find in database is a section of Add players with its own picture, describing the Player ID lookup of D113 / 053', () => {
+  const topic = HELP_TOPICS['add-players'];
+  const section = topic.sections.find((s) => s.title === 'Find in database');
+  assert.ok(section, 'a Find in database section in the Add players topic, not a topic of its own');
+  assert.ok(!(HELP_TOPIC_KEYS as readonly string[]).includes('find-in-database'));
+  assert.ok(section.shot, 'the section has its own picture');
+  assert.ok(section.shot.legend.length >= 3, 'a legend of 3+ items');
+  assert.ok(fs.existsSync(path.join(root, 'assets/help', `${section.shot.file}.png`)), `assets/help/${section.shot.file}.png exists`);
+  assert.match(src('assets/help/index.ts'), new RegExp(`'${section.shot.file}': require\\('./${section.shot.file}.png'\\)`), 'in HELP_SCREENSHOTS');
+  const callouts = JSON.parse(src('scripts/help-callouts.json'));
+  assert.equal(callouts[section.shot.file]?.source, '31c-player-id-result', 'built from the smoke frame of a real search');
+  assert.equal(callouts[section.shot.file].badges.length, section.shot.legend.length, 'one badge per legend line');
+
+  const text = plainHelpText([...section.bullets, ...section.shot.legend].join('\n'));
+  assert.match(text, /exact Player ID/);
+  assert.match(text, /number keypad/);
+  assert.match(text, /Search/);
+  assert.match(text, /“#5 · Otto O\.”/, 'the result is first name + last initial (053 short_player_name)');
+  assert.match(text, /Names, initials and email addresses are never searched/);
+  assert.match(text, /No one has #58\./);
+  assert.match(helpTopicText('add-players'), /Invite someone new/, 'the legend is searchable');
+
+  const page = src('components/help/HelpPage.tsx');
+  assert.match(page, /s\.shot \? <SectionShot file=\{s\.shot\.file\}/, 'the page renders a section picture under its bullets');
+  assert.match(page, /testID=\{`help-section-shot-\$\{file\}`\}/);
+  assert.match(src('app/(screens)/players/new.tsx'), /<HelpButton topic="add-players" anchor="find-in-database" \/>/, 'the ? on Find in database opens this section');
+});
+
 test('HL11-6 Why? links: the five puzzling dialogs link to their Tricky case', () => {
   assert.deepEqual(Object.keys(HELP_WHY).sort(), ['countedAgain', 'giveAwardsFirst', 'saveAwardsAnyway', 'scorecardChanged'].sort());
   assert.match(src('app/(screens)/results/index.tsx'), /<WhyLink why="giveAwardsFirst"/);

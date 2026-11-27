@@ -161,3 +161,26 @@ test('e2e: smoke flows scroll long enough on a slow runner, and Home is scrolled
   assert.match(read('e2e/smoke/03-scorecard-landscape.yaml'), /- back\n(?:#.*\n)*- runFlow: \.\.\/lib\/home-top\.yaml/, 'flow 03 scrolls Home to the top after Back');
   assert.equal([...read('e2e/smoke/22-play-listing-frames.yaml').matchAll(/lib\/home-top\.yaml/g)].length, 2, 'flow 22 does after each Back');
 });
+
+test('e2e: a flow that turns PORTRAIT and then expects the upright screen stands the Pixel Tablet back up (nightly Nov 26, tablet row)', () => {
+  // The tablet's natural orientation is landscape: PORTRAIT turns it sideways, where D89 shows the table alone.
+  const upright = read('e2e/lib/stand-upright.yaml');
+  assert.match(upright, /notVisible:\n\s+id: "landscape-table-only"\n\s+timeout: \d+\n\s+optional: true/, 'a phone gets its moment to finish turning');
+  assert.match(upright, /visible:\n\s+id: "landscape-table-only"\n\s+commands:\n\s+- setOrientation: LANDSCAPE_LEFT/, 'the tablet is stood up with its own LANDSCAPE_LEFT');
+  for (const f of ['e2e/smoke/03-scorecard-landscape.yaml', 'e2e/smoke/20-pool-13p-reentry.yaml', 'e2e/smoke/22-play-listing-frames.yaml', 'e2e/full/50-multiplier-20p.yaml']) {
+    const lines = read(f).split('\n');
+    const upper = lines.map((l, i) => (l === '- setOrientation: PORTRAIT' ? i : -1)).filter((i) => i >= 0);
+    assert.ok(upper.length > 0, `${f} turns PORTRAIT`);
+    // The last PORTRAIT of flow 03 and 11 ends the flow (the runner rotates before the next one); every other one is followed by the helper.
+    const needsHelper = f.includes('03-scorecard-landscape') ? upper.slice(0, 1) : upper;
+    for (const i of needsHelper) assert.equal(lines[i + 1], '- runFlow: ../lib/stand-upright.yaml', `${f} line ${i + 1}: stand the tablet up before the upright checks`);
+  }
+});
+
+test('e2e: flow 20 checks the re-entry cell sideways only (upright, the card is still scrolled to its footer)', () => {
+  const text = read('e2e/smoke/20-pool-13p-reentry.yaml');
+  const afterTurn = text.slice(text.indexOf('- setOrientation: LANDSCAPE_LEFT'));
+  const before = afterTurn.slice(0, afterTurn.indexOf('landscape-table-only'));
+  assert.doesNotMatch(before, /score-reentry-2/, 'no re-entry assertion before the sideways branch');
+  assert.match(afterTurn, /commands:\n(?:\s+#.*\n)*\s+- assertVisible:\n\s+id: "score-reentry-2"/, 'the re-entry assertion sits inside the sideways branch');
+});

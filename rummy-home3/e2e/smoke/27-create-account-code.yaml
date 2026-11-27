@@ -54,6 +54,8 @@ tags: [smoke]
 - inputText: "482 913"
 - waitForAnimationToEnd
 - assertVisible: "482913"
+# The empty-tap error goes as soon as the code changes (12i b).
+- assertNotVisible: "Enter the 6-digit code from the email."
 - takeScreenshot: 27b-create-account-code-typed
 - hideKeyboard
 - tapOn:
