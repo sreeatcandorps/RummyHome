@@ -1,3 +1,5 @@
+import { planJoin } from '@/utils/dealerRotation';
+
 /**
  * Add players to this game (PR 7): the words around the picker in add mode.
  * Total counts seated players only (D7.1) — the same number the scorecard's
@@ -31,6 +33,40 @@ export function totalLabel(total: number): { number: string; caption: string; sp
 /** "Added now: 3 (yellow ring)" — the line under "Playing in this game". */
 export function addedNowLine(added: number): string {
   return added === 0 ? 'Added now: 0 · tap a player below to add them' : `Added now: ${added} (yellow ring)`;
+}
+
+const listNames = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
+
+/**
+ * 054 (D70) — the notice above Return to game once rounds have been played, naming the seat before
+ * it is taken (Sree, Nov 21: "his seat is going to be so-and-so number … in between these two
+ * people"): "Ravi sits at seat 4, between Anu and Bala — left of the dealer." Several newcomers sit
+ * side by side in the order they were picked. Null before round 1 (they take the last seat) or when
+ * nobody new is picked.
+ */
+export function joinSeatNotice(
+  game: Parameters<typeof planJoin>[0],
+  roundCount: number,
+  joiners: readonly { id: string; name: string }[],
+  nameOf: (id: string) => string,
+): string | null {
+  if (roundCount <= 0 || joiners.length === 0) return null;
+  let table = game;
+  let first: ReturnType<typeof planJoin> | null = null;
+  for (const joiner of joiners) {
+    const plan = planJoin(table, roundCount, joiner.id);
+    first = first ?? plan;
+    table = { ...table, players: plan.players, nextDealerOverride: plan.nextDealerOverride };
+  }
+  if (!first?.dealer) return null;
+  const ring = table.players;
+  const seat = first.seat + 1;
+  const left = ring[(first.seat - 1 + ring.length) % ring.length];
+  const right = ring[(first.seat + joiners.length) % ring.length];
+  const who = listNames(joiners.map((joiner) => joiner.name));
+  const where = joiners.length === 1 ? `${who} sits at seat ${seat}` : `${who} sit at seats ${seat}–${seat + joiners.length - 1}`;
+  const between = left === right ? '' : `, between ${nameOf(left)} and ${nameOf(right)}`;
+  return `${where}${between} — left of the dealer.`;
 }
 
 /** The button never counts ("Return to game · add 4" is gone). */

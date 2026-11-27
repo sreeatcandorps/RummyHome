@@ -39,7 +39,9 @@ import { OrderStep } from '@/components/game/OrderStep';
 import { displayOrder, OrderDraft, startOrder } from '@/utils/seating';
 import { emailsService } from '@/services/emails';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
-import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FIND_IN_DATABASE, FROM_DATABASE_ACCESSIBILITY, nextLabel, returnButtonLabel, totalLabel } from '@/utils/addPlayers';
+import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FIND_IN_DATABASE, FROM_DATABASE_ACCESSIBILITY, joinSeatNotice, nextLabel, returnButtonLabel, totalLabel } from '@/utils/addPlayers';
+import { playedRounds } from '@/utils/editRound';
+import { isPoolGame, playersOut } from '@/utils/pool';
 
 type Pick = DraftPick;
 
@@ -266,6 +268,18 @@ export default function NewGame() {
   const selectedIds = selected.map((p) => p.id);
   const seatedCount = selected.length;
   const atCap = seatedCount >= MAX_SEATED_PLAYERS;
+  // 054 (D70): once rounds exist, say where the newcomers will sit before they are seated.
+  const seatNotice = useMemo(() => {
+    if (!game) return null;
+    const names = new Map(selected.map((p) => [p.id, p.name]));
+    const table = {
+      players: game.players.filter((id) => savedIds.has(id)),
+      dealerIds: game.dealerIds,
+      outIds: isPoolGame(game) ? new Set(playersOut(game)) : null,
+      nextDealerOverride: game.nextDealerOverride,
+    };
+    return joinSeatNotice(table, playedRounds(game.scores), staged.filter((p) => !savedIds.has(p.id)), (id) => names.get(id) ?? '?');
+  }, [game, selected, staged, savedIds]);
 
   const meCandidate = useMemo<Candidate | null>(() => (me
     ? { id: me.id, name: me.name, playerCode: me.playerCode, status: 'registered', totalGames: 0, lastPlayedAt: null }
@@ -592,6 +606,9 @@ export default function NewGame() {
         <SelectedPlayersStrip picks={selected} meId={me?.id} onRemove={unpick} onReturn={unpick} savedIds={addMode ? savedIds : undefined} busyId={removing} />
         {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
         {/* Add mode: Return to game and the two ways in sit right under the strip (PR 7 mockup); New game keeps them in the bottom bar. */}
+        {addMode && seatNotice ? (
+          <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} accessibilityLiveRegion="polite" testID="join-seat-notice">{seatNotice}</Text>
+        ) : null}
         {addMode ? returnButton : null}
         {addMode ? tiles : null}
 

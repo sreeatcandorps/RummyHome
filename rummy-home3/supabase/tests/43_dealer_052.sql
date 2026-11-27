@@ -1,7 +1,8 @@
 -- 052 (D60 Dealer sheet, D57 join at dealer + 1, D58 the deal skips a seat that is out):
 -- set_round_dealer for the round being played, a played round and the last round, follow vs this round
 -- only; save_round applies the override once; current_dealer; dealer_rotation skips a pool player who is
--- out; add_seated_player seats a newcomer right after whoever is dealing once rounds exist.
+-- out; add_seated_player seats a newcomer to the dealer's left once rounds exist (054, D70; 052 had D57's
+-- dealer + 1, see 44_join_left_of_dealer_054.sql).
 -- Game V (Points): sree AX seat 1, harish BX seat 2, priya CX seat 3, zero DX seat 4.
 begin;
 select plan(58);
@@ -117,14 +118,14 @@ select pg_temp.tests_round(:V, 9);
 select is(pg_temp.tests_dealers(:V), 'AX CX BX AX BX CX DX CX BX', 'round 9: B');
 select is(pg_temp.tests_ini(:V, public.current_dealer(:V)), 'CX', 'round 10: C');
 
--- ---------- D57: a newcomer sits right after whoever is dealing ----------
+-- ---------- D70 (054): a newcomer sits to the left of whoever is dealing ----------
 select lives_ok($$ select public.add_seated_player('10000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-000000000005', 'NX') $$, 'N joins before round 10');
-select is((select string_agg(label, ' ' order by player_order) from public.game_players where game_id = :V and player_order < 900), 'AX BX CX NX DX', 'N sits at the dealer''s seat + 1; D moves up one');
+select is((select string_agg(label, ' ' order by player_order) from public.game_players where game_id = :V and player_order < 900), 'AX BX NX CX DX', 'N sits to the dealer''s left (the seat before C); C and D move up one');
 select is((select display_number from public.game_players where game_id = :V and profile_id = :N), 5, 'the player number is the next free one, not the seat');
 select is(pg_temp.tests_ini(:V, public.current_dealer(:V)), 'CX', 'C still deals round 10');
 select is((select count(*)::int from public.scores where game_id = :V and profile_id = :N), 9, 'a 0 for every round played');
 select pg_temp.tests_round(:V, 10);
-select is(pg_temp.tests_ini(:V, public.current_dealer(:V)), 'NX', 'N deals round 11: the seat after C');
+select is(pg_temp.tests_ini(:V, public.current_dealer(:V)), 'DX', 'D deals round 11, as before N joined');
 
 -- ---------- D58: a pool player who is out is skipped ----------
 insert into public.games (id, created_by, status, game_type, settings, share_code)
