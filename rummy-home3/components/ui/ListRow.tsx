@@ -77,7 +77,14 @@ export function ListRow({ title, description, icon, left, right, value, valueMin
     </View>
   );
 
-  if (!onPress) return content;
+  if (!onPress) {
+    if (!testID) return content;
+    return (
+      <View accessible accessibilityLabel={accessibilityLabel ?? (value !== undefined ? `${title}, ${value}` : title)} testID={testID}>
+        {content}
+      </View>
+    );
+  }
 
   return (
     <TouchableRipple

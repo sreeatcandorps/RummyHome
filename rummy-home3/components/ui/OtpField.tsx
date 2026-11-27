@@ -56,13 +56,15 @@ export function OtpField({ value, onChangeText, disabled, autoFocus, label = 'OT
       }
       accessibilityLabel={label}
       testID={testID}
-      style={styles.input}
-      contentStyle={styles.content}
+      // The hint takes the input's font: at 26 bold, spaced, "6-digit code" wrapped at 360 dp × font 1.3.
+      style={value ? styles.input : styles.hint}
+      contentStyle={value ? styles.content : undefined}
     />
   );
 }
 
 const styles = StyleSheet.create({
   input: { fontSize: 26, fontWeight: '800' },
+  hint: { fontSize: 18 },
   content: { letterSpacing: 8 },
 });

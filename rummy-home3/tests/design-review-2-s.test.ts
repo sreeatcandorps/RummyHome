@@ -62,6 +62,8 @@ test('§10.1 pieces: ListRow value slot drops the icon square; SettingsGroup has
   assert.match(row, /icon && value === undefined \?/, 'no icon square once a value is shown');
   assert.match(row, /pen \? 'pencil-outline' : 'chevron-right'/);
   assert.match(row, /noChevron \|\| !onPress \? null/);
+  // D103's Player ID row has no onPress; Maestro still finds it by its testID (flow 07).
+  assert.match(row, /if \(!onPress\) \{\s*if \(!testID\) return content;[\s\S]*?<View accessible [^>]*testID=\{testID\}>/, 'a read-only row keeps its testID');
   const group = src('components/ui/SettingsGroup.tsx');
   assert.equal(count(group, /<InfoTip /g), 1, 'one ⓘ per group (B16)');
   assert.match(group, /StyleSheet\.hairlineWidth/, 'hairlines between rows, no card border');

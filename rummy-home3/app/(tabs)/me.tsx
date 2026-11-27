@@ -1,14 +1,13 @@
 import React, { useCallback, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 import { NoticeDialog } from '@/components/ui/NoticeDialog';
-import { Icon, Portal, Text } from 'react-native-paper';
+import { Portal, Text } from 'react-native-paper';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { Player } from '@/types/player';
 import { authService } from '@/services/auth';
 import { isSupabaseConfigured, supabase } from '@/services/supabase';
 import { storage } from '@/utils/storage';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-import { sharePlayerId } from '@/utils/invite';
 import { normalizePhone, phoneProblem } from '@/utils/phone';
 import { playerIdBadge } from '@/utils/myPlayersList';
 import { playersService } from '@/services/players';
@@ -264,10 +263,8 @@ export default function MeScreen() {
         <ListRow
           title="Player ID"
           value={badge ?? 'Pending'}
-          right={badge ? <Icon source="share-variant" size={20} color={colors.onSurfaceVariant} /> : null}
-          onPress={player.playerCode ? () => sharePlayerId(player.playerCode!).catch(() => {}) : undefined}
-          accessibilityLabel={badge ? `Your ${badge}. Share your Player ID so friends can find you` : 'Player ID pending'}
-          testID="me-share-player-id"
+          accessibilityLabel={badge ? `Your Player ID, ${badge}` : 'Player ID pending'}
+          testID="me-player-id"
         />
       </SettingsGroup>
 

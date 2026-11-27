@@ -242,7 +242,10 @@ export default function RegisterScreen() {
       >
         <OtpField
           value={code}
-          onChangeText={(text) => setCode(cleanSignUpCode(text))}
+          onChangeText={(text) => {
+            setCode(cleanSignUpCode(text));
+            setError('');
+          }}
           disabled={loading}
           autoFocus
           label={SIGNUP_CODE_TEXT.fieldLabel}

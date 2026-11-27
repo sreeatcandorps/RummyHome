@@ -8,7 +8,8 @@
  *   node scripts/help-screenshots.mjs /tmp/smoke/smoke/screens
  *
  * Only pngjs (already in node_modules) — no native image library. Badge positions are in source
- * pixels (the 1080 × 2400 Pixel 6 frame). `--only <file>` limits the run to one picture.
+ * pixels (the 1080 × 2400 Pixel 6 frame). `--only <file>` limits the run to one picture. An entry's optional
+ * `crop` keeps only the top `crop` source pixels, for a section picture of part of a screen (D98).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -43,9 +44,9 @@ const FONT = {
   '9': ['01110', '10001', '10001', '01111', '00001', '00010', '01100'],
 };
 
-function downscale(src) {
+function downscale(src, crop) {
   const w = Math.floor(src.width / SCALE);
-  const h = Math.floor(src.height / SCALE);
+  const h = Math.floor(Math.min(src.height, crop ?? src.height) / SCALE);
   const out = new PNG({ width: w, height: h });
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -108,7 +109,7 @@ for (const [file, spec] of Object.entries(callouts)) {
   const srcPath = path.join(srcDir, `${spec.source}.png`);
   if (!fs.existsSync(srcPath)) { console.warn(`skip ${file}: no ${srcPath}`); continue; }
   const src = PNG.sync.read(fs.readFileSync(srcPath));
-  const out = downscale(src);
+  const out = downscale(src, spec.crop);
   spec.badges.forEach(([x, y], i) => badge(out, i + 1, x, y));
   fs.writeFileSync(path.join(outDir, `${file}.png`), PNG.sync.write(out, { colorType: 2 }));
   written++;
