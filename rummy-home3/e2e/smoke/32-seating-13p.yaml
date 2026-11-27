@@ -15,91 +15,173 @@ tags: [smoke]
     visible: "Add by initials"
     timeout: 15000
 - tapOn: "Add Sree Test (you)"
+# Each pick: clear the field first (the keyboard can keep the last word and join it to the next, small phone
+# Nov 27: "Test HotelG"), wait for the row, and confirm the chip before the next search. A pick leaves the
+# picker animating for ~10 s, so the tap waits 1 s for the screen to settle instead of the default 10.
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Alpha"
 - extendedWaitUntil:
     visible: "Add Test Alpha"
     timeout: 15000
-- tapOn: "Add Test Alpha"
+- tapOn:
+    text: "Add Test Alpha"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Alpha"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Bravo"
 - extendedWaitUntil:
     visible: "Add Test Bravo"
     timeout: 15000
-- tapOn: "Add Test Bravo"
+- tapOn:
+    text: "Add Test Bravo"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Bravo"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Charlie"
 - extendedWaitUntil:
     visible: "Add Test Charlie"
     timeout: 15000
-- tapOn: "Add Test Charlie"
+- tapOn:
+    text: "Add Test Charlie"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Charlie"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Delta"
 - extendedWaitUntil:
     visible: "Add Test Delta"
     timeout: 15000
-- tapOn: "Add Test Delta"
+- tapOn:
+    text: "Add Test Delta"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Delta"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Echo"
 - extendedWaitUntil:
     visible: "Add Test Echo"
     timeout: 15000
-- tapOn: "Add Test Echo"
+- tapOn:
+    text: "Add Test Echo"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Echo"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Foxtrot"
 - extendedWaitUntil:
     visible: "Add Test Foxtrot"
     timeout: 15000
-- tapOn: "Add Test Foxtrot"
+- tapOn:
+    text: "Add Test Foxtrot"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Foxtrot"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Golf"
 - extendedWaitUntil:
     visible: "Add Test Golf"
     timeout: 15000
-- tapOn: "Add Test Golf"
+- tapOn:
+    text: "Add Test Golf"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Golf"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Hotel"
 - extendedWaitUntil:
     visible: "Add Test Hotel"
     timeout: 15000
-- tapOn: "Add Test Hotel"
+- tapOn:
+    text: "Add Test Hotel"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Hotel"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test India"
 - extendedWaitUntil:
     visible: "Add Test India"
     timeout: 15000
-- tapOn: "Add Test India"
+- tapOn:
+    text: "Add Test India"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test India"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Juliet"
 - extendedWaitUntil:
     visible: "Add Test Juliet"
     timeout: 15000
-- tapOn: "Add Test Juliet"
+- tapOn:
+    text: "Add Test Juliet"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Juliet"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Kilo"
 - extendedWaitUntil:
     visible: "Add Test Kilo"
     timeout: 15000
-- tapOn: "Add Test Kilo"
+- tapOn:
+    text: "Add Test Kilo"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Kilo"
+    timeout: 15000
 - tapOn:
     id: "picker-search"
+- eraseText: 15
 - inputText: "Test Lima"
 - extendedWaitUntil:
     visible: "Add Test Lima"
     timeout: 15000
-- tapOn: "Add Test Lima"
-# No hideKeyboard: with no keypad up it is a Back press (README); the Next bar sits above the keypad.
+- tapOn:
+    text: "Add Test Lima"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    visible: "Remove Test Lima"
+    timeout: 15000
+# The search keeps focus after the last pick and the keyboard covers the Next bar (Pixel 6, Nov 27). Close it only
+# when Next is hidden: with no keyboard up, hideKeyboard is a Back press and leaves New game.
+- runFlow:
+    when:
+      notVisible:
+        id: "new-game-next"
+    commands:
+      - hideKeyboard
 - extendedWaitUntil:
     visible: "Next · 13 players"
     timeout: 15000
@@ -130,35 +212,49 @@ tags: [smoke]
     id: "seat-row-13"
     text: "Not numbered, Test Lima"
 # Position 13 always holds the last picked player still waiting: thirteen taps there number everyone, highest first.
+# The position stays put while the players move, so each tap waits only 1 s for the glide.
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - assertVisible:
     id: "order-counter"
     text: "12 of 13 numbered"
 - tapOn:
     id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
 - assertVisible:
     id: "order-counter"
     text: "Everyone numbered"

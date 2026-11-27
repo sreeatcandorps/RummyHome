@@ -91,8 +91,9 @@ test('shards: the two are about the same size (measured smoke seconds of run 459
     '01': 57, '02': 31, '03': 62, '04': 62, '05': 46, '06': 38, '07': 58, '08': 30, '09': 49, '10': 49, '11': 55, '12': 114, '13': 57, '14': 55, '15': 51,
     '16': 212, '17': 38, '18': 83, '19': 152, '20': 51, '21': 108, '22': 93, '23': 54, '24': 187, '25': 48, '26': 78, '27': 74, '28': 71, '29': 39, '30': 81,
     '31': 43,
-    // Not measured yet: twelve searches and thirteen taps, like 19 without the game (estimate).
-    '32': 120,
+    // Estimate from run 46059043783 (Pixel 6 reached Next at 254 s, ~120 s of it 10 s settles now cut to 1 s; the
+    // order screen, sideways and back added): replace with the first full pass.
+    '32': 220,
   };
   const total = (id: string) => SMOKE_SHARDS[id].smoke.reduce((n, f) => n + secs[f.slice(0, 2)], 0);
   const [a, b] = shards.map(total);
