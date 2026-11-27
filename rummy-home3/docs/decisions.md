@@ -104,6 +104,12 @@ this file exists so nobody has to read five specs and a chat log to know the cur
 | D10 | 2026-11-13 | Results design (PR 8): single-game share never says Results; one game's picture is the standings card in the marigold frame. | results-design, `final-scores.tsx` | active |
 | D09 | 2026-11-12 | Clubhouse green design system. | design-audit.md, PR 11 | active |
 
+## Nov 27
+
+| ID | Date | Decision | Where | Status |
+| --- | --- | --- | --- | --- |
+| D127 | 2026-11-27 | **Small batch 4 (#170) keeps building now; it merges only on Sree's yes to that merge.** #170 holds the Find in database help picture (D98), the number-only Player ID row (D103) and the sign-in fixes 12i (a)–(c). Its phone run is green and its after pictures are in the PR; it is not tied to the APK (D126) either way, so it waits for his word. Sree: "Yes, keep building small batch 4 now, merge only on my yes" | #170, `next-up.md` | active |
+
 ## Nov 26
 
 | ID | Date | Decision | Where | Status |
