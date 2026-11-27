@@ -27,6 +27,7 @@ import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/co
 import { localGameGuard, localRoundsGuard } from '@/utils/guardrails';
 import { BundleSeatRow, dealerIdsFrom, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
 import { DealerChange, nextDealer, planDealerChange, planJoin, plannedDealer, rotationOf, seatAfter, withDealer } from '@/utils/dealerRotation';
+import { planGameReentry } from '@/utils/reentrySeat';
 import { deletionFromRow } from '@/utils/deletedGames';
 import { queryCache } from '@/utils/queryCache';
 import { INITIALS_PATTERN, normalizeInitials } from '@/utils/initials';
@@ -675,26 +676,38 @@ export const gamesService = {
     return this.getGame(gameId);
   },
 
-  /** Pool (041/042): a player who is out comes back at the highest score still in, within the Re-entries limit. */
-  async reenterPlayer(gameId: string, profileId: string): Promise<Game | null> {
+  /**
+   * Pool (041/042): a player who is out comes back at the highest score still in, within the Re-entries limit.
+   * 056 (D139): he sits on the dealer's left unless `seat` (1-based) names another seat. The seat goes to the
+   * server only when one was picked, so a server without 056 still takes the call (and keeps his seat).
+   */
+  async reenterPlayer(gameId: string, profileId: string, seat?: number): Promise<Game | null> {
     if (!isSupabaseConfigured) {
       const game = await this.getGame(gameId);
       if (!game) return null;
-      const seat = game.poolSeats?.[profileId];
-      if (!seat?.outRound) throw new Error('They are still in the pool.');
+      const poolSeat = game.poolSeats?.[profileId];
+      if (!poolSeat?.outRound) throw new Error('They are still in the pool.');
       const limit = reentryLimitOf(game.settings);
       if (limit === 0) throw new Error('Re-entries are off for this pool. Allow them in Game settings first.');
-      if (limit !== null && seat.entries - 1 >= limit) throw new Error(limit === 1 ? 'They have already re-entered once.' : `They have used all ${limit} re-entries.`);
+      if (limit !== null && poolSeat.entries - 1 >= limit) throw new Error(limit === 1 ? 'They have already re-entered once.' : `They have used all ${limit} re-entries.`);
       const inIds = game.players.filter((id) => !game.poolSeats?.[id]?.outRound);
       const high = Math.max(0, ...inIds.map((id) => (game.scores[id] ?? []).reduce((a, b) => a + b, 0)));
       const rounds = Math.max(0, ...game.players.map((id) => game.scores[id]?.length ?? 0));
       // PR 24: the game's re-entry rule adds 0 or 1 to the highest score still in.
       const startAt = entryScoreUnder(high, reentryPlusOf(game.settings));
-      const next = { ...game, poolSeats: { ...game.poolSeats, [profileId]: { outRound: null, reenteredRound: rounds + 1, reentryScore: startAt, entries: seat.entries + 1 } } };
+      const plan = planGameReentry(game, profileId, seat === undefined ? undefined : seat - 1);
+      const next = {
+        ...game,
+        players: plan.players,
+        nextDealerOverride: plan.nextDealerOverride,
+        poolSeats: { ...game.poolSeats, [profileId]: { outRound: null, reenteredRound: rounds + 1, reentryScore: startAt, entries: poolSeat.entries + 1 } },
+      };
       await storage.updateGame(next);
       return next;
     }
-    const { error } = await supabase.rpc('reenter_player', { p_game_id: gameId, p_profile_id: profileId });
+    const args = { p_game_id: gameId, p_profile_id: profileId };
+    let { error } = await supabase.rpc('reenter_player', seat === undefined ? args : { ...args, p_seat: seat });
+    if (error && seat !== undefined && missingRpc(error)) ({ error } = await supabase.rpc('reenter_player', args));
     if (error) throw error;
     return this.getGame(gameId);
   },

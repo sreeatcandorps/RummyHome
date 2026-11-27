@@ -149,7 +149,7 @@ test('PR 17: the break-the-app seed has the roster and every game the chaos / ro
 
 test('Nov 18 two-device: the T2 flow accepts the "Scorecard · S1" title and the Close button; the probe mirrors the scorecard channel; the filer heals green flows', () => {
   const save = readFileSync(path.join(E2E, 'two-device', 'b-save-now.yaml'), 'utf8');
-  assert.match(save, /Scorecard\( · \.\*\)\?\|Round saved\|Round already saved/, 'the scorecard title carries the game number since PR 24');
+  assert.match(save, /Scorecard\( · \.\*\)\?\|Round \\\\d\+ saved\|Round already saved/, 'the scorecard title carries the game number since PR 24');
   assert.match(save, /visible: "Close"/, 'the Round saved sheet closes with Close (D34)');
   const probe = readFileSync(path.join(__dirname, '..', 'scripts', 'realtime-probe.mjs'), 'utf8');
   for (const table of ['games', 'game_players', 'rounds']) assert.match(probe, new RegExp(`table: '${table}'`), `probe subscribes to ${table} like services/realtime.ts`);

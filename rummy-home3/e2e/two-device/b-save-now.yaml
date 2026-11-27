@@ -5,7 +5,7 @@ appId: com.mindweavetech.rummyhome
 - tapOn: "Save round"
 - extendedWaitUntil:
     visible:
-      text: "Scorecard( · .*)?|Round saved|Round already saved|was just saved by|The scorecard changed|Could not save round"
+      text: "Scorecard( · .*)?|Round \\d+ saved|Round already saved|was just saved by|The scorecard changed|Could not save round"
     timeout: 30000
 - takeScreenshot: t2-after-save-${WHO}
 - runFlow:
@@ -14,7 +14,7 @@ appId: com.mindweavetech.rummyhome
     commands:
       - tapOn:
           id: "complete-cancel"
-# Nov 18: info sheets close with Close (the Round saved sheet); an older build said OK.
+# Nov 18: info sheets close with Close (the Round saved sheet, "Round N saved" since D139); an older build said OK.
 - runFlow:
     when:
       visible: "Close"
