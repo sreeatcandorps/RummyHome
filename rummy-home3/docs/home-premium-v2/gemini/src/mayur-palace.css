@@ -1,0 +1,615 @@
+/* ==========================================================================
+ * DIRECTION 2: MAYUR PALACE
+ * Royal Peacock Teal, Temple Brass & Sunlit Udaipur Silk
+ * Inspired by Jaipur City Palace, Kanjeevaram silk & bespoke modern Indian luxury.
+ * Harmonizes naturally with EZ Score's existing emerald-and-gold Joker emblem.
+ * ========================================================================== */
+
+.d-mayur-palace {
+  --ink: #0B2528;
+  --ink-2: #3A5659;
+  --bg: #F5F0E6;
+  --status-ink: #0B2528;
+}
+
+/* ==========================================================================
+ * MAYUR PALACE — LIGHT MODE (Sunlit Udaipur Silk & Lacquered Peacock Jewel)
+ * ========================================================================== */
+.d-mayur-palace.light {
+  background-color: #F5F0E6;
+  background-image:
+    linear-gradient(180deg, rgba(246, 241, 231, 0.16) 0%, rgba(245, 240, 230, 0.72) 55%, rgba(244, 238, 227, 0.88) 100%),
+    url('../assets/mayur-light-silk.jpg');
+  background-size: cover;
+  background-position: top right;
+}
+
+.d-mayur-palace.light .scroll-fade {
+  background: linear-gradient(180deg, rgba(245, 240, 230, 0) 0%, rgba(245, 240, 230, 0.92) 100%);
+}
+
+/* Sunlit palace glow at top */
+.d-mayur-palace.light .hero-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 75% 70% at 86% 12%, rgba(206, 158, 66, 0.14) 0%, rgba(206, 158, 66, 0) 68%),
+    linear-gradient(180deg, rgba(250, 245, 234, 0.32) 0%, rgba(245, 240, 230, 0) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.d-mayur-palace.light .hero {
+  padding-bottom: 10px;
+}
+
+.d-mayur-palace.light .emblem {
+  background: linear-gradient(145deg, #EDD07D 0%, #B88428 55%, #785212 100%);
+  box-shadow:
+    0 3px 10px rgba(7, 46, 51, 0.18),
+    inset 0 1px 1px rgba(255, 250, 232, 0.72);
+}
+.d-mayur-palace.light .emblem-inner {
+  background: #082F34;
+}
+
+.d-mayur-palace.light .brand {
+  color: #082D32;
+  --bg-audit: #EFE7D8;
+}
+
+.d-mayur-palace.light .help {
+  color: #0B3A40;
+  background: rgba(255, 252, 245, 0.82);
+  border: 1px solid rgba(168, 128, 52, 0.38);
+  box-shadow: 0 2px 8px rgba(8, 45, 50, 0.06);
+}
+
+.d-mayur-palace.light .greet {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: calc(36px * var(--fs));
+  font-weight: 700;
+  color: #072A2F;
+  --bg-audit: #F1EADA;
+}
+.phone.compact.d-mayur-palace.light .greet {
+  font-size: calc(29px * var(--fs));
+}
+
+.d-mayur-palace.light .greet-orn .line-l {
+  background: linear-gradient(90deg, #B68329, rgba(182, 131, 41, 0.45));
+}
+.d-mayur-palace.light .greet-orn .gem {
+  background: #9B2132;
+  box-shadow: 0 0 0 2px rgba(182, 131, 41, 0.24);
+}
+.d-mayur-palace.light .greet-orn .line-r {
+  background: linear-gradient(90deg, rgba(182, 131, 41, 0.65), rgba(182, 131, 41, 0));
+}
+
+/* Primary CTA (Light): Lacquered Royal Peacock Silk framed in Antique Temple Brass */
+.d-mayur-palace.light .newgame {
+  background-color: #0A3E45;
+  background-image:
+    radial-gradient(ellipse 75% 110% at 50% 0%, rgba(226, 178, 80, 0.24) 0%, rgba(11, 64, 71, 0.58) 62%, rgba(5, 32, 36, 0.90) 100%),
+    linear-gradient(180deg, rgba(16, 86, 94, 0.36) 0%, rgba(6, 38, 42, 0.84) 100%),
+    url('../assets/mayur-peacock-hero.jpg');
+  background-size: cover;
+  background-position: center 42%;
+  color: #FCF4E2;
+  --bg-audit: #0E4A52;
+  border: 1.25px solid rgba(218, 172, 78, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 242, 204, 0.3),
+    inset 0 -1.5px 0 rgba(3, 18, 20, 0.55),
+    0 12px 26px rgba(7, 42, 47, 0.26);
+}
+.d-mayur-palace.light .newgame::after {
+  border: 1px solid rgba(246, 220, 152, 0.2);
+}
+.d-mayur-palace.light .newgame .plus-ring {
+  background: rgba(246, 220, 152, 0.17);
+  border: 1px solid rgba(246, 220, 152, 0.5);
+  color: #F8DF9C;
+}
+
+/* Secondary Tiles (Light): Sunlit Ivory Pearl & Temple Brass */
+.d-mayur-palace.light .tiles {
+  padding-top: 8px;
+}
+.d-mayur-palace.light .tile {
+  background-color: #FFFDF8;
+  background-image: linear-gradient(180deg, #FFFFFF 0%, #FAF5EA 100%);
+  border: 1px solid rgba(164, 126, 56, 0.32);
+  box-shadow:
+    0 5px 16px rgba(7, 42, 47, 0.06),
+    0 1px 2px rgba(7, 42, 47, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+.d-mayur-palace.light .tile::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(190, 146, 60, 0.5), transparent);
+}
+.d-mayur-palace.light .ticon-wrap {
+  background: linear-gradient(145deg, #0F525B 0%, #072F35 100%);
+  border: 1px solid rgba(214, 168, 76, 0.56);
+  color: #F8DF9B;
+  box-shadow: 0 3px 8px rgba(7, 43, 48, 0.22);
+}
+.d-mayur-palace.light .tcount {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: calc(23px * var(--fs));
+  color: #6B4608;
+  --bg-audit: #FAF5EA;
+}
+.phone.compact.d-mayur-palace.light .tcount {
+  font-size: calc(18.5px * var(--fs));
+}
+.d-mayur-palace.light .tlabel {
+  color: #082B30;
+  --bg-audit: #FAF5EA;
+}
+.d-mayur-palace.light .tchev {
+  color: #886122;
+}
+
+/* Section Headers (Light) */
+.d-mayur-palace.light .sechead h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: calc(25px * var(--fs));
+  font-weight: 700;
+  color: #072B30;
+  --bg-audit: #F5F0E6;
+}
+.phone.compact.d-mayur-palace.light .sechead h2 {
+  font-size: calc(20px * var(--fs));
+}
+.d-mayur-palace.light .sechead .count {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: calc(19.5px * var(--fs));
+  color: #8E2030;
+}
+.d-mayur-palace.light .sechead .rule-gem {
+  background: #B8862D;
+}
+.d-mayur-palace.light .sechead .rule {
+  background: linear-gradient(90deg, rgba(184, 134, 45, 0.48) 0%, rgba(184, 134, 45, 0.06) 100%);
+}
+.d-mayur-palace.light .sechead .info {
+  color: #395B5E;
+}
+
+/* Game Cards (Light) */
+.d-mayur-palace.light .card.live {
+  background-color: #FFFDF9;
+  background-image: linear-gradient(180deg, #FFFFFF 0%, #FBF7EE 100%);
+  border: 1px solid rgba(164, 126, 56, 0.34);
+  box-shadow:
+    0 6px 20px rgba(7, 42, 47, 0.065),
+    0 1px 3px rgba(7, 42, 47, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+.d-mayur-palace.light .card.live::before {
+  background: linear-gradient(180deg, #CE9B3C 0%, #0B525B 100%);
+}
+.d-mayur-palace.light .card.recent {
+  background-color: #FAF5EA;
+  border: 1px solid rgba(136, 118, 86, 0.22);
+  box-shadow: 0 2px 8px rgba(7, 42, 47, 0.03);
+}
+
+/* Game Code Plaques (Light) */
+.d-mayur-palace.light .card.live .badge {
+  background-color: #093B42;
+  background-image: linear-gradient(145deg, #10555E 0%, #06282D 100%);
+  border: 1px solid rgba(218, 174, 86, 0.68);
+  box-shadow: 0 4px 12px rgba(7, 44, 50, 0.24);
+}
+.d-mayur-palace.light .card.live .badge::after {
+  border: 1px solid rgba(246, 218, 140, 0.34);
+}
+.d-mayur-palace.light .card.live .badge span {
+  font-family: 'Cinzel', serif;
+  color: #FBE6AC;
+  --bg-audit: #10555E;
+}
+
+.d-mayur-palace.light .card.recent .badge {
+  background-color: #EFE6D4;
+  background-image: linear-gradient(145deg, #F4ECDD 0%, #E7DBC2 100%);
+  border: 1px solid rgba(154, 122, 64, 0.32);
+}
+.d-mayur-palace.light .card.recent .badge::after {
+  border: 1px solid rgba(154, 122, 64, 0.16);
+}
+.d-mayur-palace.light .card.recent .badge span {
+  font-family: 'Cinzel', serif;
+  color: #10393F;
+  --bg-audit: #E7DBC2;
+}
+
+.d-mayur-palace.light .ctitle {
+  color: #092529;
+  --bg-audit: #FAF5EA;
+}
+.d-mayur-palace.light .cright-meta {
+  color: #38585B;
+  --bg-audit: #FAF5EA;
+}
+.d-mayur-palace.light .cscores {
+  color: #3B575A;
+  --bg-audit: #FAF5EA;
+}
+.d-mayur-palace.light .cscores .rd {
+  color: #0A373D;
+}
+.d-mayur-palace.light .chev {
+  color: #846024;
+}
+
+/* Harmonized Jewel Micro-Tags (Light — disciplined peacock, jade, brass, sapphire) */
+.d-mayur-palace.light .t-active {
+  background-color: #E7F5EF;
+  border-color: #B0DBC8;
+  color: #0A5D3D;
+}
+.d-mayur-palace.light .t-active .dot {
+  background: #0D8256;
+  box-shadow: 0 0 0 2px rgba(13, 130, 86, 0.18);
+}
+.d-mayur-palace.light .t-creator {
+  background-color: #FBF2DC;
+  border-color: #E3C789;
+  color: #634007;
+}
+.d-mayur-palace.light .t-admin {
+  background-color: #EBF3F8;
+  border-color: #BCD3E3;
+  color: #144266;
+}
+.d-mayur-palace.light .t-done {
+  background-color: #E8F2F4;
+  border-color: #B8D3D8;
+  color: #0D4B55;
+}
+.d-mayur-palace.light .t-awarded {
+  background-color: #E8F5EE;
+  border-color: #B2DCC6;
+  color: #0B5939;
+}
+.d-mayur-palace.light .t-closed {
+  background-color: #EFEBE1;
+  border-color: #D7CEBD;
+  color: #424A47;
+}
+.d-mayur-palace.light .mult {
+  background-color: #8E1E2E;
+  color: #FDF3E2;
+}
+
+/* Bottom Bar (Light) */
+.d-mayur-palace.light .tabbar {
+  background-color: #FCF8F0;
+  border-top: 1px solid rgba(172, 132, 58, 0.32);
+  box-shadow: 0 -8px 24px rgba(7, 42, 47, 0.07);
+}
+.d-mayur-palace.light .tab.on {
+  background-color: #093B42;
+  background-image: linear-gradient(145deg, #10555E 0%, #06282D 100%);
+  border: 1px solid rgba(218, 174, 86, 0.6);
+  color: #FBE6AC;
+  box-shadow: 0 4px 12px rgba(7, 43, 48, 0.24);
+}
+.d-mayur-palace.light .tab.off {
+  background-color: #F2EBDD;
+  border: 1px solid rgba(162, 126, 62, 0.28);
+}
+.d-mayur-palace.light .avatar {
+  background: linear-gradient(145deg, #0E4E57 0%, #072B30 100%);
+  border: 1.5px solid #CCA044;
+  color: #FAF1DB;
+  --bg-audit: #0B3E45;
+}
+.d-mayur-palace.light .gesture {
+  background: rgba(8, 43, 48, 0.24);
+}
+
+/* ==========================================================================
+ * MAYUR PALACE — DARK MODE (Obsidian Peacock Silk & Temple Brass)
+ * ========================================================================== */
+.d-mayur-palace.dark {
+  --ink: #F7F1E3;
+  --ink-2: #B7C7C5;
+  --bg: #061215;
+  --status-ink: #F7EEDB;
+  background-color: #061215;
+  background-image:
+    linear-gradient(180deg, rgba(6, 18, 21, 0.22) 0%, rgba(6, 18, 21, 0.84) 45%, rgba(5, 15, 18, 0.94) 100%),
+    url('../assets/mayur-dark-bg.jpg');
+  background-size: cover;
+  background-position: top center;
+}
+
+.d-mayur-palace.dark .scroll-fade {
+  background: linear-gradient(180deg, rgba(6, 18, 21, 0) 0%, rgba(6, 18, 21, 0.94) 100%);
+}
+
+.d-mayur-palace.dark .hero {
+  padding-bottom: 14px;
+  overflow: hidden;
+}
+
+/* Rich luminous peacock silk & golden Mughal jaali seamless behind status bar */
+.d-mayur-palace.dark .hero-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: #08292E;
+  background-image:
+    linear-gradient(180deg, rgba(6, 22, 26, 0.08) 0%, rgba(6, 20, 23, 0.54) 74%, rgba(6, 18, 21, 1) 100%),
+    radial-gradient(ellipse 84% 68% at 50% 6%, rgba(224, 174, 76, 0.2) 0%, rgba(10, 52, 58, 0.42) 56%, rgba(6, 18, 21, 0.9) 100%),
+    url('../assets/mayur-peacock-hero.jpg');
+  background-size: cover;
+  background-position: center 34%;
+  z-index: 0;
+}
+
+.d-mayur-palace.dark .emblem {
+  background: linear-gradient(145deg, #FCE6AC 0%, #C79236 55%, #785012 100%);
+  box-shadow:
+    0 3px 12px rgba(0, 0, 0, 0.48),
+    inset 0 1px 1px rgba(255, 250, 232, 0.74);
+}
+.d-mayur-palace.dark .emblem-inner {
+  background: #061D21;
+}
+
+.d-mayur-palace.dark .brand {
+  color: #FAF0DA;
+  --bg-audit: #103A40;
+  text-shadow: 0 1px 10px rgba(2, 10, 12, 0.6);
+}
+
+.d-mayur-palace.dark .help {
+  color: #F6DD9A;
+  background: rgba(244, 218, 151, 0.1);
+  border: 1px solid rgba(244, 218, 151, 0.36);
+}
+
+.d-mayur-palace.dark .greet {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: calc(36px * var(--fs));
+  font-weight: 700;
+  color: #FCF6E8;
+  --bg-audit: #10383E;
+  text-shadow: 0 2px 14px rgba(2, 10, 12, 0.6);
+}
+.phone.compact.d-mayur-palace.dark .greet {
+  font-size: calc(29px * var(--fs));
+}
+
+.d-mayur-palace.dark .greet-orn .line-l {
+  background: linear-gradient(90deg, rgba(242, 206, 124, 0.9), rgba(242, 206, 124, 0.38));
+}
+.d-mayur-palace.dark .greet-orn .gem {
+  background: #F6D88A;
+  box-shadow: 0 0 8px rgba(246, 216, 138, 0.58);
+}
+.d-mayur-palace.dark .greet-orn .line-r {
+  background: linear-gradient(90deg, rgba(242, 206, 124, 0.68), rgba(242, 206, 124, 0));
+}
+
+/* Primary CTA (Dark): Satin-Brushed Temple Gold Foil Plaque */
+.d-mayur-palace.dark .newgame {
+  background-color: #DAA94D;
+  background-image:
+    linear-gradient(180deg, rgba(255, 248, 222, 0.32) 0%, rgba(255, 240, 198, 0.08) 48%, rgba(126, 78, 12, 0.2) 100%),
+    url('../assets/gold-foil-metal.jpg');
+  background-size: cover;
+  background-position: center;
+  color: #051B1E;
+  --bg-audit: #C6953A;
+  border: 1px solid rgba(255, 244, 208, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 252, 242, 0.88),
+    inset 0 -1.5px 0 rgba(94, 56, 8, 0.44),
+    0 10px 24px rgba(0, 8, 10, 0.5);
+}
+.d-mayur-palace.dark .newgame::after {
+  border: 1px solid rgba(5, 27, 30, 0.14);
+}
+.d-mayur-palace.dark .newgame .plus-ring {
+  background: rgba(5, 27, 30, 0.14);
+  border: 1px solid rgba(5, 27, 30, 0.24);
+  color: #051B1E;
+}
+
+.d-mayur-palace.dark .tile {
+  background-color: #0C1F23;
+  background-image: linear-gradient(180deg, #112C32 0%, #0A1B1F 100%);
+  border: 1px solid rgba(216, 174, 92, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 234, 184, 0.09),
+    0 6px 18px rgba(0, 0, 0, 0.44);
+}
+.d-mayur-palace.dark .ticon-wrap {
+  background: linear-gradient(145deg, #14464E 0%, #09242A 100%);
+  border: 1px solid rgba(224, 182, 100, 0.44);
+  color: #F6D88C;
+}
+.d-mayur-palace.dark .tcount {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: calc(23px * var(--fs));
+  color: #F7DD99;
+  --bg-audit: #0E2429;
+}
+.d-mayur-palace.dark .tlabel {
+  color: #F7F1E3;
+  --bg-audit: #0E2429;
+}
+.d-mayur-palace.dark .tchev {
+  color: #D2A858;
+}
+
+.d-mayur-palace.dark .sechead h2 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: calc(25px * var(--fs));
+  font-weight: 700;
+  color: #F8F1E2;
+  --bg-audit: #071518;
+}
+.d-mayur-palace.dark .sechead .count {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: calc(19.5px * var(--fs));
+  color: #F2CE7C;
+}
+.d-mayur-palace.dark .sechead .rule-gem {
+  background: #DDB15A;
+}
+.d-mayur-palace.dark .sechead .rule {
+  background: linear-gradient(90deg, rgba(221, 177, 90, 0.42) 0%, rgba(221, 177, 90, 0.04) 100%);
+}
+.d-mayur-palace.dark .sechead .info {
+  color: #B4C5C3;
+}
+
+.d-mayur-palace.dark .card.live {
+  background-color: #0D2024;
+  background-image: linear-gradient(180deg, #122C32 0%, #0B1D21 100%);
+  border: 1px solid rgba(218, 176, 96, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 234, 184, 0.08),
+    0 8px 22px rgba(0, 0, 0, 0.44);
+}
+.d-mayur-palace.dark .card.live::before {
+  background: linear-gradient(180deg, #F5D98E 0%, #26898F 100%);
+}
+.d-mayur-palace.dark .card.recent {
+  background-color: #09171A;
+  border: 1px solid rgba(194, 168, 114, 0.16);
+}
+
+.d-mayur-palace.dark .card.live .badge {
+  background-color: #D8A94D;
+  background-image:
+    linear-gradient(160deg, rgba(255, 248, 222, 0.28) 0%, rgba(128, 82, 14, 0.16) 100%),
+    url('../assets/gold-foil-metal.jpg');
+  background-size: cover;
+  border: 1px solid rgba(255, 242, 202, 0.68);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 250, 234, 0.72),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.d-mayur-palace.dark .card.live .badge::after {
+  border: 1px solid rgba(5, 27, 30, 0.24);
+}
+.d-mayur-palace.dark .card.live .badge span {
+  font-family: 'Cinzel', serif;
+  color: #051B1E;
+  --bg-audit: #C59338;
+}
+
+.d-mayur-palace.dark .card.recent .badge {
+  background-color: #11272C;
+  border: 1px solid rgba(212, 172, 96, 0.28);
+}
+.d-mayur-palace.dark .card.recent .badge::after {
+  border: 1px solid rgba(212, 172, 96, 0.12);
+}
+.d-mayur-palace.dark .card.recent .badge span {
+  font-family: 'Cinzel', serif;
+  color: #F0D28C;
+  --bg-audit: #11272C;
+}
+
+.d-mayur-palace.dark .ctitle {
+  color: #F8F1E3;
+  --bg-audit: #10262B;
+}
+.d-mayur-palace.dark .cright-meta {
+  color: #BACAC8;
+  --bg-audit: #10262B;
+}
+.d-mayur-palace.dark .cscores {
+  color: #B9CAC7;
+  --bg-audit: #10262B;
+}
+.d-mayur-palace.dark .cscores .rd {
+  color: #F2D48E;
+}
+.d-mayur-palace.dark .chev {
+  color: #D2A858;
+}
+
+.d-mayur-palace.dark .t-active {
+  background-color: #0B2A22;
+  border-color: rgba(114, 224, 180, 0.34);
+  color: #82E6BE;
+}
+.d-mayur-palace.dark .t-active .dot {
+  background: #5EE2AE;
+  box-shadow: 0 0 6px rgba(94, 226, 174, 0.6);
+}
+.d-mayur-palace.dark .t-creator {
+  background-color: #281E0E;
+  border-color: rgba(242, 204, 122, 0.34);
+  color: #F4D285;
+}
+.d-mayur-palace.dark .t-admin {
+  background-color: #102436;
+  border-color: rgba(154, 200, 242, 0.34);
+  color: #9CCCF5;
+}
+.d-mayur-palace.dark .t-done {
+  background-color: #0F2730;
+  border-color: rgba(142, 212, 228, 0.32);
+  color: #96DCEB;
+}
+.d-mayur-palace.dark .t-awarded {
+  background-color: #0C2A22;
+  border-color: rgba(124, 226, 180, 0.32);
+  color: #8BE6BE;
+}
+.d-mayur-palace.dark .t-closed {
+  background-color: #162326;
+  border-color: rgba(194, 210, 210, 0.24);
+  color: #C9D8D8;
+}
+.d-mayur-palace.dark .mult {
+  background-color: #F2D07E;
+  color: #061C1F;
+}
+
+/* Bottom Bar (Dark) */
+.d-mayur-palace.dark .tabbar {
+  background-color: #081619;
+  border-top: 1px solid rgba(218, 176, 94, 0.26);
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.55);
+}
+.d-mayur-palace.dark .tab.on {
+  background-color: #D8A94D;
+  background-image:
+    linear-gradient(180deg, rgba(255, 246, 216, 0.26) 0%, rgba(128, 82, 14, 0.16) 100%),
+    url('../assets/gold-foil-metal.jpg');
+  background-size: cover;
+  border: 1px solid rgba(255, 242, 205, 0.64);
+  color: #051B1E;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.d-mayur-palace.dark .tab.off {
+  background-color: #0F2328;
+  border: 1px solid rgba(214, 172, 96, 0.24);
+}
+.d-mayur-palace.dark .avatar {
+  background: linear-gradient(145deg, #13444C 0%, #082328 100%);
+  border: 1.5px solid #DFB35B;
+  color: #FAF0D7;
+  --bg-audit: #0E343B;
+}
+.d-mayur-palace.dark .gesture {
+  background: rgba(242, 224, 186, 0.34);
+}
