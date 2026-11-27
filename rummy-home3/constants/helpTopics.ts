@@ -322,6 +322,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'Pool',
         bullets: [
           'The limit line under the title (**Limit 101 · 100 in, 101 out**) and the number out. A player at or past the limit is [OUT]; **Re-enter** (admins) brings them back at the re-entry score — the highest score still in, or that plus 1 (the game\u2019s **Re-entry score** setting).',
+          'A player who re-enters sits on the dealer\u2019s left unless you pick another seat: the line above **Re-enter at** names the seat and the two players beside it. After a round, the **Round saved** sheet lists everyone who is out, with Re-enter on each row.',
           'The re-entry round shows that score with ↺ beside it (105 → ↺106); the typed score is kept but not shown. That player\u2019s cells in the rounds above turn grey; the ↺ row and everything after keep their normal colours. Tap a round number to edit that round.',
           '**Standings** list everyone by points left; drops left count down from the Full count. Portrait: the table is a card of at most five round rows, newest at the bottom (swipe inside it for earlier rounds); Standings take the rest. Landscape: the full table alone.',
           '**Complete** asks once in a dialog; a pool then goes to **Awards** and on to the Final screen. The Completed scorecard shows the Awards block (or **Give awards** while they are not given).',
