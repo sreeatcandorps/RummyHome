@@ -3,8 +3,8 @@ tags: [smoke]
 # Staging build 2, bug 8 (Sree, Nov 23): on Create account the passcode field sat under the keyboard —
 # Android's edge-to-edge window (SDK 54) no longer resizes for it, and AuthShell only padded on iOS.
 # Rule from staging-b2-feedback.md: every form gets a flow that focuses each input and shows it with the
-# keyboard up. Fresh app (no session) → Create account → tap First name, Email, 6-digit passcode, Player ID
-# in turn, typing into each, screenshot with the keyboard open. The frames (and the PR video) are the proof
+# keyboard up. Fresh app (no session) → Create account → tap First name, Email, 6-digit passcode in turn
+# (no Player ID box since D105), typing into each, screenshot with the keyboard open. The frames (and the PR video) are the proof
 # that the focused field is above the keyboard; nothing is submitted. Signs Sree back in at the end.
 ---
 - clearState
@@ -41,7 +41,7 @@ tags: [smoke]
     timeout: 15000
 - takeScreenshot: 26-create-account
 # Each field the way a person meets it: keyboard down, the field in view, tap it, type — and it must still be
-# in view with the keyboard up. The passcode and Player ID are the ones that sat under the keyboard (bug 8).
+# in view with the keyboard up. The passcode is the one that sat under the keyboard (bug 8).
 - tapOn:
     id: "register-first-name"
 - inputText: "Kavya"
@@ -70,19 +70,6 @@ tags: [smoke]
 - assertVisible:
     id: "register-passcode"
 - takeScreenshot: 26d-create-account-passcode-keyboard
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "register-player-id"
-    direction: DOWN
-    timeout: 30000
-- tapOn:
-    id: "register-player-id"
-- inputText: "42"
-- waitForAnimationToEnd
-- assertVisible:
-    id: "register-player-id"
-- takeScreenshot: 26e-create-account-player-id-keyboard
 - hideKeyboard
 # Nothing is created. Back to Sree for whatever runs after this flow.
 - runFlow:

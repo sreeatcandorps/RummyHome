@@ -62,23 +62,25 @@ const INFRA = [/^ci\//, /^\.github\//, /^rummy-home3\/e2e\//, /^rummy-home3\/sup
  *   E and H         smoke/13 (E back to round 1) → 14 (H round 1) → 18 (E ×10 then ×1) → 21 (E Players frame, H hidden) →
  *                   23 (Dealer, "runs after 13"); full/30, 31, 70 (E, "runs after smoke/13"), 32, 80 (H, round 1 from 14)
  *   F               smoke/10, 11, 25 (read only); full/20, 21, 50, 51 (F ×10,000 and Order of players, both put back)
- *   independent     smoke/17 (W), 20 (V), 22 (Ravi's games), 24 (Ravi, tutorial); full/60 (dark mode, back to Phone)
- *   last            smoke/26 (clearState wipes the phone, then signs back in): the end of its shard, nothing after it
+ *   independent     smoke/17 (W), 20 (V), 22 (Ravi's games), 24 (Ravi, tutorial), 30 (adds QX, ZQ, VK to My players;
+ *                   no game), 31 (looks up #5); full/60 (dark mode, back to Phone)
+ *   clearState      smoke/26 and 27 wipe the phone and sign back in; what follows them in shard b reads only F
  *
- * Lists are in run order. The sizes are the measured times of run 45753343489 (#143, Nov 26): a = 1255 s, b = 1211 s of
- * smoke. `full` lists the full flows that follow the shard's smoke on the same emulator; every full flow on disk is in
+ * Lists are in run order. The sizes are the measured times of run 45912691807 (#156, Nov 26, all 31 flows on one
+ * Pixel 6): a = 1132 s, b = 1094 s of smoke. `full` lists the full flows that follow the shard's smoke on the same emulator; every full flow on disk is in
  * exactly one list (tests/test-selection-pr-shards.test.ts), a full flow that is not falls to shard b.
  */
 export const SMOKE_SHARDS = {
   a: {
     smoke: ['01-home', '02-scorecard', '03-scorecard-landscape', '04-add-round', '05-complete-game', '06-results', '07-profile', '08-my-players', '09-new-game',
-      '12-results-zero-players', '15-delete-shared-result-confirm', '16-pool-game', '17-pool-wide-initials-20p', '19-seating-order', '20-pool-13p-reentry'],
+      '12-results-zero-players', '15-delete-shared-result-confirm', '16-pool-game', '17-pool-wide-initials-20p', '19-seating-order', '20-pool-13p-reentry',
+      '30-add-by-initials-save'],
     full: ['10-sign-out-bad-passcode', '40-results-save-and-past', '41-share-images', '42-reopen-closed-game', '61-first-launch-light-night-phone'],
   },
   b: {
     smoke: ['10-scorecard-20-players', '11-scorecard-20-players-landscape', '13-undo-then-add-round', '14-rummy-positive-pot',
       '18-multiplier-change', '21-help-frames', '22-play-listing-frames', '23-dealer', '24-seating-tutorial', '25-scorecard-fast-fling',
-      '26-create-account-keyboard', '28-scorecard-columns', '29-scorecard-names-swipe'],
+      '26-create-account-keyboard', '27-create-account-code', '28-scorecard-columns', '29-scorecard-names-swipe', '31-player-id-search'],
     full: ['20-scorecard-20-players-swipe', '21-scorecard-font-scale', '30-players-admins-and-settings', '31-edit-initials-mid-game', '32-add-players-to-game',
       '50-help-notes', '50-multiplier-20p', '51-seating-20p', '60-dark-mode', '70-game-log', '80-add-round-count-warnings'],
   },

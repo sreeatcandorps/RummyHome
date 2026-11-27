@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–052) applied, check the function state after each, then re-apply the forward
+# has every migration (001–054) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,26 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+# 054 (D70: a joiner sits to the dealer's left — add_seated_player body only; rolled back first)
+HAS_054=f
+if [ -f "$RB/rollback_054_join_left_of_dealer.sql" ]; then
+  HAS_054=t
+  if apply "$RB/rollback_054_join_left_of_dealer.sql"; then tap ok "rollback_054 applies"; else tap fail "rollback_054 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_has add_seated_player v_planned_after)" = f ] && [ "$(fn_has add_seated_player current_dealer)" = t ] \
+    && tap ok "after rollback_054 add_seated_player is the 052 body (dealer + 1)" \
+    || tap fail "after rollback_054 add_seated_player should be the 052 body"
+fi
+
+# 053 (D113: search_players answers an exact Player ID only, short_player_name; rolled back first)
+HAS_053=f
+if [ -f "$RB/rollback_053_player_id_search_only.sql" ]; then
+  HAS_053=t
+  if apply "$RB/rollback_053_player_id_search_only.sql"; then tap ok "rollback_053 applies"; else tap fail "rollback_053 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists short_player_name)" = f ] && [ "$(fn_has search_players ilike)" = t ] \
+    && tap ok "after rollback_053 short_player_name is gone and search_players is the 012 body again" \
+    || tap fail "after rollback_053 short_player_name should be gone and search_players back to 012"
+fi
 
 # 052 (D60 Dealer sheet, D57 join at dealer + 1: set_round_dealer + helpers, override columns, save_round / add_seated_player bodies; rolled back first)
 HAS_052=f
@@ -528,6 +548,8 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_050" = t ] && FORWARD="$FORWARD 050_reopen_closed_game"
 [ "$HAS_051" = t ] && FORWARD="$FORWARD 051_pool_limit_unlocked"
 [ "$HAS_052" = t ] && FORWARD="$FORWARD 052_dealer"
+[ "$HAS_053" = t ] && FORWARD="$FORWARD 053_player_id_search_only"
+[ "$HAS_054" = t ] && FORWARD="$FORWARD 054_join_left_of_dealer"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -716,6 +738,14 @@ if [ "$HAS_052" = t ]; then
   [ "$(fn_exists set_round_dealer)" = t ] && [ "$(fn_exists current_dealer)" = t ] && [ "$(fn_has save_round next_dealer_profile_id)" = t ] \
     && [ "$(fn_has add_seated_player current_dealer)" = t ] \
     && tap ok "052 restored (Dealer RPC, override in save_round, join at dealer + 1)" || tap fail "052 restored"
+fi
+if [ "$HAS_054" = t ]; then
+  [ "$(fn_has add_seated_player v_planned_after)" = t ] \
+    && tap ok "054 restored (a joiner sits to the dealer's left)" || tap fail "054 restored"
+fi
+if [ "$HAS_053" = t ]; then
+  [ "$(fn_exists short_player_name)" = t ] && [ "$(fn_has search_players short_player_name)" = t ] && [ "$(fn_has search_players ilike)" = f ] \
+    && tap ok "053 restored (search_players by exact Player ID only)" || tap fail "053 restored"
 fi
 
 # second apply of every re-runnable migration must be a no-op

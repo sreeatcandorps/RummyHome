@@ -129,9 +129,6 @@ export function splitInitials(label: string): { letters: string; digits: string 
   return match ? { letters: match[1], digits: match[2] } : { letters: value, digits: '' };
 }
 
-/** How many rows the Add new players screen offers per visit. */
-export const NEW_PLAYER_ROWS_MAX = 3;
-
 /**
  * Cell 1 holds one letter; cell 2 one or two letters or digits. Returns the reason the
  * row cannot be saved yet, or null when `first + last` is a well-formed label.

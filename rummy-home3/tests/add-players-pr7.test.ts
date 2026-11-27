@@ -43,7 +43,7 @@ test('7.2 labels: Add by initials / Find in database (A21), the long spoken sent
   assert.match(picker, /<SearchField value=\{query\} onChangeText=\{setQuery\}[^\n]*testID="picker-search"/, 'the one SearchField (A07)');
   assert.doesNotMatch(picker, /accessibilityLabel="Add players"/);
   const find = read('app/(screens)/players/new.tsx');
-  assert.match(find, /<SearchField[\s\S]*?testID="find-search"/, 'Find in database uses the same field');
+  assert.match(find, /<PlayerIdBox[\s\S]*?onSearch=\{search\}/, 'Find in database is the Player ID box (D113), not a name search');
   assert.doesNotMatch(find, /leaderContainer/, 'no pale-yellow search box any more (A07)');
   assert.doesNotMatch(find, /Registered players only\./, 'the registered-only note lives in help');
   const theme = read('constants/theme.ts');

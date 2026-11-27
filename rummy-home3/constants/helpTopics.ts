@@ -167,6 +167,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         bullets: [
           'From the scorecard ⋮ › **Players · Admins › Add new player** the same screen opens in add mode. **Total** is how many will be playing: the faces already in the game plus the ones ringed yellow you are adding now. Admins who do not play are not counted.',
           'Tap a player below to add them; they get 0 for every round already played. **Return to game** seats everyone you added.',
+          'Once a round is played, a new player sits to the dealer\u2019s left and deals last. The line above **Return to game** names the seat, for example "Ravi sits at seat 4, between Anu and Bala — left of the dealer." To seat them elsewhere, use ⋮ › **Order of players** afterwards.',
           'The × on a face removes a player only while every one of their round scores is 0. Once they have a score, edit the round first.',
         ],
       },
@@ -191,7 +192,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
           'Once everyone is numbered, tap a player and use the ▲ ▼ arrows to move them one seat; tap them again to deselect. While one is selected only their arrows show; the top row has no ▲ and the lowest seat has no ▼.',
           '**Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
           'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens prefilled, so one move is one tap; **Done** saves it, the Log records it, played rounds keep their dealer and the next deal follows the new order.',
-          'Someone joins mid-game: they sit right after whoever is dealing (the dealer\'s seat + 1), deal the round after this one, and nobody loses a turn. Move them from Order of players if the table sat them elsewhere. A pool player who is out keeps the seat; the deal and the open card skip it.',
+          'Someone joins mid-game: they sit to the dealer\'s left, so they deal last. The dealer still deals this round, and nobody else\'s turn moves. Move them from Order of players if the table sat them elsewhere. A pool player who is out keeps the seat; the deal and the open card skip it.',
         ],
       },
       {
@@ -203,7 +204,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       },
     ],
     tricky: [
-      { id: 'not-in-list', q: 'The person I want is not in the list.', a: 'They are not in your My players yet. **Find in database** if they have an account (name or #ID), **Add by initials** if they do not. Both seat them in this game at once.' },
+      { id: 'not-in-list', q: 'The person I want is not in the list.', a: 'They are not in your My players yet. **Find in database** if they have an account (by their Player ID), **Add by initials** if they do not. Both seat them in this game at once.' },
       { id: 'who-deals', q: 'Who deals first?', a: 'Seat 1 in the **Order of players** you set before Start: the lowest card, the last player you tapped. Every round the deal moves up one seat and the open card goes to the seat before the dealer; played rounds keep their dealer.' },
       { id: 'twenty', q: 'Why can I not add a 21st player?', a: 'A game holds up to 20 players. Start a second game for the rest.' },
     ],
@@ -596,7 +597,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         title: 'Linking an account',
         bullets: [
           '**Link to Player ID** needs the account\u2019s Player ID and its email together, and moves the player in every game they are in. It refuses if that account already plays in one of those games.',
-          '**Invite to register** sends a sign-up link that is good once for 14 days; when the person signs up with it, their scores move to their account.',
+          '**Invite to EZ Score** sends a plain \u201cget the app\u201d message asking for their Player ID; once they have it, **Link to Player ID** moves their scores.',
         ],
       },
       {
@@ -610,7 +611,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     menu: {
       title: 'The row ⋮, in order',
       rows: [
-        { item: 'Invite to register', does: 'Sends a sign-up link (one use, 14 days).', who: 'Admins', hidden: 'Registered player' },
+        { item: 'Invite to EZ Score', does: 'Sends the get-the-app message.', who: 'Admins', hidden: 'Registered player' },
         { item: 'Link to Player ID', does: 'Joins this seat to an existing account by ID + email.', who: 'Admins', hidden: 'Registered player' },
         { item: 'Edit initials', does: 'This game\u2019s column letters.', who: 'Admins' },
         { item: 'Edit name', does: 'Rename an unregistered player.', who: 'Admins', hidden: 'Registered player' },
@@ -716,7 +717,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'Unregistered players',
         bullets: [
-          'The **Unregistered** tile at the bottom shows how many have not signed up and filters the list to them. Each row\u2019s ⋮ has **Invite to register** (a sign-up link, good once for 14 days) and **Link to Player ID**.',
+          'The **Unregistered** tile at the bottom shows how many have not signed up and filters the list to them. Each row\u2019s ⋮ has **Invite to EZ Score** (the get-the-app message) and **Link to Player ID**.',
         ],
       },
     ],
@@ -725,14 +726,14 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       rows: [
         { item: 'Change initials', does: 'Any free 2–3 letters for this player in your list.', who: 'You' },
         { item: 'Edit name', does: 'Rename a player you added by initials.', who: 'You', hidden: 'Registered player' },
-        { item: 'Invite to register', does: 'A sign-up link (one use, 14 days).', who: 'You', hidden: 'Registered player' },
+        { item: 'Invite to EZ Score', does: 'The get-the-app message.', who: 'You', hidden: 'Registered player' },
         { item: 'Link to Player ID', does: 'Join this entry to an existing account by ID + email.', who: 'You', hidden: 'Registered player' },
         { item: 'Remove from My players', does: 'Only your list changes; games and results stay.', who: 'You' },
       ],
     },
     tricky: [
       { id: 'three-letters', q: 'Why does a player have three letters?', a: 'Two of your players share the first-and-last-letter form; the one added first keeps it. **Change initials** to pick any 2–3 letters you like.' },
-      { id: 'no-games', q: 'A player says they cannot see the game.', a: 'They are not registered, or the game sits under a different player. **Invite to register** or **Link to Player ID** moves the scores to their account.' },
+      { id: 'no-games', q: 'A player says they cannot see the game.', a: 'They are not registered, or the game sits under a different player. **Invite to EZ Score**, then **Link to Player ID** moves the scores to their account.' },
     ],
     alsoSee: ['add-players', 'new-game', 'players-admins'],
     aliases: ['players', 'initials', 'unregistered', 'frequent', 'alphabetical'],
@@ -747,15 +748,15 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     needToKnow: [
       '**Add by initials**: three rows at a time. Cell 1 takes one letter and jumps on; cell 2 takes one or two letters or digits. The initials are the player\u2019s name for now.',
       'Each row saves on its own. Saved players show as [Unregistered] until they sign up. There is no delete here; remove a player from the previous screen. Tap **Done** to go back; nothing else closes this screen.',
-      '**Find in database**: registered players only. Type at least two letters of a name, or a player ID such as 42.',
-      '**+ My players** adds the person to your list (it does not seat them). From New game, **+ Add** seats the person in this game and adds them to My players at the same time.',
+      '**Find in database**: registered players only, by Player ID. Ask them for it (it is on their Profile), type the number and tap **Search**. Names are never searched.',
+      '**Add to My players** adds the person to your list (it does not seat them). From New game, **Add to game** seats the person in this game and adds them to My players at the same time.',
     ],
     screenshot: {
       file: 'add-players',
       legend: [
         'Add by initials: three rows, two cells each; **Save** on a row keeps it.',
         'A saved row shows the letters the app picked; tap to change them.',
-        '**Done** goes back; rows you saved are already in. Find in database is the other way in: search by name or #ID.',
+        '**Done** goes back; rows you saved are already in. Find in database is the other way in: search by Player ID.',
       ],
     },
     sections: [
@@ -768,12 +769,13 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'Find in database',
         bullets: [
+          'One number shows one name, shortened (\u201c#57 · Ravi K.\u201d), or \u201cNo one has #58.\u201d Check it is the person in front of you before you add.',
           '\u201cIn your player list\u201d means they are already there. Not in the database? Go back and use Add by initials.',
         ],
       },
     ],
     tricky: [
-      { id: 'not-found', q: 'Find in database finds nobody.', a: 'They have no account yet (or a different name). Use **Add by initials**; **Invite to register** later moves the scores to their account.' },
+      { id: 'not-found', q: 'Find in database finds nobody.', a: 'The number is wrong, or they have no account yet. Check the number with them, or use **Add by initials**; **Link to Player ID** later moves the scores to their account.' },
       { id: 'done-only', q: 'Why is Done the only way out?', a: 'Every row saves on its own as you type, so there is nothing to cancel. Done just goes back.' },
     ],
     alsoSee: ['my-players', 'new-game', 'players-admins'],
@@ -904,34 +906,36 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         '**Email**: the address you created the account with. It is your sign-in and cannot be changed.',
         '**6-digit passcode**: numbers only; the eye shows what you typed.',
         '**Forgot passcode?** emails a one-time code; type it back, then choose a new passcode.',
-        '**Create account**: name, email, passcode. Confirm the email we send before the first sign-in.',
+        '**Create account**: name, email, passcode. Then type the 6-digit code we email you, and you are signed in.',
       ],
     },
     needToKnow: [
       'Your passcode is 6 digits. Numbers only.',
       '**Forgot passcode** emails you a 6-digit code (OTP) to type back here, then you choose a new passcode. The OTP works once and expires in 15 minutes; your old passcode keeps working until the new one is saved.',
       'Email is how you sign in. It cannot be changed later. Phone and zip code are optional; we never text you.',
-      'Came from a friend\u2019s invite? Confirm your email, then tap **Yes** on \u201cIs this you?\u201d to move your past scores here.',
-      'Have a player ID like 42 but no invite? Enter it and the friend who added you approves it. A player ID is never used to sign in.',
+      'Came from a friend\u2019s invite? Type the code from the email, then tap **Yes** on \u201cIs this you?\u201d to move your past scores here.',
+      'Already on a friend\u2019s scorecard? Tell them your Player ID (it is on Profile); they add it to your seat and you tap **Yes**. A Player ID is never used to sign in.',
     ],
     sections: [
       {
         title: 'Create account',
         bullets: [
-          'Name, email, 6-digit passcode. Country picker for the optional phone. We email a confirmation; confirm it before signing in.',
+          'Name, email, 6-digit passcode. Country picker for the optional phone.',
+          'We email a 6-digit code. Type it in the app and tap **Confirm and sign in**; nothing opens in a browser. **Send a new code** works once a minute; **Go back** fixes a wrong address.',
+          'Closed the app before typing the code? Sign in with your email and passcode, then tap **Enter the code**.',
         ],
       },
       {
         title: 'Is this you?',
         bullets: [
-          'When a friend invited you or you typed a player ID, the app shows the seat it found: name, initials, games. **Yes** moves those scores to your account; **No** starts clean.',
-          'A request to join a player ID without an invite waits for the friend who added that player to approve it (they see it on My players).',
+          'When a friend invited you or added your Player ID to a seat, the app shows the seat it found: name, initials, games. **Yes** moves those scores to your account; **No** starts clean.',
         ],
       },
     ],
     tricky: [
-      { id: 'otp-refused', q: 'The OTP is refused.', a: 'It is older than 15 minutes or was already used. Tap **Send a new OTP**; type the newest one. Check the spam folder.' },
-      { id: 'no-email', q: 'No confirmation email.', a: 'Check spam, then **Resend**. The address must be exactly the one you typed; a typo means a new account with the right address.' },
+      { id: 'otp-refused', q: 'The code is refused.', a: 'It is older than 15 minutes or was already used. Tap **Send a new code** (or **Send a new OTP** for a passcode reset); type the newest one. Check the spam folder.' },
+      { id: 'no-email', q: 'No email with a code.', a: 'Check spam, then **Send a new code**. The address must be exactly the one you typed; if it is wrong, tap **Go back** and fix it.' },
+      { id: 'confirm-button', q: 'My email has a Confirm button, not a code.', a: 'It was sent before the switch to codes. Tap the button once, then sign in with your email and passcode.' },
     ],
     alsoSee: ['me', 'my-players'],
     aliases: ['login', 'register', 'forgot passcode', 'otp', 'reset', 'claim', 'is this you'],

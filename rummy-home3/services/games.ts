@@ -6,7 +6,7 @@ import { multiplierOf } from '@/utils/multiplier';
 import { entryScoreUnder, isPoolGame, lateEntryScore, playersOut, reentryLimitOf, reentryPlusOf } from '@/utils/pool';
 import { supabase, isSupabaseConfigured } from '@/services/supabase';
 import { INITIALS_FORMAT_MESSAGE, MIGRATION_007_HINT, playersService } from '@/services/players';
-import { RETIRED_ROUND_OFFSET, retiredRoundNumber } from '@/utils/editRound';
+import { playedRounds, RETIRED_ROUND_OFFSET, retiredRoundNumber } from '@/utils/editRound';
 import { isRoundConflict, toRoundConflictError } from '@/utils/roundConflict';
 import { zerosForJoiner } from '@/utils/gamePlayers';
 import { SEAT_REMOVAL_NOT_READY, seatRemovalProblem } from '@/utils/seatRemoval';
@@ -26,7 +26,7 @@ import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 import { localGameGuard, localRoundsGuard } from '@/utils/guardrails';
 import { BundleSeatRow, dealerIdsFrom, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
-import { DealerChange, nextDealer, planDealerChange, plannedDealer, rotationOf, seatAfter, withDealer } from '@/utils/dealerRotation';
+import { DealerChange, nextDealer, planDealerChange, planJoin, plannedDealer, rotationOf, seatAfter, withDealer } from '@/utils/dealerRotation';
 import { deletionFromRow } from '@/utils/deletedGames';
 import { queryCache } from '@/utils/queryCache';
 import { INITIALS_PATTERN, normalizeInitials } from '@/utils/initials';
@@ -1150,7 +1150,10 @@ export const gamesService = {
     }
 
     if (!isSupabaseConfigured) {
-      const updated: Game = { ...game, players: [...game.players, profileId] };
+      // 054 (D70): the dealer's left once rounds exist, as add_seated_player does.
+      const rotation = { ...game, outIds: isPoolGame(game) ? new Set(playersOut(game)) : null };
+      const join = planJoin(rotation, playedRounds(game.scores), profileId);
+      const updated: Game = { ...game, players: join.players, nextDealerOverride: join.nextDealerOverride };
       // Joining mid-game: every round already played is an explicit 0 for them.
       updated.scores = { ...updated.scores, [profileId]: zerosForJoiner(game.scores, seated) };
       if (label) updated.labels = { ...(game.labels ?? {}), [profileId]: label };

@@ -45,7 +45,7 @@ test('My players pins the signed-in player first, even with an empty roster', ()
 test('From database lets the organiser add themselves to a new game; the organiser is pinned first (no "You" tag since PR 7)', () => {
   const find = read('app/(screens)/players/new.tsx');
   assert.match(find, /isMe && !fromNewGame/, 'the "This is you" badge only replaces the button outside New game');
-  assert.match(find, /\+ Add me/);
+  assert.match(find, /'Add yourself to this game'/);
   assert.match(find, /if \(player\.id !== ownerId\) \{\s*await playersService\.addMyPlayer/, 'you are never added to your own roster');
   const picker = read('app/(screens)/games/new.tsx');
   assert.match(picker, /pinOrganiser\(grid, meWatching \? null : meCandidate, selectedIds, meMatches\)/);

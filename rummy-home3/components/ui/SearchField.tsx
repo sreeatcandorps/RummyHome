@@ -7,7 +7,7 @@ import { SEARCH_PLACEHOLDER } from '@/utils/addPlayers';
 type SearchFieldProps = {
   value: string;
   onChangeText: (text: string) => void;
-  /** Defaults to the one placeholder, "Search name, initials or #ID" (A03 / A21). */
+  /** Defaults to the My players placeholder, "Search name, initials or #ID" (A03 / A21). Find in database is a Player ID box instead (D113). */
   placeholder?: string;
   accessibilityLabel?: string;
   autoFocus?: boolean;

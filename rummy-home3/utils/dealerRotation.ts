@@ -12,6 +12,8 @@
  * the round being played (`Game.nextDealerOverride`, applied by the server to that round only) or
  * fix a played round, following from there or keeping the sequence.
  *
+ * 054 (D70): a player who joins mid-game sits to the dealer's left, the seat that deals last (`planJoin`).
+ *
  * Games saved before 031 (or local games) have no stored dealers; those fall back to the
  * old seat-order rule, which is what the server used to store anyway.
  */
@@ -170,4 +172,35 @@ export function planDealerChange(game: RotationGame, roundCount: number, change:
   }
   const dealer = nextDealer(game, roundCount);
   return { dealerIds, nextDealerOverride: game.nextDealerOverride ?? null, after: { round: nextRound, dealer, opens: opensFor(game, dealer) } };
+}
+
+// ---------- joining mid-game (054, D70) ----------
+
+export type JoinPlan = {
+  /** The seat order with the newcomer in it. */
+  players: string[];
+  /** The newcomer's seat, 0-based. */
+  seat: number;
+  /** Who deals the round being played; undefined before round 1. */
+  dealer: string | undefined;
+  nextDealerOverride: DealerOverride | null;
+};
+
+/**
+ * Where a player who joins sits, the way `add_seated_player` (054) does it: before round 1 the last
+ * seat; after that the dealer's left — the seat before whoever deals the round being played, which
+ * deals last (Sree, Q13: "New players always sit on the left side of the dealer"). A dealer at seat 1
+ * already has the last seat on their left. The dealer keeps this round's deal: when the newcomer
+ * lands straight after the last round's dealer, the round is pinned to the dealer (follow).
+ */
+export function planJoin(game: RotationGame, roundCount: number, joinerId: string): JoinPlan {
+  const dealer = roundCount > 0 ? nextDealer(game, roundCount) : undefined;
+  const at = dealer ? game.players.indexOf(dealer) : -1;
+  const seat = at > 0 ? at : game.players.length;
+  const players = [...game.players.slice(0, seat), joinerId, ...game.players.slice(seat)];
+  let nextDealerOverride = game.nextDealerOverride ?? null;
+  if (dealer && plannedDealer({ ...game, players }, roundCount) !== plannedDealer(game, roundCount)) {
+    nextDealerOverride = { playerId: dealer, round: roundCount + 1, keepsSequence: false };
+  }
+  return { players, seat, dealer, nextDealerOverride };
 }

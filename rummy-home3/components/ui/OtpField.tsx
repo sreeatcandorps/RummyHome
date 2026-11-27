@@ -10,6 +10,8 @@ type OtpFieldProps = {
   /** Focus and open the keyboard as soon as the field appears. */
   autoFocus?: boolean;
   label?: string;
+  placeholder?: string;
+  testID?: string;
 };
 
 /**
@@ -17,7 +19,7 @@ type OtpFieldProps = {
  * One real TextInput (no per-digit cells), so the keyboard opens on the first tap and the
  * OS can offer the code from SMS/mail autofill. Pasted text is reduced to its digits.
  */
-export function OtpField({ value, onChangeText, disabled, autoFocus, label = 'OTP' }: OtpFieldProps) {
+export function OtpField({ value, onChangeText, disabled, autoFocus, label = 'OTP', placeholder = '6-digit OTP', testID }: OtpFieldProps) {
   const inputRef = useRef<NativeInput>(null);
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function OtpField({ value, onChangeText, disabled, autoFocus, label = 'OT
     <TextInput
       ref={inputRef}
       label={label}
-      placeholder="6-digit OTP"
+      placeholder={placeholder}
       value={value}
       onChangeText={(text) => onChangeText(digitsOnly(text, EMAIL_CODE_LENGTH))}
       mode="outlined"
@@ -53,6 +55,7 @@ export function OtpField({ value, onChangeText, disabled, autoFocus, label = 'OT
         ) : null
       }
       accessibilityLabel={label}
+      testID={testID}
       style={styles.input}
       contentStyle={styles.content}
     />

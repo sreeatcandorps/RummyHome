@@ -86,12 +86,11 @@ test('shards: flows that build on an earlier flow stay together, and in order (t
   for (const [full, needs] of Object.entries(fullNeeds)) for (const smoke of needs) assert.equal(where('full', full)[0], where('smoke', smoke)[0], `full/${full} runs on the shard of smoke/${smoke}`);
 });
 
-test('shards: the two are about the same size (measured smoke seconds of run 45753343489)', () => {
+test('shards: the two are about the same size (measured smoke seconds of run 45912691807, #156, one Pixel 6)', () => {
   const secs: Record<string, number> = {
-    '01': 92, '02': 43, '03': 52, '04': 83, '05': 58, '06': 42, '07': 84, '08': 42, '09': 73, '10': 75, '11': 63, '12': 150, '13': 76, '14': 73, '15': 70,
-    '16': 269, '17': 55, '18': 107, '19': 197, '20': 66, '21': 145, '22': 125, '23': 72, '24': 279, '25': 75,
-    '26': 85, // #131's run 45780988614
-    '28': 79, '29': 47, // #153's run 45857710522 (Pixel 6 smoke)
+    '01': 57, '02': 31, '03': 62, '04': 62, '05': 46, '06': 38, '07': 58, '08': 30, '09': 49, '10': 49, '11': 55, '12': 114, '13': 57, '14': 55, '15': 51,
+    '16': 212, '17': 38, '18': 83, '19': 152, '20': 51, '21': 108, '22': 93, '23': 54, '24': 187, '25': 48, '26': 78, '27': 74, '28': 71, '29': 39, '30': 81,
+    '31': 43,
   };
   const total = (id: string) => SMOKE_SHARDS[id].smoke.reduce((n, f) => n + secs[f.slice(0, 2)], 0);
   const [a, b] = shards.map(total);

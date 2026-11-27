@@ -31,14 +31,13 @@ import { EditNameDialog } from '@/components/players/EditNameDialog';
 import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
 import { LinkPlayerDialog } from '@/components/players/LinkPlayerDialog';
 import { LinkRequestSentDialog } from '@/components/players/LinkRequestSentDialog';
-import { InviteToRegisterDialog } from '@/components/players/InviteToRegisterDialog';
+import { shareInvite } from '@/utils/invite';
 import { seatLabels } from '@/utils/initials';
 import { screenTitle } from '@/utils/gameLabel';
 
 type Sheet =
   | { kind: 'edit'; seat: Player }
   | { kind: 'initials'; seat: Player }
-  | { kind: 'invite'; seat: Player }
   | { kind: 'link'; seat: Player }
   | { kind: 'link_sent'; outcome: LinkRequestOutcome }
   | { kind: 'add_admin' }
@@ -49,12 +48,12 @@ type Sheet =
 /**
  * Players in this game as a full page (no stacked popups). Each seat shows the
  * name, Player ID, role and registration, and the unified ⋮ menu for admins (Invite to
- * register · Link to Player ID · Edit initials · Make/Remove admin · Remove from game).
+ * EZ Score · Link to Player ID · Edit initials · Make/Remove admin · Remove from game).
  * Adding happens on the picker screen; Remove from game is confirmed first and works only
  * while every round score the player has is 0.
  */
 /** Mini help (PR 11) beside Playing, for admins. */
-export const PLAYING_TIP = ['A player added now sits right after whoever is dealing and gets 0 for every round already played.', '**Remove from game** (in a row\u2019s ⋮ menu) works only while every round score they have is 0.', 'Each row\u2019s ⋮ also has Invite, Link, Edit initials, Edit name and Make admin.'];
+export const PLAYING_TIP = ['A player added now sits to the dealer\u2019s left and deals last. They get 0 for every round already played.', '**Remove from game** (in a row\u2019s ⋮ menu) works only while every round score they have is 0.', 'Each row\u2019s ⋮ also has Invite, Link, Edit initials, Edit name and Make admin.'];
 
 export default function GamePlayersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,8 +66,6 @@ export default function GamePlayersScreen() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  // Seats whose invite link was just made: shown as Pending registration at once, before the refetch lands.
-  const [invited, setInvited] = useState<Set<string>>(new Set());
   // Open Link to Player ID requests (025) for seats in this game, so those rows read Link pending.
   const [linkRequests, setLinkRequests] = useState<PendingLink[]>([]);
 
@@ -120,7 +117,7 @@ export default function GamePlayersScreen() {
     else if (item === 'remove_admin') run(() => gamesService.setSeatRole(game.id, seat.id, 'player'));
     else if (item === 'edit_initials') setSheet({ kind: 'initials', seat });
     else if (item === 'edit_name') setSheet({ kind: 'edit', seat });
-    else if (item === 'invite') setSheet({ kind: 'invite', seat });
+    else if (item === 'invite') shareInvite().catch(() => {});
     else if (item === 'link_id') setSheet({ kind: 'link', seat });
     else if (item === 'remove_player') {
       // Same rule as the picker's ×: no scores, or every round score exactly 0 (per round, never the total).
@@ -151,7 +148,7 @@ export default function GamePlayersScreen() {
     const menu = seatMenu(seat, game, viewer?.id, canScore);
     const roleTag = visibleRoleTag(seatRoleLabel(seat, game), canScore);
     const linkRequest = linkRequests.find((l) => l.playerId === seat.id) ?? null;
-    const registration = visibleRegistration(registrationLabel(invited.has(seat.id) && seat.status === 'unregistered' ? { status: 'pending' } : seat, Boolean(linkRequest)));
+    const registration = visibleRegistration(registrationLabel(seat, Boolean(linkRequest)));
     const badge = playerIdBadge(seat);
     return (
       <View key={seat.id} style={[styles.row, { borderBottomColor: colors.hairline }]}>
@@ -259,17 +256,6 @@ export default function GamePlayersScreen() {
             busy={busy}
             onDismiss={() => setSheet(null)}
             onSave={(value) => viewer && run(() => gamesService.setSeatLabel(game.id, sheet.seat.id, value, viewer.id), () => setSheet(null))}
-          />
-        ) : null}
-
-        {sheet?.kind === 'invite' && viewer ? (
-          <InviteToRegisterDialog
-            player={sheet.seat}
-            owner={viewer}
-            gameNumbers={game.gameNumber != null ? [game.gameNumber] : []}
-            onDismiss={() => { setSheet(null); reload(); }}
-            // The link exists now, so the seat is Pending registration whether or not the sheet was used.
-            onPrepared={() => setInvited((current) => new Set([...current, sheet.seat.id]))}
           />
         ) : null}
 

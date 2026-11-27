@@ -70,7 +70,7 @@ export const SEAT_MENU_ICON: Record<SeatMenuItem, string> = {
 };
 
 export const SEAT_MENU_LABEL: Record<SeatMenuItem, string> = {
-  invite: 'Invite to register',
+  invite: 'Invite to EZ Score',
   link_id: 'Link to Player ID',
   edit_initials: 'Edit initials',
   my_initials: 'Change initials',
@@ -86,7 +86,7 @@ const ACCOUNT_DELETED = 'This account was deleted.';
 
 /**
  * The unified per-player ⋮ menu (Nov 11 item 5), in this order everywhere:
- * Invite to register · Link to Player ID · Edit initials · (Edit name) · Make/Remove admin · Remove from game.
+ * Invite to EZ Score · Link to Player ID · Edit initials · (Edit name) · Make/Remove admin · Remove from game.
  * The identity actions appear only for an unregistered player, and work only for the organiser
  * who added them. The creator always stays admin. Edit initials changes this game's column
  * label (022). Remove from game is offered for every seated player; whether it is allowed (no
