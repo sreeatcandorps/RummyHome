@@ -3,6 +3,7 @@
 Status: **built** (Nov 15; approved by Sree at 1:34 AM PT with every Q21.x recommendation). Migration `044_seating_order.sql` is written and **not applied**; Going rogue's migration moved to 045. Build notes: the pop-up flag is written `false` by Start and the sheet only pops while it is exactly `false`, so games started before this build (and the demo seed) never pop — §3.2; the ▲ ▼ on Players · Admins now work mid-game through the same RPC; the Log line falls back to the scorecard's default initials (022 `initials_candidates`) when a seat has no stored label.
 
 **PR 24 (Nov 17, Sree's v11 feedback) reshaped the feature; the table in [`pool-design.md` §0 rows 26–27](pool-design.md) is the contract now.** The sheet is called **Order of players**. The once-per-game pop-up is gone: the order is step 3 of New game (Players → Game type → Order of players → Co-admin → Start game). Tap-to-number replaces tap-to-place: nobody is numbered at the start, each tap gives the next number and lifts the player, tapping the last-numbered player takes it back, numbered rows carry ▲ ▼, Clear and Done. The Players chips column, "Picked up — choose a seat" and "Keep this order" were removed. Mid-game from ⋮ the same component opens prefilled. S01–S08 below show the PR 21 shape and are kept for history.
+**Nov 27 (D138): Order of players becomes a circle of initials — highest card at the top, the dealer (seat 1) one step to its right. Approved and being built; the geometry, pictures and where it stops fitting are §11.**
 Mockups: [`seating-order-mockups/`](seating-order-mockups/) (S01–S08, same style as the Pool / Multiplier / Going rogue
 sets; 390 dp, light theme, caption strip on each). Section 7 lists the questions with a recommendation on each; section 8
 the test rows; section 9 the place in the queue.
@@ -231,3 +232,194 @@ re-pointed `moveSeat`, one Help bullet, smoke 19 + a nightly flow. Roughly PR 9-
   order; this is UI only).
 
 None of these change the data path above: they all end in the same `set_seating_order` call.
+
+## 11. Order of players as a circle (Sree, Nov 27 2026; D138) — approved, being built
+
+Status: **approved by Sree on Nov 27 (Q58 → D138); a build helper is building it from the geometry below.** Redraws
+`design-review-2/mockups/table-mockup.png` (Nov 21, §8.5 of `design-review-2.md`), which predates Palette B (D65), the
+Size-S look (D66), D74 and D113. The rules of §3–§5 and D56 / D58 / D59 / D64 / D70 do not change: this is a new
+picture of the same order, not a new order. The first round of these pictures (Nov 27 morning) put seat 1 at the
+bottom; D138 moved the highest card to the top, and the pictures were redrawn over the same file names.
+
+Pictures (`design-review-2/mockups/`, generator `make-seating-circle.py`, `--fit` prints the table in 11.7; the "today"
+frames are CI's own, from run [46035664063](https://github.com/sreeatcandorps/RummyHome/actions/runs/46035664063) on
+#170, smoke 24g on the Pixel 6 and 19d on the 360 dp × 1.3 small phone, kept in `mockups/ci-frames/`):
+
+| File | Shows |
+| --- | --- |
+| `seating-circle-today-vs-proposed.png` | Today's list (CI frame) · the ring, everyone numbered, the dealer flashing · fixing a wrong tap (Priya selected, ▲ ▼ in the middle) · a newcomer (D70) joining while the dealer deals round 1 |
+| `seating-circle-taps.png` | Four phones: nobody numbered · first tap (Meena, highest card → seat 6, glides to the top) · next tap (Kiran → 5, to her left) · last tap (Ravi → seat 1, the dealer, one step right of the top) |
+| `seating-circle-small-13-20.png` | 360 dp × text 1.3: today (names already cut at 4 players) · 13 players, designed to look right · 20 players with WWW / MMM / HG2, still on one screen |
+| `seating-circle-dark.png` | Dark (D71): New game step 3 · mid-game Pool page with one player out, one re-entered and the "deals next" label moved round |
+
+### 11.1 Sree's words and how we read them
+
+| Sree said (verbatim) | Read as |
+| --- | --- |
+| "This is good. Let's make this happen! It is super rare to have more than even 11 players … Make your design work for up to 13, and then 14 onwards, it's okay if it doesn't look that great, but if you can make it work, definitely make it work." (Nov 27, Q58) | Build it. 4–13 players must look right on the Pixel 6 and on the 360 dp × 1.3 small phone; 14–20 must work (no cut letters, nothing under 48 dp) even if crowded. 11.7 says where it stops fitting. |
+| "What I want is the highest on the top … The highest goes to the top. The second highest goes to the left. It goes on like that." | Seat N (highest card, first tap) sits at 12 o'clock. Seat N−1 sits just to its left on screen, and the seats keep counting down **anticlockwise on screen**: down the left side, across the bottom, up the right. |
+| "The least, the dealer, should be on the right … The dealer is always one step to the right, and then you definitely want to show him clearly that he's the dealer. Make it obvious who the dealer is, and give him number 1. The highest gets the max number." | Seat 1 (lowest card, last tap) is the last seat round, so it lands one step to the right of the top, at about 1 o'clock. Numbers stay D56: dealer 1, highest N. The dealer is marked three ways: a gold ring round his disc, a gold **DEALER** label above it, and a green number badge "1". |
+| "The default for dealing is counterclockwise (anticlockwise). Obviously, whoever has the highest gets the first open card. It's all about the open card, right?" | A dashed arrow runs from the dealer anticlockwise to the top player, labelled "first open card", and one line under the ring says "The deal goes anticlockwise ⟲". This is the app's rule already: the first open card goes to the seat before the dealer (D58), which for seat 1 is seat N, the top. |
+| "Tell me when this will fail: small screens, too many people, and what are we going to do about it?" | 11.7. |
+| "The number 1 seating shown as a circle or oval: I think that would be very, very nice because it's so much easier to visualize." (Nov 27, morning) | The list on Order of players becomes an oval table, in both places (New game step 3 and ⋮ mid-game), one component. |
+| "It should be a circle, or at least an oval … that's how people sit in real life … dealing always happens counterclockwise … they have to always sit to the left side of the person that is dealing." (Nov 21, 1:11 AM) | A newcomer (D70) sits in the seat before the dealer: on the ring, the place between the dealer and the top player. See 11.2 item 3 and the fourth frame of the first picture. |
+| "At the same time, it's kind of hard to show the full name, so I think we could just show initials, and that would be perfect. Just initials is just fine for the seating chart." | Each player is a disc with the scorecard's own initials (the column letters), no names on the ring. |
+| "As you tap them, they get numbers, and they move to the right position automatically. Before that, you only show initials." | Before any tap the players sit round the ring in the order they were added, grey and dashed (= not numbered yet). Each tap gives the next number and the disc **glides** to that seat (about a quarter of a second): the first tap to the top, the next to its left, and so on round anticlockwise; the players still waiting slide round to fill the seats left. |
+| "Maybe a long tap should show his name and player ID, or even a single tap can show his full name." / "Just flash his name, his player ID anytime they're touched in the middle of the circle, and his player number." | **A single tap does it.** Every tap shows a card in the middle for about 2 seconds: full name, Player ID (#57, D113) and "Seat 6", plus "highest card" on the first tap and "lowest card · dealer" on the last. A long tap does nothing extra. |
+
+### 11.2 The design (D138)
+
+1. **Where everyone sits.** Seat N, the highest card and the first tap, at 12 o'clock. Seat N−1 just to its left, then
+   anticlockwise on screen: down the left, across the bottom, up the right. Seat 1, the lowest card, the last tap and the
+   dealer of round 1, is the last seat round: one step to the right of the top, about 1 o'clock. At 6 players: MI (6) top,
+   KR (5) upper left, SK (4) lower left, PR (3) bottom, AR (2) lower right, RK (1) upper right. The same at every count:
+   only the spacing changes.
+2. **The dealer is unmistakable.** Gold ring round the disc, a gold **DEALER** label just above it, a green "1" badge, and
+   on the last tap the flash says "lowest card · dealer". A dashed arrow from the dealer, anticlockwise, to the top
+   player, labelled "first open card"; under the ring, "The deal goes anticlockwise ⟲". The arrow and the dealer marks
+   are there at rest, not only on a tap.
+3. **A newcomer (D70).** He takes the seat before the dealer. With seat 1 dealing, that is the new highest seat (N+1), so
+   on the ring he appears **at the top, between the old top player (now just to his left) and the dealer (just to his
+   right)**; the old top player moves one place round to the left and everyone keeps his number. His disc has a dashed
+   green outline and his flash says "just joined"; the note above the ring keeps D70's wording ("Tara sits at seat 7,
+   between Meena and Ravi — left of the dealer. She is the new highest seat, so she sits at the top."). With any other
+   dealer, he lands one step anticlockwise from that dealer, where the first open card goes.
+4. **Mid-game the seats stay put; the dealer label moves.** Seat numbers are the table, so mid-game the ring is drawn
+   the same way (highest seat at the top) and the gold ring and label sit on whoever deals next ("DEALS NEXT"), with the
+   first-open-card arrow from him to the seat before him that is still in. So after round 1 the dealer is no longer one
+   step right of the top: he walks round the ring with the deal. Not chosen: turning the ring so the current dealer is
+   always at 1 o'clock (every player would jump on screen every round, and the top would stop meaning "highest card").
+5. **The ring replaces the list.** No numbered list under the circle. A tap shows the name, the screen reader still reads
+   the full name, seat and "dealer" of every disc, and a list under a ring would be two pictures of one order (D50).
+6. **Fixing a wrong tap** (unchanged from the first round, approved). The latest tap: tap him again, his number comes off.
+   Anyone else numbered (and every player mid-game): tap him; he lights up, the others dim, and the middle shows his name
+   with two 48-dp buttons, **▲ Seat 4** and **▼ Seat 2**; he swaps with that neighbour. Tap him again or the felt to let
+   go. The highest seat has no ▲ and seat 1 has no ▼ (D59). Clear starts again. D74's at-rest arrows are dropped (D138).
+7. **Sizes.** Discs are 56 dp up to 10 players and 48 dp from 11 (never under 48, D52). A disc grows into a pill to fit
+   its letters (WWW, MMM, HG2) and never cuts them (D95). The seat number is a small badge just inside the ring, in front
+   of its player, so it never covers a letter. Up to 8 players the ring is a gentle oval; from 9 it takes all the height
+   between the title and the buttons, so the middle stays roomy. The gaps follow the disc widths so no two discs touch.
+   The flash's name is capped at 22 px so it fits the middle at large text sizes.
+8. **The middle of the oval is the one place for words.** At rest: "Tap players from the highest card to the lowest",
+   the count ("0 of 6 numbered") and Show me. On a tap: the flash. Selected: the name and ▲ ▼. Mid-game: "Round 6 ·
+   Kiran deals next".
+9. **Mid-game opens as a full page, not a dialog**, with the same subline and yellow note above the ring and Cancel ·
+   Clear · Done at the bottom; Done's D64 behaviour is unchanged. **Pool:** an out player keeps his seat as a grey,
+   struck-through disc marked "out" that the deal and the first open card skip; a re-entered player is blue, as on the
+   scorecard.
+10. **Kept simple.** Every phone shows the same picture (no turning the ring to the admin's chair). No new dependency: the
+    glide uses React Native's `Animated`; with "remove animations" on, the disc jumps. Landscape gets no design of its own
+    (D89); the ring draws itself in whatever space it has.
+
+**Where the picture and the app's rules meet, said plainly** (Sree asked for his geometry even where code or convention
+differ; nothing here changes what is drawn):
+
+- *The cards go anticlockwise, the dealer's job goes clockwise.* The first open card goes anticlockwise from the dealer
+  to the top player, as Sree said. But the next dealer is seat 2 (D58: the deal moves up one seat), and seat 2 sits
+  clockwise from seat 1 on this ring (just below him on the right). So round 2 is dealt by the player one step clockwise,
+  and the dealer label walks clockwise down the right side, then across the bottom and up the left. That is how the app
+  already rotates the deal; the build does not change it. If Sree wants the dealer's job to move anticlockwise too, that
+  is a change to D58 (who deals and who opens each round), not to the picture.
+- *"Left of the dealer."* On the screen the newcomer appears to the dealer's left (between him and the top player). For
+  someone sitting in the dealer's chair facing the table, that seat is on his right hand. The copy keeps D70's words
+  ("left of the dealer") because they describe the picture.
+
+### 11.3 What is lost or moved from today's screen
+
+| Today | Proposed |
+| --- | --- |
+| Full name on every row | In the middle, for 2 s, on each tap; while selected; always read aloud by the screen reader. **Not visible all at once any more** (the trade Sree asked for) |
+| Player ID (#124) on wide rows | In the flash, on every phone size (today it hides on narrow rows) |
+| Initials, twice (in the avatar and as text) | Once, on the disc |
+| Seat number circle at the left of the row | Badge inside the ring, in front of the disc |
+| Avatar coloured by add order before it is numbered | Grey and dashed until numbered, then the seat colour |
+| "highest card" tag on the first row | Pill in the first tap's flash; the top of the ring |
+| Green seat number + "deals" tag | Gold ring + DEALER label + green "1"; "lowest card · dealer" in the last tap's flash; "DEALS NEXT" and "Round 6 · Kiran deals next" mid-game |
+| (nothing) | The first-open-card arrow and "The deal goes anticlockwise ⟲" |
+| Counter line under the list (incl. D64 "order unchanged — Done closes") | In the middle |
+| ▲ ▼ on every numbered row at rest (D74) | **Removed at rest** (D138); ▲ ▼ only for the selected player, in the middle |
+| Selected row lifts out with a gap (D74) | Selected disc gets a green ring, the others dim |
+| Card with icon square, title, hint line and Show me | Gone (Size-S look); the hint and Show me move into the middle |
+| Bottom toast "Lowest card — Ravi deals round 1" + phone buzz (D61) | The last tap's flash says it; the buzz stays |
+| Mid-game dialog | Full page |
+| Pool: out row grey and struck through; re-entered blue | Same, on the disc |
+| Tutorial (3 steps, Show me) and Help › Order of players, Watch how | Same steps, redrawn on the ring; Help text and pictures re-made |
+
+Nothing else on the screen changes: Back · Clear · Next / Start game, the step order (D17), what Done saves, the Log row,
+the dealer rules, Realtime.
+
+### 11.4 What the build touches
+
+- `components/game/OrderOfPlayers.tsx`: the list becomes the ring (same props, so both hosts change little); the disc,
+  badge, dealer marks, first-open-card arrow, flash and move buttons live here.
+- New `utils/seatRing.ts` (pure): disc widths from the initials and text size, positions on the oval starting at the
+  top and going anticlockwise from seat N, whether it fits (the generator's algorithm). `utils/seating.ts`: one new
+  helper for which player sits in which seat while counting (the waiting players fill the low seats in the order added);
+  `tapPlayer`, `stepNumbered`, `displayOrder`, `numberedCounter`, `seatRowLabel`, `opensFor` and the rest stay as they are.
+- `components/game/OrderStep.tsx`: no card, no hint row, no bottom toast (the flash replaces it; the buzz stays).
+- `components/game/SeatingSheet.tsx`: dialog → full page; `components/game/OrderHowTo.tsx` moves into the middle of
+  the ring or goes.
+- `utils/tutorials.ts` (the three scripted steps), `components/tutorial/SeatingTutorial.tsx`, `constants/helpTopics.ts`
+  (Order of players topic), the help pictures.
+- No migration, no server change, no new package, nothing under `public/`.
+
+### 11.5 Tests and device flows that change
+
+- Unit: `tests/seating-pr21.test.ts`, `tests/seating-tutorial-d74.test.ts`, `tests/v12-quick-fixes-nov19.test.ts` and
+  `tests/pool-pr24.test.ts` pin today's list (rows, arrows on every row, the toast); they move to the ring.
+  `tests/help-pr11.test.ts` pins the Help copy ("Wrong tap? Tap the latest player again …"), which keeps its meaning
+  and gains the ▲ ▼ sentence. `tests/test-selection-pr17.test.ts` pins the mid-game sheet keeping its taps across a
+  reload (`[visible, baseKey]`); the full page must keep that. New `tests/seat-ring.test.ts`: for 4–20 players at text
+  1.0 and 1.3 on 360 and 412 dp, no two discs touch, none is under 48 dp, no pill is narrower than its letters; seat N is
+  at 12 o'clock, seat N−1 is to its left, seats count down anticlockwise, seat 1 is the position just right of the top;
+  the first-open-card arrow goes from the dealer to `opensFor`; 4–13 players fit on one screen at 360 dp × 1.3 and
+  "does not fit" (scroll) is reported at the counts in 11.7; a number never changes once given (D56); the waiting
+  players fill the low seats in the order added.
+- Device flows: `e2e/smoke/19-seating-order.yaml` (row ids → disc ids by seat, assertions on the flash text and the
+  DEALER label, ▲ ▼ through the middle buttons, frames 19 … 19j re-taken), `e2e/smoke/24-seating-tutorial.yaml` (24e
+  toast → flash, 24f / 24g selected-only arrows), `e2e/smoke/16-pool-game.yaml` (its Order of players step),
+  `e2e/full/51-seating-20p.yaml` (20 discs on one screen, WWW / MMM never cut, Pixel 6 and small phone), plus the help
+  frames in `e2e/smoke/21-help-frames.yaml`. New test ids: `seat-disc-<seat>`, `seat-dealer-label`, `seat-flash`,
+  `seat-move-up`, `seat-move-down`.
+- The UI PR carries the screenshot matrix (0 / 1 / 5 rounds × 4 / 13 players, D45) in light and dark, plus the 20-player
+  small-phone frame.
+
+### 11.6 The question (answered)
+
+Q58 — "Can the circle replace the list completely, with each tap flashing the name, Player ID and seat in the middle,
+and with ▲ ▼ shown only for the player you tap?" **Answered Nov 27: yes, with the highest card at the top and the dealer
+one step to its right (D138).**
+
+### 11.7 Where it fails
+
+Measured with the generator's layout (`make-seating-circle.py --fit`), which is the algorithm the build uses. In plain
+words: **a disc never gets smaller than 48 dp and initials are never cut, on any screen, at any number of players.**
+Instead, as players are added the oval first grows taller until it fills the space between the title and the buttons;
+past that the page scrolls, with the title and the buttons staying put. So "fails" below means "no longer fits on one
+screen without scrolling".
+
+| Screen | Looks right (at least half a disc of space between neighbours) | Scrolls from (normal two-letter initials) | Scrolls from (every player three letters, e.g. WWW) | What the app does then |
+| --- | --- | --- | --- | --- |
+| Pixel 6 (412 dp, text 1.0) | 4–20 | 28 players | 23 players | Page scrolls; discs and letters stay full size |
+| 360 dp small phone, text 1.0 | 4–16 | 23 players | 19 players | Same |
+| 360 dp small phone, text 1.3 (CI's small phone) | 4–15 | 22 players | 15 players | Same; from 14 the ring is crowded but every disc and letter is whole |
+| 360 dp, text 1.5 | 4–15 | 22 players | 13 players | Same |
+| 360 dp, text 2.0 (largest) | 4–12 | 17 players | 7 players | Same; the middle is only about 115 dp wide, so the flash's name wraps to two or three lines |
+| 360 dp × 1.3, mid-game page (yellow note above the ring) | 4–13 | 19 players | 13 players | Same |
+| Tablet (800 × 1280 dp) | 4–30 | over 30 | over 30 | Never scrolls; the ring simply spreads wider |
+
+"Looks right" is measured with two-letter initials: at least 24 dp of felt between any two neighbouring discs.
+How to read it: a real table is mostly two-letter initials with perhaps one or two three-letter ones, so the real limit
+sits between the last two columns. Sree's range (up to 13 looks right, 14–20 works) holds on every phone up to text 1.5
+when the initials are the usual two letters; at the largest text (2.0) it looks right up to 12 and scrolls from 17. The one case that scrolls early is a whole table of three-letter initials
+at the largest text sizes; there the page scrolls rather than shrinking anything.
+
+Other places it gets tight, and what the build does:
+
+- *The middle at 20 players on a small phone.* Narrow (about 165 dp); a long name wraps to two lines and the flash
+  covers the "first open card" label for its 2 seconds. Accepted (Sree: "14 onwards, it's okay if it doesn't look that
+  great").
+- *Landscape* (D89, no design). The ring is limited by the short side, so more players scroll sooner; it still never
+  shrinks below 48 dp or cuts letters.
+- *A disc's pill wider than a quarter of the ring* (very long initials such as a four-letter label at text 2.0). The ring
+  still places it without overlap; the page scrolls sooner.
