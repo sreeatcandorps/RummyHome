@@ -173,6 +173,7 @@ this file exists so nobody has to read five specs and a chat log to know the cur
 
 | ID | Date | Question | Default in use | Status |
 | --- | --- | --- | --- | --- |
+| Q50 | 2026-11-27 | **On a tablet held in its natural landscape, should the scorecard keep Add round and the other buttons, while phones keep the table alone (D89)?** Found by the nightly (#160): the Pixel Tablet's natural position is sideways, so today a tablet user has to turn it upright to add a round. | yes for tablets (a mockup first, then `LANDSCAPE_EDITING` on for tablet-sized screens only); nothing built yet | open — asked in #169 |
 | Q49 | 2026-11-25 | **Build the 30-day delete grace (D72) now?** | yes, now | answered Nov 25 → D122 (after the freeze) |
 | Q48 | 2026-11-25 | **File a DBA ("MindWeave" as a trade name of Candor PS LLC)?** | not now | answered Nov 25 → D121 (yes, file it; California) |
 | Q47 | 2026-11-25 | **Which phone number sends the WhatsApp codes?** | a new Twilio number | answered Nov 25 → D120 |
