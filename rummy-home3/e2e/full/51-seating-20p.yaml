@@ -160,12 +160,26 @@ tags: [nightly]
     id: "seat-row-19"
 - tapOn:
     id: "seat-row-20"
+# Mid-game the Dealer mark is the scorecard's next dealer, not seat 1: round 30's dealer (Test India) is now
+# seat 11, so seat 12 (Test Juliet) deals round 31 — the next deal follows the new order.
 - assertVisible:
     id: "seat-row-20"
-    text: "Seat 1, Test Uniform, deals next"
+    text: "Seat 1, Test Uniform"
 - assertVisible:
     id: "seat-number-20"
     text: "1"
+- scrollUntilVisible:
+    element:
+      id: "seat-deals-line"
+      text: "Test Juliet deals round 31"
+    direction: DOWN
+    timeout: 45000
+- scrollUntilVisible:
+    element:
+      id: "seat-row-9"
+      text: "Seat 12, Test Juliet, deals next"
+    direction: DOWN
+    timeout: 45000
 - scrollUntilVisible:
     element:
       id: "order-counter"
@@ -265,12 +279,19 @@ tags: [nightly]
     id: "seat-row-20"
 - tapOn:
     id: "seat-row-20"
+# Back in the old order Test India is seat 10 again, so seat 11 (Test Juliet) still deals round 31.
 - assertVisible:
     id: "seat-row-20"
-    text: "Seat 1, Sree Test, deals next"
+    text: "Seat 1, Sree Test"
 - assertVisible:
     id: "seat-number-20"
     text: "1"
+- scrollUntilVisible:
+    element:
+      id: "seat-deals-line"
+      text: "Test Juliet deals round 31"
+    direction: DOWN
+    timeout: 45000
 - scrollUntilVisible:
     element:
       id: "order-counter"
