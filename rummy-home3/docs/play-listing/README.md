@@ -22,7 +22,29 @@ the first set built since the Nov 19 rework — the earlier files were the pre-r
 | `assets/screenshot-1-01.png` … `screenshot-7-19d.png` | 1080 × 1920 (9:16) | Store listing → Phone screenshots, in this order: Your games · Every round on one card · Points and pool games (9-player pool) · Tap the points · Split the pool your way · Consolidate points across games (saved S1 + S2) · Seat the table (Play wants 2–8 at 16:9 or 9:16; raw Pixel 6 frames are 9:20 and are refused, so each sits on a captioned 9:16 card) |
 | `assets/screenshot-8-landscape-10p.png` | 1920 × 1080 (16:9) | Phone screenshots, last (ten players sideways) |
 
-No 7" / 10" tablet screenshots yet: optional for a phone-first listing; add from the tablet smoke job later.
+### Tablet screenshots (Nov 27)
+
+| File | Size | Where in the Console |
+| --- | --- | --- |
+| `assets/tablet-1-home.png` … `tablet-7-result.png` | 1440 × 2560 (9:16), 24-bit PNG, no alpha, 180–360 KB | Store listing → **7-inch tablet screenshots** and again → **10-inch tablet screenshots**: upload the same seven, in this order: Your games · Every round on one card (10 players) · Points and pool games · Tap the points, save the round · Split the pool your way · Share the final scores · Consolidate points across games |
+
+- **Play's rules** (Console help, "Add preview assets", checked Nov 27): tablets take 2–8 per size (Play wants at least 4 to
+  feature the app on large screens); PNG or JPEG up to 8 MB; each side 1,080–7,680 px; 16:9 landscape or 9:16 portrait only
+  (the longer side at most 2.3 × the shorter). All seven meet that.
+- **Where the frames come from**: the `ui-tablet-smoke-a` and `-b` jobs of CI run 46014139528 (PR #169, green; the emulator is
+  1600 × 2560, 10:16, a 10-inch class tablet). Home, 10-player scorecard, pool and the saved result are Ravi Kumar's demo games
+  (`smoke/22`); Add round, Awards and Final scores are `smoke/04`, `16`, `05`'s demo game (Harish Test, Zed Zero). No real e-mails or
+  phone numbers are on any of them. The status bar and the launcher / navigation strip of the emulator are cropped off, and the
+  tablet sits on a captioned 9:16 card (raw 10:16 frames would be refused), the same card style as the phone set.
+- **No real 7-inch frame**: CI has one tablet size, so the 7-inch section gets the same seven pictures. Play only checks size and
+  ratio; the app's tablet layout is the same two-column Home on both.
+- **No landscape tablet picture**: on the tablet emulator the sideways step of `smoke/22` (and `03`, `11`, `20`) still produces a
+  portrait 1600 × 2560 frame, so `22c` is a copy of `22b`. Nothing to upload there until a real sideways frame exists.
+- Remake: download both artifacts, copy their `smoke/screens/*.png` into one folder, then
+  `python3 docs/play-listing/make-assets.py --only-tablet /tmp/unused --tablet <that folder>` (add the phone frames dir first, without
+  `--only-tablet`, to remake everything).
+- Tablet captions are text added to the picture; Play asks for no extra text that is not part of the app. The phone set (Sree's
+  Nov 19 review) already works this way, so the tablet cards copy it; say the word and they become the bare frame on a cream card.
 
 ---
 
