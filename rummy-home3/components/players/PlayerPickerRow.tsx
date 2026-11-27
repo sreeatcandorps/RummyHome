@@ -41,6 +41,7 @@ export function PlayerPickerRow({ candidate, index, disabled, isMe = false, onPr
         disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={isMe ? `Add ${candidate.name} (you)` : `Add ${candidate.name}`}
+        testID={`picker-row-${index + 1}`}
         style={({ pressed }) => [
           styles.row,
           { borderColor: colors.outlineVariant, backgroundColor: pressed ? colors.primaryContainer : colors.surface, opacity: disabled ? 0.5 : 1 },

@@ -16,166 +16,313 @@ tags: [smoke]
     timeout: 15000
 - tapOn: "Add Sree Test (you)"
 # Each pick: clear the field first (the keyboard can keep the last word and join it to the next, small phone
-# Nov 27: "Test HotelG"), wait for the row, and confirm the chip before the next search. A pick leaves the
-# picker animating for ~10 s, so the tap waits 1 s for the screen to settle instead of the default 10.
+# Nov 27: "Test HotelG"); wait for the one result, row 1, by its id and label (the search box's own text is
+# "Test X", never "Add Test X"). Close the keyboard: it covers the page instead of shrinking it, and after seven
+# chips on the small phone the result sits under it (Nov 27, the tap landed on the keys). Just after typing the
+# keyboard is up, so hideKeyboard cannot be a Back press. The pick is confirmed by the row leaving the list.
+# A pick leaves the picker animating for ~10 s, so the tap waits 1 s for the screen to settle.
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Alpha"
 - extendedWaitUntil:
-    visible: "Add Test Alpha"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Alpha"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Alpha"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Alpha"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Alpha"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Alpha"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Bravo"
 - extendedWaitUntil:
-    visible: "Add Test Bravo"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Bravo"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Bravo"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Bravo"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Bravo"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Bravo"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Charlie"
 - extendedWaitUntil:
-    visible: "Add Test Charlie"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Charlie"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Charlie"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Charlie"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Charlie"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Charlie"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Delta"
 - extendedWaitUntil:
-    visible: "Add Test Delta"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Delta"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Delta"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Delta"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Delta"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Delta"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Echo"
 - extendedWaitUntil:
-    visible: "Add Test Echo"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Echo"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Echo"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Echo"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Echo"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Echo"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Foxtrot"
 - extendedWaitUntil:
-    visible: "Add Test Foxtrot"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Foxtrot"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Foxtrot"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Foxtrot"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Foxtrot"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Foxtrot"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Golf"
 - extendedWaitUntil:
-    visible: "Add Test Golf"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Golf"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Golf"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Golf"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Golf"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Golf"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Hotel"
 - extendedWaitUntil:
-    visible: "Add Test Hotel"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Hotel"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Hotel"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Hotel"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Hotel"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Hotel"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test India"
 - extendedWaitUntil:
-    visible: "Add Test India"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test India"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test India"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test India"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test India"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test India"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Juliet"
 - extendedWaitUntil:
-    visible: "Add Test Juliet"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Juliet"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Juliet"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Juliet"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Juliet"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Juliet"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Kilo"
 - extendedWaitUntil:
-    visible: "Add Test Kilo"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Kilo"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Kilo"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Kilo"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Kilo"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Kilo"
     timeout: 15000
 - tapOn:
     id: "picker-search"
 - eraseText: 15
 - inputText: "Test Lima"
 - extendedWaitUntil:
-    visible: "Add Test Lima"
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Lima"
     timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Lima"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
+    id: "picker-row-1"
     text: "Add Test Lima"
     waitToSettleTimeoutMs: 1000
 - extendedWaitUntil:
-    visible: "Remove Test Lima"
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Lima"
     timeout: 15000
-# The search keeps focus after the last pick and the keyboard covers the Next bar (Pixel 6, Nov 27). Close it only
-# when Next is hidden: with no keyboard up, hideKeyboard is a Back press and leaves New game.
+# If the keyboard came back after the last pick it covers the Next bar (Pixel 6, Nov 27). Close it only when Next
+# is hidden: with no keyboard up, hideKeyboard is a Back press and leaves New game.
 - runFlow:
     when:
       notVisible:
