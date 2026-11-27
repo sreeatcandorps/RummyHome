@@ -1,17 +1,17 @@
 # Home premium v2 — GPT directions
 
 ## 1 · Mahal Reserve
-Oxblood lacquer, antique gold and warm sandalwood make Home feel like a private card room.
-Carved details, inset edges and soft paper surfaces add depth without moving any Home element.
-The gold is reserved for hierarchy and the green status still means “active,” so it stays clear at the table.
+Generated oxblood lacquer and a carved sandalwood jharokha now form a deep, lit hero instead of a colour band.
+Live games sit in a carved tray as gilt playing-card objects, with suit corners, sealed monograms and theme-made status plaques.
+The lacquered New game control and sandalwood bottom rail carry the same edge, shine and shadow language.
 
 ## 2 · Peacock Atelier
-Peacock silk, mineral white and burnished copper give Home a cleaner, more contemporary Indian-luxury voice.
-The fan-line ornament and woven edge are restrained; the raised white cards keep names and scores easy to scan.
-Its dark version keeps the same teal identity and turns copper into the strongest action colour.
+Generated peacock silk, a full feather ornament and sculpted hammered copper make the hero a jewellery-like object.
+The games become copper-edged inlaid tiles with feather-eye monograms, suit corners and teal/copper status plaques.
+Hammered copper actions and a silk-and-copper bottom rail give the whole screen one deliberate material system.
 
 ## Recommendation
-**Mahal Reserve.** It has the stronger card-room character, richer material depth, and the clearest bridge from the existing Joker icon without looking like a reskin.
+**Mahal Reserve.** Its jharokha, lacquer and gilt playing cards have the stronger card-room story, while Peacock Atelier is the more contemporary luxury option.
 
 ## Render
-From `rummy-home3/`, run `npm ci` and then `node docs/home-premium-v2/gpt/render.mjs`. The renderer uses the app's Material Community Icons and produces each PNG separately at 3×.
+From `rummy-home3/`, run `npm ci` and then `node docs/home-premium-v2/gpt/render.mjs`. The renderer uses the app's Material Community Icons, the generated material assets in `assets/`, and measured 4.5:1 text/background pairs; it produces each PNG separately at 3×.

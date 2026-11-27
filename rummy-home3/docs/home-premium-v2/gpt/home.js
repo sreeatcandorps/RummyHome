@@ -13,6 +13,7 @@
   const games = [
     {
       id: "P2",
+      suit: "♥",
       date: "Fri, Nov 27",
       time: "5:10 PM",
       type: "Pool",
@@ -21,6 +22,7 @@
     },
     {
       id: "S3",
+      suit: "♠",
       date: "Fri, Nov 27",
       time: "3:18 PM",
       type: "Points",
@@ -29,6 +31,7 @@
     },
     {
       id: "S2",
+      suit: "♦",
       date: "Fri, Nov 27",
       time: "1:48 PM",
       type: "Points",
@@ -43,13 +46,15 @@
       .join(`<span class="score-dot">·</span>`);
     return `
       <article class="game-card">
-        <div class="game-id">${game.id}</div>
+        <span class="corner-pip">${game.suit}</span>
+        <span class="corner-pip bottom">${game.suit}</span>
+        <div class="game-id"><span>${game.id}</span><small>${game.suit}</small></div>
         <div class="game-top">
           <span class="game-title">${game.date}</span>
           <span class="game-time">${game.time}</span>
         </div>
         <div class="game-tags">
-          <span class="tag active">${icon("circle-medium")}Active</span>
+          <span class="tag active"><b class="chip-gem">♦</b>Active</span>
           <span class="tag creator">${icon("crown-outline")}Creator</span>
           <span class="game-kind">${game.type}</span>
         </div>
