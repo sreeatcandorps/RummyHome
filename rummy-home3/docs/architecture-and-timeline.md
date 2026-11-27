@@ -746,6 +746,11 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   The claim RPCs stay on the server so links already sent still open until they expire. Link to Player ID (025)
   is now the one way to move an initials player's games to an account. D70's seat change becomes migration 054.
 
+### 2026-11-27 — The staging APK waits for the awards chips (D129)
+- Sree paused the APK until the Awards screen has the four chips he asked for on Nov 21 (D128: By drops left
+  first, Split evenly, By score left, Custom). The order is now: awards chips merged and staging's e-mail sender
+  set → one test sign-up → staging APK without WhatsApp → WhatsApp in the build after.
+
 ### 2026-11-26 — The next staging APK ships without WhatsApp (D126, D117 superseded)
 - Distribution order is now: staging APK from `main` with everything except WhatsApp (054 on live, 053 + 054 and
   the code e-mail on staging first) → Sree tests → a later build adds WhatsApp sign-in (#153, migration 055) once
