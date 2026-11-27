@@ -392,7 +392,8 @@ Picture: `table-mockup.png`. Generator: `make-table-mockup.py`. Batch item 10; t
 
 **Redrawn Nov 27** after Sree's "just show initials … flash his name, his player ID … in the middle of the circle":
 the table now replaces the list instead of sitting above it, in Palette B and the Size-S look, with the D56
-count-down and D74's selected-only arrows. Spec and pictures: [`seating-order-design.md` §11](seating-order-design.md#11-order-of-players-as-a-circle-sree-nov-27-2026--mockup-nothing-built)
+count-down and D74's selected-only arrows. Approved the same day as D138 (highest card at the top, the dealer one
+step to its right). Spec and pictures: [`seating-order-design.md` §11](seating-order-design.md#11-order-of-players-as-a-circle-sree-nov-27-2026-d138--approved-being-built)
 (`seating-circle-*.png`, generator `make-seating-circle.py`). `table-mockup.png` above is kept for history.
 
 ### 8.6 Awards: the split chips (Sree, Nov 21, 1:16 AM)
