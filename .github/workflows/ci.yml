@@ -138,9 +138,8 @@ jobs:
       fail-fast: false
       matrix:
         ref: ${{ fromJSON(format('["{0}"]', inputs.ref || '')) }}
-    env:
-      # Supabase CLI defaults for the local stack started below; never the hosted project.
-      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    # DB_URL (the local stack started below, never the hosted project) comes from ci/supabase-start.sh, which may
+    # move the database off a port the runner holds; a job-level DB_URL would shadow it.
     steps:
       # The test tooling (ci/, supabase/config.toml, seed.sql, supabase/tests) always comes from the
       # commit this workflow runs from. For the nightly matrix and manual runs, the app under test
@@ -182,6 +181,7 @@ jobs:
         run: |
           supabase --version
           ../ci/supabase-start.sh -x studio,imgproxy,edge-runtime,logflare,vector
+          DB_URL=$(cat /tmp/ezscore-db-url)
           psql "$DB_URL" -tAc "select version()"
 
       - name: Migrations 001–022 + seed from empty (supabase db reset)
@@ -478,7 +478,6 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
     env:
-      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
       CI: 1
     steps:
       - uses: actions/checkout@v4
@@ -514,6 +513,7 @@ jobs:
           # after 59 s with nothing printed): test the command directly and print the start log with the
           # secret values masked rather than dropping those lines.
           ../ci/supabase-start.sh -x studio,imgproxy,edge-runtime,logflare,vector,inbucket
+          DB_URL=$(cat /tmp/ezscore-db-url)
           psql "$DB_URL" -tAc "select version()"
           set -o pipefail
           supabase db reset 2>&1 | tail -3
@@ -689,8 +689,6 @@ jobs:
     if: needs.select.outputs.volume == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
     steps:
       - uses: actions/checkout@v4
         with:
@@ -708,6 +706,7 @@ jobs:
         working-directory: rummy-home3
         run: |
           ../ci/supabase-start.sh -x studio,imgproxy,edge-runtime,logflare,vector,inbucket
+          DB_URL=$(cat /tmp/ezscore-db-url)
           supabase db reset 2>&1 | tail -2
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-e2e.sql
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f supabase/seed-break.sql
