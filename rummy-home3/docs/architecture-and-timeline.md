@@ -750,6 +750,8 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
 - Sree paused the APK until the Awards screen has the four chips he asked for on Nov 21 (D128: By drops left
   first, Split evenly, By score left, Custom). The order is now: awards chips merged and staging's e-mail sender
   set → one test sign-up → staging APK without WhatsApp → WhatsApp in the build after.
+- After the APK, Sree reviews the whole app; the code freeze follows his feedback (D134). Home gets premium design
+  directions first, drawn by a Fable helper (D135). A test now fails when an ask of Sree's has no Q-number (D132).
 
 ### 2026-11-26 — The next staging APK ships without WhatsApp (D126, D117 superseded)
 - Distribution order is now: staging APK from `main` with everything except WhatsApp (054 on live, 053 + 054 and
