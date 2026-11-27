@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>EZ Score · Home · comparison sheets</title>
+<style>
+  @font-face { font-family: "Roboto"; src: url(".cache/fonts/Roboto.ttf"); font-weight: 100 900; font-stretch: 75% 100%; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #D9D5CB; -webkit-font-smoothing: antialiased; }
+  .sheet { width: 1200px; padding: 30px 36px 30px; background: #E9E5DB; color: #1D211E; font: 400 15px/1.4 "Roboto", sans-serif; }
+  .sheet.night { background: #1A1C1B; color: #F1EDE2; }
+  h1 { font: 700 27px/1.2 "Roboto", sans-serif; letter-spacing: -0.2px; }
+  .sub { margin-top: 4px; font-size: 16px; opacity: 0.78; }
+  .row { display: flex; gap: 24px; margin-top: 22px; align-items: flex-start; }
+  .cell { flex: 1; min-width: 0; }
+  .label { display: flex; align-items: center; gap: 8px; font: 700 18px/1.2 "Roboto", sans-serif; }
+  .chip { flex: none; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
+  .note { min-height: 40px; margin: 3px 0 9px; font-size: 14px; line-height: 1.35; opacity: 0.78; }
+  .cell img { display: block; width: 100%; border-radius: 20px; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 16px 34px rgba(0, 0, 0, 0.22); }
+  .night .cell img { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16), 0 16px 34px rgba(0, 0, 0, 0.6); }
+  .foot { margin-top: 20px; font-size: 13.5px; opacity: 0.72; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  const NAMES = {
+    today: ['Today', '#0E4D2A'],
+    a: ['A · Emerald & Gold', '#0E4433'],
+    b: ['B · Maroon & Marigold', '#7E1528'],
+    c: ['C · Ivory & Indigo', '#1F2F6B'],
+  };
+  const CI_PR = 'CI run 46035664063 (Nov 27, all green)';
+  const CI_NIGHTLY = 'nightly CI run 45878556049 (Nov 26, the Pixel 6 job)';
+  const cell = (who, file, note, label) => ({ who, file, note, label });
+
+  const SHEETS = {
+    overview: {
+      title: 'Home, today and three premium directions', sub: 'Light mode · Pixel 6 · Friday evening with two games running',
+      cells: [
+        cell('today', 'today-light-games', 'The real app, as it is now.'),
+        cell('a', 'a-light-games', 'The card table: felt green, brass, ivory.'),
+        cell('b', 'b-light-games', 'A film poster: gold title, games as tickets.'),
+        cell('c', 'c-light-games', 'Paper and ink: one accent, one pattern.'),
+      ],
+      foot: `Today is a real screenshot from ${CI_PR}. A, B and C are mockups with the same content as the app.`,
+    },
+    dark: {
+      night: true, title: 'Dark mode', sub: 'Pixel 6 · the same evening',
+      cells: [
+        cell('today', 'today-dark-games', 'The real app in dark mode.'),
+        cell('a', 'a-dark-games', 'Green-black, gold numbers.'),
+        cell('b', 'b-dark-games', 'Wine-black, the stage stays lit.'),
+        cell('c', 'c-dark-games', 'Midnight indigo, saffron button.'),
+      ],
+      foot: `Today is a real screenshot from the ${CI_NIGHTLY}. A, B and C are mockups.`,
+    },
+    empty: {
+      title: 'First launch: no games yet', sub: 'Light mode · Pixel 6',
+      cells: [
+        cell('today', 'today-light-empty', 'The real app with no games.'),
+        cell('a', 'a-light-empty', 'The Joker on the felt.'),
+        cell('b', 'b-light-empty', 'The Joker in the spotlight.'),
+        cell('c', 'c-light-empty', 'The Joker on a rangoli.'),
+      ],
+      foot: `Today is a real screenshot, a player with no games, from ${CI_PR}. A, B and C are mockups.`,
+    },
+    small: {
+      title: 'A on the small phone with large text', sub: '360 wide · text size 1.3 · nothing is cut, long lines wrap',
+      cells: [
+        cell('today', 'today-small-games', 'The real app: the time and "My players" are cut.'),
+        cell('a', 'a-light-small-games', 'Light. The time drops to its own line.'),
+        cell('a', 'a-dark-small-games', 'Dark.'),
+        cell('a', 'a-light-small-empty', 'No games yet.'),
+      ],
+      foot: `Today is a real screenshot from the small phone job of ${CI_PR}. The other three are mockups.`,
+    },
+    everything: {
+      title: 'Everything Home can show, on one long page', sub: 'Requests, a player update, Show more and Deleted games, scrolled out in full',
+      cells: [
+        cell('a', 'a-light-all', 'Pixel 6.'),
+        cell('b', 'b-light-all', 'Pixel 6.'),
+        cell('c', 'c-light-all', 'Pixel 6.'),
+        cell('a', 'a-light-small-all', 'Small phone, text size 1.3.'),
+      ],
+      foot: 'Mockups. On the phone this is one scroll; the bottom bar stays in place.',
+    },
+  };
+  for (const d of ['a', 'b', 'c']) {
+    SHEETS[d] = {
+      title: NAMES[d][0], sub: 'Pixel 6 · light and dark · with games and on first launch',
+      cells: [
+        cell(d, `${d}-light-games`, 'Two games running.', 'Light'),
+        cell(d, `${d}-dark-games`, 'Two games running.', 'Dark'),
+        cell(d, `${d}-light-empty`, 'First launch, no games yet.', 'Light'),
+        cell(d, `${d}-dark-empty`, 'First launch, no games yet.', 'Dark'),
+      ],
+      foot: 'Mockups. Every text colour is checked at 4.5 : 1 or better against what is behind it.',
+    };
+  }
+
+  const s = SHEETS[new URLSearchParams(location.search).get('sheet') || 'overview'];
+  document.getElementById('root').innerHTML = `
+    <div class="sheet ${s.night ? 'night' : ''}">
+      <h1>${s.title}</h1>
+      <div class="sub">${s.sub}</div>
+      <div class="row">${s.cells.map((c) => `
+        <div class="cell">
+          <div class="label"><span class="chip" style="background:${NAMES[c.who][1]}"></span>${c.label || NAMES[c.who][0]}</div>
+          <div class="note">${c.note}</div>
+          <img src="${c.file}.png" alt="">
+        </div>`).join('')}</div>
+      <div class="foot">${s.foot}</div>
+    </div>`;
+</script>
+</body>
+</html>
