@@ -113,9 +113,12 @@ html,body{background:$bg;color:$ink;font-family:Rb,Roboto,'Noto Sans',Arial,sans
 .btn.out{border:2px solid $outline;color:$primary;padding:0 5px 0 6px;height:56px}
 .bbar.short{padding:10px 16px 58px}
 .btn.accent{background:$secc;color:$onsecc;height:56px;font-size:calc(17px*var(--fs));letter-spacing:.2px;padding:0 7px 0 8px}
-.chip{height:42px;border-radius:999px;display:flex;align-items:center;padding:0 10px;font-size:calc(16px*var(--fs));font-weight:700;white-space:nowrap}
-.chip.on{background:$primary;color:#fff;border-bottom:4px solid $edge;height:44px} .chip.off{border:2px solid $outline;color:$primary} .chip.dim{opacity:.45}
+/* Paper's compact Button: a 20 sp label line, 10 above and below, 2 px border or the 4 px edge. Widths and
+   heights checked against the CI frames of the top of Awards (small phone and Pixel 6): within 2 dp. */
+.chip{height:calc(calc(20px*var(--fs)) + 24px);border-radius:999px;display:flex;align-items:center;padding:0 9px;font-size:calc(16px*var(--fs));font-weight:700;white-space:nowrap}
+.chip.on{background:$primary;color:#fff;border-bottom:4px solid $edge;padding:0 11px} .chip.off{border:2px solid $outline;color:$primary} .chip.dim{opacity:.45}
 .chip .mdi{font-size:18px;margin-right:6px}
+.why b{color:$ink;font-weight:700}
 /* Paper Chip, the Results filter */
 .pchip{height:36px;display:flex;align-items:center;padding:0 16px;font-size:calc(16px*var(--fs));font-weight:700;white-space:nowrap;border-radius:999px}
 .pchip.on{background:$primary;color:#fff;padding-left:8px} .pchip.off{background:$surface;border:1px solid $outline;color:$muted}
@@ -167,7 +170,8 @@ html,body{background:$bg;color:$ink;font-family:Rb,Roboto,'Noto Sans',Arial,sans
 FIT_JS = """<script>document.fonts.ready.then(()=>{document.querySelectorAll('.fit').forEach(e=>{let s=parseFloat(getComputedStyle(e).fontSize);
 while(e.scrollWidth>e.clientWidth+0.5&&s>6){s-=0.25;e.style.fontSize=s+'px'}});
 document.querySelectorAll('[data-scroll-to]').forEach(p=>{const t=p.querySelector(p.dataset.scrollTo);if(!t)return;
-const y=t.getBoundingClientRect().top-p.parentElement.getBoundingClientRect().top-parseFloat(p.dataset.at);p.style.transform='translateY('+(-y)+'px)'});
+let y=t.getBoundingClientRect().top-p.parentElement.getBoundingClientRect().top-parseFloat(p.dataset.at);
+if(p.dataset.clamp!==undefined)y=Math.max(0,Math.min(y,p.scrollHeight-p.parentElement.clientHeight));p.style.transform='translateY('+(-y)+'px)'});
 document.querySelectorAll('[data-scroll-end]').forEach(p=>{const y=Math.max(0,p.scrollHeight-p.parentElement.clientHeight);p.style.transform='translateY('+(-y)+'px)'})})</script>"""
 
 
@@ -189,18 +193,44 @@ NAV_SIDE = NAV.replace('class="nav"', 'class="nav side"')
 
 
 # ---------- 1. Awards -------------------------------------------------------------------------------
-AWARD_ROWS = [('Sree Test', 'ST', '101 left · 5 drops', '0', '100', '500', '+400'),
-              ('Harish Test', 'HT', '76 left · 4 drops', '25', '100', '0', '-100'),
-              ('Priya Test', 'PT', '51 left · 3 drops', '50', '100', '0', '-100'),
-              ('Zed Zero', 'ZZ', '50 left · 2 drops', '51', '200', '0', '-200')]
+# name, initials, what is left, score, put in, gets, award
+def _rows(*rows): return [(n, i, st, str(sc), str(put), str(gets), f'+{gets - put}' if gets > put else str(gets - put)) for n, i, st, sc, put, gets in rows]
 
-def awards(dev, proposed):
+# `today` is the game in the CI frame (pool 101, drop 25, entry 100, five entries: Zed came back in once).
+# The proposed chips are D128's four: By drops left (the default) · Split evenly · By points left · Custom.
+# In the CI game the others have 4 + 3 + 2 drops left, nine entries against a pool of five, so D23's rule
+# turns By drops left off: D128 then says why under the chips and picks Split evenly (`even`).
+# `drops` is the same table one round on, where the others have one drop each and By drops left applies.
+AWARDS = {
+    'today': dict(
+        chips=[('Winner takes all', 'on'), ('By points left', 'off'), ('50 / 50', 'off'), ('Entry per drop left', 'off dim'), ('Custom', 'off')],
+        line='',
+        rows=_rows(('Sree Test', 'ST', '101 left · 5 drops', 0, 100, 500), ('Harish Test', 'HT', '76 left · 4 drops', 25, 100, 0),
+                   ('Priya Test', 'PT', '51 left · 3 drops', 50, 100, 0), ('Zed Zero', 'ZZ', '50 left · 2 drops', 51, 200, 0))),
+    'drops': dict(
+        chips=[('By drops left', 'on'), ('Split evenly', 'off'), ('By points left', 'off'), ('Custom', 'off')],
+        line='Each player still in gets one entry per drop they have left; <b>Sree</b>, lowest score, gets the rest. One player left → they take it all.',
+        rows=_rows(('Sree Test', 'ST', '101 left · 5 drops', 0, 100, 200), ('Harish Test', 'HT', '24 left · 1 drop', 77, 100, 100),
+                   ('Priya Test', 'PT', '21 left · 1 drop', 80, 100, 100), ('Zed Zero', 'ZZ', '11 left · 1 drop', 90, 200, 100))),
+    'even': dict(
+        chips=[('By drops left', 'off dim'), ('Split evenly', 'on'), ('By points left', 'off'), ('Custom', 'off')],
+        anchor='.chips',                                     # the reason is a line longer: start at the chips so the last row shows
+        line='<b>By drops left is off here</b>: Harish\'s 4 drops (400), Priya\'s 3 (300) and Zed\'s 2 (200) would leave Sree, the winner, nothing. '
+             'Picked for you: <b>Split evenly</b> — the 4 players still in share 500.',
+        rows=_rows(('Sree Test', 'ST', '101 left · 5 drops', 0, 100, 125), ('Harish Test', 'HT', '76 left · 4 drops', 25, 100, 125),
+                   ('Priya Test', 'PT', '51 left · 3 drops', 50, 100, 125), ('Zed Zero', 'ZZ', '50 left · 2 drops', 51, 200, 125))),
+}
+
+def awards(dev, proposed, case=None, top=False):
+    """case: `today` (the default when not proposed), `drops` or `even`. top: the page is not scrolled."""
     w, fs = dev['w'], dev['fs']
+    data = AWARDS[case or ('drops' if proposed else 'today')]
     stacked = proposed and not roomy(w - 32, fs)
     rows = ''
-    for i, (name, ini, st, score, put, gets, award) in enumerate(AWARD_ROWS):
+    for i, (name, ini, st, score, put, gets, award) in enumerate(data['rows']):
+        tone = C['win'] if award.startswith('+') else C['loss'] if award.startswith('-') else C['ink']
         nums = (f'<span class="num bm nums">{score}</span><span class="num bm nums muted">{put}</span>'
-                f'<span class="numw bm nums b7">{gets}</span><span class="num bm nums b8" style="color:{C["win"] if award.startswith("+") else C["loss"]}">{award}</span>')
+                f'<span class="numw bm nums b7">{gets}</span><span class="num bm nums b8" style="color:{tone}">{award}</span>')
         if stacked:
             rows += (f'<div class="arow">{avatar(ini, SEAT[i], 32, fs)}<div style="flex:1;min-width:0">'
                      f'<div class="row" style="gap:8px"><span class="bm b6 ell">{name}</span><span class="ls muted" style="white-space:nowrap;flex:none">{st}</span></div>'
@@ -208,21 +238,23 @@ def awards(dev, proposed):
         else:
             rows += (f'<div class="arow"><div class="ncell">{avatar(ini, SEAT[i], 32, fs)}<div style="flex:1;min-width:0">'
                      f'<div class="bm b6 ell">{name}</div><div class="ls muted">{st}</div></div></div>{nums}</div>')
-    chips = ''.join(f'<span class="chip {cls}">{t}</span>' for t, cls in
-                    [('Winner takes all', 'on'), ('By points left', 'off'), ('50 / 50', 'off'), ('Entry per drop left', 'off dim'), ('Custom', 'off')])
+    chips = ''.join(f'<span class="chip {cls}">{t}</span>' for t, cls in data['chips'])
+    line = f'<div class="bs muted why">{data["line"]}</div>' if data['line'] else ''
     body = (f'<div class="row" style="justify-content:space-between;gap:12px">{tag("Completed", "info", "flag")}'
             f'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span class="lm muted">Entry per player</span>'
             f'<div style="width:96px;height:40px;border:1px solid {C["outline"]};border-radius:4px;display:flex;align-items:center;padding:0 14px;font-size:calc(16px*var(--fs))">100</div></div></div>'
             f'<div class="bs muted">5 entries (a re-entry counts twice) · pool 500 points</div>'
-            f'<div class="row" style="gap:6px"><span class="ts b7">How to split the pool</span>{mdi("info", "font-size:18px;color:" + C["muted"])}</div>'
-            f'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">{chips}</div>'
+            f'<div class="row" id="split" style="gap:6px"><span class="ts b7">How to split the pool</span>{mdi("info", "font-size:18px;color:" + C["muted"])}</div>'
+            f'<div class="chips" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">{chips}</div>{line}'
             f'<div class="acard"><div class="arow head"><span class="ch" style="flex:1">Player</span><span class="ch num fit">Score</span>'
             f'<span class="ch num fit">Put in</span><span class="ch numw fit">Gets</span><span class="ch num fit">Award</span></div>{rows}'
             f'<div class="acheck">{mdi("okcircle")}<span class="bs">Pool 500 · all given out</span></div></div>')
     bar = (f'<div class="bbar short"><div class="btn out" style="flex:1 1 64px">{mdi("clock")}<span>Not now</span></div>'
            f'<div class="btn fill" style="flex:1.4 1 64px">{mdi("trophy")}<span>Save awards</span></div></div>')
-    # The CI frame is scrolled to the end ("all given out" in view).
-    page = f'<div class="page" style="top:calc(var(--sb) + 56px);bottom:124px"><div class="pad" data-scroll-end style="padding:16px 16px 26px;gap:8px">{body}</div></div>'
+    # Today's CI frame is scrolled to the end ("all given out" in view). The proposed pages are scrolled only
+    # as far as "How to split the pool", or to the end if that comes first, so the chips and the rows both show.
+    scroll = '' if top else f'data-scroll-to="{data.get("anchor", "#split")}" data-at="8" data-clamp' if proposed else 'data-scroll-end'
+    page = f'<div class="page" style="top:calc(var(--sb) + 56px);bottom:124px"><div class="pad" {scroll} style="padding:16px 16px 26px;gap:8px">{body}</div></div>'
     return status('7:16') + header('Awards · P2') + page + bar + NAV
 
 
@@ -430,10 +462,13 @@ def main():
                       [[(ci(f'{tag_}-{name}'), 'CI', GREY, ''), (drawn, 'Drawn', GREEN, '')]], 540)
 
     s = lambda name, fn: portrait('small-' + name, fn, SMALL, True)
+    aw = lambda case: portrait('small-awards-' + case, lambda d, p: awards(d, p, case), SMALL, True)
     sheet(os.path.join(HERE, 'awards-360.png'), '1 · Awards table on a small phone (360 dp, text size 1.3)',
-          'Today the name has 52 dp, so it reads "Sre…" and "101 left · 5 drops" breaks into four short lines. Proposed: on a narrow table each player takes two lines.',
-          [[(ci('small-awards'), TODAY, GREY, 'Four players fill the screen. Names cut to three letters.'),
-            (s('awards', awards), PROP, GREEN, 'Name and what is left on one line, the four numbers under their headings. Same four players in about half the height.')]], 540)
+          'Today the name has 52 dp, so it reads "Sre…" and "101 left · 5 drops" breaks into four short lines. Proposed: on a narrow table each player takes two lines. '
+          'The proposed pictures carry the four chips Sree asked for (D128); here they take two rows of two, where today\'s five take three.',
+          [[(ci('small-awards'), TODAY, GREY, 'Four players fill the screen. Names cut to three letters. (Today\'s five chips are above, out of view.)'),
+            (aw('drops'), PROP + ' · By drops left', GREEN, 'By drops left is first and picked. Name and what is left on one line, the four numbers under their headings. A table where the others have one drop each.'),
+            (aw('even'), PROP + ' · same game as today', GREEN, 'In today\'s game the others\' nine drops are more than the pool of five entries, so By drops left is off, the screen says why and Split evenly is picked (D128).')]], 540)
     sheet(os.path.join(HERE, 'order-360.png'), '2 · Order of players on a small phone (360 dp, text size 1.3)',
           'Today the name shares the row with the initials a second time, "deals" and the arrows, and the button has no room for "Start game". Proposed: on a narrow row the initials stay in the coloured disc only, "deals" sits under the name, and the button reads "Start".',
           [[(ci('small-order'), TODAY, GREY, '"Meena …", "Kiran R…", "Ravi …", and "Start g…".'),

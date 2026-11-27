@@ -88,6 +88,13 @@ each player is 115 dp tall and four players fill the screen. With 13 players tha
 the same columns, and the name gets about 125 dp (12 letters). In Custom, the box to type in sits in the second
 line where the Gets number is.
 
+**Chips.** The proposed pictures show the four chips Sree asked for (D128: By drops left, the default · Split
+evenly · By points left · Custom), not today's five; at 360 dp × 1.3 the four do not fit one row and take two rows
+of two (today's five take three), and by the same drawing the Pixel 6 gets three and Custom on a second row. In
+the game CI photographs, By drops left is off by D128's own rule (the others' nine drops are more than the pool
+of five entries), so the picture has two proposed halves: a table where By drops left applies and is picked, and
+today's game with the reason under the chips and Split evenly picked.
+
 **Pixel 6.** 380 is roomy: one line per player, exactly as today.
 
 ## 4. Finding 2: Order of players
@@ -199,5 +206,5 @@ For the Main agent to place; none is drawn here.
   badge is not the cause).
 - Results list: the locked card's note reads "Give award…".
 - Scorecard: the header reads "Scorecar…" behind the mid-game sheet.
-- Awards: the five ways to split wrap to three rows of buttons at this text size.
+- Awards: the five ways to split wrap to three rows of buttons at this text size (D128's four take two, §3).
 - Pixel 6: the dealer's row "Ravi K…" in Order of players; "101 left · 5 drops" on two lines in Awards.
