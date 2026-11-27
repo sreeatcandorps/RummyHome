@@ -201,9 +201,9 @@ winner on 0 who cannot go out, so at most *n − 1* can go out together. The dia
 player, not only this round's (the `before` snapshot it compares against comes from the scorecard's cache and may not
 carry pool seats). If so, that is a bug for the batch, found by his screenshot. Picture: `round-saved-mockup.png`.
 
-**Checked Nov 27 (§10.5):** the red lines are this round's outs only; the grey line and the Re-enter pills are everyone
+**Checked Nov 27 (§10.6):** the red lines are this round's outs only; the grey line and the Re-enter pills are everyone
 who may come back, earlier rounds included. Six out at once is possible in a pool of seven or more. Redrawn in palette
-B and the Size S look, together with the re-entry seat, in §10.5.
+B and the Size S look, together with the re-entry seat, in §10.6.
 
 ### 8.2 Awards — "I don't see the pool count … show the game name and how much it was played for"
 
@@ -739,7 +739,7 @@ copied. Keep it that way in the build — no "Bicycle" string, no rider, no thei
 `login-passcode`, the eye tap and `login-submit`. Screenshot matrix: Sign in light / dark × portrait / landscape,
 passcode revealed, the Supabase-missing line.
 
-### 10.5 Round saved (pool) with the re-entry seat (Sree, Nov 27: "show me more"; pictures only, nothing built)
+### 10.6 Round saved (pool) with the re-entry seat (Sree, Nov 27: "show me more"; pictures only, nothing built)
 
 **Sree's words, and how they are read**
 
