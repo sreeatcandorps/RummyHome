@@ -96,10 +96,12 @@ tags: [smoke]
 # First re-entry: Charlie already sits on Delta's left (the out seat between them is skipped) and keeps seat 4.
 - tapOn:
     id: "after-reenter-00000000-0000-4000-8000-0000000000e3"
+# The opened row scrolls itself fully into view (CI #183, Pixel 4a font 1.3: Re-enter at 41 was below the
+# fold): the flow never scrolls to the button.
 - extendedWaitUntil:
-    visible:
-      id: "after-seat-line"
+    visible: "Re-enter at 41"
     timeout: 5000
+- takeScreenshot: 16b3a-round-saved-row-opened
 - assertVisible:
     id: "after-seat-line"
     text: "Test Charlie keeps seat 4 — already left of the dealer."
@@ -122,9 +124,9 @@ tags: [smoke]
 - tapOn:
     id: "after-reenter-00000000-0000-4000-8000-0000000000e2"
 - extendedWaitUntil:
-    visible:
-      id: "after-seat-line"
+    visible: "Re-enter at 42"
     timeout: 5000
+- takeScreenshot: 16b4a-round-saved-second-row-opened
 - assertVisible:
     id: "after-seat-line"
     text: "Test Bravo sits at seat 4, between Test Charlie and Test Delta — left of the dealer."

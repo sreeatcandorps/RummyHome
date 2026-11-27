@@ -132,6 +132,7 @@ export function ReentrySheet({ game, playerId, nameOf, labelOf, onConfirm, onDis
   onDismiss: () => void;
 }) {
   const { colors } = useAppTheme();
+  const [body, setBody] = useState<{ top: number; bottom: number } | null>(null);
   if (!playerId) return null;
   const out = seatOf(game, playerId).outRound;
   return (
@@ -139,6 +140,7 @@ export function ReentrySheet({ game, playerId, nameOf, labelOf, onConfirm, onDis
       visible
       onRequestClose={onDismiss}
       testID="reentry-sheet"
+      reveal={body}
       header={
         <>
           <Text variant="titleLarge" style={{ color: colors.onSurface }} accessibilityRole="header">{`Re-enter ${nameOf(playerId)}`}</Text>
@@ -147,7 +149,13 @@ export function ReentrySheet({ game, playerId, nameOf, labelOf, onConfirm, onDis
       }
       footer={<Button mode="outlined" onPress={onDismiss} style={styles.grow} testID="standings-reenter-cancel">Cancel</Button>}
     >
-      <View style={styles.sheetBody}>
+      <View
+        style={styles.sheetBody}
+        onLayout={(event) => {
+          const { y, height } = event.nativeEvent.layout;
+          setBody((was) => (was && was.top === y && was.bottom === y + height ? was : { top: y, bottom: y + height }));
+        }}
+      >
         <ReentrySeatPanel game={game} playerId={playerId} nameOf={nameOf} labelOf={labelOf} idPrefix="standings" onConfirm={(seat) => onConfirm(playerId, seat)} />
       </View>
     </BottomSheet>

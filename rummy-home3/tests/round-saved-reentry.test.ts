@@ -5,6 +5,7 @@ import path from 'node:path';
 import type { Game } from '../types/game';
 import { planReentry } from '../utils/dealerRotation';
 import { afterRound } from '../utils/pool';
+import { revealOffset } from '../utils/sheetScroll';
 import { backInLine, planGameReentry, reentrySeatHint, reentrySeatLine, reentrySeatWarning, roundSavedSummary, seatLeftOf, shortNames } from '../utils/reentrySeat';
 
 // design-review-2 §10.6 / D139. Seats 1 Sree · 2 Anil · 3 Priya · 4 Venkat (out) · 5 Harish (out); rounds 1-2
@@ -174,6 +175,17 @@ test('D139 after Re-enter the row reads "↺ Back in at 96 · seat 3, left of Pr
   assert.equal(backInLine(game, 'H', short), '↺ Back in at 96 · seat 3, left of Priya');
   const loaded = planGameReentry({ ...game, poolSeats: { ...game.poolSeats, H: seat(7) }, scores: { S: [0, 0], A: [0, 0], P: [0, 0], V: [0, 0], H: [0, 0] }, dealerIds: ['S', 'A'] } as unknown as Game, 'H');
   assert.equal(loaded.round, 3, 'a loaded game plans for the round being played');
+});
+
+test('D139 an opened row scrolls fully into view, its buttons first when it is taller than the list (CI #183, Pixel 4a)', () => {
+  assert.equal(revealOffset({ top: 230, bottom: 670 }, 0, 525), 145, 'below the fold: its bottom meets the list\'s bottom');
+  assert.equal(revealOffset({ top: 100, bottom: 400 }, 0, 525), null, 'already in view: no jump');
+  assert.equal(revealOffset({ top: 100, bottom: 400 }, 300, 525), 100, 'above the view: its top meets the list\'s top');
+  assert.equal(revealOffset({ top: 100, bottom: 800 }, 0, 525), 275, 'taller than the list: Re-enter at N stays in view');
+  const sheet = read('components/game/RoundSavedSheet.tsx');
+  assert.match(sheet, /reveal=\{reveal\}/);
+  assert.match(sheet, /onLayout=\{open \?/, 'the opened row reports its box');
+  assert.match(read('components/ui/BottomSheet.tsx'), /scrollTo\(\{ y, animated: true \}\)/);
 });
 
 test('D139 Round saved is a sheet: no dialog, Re-enter keeps it open, the test IDs of the spec', () => {

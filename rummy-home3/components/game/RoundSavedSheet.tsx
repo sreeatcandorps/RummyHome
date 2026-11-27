@@ -36,6 +36,18 @@ export function RoundSavedSheet({ visible, game, summary, nameOf, labelOf, onRee
 }) {
   const { colors } = useAppTheme();
   const [openId, setOpenId] = useState<string | null>(null);
+  // The opened row's box (y within its group) and each group's y in the list: the sheet scrolls the whole
+  // panel into view, Re-enter at N included, on a small phone too.
+  const [groupY, setGroupY] = useState<Record<string, number>>({});
+  const [openBox, setOpenBox] = useState<{ group: string; y: number; height: number } | null>(null);
+  const reveal = useMemo(() => {
+    const top = openBox ? groupY[openBox.group] : undefined;
+    return openBox && top !== undefined ? { top: top + openBox.y, bottom: top + openBox.y + openBox.height } : null;
+  }, [openBox, groupY]);
+  const openRow = (id: string | null) => {
+    setOpenBox(null);
+    setOpenId(id);
+  };
   const short = useMemo(() => shortNames(game.players, nameOf), [game.players, nameOf]);
 
   const inIds = playersIn(game);
@@ -63,7 +75,7 @@ export function RoundSavedSheet({ visible, game, summary, nameOf, labelOf, onRee
     </>
   );
 
-  const row = (id: string, earlier: boolean) => {
+  const row = (id: string, earlier: boolean, group: string) => {
     const seat = seatOf(game, id);
     const back = !isOut(seat);
     const block = back ? null : reentryBlock(game, id);
@@ -76,6 +88,7 @@ export function RoundSavedSheet({ visible, game, summary, nameOf, labelOf, onRee
         key={id}
         style={[styles.row, { borderBottomColor: colors.hairline }, back && { backgroundColor: colors.reentryContainer }, open && { backgroundColor: colors.background }]}
         testID={`after-row-${id}`}
+        onLayout={open ? (event) => { const { y, height } = event.nativeEvent.layout; setOpenBox({ group, y, height }); } : undefined}
       >
         <View style={styles.rowHead}>
           <SeatAvatar name={nameOf(id)} label={labelOf(id)} size={36} muted={!back} color={back ? colors.reentry : undefined} />
@@ -91,7 +104,7 @@ export function RoundSavedSheet({ visible, game, summary, nameOf, labelOf, onRee
           </View>
           {back ? null : block === null ? (
             open ? null : (
-              <Button mode="text" onPress={() => setOpenId(id)} accessibilityLabel={`Re-enter ${nameOf(id)}`} testID={`after-reenter-${id}`}>
+              <Button mode="text" onPress={() => openRow(id)} accessibilityLabel={`Re-enter ${nameOf(id)}`} testID={`after-reenter-${id}`}>
                 Re-enter
               </Button>
             )
@@ -107,7 +120,7 @@ export function RoundSavedSheet({ visible, game, summary, nameOf, labelOf, onRee
             labelOf={labelOf}
             onConfirm={async (pick) => {
               await onReenter(id, pick);
-              setOpenId(null);
+              openRow(null);
             }}
           />
         ) : null}
@@ -117,9 +130,9 @@ export function RoundSavedSheet({ visible, game, summary, nameOf, labelOf, onRee
 
   const group = (title: string, ids: string[], earlier: boolean) =>
     ids.length ? (
-      <View key={title}>
+      <View key={title} onLayout={(event) => { const { y } = event.nativeEvent.layout; setGroupY((was) => (was[title] === y ? was : { ...was, [title]: y })); }}>
         <Text variant="labelSmall" style={[styles.groupHead, { color: colors.onSurfaceVariant }]}>{title}</Text>
-        {ids.map((id) => row(id, earlier))}
+        {ids.map((id) => row(id, earlier, title))}
       </View>
     ) : null;
 
@@ -134,7 +147,7 @@ export function RoundSavedSheet({ visible, game, summary, nameOf, labelOf, onRee
   );
 
   return (
-    <BottomSheet visible={visible} header={header} footer={footer} onRequestClose={onClose} testID="round-saved-sheet">
+    <BottomSheet visible={visible} header={header} footer={footer} onRequestClose={onClose} testID="round-saved-sheet" reveal={reveal}>
       {leader ? (
         <View>
           <Text variant="labelSmall" style={[styles.groupHead, { color: colors.onSurfaceVariant }]}>STILL IN</Text>
