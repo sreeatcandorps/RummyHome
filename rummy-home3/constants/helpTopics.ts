@@ -799,7 +799,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     screenshot: {
       file: 'me',
       legend: [
-        'Your name and #ID at the top; under **Your table**, tap a row to edit your name or initials, or the **Player ID** row to share it so a friend can link you.',
+        'Your name and #ID at the top; under **Your table**, tap a row to edit your name or initials. The **Player ID** row is just the number: tell it to a friend so they can find you.',
         '**Notifications**: Phone and the Email switches, each in its own sheet.',
         '**Game defaults** opens Settings; **Appearance**: Phone, Light or Dark.',
         '**Account**: Change passcode, Privacy policy, Delete account, Log out.',
