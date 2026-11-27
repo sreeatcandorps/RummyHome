@@ -173,6 +173,7 @@ this file exists so nobody has to read five specs and a chat log to know the cur
 
 | ID | Date | Question | Default in use | Status |
 | --- | --- | --- | --- | --- |
+| Q51 | 2026-11-27 | **Build the four small-phone fixes as drawn, as one small PR?** (next-up 12g, pictures in #171: Awards two lines per player; Order of players initials in the disc only and "Start"; game-card dates without the weekday on a narrow card, which bends A06; Home sideways two columns only when roomy.) Nothing changes on the Pixel 6 | nothing built; the pictures wait | open — asked in #171 |
 | Q49 | 2026-11-25 | **Build the 30-day delete grace (D72) now?** | yes, now | answered Nov 25 → D122 (after the freeze) |
 | Q48 | 2026-11-25 | **File a DBA ("MindWeave" as a trade name of Candor PS LLC)?** | not now | answered Nov 25 → D121 (yes, file it; California) |
 | Q47 | 2026-11-25 | **Which phone number sends the WhatsApp codes?** | a new Twilio number | answered Nov 25 → D120 |
