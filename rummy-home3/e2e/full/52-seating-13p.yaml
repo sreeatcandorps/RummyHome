@@ -1,5 +1,5 @@
 appId: com.mindweavetech.rummyhome
-tags: [smoke]
+tags: [nightly]
 # D138 at 13 players (Sree, Nov 27: "Make your design work for up to 13"). New game with Sree and twelve of
 # game F's placeholders (Test Alpha … Test Lima, in sree's My players from seed-e2e.sql), picked through the
 # search box so the list's sort order does not matter → Game type → Next → Order of players: thirteen grey

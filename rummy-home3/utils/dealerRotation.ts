@@ -13,6 +13,7 @@
  * fix a played round, following from there or keeping the sequence.
  *
  * 054 (D70): a player who joins mid-game sits to the dealer's left, the seat that deals last (`planJoin`).
+ * 056 (D139): so does a player who re-enters a pool, unless the admin picks a seat (`planReentry`).
  *
  * Games saved before 031 (or local games) have no stored dealers; those fall back to the
  * old seat-order rule, which is what the server used to store anyway.
@@ -203,4 +204,83 @@ export function planJoin(game: RotationGame, roundCount: number, joinerId: strin
     nextDealerOverride = { playerId: dealer, round: roundCount + 1, keepsSequence: false };
   }
   return { players, seat, dealer, nextDealerOverride };
+}
+
+// ---------- re-entering a pool (056, D139) ----------
+
+export type ReentryPlan = {
+  /** The round being played (saved rounds + 1); everything below is for it. */
+  round: number;
+  /** The seat order with him in his new seat. */
+  players: string[];
+  /** His seat before and after, 0-based. */
+  from: number;
+  seat: number;
+  /** The dealer's left, 0-based: where he sits unless the admin picks a seat. */
+  defaultSeat: number;
+  /** He ends up straight before the dealer among the seats still in, so he opens the round being played. */
+  dealersLeft: boolean;
+  /** Who deals the round being played (kept). */
+  dealer: string | undefined;
+  /** Who opens the round being played once he is back (D58). */
+  opens: string | undefined;
+  /** The first round he deals if nobody else goes out. */
+  firstDeal: number | undefined;
+  nextDealerOverride: DealerOverride | null;
+};
+
+/**
+ * Where a player who re-enters sits, the way `reenter_player` (056) does it: by default the dealer's left —
+ * the seat before whoever deals the round being played, worked out with him out of his old seat, as
+ * `planJoin` seats a newcomer (Sree, Nov 21: "they have to always sit to the left side of the person that
+ * is dealing. Even if someone re-enters"). Already there (only out seats between him and the dealer): he
+ * stays. `seat` (0-based) is a seat the admin picked. The dealer keeps this round's deal (the 054 pin).
+ */
+export function planReentry(game: RotationGame, roundCount: number, playerId: string, seat?: number): ReentryPlan {
+  const outIds = new Set(game.outIds ?? []);
+  outIds.add(playerId);
+  const before = { ...game, outIds };
+  const dealer = nextDealer(before, roundCount);
+  const from = game.players.indexOf(playerId);
+  const rest = game.players.filter((id) => id !== playerId);
+  const n = game.players.length;
+
+  let defaultSeat = from;
+  if (dealer && from >= 0) {
+    const inPlay = new Set(rotationOf(before));
+    let i = game.players.indexOf(dealer);
+    do i = (i - 1 + n) % n; while (game.players[i] !== playerId && !inPlay.has(game.players[i]));
+    if (game.players[i] !== playerId) {
+      const at = rest.indexOf(dealer);
+      defaultSeat = at > 0 ? at : rest.length;
+    }
+  }
+  if (seat !== undefined && (!Number.isInteger(seat) || seat < 0 || seat >= n)) throw new Error(`Seat must be 1 to ${n}.`);
+  const target = from < 0 ? from : seat ?? defaultSeat;
+  const players = from < 0 ? game.players : [...rest.slice(0, target), playerId, ...rest.slice(target)];
+  const backIn = new Set(outIds);
+  backIn.delete(playerId);
+  const after = { ...game, players, outIds: backIn };
+
+  let nextDealerOverride = game.nextDealerOverride ?? null;
+  if (dealer && plannedDealer(after, roundCount) !== plannedDealer(before, roundCount)) {
+    nextDealerOverride = { playerId: dealer, round: roundCount + 1, keepsSequence: false };
+  }
+  const opens = opensFor(after, dealer);
+
+  let firstDeal: number | undefined;
+  let prev = nextDealerOverride?.keepsSequence ? plannedDealer(after, roundCount) : dealer;
+  for (let step = 1; prev && step <= players.length; step += 1) {
+    prev = seatAfter(after, prev);
+    if (prev === playerId) { firstDeal = roundCount + 1 + step; break; }
+  }
+  return { round: roundCount + 1, players, from, seat: target, defaultSeat, dealersLeft: Boolean(dealer) && opens === playerId, dealer, opens, firstDeal, nextDealerOverride };
+}
+
+/** The seats still in on either side of `playerId` (out seats skipped), or undefined when there is nobody else. */
+export function neighboursIn(game: Pick<RotationGame, 'players' | 'outIds'>, playerId: string): { before: string | undefined; after: string | undefined } {
+  const rotation = rotationOf(game);
+  const at = rotation.indexOf(playerId);
+  if (at < 0 || rotation.length < 2) return { before: undefined, after: undefined };
+  return { before: rotation[(at - 1 + rotation.length) % rotation.length], after: rotation[(at + 1) % rotation.length] };
 }

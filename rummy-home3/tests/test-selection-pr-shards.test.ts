@@ -91,8 +91,6 @@ test('shards: the two are about the same size (measured smoke seconds of run 459
     '01': 57, '02': 31, '03': 62, '04': 62, '05': 46, '06': 38, '07': 58, '08': 30, '09': 49, '10': 49, '11': 55, '12': 114, '13': 57, '14': 55, '15': 51,
     '16': 212, '17': 38, '18': 83, '19': 152, '20': 51, '21': 108, '22': 93, '23': 54, '24': 187, '25': 48, '26': 78, '27': 74, '28': 71, '29': 39, '30': 81,
     '31': 43,
-    // 344 s on the Pixel 6 in run 46065162206, plus ~3 s a pick since for closing the keyboard and the scroll.
-    '32': 380,
   };
   const total = (id: string) => SMOKE_SHARDS[id].smoke.reduce((n, f) => n + secs[f.slice(0, 2)], 0);
   const [a, b] = shards.map(total);

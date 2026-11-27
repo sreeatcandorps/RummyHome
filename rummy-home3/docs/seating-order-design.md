@@ -381,7 +381,7 @@ the dealer rules, Realtime.
   DEALER label, ▲ ▼ through the middle buttons, frames 19 … 19j re-taken), `e2e/smoke/24-seating-tutorial.yaml` (24e
   toast → flash, 24f / 24g selected-only arrows), `e2e/smoke/16-pool-game.yaml` (its Order of players step),
   `e2e/full/51-seating-20p.yaml` (20 discs on one screen, WWW / MMM never cut, Pixel 6 and small phone),
-  `e2e/smoke/32-seating-13p.yaml` (Sree: "Make your design work for up to 13" — New game with 13, all numbered, one
+  `e2e/full/52-seating-13p.yaml` (Sree: "Make your design work for up to 13" — New game with 13, all numbered, one
   selected, then sideways: `13p-order-everyone-numbered`, `13p-order-selected-arrows`, `13p-order-landscape`), plus
   the help frames in `e2e/smoke/21-help-frames.yaml`. As built the ids keep their old meaning where they can:
   `seat-row-<p>` is ring position p (1 = 12 o'clock = seat N, counted anticlockwise, so it is the old list's row p) and

@@ -1,6 +1,7 @@
 -- 054 (D70): a player who joins mid-game sits to the dealer's left — the seat before whoever deals the
 -- round being played, the seat that deals last. The dealer keeps this round's deal and nobody else's
--- turn moves. Before round 1: the last seat. Dealer at seat 1: the last seat. Re-entry keeps its seat.
+-- turn moves. Before round 1: the last seat. Dealer at seat 1: the last seat. Since 056 (D139) a re-entry
+-- sits to the dealer's left too (45_reentry_left_of_dealer_056 has the details).
 -- A = sree AX, B = harish BX, C = priya CX, D = zero DX; joiners N = otto NX, R = R K (RK), Q = C D (QD).
 begin;
 select plan(40);
@@ -105,7 +106,7 @@ select lives_ok($$ select public.add_seated_player('10000000-0000-4000-8000-0000
 select is(pg_temp.tests_seats(:G3), 'AX BX CX QD DX', 'Q sits to D''s left');
 select is(pg_temp.tests_ini(:G3, public.current_dealer(:G3)), 'DX', 'D still deals round 2');
 
--- ---------- pool: an out seat is skipped; re-entry keeps its seat ----------
+-- ---------- pool: an out seat is skipped; a re-entry sits to the dealer's left too (056) ----------
 insert into public.games (id, created_by, status, game_type, settings, share_code)
 values (:P, :A, 'active', 'pool', '{"gameType":"pool","poolLimit":101,"reentryLimit":1,"dropAmount":25,"mdAmount":50,"maxCount":80}', 'JOIN54');
 insert into public.game_players (game_id, profile_id, player_order, display_number, role, seated, label) values
@@ -119,7 +120,7 @@ select lives_ok($$ select public.add_seated_player('10000000-0000-4000-8000-0000
 select is(pg_temp.tests_seats(:P), 'AX BX NX CX', 'N sits to C''s left; B, who is out, keeps seat 2');
 select is(pg_temp.tests_ini(:P, public.current_dealer(:P)), 'CX', 'C still deals round 3');
 select lives_ok($$ select public.reenter_player('10000000-0000-4000-8000-0000000054b1', '00000000-0000-4000-8000-000000000002') $$, 'B re-enters');
-select is((select player_order from public.game_players where game_id = :P and profile_id = :B), 1, 're-entry keeps the seat (054 changes joining only)');
+select is(pg_temp.tests_seats(:P), 'AX NX BX CX', '056: B re-enters on C''s left, between N and C (no longer keeps seat 2)');
 select public.save_round(:P, 3, '[{"playerId":"00000000-0000-4000-8000-000000000001","scoreType":"rummy","value":0},{"playerId":"00000000-0000-4000-8000-000000000002","scoreType":"count","value":10},{"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"count","value":10},{"playerId":"00000000-0000-4000-8000-000000000005","scoreType":"count","value":10}]'::jsonb, false);
 select is(pg_temp.tests_dealers(:P), 'AX BX CX', 'round 3 was dealt by C');
 
