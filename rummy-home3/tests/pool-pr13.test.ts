@@ -29,7 +29,7 @@ import {
   resultScoresOf,
   validatePoolRound,
 } from '../utils/pool';
-import { AWARD_PRESETS, awardsPayload, buildAwardSheet, chipForSaved, defaultPreset, getsFromAwards, givenOutText, NOT_VIABLE_TEXT, presetGets, presetViability, saveAnywayText, viablePresets, winnerGetsMost, winnersOf } from '../utils/poolAwards';
+import { AWARD_PRESETS, awardsGameLine, awardsPayload, buildAwardSheet, chipForSaved, defaultPreset, getsFromAwards, givenOutText, NOT_VIABLE_TEXT, presetGets, presetViability, saveAnywayText, viablePresets, winnerGetsMost, winnersOf } from '../utils/poolAwards';
 import {
   allRulesFromProfileDefaults,
   DEFAULT_POOL_RULES,
@@ -596,4 +596,14 @@ test('13.12 log labels for the pool kinds; help explains Complete → Award → 
   assert.match(HELP.awards, /award/i);
   assert.match(HELP.awards, /Not now leaves the pool Completed without awards/);
   assert.match(HELP.results, /Give awards first/);
+});
+
+test('13.5d Awards names the game above the table (Sree, Nov 21: "show the game name and how much it was played for")', () => {
+  const when = new Date(new Date().getFullYear(), 10, 27, 16, 58);
+  const day = when.toLocaleDateString('en-US', { weekday: 'short' });
+  assert.equal(awardsGameLine({ limit: 101, drop: 25, players: 5, when: when.toISOString() }), `101 pool · drop 25 · 5 players · ${day}, Nov 27 · 4:58 PM`);
+  assert.equal(awardsGameLine({ limit: 201, drop: 20, players: 1 }), '201 pool · drop 20 · 1 player');
+  const award = src('app/(screens)/games/award.tsx');
+  assert.match(award, /testID="award-game-line"/);
+  assert.match(award, /awardsGameLine\(\{ limit: inputs\.limit, drop: inputs\.drop, players: standings\.length, when: game\.date \}\)/);
 });

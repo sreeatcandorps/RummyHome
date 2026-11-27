@@ -1,4 +1,5 @@
 import { AwardNote } from '@/types/game';
+import { formatWhen } from '@/utils/formatWhen';
 import { PoolStanding, dropsLeft } from '@/utils/pool';
 
 /**
@@ -176,6 +177,14 @@ export function buildAwardSheet(preset: AwardPreset, inputs: Inputs, gets: Recor
     return { playerId: s.playerId, total: s.total, out: s.out, entries: s.entries, gets: g, award: g - s.entries * inputs.entry };
   });
   return { preset, entry: inputs.entry, poolTotal, givenOut: sum(rows.map((r) => r.gets)), rows };
+}
+
+/** The line above the Awards table, so the screen says which game it is: "101 pool · drop 25 · 5 players · Fri, Nov 27 · 4:58 PM".
+ * The limit leads ("101 pool", as players say it) so it is not read as the pool total of the line under the table. */
+export function awardsGameLine(game: { limit: number; drop: number; players: number; when?: string | null }): string {
+  const parts = [`${game.limit} pool`, `drop ${game.drop}`, `${game.players} ${game.players === 1 ? 'player' : 'players'}`];
+  if (game.when) parts.push(formatWhen(game.when));
+  return parts.join(' · ');
 }
 
 /** The line under the table: what was handed out against the pool (D9 wording, never money). */

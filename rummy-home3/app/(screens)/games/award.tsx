@@ -16,7 +16,7 @@ import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { DEFAULT_POOL_ENTRY, DEFAULT_POOL_VALUES, isPoolGame, poolLimitOf, poolStandings } from '@/utils/pool';
-import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsPayload, buildAwardSheet, chipForSaved, defaultPreset, getsFromAwards, givenOutText, presetGets, presetViability, saveAnywayText, signedPoints, viablePresets, winnerGetsMost, winnersOf } from '@/utils/poolAwards';
+import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsGameLine, awardsPayload, buildAwardSheet, chipForSaved, defaultPreset, getsFromAwards, givenOutText, presetGets, presetViability, saveAnywayText, signedPoints, viablePresets, winnerGetsMost, winnersOf } from '@/utils/poolAwards';
 import { afterAwardsRoute } from '@/utils/endFlow';
 import { seatLabels } from '@/utils/initials';
 import { screenTitle } from '@/utils/gameLabel';
@@ -181,6 +181,9 @@ export default function AwardScreen() {
         contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}
         keyboardShouldPersistTaps="handled"
       >
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="award-game-line">
+          {awardsGameLine({ limit: inputs.limit, drop: inputs.drop, players: standings.length, when: game.date })}
+        </Text>
         <View style={styles.headerRow}>
           <Tag label={game.awardedAt ? 'Awarded' : 'Completed'} tone="info" icon={game.awardedAt ? 'trophy-outline' : 'flag-checkered'} />
           <View style={styles.entryBox}>

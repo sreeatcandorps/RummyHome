@@ -181,6 +181,7 @@ tags: [smoke]
     visible: "By drops left"
     timeout: 20000
 - assertVisible: "Awards · .*"
+- assertVisible: "101 pool · drop 25 · 4 players · .*"
 - assertVisible: "Completed"
 - assertVisible: "Not now"
 - assertNotVisible: "Awards pending"
