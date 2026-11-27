@@ -752,6 +752,8 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   the Twilio / Meta sender works on staging. The live code e-mail follows the next Play release, not the merge.
 - CI: the AVD snapshot step is capped at 8 minutes and cached only when it finishes, and the Maestro install
   retries (#163), after one 88-minute snapshot hang and one Maestro download 504 on Nov 26.
+- CI: when a runner holds the local database's host port (54322), `ci/supabase-start.sh` moves the database to a
+  free port and hands `DB_URL` to later steps through `$GITHUB_ENV`; jobs no longer set `DB_URL` themselves (#167).
 
 ### 2026-11-25 — EZ Score: Rummy is live on Google Play (Production 15, 1.1.0)
 - Google approved the review; build 15 (1.1.0) is published to Production (Play Console: "Last published on November
