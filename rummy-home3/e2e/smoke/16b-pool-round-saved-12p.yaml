@@ -121,6 +121,13 @@ tags: [smoke]
 
 # Second re-entry from the same sheet: Bravo moves from seat 3 to Delta's left, seat 4, between Charlie and
 # Delta. Delta still deals round 5 (056 keeps the dealer on a re-entry).
+# On the 360-dp phone the list scrolled down to show Charlie's panel and stays there after his re-entry
+# (his row in view), so Bravo's row is above the fold: scroll back up to it, as a user would.
+- scrollUntilVisible:
+    element:
+      id: "after-reenter-00000000-0000-4000-8000-0000000000e2"
+    direction: UP
+    timeout: 30000
 - tapOn:
     id: "after-reenter-00000000-0000-4000-8000-0000000000e2"
 - extendedWaitUntil:
