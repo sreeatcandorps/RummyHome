@@ -420,6 +420,8 @@ distribution", reads as a verb like the others), "By points left", "Custom". The
 selected one in one sentence; the Gets column shows the result. Four chips fit one row on a Pixel; the fifth today
 wrapped.
 
+**Nov 27 (D128, D129):** approved and built. The third chip is **By score left** (Sree: "what we give out is points"), not By points left.
+
 Picture: `awards-chips-mockup.png` (today · proposed with drops · proposed when drops is off). Generator:
 `make-awards-chips-mockup.py`. Batch item 11.
 
