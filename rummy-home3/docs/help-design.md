@@ -5,7 +5,8 @@ Status: **built as written** (every recommended answer in section 8, Q11.1–Q11
 (page and index with search), `components/help/*` (page, rich lines, Why? link), `components/ui/InfoTip.tsx` (ⓘ mini
 helps, Sree's Nov 17 addition — approved on New game · Game type Nov 18 and then applied to every screen: each section keeps
 its title plus a ⓘ, the explanation lives in the pop-up, only live feedback and links stay on screen),
-`scripts/help-screenshots.mjs` + `scripts/help-callouts.json` → `assets/help/*.png`. Not built: a `?` on the claim route
+`scripts/help-screenshots.mjs` + `scripts/help-callouts.json` → `assets/help/*.png` (a section can carry its own
+cropped picture and legend, `HelpSection.shot`: Add players › *Find in database*, D98, from smoke frame 31c). Not built: a `?` on the claim route
 (it has no screen — it redirects to Create account, which has one); `players-admins`, `hidden-deleted` and `sign-in` have
 no annotated screenshot yet because the smoke run takes no frame of them.
 

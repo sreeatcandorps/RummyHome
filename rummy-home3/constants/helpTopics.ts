@@ -14,8 +14,11 @@ export type HelpFamily = 'games' | 'results' | 'people' | 'rules';
 export type HelpGroup = 'Playing' | 'Results' | 'People' | 'You' | 'Rules';
 
 export type HelpMenuRow = { item: string; does: string; who: string; hidden?: string };
-/** `watch`: the section has a step-by-step tutorial (D61); the page shows a **Watch how** button under the bullets. */
-export type HelpSection = { title: string; bullets: string[]; watch?: 'seating' };
+/**
+ * `watch`: the section has a step-by-step tutorial (D61); the page shows a **Watch how** button under the bullets.
+ * `shot`: the section's own annotated picture (D98), in assets/help like a topic's, with its numbered legend.
+ */
+export type HelpSection = { title: string; bullets: string[]; watch?: 'seating'; shot?: { file: string; legend: string[] } };
 export type HelpTricky = { id: string; q: string; a: string };
 
 export type HelpTopic = {
@@ -748,7 +751,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     needToKnow: [
       '**Add by initials**: three rows at a time. Cell 1 takes one letter and jumps on; cell 2 takes one or two letters or digits. The initials are the player\u2019s name for now.',
       'Each row saves on its own. Saved players show as [Unregistered] until they sign up. There is no delete here; remove a player from the previous screen. Tap **Done** to go back; nothing else closes this screen.',
-      '**Find in database**: registered players only, by Player ID. Ask them for it (it is on their Profile), type the number and tap **Search**. Names are never searched.',
+      '**Find in database**: registered players only, by Player ID. Ask them for it (it is on their Profile), type the number and tap **Search**. Names, initials and emails are never searched.',
       '**Add to My players** adds the person to your list (it does not seat them). From New game, **Add to game** seats the person in this game and adds them to My players at the same time.',
     ],
     screenshot: {
@@ -769,9 +772,19 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'Find in database',
         bullets: [
-          'One number shows one name, shortened (\u201c#57 · Ravi K.\u201d), or \u201cNo one has #58.\u201d Check it is the person in front of you before you add.',
-          '\u201cIn your player list\u201d means they are already there. Not in the database? Go back and use Add by initials.',
+          'Only an exact Player ID finds someone: the number on their Profile, typed on the number keypad, then **Search**. Names, initials and email addresses are never searched, so nobody can look people up by name.',
+          'One number shows one person, first name and last initial (\u201c#5 · Otto O.\u201d), or \u201cNo one has #58.\u201d Check it is the person in front of you before you add.',
+          '\u201cIn your player list\u201d means they are already there. No account yet? Go back and use **Add by initials**; **Link to Player ID** later moves their scores to them.',
         ],
+        shot: {
+          file: 'find-in-database',
+          legend: [
+            'The Player ID box: type the number on the number keypad and tap **Search**. Nothing is looked up while you type.',
+            'The one person with that number: first name and last initial.',
+            '**Add to My players** (from New game, **Add to game**). Check the name with them first.',
+            '**Invite someone new**: the get-the-app message, for someone with no account yet.',
+          ],
+        },
       },
     ],
     tricky: [
@@ -1034,7 +1047,7 @@ export function helpTopicText(key: HelpTopicKey): string {
     t.purpose,
     ...t.needToKnow,
     ...(t.screenshot?.legend ?? []),
-    ...t.sections.flatMap((s) => [s.title, ...s.bullets]),
+    ...t.sections.flatMap((s) => [s.title, ...s.bullets, ...(s.shot?.legend ?? [])]),
     ...(t.menu ? [t.menu.title, ...t.menu.rows.flatMap((r) => [r.item, r.does, r.who, r.hidden ?? ''])] : []),
     ...t.tricky.flatMap((x) => [x.q, x.a]),
     ...(t.aliases ?? []),
