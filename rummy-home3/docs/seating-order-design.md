@@ -450,7 +450,9 @@ Other places it gets tight, and what the build does:
 - **The Show me steps are the circle**, with the same three titles and lines: four players, the K at the top, the 2 one
   step right of it with the Dealer tag, the finger tapping each disc and the middle naming him; step 3 takes the
   latest tap back, then selects Chitra and taps her ▲. It is the screen's own layout, drawn at most 220 dp tall
-  inside the dialog (a picture, nothing to tap). **The Help pictures are not redrawn yet**: they wait for the CI
-  frames (`13p-order-*` from smoke 32, the Pixel 6 and the small phone); the Help words are updated.
+  inside the dialog (a picture, nothing to tap); seen on the Pixel 6 in run 46076237027 (frames 24b–24d, and Help
+  › Watch how in 24h). **No Help picture shows Order of players**: the section is words plus Watch how (the steps
+  above), and none of the 17 annotated pictures in `assets/help` is of this screen, so nothing needed redrawing; the
+  Help words are updated. A picture of its own (like D98's Find in database) would be new: next-up row 12p.
 - **The dealer's job still moves to seat 2** (D58): on the ring the Dealer mark steps one disc clockwise each round,
   while the first card goes anticlockwise. That is Q63, unchanged until Sree answers.
