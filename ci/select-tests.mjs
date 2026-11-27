@@ -7,7 +7,9 @@
  *   SELECT_EVENT     pull_request | push | schedule | workflow_dispatch
  *   SELECT_TIER      pr | nightly | prerelease   (workflow_dispatch input; schedule = nightly)
  *   SELECT_FILES     newline-separated changed paths (PR: base...head)
- *   SELECT_MESSAGE   head commit message ("[file-bugs]" opts a PR run into issue filing; "[ui-all]" runs everything)
+ *   SELECT_MESSAGE   head commit message ("[file-bugs]" opts a PR run into issue filing; "[ui-all]" runs everything;
+ *                    "[ui-devices]" adds the smoke shards on the Pixel 4a (API 30) and the Pixel Tablet and the volume job,
+ *                    the rows only the nightly has)
  *   SELECT_SINCE_FILES  newline-separated paths changed between this PR's last green device run and now
  *                       (unset = there is no such run or it could not be compared: never skips)
  *
@@ -167,6 +169,7 @@ export function select({ event = 'pull_request', tier, files = [], message = '',
   const msg = message || '';
   const forceAll = /\[ui-all\]/i.test(msg);
   const fileBugsTag = /\[file-bugs\]/i.test(msg);
+  const devicesTag = /\[ui-devices\]/i.test(msg);
   const effectiveTier = tier || (event === 'schedule' ? 'nightly' : event === 'workflow_dispatch' ? 'nightly' : 'pr');
 
   const job = (device, suite, flows = [], extra = {}) => ({ device, suite, shard: '', smokeFlows: '', flows: flows.join(','), ...DEVICES[device], ...extra });
@@ -236,10 +239,12 @@ export function select({ event = 'pull_request', tier, files = [], message = '',
       job('pixel6', 'monkey', [], { monkeyEvents: 1500 }),
     );
     if (appChanged) plan.jobs.push(...smokeShards('small'));
+    if (devicesTag) { plan.jobs.push(...smokeShards('pixel4a'), ...smokeShards('tablet')); plan.volume = true; }
     const fullNote = touchedFull.length ? ` + the ${touchedFull.length} edited full flow(s)` : '';
     plan.reason = forceAll ? `[ui-all] in the commit message: every suite on the reference phone${fullNote}`
       : changed.length === 0 ? 'no file list: every suite on the reference phone'
       : `test infrastructure changed: every suite on the reference phone${fullNote}`;
+    if (devicesTag) plan.reason += ' + smoke on the Pixel 4a (API 30) and the Pixel Tablet + the volume job ([ui-devices])';
     return plan;
   }
 
@@ -268,6 +273,7 @@ export function select({ event = 'pull_request', tier, files = [], message = '',
   // Every app change also runs the smoke set once on the small phone at font 1.3 (staging build 2's lesson), in the
   // same shards, so it is not the critical path.
   plan.jobs.push(...smokeShards('small'));
+  if (devicesTag) { plan.jobs.push(...smokeShards('pixel4a'), ...smokeShards('tablet')); plan.volume = true; }
   plan.reason = `app change${areas.length ? ` in ${areas.join(', ')}` : ' outside the mapped areas'} → smoke on ${SHARD_IDS.length} emulators${full.length ? ` + ${uniq(full).length} full flow(s)` : ''}`
     + (extras ? ` + ${extras} deep job(s) (${deepAreas.join(', ')})` : ' (chaos / roles / two-device wait for the nightly)')
     + `, and on the small phone`;

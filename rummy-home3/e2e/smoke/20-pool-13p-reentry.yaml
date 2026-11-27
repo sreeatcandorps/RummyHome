@@ -93,13 +93,15 @@ tags: [smoke]
     visible:
       id: "score-header-initials-2"
     timeout: 15000
-- assertVisible:
-    id: "score-reentry-2"
 - runFlow:
     when:
       visible:
         id: "landscape-table-only"
     commands:
+      # The re-entry cell is in view only when the card was rebuilt sideways; upright (the tablet) the card is still
+      # scrolled to its footer from above, with round 3 out of sight (nightly Nov 26).
+      - assertVisible:
+          id: "score-reentry-2"
       - assertVisible:
           id: "score-header-initials-8"
           text: "TG"
@@ -116,6 +118,7 @@ tags: [smoke]
           id: "scorecard-share-icon"
 - takeScreenshot: 20d-pool-13p-landscape
 - setOrientation: PORTRAIT
+- runFlow: ../lib/stand-upright.yaml
 # Back in portrait the standings are there again, under the five-row card.
 - extendedWaitUntil:
     visible:

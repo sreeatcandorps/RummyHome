@@ -39,6 +39,7 @@ tags: [smoke, landscape]
       - assertNotVisible: "Add round"
 - takeScreenshot: 22c-points-10p-landscape
 - setOrientation: PORTRAIT
+- runFlow: ../lib/stand-upright.yaml
 - extendedWaitUntil:
     visible: "10 players"
     timeout: 15000
