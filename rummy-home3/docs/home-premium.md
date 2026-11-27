@@ -6,7 +6,9 @@ Sree, Nov 27:
 
 > "I'm still not happy with the design, though. We might have to change the design for the whole thing. I'm not happy with the design. It doesn't feel premium. I want to just do the home screen. I want Claude to use Fable or something to give me amazing design mockups. Right now, I don't like what we have. We need to do better. I think since it's Rummy, we should go for some premium Indian colors, Indian Bollywood. I don't know. We'll see."
 
-**The one question: which direction should I take further, A, B or C?** If you do not answer, I take **A**.
+**The one question (Q60): which direction should I take further, A, B or C?** If you do not answer, I take **A**.
+
+Later the same day you said: "I think everything else stays in place. It's just the themes." (D136.) These pictures were already being drawn. They fit that: in all three, Home has the same things in the same order as today, with one exception (a request moves under the two buttons). Read each direction first as a set of colours. The few things I changed besides colour and lettering are in bold in the table at the end, and each can be dropped while the colours stay.
 
 ## Today, and the three directions
 
