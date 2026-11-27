@@ -34,7 +34,8 @@ export type PoolSeat = {
 
 /** Pool (041): what the awards were based on, saved beside them. */
 export type AwardNote = {
-  preset?: 'winner' | 'left' | 'split' | 'drops' | 'custom';
+  /** 'winner' and 'split' only in awards saved before D128 (Nov 27). */
+  preset?: 'drops' | 'even' | 'left' | 'custom' | 'winner' | 'split';
   presetLabel?: string;
   entry?: number;
   poolTotal?: number;

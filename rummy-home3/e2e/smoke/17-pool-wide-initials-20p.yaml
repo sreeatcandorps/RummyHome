@@ -36,7 +36,7 @@ tags: [smoke]
 - tapOn:
     id: "give-awards"
 - extendedWaitUntil:
-    visible: "Winner takes all"
+    visible: "By drops left"
     timeout: 15000
 - assertVisible: "20 entries (a re-entry counts twice) · pool 2000 points"
 - takeScreenshot: 17-pool-wide-initials-awards

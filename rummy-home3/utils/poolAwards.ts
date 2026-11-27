@@ -8,17 +8,22 @@ import { PoolStanding, dropsLeft } from '@/utils/pool';
  * entries, pool and awards are points.
  */
 
-export type AwardPreset = 'winner' | 'left' | 'split' | 'drops' | 'custom';
+/** The four chips (D128). `winner` and `split` are the retired Winner takes all and 50 / 50: they live on only in
+ * awards saved before Nov 27, whose note keeps its own label; the screen reopens such awards as Custom. */
+export type AwardPreset = 'drops' | 'even' | 'left' | 'custom';
 
 export const AWARD_PRESETS: { key: AwardPreset; label: string; hint: string }[] = [
-  { key: 'winner', label: 'Winner takes all', hint: 'The lowest score still in gets the whole pool.' },
-  { key: 'left', label: 'By points left', hint: 'Players still in share the pool in proportion to the points they have left.' },
-  { key: 'split', label: '50 / 50', hint: 'The two lowest scores still in split the pool evenly.' },
-  { key: 'drops', label: 'Entry per drop left', hint: 'Each player still in gets one entry per drop they have left; the winner gets the rest.' },
+  { key: 'drops', label: 'By drops left', hint: 'Each player still in gets one entry per drop they have left; the winner gets the rest.' },
+  { key: 'even', label: 'Split evenly', hint: 'Players still in share the pool equally; one left takes it all.' },
+  { key: 'left', label: 'By score left', hint: 'Players still in share the pool in proportion to the score they have left before the limit.' },
   { key: 'custom', label: 'Custom', hint: 'Type what each player gets.' },
 ];
 
 export const presetLabel = (preset: AwardPreset) => AWARD_PRESETS.find((p) => p.key === preset)?.label ?? 'Custom';
+
+/** A saved note's preset as a chip: the retired presets reopen as Custom, with the saved numbers. */
+export const chipForSaved = (saved: string | undefined): AwardPreset =>
+  AWARD_PRESETS.some((p) => p.key === saved) ? (saved as AwardPreset) : 'custom';
 
 export type AwardRow = {
   playerId: string;
@@ -75,11 +80,10 @@ export function presetGets(preset: AwardPreset, { standings, entry, limit, drop 
 
   if (preset === 'custom') return { ...zero, ...previous };
 
-  if (preset === 'winner') return { ...zero, ...splitEvenly(poolTotal, winners) };
-
-  if (preset === 'split') {
-    const top = [...inRows].sort((a, b) => a.total - b.total).slice(0, 2).map((s) => s.playerId);
-    return { ...zero, ...splitEvenly(poolTotal, top.length ? top : winners) };
+  if (preset === 'even') {
+    // Lowest score first, so the rounding remainder goes to the winner (F13.6).
+    const ids = [...inRows].sort((a, b) => a.total - b.total).map((s) => s.playerId);
+    return { ...zero, ...splitEvenly(poolTotal, ids.length ? ids : winners) };
   }
 
   if (preset === 'left') {
@@ -120,7 +124,7 @@ export type WinnerCheck = {
 /**
  * F13.23: the lowest score must get the most. Co-winners (tied lowest, F13.6) share equally and are
  * compared as a group; `equals` names players a preset deliberately puts level with the winner
- * (50 / 50's second place), who are compared with ≥ instead of >.
+ * (everyone still in under Split evenly), who are compared with ≥ instead of >.
  */
 export function winnerGetsMost(gets: Record<string, number>, standings: PoolStanding[], equals: string[] = []): WinnerCheck {
   const winners = winnersOf(standings);
@@ -136,21 +140,19 @@ export function winnerGetsMost(gets: Record<string, number>, standings: PoolStan
   return { ok: winnerGets >= 0 && rival === null, rival, winnerGets, rivalGets };
 }
 
-/** Who a preset deliberately puts level with the winner: 50 / 50's second place; nobody otherwise. */
+/** Who a preset deliberately puts level with the winner: everyone still in under Split evenly; nobody otherwise. */
 function levelWithWinner(preset: AwardPreset, standings: PoolStanding[]): string[] {
-  if (preset !== 'split') return [];
-  const inRows = standings.filter((s) => !s.out);
+  if (preset !== 'even') return [];
   const winners = winnersOf(standings);
-  return [...inRows].sort((a, b) => a.total - b.total).slice(0, 2).map((s) => s.playerId).filter((id) => !winners.includes(id));
+  return standings.filter((s) => !s.out && !winners.includes(s.playerId)).map((s) => s.playerId);
 }
 
 /**
- * Which presets may be picked for this pool (F13.23). Winner takes all and By points left always
- * pass (the lowest score has the most points left); 50 / 50 passes with the second place level by
- * design (Q13.25, Sree Nov 15: the even split is a deliberate exception to "the winner gets the most" and is
- * never greyed); Entry per drop left fails when the others' drop entries leave the winner less than, or
- * equal to, any of them (or nothing at all). Custom is the admin's own numbers: never blocked, the
- * screen warns instead (`winnerGetsMost` on the typed sheet).
+ * Which presets may be picked for this pool (F13.23). By score left always passes (the lowest score has
+ * the most left); Split evenly passes with everyone still in level by design (like Q13.25's 50 / 50, it is
+ * never greyed: it is the fallback); By drops left fails when the others' drop entries leave the winner
+ * less than, or equal to, any of them (or nothing at all). Custom is the admin's own numbers: never
+ * blocked, the screen warns instead (`winnerGetsMost` on the typed sheet).
  */
 export function presetViability(preset: AwardPreset, inputs: Inputs): WinnerCheck & { viable: boolean } {
   if (preset === 'custom') return { ok: true, viable: true, rival: null, winnerGets: 0, rivalGets: 0 };
@@ -160,6 +162,11 @@ export function presetViability(preset: AwardPreset, inputs: Inputs): WinnerChec
 
 export function viablePresets(inputs: Inputs): Record<AwardPreset, boolean> {
   return Object.fromEntries(AWARD_PRESETS.map((p) => [p.key, presetViability(p.key, inputs).viable])) as Record<AwardPreset, boolean>;
+}
+
+/** D128: By drops left when it is fair to the winner, otherwise Split evenly. */
+export function defaultPreset(inputs: Inputs): AwardPreset {
+  return presetViability('drops', inputs).viable ? 'drops' : 'even';
 }
 
 export function buildAwardSheet(preset: AwardPreset, inputs: Inputs, gets: Record<string, number>): AwardSheet {

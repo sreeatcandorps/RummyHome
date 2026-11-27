@@ -178,7 +178,7 @@ tags: [smoke]
 - takeScreenshot: 16k-pool-complete-dialog
 - tapOn: "Confirm complete game"
 - extendedWaitUntil:
-    visible: "Winner takes all"
+    visible: "By drops left"
     timeout: 20000
 - assertVisible: "Awards · .*"
 - assertVisible: "Completed"
@@ -194,7 +194,15 @@ tags: [smoke]
     direction: DOWN
     timeout: 30000
 - assertVisible: "Pool 500 · all given out"
-- takeScreenshot: 16m-awards-winner-takes-all
+# D128: in this pool the others' drop entries would leave the winner with less than them, so By drops left is
+# off and Split evenly is picked; the line under the chips says why.
+- scrollUntilVisible:
+    element:
+      id: "award-drops-off"
+    direction: UP
+    timeout: 30000
+- assertVisible: "By drops left is off here: .* Picked for you: Split evenly\\."
+- takeScreenshot: 16m-awards-split-evenly-picked
 - scrollUntilVisible:
     element:
       id: "award-preset-left"
@@ -208,9 +216,8 @@ tags: [smoke]
     direction: DOWN
     timeout: 30000
 - assertVisible: "Pool 500 · all given out"
-- takeScreenshot: 16n-awards-by-points-left
-# F13.23: in this pool the others' drop entries would leave the winner with less than them, so the
-# preset is greyed and refused with the pop-up; the selection stays on By points left.
+- takeScreenshot: 16n-awards-by-score-left
+# F13.23: By drops left stays greyed; a tap is refused with the pop-up and the selection stays on By score left.
 - scrollUntilVisible:
     element:
       id: "award-preset-drops"
@@ -221,7 +228,7 @@ tags: [smoke]
 - extendedWaitUntil:
     visible: "This is not ideal for this situation because the winner gets less than the others. Please pick another option."
     timeout: 5000
-- takeScreenshot: 16o-awards-entry-per-drop-not-viable
+- takeScreenshot: 16o-awards-by-drops-left-not-viable
 - tapOn:
     id: "award-not-viable-ok"
 - assertNotVisible: "Not for this pool"
@@ -231,15 +238,15 @@ tags: [smoke]
     direction: DOWN
     timeout: 30000
 - assertVisible: "Pool 500 · all given out"
-# Custom starts from the numbers on screen: back to Winner takes all first so Sree holds 500, then type 400.
+# Custom starts from the numbers on screen: back to Split evenly first (125 each), then Sree's 125 becomes 0.
 # (On the 360-dp phone the chips and the table are never on screen together: scroll to each.)
 - scrollUntilVisible:
     element:
-      id: "award-preset-winner"
+      id: "award-preset-even"
     direction: UP
     timeout: 30000
 - tapOn:
-    id: "award-preset-winner"
+    id: "award-preset-even"
 - tapOn:
     id: "award-preset-custom"
 - scrollUntilVisible:
@@ -249,25 +256,23 @@ tags: [smoke]
     timeout: 30000
 - tapOn:
     id: "award-gets-00000000-0000-4000-8000-000000000001"
-# One character per step: a fast "400" into the controlled field doubled characters on the emulator.
+# One character per step: fast typing into the controlled field doubled characters on the emulator.
 - eraseText
-- inputText: "4"
-- inputText: "0"
 - inputText: "0"
 # One hideKeyboard only: a second one with the keyboard already closed acts as Back on Android and
 # leaves the Awards page.
 - hideKeyboard
 - scrollUntilVisible:
     element:
-      text: "Pool 500 · 400 given out · 100 not given out"
+      text: "Pool 500 · 375 given out · 125 not given out"
     direction: DOWN
     timeout: 30000
-- assertVisible: "Pool 500 · 400 given out · 100 not given out"
+- assertVisible: "Pool 500 · 375 given out · 125 not given out"
 - takeScreenshot: 16p-awards-custom-not-all-given-out
 - tapOn:
     id: "award-save"
 - extendedWaitUntil:
-    visible: "100 points weren't given out. Save awards anyway?"
+    visible: "125 points weren't given out. Save awards anyway?"
     timeout: 5000
 - takeScreenshot: 16q-awards-save-anyway
 - tapOn:
@@ -291,7 +296,7 @@ tags: [smoke]
 - assertVisible: "Change awards"
 - assertVisible:
     id: "pool-awards"
-- assertVisible: "Custom · entry 100 · pool 500 · 400 given out"
+- assertVisible: "Custom · entry 100 · pool 500 · 375 given out"
 - takeScreenshot: 16s-pool-scorecard-awarded
 # D46 C (Nov 18): Reopen on an awarded pool warns that the awards are cleared. Cancel — the pool stays awarded.
 - tapOn: "Scorecard menu"

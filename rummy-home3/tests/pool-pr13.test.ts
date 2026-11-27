@@ -29,7 +29,7 @@ import {
   resultScoresOf,
   validatePoolRound,
 } from '../utils/pool';
-import { AWARD_PRESETS, awardsPayload, buildAwardSheet, getsFromAwards, givenOutText, NOT_VIABLE_TEXT, presetGets, presetViability, saveAnywayText, viablePresets, winnerGetsMost, winnersOf } from '../utils/poolAwards';
+import { AWARD_PRESETS, awardsPayload, buildAwardSheet, chipForSaved, defaultPreset, getsFromAwards, givenOutText, NOT_VIABLE_TEXT, presetGets, presetViability, saveAnywayText, viablePresets, winnerGetsMost, winnersOf } from '../utils/poolAwards';
 import {
   allRulesFromProfileDefaults,
   DEFAULT_POOL_RULES,
@@ -170,17 +170,19 @@ test('13.4b after a round: who went out, who may re-enter, last player standing'
 
 // ---------- Awards (13.5) ----------
 
-test('13.5 award presets: winner takes all / by points left / 50-50 / entry per drop left / custom; remainders to the winner', () => {
+test('13.5 award presets (D128): by drops left / split evenly / by score left / custom; remainders to the winner', () => {
   const standings = poolStandings(game());
   const inputs = { standings, entry: 100, limit: 101, drop: 25 };
   assert.deepEqual(winnersOf(standings), [A]);
   // 7 entries (E counts twice) × 100 = 700.
-  const winner = buildAwardSheet('winner', inputs, presetGets('winner', inputs));
-  assert.equal(winner.poolTotal, 700);
-  assert.equal(winner.givenOut, 700);
-  assert.equal(winner.rows.find((r) => r.playerId === A)!.award, 600);
-  assert.equal(winner.rows.find((r) => r.playerId === E)!.award, -200, 'a re-entry put in twice');
-  assert.equal(winner.rows.reduce((s, r) => s + r.award, 0), 0, 'a full pool handed out adds to 0');
+  // Split evenly: A, B, C and E are still in → 175 each; D and F are out.
+  const even = buildAwardSheet('even', inputs, presetGets('even', inputs));
+  assert.equal(even.poolTotal, 700);
+  assert.equal(even.givenOut, 700);
+  assert.deepEqual(presetGets('even', inputs), { [A]: 175, [B]: 175, [C]: 175, [D]: 0, [E]: 175, [F]: 0 });
+  assert.equal(even.rows.find((r) => r.playerId === A)!.award, 75);
+  assert.equal(even.rows.find((r) => r.playerId === E)!.award, -25, 'a re-entry put in twice');
+  assert.equal(even.rows.reduce((s, r) => s + r.award, 0), 0, 'a full pool handed out adds to 0');
 
   const left = presetGets('left', inputs);
   // Points left among players in: A 34, B 6, C 1, E 0 → 41.
@@ -189,11 +191,6 @@ test('13.5 award presets: winner takes all / by points left / 50-50 / entry per 
   assert.equal(left[A], 700 - left[B] - left[C], 'the rounding remainder goes to the winner');
   assert.equal(left[E], 0);
   assert.equal(Object.values(left).reduce((s, v) => s + v, 0), 700);
-
-  const split = presetGets('split', inputs);
-  assert.equal(split[A], 350);
-  assert.equal(split[B], 350, 'the two lowest still in');
-  assert.equal(split[C], 0);
 
   const drops = presetGets('drops', inputs);
   assert.equal(drops[B], 100, '6 left = 1 drop = 1 entry');
@@ -209,7 +206,7 @@ test('13.5 award presets: winner takes all / by points left / 50-50 / entry per 
   assert.equal(givenOutText(sheet).tone, 'under');
   assert.equal(givenOutText(sheet).text, 'Pool 700 · 600 given out · 100 not given out');
   assert.equal(saveAnywayText(sheet), "100 points weren't given out. Save awards anyway?");
-  assert.equal(saveAnywayText(winner), null);
+  assert.equal(saveAnywayText(even), null);
   const over = buildAwardSheet('custom', inputs, { [A]: 800 });
   assert.equal(saveAnywayText(over), '100 points more than the pool were given out. Save awards anyway?');
 
@@ -217,14 +214,19 @@ test('13.5 award presets: winner takes all / by points left / 50-50 / entry per 
   assert.deepEqual(payload.awards, { [A]: 300, [B]: 100, [E]: -200, [C]: -100, [D]: -100, [F]: -100 });
   assert.deepEqual(payload.note, { preset: 'custom', presetLabel: 'Custom', entry: 100, poolTotal: 700, givenOut: 600 });
   assert.deepEqual(getsFromAwards(payload.awards, standings, 100), { [A]: 400, [B]: 200, [E]: 0, [C]: 0, [D]: 0, [F]: 0 }, 'reopening the screen rebuilds Gets');
-  assert.deepEqual(AWARD_PRESETS.map((p) => p.label), ['Winner takes all', 'By points left', '50 / 50', 'Entry per drop left', 'Custom']);
+  assert.deepEqual(AWARD_PRESETS.map((p) => p.label), ['By drops left', 'Split evenly', 'By score left', 'Custom'], 'D128: four chips, Winner takes all and 50 / 50 gone');
+  assert.equal(defaultPreset(inputs), 'drops', 'D128: By drops left is picked first when it is fair to the winner');
+  assert.equal(chipForSaved('winner'), 'custom', 'awards saved as Winner takes all reopen as Custom with their numbers');
+  assert.equal(chipForSaved('split'), 'custom');
+  assert.equal(chipForSaved('left'), 'left');
+  assert.equal(chipForSaved(undefined), 'custom');
 });
 
-test('13.5c F13.23 the lowest score gets the most: Entry per drop left is refused when the drop entries leave the winner level or behind', () => {
+test('13.5c F13.23 the lowest score gets the most: By drops left is refused when the drop entries leave the winner level or behind', () => {
   // The P12 pool: B and C have one drop left each (100 + 100 of 700), A keeps 500 → viable.
   const inputs = { standings: poolStandings(game()), entry: 100, limit: 101, drop: 25 };
   assert.equal(presetViability('drops', inputs).viable, true);
-  assert.deepEqual(viablePresets(inputs), { winner: true, left: true, split: true, drops: true, custom: true });
+  assert.deepEqual(viablePresets(inputs), { drops: true, even: true, left: true, custom: true });
 
   // Four players in, nobody out, early in the pool: 4 + 3 + 3 drops left eat 1000 of a 400 pool → the winner gets 0.
   const early = {
@@ -240,8 +242,9 @@ test('13.5c F13.23 the lowest score gets the most: Entry per drop left is refuse
   assert.equal(check.viable, false);
   assert.equal(check.winnerGets, 0);
   assert.ok(check.rival && drops[check.rival] >= 300, 'the rival named is the one who gets the most');
-  assert.deepEqual(viablePresets(earlyInputs), { winner: true, left: true, split: true, drops: false, custom: true },
-    'the other presets stay: Winner takes all and By points left always put the winner first; 50 / 50 levels second place by design');
+  assert.deepEqual(viablePresets(earlyInputs), { drops: false, even: true, left: true, custom: true },
+    'the other presets stay: By score left always puts the winner first; Split evenly levels everyone still in by design');
+  assert.equal(defaultPreset(earlyInputs), 'even', 'D128: Split evenly is picked for you when By drops left is off');
 
   // Level is not enough: three in, one drop left each → 100 + 100 of 300 leaves the winner 100 = the others.
   const level = {
@@ -264,18 +267,17 @@ test('13.5c F13.23 the lowest score gets the most: Entry per drop left is refuse
   const outsInputs = { standings: poolStandings(withOuts), entry: 100, limit: 101, drop: 25 };
   assert.equal(presetGets('drops', outsInputs)[A], 300);
   assert.equal(presetViability('drops', outsInputs).viable, true);
+  // Split evenly: 500 among A, B and C → 166 each, the remainder 2 to the winner.
+  assert.deepEqual(presetGets('even', outsInputs), { [A]: 168, [B]: 166, [C]: 166, [D]: 0, [E]: 0 });
 
-  // 50 / 50 and ties: the second place is level by design (≥ allowed); anyone else ahead of the winner is not.
-  // Q13.25 (Sree, Nov 15): the even split is a deliberate exception to "the winner gets the most" — always offered.
-  assert.equal(presetViability('split', earlyInputs).viable, true, 'Q13.25: 50 / 50 is never greyed');
-  assert.equal(presetViability('split', inputs).viable, true, 'Q13.25: not on the P12 pool either');
-  const splitGets = presetGets('split', earlyInputs);
-  const [first, second] = [...earlyInputs.standings].filter((s) => !s.out).sort((a, b) => a.total - b.total);
-  assert.equal(splitGets[first.playerId], splitGets[second.playerId], 'Q13.25: the two lowest still in get the same');
+  // Split evenly and ties: everyone still in is level by design (≥ allowed), like Q13.25's 50 / 50; it is the fallback, never greyed.
+  assert.equal(presetViability('even', earlyInputs).viable, true, 'Split evenly is never greyed');
+  assert.equal(presetViability('even', inputs).viable, true, 'not on the P12 pool either');
+  assert.deepEqual(presetGets('even', earlyInputs), { [A]: 100, [B]: 100, [C]: 100, [D]: 100 }, 'four still in share 400 equally');
   const tied = { ...early, scores: { [A]: [0, 10], [B]: [10, 0], [C]: [15, 20], [D]: [30, 10] } } as unknown as Game;
   const tiedInputs = { standings: poolStandings(tied), entry: 100, limit: 101, drop: 25 };
   assert.deepEqual(winnersOf(tiedInputs.standings), [A, B], 'co-winners');
-  assert.equal(presetViability('winner', tiedInputs).viable, true, 'co-winners share and are compared as a group');
+  assert.equal(presetViability('even', tiedInputs).viable, true, 'co-winners share and are compared as a group');
   assert.equal(presetViability('left', tiedInputs).viable, true);
 
   // Custom is never blocked; the screen warns from the same check.
@@ -293,6 +295,9 @@ test('13.5c F13.23 the lowest score gets the most: Entry per drop left is refuse
   assert.ok(screen.includes('NOT_VIABLE_TEXT') && screen.includes('viablePresets(inputs)'), 'the Awards screen greys and refuses a non-viable preset');
   assert.ok(screen.includes('award-not-viable-ok'), 'the pop-up has a button the flow can tap');
   assert.ok(screen.includes("preset === 'custom' ? winnerGetsMost(gets, standings)"), 'Custom warns instead of blocking');
+  assert.ok(screen.includes('defaultPreset(first)'), 'D128: a first Awards visit starts on By drops left, or Split evenly when drops is off');
+  assert.ok(screen.includes('chipForSaved(game.awardNote?.preset)'), 'saved awards reopen on their chip; retired presets as Custom');
+  assert.ok(screen.includes('testID="award-drops-off"') && screen.includes('Picked for you: Split evenly.'), 'D128: why By drops left is off, said on the screen');
 });
 
 test('13.5b award wording never mentions money, expenses, stake or prize', () => {
