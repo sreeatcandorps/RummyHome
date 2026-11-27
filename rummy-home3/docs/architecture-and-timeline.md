@@ -720,15 +720,16 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   `token_ledger`, `games.prize` and the five `*_prize_*` RPCs stay in the database, unused, until Sree says yes to
   dropping them.
 
-### 2026-11-26 — Migration 054: a mid-game joiner sits to the dealer's left (D70), written, not applied
+### 2026-11-26 — Migration 054: a mid-game joiner sits to the dealer's left (D70), live
 - `054_join_left_of_dealer.sql` replaces only `add_seated_player`'s seat rule (052's dealer + 1, D57): a newcomer
   takes the seat before whoever deals the round being played, so they deal last and nobody's turn moves; the
   dealer keeps the round through the 052 override when needed. Re-entry is unchanged. The app predicts the same
   seat (`planJoin`) for local games and for the one-line notice on Add players. Rollback restores the 052 body;
-  CI's rollback replay and pgTAP cover it. Live only after Sree's yes to 054.
+  CI's rollback replay and pgTAP cover it. Merged as #156 (`eb4a3270`); Build Bot applied 054 from that `main` to
+  live (row counts unchanged before and after) and to staging on Nov 26.
 ### 2026-11-26 — Find players by Player ID only (053, D113); invite is a plain message (D106)
 - Migration `053_player_id_search_only.sql` (merged as #150; **applied to live** Nov 26 by Build Bot from `main`
-  `1ece816a`, row counts unchanged before and after) turns `search_players` into an exact Player ID
+  `1ece816a`, row counts unchanged before and after; on staging the same day) turns `search_players` into an exact Player ID
   lookup: one registered account, its name shortened to first name + last initial (`short_player_name`), or nothing.
   Names, initials and emails are no longer searchable through the API, so typing two letters can no longer list
   people from the whole database. Same signature, so older app builds keep working; `search_my_players` (the
