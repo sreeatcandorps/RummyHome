@@ -754,6 +754,8 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   retries (#163), after one 88-minute snapshot hang and one Maestro download 504 on Nov 26.
 - CI: when a runner holds the local database's host port (54322), `ci/supabase-start.sh` moves the database to a
   free port and hands `DB_URL` to later steps through `$GITHUB_ENV`; jobs no longer set `DB_URL` themselves (#167).
+- CI (Nov 27): `[ui-devices]` in a PR's head commit message adds the nightly-only Pixel 4a and Tablet smoke rows and
+  the volume job to that PR; a Maestro driver crash (`DeviceServerDiedException`) reruns the flow once (#169).
 
 ### 2026-11-25 — EZ Score: Rummy is live on Google Play (Production 15, 1.1.0)
 - Google approved the review; build 15 (1.1.0) is published to Production (Play Console: "Last published on November
