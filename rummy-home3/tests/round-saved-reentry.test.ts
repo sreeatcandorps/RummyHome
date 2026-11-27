@@ -97,6 +97,42 @@ test('D139 the seat line names the seat and the two players still in beside it; 
   assert.equal(reentrySeatLine(there, 'H', out, short), 'Harish keeps seat 3 — already left of the dealer.');
 });
 
+test('D139 smoke/16b (game U): the seat lines the flow asserts are what the helpers say', () => {
+  const ids = ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
+  const names: Record<string, string> = { S: 'Sree Test', A: 'Test Alpha', B: 'Test Bravo', C: 'Test Charlie', D: 'Test Delta', E: 'Test Echo', F: 'Test Foxtrot', G: 'Test Golf', H: 'Test Hotel', I: 'Test India', J: 'Test Juliet', K: 'Test Kilo' };
+  const name = shortNames(ids, (id) => names[id]);
+  const earlier = ['G', 'H', 'I', 'J', 'K'];
+  const at = (players: string[], out: string[], nextDealerOverride: ReturnType<typeof planReentry>['nextDealerOverride'] = null) =>
+    ({ players, dealerIds: ['S', 'A', 'B', 'C'], outIds: new Set(out), nextDealerOverride });
+  const flow = read('e2e/smoke/16b-pool-round-saved-12p.yaml');
+  const says = (text: string) => { assert.ok(flow.includes(`"${text}"`), `the flow asserts: ${text}`); return text; };
+
+  let out = ['A', 'B', 'C', ...earlier];
+  const charlie = planReentry(at(ids, out), 4, 'C');
+  assert.equal(charlie.dealer, 'D');
+  assert.equal(reentrySeatLine(charlie, 'C', new Set(out), name), says('Test Charlie keeps seat 4 — already left of the dealer.'));
+  assert.equal(charlie.defaultSeat, charlie.from, 'no Keep seat button');
+
+  out = ['A', 'B', ...earlier];
+  const bravo = planReentry(at(charlie.players, out, charlie.nextDealerOverride), 4, 'B');
+  assert.deepEqual(bravo.players.slice(0, 5), ['S', 'A', 'C', 'B', 'D']);
+  assert.equal(reentrySeatLine(bravo, 'B', new Set(out), name), says('Test Bravo sits at seat 4, between Test Charlie and Test Delta — left of the dealer.'));
+  const echo = planReentry(at(charlie.players, out, charlie.nextDealerOverride), 4, 'B', seatLeftOf(bravo.players, 'B', 'E'));
+  assert.equal(bravo.players.indexOf('E') + 1, 6, 'after-seat-6 is Echo');
+  assert.equal(reentrySeatLine(echo, 'B', new Set(out), name), says('Test Bravo sits at seat 5, between Test Delta and Test Echo.'));
+  assert.ok(reentrySeatWarning(echo, 'B', name));
+  assert.equal(echo.players.indexOf('D') + 1, 4, 'after-seat-4 is Delta');
+  assert.equal(seatLeftOf(echo.players, 'B', 'D'), bravo.defaultSeat, 'a tap on Delta is the default again');
+
+  out = ['A', ...earlier];
+  const hotel = planReentry(at(bravo.players, out, bravo.nextDealerOverride), 4, 'H');
+  assert.equal(hotel.dealer, 'D', 'Delta still deals round 5');
+  assert.equal(reentrySeatLine(hotel, 'H', new Set(out), name), says('Test Hotel sits at seat 5, between Test Bravo and Test Delta — left of the dealer.'));
+  assert.equal(roundSavedSummary(3, 4, 41), says('3 out this round · 4 still in · re-entry at 41'));
+  assert.equal(roundSavedSummary(2, 5, 42), says('2 out this round · 5 still in · re-entry at 42'));
+  assert.match(read('supabase/seed-e2e.sql'), /'GAMEU1'/);
+});
+
 test('D139 names: first names unless two players share one (v17: three "Player"s)', () => {
   const twins = shortNames(['a', 'b', 'c'], (id) => ({ a: 'Player One', b: 'Player Two', c: 'Ravi Kumar' })[id] ?? id);
   assert.equal(twins('a'), 'Player One');

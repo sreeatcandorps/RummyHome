@@ -1,0 +1,246 @@
+appId: com.mindweavetech.rummyhome
+tags: [smoke]
+# D139 (design-review-2 §10.6): the Round saved sheet on a 12-seat pool, and re-entry on the dealer's left.
+# Fixture: game U (GAMEU1, supabase/seed-e2e.sql), 3 rounds saved. Seats: Sree 1, Test Alpha 2, Bravo 3,
+# Charlie 4, Delta 5, Echo 6, Foxtrot 7, Golf..Kilo 8-12 (out in round 1). Alpha..Charlie are at 80, so
+# round 4 (Sree Rummy, everyone else Drop 25) puts three out at 105; 40 is the highest still in.
+# Charlie deals round 4, so Delta deals round 5 and the dealer's left is seat 4.
+# Sree (Nov 21): "what if there are more players, will it scroll?" — eight rows: only the list scrolls,
+# the title, the summary and Close stay in view. Two players re-enter from one sheet (it stays open);
+# a third from Standings (the second door, the same seat line). Undo takes all of it back at the end.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEU1"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "game-card-GAMEU1"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 20000
+- assertVisible: "12 players"
+- tapOn: "Add round"
+- extendedWaitUntil:
+    visible: "Save round"
+    timeout: 15000
+- tapOn: "Sree Test, no score"
+- tapOn: "Rummy"
+- tapOn: "Test Alpha, no score"
+- tapOn: "Drop 25"
+- tapOn: "Test Bravo, no score"
+- tapOn: "Drop 25"
+- tapOn: "Test Charlie, no score"
+- tapOn: "Drop 25"
+# On the 360-dp phone at font 1.3 the last cells can sit below the fold of the grid.
+- scrollUntilVisible:
+    element:
+      text: "Test Delta, no score"
+    direction: DOWN
+    timeout: 30000
+- tapOn: "Test Delta, no score"
+- tapOn: "Drop 25"
+- scrollUntilVisible:
+    element:
+      text: "Test Echo, no score"
+    direction: DOWN
+    timeout: 30000
+- tapOn: "Test Echo, no score"
+- tapOn: "Drop 25"
+- scrollUntilVisible:
+    element:
+      text: "Test Foxtrot, no score"
+    direction: DOWN
+    timeout: 30000
+- tapOn: "Test Foxtrot, no score"
+- tapOn: "Drop 25"
+- tapOn: "Save round"
+- extendedWaitUntil:
+    visible:
+      id: "round-saved-sheet"
+    timeout: 20000
+- assertVisible:
+    id: "after-title"
+    text: "Round 4 saved"
+- assertVisible:
+    id: "after-next"
+    text: "Next: round 5 · Test Delta deals"
+- assertVisible:
+    id: "after-summary"
+    text: "3 out this round · 4 still in · re-entry at 41"
+- assertVisible: "OUT THIS ROUND"
+- assertVisible:
+    id: "after-row-00000000-0000-4000-8000-0000000000e1"
+- assertVisible:
+    id: "after-done"
+- takeScreenshot: 16b-round-saved-12p-sheet
+# Eight rows (three this round, five earlier): the list scrolls, Close stays pinned.
+- scrollUntilVisible:
+    element:
+      id: "after-row-00000000-0000-4000-8000-0000000000eb"
+    direction: DOWN
+    timeout: 30000
+- assertVisible: "OUT EARLIER"
+- assertVisible:
+    id: "after-title"
+- assertVisible:
+    id: "after-done"
+- takeScreenshot: 16b2-round-saved-12p-scrolled
+- scrollUntilVisible:
+    element:
+      id: "after-reenter-00000000-0000-4000-8000-0000000000e3"
+    direction: UP
+    timeout: 30000
+
+# First re-entry: Charlie already sits on Delta's left (the out seat between them is skipped) and keeps seat 4.
+- tapOn:
+    id: "after-reenter-00000000-0000-4000-8000-0000000000e3"
+- extendedWaitUntil:
+    visible:
+      id: "after-seat-line"
+    timeout: 5000
+- assertVisible:
+    id: "after-seat-line"
+    text: "Test Charlie keeps seat 4 — already left of the dealer."
+- assertNotVisible:
+    id: "after-keep-seat"
+- assertVisible: "Re-enter at 41"
+- takeScreenshot: 16b3-round-saved-reenter-already-left
+- tapOn:
+    id: "after-reenter-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "after-back-00000000-0000-4000-8000-0000000000e3"
+    timeout: 15000
+- assertVisible:
+    id: "after-summary"
+    text: "2 out this round · 5 still in · re-entry at 42"
+
+# Second re-entry from the same sheet: Bravo moves from seat 3 to Delta's left, seat 4, between Charlie and
+# Delta. Delta still deals round 5 (056 keeps the dealer on a re-entry).
+- tapOn:
+    id: "after-reenter-00000000-0000-4000-8000-0000000000e2"
+- extendedWaitUntil:
+    visible:
+      id: "after-seat-line"
+    timeout: 5000
+- assertVisible:
+    id: "after-seat-line"
+    text: "Test Bravo sits at seat 4, between Test Charlie and Test Delta — left of the dealer."
+- assertVisible:
+    id: "after-keep-seat"
+- assertVisible: "Re-enter at 42"
+- takeScreenshot: 16b4-round-saved-reenter-seat-strip
+# A tap on a name in the strip sits him on that person's left, with a warning (never a refusal, D50);
+# Keep seat 3 is today's behaviour. The strip shows the seats as planned (Bravo at 4, Echo at 6): a tap on
+# Echo puts Bravo at seat 5, then Delta (now seat 4) brings him back to the default.
+- tapOn:
+    id: "after-seat-6"
+- extendedWaitUntil:
+    visible:
+      id: "after-seat-warning"
+    timeout: 5000
+- assertVisible:
+    id: "after-seat-line"
+    text: "Test Bravo sits at seat 5, between Test Delta and Test Echo."
+- takeScreenshot: 16b5-round-saved-reenter-other-seat
+- tapOn:
+    id: "after-seat-4"
+- assertVisible:
+    id: "after-seat-line"
+    text: "Test Bravo sits at seat 4, between Test Charlie and Test Delta — left of the dealer."
+- assertNotVisible:
+    id: "after-seat-warning"
+- tapOn:
+    id: "after-reenter-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "after-back-00000000-0000-4000-8000-0000000000e2"
+    timeout: 15000
+- assertVisible:
+    id: "after-back-00000000-0000-4000-8000-0000000000e2"
+    text: "↺ Back in at 42 · seat 4, left of Test Delta"
+- assertVisible:
+    id: "after-back-00000000-0000-4000-8000-0000000000e3"
+    text: "↺ Back in at 41 · seat 3, left of Test Bravo"
+- assertVisible:
+    id: "after-next"
+    text: "Next: round 5 · Test Delta deals"
+- takeScreenshot: 16b6-round-saved-two-back-in
+# Landscape: the same sheet, the list still scrolls under the pinned header and Close.
+- setOrientation: LANDSCAPE_LEFT
+- extendedWaitUntil:
+    visible:
+      id: "after-done"
+    timeout: 10000
+- takeScreenshot: 16b7-round-saved-landscape
+- setOrientation: PORTRAIT
+- extendedWaitUntil:
+    visible:
+      id: "after-done"
+    timeout: 10000
+- tapOn:
+    id: "after-done"
+- extendedWaitUntil:
+    visible: "Scorecard( · .*)?"
+    timeout: 15000
+- runFlow: ../lib/stand-upright.yaml
+- assertVisible:
+    id: "score-header-initials-3"
+    text: "TC"
+- assertVisible:
+    id: "score-header-initials-4"
+    text: "TB"
+
+# The second door: Re-enter in Standings opens the same seat line. Hotel sits on Delta's left, seat 5,
+# right after Bravo.
+- repeat:
+    while:
+      notVisible:
+        id: "reenter-00000000-0000-4000-8000-0000000000e8"
+    times: 6
+    commands:
+      - swipe:
+          from:
+            id: "pool-standings-pane"
+          direction: UP
+- tapOn:
+    id: "reenter-00000000-0000-4000-8000-0000000000e8"
+- extendedWaitUntil:
+    visible:
+      id: "reentry-sheet"
+    timeout: 5000
+- assertVisible: "Re-enter Test Hotel"
+- assertVisible:
+    id: "standings-seat-line"
+    text: "Test Hotel sits at seat 5, between Test Bravo and Test Delta — left of the dealer."
+- assertVisible: "Re-enter at 43"
+- takeScreenshot: 16b8-standings-reenter-seat
+- tapOn:
+    id: "standings-reenter-confirm"
+- extendedWaitUntil:
+    notVisible:
+      id: "reentry-sheet"
+    timeout: 15000
+- assertVisible:
+    id: "score-header-initials-5"
+    text: "TH"
+- takeScreenshot: 16b9-standings-reentered
+
+# Clean up: the three re-entries and round 4 come off, newest first, so game U is back to 3 rounds with five
+# out (the moved seats stay where they are).
+- repeat:
+    times: 4
+    commands:
+      - tapOn: "Undo round"
+      - extendedWaitUntil:
+          visible: "Remove the last round?"
+          timeout: 5000
+      - tapOn: "Remove"
+      - extendedWaitUntil:
+          notVisible: "Remove the last round?"
+          timeout: 15000
+- extendedWaitUntil:
+    visible: "Round 4"
+    timeout: 15000
