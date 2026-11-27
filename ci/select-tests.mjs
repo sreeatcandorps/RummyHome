@@ -67,24 +67,25 @@ const INFRA = [/^ci\//, /^\.github\//, /^rummy-home3\/e2e\//, /^rummy-home3\/sup
  *   independent     smoke/17 (W), 20 (V), 22 (Ravi's games), 24 (Ravi, tutorial), 30 (adds QX, ZQ, VK to My players;
  *                   no game), 31 (looks up #5), 32 (New game to Order of players with 13, numbers and selects, never
  *                   starts: leaving New game forgets the draft); full/60 (dark mode, back to Phone)
- *   clearState      smoke/26 and 27 wipe the phone and sign back in; what follows them in shard b reads only F
+ *   clearState      smoke/26 and 27 wipe the phone and sign back in; what follows them in shard b reads only F or
+ *                   is independent (30, 31: they sign in first and use the server's My players)
  *
  * Lists are in run order. The sizes are the measured times of run 45912691807 (#156, Nov 26, all 31 flows on one
- * Pixel 6): a = 1132 s, b = 1094 s of smoke. `full` lists the full flows that follow the shard's smoke on the same emulator; every full flow on disk is in
+ * Pixel 6): a = 1132 s, b = 1094 s of smoke;
+ * Nov 27 smoke/32 (~380 s) joined a and the independent 17, 20, 30 moved to b: a = 1342 s, b = 1264 s. `full` lists the full flows that follow the shard's smoke on the same emulator; every full flow on disk is in
  * exactly one list (tests/test-selection-pr-shards.test.ts), a full flow that is not falls to shard b.
  */
 export const SMOKE_SHARDS = {
   a: {
     smoke: ['01-home', '02-scorecard', '03-scorecard-landscape', '04-add-round', '05-complete-game', '06-results', '07-profile', '08-my-players', '09-new-game',
-      '12-results-zero-players', '15-delete-shared-result-confirm', '16-pool-game', '17-pool-wide-initials-20p', '19-seating-order', '20-pool-13p-reentry',
-      '30-add-by-initials-save'],
+      '12-results-zero-players', '15-delete-shared-result-confirm', '16-pool-game', '19-seating-order', '32-seating-13p'],
     full: ['10-sign-out-bad-passcode', '40-results-save-and-past', '41-share-images', '42-reopen-closed-game', '61-first-launch-light-night-phone'],
   },
   b: {
-    smoke: ['10-scorecard-20-players', '11-scorecard-20-players-landscape', '13-undo-then-add-round', '14-rummy-positive-pot',
-      '18-multiplier-change', '21-help-frames', '22-play-listing-frames', '23-dealer', '24-seating-tutorial', '25-scorecard-fast-fling',
-      '26-create-account-keyboard', '27-create-account-code', '28-scorecard-columns', '29-scorecard-names-swipe', '31-player-id-search',
-      '32-seating-13p'],
+    smoke: ['10-scorecard-20-players', '11-scorecard-20-players-landscape', '13-undo-then-add-round', '14-rummy-positive-pot', '17-pool-wide-initials-20p',
+      '18-multiplier-change', '20-pool-13p-reentry', '21-help-frames', '22-play-listing-frames', '23-dealer', '24-seating-tutorial', '25-scorecard-fast-fling',
+      '26-create-account-keyboard', '27-create-account-code', '28-scorecard-columns', '29-scorecard-names-swipe', '30-add-by-initials-save',
+      '31-player-id-search'],
     full: ['20-scorecard-20-players-swipe', '21-scorecard-font-scale', '30-players-admins-and-settings', '31-edit-initials-mid-game', '32-add-players-to-game',
       '50-help-notes', '50-multiplier-20p', '51-seating-20p', '60-dark-mode', '70-game-log', '80-add-round-count-warnings'],
   },
