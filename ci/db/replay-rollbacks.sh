@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–054) applied, check the function state after each, then re-apply the forward
+# has every migration (001–056) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -23,6 +23,19 @@ fn_exists() { q "select exists(select 1 from pg_proc where proname='$1' and pron
 fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and prosrc like '%$2%')"; }
 
 echo "TAP version 13"
+
+fn_args() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and pg_get_function_identity_arguments(oid) = '$2')"; }
+
+# 056 (D139: a re-entry sits to the dealer's left — reenter_player gains p_seat; rolled back first)
+HAS_056=f
+if [ -f "$RB/rollback_056_reentry_left_of_dealer.sql" ]; then
+  HAS_056=t
+  if apply "$RB/rollback_056_reentry_left_of_dealer.sql"; then tap ok "rollback_056 applies"; else tap fail "rollback_056 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_args reenter_player 'p_game_id uuid, p_profile_id uuid, p_seat integer')" = f ] && [ "$(fn_args reenter_player 'p_game_id uuid, p_profile_id uuid')" = t ] \
+    && [ "$(fn_has reenter_player pool_entry_plus)" = t ] && [ "$(fn_has reenter_player v_planned_after)" = f ] \
+    && tap ok "after rollback_056 reenter_player is the 047 two-argument body (a re-entry keeps its seat)" \
+    || tap fail "after rollback_056 reenter_player should be the 047 two-argument body"
+fi
 
 # 054 (D70: a joiner sits to the dealer's left — add_seated_player body only; rolled back first)
 HAS_054=f
@@ -550,6 +563,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_052" = t ] && FORWARD="$FORWARD 052_dealer"
 [ "$HAS_053" = t ] && FORWARD="$FORWARD 053_player_id_search_only"
 [ "$HAS_054" = t ] && FORWARD="$FORWARD 054_join_left_of_dealer"
+[ "$HAS_056" = t ] && FORWARD="$FORWARD 056_reentry_left_of_dealer"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -742,6 +756,11 @@ fi
 if [ "$HAS_054" = t ]; then
   [ "$(fn_has add_seated_player v_planned_after)" = t ] \
     && tap ok "054 restored (a joiner sits to the dealer's left)" || tap fail "054 restored"
+fi
+if [ "$HAS_056" = t ]; then
+  [ "$(fn_args reenter_player 'p_game_id uuid, p_profile_id uuid, p_seat integer')" = t ] && [ "$(fn_args reenter_player 'p_game_id uuid, p_profile_id uuid')" = f ] \
+    && [ "$(fn_has reenter_player v_planned_after)" = t ] \
+    && tap ok "056 restored (reenter_player takes a seat; one function, no two-argument overload)" || tap fail "056 restored"
 fi
 if [ "$HAS_053" = t ]; then
   [ "$(fn_exists short_player_name)" = t ] && [ "$(fn_has search_players short_player_name)" = t ] && [ "$(fn_has search_players ilike)" = f ] \
