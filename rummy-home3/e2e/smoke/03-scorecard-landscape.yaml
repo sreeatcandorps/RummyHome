@@ -58,7 +58,9 @@ tags: [smoke, landscape]
       - assertVisible: "Scorecard menu"
 - takeScreenshot: 03-scorecard-4p-landscape
 # Upright: the header, tags and bar are back; Add round still works (its own landscape is unchanged).
+# On the Pixel Tablet PORTRAIT is sideways (nightly Nov 26: "Add round" never showed), so stand-upright turns it back.
 - setOrientation: PORTRAIT
+- runFlow: ../lib/stand-upright.yaml
 - extendedWaitUntil:
     visible: "Add round"
     timeout: 15000

@@ -187,11 +187,29 @@ for f in $(ls "$SET_DIR"/*.yaml 2>/dev/null | sort); do
   [ "$VIDEO" != off ] && record_start "$name"
   # Maestro 2.x writes takeScreenshot/ (the flow's screenshots), logs/ (per-command timings) and
   # its own failure capture into the test output dir; the flow's screenshots are copied to screens/.
-  maestro "${MAESTRO_DEVICE[@]}" test \
-      --format junit --output "$ABS_OUT/junit/$name.xml" \
-      --test-output-dir "$ABS_OUT/debug/$name" \
-      "$ABS_SET/$name.yaml"
+  run_maestro() {
+    maestro "${MAESTRO_DEVICE[@]}" test \
+        --format junit --output "$ABS_OUT/junit/$name.xml" \
+        --test-output-dir "$ABS_OUT/debug/$name" \
+        "$ABS_SET/$name.yaml"
+  }
+  run_maestro
   rc=$?
+  # Maestro's own driver app (dev.mobile.maestro) can die under the flow: nightly Nov 26, Pixel 4a, smoke/17 failed after
+  # 13 s with "Device server died during 'viewHierarchy'" and a SIGSEGV in that app's HeapTaskDaemon, while EZ Score
+  # itself was fine. That says nothing about the app, so such a flow runs once more. Only that signature: any
+  # assertion failure, app crash or ANR still fails at once. Flows with a host-side hook (offline, kill, revoke) are
+  # timed against their first screenshot and never rerun.
+  if [ "$rc" -ne 0 ] && [ -z "$WATCH_PID" ] && grep -qs "DeviceServerDiedException" "$ABS_OUT/junit/$name.xml"; then
+    echo "::warning::$name: Maestro's device server died (not the app); running the flow once more"
+    mkdir -p "$ABS_OUT/debug/$name"
+    cp "$ABS_OUT/junit/$name.xml" "$ABS_OUT/debug/$name/attempt-1.junit.xml" 2>/dev/null || true
+    adb logcat -d > "$ABS_OUT/debug/$name/attempt-1.logcat.txt" 2>/dev/null || true
+    sleep 5
+    adb logcat -c -b all >/dev/null 2>&1 || adb logcat -c >/dev/null 2>&1 || true
+    run_maestro
+    rc=$?
+  fi
   if [ -n "$WATCH_PID" ]; then
     kill "$WATCH_PID" >/dev/null 2>&1 || true
     wait "$WATCH_PID" 2>/dev/null || true
