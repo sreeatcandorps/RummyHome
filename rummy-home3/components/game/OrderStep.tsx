@@ -1,30 +1,26 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
-import { Screen } from '@/components/ui/Screen';
 import { BottomBar } from '@/components/ui/BottomBar';
-import { SectionCard } from '@/components/ui/SectionCard';
-import { Toast } from '@/components/ui/Toast';
 import { OrderOfPlayers, SeatingPlayer } from '@/components/game/OrderOfPlayers';
-import { OrderHowTo } from '@/components/game/OrderHowTo';
 import { SeatingTutorial } from '@/components/tutorial/SeatingTutorial';
-import { spacing, useAppTheme } from '@/constants/theme';
+import { MAX_CONTENT_WIDTH, spacing, useAppTheme } from '@/constants/theme';
+import { useLayout } from '@/hooks/useLayout';
 import { useTutorial } from '@/hooks/useTutorial';
 import { lightTap } from '@/utils/haptics';
-import { clearOrder, displayOrder, nextDealerFor, OrderDraft, orderComplete, SEATING_CLEAR, SEATING_TITLE } from '@/utils/seating';
-import { lowestCardToast } from '@/utils/tutorials';
+import { clearOrder, displayOrder, nextDealerFor, OrderDraft, orderComplete, SEATING_CLEAR } from '@/utils/seating';
 
 /**
- * New game, step 3 (PR 24): Order of players. Nobody is numbered to begin with; tap the players in
- * seating order. Back / Clear / Next — or Start game when no co-admin step follows. Pure
- * presentation: the New game screen owns the draft and the create call.
+ * New game, step 3 (PR 24; the circle since D138): Order of players. Nobody is numbered to begin with; tap the
+ * players from the highest card to the lowest. Back / Clear / Next — or Start game when no co-admin step
+ * follows. Pure presentation: the New game screen owns the draft and the create call.
  */
 export function OrderStep({ players, draft, onChange, onBack, onNext, nextIsStart, creating, error, meId }: {
   players: SeatingPlayer[];
   draft: OrderDraft;
   onChange: (draft: OrderDraft) => void;
-  /** The signed-in player, for the "you deal" toast. */
+  /** The signed-in player, for "you deal round 1". */
   meId?: string | null;
   onBack: () => void;
   onNext: () => void;
@@ -34,34 +30,42 @@ export function OrderStep({ players, draft, onChange, onBack, onNext, nextIsStar
   error: string | null;
 }) {
   const { colors } = useAppTheme();
+  const { gutterLeft, gutterRight, isShort } = useLayout();
+  const [height, setHeight] = useState(0);
   const complete = orderComplete(draft);
-  const dealsNext = orderComplete(draft) ? nextDealerFor(displayOrder(draft), null, 0) : undefined;
+  const dealsNext = complete ? nextDealerFor(displayOrder(draft), null, 0) : undefined;
   // D74: the steps open from Show me only (D61's forced first visit is gone).
   const tutorial = useTutorial('seating');
-  const [toast, setToast] = useState<string | null>(null);
+  const padTop = isShort ? spacing.sm : spacing.md;
 
-  // The real last tap (D61): the seat-1 player is named, with a light tap of the phone.
+  // The real last tap (D61): the middle names the dealer; the phone gives a light tap.
   const change = (next: OrderDraft) => {
     onChange(next);
-    if (!orderComplete(draft) && orderComplete(next)) {
-      const dealer = players.find((player) => player.id === next.numbered[0]);
-      if (dealer) {
-        setToast(lowestCardToast(dealer.name, dealer.id === meId));
-        void lightTap();
-      }
-    }
+    if (!orderComplete(draft) && orderComplete(next)) void lightTap();
   };
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <Screen contentStyle={styles.content} safeBottom={false}>
-        <SectionCard title={SEATING_TITLE} icon="seat-outline">
-          <OrderHowTo onShowMe={tutorial.show} testID="order-how-to" />
-          <OrderOfPlayers players={players} draft={draft} onChange={change} dealsNext={dealsNext} disabled={creating} />
-        </SectionCard>
-        {error ? <Text variant="bodyMedium" style={{ color: colors.error, paddingHorizontal: spacing.md }} testID="new-game-problem">{error}</Text> : null}
-      </Screen>
+      <View style={styles.root} onLayout={(event) => setHeight(Math.floor(event.nativeEvent.layout.height))}>
+        <ScrollView contentContainerStyle={{ paddingLeft: gutterLeft, paddingRight: gutterRight, paddingTop: padTop, paddingBottom: spacing.md }} keyboardShouldPersistTaps="handled" testID="new-game-order-scroll">
+          <View style={styles.column}>
+            {height > 0 ? (
+              <OrderOfPlayers
+                players={players}
+                draft={draft}
+                onChange={change}
+                dealsNext={dealsNext}
+                meId={meId}
+                disabled={creating}
+                availableHeight={height - padTop - spacing.md - (error ? 48 : 0)}
+                onShowMe={tutorial.show}
+                howToTestID="order-how-to"
+              />
+            ) : null}
+            {error ? <Text variant="bodyMedium" style={{ color: colors.error, paddingTop: spacing.sm }} testID="new-game-problem">{error}</Text> : null}
+          </View>
+        </ScrollView>
+      </View>
       <SeatingTutorial visible={tutorial.visible} onDone={tutorial.done} />
-      <Toast message={toast} onDismiss={() => setToast(null)} aboveBar testID="order-lowest-card-toast" />
       <BottomBar style={styles.bottom}>
         <Button mode="outlined" onPress={onBack} disabled={creating} icon="arrow-left" contentStyle={styles.barContent} style={styles.back} accessibilityLabel="Back to game type" testID="new-game-order-back">
           Back
@@ -85,7 +89,7 @@ export function OrderStep({ players, draft, onChange, onBack, onNext, nextIsStar
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  content: { paddingBottom: spacing.md, gap: spacing.md },
+  column: { width: '100%', maxWidth: MAX_CONTENT_WIDTH, alignSelf: 'center' },
   bottom: { flexDirection: 'row', gap: spacing.sm },
   barContent: { minHeight: 52 },
   back: { flex: 0.8 },
