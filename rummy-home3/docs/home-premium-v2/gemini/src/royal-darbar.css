@@ -1,0 +1,536 @@
+/* ==========================================================================
+ * DIRECTION 1: ROYAL DARBAR
+ * Royal Velvet Crimson, Banarasi Zari Gold & Udaipur Ivory
+ * Inspired by royal Indian palace card salons & cinematic Bollywood grandeur.
+ * ========================================================================== */
+
+.d-royal-darbar {
+  --ink: #221014;
+  --ink-2: #583B41;
+  --bg: #F5EFE4;
+  --status-ink: #FCF2DE;
+}
+
+/* Light canvas subtle silk paper grain */
+.d-royal-darbar.light {
+  background-color: #F5EFE4;
+  background-image:
+    linear-gradient(180deg, rgba(245, 239, 228, 0.42) 0%, rgba(245, 239, 228, 0.72) 100%),
+    url('../assets/mayur-light-silk.jpg');
+  background-size: cover;
+  background-position: bottom right;
+}
+
+.d-royal-darbar.light .scroll-fade {
+  background: linear-gradient(180deg, rgba(245, 239, 228, 0) 0%, rgba(245, 239, 228, 0.92) 100%);
+}
+
+/* Hero crown: Royal Velvet Crimson Banarasi Zari Brocade — seamless all the way behind status bar */
+.d-royal-darbar .hero-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: #360A15;
+  background-image:
+    radial-gradient(ellipse 88% 72% at 50% 6%, rgba(218, 152, 58, 0.24) 0%, rgba(92, 16, 34, 0.42) 48%, rgba(28, 4, 11, 0.88) 100%),
+    linear-gradient(180deg, rgba(64, 10, 24, 0.28) 0%, rgba(30, 5, 12, 0.68) 100%),
+    url('../assets/darbar-velvet-hero.jpg');
+  background-size: cover;
+  background-position: center 16%;
+  z-index: 0;
+}
+
+.d-royal-darbar.light .hero {
+  background-color: #360A15;
+  padding-bottom: 22px;
+  border-bottom-left-radius: 26px;
+  border-bottom-right-radius: 26px;
+  box-shadow:
+    0 14px 32px rgba(48, 8, 18, 0.24),
+    0 2px 6px rgba(48, 8, 18, 0.14);
+  overflow: hidden;
+}
+
+/* Precision double antique-gold rim at the base of the velvet crown */
+.d-royal-darbar.light .hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-bottom-left-radius: 26px;
+  border-bottom-right-radius: 26px;
+  border-bottom: 1.5px solid rgba(232, 190, 104, 0.78);
+  box-shadow: inset 0 -4px 0 -2.5px rgba(248, 226, 162, 0.24);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.d-royal-darbar .emblem {
+  background: linear-gradient(145deg, #FCE7AF 0%, #C99438 52%, #7D5414 100%);
+  box-shadow:
+    0 3px 12px rgba(0, 0, 0, 0.48),
+    inset 0 1px 1px rgba(255, 250, 232, 0.75);
+}
+.d-royal-darbar .emblem-inner {
+  background: #23060C;
+}
+
+.d-royal-darbar .brand {
+  color: #FCF2DC;
+  --bg-audit: #45101D;
+  text-shadow: 0 1px 10px rgba(18, 2, 6, 0.6);
+}
+
+.d-royal-darbar .help {
+  color: #F7DF9F;
+  background: rgba(246, 222, 155, 0.11);
+  border: 1px solid rgba(246, 222, 155, 0.36);
+  box-shadow: inset 0 1px 0 rgba(255, 248, 225, 0.18);
+}
+
+.d-royal-darbar .greet {
+  font-family: 'Playfair Display', Georgia, serif;
+  color: #FFF9EC;
+  --bg-audit: #48121F;
+  text-shadow: 0 2px 14px rgba(14, 2, 5, 0.55);
+}
+
+.d-royal-darbar .greet-orn .line-l {
+  background: linear-gradient(90deg, rgba(244, 208, 128, 0.9), rgba(244, 208, 128, 0.42));
+}
+.d-royal-darbar .greet-orn .gem {
+  background: #F6D88A;
+  box-shadow: 0 0 8px rgba(246, 216, 138, 0.65);
+}
+.d-royal-darbar .greet-orn .line-r {
+  background: linear-gradient(90deg, rgba(244, 208, 128, 0.68), rgba(244, 208, 128, 0));
+}
+
+/* Primary CTA: Satin-Brushed 22K Champagne Gold Foil Plaque */
+.d-royal-darbar .newgame {
+  background-color: #DAA94D;
+  background-image:
+    linear-gradient(180deg, rgba(255, 248, 222, 0.34) 0%, rgba(255, 240, 198, 0.08) 48%, rgba(126, 78, 12, 0.2) 100%),
+    url('../assets/gold-foil-metal.jpg');
+  background-size: cover;
+  background-position: center;
+  color: #1D050A;
+  --bg-audit: #C8963B;
+  border: 1px solid rgba(255, 244, 208, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 252, 242, 0.88),
+    inset 0 -1.5px 0 rgba(94, 56, 8, 0.44),
+    0 10px 24px rgba(12, 2, 5, 0.48);
+}
+.d-royal-darbar .newgame::after {
+  border: 1px solid rgba(46, 12, 18, 0.14);
+}
+.d-royal-darbar .newgame .plus-ring {
+  background: rgba(29, 5, 10, 0.14);
+  border: 1px solid rgba(29, 5, 10, 0.24);
+  color: #1D050A;
+}
+
+/* Secondary Tiles: Pearl Silk & Antique Gold (Light) */
+.d-royal-darbar.light .tile {
+  background-color: #FFFDF8;
+  background-image: linear-gradient(180deg, #FFFFFF 0%, #FBF5E9 100%);
+  border: 1px solid rgba(168, 124, 46, 0.32);
+  box-shadow:
+    0 6px 18px rgba(48, 12, 20, 0.07),
+    0 1px 2px rgba(48, 12, 20, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.d-royal-darbar.light .tile::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(202, 152, 58, 0.48), transparent);
+}
+.d-royal-darbar.light .ticon-wrap {
+  background: linear-gradient(145deg, #611428 0%, #370814 100%);
+  border: 1px solid rgba(216, 170, 78, 0.6);
+  color: #F7DF9D;
+  box-shadow: 0 3px 9px rgba(64, 12, 24, 0.24);
+}
+.d-royal-darbar.light .tcount {
+  font-family: 'Playfair Display', Georgia, serif;
+  color: #5E3A08;
+  --bg-audit: #FBF5E9;
+}
+.d-royal-darbar.light .tlabel {
+  color: #240E13;
+  --bg-audit: #FBF5E9;
+}
+.d-royal-darbar.light .tchev {
+  color: #8A5D1B;
+}
+
+/* Section Headers (Light) */
+.d-royal-darbar .sechead h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  color: #2A0B13;
+  --bg-audit: #F5EFE4;
+}
+.d-royal-darbar .sechead .count {
+  color: #7D4E0B;
+}
+.d-royal-darbar .sechead .rule-gem {
+  background: #B8862D;
+}
+.d-royal-darbar .sechead .rule {
+  background: linear-gradient(90deg, rgba(184, 134, 45, 0.45) 0%, rgba(184, 134, 45, 0.06) 100%);
+}
+.d-royal-darbar .sechead .info {
+  color: #6B474E;
+}
+
+/* Game Cards (Light) */
+.d-royal-darbar.light .card.live {
+  background-color: #FFFDF9;
+  background-image: linear-gradient(180deg, #FFFFFF 0%, #FCF8EF 100%);
+  border: 1px solid rgba(172, 126, 48, 0.34);
+  box-shadow:
+    0 6px 20px rgba(48, 12, 20, 0.07),
+    0 1px 3px rgba(48, 12, 20, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+.d-royal-darbar.light .card.live::before {
+  background: linear-gradient(180deg, #D8A646 0%, #861B32 100%);
+}
+.d-royal-darbar.light .card.recent {
+  background-color: #FAF5EA;
+  border: 1px solid rgba(145, 114, 72, 0.22);
+  box-shadow: 0 2px 8px rgba(42, 14, 20, 0.035);
+}
+
+/* Game Code Plaques (Light) */
+.d-royal-darbar.light .card.live .badge {
+  background-color: #4F0E1F;
+  background-image: linear-gradient(145deg, #6B162C 0%, #340813 100%);
+  border: 1px solid rgba(222, 178, 92, 0.68);
+  box-shadow: 0 4px 12px rgba(64, 10, 24, 0.26);
+}
+.d-royal-darbar.light .card.live .badge::after {
+  border: 1px solid rgba(246, 216, 138, 0.34);
+}
+.d-royal-darbar.light .card.live .badge span {
+  font-family: 'Cinzel', serif;
+  color: #FCE7AF;
+  --bg-audit: #591224;
+}
+
+.d-royal-darbar.light .card.recent .badge {
+  background-color: #EFE5D2;
+  background-image: linear-gradient(145deg, #F4ECDC 0%, #E7D9BE 100%);
+  border: 1px solid rgba(154, 118, 58, 0.34);
+}
+.d-royal-darbar.light .card.recent .badge::after {
+  border: 1px solid rgba(154, 118, 58, 0.16);
+}
+.d-royal-darbar.light .card.recent .badge span {
+  font-family: 'Cinzel', serif;
+  color: #421A22;
+  --bg-audit: #E7D9BE;
+}
+
+.d-royal-darbar.light .ctitle {
+  color: #210E12;
+  --bg-audit: #FAF5EA;
+}
+.d-royal-darbar.light .cright-meta {
+  color: #5C3D43;
+  --bg-audit: #FAF5EA;
+}
+.d-royal-darbar.light .cscores {
+  color: #583B40;
+  --bg-audit: #FAF5EA;
+}
+.d-royal-darbar.light .cscores .rd {
+  color: #3A151D;
+}
+.d-royal-darbar.light .chev {
+  color: #8A5D24;
+}
+
+/* Harmonized Jewel Micro-Tags (Light — all >= 5.5 : 1 contrast) */
+.d-royal-darbar.light .t-active {
+  background-color: #E8F5EE;
+  border-color: #B4DCC6;
+  color: #0B5D3A;
+}
+.d-royal-darbar.light .t-active .dot {
+  background: #0F8453;
+  box-shadow: 0 0 0 2px rgba(15, 132, 83, 0.18);
+}
+.d-royal-darbar.light .t-creator {
+  background-color: #FBF2DC;
+  border-color: #E5CA8C;
+  color: #634007;
+}
+.d-royal-darbar.light .t-admin {
+  background-color: #EDF2FA;
+  border-color: #C2D3EE;
+  color: #1B3E73;
+}
+.d-royal-darbar.light .t-done {
+  background-color: #EAF2F5;
+  border-color: #BFD4DD;
+  color: #16485A;
+}
+.d-royal-darbar.light .t-awarded {
+  background-color: #E9F5EE;
+  border-color: #B5DCC7;
+  color: #0C5A39;
+}
+.d-royal-darbar.light .t-closed {
+  background-color: #F0EAE0;
+  border-color: #D9CEBC;
+  color: #4D3D38;
+}
+.d-royal-darbar.light .mult {
+  background-color: #4A0E1D;
+  color: #FAE3A7;
+}
+
+/* Bottom Bar (Light) */
+.d-royal-darbar.light .tabbar {
+  background-color: #FCF8F0;
+  border-top: 1px solid rgba(176, 132, 54, 0.32);
+  box-shadow: 0 -8px 24px rgba(42, 10, 18, 0.07);
+}
+.d-royal-darbar.light .tab.on {
+  background-color: #4E0E1E;
+  background-image: linear-gradient(145deg, #68152A 0%, #340813 100%);
+  border: 1px solid rgba(222, 178, 92, 0.58);
+  color: #FAE3A7;
+  box-shadow: 0 4px 12px rgba(62, 10, 24, 0.26);
+}
+.d-royal-darbar.light .tab.off {
+  background-color: #F3EBDC;
+  border: 1px solid rgba(164, 126, 62, 0.28);
+}
+.d-royal-darbar.light .avatar {
+  background: linear-gradient(145deg, #5C1325 0%, #340813 100%);
+  border: 1.5px solid #CFA248;
+  color: #FAF0D7;
+  --bg-audit: #4A0E1D;
+}
+.d-royal-darbar.light .gesture {
+  background: rgba(54, 24, 30, 0.24);
+}
+
+/* ==========================================================================
+ * ROYAL DARBAR — DARK MODE (Midnight Velvet & Candlelit 22K Gold)
+ * ========================================================================== */
+.d-royal-darbar.dark {
+  --ink: #FAF2E4;
+  --ink-2: #CBBBA8;
+  --bg: #0E0608;
+  background-color: #0E0608;
+  background-image:
+    linear-gradient(180deg, rgba(16, 6, 9, 0.28) 0%, rgba(12, 5, 7, 0.86) 45%, rgba(11, 4, 6, 0.94) 100%),
+    url('../assets/darbar-dark-bg.jpg');
+  background-size: cover;
+  background-position: top center;
+}
+
+.d-royal-darbar.dark .scroll-fade {
+  background: linear-gradient(180deg, rgba(14, 6, 8, 0) 0%, rgba(14, 6, 8, 0.94) 100%);
+}
+
+.d-royal-darbar.dark .hero {
+  padding-bottom: 14px;
+  overflow: hidden;
+}
+.d-royal-darbar.dark .hero-backdrop {
+  background-color: #280710;
+  background-image:
+    linear-gradient(180deg, rgba(24, 4, 10, 0.08) 0%, rgba(18, 5, 9, 0.62) 76%, rgba(14, 6, 8, 1) 100%),
+    radial-gradient(ellipse 84% 66% at 50% 4%, rgba(220, 156, 62, 0.22) 0%, rgba(62, 10, 23, 0.44) 55%, rgba(14, 6, 8, 0.92) 100%),
+    url('../assets/darbar-velvet-hero.jpg');
+  background-position: center 14%;
+}
+
+.d-royal-darbar.dark .tile {
+  background-color: #1A0C10;
+  background-image: linear-gradient(180deg, #251017 0%, #170A0E 100%);
+  border: 1px solid rgba(220, 178, 96, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 182, 0.10),
+    0 6px 18px rgba(0, 0, 0, 0.42);
+}
+.d-royal-darbar.dark .ticon-wrap {
+  background: linear-gradient(145deg, #45101F 0%, #24070F 100%);
+  border: 1px solid rgba(226, 184, 102, 0.44);
+  color: #F6D88C;
+}
+.d-royal-darbar.dark .tcount {
+  font-family: 'Playfair Display', Georgia, serif;
+  color: #F7DD99;
+  --bg-audit: #1D0D11;
+}
+.d-royal-darbar.dark .tlabel {
+  color: #FAF1E2;
+  --bg-audit: #1D0D11;
+}
+.d-royal-darbar.dark .tchev {
+  color: #D4AA58;
+}
+
+.d-royal-darbar.dark .sechead h2 {
+  color: #FAF1E2;
+  --bg-audit: #100709;
+}
+.d-royal-darbar.dark .sechead .count {
+  color: #F2CF7E;
+}
+.d-royal-darbar.dark .sechead .rule-gem {
+  background: #DFB35B;
+}
+.d-royal-darbar.dark .sechead .rule {
+  background: linear-gradient(90deg, rgba(223, 179, 91, 0.42) 0%, rgba(223, 179, 91, 0.04) 100%);
+}
+.d-royal-darbar.dark .sechead .info {
+  color: #C9B5A0;
+}
+
+.d-royal-darbar.dark .card.live {
+  background-color: #1C0D11;
+  background-image: linear-gradient(180deg, #251118 0%, #190B0F 100%);
+  border: 1px solid rgba(222, 180, 98, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 182, 0.09),
+    0 8px 22px rgba(0, 0, 0, 0.45);
+}
+.d-royal-darbar.dark .card.live::before {
+  background: linear-gradient(180deg, #F5D98E 0%, #A97222 100%);
+}
+.d-royal-darbar.dark .card.recent {
+  background-color: #14090C;
+  border: 1px solid rgba(204, 168, 108, 0.16);
+}
+
+/* Dark Live Badge: Brushed 22K Gold Foil Plaque */
+.d-royal-darbar.dark .card.live .badge {
+  background-color: #D8A94D;
+  background-image:
+    linear-gradient(160deg, rgba(255, 248, 222, 0.28) 0%, rgba(128, 82, 14, 0.16) 100%),
+    url('../assets/gold-foil-metal.jpg');
+  background-size: cover;
+  border: 1px solid rgba(255, 242, 202, 0.68);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 250, 234, 0.72),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.d-royal-darbar.dark .card.live .badge::after {
+  border: 1px solid rgba(46, 12, 18, 0.24);
+}
+.d-royal-darbar.dark .card.live .badge span {
+  font-family: 'Cinzel', serif;
+  color: #1D050A;
+  --bg-audit: #C69439;
+}
+
+.d-royal-darbar.dark .card.recent .badge {
+  background-color: #241217;
+  border: 1px solid rgba(214, 174, 98, 0.28);
+}
+.d-royal-darbar.dark .card.recent .badge::after {
+  border: 1px solid rgba(214, 174, 98, 0.12);
+}
+.d-royal-darbar.dark .card.recent .badge span {
+  font-family: 'Cinzel', serif;
+  color: #F0D28C;
+  --bg-audit: #241217;
+}
+
+.d-royal-darbar.dark .ctitle {
+  color: #FAF2E4;
+  --bg-audit: #200F14;
+}
+.d-royal-darbar.dark .cright-meta {
+  color: #CFC0AF;
+  --bg-audit: #200F14;
+}
+.d-royal-darbar.dark .cscores {
+  color: #CEBFA9;
+  --bg-audit: #200F14;
+}
+.d-royal-darbar.dark .cscores .rd {
+  color: #F2D591;
+}
+.d-royal-darbar.dark .chev {
+  color: #D4AA58;
+}
+
+/* Dark Jewel Micro-Tags (all >= 5.5 : 1 contrast) */
+.d-royal-darbar.dark .t-active {
+  background-color: #0E291E;
+  border-color: rgba(114, 224, 175, 0.34);
+  color: #82E6BA;
+}
+.d-royal-darbar.dark .t-active .dot {
+  background: #5EE2A6;
+  box-shadow: 0 0 6px rgba(94, 226, 166, 0.6);
+}
+.d-royal-darbar.dark .t-creator {
+  background-color: #2B1E0D;
+  border-color: rgba(242, 204, 122, 0.34);
+  color: #F4D285;
+}
+.d-royal-darbar.dark .t-admin {
+  background-color: #122138;
+  border-color: rgba(154, 198, 250, 0.32);
+  color: #A6CCFA;
+}
+.d-royal-darbar.dark .t-done {
+  background-color: #112430;
+  border-color: rgba(142, 206, 228, 0.32);
+  color: #9AD6EC;
+}
+.d-royal-darbar.dark .t-awarded {
+  background-color: #102A1F;
+  border-color: rgba(124, 226, 178, 0.32);
+  color: #8BE6BC;
+}
+.d-royal-darbar.dark .t-closed {
+  background-color: #24191C;
+  border-color: rgba(212, 192, 182, 0.24);
+  color: #D8C7BE;
+}
+.d-royal-darbar.dark .mult {
+  background-color: #F2D07E;
+  color: #1E070C;
+}
+
+/* Dark Bottom Bar */
+.d-royal-darbar.dark .tabbar {
+  background-color: #14080B;
+  border-top: 1px solid rgba(224, 182, 98, 0.26);
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.55);
+}
+.d-royal-darbar.dark .tab.on {
+  background-color: #D8A94D;
+  background-image:
+    linear-gradient(180deg, rgba(255, 246, 216, 0.26) 0%, rgba(128, 82, 14, 0.16) 100%),
+    url('../assets/gold-foil-metal.jpg');
+  background-size: cover;
+  border: 1px solid rgba(255, 242, 205, 0.64);
+  color: #1D050A;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.d-royal-darbar.dark .tab.off {
+  background-color: #1F0E13;
+  border: 1px solid rgba(218, 176, 98, 0.24);
+}
+.d-royal-darbar.dark .avatar {
+  background: linear-gradient(145deg, #43101E 0%, #22060E 100%);
+  border: 1.5px solid #DFB35B;
+  color: #FAF0D7;
+  --bg-audit: #2E0A13;
+}
+.d-royal-darbar.dark .gesture {
+  background: rgba(248, 228, 188, 0.34);
+}
