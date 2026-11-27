@@ -12,7 +12,13 @@ account, then the person signs in.
    build with a fresh address; the e-mail must show a 6-digit code and no button or link; typing it signs you in.
 2. **Live** (ref `gngcrplcldfiubvhcdin`): the same subject and body, only after step 1 worked **and the Play release
    with #151 is live** (D126). The e-mail carries no link, and Play's 1.1.0 has no box for the code: switched earlier,
-   anyone signing up on 1.1.0 could not confirm.
+   anyone signing up on 1.1.0 could not confirm. **Turn Confirm email on in the same step**: live has it off (read
+   Nov 26), so today a sign-up signs in at once and no e-mail is sent; the new app handles that too (it skips the code
+   step when sign-up returns a session). The template alone changes nothing on live until Confirm email is on.
+
+Read Nov 26 (Build Bot, read only): staging — template saved, OTP 6 / 900 s (were 8 / 3600, fixed), Confirm email on,
+custom SMTP filled in but not saved (waits for the Resend key from Sree). Live — OTP 6 / 900 s, custom SMTP on, sender
+name "EZ Score" (D73 says "EZ Score: Rummy"; next-up 12b), **Confirm email off**.
 
 ## Dashboard › Authentication › Email Templates › Confirm signup
 
@@ -54,8 +60,8 @@ Your EZ Score: Rummy code is {{ .Token }}
 | --- | --- | --- |
 | Confirm signup › subject | as above | `mailer_subjects_confirmation` |
 | Confirm signup › body | as above | `mailer_templates_confirmation_content` |
-| Providers › Email › Confirm email | on (otherwise sign-up signs in at once and no code is sent) | `mailer_autoconfirm` = `false` |
-| Providers › Email › Email OTP length | 6 | `mailer_otp_length` |
+| Providers › Email › Confirm email | on (otherwise sign-up signs in at once and no code is sent); **live: off until the Play release, then on with the template** | `mailer_autoconfirm` = `false` |
+| Providers › Email › Email OTP length | 6 (the app's code box takes exactly 6 digits, sign-up and Forgot passcode) | `mailer_otp_length` |
 | Providers › Email › Email OTP expiration | 900 s (the e-mail says 15 minutes; the same value Forgot passcode uses) | `mailer_otp_exp` |
 | SMTP › sender | `EZ Score: Rummy <scores@mindweavetech.com>` via Resend (staging: see `staging-b2-feedback.md`) | `smtp_*` |
 
