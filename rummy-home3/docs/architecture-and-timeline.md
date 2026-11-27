@@ -720,6 +720,14 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   `token_ledger`, `games.prize` and the five `*_prize_*` RPCs stay in the database, unused, until Sree says yes to
   dropping them.
 
+### 2026-11-26 — PR device tests: two smoke shards, no separate full job, deep suites only when they matter
+- The PR smoke gate is split over two emulators (`smoke-a`, `smoke-b`), with the selected full flows run right after
+  each shard's smoke on the same emulator, instead of one 40-minute smoke job plus a second job that re-ran the whole
+  smoke set before its full flows. Chaos, roles and two-device ride on a PR only when the diff touches sign-in, the
+  database, sync or a service that writes; a push that only adds docs since the last green device run skips the
+  emulators (`ci/since-green.mjs`); every flow's start signs the wrong account out. Nightly and pre-release are
+  unchanged, so a PR can be faster but never hides a failure for more than a night. Details: `test-plan/automation.md` §2a.
+
 ### 2026-11-26 — Migration 054: a mid-game joiner sits to the dealer's left (D70), live
 - `054_join_left_of_dealer.sql` replaces only `add_seated_player`'s seat rule (052's dealer + 1, D57): a newcomer
   takes the seat before whoever deals the round being played, so they deal last and nobody's turn moves; the

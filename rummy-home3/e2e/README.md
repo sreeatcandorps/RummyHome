@@ -11,8 +11,8 @@ GitHub Pages is switched on).
 
 | Folder | Runs | Blocks |
 | --- | --- | --- |
-| `lib/` | shared pieces (`ensure-signed-in`, `sign-in`, `sign-in-as` with an EMAIL, `open-break-game` with a CODE, `home-top` after Back from a game, `fill-round-*`), never run on their own | — |
-| `smoke/` | every pull request that touches app code, and in the nightly | yes: a failed flow fails the job |
+| `lib/` | shared pieces (`ensure-signed-in` — also signs out another account, via `fix-account` —, `sign-in`, `sign-in-as` with an EMAIL, `open-break-game` with a CODE, `home-top` after Back from a game, `fill-round-*`), never run on their own | — |
+| `smoke/` | every pull request that touches app code (two shards on two emulators, `SMOKE_SHARDS` in `ci/select-tests.mjs`: a flow may rely only on state that an earlier flow of its own shard leaves), and in the nightly (whole, one emulator) | yes: a failed flow fails the job |
 | `full/` | nightly and pre-release whole; on a PR only the flows for the touched area (`FLOW_FILTER`) | yes |
 | `chaos/` | break-the-app (PR 17): double taps, bad input, huge numbers, offline + reconnect, kill mid-save, 20 × 60 scorecard, pool with 19 outs. Every suite on an infra PR, the area's flows on an app PR, whole set nightly. Videos are kept for every flow | nightly / pre-release yes; on a PR a red chaos flow warns and lands on the dashboard |
 | `roles/` | must-nots per role (player, spectator, outsider, non-playing admin) | same as chaos |

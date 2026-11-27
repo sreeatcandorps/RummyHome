@@ -1,6 +1,14 @@
 appId: com.mindweavetech.rummyhome
-# Every flow starts here: launch (keeping the saved session), sign in only if the login screen shows,
-# and wait for Home. Flows therefore work alone and in any order.
+# Every flow starts here: launch (keeping the saved session) and end on Home signed in as sree@test.local.
+# Flows therefore work alone and in any order, and one failure cannot cascade (PR #138, run 45747832259: smoke/22 and
+# 24 sign in as demo@test.local, put Sree back only at their last step, and when they failed the next seven flows
+# started as Ravi and failed on his Home).
+#
+# Fast path (the normal case): Home says "Hi Sree" -> nothing else happens; the check is one `when` on a text that is
+# already on screen, and it replaces the old "is the login screen showing?" check rather than adding a second one.
+# Slow path: the login screen shows, or Home greets somebody else ("Hi Ravi") -> log out through Profile if signed in,
+# then sign in as Sree (fix-account.yaml). A flow that needs another account signs in with sign-in-as.yaml (clears the
+# app's state, so nobody can be left over) and never calls this file.
 ---
 - launchApp
 - extendedWaitUntil:
@@ -12,11 +20,16 @@ appId: com.mindweavetech.rummyhome
       # and the field's own label stay above the keypad whichever way the phone is held.
       text: "New game|Sign in.*|Email"
     timeout: 30000
+# Home draws "Hi <first name>" only once the signed-in player has loaded, so wait for the games to finish loading
+# before the name is judged ("Hi there" is the placeholder while it loads).
+- extendedWaitUntil:
+    notVisible: "Loading your games"
+    timeout: 20000
 - runFlow:
     when:
       visible:
-        id: "login-email"
-    file: sign-in.yaml
+        text: "Sign in.*|Hi (?!Sree$).+"
+    file: fix-account.yaml
 - extendedWaitUntil:
     visible: "New game"
     timeout: 30000

@@ -1,0 +1,21 @@
+appId: com.mindweavetech.rummyhome
+# The slow path of ensure-signed-in.yaml: the app is on the login screen, or signed in as somebody other than
+# sree@test.local. Ends on Home as Sree. Never run on its own.
+---
+# Signed in as another account: Log out first (Profile tab → Log out, the same steps as full/10).
+- runFlow:
+    when:
+      notVisible:
+        id: "login-email"
+    commands:
+      - tapOn: "Your profile"
+      - scrollUntilVisible:
+          element: "Log out"
+          direction: DOWN
+          timeout: 30000
+      - tapOn: "Log out"
+      - extendedWaitUntil:
+          visible:
+            id: "login-email"
+          timeout: 20000
+- runFlow: sign-in.yaml

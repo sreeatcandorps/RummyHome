@@ -5,7 +5,9 @@
 #
 #   ci/ui/run-suite.sh <suite> <apk>
 #
-#   smoke       e2e/smoke + known-bugs (quarantine)                 every PR
+#   smoke       e2e/smoke + known-bugs (quarantine)                 nightly (other devices); on a PR one SHARD of it
+#               (SMOKE_FLOWS = that shard's flows, in run order), then the selected full flows (FLOW_FILTER) on the
+#               same emulator: one smoke pass per PR, not two (Nov 26, ci/select-tests.mjs SMOKE_SHARDS)
 #   full        smoke + e2e/full + known-bugs                       nightly, pre-release
 #   chaos       e2e/chaos (break-the-app: double taps, offline, kill mid-save, huge numbers, 20×60)
 #   roles       e2e/roles (player / spectator / outsider / non-playing admin)
@@ -69,11 +71,18 @@ case "$SUITE" in
     adb install -r "$APK"
     settle_device
     case "$SUITE" in
-      # With a FLOW_FILTER (change-based selection) only the named flows of the one set run. The full
+      # smoke: SMOKE_FLOWS names this shard's smoke flows (empty = the whole set, as on the nightly's other devices).
+      # FLOW_FILTER, if any, names the full flows that follow on the same emulator; they build on the state this
+      # shard's smoke flows leave (select-tests.mjs puts each full flow in the shard that holds its prerequisites).
+      # VIDEO_FLOWS= keeps the videos of the smoke flows off (only the selected full flows are kept on a PR).
+      smoke)
+        VIDEO_FLOWS= FLOW_FILTER="${SMOKE_FLOWS:-}" run_set smoke
+        if [ -n "${FLOW_FILTER:-}" ]; then run_set full; fi
+        if [ -z "${SMOKE_FLOWS:-}" ] || [ "${SHARD:-a}" = a ]; then run_set known-bugs --quarantine; fi ;;
+      # full, with a FLOW_FILTER (the nightly never sets one; a hand-run can): only the named full flows run. The full
       # flows build on what the smoke set leaves behind (a saved result for full/41, game E at round 1
       # for full/70, …), so a filtered full job still runs the whole smoke set first (Nov 19: without it
       # 41 found "No results yet"), exactly as the nightly full job does.
-      smoke) run_set smoke; [ -n "${FLOW_FILTER:-}" ] || run_set known-bugs --quarantine ;;
       full)  FLOW_FILTER= run_set smoke; run_set full; [ -n "${FLOW_FILTER:-}" ] || run_set known-bugs --quarantine ;;
       chaos) VIDEO="${VIDEO:-all}" run_set chaos ;;
       roles) run_set roles ;;

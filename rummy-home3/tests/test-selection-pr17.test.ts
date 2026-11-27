@@ -5,7 +5,7 @@ import test from 'node:test';
 // The planner lives with the CI tooling (ci/select-tests.mjs); this test keeps its map honest (T16-8).
 import * as plannerModule from '../../ci/select-tests.mjs';
 
-type Job = { device: string; suite: string; flows: string; monkeyEvents?: number; api?: number; arch?: string; target?: string; profile?: string; font?: string; density?: number };
+type Job = { device: string; suite: string; shard?: string; smokeFlows?: string; id?: string; flows: string; monkeyEvents?: number; api?: number; arch?: string; target?: string; profile?: string; font?: string; density?: number };
 type Plan = { tier: string; ui: boolean; jobs: Job[]; volume: boolean; fileBugs: boolean; publish: boolean; reason: string };
 const { AREA_FLOWS, DEVICES, select, toMatrix } = plannerModule as unknown as {
   AREA_FLOWS: { area: string; flows: Record<string, string[]> }[];
@@ -29,14 +29,15 @@ test('PR 17 T16-8: a plain push runs no device job (the PR run counts)', () => {
   assert.equal(plan.publish, false);
 });
 
-test('PR 17 T16-8: an app change runs the smoke gate plus the flows for its area, by name', () => {
+test('PR 17 T16-8: an app change runs the smoke gate (two shards) plus the full flows for its area, by name', () => {
   const plan = select({ event: 'pull_request', files: ['rummy-home3/app/(screens)/score-entry.tsx'] });
   assert.equal(plan.ui, true);
-  const suites = plan.jobs.map((j) => `${j.device}:${j.suite}`);
-  assert.deepEqual(suites, ['pixel6:smoke', 'pixel6:full', 'pixel6:chaos', 'small:smoke']);
-  assert.equal(plan.jobs[0].flows, '', 'the smoke set runs whole');
+  const suites = plan.jobs.map((j) => `${j.device}:${j.suite}${j.shard ? `-${j.shard}` : ''}`);
+  // Nov 26: the full flows ride in the smoke job that owns their prerequisites; UI-only changes add no chaos job (nightly).
+  // The small phone (#131) runs the same two shards.
+  assert.deepEqual(suites, ['pixel6:smoke-a', 'pixel6:smoke-b', 'small:smoke-a', 'small:smoke-b']);
+  assert.equal(plan.jobs[0].flows, '');
   assert.equal(plan.jobs[1].flows, '80-add-round-count-warnings');
-  assert.equal(plan.jobs[2].flows, 'c01-rapid-save-taps,c04-huge-numbers');
   assert.equal(plan.fileBugs, false, 'a PR run files no issues unless asked');
 });
 
@@ -50,8 +51,8 @@ test('PR 17 T16-8: a save-round change adds the offline / kill / two-device chec
 
 test('PR 17 T16-8: an unmapped app change runs smoke only — on the reference phone and the small one (Nov 24)', () => {
   const plan = select({ event: 'pull_request', files: ['rummy-home3/app.json'] });
-  assert.deepEqual(plan.jobs.map((j) => `${j.device}:${j.suite}`), ['pixel6:smoke', 'small:smoke']);
-  const small = plan.jobs[1];
+  assert.deepEqual(plan.jobs.map((j) => `${j.device}:${j.suite}`), ['pixel6:smoke', 'pixel6:smoke', 'small:smoke', 'small:smoke'], 'the two smoke shards on each phone');
+  const small = plan.jobs[2];
   assert.equal(small.font, '1.3');
   assert.equal(small.density, 480, 'Pixel 4a at density 480 = 360 dp wide');
   assert.equal(small.profile, 'pixel_4a');
@@ -59,21 +60,22 @@ test('PR 17 T16-8: an unmapped app change runs smoke only — on the reference p
 
 test('PR 17 T16-8: a test-infrastructure change runs every suite once on the reference phone', () => {
   const plan = select({ event: 'pull_request', files: ['ci/ui/run-flows.sh', 'rummy-home3/docs/x.md'] });
-  assert.deepEqual(plan.jobs.map((j) => j.suite), ['smoke', 'chaos', 'roles', 'two-device', 'monkey']);
+  assert.deepEqual(plan.jobs.map((j) => j.suite), ['smoke', 'smoke', 'chaos', 'roles', 'two-device', 'monkey']);
   assert.ok(plan.jobs.every((j) => j.device === 'pixel6'));
   assert.equal(plan.jobs.find((j) => j.suite === 'monkey')!.monkeyEvents, 1500);
 });
 
 test('Nov 19: an infra change that edits full flows also runs those flows by name (the full set stays nightly)', () => {
   const plan = select({ event: 'pull_request', files: ['rummy-home3/e2e/lib/sign-in.yaml', 'rummy-home3/e2e/full/51-seating-20p.yaml', 'rummy-home3/e2e/full/70-game-log.yaml', 'rummy-home3/e2e/smoke/12-results-zero-players.yaml'] });
-  assert.deepEqual(plan.jobs.map((j) => j.suite), ['smoke', 'full', 'chaos', 'roles', 'two-device', 'monkey']);
-  assert.equal(plan.jobs.find((j) => j.suite === 'full')!.flows, '51-seating-20p,70-game-log');
+  assert.deepEqual(plan.jobs.map((j) => j.suite), ['smoke', 'smoke', 'chaos', 'roles', 'two-device', 'monkey'], 'no separate full job: the edited flows ride in the smoke shard that owns them');
+  assert.equal(plan.jobs.find((j) => j.suite === 'smoke' && j.shard === 'b')!.flows, '51-seating-20p,70-game-log');
+  assert.equal(plan.jobs.find((j) => j.suite === 'smoke' && j.shard === 'a')!.flows, '');
   assert.match(plan.reason, /2 edited full flow/);
 });
 
 test('PR 17 T16-8: commit-message tags — [ui-all] widens a PR, [file-bugs] lets it open issues', () => {
   const plan = select({ event: 'pull_request', files: ['rummy-home3/app.json'], message: 'fix thing [ui-all] [file-bugs]' });
-  assert.equal(plan.jobs.length, 6, 'five suites on the reference phone + smoke on the small phone');
+  assert.equal(plan.jobs.length, 8, 'two smoke shards + chaos + roles + two-device + monkey, and the two shards on the small phone');
   assert.equal(plan.fileBugs, true);
 });
 
@@ -112,6 +114,7 @@ test('PR 17 T16-8: every flow the map names exists on disk, and the matrix carri
     assert.ok(Object.keys(DEVICES).includes(row.device));
     assert.equal(typeof row.flows, 'string');
     assert.equal(typeof row.monkeyEvents, 'number');
+    assert.equal(typeof row.id, 'string');
   }
 });
 
@@ -122,6 +125,7 @@ test('PR 17: the device matrix in the workflow comes from the planner, and the r
   const suite = readFileSync(path.join(__dirname, '..', '..', 'ci', 'ui', 'run-suite.sh'), 'utf8');
   for (const s of ['smoke', 'full', 'chaos', 'roles', 'two-device', 'monkey']) assert.ok(new RegExp(`\\b${s}\\)`).test(suite), `run-suite.sh handles ${s}`);
   const flows = readFileSync(path.join(__dirname, '..', '..', 'ci', 'ui', 'run-flows.sh'), 'utf8');
+  assert.ok(ci.includes('${{ matrix.id }}'), 'two shards of one device get their own job and artifact names');
   for (const hook of ['--net-off', '--kill-after', 'FLOW_FILTER', 'crashes.csv', 'screenrecord']) assert.ok(flows.includes(hook), `run-flows.sh has ${hook}`);
 });
 
