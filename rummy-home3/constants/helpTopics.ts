@@ -814,8 +814,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       legend: [
         'Your name and #ID at the top; under **Your table**, tap a row to edit your name or initials. The **Player ID** row is just the number: tell it to a friend so they can find you.',
         '**Notifications**: Phone and the Email switches, each in its own sheet.',
-        '**Game defaults** opens Settings; **Appearance**: Phone, Light or Dark.',
-        '**Account**: Change passcode, Privacy policy, Delete account, Log out.',
+        '**Game defaults** opens Settings; **Appearance**: Phone, Light or Dark. Further down, **Account**: Change passcode, Privacy policy, Delete account, Log out.',
       ],
     },
     sections: [
