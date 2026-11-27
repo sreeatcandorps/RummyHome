@@ -40,7 +40,7 @@ const GLIDE_MS = 250;
 /** One line under the circle (the counter, the deal direction), in text-size units. */
 const FOOTER_LINE = 20;
 
-function useReduceMotion() {
+export function useReduceMotion() {
   const [reduce, setReduce] = useState(false);
   useEffect(() => {
     let live = true;
@@ -52,7 +52,7 @@ function useReduceMotion() {
 }
 
 /** Something on the circle that glides to its new place when the order changes ("remove animations": it jumps). */
-function Glide({ x, y, reduceMotion, style, children }: { x: number; y: number; reduceMotion: boolean; style?: object; children: React.ReactNode }) {
+export function Glide({ x, y, reduceMotion, style, children }: { x: number; y: number; reduceMotion: boolean; style?: object; children: React.ReactNode }) {
   const pos = useRef(new Animated.ValueXY({ x, y })).current;
   useEffect(() => {
     if (reduceMotion) { pos.setValue({ x, y }); return; }

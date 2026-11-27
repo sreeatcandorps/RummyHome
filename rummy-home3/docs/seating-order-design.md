@@ -380,8 +380,10 @@ the dealer rules, Realtime.
 - Device flows: `e2e/smoke/19-seating-order.yaml` (row ids → disc ids by seat, assertions on the flash text and the
   DEALER label, ▲ ▼ through the middle buttons, frames 19 … 19j re-taken), `e2e/smoke/24-seating-tutorial.yaml` (24e
   toast → flash, 24f / 24g selected-only arrows), `e2e/smoke/16-pool-game.yaml` (its Order of players step),
-  `e2e/full/51-seating-20p.yaml` (20 discs on one screen, WWW / MMM never cut, Pixel 6 and small phone), plus the help
-  frames in `e2e/smoke/21-help-frames.yaml`. As built the ids keep their old meaning where they can:
+  `e2e/full/51-seating-20p.yaml` (20 discs on one screen, WWW / MMM never cut, Pixel 6 and small phone),
+  `e2e/smoke/32-seating-13p.yaml` (Sree: "Make your design work for up to 13" — New game with 13, all numbered, one
+  selected, then sideways: `13p-order-everyone-numbered`, `13p-order-selected-arrows`, `13p-order-landscape`), plus
+  the help frames in `e2e/smoke/21-help-frames.yaml`. As built the ids keep their old meaning where they can:
   `seat-row-<p>` is ring position p (1 = 12 o'clock = seat N, counted anticlockwise, so it is the old list's row p) and
   its accessibility label reads "Seat 4, Priya Test"; `seat-label-<p>` the initials; `seat-no-<p>` / `seat-number-<p>`
   the badge; `seat-deals-next` the Dealer tag; `seat-up-<p>` / `seat-down-<p>` the middle card's ▲ ▼ for the selected
@@ -445,7 +447,10 @@ Other places it gets tight, and what the build does:
   player); the first tap's pill is "highest card". A tap that takes a number back flashes "Number taken back".
 - **Out players stay movable** (as in today's sheet and flow 51): grey, struck through, "out" in the label; the deal
   and the first open card skip them.
-- **The Show me steps and the Help pictures are not redrawn yet** (the steps still show the list); the Help words are
-  updated. Follow-up.
+- **The Show me steps are the circle**, with the same three titles and lines: four players, the K at the top, the 2 one
+  step right of it with the Dealer tag, the finger tapping each disc and the middle naming him; step 3 takes the
+  latest tap back, then selects Chitra and taps her ▲. It is the screen's own layout, drawn at most 220 dp tall
+  inside the dialog (a picture, nothing to tap). **The Help pictures are not redrawn yet**: they wait for the CI
+  frames (`13p-order-*` from smoke 32, the Pixel 6 and the small phone); the Help words are updated.
 - **The dealer's job still moves to seat 2** (D58): on the ring the Dealer mark steps one disc clockwise each round,
   while the first card goes anticlockwise. That is Q63, unchanged until Sree answers.

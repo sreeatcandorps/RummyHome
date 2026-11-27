@@ -133,12 +133,6 @@ export function stepsFor(draft: OrderDraft, id: string): { up: boolean; down: bo
 }
 
 /**
- * D74 (Sree, Nov 21 / 23): at rest every numbered row shows its ▲ ▼; once a row is selected only that row's
- * arrows show — the selection is the sign. The top row has no ▲ and the lowest seat no ▼.
- */
-export const showsArrows = (draft: OrderDraft, id: string) => draft.numbered.includes(id) && (draft.focus == null || draft.focus === id);
-
-/**
  * ▲ / ▼ on a numbered player; unnumbered players have no arrows. `direction` is the seat change:
  * +1 = a higher seat = one row UP the list (the list reads N … 1), -1 = a lower seat = one row down.
  */

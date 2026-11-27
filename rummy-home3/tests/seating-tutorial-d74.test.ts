@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
-import { dealerPill, dealsLine, displayRows, orderComplete, seatNumberOf, showsArrows, startOrder, stepNumbered, tapPlayer } from '../utils/seating';
+import { dealerPill, dealsLine, displayRows, orderComplete, seatNumberOf, stepsFor } from '../utils/seating';
 import {
   DEMO_FRAME_MS,
   DEMO_PLAYERS,
@@ -67,27 +67,26 @@ test('D74: the demo loop is scripted from the real seating model, highest card f
   assert.equal(seatNumberOf(moved, 'bala'), 2);
 });
 
-// The Show me demo still draws the D74 list (redrawing it as the circle is a follow-up); the screen uses tapRing (seat-ring.test.ts).
-test('D74 (the Show me demo\'s list): arrows — all at rest, only the selected row while one is selected, deselect by tapping again', () => {
-  const four = ['sree', 'harish', 'priya', 'zed'];
-  let d = startOrder(four);
-  for (const id of four) assert.equal(showsArrows(d, id), false, 'unnumbered rows have no arrows');
-  d = tapPlayer(d, 'zed');
-  assert.ok(showsArrows(d, 'zed') && !showsArrows(d, 'sree'), 'while numbering the latest tap is the selected row');
-  d = tapPlayer(tapPlayer(tapPlayer(d, 'sree'), 'harish'), 'priya');
-  assert.ok(orderComplete(d));
-  assert.equal(d.focus, 'priya');
-  assert.deepEqual(four.map((id) => showsArrows(d, id)), [false, false, true, false], 'everyone numbered, Priya selected: only her arrows');
-  d = tapPlayer(d, 'priya');
-  assert.equal(d.focus, null, 'the same tap again deselects (it no longer takes the number back once everyone is numbered)');
-  assert.ok(orderComplete(d), 'nothing was un-numbered');
-  assert.deepEqual(four.map((id) => showsArrows(d, id)), [true, true, true, true], 'nobody selected: every numbered row shows its arrows');
-  d = tapPlayer(d, 'harish');
-  assert.deepEqual(four.map((id) => showsArrows(d, id)), [false, true, false, false], 'selection moves');
-  d = stepNumbered(d, 'harish', 1);
-  assert.equal(d.focus, 'harish', 'an arrow keeps the selection on the player, so three taps move three seats');
-  // A prefilled mid-game sheet starts with nobody selected (the demo's list shows all arrows; the circle shows none).
-  assert.deepEqual(four.map((id) => showsArrows(startOrder(four, true), id)), [true, true, true, true]);
+test('D138: the Show me demo is the circle — highest at the top, the dealer one step right, ▲ ▼ only for the selected player', () => {
+  // Ring position 1 is 12 o'clock, then anticlockwise; position 4 of 4 is one step right of the top.
+  const step2 = seatingDemoFrames(1);
+  const end = displayRows(step2[step2.length - 1].draft);
+  assert.equal(end[0], 'anu', 'the K (seat 4) at the top');
+  assert.equal(end[3], 'dev', 'the 2 (seat 1, the dealer) one step right of the top');
+  assert.ok(step2.every((f) => f.draft.focus == null), 'numbering never selects anyone (tapRing): no arrows while tapping');
+  for (const id of DEMO_TAP_ORDER) assert.ok(step2.some((f) => f.flash === id && seatNumberOf(f.draft, id) != null), `the middle names ${id} after the tap`);
+  const step3 = seatingDemoFrames(2);
+  const taken = step3.findIndex((f) => f.flash === 'chitra');
+  assert.equal(step3[taken - 1].finger, 'chitra', 'the latest player tapped again…');
+  assert.equal(seatNumberOf(step3[taken].draft, 'chitra'), null, '…gives his number back');
+  const up = step3.find((f) => f.finger === 'up');
+  assert.ok(up && up.draft.focus === 'chitra' && stepsFor(up.draft, 'chitra').up, 'the finger is on the selected player\'s ▲');
+  assert.equal(step3[step3.length - 1].draft.focus, null, 'the loop ends with nobody selected');
+  const demo = read('components/tutorial/SeatingTutorial.tsx');
+  assert.match(demo, /layoutRing\(\{ labels, width: Math\.max\(width, DEMO_MIN_WIDTH\), height: DEMO_HEIGHT, fontScale: fs, dealerIndex: tagAt \}\)/, 'the screen\'s own geometry');
+  assert.match(demo, /if \(selected\) \{\s*const steps = stepsFor\(draft, selected\)/, 'arrows only in the middle, for the selected player');
+  assert.match(demo, /\{DEALER_TAG\}/);
+  assert.doesNotMatch(demo, /SEAT_ROW_MIN_HEIGHT|demo-row-/, 'no list rows left');
 });
 
 test('D61 → D138: the last tap names the dealer in the middle of the circle — "you" for the signed-in player', () => {
