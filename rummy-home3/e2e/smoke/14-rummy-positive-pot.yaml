@@ -6,6 +6,12 @@ tags: [smoke]
 # is yellow and the saved +50 is light green (screenshots). Fixture: game H (GAMEH1), 3 players.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
+# Six live games on Home: on the 360-dp phone (font 1.3) game H can be below the fold.
+- scrollUntilVisible:
+    element:
+      id: "game-card-GAMEH1"
+    direction: DOWN
+    timeout: 30000
 - tapOn:
     id: "game-card-GAMEH1"
 - extendedWaitUntil:
