@@ -1,15 +1,20 @@
 appId: com.mindweavetech.rummyhome
 tags: [smoke]
-# PR 24 Order of players (was PR 21 Seating order), end to end on the seed, under the D56 countdown
-# (Sree, Nov 19: tap from the highest card to the lowest; the last tap is seat 1 and deals; the list
-# reads from the highest seat at the top down to seat 1). A fresh Points game (Sree, Harish, Priya,
-# Zed) → Next → Game type → Next → Order of players: nobody numbered, no arrows; tapping Priya gives
-# seat 4 ("highest card") and moves her to the top; tapping Priya again takes the number back (undo
-# last); numbering everyone (Priya 4, Harish 3, Sree 2, Zed 1) enables Next → the co-admin step →
-# Start game → the scorecard columns follow the seats (Zed is column 1). Then ⋮ → Order of players
-# (mid-game path: prefilled, arrows) → ▲ on seat 1 swaps Zed and Sree → Done → columns move and the Log
-# has a Seating row. Clear empties the numbers; Cancel changes nothing. Runs after smoke/16 (deletes its
-# game at the end, so no other flow sees an extra game); no round is saved, no result.
+# PR 24 Order of players (was PR 21 Seating order), end to end on the seed, under the D56 countdown, drawn
+# as the D138 circle (Sree, Nov 27: "the highest on the top … The second highest goes to the left … The
+# dealer is always one step to the right … give him number 1"). Ring position 1 is 12 o'clock (seat N),
+# the positions run anticlockwise, the last is seat 1 just right of the top; seat-row-<p> is position p,
+# and each disc's label reads "Seat 4, Priya Test" / "Not numbered, Sree Test". A fresh Points game
+# (Sree, Harish, Priya, Zed) → Next → Game type → Next → Order of players: nobody numbered, no arrows;
+# tapping Priya gives seat 4 (the middle flashes "highest card") and moves her to the top; tapping Priya
+# again takes the number back (undo last); an earlier numbered player tapped is selected (▲ ▼ in the
+# middle, only for him) and tapped again lets go; numbering everyone (Priya 4, Harish 3, Sree 2, Zed 1)
+# marks Zed Dealer and enables Next → the co-admin step → Start game → the scorecard columns follow the
+# seats (Zed is column 1). Then ⋮ → Order of players (the full page, prefilled, no arrows at rest) →
+# select Zed → ▲ swaps Zed and Sree → Done → columns move and the Log has a Seating row. Clear empties
+# the numbers; Cancel changes nothing. Runs after smoke/16 (deletes its game at the end, so no other flow
+# sees an extra game); no round is saved, no result. The middle's ~2 s flash is asserted `optional`: a
+# slow hierarchy fetch can land after it has gone.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn: "New game"
@@ -35,41 +40,54 @@ tags: [smoke]
     timeout: 30000
 - tapOn:
     id: "new-game-type-next"
-# Step 3: Order of players. Nobody numbered, rows in pick order, no arrows, Next off.
+# Step 3: Order of players. Nobody numbered, discs in pick order from the top, no arrows, Next off.
 - extendedWaitUntil:
     visible: "Order of players"
     timeout: 15000
 - assertVisible:
-    id: "seat-name-1"
-    text: "Sree Test"
+    id: "seat-row-1"
+    text: "Not numbered, Sree Test"
 - assertVisible:
-    id: "seat-name-4"
-    text: "Zed Zero"
+    id: "seat-label-1"
+    text: "ST"
+- assertVisible:
+    id: "seat-row-4"
+    text: "Not numbered, Zed Zero"
 - assertVisible:
     id: "order-counter"
     text: "0 of 4 numbered"
+- assertVisible:
+    id: "seat-deal-direction"
+- assertVisible: "The deal goes anticlockwise"
 - assertNotVisible:
     id: "seat-up-1"
 - assertNotVisible:
+    id: "seat-selected"
+- assertNotVisible:
     id: "seat-deals-next"
 - takeScreenshot: 19-order-start-empty
-# Tap Priya (highest card): seat 4, moves to the top, tagged "highest card"; nobody deals yet.
+# Tap Priya (highest card): seat 4, glides to 12 o'clock; the middle flashes her name and "highest card".
 - tapOn:
     id: "seat-row-3"
 - assertVisible:
-    id: "seat-name-1"
+    id: "seat-highest-card"
+    optional: true
+- assertVisible:
+    id: "seat-flash-name"
     text: "Priya Test"
+    optional: true
+- takeScreenshot: 19b-order-priya-highest
+- assertVisible:
+    id: "seat-row-1"
+    text: "Seat 4, Priya Test"
 - assertVisible:
     id: "seat-number-1"
     text: "4"
-- assertVisible:
-    id: "seat-highest-card"
 - assertNotVisible:
     id: "seat-deals-next"
 - assertVisible:
     id: "order-counter"
     text: "1 of 4 numbered"
-- takeScreenshot: 19b-order-priya-highest
 # Tap Priya again: the latest number comes back off and Priya drops back among the unnumbered.
 - tapOn:
     id: "seat-row-1"
@@ -77,44 +95,72 @@ tags: [smoke]
     id: "order-counter"
     text: "0 of 4 numbered"
 - assertVisible:
-    id: "seat-name-3"
-    text: "Priya Test"
+    id: "seat-row-3"
+    text: "Not numbered, Priya Test"
 - takeScreenshot: 19c-order-undo-last
-# Number everyone, highest card first: Priya 4, Harish 3, Sree 2, Zed 1. Arrows on numbered rows only.
+# Priya 4, Harish 3. No arrows at rest (D138): tapping Priya (not the latest) selects her — her ▼ in the
+# middle, no ▲ on the highest seat — and tapping her again lets go.
 - tapOn:
     id: "seat-row-3"
 - tapOn:
     id: "seat-row-3"
-- assertVisible:
-    id: "seat-up-2"
-- assertNotVisible:
-    id: "seat-up-3"
 - assertVisible:
     id: "seat-number-2"
     text: "3"
+- assertNotVisible:
+    id: "seat-up-2"
+- tapOn:
+    id: "seat-row-1"
+- extendedWaitUntil:
+    visible:
+      id: "seat-selected-name"
+      text: "Priya Test"
+    timeout: 10000
+- assertVisible:
+    id: "seat-down-1"
+- assertNotVisible:
+    id: "seat-up-1"
+- assertNotVisible:
+    id: "seat-up-2"
+- takeScreenshot: 19c2-order-selected-arrows
+- tapOn:
+    id: "seat-row-1"
+- assertNotVisible:
+    id: "seat-selected"
+- assertNotVisible:
+    id: "seat-down-1"
+# Sree 2, Zed 1: Zed is the dealer, one step right of the top.
 - tapOn:
     id: "seat-row-3"
 - tapOn:
     id: "seat-row-4"
 - assertVisible:
+    id: "seat-flash-deals"
+    text: "Dealer · deals round 1"
+    optional: true
+- assertVisible:
     id: "order-counter"
     text: "Everyone numbered"
 - assertVisible:
-    id: "seat-name-1"
-    text: "Priya Test"
+    id: "seat-row-1"
+    text: "Seat 4, Priya Test"
 - assertVisible:
-    id: "seat-name-3"
-    text: "Sree Test"
+    id: "seat-row-3"
+    text: "Seat 2, Sree Test"
 - assertVisible:
-    id: "seat-name-4"
-    text: "Zed Zero"
+    id: "seat-row-4"
+    text: "Seat 1, Zed Zero, deals next"
 - assertVisible:
     id: "seat-number-4"
     text: "1"
 - assertVisible:
     id: "seat-deals-next"
-- assertNotVisible:
-    id: "seat-highest-card"
+    text: "Dealer"
+- extendedWaitUntil:
+    visible:
+      id: "seat-deals-line"
+      text: "Zed Zero deals round 1"
+    timeout: 10000
 # Clear empties the numbers; number them again the same way.
 - tapOn:
     id: "new-game-order-clear"
@@ -132,6 +178,10 @@ tags: [smoke]
 - assertVisible:
     id: "order-counter"
     text: "Everyone numbered"
+- extendedWaitUntil:
+    visible:
+      id: "seat-deals-line"
+    timeout: 10000
 - takeScreenshot: 19d-order-everyone-numbered
 - tapOn:
     id: "new-game-order-next"
@@ -156,7 +206,7 @@ tags: [smoke]
     id: "score-header-initials-2"
     text: "ST"
 - takeScreenshot: 19f-scorecard-zed-first
-# Mid-game path from ⋮: prefilled (everyone numbered), arrows work, no "rounds played" note yet.
+# Mid-game path from ⋮: the full page, prefilled (everyone numbered), no arrows at rest, no "rounds played" note yet.
 - tapOn: "Scorecard menu"
 - tapOn:
     id: "game-menu-seating"
@@ -168,27 +218,46 @@ tags: [smoke]
 - assertVisible: "Mid-game · admins only · logged"
 - assertNotVisible:
     text: ".*rounds? played.*"
-# Prefilled, seat 4 (Priya) on top, seat 1 (Zed) at the bottom.
+# Prefilled: seat 4 (Priya) at the top, seat 1 (Zed) one step right of it, and Zed deals round 1.
 - assertVisible:
-    id: "seat-name-1"
-    text: "Priya Test"
+    id: "seat-row-1"
+    text: "Seat 4, Priya Test"
 - assertVisible:
-    id: "seat-name-4"
-    text: "Zed Zero"
+    id: "seat-row-4"
+    text: "Seat 1, Zed Zero, deals next"
+- assertVisible:
+    id: "seat-deals-next"
+- assertVisible:
+    id: "seat-deals-line"
+    text: "Zed Zero deals round 1"
+- assertNotVisible:
+    id: "seat-up-4"
 # D64: prefilled and untouched, the line also says the order is unchanged and Done only closes.
 - assertVisible:
     id: "order-counter"
     text: "Everyone numbered · order unchanged — Done closes"
 - takeScreenshot: 19g-order-from-menu
-# ▲ on seat 1 (Zed) swaps Zed and Sree: Sree is seat 1 now.
+# Select Zed (seat 1): ▲ only (seat 1 has no ▼); ▲ swaps Zed and Sree, so Sree is seat 1 and deals.
+- tapOn:
+    id: "seat-row-4"
+- extendedWaitUntil:
+    visible:
+      id: "seat-selected-name"
+      text: "Zed Zero"
+    timeout: 10000
+- assertNotVisible:
+    id: "seat-down-4"
+- takeScreenshot: 19g2-order-from-menu-selected
 - tapOn:
     id: "seat-up-4"
 - assertVisible:
-    id: "seat-name-4"
-    text: "Sree Test"
+    id: "seat-row-4"
+    text: "Seat 1, Sree Test, deals next"
 - assertVisible:
-    id: "seat-name-3"
-    text: "Zed Zero"
+    id: "seat-row-3"
+    text: "Seat 2, Zed Zero"
+- assertVisible:
+    id: "seat-up-3"
 - tapOn:
     id: "seating-done"
 - extendedWaitUntil:
@@ -218,8 +287,8 @@ tags: [smoke]
 - tapOn:
     id: "seat-row-3"
 - assertVisible:
-    id: "seat-name-1"
-    text: "Harish Test"
+    id: "seat-row-1"
+    text: "Seat 4, Harish Test"
 - takeScreenshot: 19i-order-cleared-one-tap
 - tapOn:
     id: "seating-cancel"
