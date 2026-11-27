@@ -1,0 +1,1379 @@
+/* ==========================================================================
+ * ROUND 2: SIX SWITCHABLE HOME THEMES (LIGHT & DARK) FROM SREE'S 4 PICTURES
+ * 1. jaipur-sandstone  (from 4-truck-painting.png — Light-first, Terracotta & Cream Scrollwork)
+ * 2. deccan-breeze     (from 4-truck-painting.png — Light-first, Sky-Cream, Washed Denim & Rust)
+ * 3. navaratna-gold    (from 2-pushpa2-hand-rings.png — Dark-first, Espresso Bronze & 22K Temple Gold)
+ * 4. mulberry-zari     (from 2-pushpa2-hand-rings.png — Mulberry Silk Cuff & Antique Gold)
+ * 5. seshachalam-ember (from 1-pushpa-poster.png — Forest Pine, Petrol Teal & Ember Saffron)
+ * 6. jatara-indigo     (from 3-pushpa2-jatara.png — Midnight Sapphire-Indigo, Temple Gold & Kumkum)
+ * ========================================================================== */
+
+/* Shared crisp light-mode semantic micro-tags (tuned per theme where helpful) */
+.phone.light {
+  --tag-active-bg: #E7F5EE;
+  --tag-active-border: #B0DBC6;
+  --tag-active-ink: #0A5D3B;
+  --tag-active-dot: #0E8454;
+  --tag-active-dot-glow: 0 0 0 2px rgba(14, 132, 84, 0.18);
+
+  --tag-creator-bg: #FBF2DC;
+  --tag-creator-border: #E4C88B;
+  --tag-creator-ink: #634007;
+
+  --tag-admin-bg: #EBF3F9;
+  --tag-admin-border: #BDD4E6;
+  --tag-admin-ink: #164166;
+
+  --tag-done-bg: #E8F2F5;
+  --tag-done-border: #B8D2DB;
+  --tag-done-ink: #134A59;
+
+  --tag-awarded-bg: #E8F5EE;
+  --tag-awarded-border: #B2DCC7;
+  --tag-awarded-ink: #0B5939;
+
+  --tag-closed-bg: #EFEAE1;
+  --tag-closed-border: #D7CEBE;
+  --tag-closed-ink: #46423C;
+}
+
+/* Shared crisp dark-mode semantic micro-tags */
+.phone.dark {
+  --tag-active-bg: #0C2A1F;
+  --tag-active-border: rgba(114, 224, 178, 0.34);
+  --tag-active-ink: #82E6BC;
+  --tag-active-dot: #5EE2AC;
+  --tag-active-dot-glow: 0 0 6px rgba(94, 226, 172, 0.58);
+
+  --tag-creator-bg: #2A1E0D;
+  --tag-creator-border: rgba(242, 204, 122, 0.34);
+  --tag-creator-ink: #F4D285;
+
+  --tag-admin-bg: #112338;
+  --tag-admin-border: rgba(154, 200, 245, 0.34);
+  --tag-admin-ink: #9ECEF7;
+
+  --tag-done-bg: #102530;
+  --tag-done-border: rgba(142, 210, 228, 0.32);
+  --tag-done-ink: #97DAE9;
+
+  --tag-awarded-bg: #0D2A20;
+  --tag-awarded-border: rgba(124, 226, 180, 0.32);
+  --tag-awarded-ink: #8BE6BE;
+
+  --tag-closed-bg: #201D1E;
+  --tag-closed-border: rgba(206, 200, 194, 0.24);
+  --tag-closed-ink: #D4CEC8;
+}
+
+/* ==========================================================================
+ * 1. JAIPUR SANDSTONE — from 4-truck-painting.png (Light-first)
+ * Sun-baked terracotta & carved cream scrollwork + dusty slate-teal CTA
+ * ========================================================================== */
+.d-jaipur-sandstone.light {
+  --bg: #F5F1E9;
+  --ink: #2A1A12;
+  --status-ink: #FFF7E8;
+  --scroll-fade: linear-gradient(180deg, rgba(245, 241, 233, 0) 0%, rgba(245, 241, 233, 0.94) 100%);
+
+  --hero-pb: 22px;
+  --hero-radius: 26px;
+  --hero-bg: #7F4222;
+  --hero-audit-bg: #884926;
+  --hero-image:
+    linear-gradient(180deg, rgba(112, 54, 24, 0.28) 0%, rgba(92, 44, 19, 0.44) 55%, rgba(68, 32, 14, 0.78) 100%),
+    radial-gradient(ellipse 76% 68% at 22% 45%, rgba(104, 50, 22, 0.64) 0%, rgba(104, 50, 22, 0.08) 72%),
+    url('../assets/r2-sandstone-hero.jpg');
+  --hero-img-pos: center top;
+  --hero-shadow: 0 14px 30px rgba(74, 38, 18, 0.22), 0 2px 6px rgba(74, 38, 18, 0.12);
+  --hero-rim: 1.5px solid rgba(238, 204, 146, 0.72);
+  --hero-rim-inner: inset 0 -4px 0 -2.5px rgba(248, 228, 190, 0.24);
+  --hero-text-shadow: 0 1px 10px rgba(34, 14, 4, 0.55);
+
+  --emblem-ring: linear-gradient(145deg, #F6DFB2 0%, #C48E46 55%, #7C4F1E 100%);
+  --emblem-inner: #3A1D0E;
+  --emblem-shadow: 0 3px 10px rgba(34, 14, 4, 0.42);
+  --brand-ink: #FFF5E2;
+  --greet-ink: #FFF9EE;
+  --help-ink: #F9E5BE;
+  --help-bg: rgba(255, 240, 210, 0.14);
+  --help-border: rgba(249, 229, 190, 0.4);
+  --orn-line-l: linear-gradient(90deg, rgba(246, 218, 166, 0.9), rgba(246, 218, 166, 0.4));
+  --orn-gem: #F7DDA8;
+  --orn-line-r: linear-gradient(90deg, rgba(246, 218, 166, 0.65), rgba(246, 218, 166, 0));
+
+  /* Dusty slate-teal shirt color from 4-truck-painting as the crisp primary button */
+  --cta-audit-bg: #244D58;
+  --cta-bg: linear-gradient(180deg, #2D5E6B 0%, #1C404A 100%);
+  --cta-ink: #FAF5EB;
+  --cta-border: rgba(240, 212, 162, 0.68);
+  --cta-inner-rim: rgba(248, 228, 190, 0.2);
+  --cta-shadow: inset 0 1px 0 rgba(255, 248, 232, 0.24), 0 10px 22px rgba(28, 14, 6, 0.36);
+  --cta-plus-bg: rgba(246, 222, 174, 0.16);
+  --cta-plus-border: rgba(246, 222, 174, 0.48);
+  --cta-plus-ink: #F8E2B4;
+
+  --tile-audit-bg: #FBF7F0;
+  --tile-bg: linear-gradient(180deg, #FFFFFF 0%, #FAF5EC 100%);
+  --tile-border: rgba(164, 114, 72, 0.3);
+  --tile-shadow: 0 5px 16px rgba(74, 42, 22, 0.065), 0 1px 2px rgba(74, 42, 22, 0.04);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(186, 126, 74, 0.42), transparent);
+  --ticon-bg: linear-gradient(145deg, #2B5966 0%, #1B3B45 100%);
+  --ticon-border: rgba(212, 174, 116, 0.52);
+  --ticon-ink: #F8E2B4;
+  --ticon-shadow: 0 3px 8px rgba(27, 59, 69, 0.22);
+  --tcount-ink: #7A3E1F;
+  --tlabel-ink: #291810;
+  --tchev-ink: #8A5332;
+
+  --sechead-ink: #2C180E;
+  --sechead-count: #874422;
+  --rule-gem: #B57644;
+  --rule-bg: linear-gradient(90deg, rgba(181, 118, 68, 0.46) 0%, rgba(181, 118, 68, 0.06) 100%);
+  --info-ink: #5A453A;
+
+  --card-live-audit-bg: #FCF9F3;
+  --card-live-bg: linear-gradient(180deg, #FFFFFF 0%, #FCF8F1 100%);
+  --card-live-border: rgba(168, 118, 76, 0.32);
+  --card-live-shadow: 0 6px 18px rgba(74, 42, 22, 0.065), 0 1px 3px rgba(74, 42, 22, 0.04);
+  --card-live-bar: linear-gradient(180deg, #B56E42 0%, #26515C 100%);
+  --card-recent-bg: #FAF5EC;
+  --card-recent-border: rgba(148, 118, 92, 0.22);
+  --card-recent-shadow: 0 2px 8px rgba(64, 38, 22, 0.03);
+  --card-text-audit-bg: #FAF5EC;
+
+  --badge-live-audit-bg: #7A4022;
+  --badge-live-bg: linear-gradient(145deg, #8F4D2A 0%, #5E2E16 100%);
+  --badge-live-border: rgba(232, 196, 138, 0.62);
+  --badge-live-inner: rgba(248, 226, 186, 0.3);
+  --badge-live-shadow: 0 4px 12px rgba(94, 46, 22, 0.24);
+  --badge-live-ink: #FCEBD0;
+
+  --badge-recent-audit-bg: #E9DFCE;
+  --badge-recent-bg: linear-gradient(145deg, #F3ECDF 0%, #E7DBC7 100%);
+  --badge-recent-border: rgba(154, 116, 78, 0.34);
+  --badge-recent-inner: rgba(154, 116, 78, 0.16);
+  --badge-recent-ink: #47291A;
+
+  --card-title-ink: #26160E;
+  --card-meta-ink: #4F4037;
+  --card-score-ink: #514138;
+  --card-lead-ink: #244954;
+  --chev-ink: #8C5634;
+  --mult-bg: #7C3D1E;
+  --mult-ink: #FDF4E6;
+
+  --bar-bg: #FCF9F2;
+  --bar-border: rgba(172, 126, 82, 0.3);
+  --bar-shadow: 0 -8px 22px rgba(64, 34, 16, 0.06);
+  --tab-on-audit-bg: #1F4550;
+  --tab-on-bg: linear-gradient(145deg, #2B5966 0%, #1B3B45 100%);
+  --tab-on-border: rgba(220, 186, 128, 0.56);
+  --tab-on-ink: #F9E6C0;
+  --tab-on-shadow: 0 4px 12px rgba(27, 59, 69, 0.24);
+  --tab-off-bg: #F2EBE0;
+  --tab-off-border: rgba(160, 122, 84, 0.28);
+  --avatar-bg: linear-gradient(145deg, #864726 0%, #5A2C14 100%);
+  --avatar-audit-bg: #6D371B;
+  --avatar-border: #D4A460;
+  --avatar-ink: #FFF5E4;
+  --gesture-bg: rgba(56, 32, 18, 0.24);
+}
+
+.d-jaipur-sandstone.dark {
+  --bg: #130D0A;
+  --ink: #F8F0E3;
+  --status-ink: #F8ECD8;
+  --scroll-fade: linear-gradient(180deg, rgba(19, 13, 10, 0) 0%, rgba(19, 13, 10, 0.94) 100%);
+
+  --hero-pb: 14px;
+  --hero-bg: #130D0A;
+  --hero-audit-bg: #2A1910;
+  --hero-image:
+    linear-gradient(180deg, rgba(24, 14, 9, 0.36) 0%, rgba(20, 13, 9, 0.66) 72%, rgba(19, 13, 10, 1) 100%),
+    radial-gradient(ellipse 75% 65% at 24% 48%, rgba(26, 15, 10, 0.78) 0%, rgba(26, 15, 10, 0.18) 72%),
+    url('../assets/r2-sandstone-hero.jpg');
+  --hero-img-pos: center top;
+  --hero-text-shadow: 0 2px 12px rgba(10, 5, 2, 0.65);
+
+  --emblem-ring: linear-gradient(145deg, #F4D5A0 0%, #BD8644 55%, #73481C 100%);
+  --emblem-inner: #21130C;
+  --emblem-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+  --brand-ink: #F9EEDB;
+  --greet-ink: #FCF5E8;
+  --help-ink: #F0CFA0;
+  --help-bg: rgba(240, 207, 160, 0.1);
+  --help-border: rgba(240, 207, 160, 0.34);
+  --orn-line-l: linear-gradient(90deg, rgba(226, 178, 118, 0.88), rgba(226, 178, 118, 0.36));
+  --orn-gem: #E3AC6C;
+  --orn-line-r: linear-gradient(90deg, rgba(226, 178, 118, 0.65), rgba(226, 178, 118, 0));
+
+  --cta-audit-bg: #C89252;
+  --cta-bg: linear-gradient(180deg, #EBC48D 0%, #D5A262 52%, #BC8442 100%);
+  --cta-ink: #1B0F08;
+  --cta-border: rgba(255, 238, 208, 0.72);
+  --cta-inner-rim: rgba(34, 18, 8, 0.14);
+  --cta-shadow: inset 0 1px 0 rgba(255, 248, 232, 0.82), 0 10px 24px rgba(0, 0, 0, 0.48);
+  --cta-plus-bg: rgba(27, 15, 8, 0.14);
+  --cta-plus-border: rgba(27, 15, 8, 0.24);
+  --cta-plus-ink: #1B0F08;
+
+  --tile-audit-bg: #1E1510;
+  --tile-bg: linear-gradient(180deg, #271B15 0%, #1B120E 100%);
+  --tile-border: rgba(214, 162, 108, 0.28);
+  --tile-shadow: inset 0 1px 0 rgba(255, 228, 192, 0.08), 0 6px 18px rgba(0, 0, 0, 0.42);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(224, 174, 118, 0.36), transparent);
+  --ticon-bg: linear-gradient(145deg, #274D58 0%, #173038 100%);
+  --ticon-border: rgba(218, 172, 118, 0.44);
+  --ticon-ink: #F2D29F;
+  --tcount-ink: #F1CFA0;
+  --tlabel-ink: #F7EFE2;
+  --tchev-ink: #CC9A66;
+
+  --sechead-ink: #F7EFE2;
+  --sechead-count: #EAB87D;
+  --rule-gem: #D49B60;
+  --rule-bg: linear-gradient(90deg, rgba(212, 155, 96, 0.42) 0%, rgba(212, 155, 96, 0.04) 100%);
+  --info-ink: #C5B3A4;
+
+  --card-live-audit-bg: #201611;
+  --card-live-bg: linear-gradient(180deg, #281C16 0%, #1D140F 100%);
+  --card-live-border: rgba(216, 164, 110, 0.3);
+  --card-live-shadow: inset 0 1px 0 rgba(255, 228, 192, 0.08), 0 8px 20px rgba(0, 0, 0, 0.44);
+  --card-live-bar: linear-gradient(180deg, #E8BA80 0%, #508A98 100%);
+  --card-recent-bg: #18100C;
+  --card-recent-border: rgba(196, 156, 116, 0.16);
+  --card-text-audit-bg: #221712;
+
+  --badge-live-audit-bg: #C79050;
+  --badge-live-bg: linear-gradient(145deg, #ECC68F 0%, #C28949 100%);
+  --badge-live-border: rgba(255, 236, 204, 0.65);
+  --badge-live-inner: rgba(34, 18, 8, 0.22);
+  --badge-live-shadow: 0 4px 12px rgba(0, 0, 0, 0.42);
+  --badge-live-ink: #1B0F08;
+
+  --badge-recent-audit-bg: #291D17;
+  --badge-recent-bg: linear-gradient(145deg, #2F211A 0%, #241913 100%);
+  --badge-recent-border: rgba(208, 162, 114, 0.28);
+  --badge-recent-inner: rgba(208, 162, 114, 0.12);
+  --badge-recent-ink: #EBC998;
+
+  --card-title-ink: #F8F0E3;
+  --card-meta-ink: #C9B9AA;
+  --card-score-ink: #C7B7A8;
+  --card-lead-ink: #8EC9D6;
+  --chev-ink: #CC9A66;
+  --mult-bg: #EBBF82;
+  --mult-ink: #1C1008;
+
+  --bar-bg: #17100C;
+  --bar-border: rgba(214, 164, 110, 0.26);
+  --bar-shadow: 0 -10px 26px rgba(0, 0, 0, 0.55);
+  --tab-on-audit-bg: #C69050;
+  --tab-on-bg: linear-gradient(180deg, #EBC48D 0%, #C28A4A 100%);
+  --tab-on-border: rgba(255, 238, 208, 0.62);
+  --tab-on-ink: #1B0F08;
+  --tab-on-shadow: 0 4px 14px rgba(0, 0, 0, 0.42);
+  --tab-off-bg: #231813;
+  --tab-off-border: rgba(208, 162, 114, 0.24);
+  --avatar-bg: linear-gradient(145deg, #2A5460 0%, #18343C 100%);
+  --avatar-audit-bg: #1E404A;
+  --avatar-border: #D9A768;
+  --avatar-ink: #FAF0DF;
+  --gesture-bg: rgba(246, 224, 192, 0.34);
+}
+
+/* ==========================================================================
+ * 2. DECCAN BREEZE — from 4-truck-painting.png (Light-first, Airy Daylight)
+ * Pale sky-cream canvas + washed denim slate + warm burnished rust-terracotta CTA
+ * ========================================================================== */
+.d-deccan-breeze.light {
+  --display-font: 'Cormorant Garamond', Georgia, serif;
+  --greet-size: 36px;
+  --greet-size-compact: 29px;
+  --greet-weight: 700;
+  --sechead-size: 25px;
+  --sechead-size-compact: 20px;
+
+  --bg: #F3F2EC;
+  --ink: #17303C;
+  --status-ink: #17303C;
+  --scroll-fade: linear-gradient(180deg, rgba(243, 242, 236, 0) 0%, rgba(243, 242, 236, 0.94) 100%);
+
+  --hero-pb: 10px;
+  --tiles-pt: 8px;
+  --hero-bg: #F3F2EC;
+  --hero-audit-bg: #EAE8DF;
+  --hero-image:
+    linear-gradient(180deg, rgba(243, 242, 236, 0.08) 0%, rgba(243, 242, 236, 0.45) 75%, rgba(243, 242, 236, 1) 100%),
+    url('../assets/r2-breeze-hero.jpg');
+  --hero-img-pos: right top;
+
+  --emblem-ring: linear-gradient(145deg, #E2BE7C 0%, #AD783B 55%, #6B451B 100%);
+  --emblem-inner: #1D3E4C;
+  --emblem-shadow: 0 3px 10px rgba(23, 48, 60, 0.16);
+  --brand-ink: #183644;
+  --greet-ink: #14303D;
+  --help-ink: #1B3D4C;
+  --help-bg: rgba(255, 255, 252, 0.85);
+  --help-border: rgba(84, 118, 134, 0.34);
+  --help-shadow: 0 2px 8px rgba(23, 48, 60, 0.06);
+  --orn-line-l: linear-gradient(90deg, #527484, rgba(82, 116, 132, 0.4));
+  --orn-gem: #A64F2A;
+  --orn-gem-glow: 0 0 0 2px rgba(166, 79, 42, 0.2);
+  --orn-line-r: linear-gradient(90deg, rgba(166, 79, 42, 0.6), rgba(166, 79, 42, 0));
+
+  /* Warm burnished rust-terracotta truck body color as the bold primary CTA */
+  --cta-audit-bg: #8E4121;
+  --cta-bg: linear-gradient(180deg, #A34D29 0%, #7C361A 100%);
+  --cta-ink: #FFF8EE;
+  --cta-border: rgba(234, 198, 146, 0.65);
+  --cta-inner-rim: rgba(255, 236, 206, 0.2);
+  --cta-shadow: inset 0 1px 0 rgba(255, 240, 216, 0.28), 0 10px 24px rgba(124, 54, 26, 0.24);
+  --cta-plus-bg: rgba(255, 242, 220, 0.16);
+  --cta-plus-border: rgba(255, 242, 220, 0.45);
+  --cta-plus-ink: #FFF4E2;
+
+  --tile-audit-bg: #FAFAF6;
+  --tile-bg: linear-gradient(180deg, #FFFFFF 0%, #F8F7F2 100%);
+  --tile-border: rgba(96, 128, 142, 0.28);
+  --tile-shadow: 0 5px 16px rgba(23, 48, 60, 0.055), 0 1px 2px rgba(23, 48, 60, 0.04);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(176, 116, 68, 0.42), transparent);
+  --ticon-bg: linear-gradient(145deg, #274F60 0%, #193644 100%);
+  --ticon-border: rgba(208, 172, 122, 0.5);
+  --ticon-ink: #F6E2BE;
+  --ticon-shadow: 0 3px 8px rgba(25, 54, 68, 0.18);
+  --tcount-ink: #8C3F1E;
+  --tlabel-ink: #16303D;
+  --tchev-ink: #5A7B8B;
+
+  --sechead-ink: #15313E;
+  --sechead-count: #944320;
+  --rule-gem: #A8643B;
+  --rule-bg: linear-gradient(90deg, rgba(102, 134, 148, 0.42) 0%, rgba(102, 134, 148, 0.05) 100%);
+  --info-ink: #45606C;
+
+  --card-live-audit-bg: #FCFBF8;
+  --card-live-bg: linear-gradient(180deg, #FFFFFF 0%, #FAF9F4 100%);
+  --card-live-border: rgba(96, 128, 142, 0.3);
+  --card-live-shadow: 0 6px 18px rgba(23, 48, 60, 0.06), 0 1px 3px rgba(23, 48, 60, 0.035);
+  --card-live-bar: linear-gradient(180deg, #A34D29 0%, #346072 100%);
+  --card-recent-bg: #F7F6F0;
+  --card-recent-border: rgba(114, 136, 146, 0.22);
+  --card-recent-shadow: 0 2px 8px rgba(23, 48, 60, 0.03);
+  --card-text-audit-bg: #F7F6F0;
+
+  --badge-live-audit-bg: #234959;
+  --badge-live-bg: linear-gradient(145deg, #2E5B6E 0%, #1A3744 100%);
+  --badge-live-border: rgba(214, 178, 124, 0.62);
+  --badge-live-inner: rgba(244, 222, 182, 0.28);
+  --badge-live-shadow: 0 4px 12px rgba(26, 55, 68, 0.22);
+  --badge-live-ink: #FAF0D8;
+
+  --badge-recent-audit-bg: #E2E7E8;
+  --badge-recent-bg: linear-gradient(145deg, #ECEFEC 0%, #DCE4E6 100%);
+  --badge-recent-border: rgba(102, 132, 144, 0.34);
+  --badge-recent-inner: rgba(102, 132, 144, 0.16);
+  --badge-recent-ink: #1D3E4C;
+
+  --card-title-ink: #152D38;
+  --card-meta-ink: #415C68;
+  --card-score-ink: #425B66;
+  --card-lead-ink: #8C3F1E;
+  --chev-ink: #587886;
+  --mult-bg: #924120;
+  --mult-ink: #FFF7EB;
+
+  --bar-bg: #FAFAF6;
+  --bar-border: rgba(108, 136, 148, 0.28);
+  --bar-shadow: 0 -8px 22px rgba(23, 48, 60, 0.06);
+  --tab-on-audit-bg: #1E4252;
+  --tab-on-bg: linear-gradient(145deg, #2A576A 0%, #193745 100%);
+  --tab-on-border: rgba(214, 178, 124, 0.56);
+  --tab-on-ink: #FAF0D8;
+  --tab-on-shadow: 0 4px 12px rgba(25, 55, 69, 0.22);
+  --tab-off-bg: #ECEEE9;
+  --tab-off-border: rgba(106, 134, 146, 0.26);
+  --avatar-bg: linear-gradient(145deg, #9C4927 0%, #6D3017 100%);
+  --avatar-audit-bg: #7F391C;
+  --avatar-border: #D9AC6C;
+  --avatar-ink: #FFF6E8;
+  --gesture-bg: rgba(23, 48, 60, 0.24);
+}
+
+.d-deccan-breeze.dark {
+  --display-font: 'Cormorant Garamond', Georgia, serif;
+  --greet-size: 36px;
+  --greet-size-compact: 29px;
+  --greet-weight: 700;
+  --sechead-size: 25px;
+  --sechead-size-compact: 20px;
+
+  --bg: #0B151B;
+  --ink: #F2F3EE;
+  --status-ink: #EFF1EC;
+  --scroll-fade: linear-gradient(180deg, rgba(11, 21, 27, 0) 0%, rgba(11, 21, 27, 0.94) 100%);
+
+  --hero-pb: 14px;
+  --hero-bg: #0B151B;
+  --hero-audit-bg: #162832;
+  --hero-image:
+    linear-gradient(180deg, rgba(11, 21, 27, 0.56) 0%, rgba(11, 21, 27, 0.82) 72%, rgba(11, 21, 27, 1) 100%),
+    radial-gradient(ellipse 80% 60% at 80% 10%, rgba(196, 134, 82, 0.18) 0%, rgba(28, 56, 70, 0.36) 55%, rgba(11, 21, 27, 0.94) 100%),
+    url('../assets/r2-sandstone-hero.jpg');
+  --hero-img-pos: right top;
+  --hero-text-shadow: 0 2px 12px rgba(4, 10, 14, 0.65);
+
+  --emblem-ring: linear-gradient(145deg, #F0CFA0 0%, #BD8548 55%, #73481C 100%);
+  --emblem-inner: #102029;
+  --emblem-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+  --brand-ink: #F4F1E8;
+  --greet-ink: #F8F6EF;
+  --help-ink: #EBD2AA;
+  --help-bg: rgba(235, 210, 170, 0.1);
+  --help-border: rgba(235, 210, 170, 0.34);
+  --orn-line-l: linear-gradient(90deg, rgba(154, 198, 216, 0.78), rgba(154, 198, 216, 0.3));
+  --orn-gem: #E39F62;
+  --orn-line-r: linear-gradient(90deg, rgba(227, 159, 98, 0.65), rgba(227, 159, 98, 0));
+
+  /* Warm burnished terracotta-ochre button glowing against twilight denim */
+  --cta-audit-bg: #CA925A;
+  --cta-bg: linear-gradient(180deg, #E8B986 0%, #CE9459 55%, #B4783F 100%);
+  --cta-ink: #0B151B;
+  --cta-border: rgba(252, 232, 202, 0.72);
+  --cta-inner-rim: rgba(11, 21, 27, 0.14);
+  --cta-shadow: inset 0 1px 0 rgba(255, 246, 230, 0.8), 0 10px 24px rgba(0, 0, 0, 0.48);
+  --cta-plus-bg: rgba(11, 21, 27, 0.14);
+  --cta-plus-border: rgba(11, 21, 27, 0.24);
+  --cta-plus-ink: #0B151B;
+
+  --tile-audit-bg: #13222B;
+  --tile-bg: linear-gradient(180deg, #182C38 0%, #111F28 100%);
+  --tile-border: rgba(164, 194, 206, 0.24);
+  --tile-shadow: inset 0 1px 0 rgba(212, 234, 244, 0.08), 0 6px 18px rgba(0, 0, 0, 0.42);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(226, 172, 114, 0.36), transparent);
+  --ticon-bg: linear-gradient(145deg, #254858 0%, #152D38 100%);
+  --ticon-border: rgba(224, 174, 118, 0.44);
+  --ticon-ink: #F2CFA2;
+  --tcount-ink: #F0C996;
+  --tlabel-ink: #F1F2EC;
+  --tchev-ink: #9AB8C6;
+
+  --sechead-ink: #F2F3EE;
+  --sechead-count: #E8B27A;
+  --rule-gem: #D89D62;
+  --rule-bg: linear-gradient(90deg, rgba(162, 194, 208, 0.36) 0%, rgba(162, 194, 208, 0.04) 100%);
+  --info-ink: #B0C3CC;
+
+  --card-live-audit-bg: #14242E;
+  --card-live-bg: linear-gradient(180deg, #192E3A 0%, #122029 100%);
+  --card-live-border: rgba(212, 168, 120, 0.28);
+  --card-live-shadow: inset 0 1px 0 rgba(220, 238, 248, 0.08), 0 8px 20px rgba(0, 0, 0, 0.44);
+  --card-live-bar: linear-gradient(180deg, #E6B178 0%, #5A96AD 100%);
+  --card-recent-bg: #0F1B22;
+  --card-recent-border: rgba(154, 184, 198, 0.16);
+  --card-text-audit-bg: #152630;
+
+  --badge-live-audit-bg: #C89056;
+  --badge-live-bg: linear-gradient(145deg, #E8BA88 0%, #BE8348 100%);
+  --badge-live-border: rgba(252, 232, 202, 0.64);
+  --badge-live-inner: rgba(11, 21, 27, 0.2);
+  --badge-live-shadow: 0 4px 12px rgba(0, 0, 0, 0.42);
+  --badge-live-ink: #0B151B;
+
+  --badge-recent-audit-bg: #1A2E38;
+  --badge-recent-bg: linear-gradient(145deg, #203642 0%, #162831 100%);
+  --badge-recent-border: rgba(164, 196, 210, 0.26);
+  --badge-recent-inner: rgba(164, 196, 210, 0.12);
+  --badge-recent-ink: #DFC39B;
+
+  --card-title-ink: #F2F3EE;
+  --card-meta-ink: #B7C9D1;
+  --card-score-ink: #B7C8CF;
+  --card-lead-ink: #EBBF8C;
+  --chev-ink: #A2BECC;
+  --mult-bg: #EAB880;
+  --mult-ink: #0C161C;
+
+  --bar-bg: #0E1B22;
+  --bar-border: rgba(176, 198, 208, 0.22);
+  --bar-shadow: 0 -10px 26px rgba(0, 0, 0, 0.55);
+  --tab-on-audit-bg: #C89056;
+  --tab-on-bg: linear-gradient(180deg, #E8BA88 0%, #BE8348 100%);
+  --tab-on-border: rgba(252, 232, 202, 0.62);
+  --tab-on-ink: #0B151B;
+  --tab-on-shadow: 0 4px 14px rgba(0, 0, 0, 0.42);
+  --tab-off-bg: #162731;
+  --tab-off-border: rgba(164, 196, 210, 0.22);
+  --avatar-bg: linear-gradient(145deg, #274D5E 0%, #152E3A 100%);
+  --avatar-audit-bg: #1B3947;
+  --avatar-border: #D9A468;
+  --avatar-ink: #F6EFE2;
+  --gesture-bg: rgba(235, 224, 206, 0.34);
+}
+
+/* ==========================================================================
+ * 3. NAVARATNA GOLD — from 2-pushpa2-hand-rings.png (Dark-first Signature)
+ * Smoked espresso-bronze + molten 22K temple gold + bone parchment + ruby/emerald
+ * ========================================================================== */
+.d-navaratna-gold.dark {
+  --bg: #110B06;
+  --ink: #F5ECD8;
+  --status-ink: #F7EED8;
+  --scroll-fade: linear-gradient(180deg, rgba(17, 11, 6, 0) 0%, rgba(17, 11, 6, 0.94) 100%);
+
+  --hero-pb: 14px;
+  --hero-bg: #110B06;
+  --hero-audit-bg: #26190C;
+  --hero-image:
+    linear-gradient(180deg, rgba(17, 11, 6, 0.14) 0%, rgba(17, 11, 6, 0.56) 72%, rgba(17, 11, 6, 1) 100%),
+    url('../assets/r2-navaratna-hero.jpg');
+  --hero-img-pos: center top;
+  --hero-text-shadow: 0 2px 14px rgba(6, 3, 0, 0.7);
+
+  --emblem-ring: linear-gradient(145deg, #FCE7A8 0%, #CE9A36 52%, #7D5410 100%);
+  --emblem-inner: #1D1208;
+  --emblem-shadow: 0 3px 12px rgba(0, 0, 0, 0.55);
+  --brand-ink: #F7EBD0;
+  --greet-ink: #FAF2DE;
+  --help-ink: #F5D786;
+  --help-bg: rgba(245, 215, 134, 0.1);
+  --help-border: rgba(245, 215, 134, 0.38);
+  --orn-line-l: linear-gradient(90deg, rgba(242, 204, 116, 0.9), rgba(242, 204, 116, 0.36));
+  --orn-gem: #D92C38;
+  --orn-gem-glow: 0 0 8px rgba(217, 44, 56, 0.55);
+  --orn-line-r: linear-gradient(90deg, rgba(242, 204, 116, 0.65), rgba(242, 204, 116, 0));
+
+  /* Molten 22K temple gold CTA */
+  --cta-audit-bg: #C7942E;
+  --cta-bg: linear-gradient(180deg, #F3D27A 0%, #D9A842 52%, #B88322 100%);
+  --cta-ink: #170E05;
+  --cta-border: rgba(255, 245, 208, 0.78);
+  --cta-inner-rim: rgba(28, 16, 4, 0.16);
+  --cta-shadow: inset 0 1px 0 rgba(255, 252, 236, 0.86), 0 10px 26px rgba(0, 0, 0, 0.52);
+  --cta-plus-bg: rgba(23, 14, 5, 0.14);
+  --cta-plus-border: rgba(23, 14, 5, 0.25);
+  --cta-plus-ink: #170E05;
+
+  --tile-audit-bg: #1B130B;
+  --tile-bg: linear-gradient(180deg, #241A10 0%, #18110A 100%);
+  --tile-border: rgba(226, 182, 88, 0.3);
+  --tile-shadow: inset 0 1px 0 rgba(255, 234, 178, 0.1), 0 6px 18px rgba(0, 0, 0, 0.45);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(234, 190, 94, 0.42), transparent);
+  --ticon-bg: linear-gradient(145deg, #382511 0%, #201408 100%);
+  --ticon-border: rgba(234, 190, 94, 0.48);
+  --ticon-ink: #F5D684;
+  --tcount-ink: #F6DC92;
+  --tlabel-ink: #F5ECD8;
+  --tchev-ink: #D8AD54;
+
+  --sechead-ink: #F5ECD8;
+  --sechead-count: #F2CB6E;
+  --rule-gem: #E3B34C;
+  --rule-bg: linear-gradient(90deg, rgba(227, 179, 76, 0.45) 0%, rgba(227, 179, 76, 0.04) 100%);
+  --info-ink: #C8BBA6;
+
+  --card-live-audit-bg: #1D150D;
+  --card-live-bg: linear-gradient(180deg, #251B10 0%, #1A120A 100%);
+  --card-live-border: rgba(228, 184, 90, 0.32);
+  --card-live-shadow: inset 0 1px 0 rgba(255, 234, 178, 0.09), 0 8px 22px rgba(0, 0, 0, 0.48);
+  --card-live-bar: linear-gradient(180deg, #F0C968 0%, #B0212D 100%);
+  --card-recent-bg: #150F09;
+  --card-recent-border: rgba(206, 170, 102, 0.17);
+  --card-text-audit-bg: #1F160D;
+
+  --badge-live-audit-bg: #C5912C;
+  --badge-live-bg: linear-gradient(145deg, #F2D078 0%, #BD8826 100%);
+  --badge-live-border: rgba(255, 242, 200, 0.68);
+  --badge-live-inner: rgba(28, 16, 4, 0.22);
+  --badge-live-shadow: 0 4px 14px rgba(0, 0, 0, 0.48);
+  --badge-live-ink: #170E05;
+
+  --badge-recent-audit-bg: #261B10;
+  --badge-recent-bg: linear-gradient(145deg, #2E2114 0%, #20160D 100%);
+  --badge-recent-border: rgba(218, 176, 92, 0.3);
+  --badge-recent-inner: rgba(218, 176, 92, 0.13);
+  --badge-recent-ink: #F2D284;
+
+  --card-title-ink: #F5ECD8;
+  --card-meta-ink: #CBC0AD;
+  --card-score-ink: #CAC0AE;
+  --card-lead-ink: #F3D17E;
+  --chev-ink: #D8AD54;
+  --mult-bg: #B81F2C;
+  --mult-ink: #FFF4E4;
+
+  --bar-bg: #150E08;
+  --bar-border: rgba(226, 182, 88, 0.28);
+  --bar-shadow: 0 -10px 28px rgba(0, 0, 0, 0.58);
+  --tab-on-audit-bg: #C5912C;
+  --tab-on-bg: linear-gradient(180deg, #F2D078 0%, #BF8A28 100%);
+  --tab-on-border: rgba(255, 244, 204, 0.66);
+  --tab-on-ink: #170E05;
+  --tab-on-shadow: 0 4px 14px rgba(0, 0, 0, 0.48);
+  --tab-off-bg: #21170E;
+  --tab-off-border: rgba(218, 176, 92, 0.24);
+  --avatar-bg: linear-gradient(145deg, #422912 0%, #221407 100%);
+  --avatar-audit-bg: #2E1C0B;
+  --avatar-border: #E3B44E;
+  --avatar-ink: #FAF0D8;
+  --gesture-bg: rgba(246, 224, 178, 0.34);
+}
+
+.d-navaratna-gold.light {
+  --bg: #F5EFE2;
+  --ink: #22160C;
+  --status-ink: #FAF0D8;
+  --scroll-fade: linear-gradient(180deg, rgba(245, 239, 226, 0) 0%, rgba(245, 239, 226, 0.94) 100%);
+
+  --hero-pb: 22px;
+  --hero-radius: 26px;
+  --hero-bg: #23160A;
+  --hero-audit-bg: #2B1B0D;
+  --hero-image:
+    linear-gradient(180deg, rgba(26, 16, 7, 0.22) 0%, rgba(28, 17, 8, 0.65) 100%),
+    url('../assets/r2-navaratna-hero.jpg');
+  --hero-img-pos: center top;
+  --hero-shadow: 0 14px 32px rgba(38, 22, 8, 0.24), 0 2px 6px rgba(38, 22, 8, 0.14);
+  --hero-rim: 1.5px solid rgba(232, 188, 92, 0.78);
+  --hero-rim-inner: inset 0 -4px 0 -2.5px rgba(248, 224, 152, 0.24);
+  --hero-text-shadow: 0 2px 12px rgba(8, 4, 0, 0.62);
+
+  --emblem-ring: linear-gradient(145deg, #FCE7A8 0%, #CE9A36 52%, #7D5410 100%);
+  --emblem-inner: #1D1208;
+  --emblem-shadow: 0 3px 12px rgba(0, 0, 0, 0.48);
+  --brand-ink: #FAF0D8;
+  --greet-ink: #FFF8E8;
+  --help-ink: #F5D786;
+  --help-bg: rgba(245, 215, 134, 0.12);
+  --help-border: rgba(245, 215, 134, 0.38);
+  --orn-line-l: linear-gradient(90deg, rgba(242, 204, 116, 0.9), rgba(242, 204, 116, 0.38));
+  --orn-gem: #D92C38;
+  --orn-line-r: linear-gradient(90deg, rgba(242, 204, 116, 0.65), rgba(242, 204, 116, 0));
+
+  --cta-audit-bg: #C7942E;
+  --cta-bg: linear-gradient(180deg, #F3D27A 0%, #D9A842 52%, #B88322 100%);
+  --cta-ink: #170E05;
+  --cta-border: rgba(255, 245, 208, 0.78);
+  --cta-inner-rim: rgba(28, 16, 4, 0.16);
+  --cta-shadow: inset 0 1px 0 rgba(255, 252, 236, 0.86), 0 10px 24px rgba(12, 6, 0, 0.46);
+  --cta-plus-bg: rgba(23, 14, 5, 0.14);
+  --cta-plus-border: rgba(23, 14, 5, 0.25);
+  --cta-plus-ink: #170E05;
+
+  --tile-audit-bg: #FCF8EF;
+  --tile-bg: linear-gradient(180deg, #FFFFFF 0%, #FBF6EC 100%);
+  --tile-border: rgba(172, 130, 52, 0.32);
+  --tile-shadow: 0 6px 18px rgba(46, 28, 10, 0.065), 0 1px 2px rgba(46, 28, 10, 0.04);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(206, 156, 56, 0.48), transparent);
+  --ticon-bg: linear-gradient(145deg, #3A2512 0%, #201307 100%);
+  --ticon-border: rgba(218, 174, 82, 0.6);
+  --ticon-ink: #F6DC92;
+  --ticon-shadow: 0 3px 9px rgba(38, 22, 8, 0.24);
+  --tcount-ink: #6E4509;
+  --tlabel-ink: #24170B;
+  --tchev-ink: #8C6020;
+
+  --sechead-ink: #24160A;
+  --sechead-count: #9E1E29;
+  --rule-gem: #BE8A2C;
+  --rule-bg: linear-gradient(90deg, rgba(190, 138, 44, 0.48) 0%, rgba(190, 138, 44, 0.06) 100%);
+  --info-ink: #5E4E3E;
+
+  --card-live-audit-bg: #FDFBF6;
+  --card-live-bg: linear-gradient(180deg, #FFFFFF 0%, #FCF8EE 100%);
+  --card-live-border: rgba(174, 132, 54, 0.34);
+  --card-live-shadow: 0 6px 20px rgba(46, 28, 10, 0.065), 0 1px 3px rgba(46, 28, 10, 0.04);
+  --card-live-bar: linear-gradient(180deg, #D4A138 0%, #9E1E29 100%);
+  --card-recent-bg: #FAF4E8;
+  --card-recent-border: rgba(148, 122, 82, 0.22);
+  --card-recent-shadow: 0 2px 8px rgba(42, 26, 10, 0.03);
+  --card-text-audit-bg: #FAF4E8;
+
+  --badge-live-audit-bg: #2C1C0E;
+  --badge-live-bg: linear-gradient(145deg, #402A15 0%, #22150A 100%);
+  --badge-live-border: rgba(224, 180, 88, 0.68);
+  --badge-live-inner: rgba(246, 218, 136, 0.34);
+  --badge-live-shadow: 0 4px 12px rgba(38, 22, 8, 0.24);
+  --badge-live-ink: #FCE6A6;
+
+  --badge-recent-audit-bg: #EDE3CF;
+  --badge-recent-bg: linear-gradient(145deg, #F4ECDC 0%, #E7D9BE 100%);
+  --badge-recent-border: rgba(158, 124, 64, 0.34);
+  --badge-recent-inner: rgba(158, 124, 64, 0.16);
+  --badge-recent-ink: #382412;
+
+  --card-title-ink: #22160C;
+  --card-meta-ink: #574636;
+  --card-score-ink: #574636;
+  --card-lead-ink: #6D4408;
+  --chev-ink: #8C6020;
+  --mult-bg: #9C1B26;
+  --mult-ink: #FFF5E6;
+
+  --bar-bg: #FCF8F0;
+  --bar-border: rgba(178, 136, 58, 0.32);
+  --bar-shadow: 0 -8px 24px rgba(42, 24, 8, 0.065);
+  --tab-on-audit-bg: #291A0C;
+  --tab-on-bg: linear-gradient(145deg, #3D2713 0%, #211408 100%);
+  --tab-on-border: rgba(224, 180, 88, 0.6);
+  --tab-on-ink: #FCE6A6;
+  --tab-on-shadow: 0 4px 12px rgba(38, 22, 8, 0.24);
+  --tab-off-bg: #F2EBDC;
+  --tab-off-border: rgba(164, 128, 66, 0.28);
+  --avatar-bg: linear-gradient(145deg, #3C2612 0%, #211408 100%);
+  --avatar-audit-bg: #2D1C0D;
+  --avatar-border: #D2A03F;
+  --avatar-ink: #FAF0D8;
+  --gesture-bg: rgba(46, 28, 12, 0.24);
+}
+
+/* ==========================================================================
+ * 4. MULBERRY ZARI — from 2-pushpa2-hand-rings.png (Silk Cuff & Gold Bangles)
+ * Deep mulberry-plum Kanjeevaram silk + antique champagne gold + warm bone ivory
+ * ========================================================================== */
+.d-mulberry-zari.dark {
+  --bg: #10070D;
+  --ink: #FAF1EB;
+  --status-ink: #FAF0E6;
+  --scroll-fade: linear-gradient(180deg, rgba(16, 7, 13, 0) 0%, rgba(16, 7, 13, 0.94) 100%);
+
+  --hero-pb: 14px;
+  --hero-bg: #10070D;
+  --hero-audit-bg: #291020;
+  --hero-image:
+    linear-gradient(180deg, rgba(24, 8, 18, 0.24) 0%, rgba(18, 7, 14, 0.68) 72%, rgba(16, 7, 13, 1) 100%),
+    url('../assets/r2-mulberry-hero.jpg');
+  --hero-img-pos: center top;
+  --hero-text-shadow: 0 2px 14px rgba(10, 2, 8, 0.65);
+
+  --emblem-ring: linear-gradient(145deg, #FAE4AA 0%, #C89642 55%, #7B5218 100%);
+  --emblem-inner: #210B18;
+  --emblem-shadow: 0 3px 12px rgba(0, 0, 0, 0.52);
+  --brand-ink: #FAF0E2;
+  --greet-ink: #FFF7F0;
+  --help-ink: #F5DAA0;
+  --help-bg: rgba(245, 218, 160, 0.1);
+  --help-border: rgba(245, 218, 160, 0.36);
+  --orn-line-l: linear-gradient(90deg, rgba(240, 206, 134, 0.88), rgba(240, 206, 134, 0.36));
+  --orn-gem: #F4D48C;
+  --orn-line-r: linear-gradient(90deg, rgba(240, 206, 134, 0.65), rgba(240, 206, 134, 0));
+
+  --cta-audit-bg: #C89942;
+  --cta-bg: linear-gradient(180deg, #F3D78E 0%, #D9AC54 54%, #BA8832 100%);
+  --cta-ink: #1B0814;
+  --cta-border: rgba(255, 245, 214, 0.76);
+  --cta-inner-rim: rgba(34, 10, 24, 0.15);
+  --cta-shadow: inset 0 1px 0 rgba(255, 252, 240, 0.84), 0 10px 26px rgba(0, 0, 0, 0.52);
+  --cta-plus-bg: rgba(27, 8, 20, 0.14);
+  --cta-plus-border: rgba(27, 8, 20, 0.24);
+  --cta-plus-ink: #1B0814;
+
+  --tile-audit-bg: #1B0E17;
+  --tile-bg: linear-gradient(180deg, #251320 0%, #180C14 100%);
+  --tile-border: rgba(224, 184, 108, 0.28);
+  --tile-shadow: inset 0 1px 0 rgba(255, 232, 194, 0.09), 0 6px 18px rgba(0, 0, 0, 0.45);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(232, 192, 114, 0.38), transparent);
+  --ticon-bg: linear-gradient(145deg, #4B1936 0%, #290D1E 100%);
+  --ticon-border: rgba(232, 192, 114, 0.46);
+  --ticon-ink: #F6DC9A;
+  --tcount-ink: #F6DC9A;
+  --tlabel-ink: #FAF1EB;
+  --tchev-ink: #D4AB60;
+
+  --sechead-ink: #FAF1EB;
+  --sechead-count: #F2CE80;
+  --rule-gem: #DEB15E;
+  --rule-bg: linear-gradient(90deg, rgba(222, 177, 94, 0.42) 0%, rgba(222, 177, 94, 0.04) 100%);
+  --info-ink: #C8B7C2;
+
+  --card-live-audit-bg: #1D0F18;
+  --card-live-bg: linear-gradient(180deg, #261420 0%, #1A0D15 100%);
+  --card-live-border: rgba(224, 184, 108, 0.3);
+  --card-live-shadow: inset 0 1px 0 rgba(255, 232, 194, 0.08), 0 8px 22px rgba(0, 0, 0, 0.46);
+  --card-live-bar: linear-gradient(180deg, #F2D284 0%, #96346B 100%);
+  --card-recent-bg: #150A11;
+  --card-recent-border: rgba(202, 168, 122, 0.17);
+  --card-text-audit-bg: #20101A;
+
+  --badge-live-audit-bg: #C79640;
+  --badge-live-bg: linear-gradient(145deg, #F2D58A 0%, #BE8C38 100%);
+  --badge-live-border: rgba(255, 244, 210, 0.66);
+  --badge-live-inner: rgba(34, 10, 24, 0.22);
+  --badge-live-shadow: 0 4px 14px rgba(0, 0, 0, 0.46);
+  --badge-live-ink: #1B0814;
+
+  --badge-recent-audit-bg: #271421;
+  --badge-recent-bg: linear-gradient(145deg, #301929 0%, #22111C 100%);
+  --badge-recent-border: rgba(216, 178, 108, 0.28);
+  --badge-recent-inner: rgba(216, 178, 108, 0.12);
+  --badge-recent-ink: #F2D490;
+
+  --card-title-ink: #FAF1EB;
+  --card-meta-ink: #CEBFC8;
+  --card-score-ink: #CCBDC6;
+  --card-lead-ink: #F3D58E;
+  --chev-ink: #D4AB60;
+  --mult-bg: #F2D284;
+  --mult-ink: #1C0815;
+
+  --bar-bg: #150A11;
+  --bar-border: rgba(224, 184, 108, 0.26);
+  --bar-shadow: 0 -10px 28px rgba(0, 0, 0, 0.56);
+  --tab-on-audit-bg: #C79640;
+  --tab-on-bg: linear-gradient(180deg, #F2D58A 0%, #BE8C38 100%);
+  --tab-on-border: rgba(255, 244, 210, 0.64);
+  --tab-on-ink: #1B0814;
+  --tab-on-shadow: 0 4px 14px rgba(0, 0, 0, 0.46);
+  --tab-off-bg: #22111C;
+  --tab-off-border: rgba(216, 178, 108, 0.24);
+  --avatar-bg: linear-gradient(145deg, #4E1B38 0%, #2A0D1E 100%);
+  --avatar-audit-bg: #391329;
+  --avatar-border: #DFB25E;
+  --avatar-ink: #FAF0E4;
+  --gesture-bg: rgba(246, 224, 194, 0.34);
+}
+
+.d-mulberry-zari.light {
+  --bg: #F7F2EE;
+  --ink: #27101E;
+  --status-ink: #FAF0E8;
+  --scroll-fade: linear-gradient(180deg, rgba(247, 242, 238, 0) 0%, rgba(247, 242, 238, 0.94) 100%);
+
+  --hero-pb: 22px;
+  --hero-radius: 26px;
+  --hero-bg: #3D122A;
+  --hero-audit-bg: #471531;
+  --hero-image:
+    linear-gradient(180deg, rgba(58, 16, 40, 0.28) 0%, rgba(42, 10, 28, 0.72) 100%),
+    url('../assets/r2-mulberry-hero.jpg');
+  --hero-img-pos: center top;
+  --hero-shadow: 0 14px 32px rgba(62, 16, 42, 0.22), 0 2px 6px rgba(62, 16, 42, 0.12);
+  --hero-rim: 1.5px solid rgba(232, 192, 114, 0.76);
+  --hero-rim-inner: inset 0 -4px 0 -2.5px rgba(248, 226, 170, 0.22);
+  --hero-text-shadow: 0 2px 12px rgba(22, 4, 14, 0.58);
+
+  --emblem-ring: linear-gradient(145deg, #FAE4AA 0%, #C89642 55%, #7B5218 100%);
+  --emblem-inner: #2A0C1D;
+  --emblem-shadow: 0 3px 12px rgba(0, 0, 0, 0.46);
+  --brand-ink: #FCF2E8;
+  --greet-ink: #FFF9F4;
+  --help-ink: #F6DDA2;
+  --help-bg: rgba(246, 221, 162, 0.12);
+  --help-border: rgba(246, 221, 162, 0.38);
+  --orn-line-l: linear-gradient(90deg, rgba(242, 210, 140, 0.9), rgba(242, 210, 140, 0.4));
+  --orn-gem: #F5D892;
+  --orn-line-r: linear-gradient(90deg, rgba(242, 210, 140, 0.65), rgba(242, 210, 140, 0));
+
+  --cta-audit-bg: #C89942;
+  --cta-bg: linear-gradient(180deg, #F3D78E 0%, #D9AC54 54%, #BA8832 100%);
+  --cta-ink: #1B0814;
+  --cta-border: rgba(255, 245, 214, 0.78);
+  --cta-inner-rim: rgba(34, 10, 24, 0.15);
+  --cta-shadow: inset 0 1px 0 rgba(255, 252, 240, 0.86), 0 10px 24px rgba(22, 4, 14, 0.46);
+  --cta-plus-bg: rgba(27, 8, 20, 0.14);
+  --cta-plus-border: rgba(27, 8, 20, 0.24);
+  --cta-plus-ink: #1B0814;
+
+  --tile-audit-bg: #FCF9F7;
+  --tile-bg: linear-gradient(180deg, #FFFFFF 0%, #FBF7F4 100%);
+  --tile-border: rgba(164, 122, 74, 0.3);
+  --tile-shadow: 0 6px 18px rgba(62, 18, 44, 0.06), 0 1px 2px rgba(62, 18, 44, 0.04);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(196, 148, 72, 0.46), transparent);
+  --ticon-bg: linear-gradient(145deg, #5A1B3E 0%, #370E25 100%);
+  --ticon-border: rgba(218, 176, 98, 0.58);
+  --ticon-ink: #F7DFA0;
+  --ticon-shadow: 0 3px 9px rgba(64, 16, 44, 0.22);
+  --tcount-ink: #6A410B;
+  --tlabel-ink: #291120;
+  --tchev-ink: #8A5C2E;
+
+  --sechead-ink: #2A0F20;
+  --sechead-count: #6E1D49;
+  --rule-gem: #B88836;
+  --rule-bg: linear-gradient(90deg, rgba(184, 136, 54, 0.46) 0%, rgba(184, 136, 54, 0.06) 100%);
+  --info-ink: #5E4855;
+
+  --card-live-audit-bg: #FDFBFA;
+  --card-live-bg: linear-gradient(180deg, #FFFFFF 0%, #FCF8F5 100%);
+  --card-live-border: rgba(168, 126, 78, 0.32);
+  --card-live-shadow: 0 6px 20px rgba(62, 18, 44, 0.06), 0 1px 3px rgba(62, 18, 44, 0.035);
+  --card-live-bar: linear-gradient(180deg, #D2A046 0%, #6B1E48 100%);
+  --card-recent-bg: #F9F4F0;
+  --card-recent-border: rgba(146, 118, 108, 0.22);
+  --card-recent-shadow: 0 2px 8px rgba(56, 18, 40, 0.03);
+  --card-text-audit-bg: #F9F4F0;
+
+  --badge-live-audit-bg: #4A1533;
+  --badge-live-bg: linear-gradient(145deg, #631E45 0%, #380F26 100%);
+  --badge-live-border: rgba(224, 184, 108, 0.66);
+  --badge-live-inner: rgba(246, 218, 152, 0.32);
+  --badge-live-shadow: 0 4px 12px rgba(64, 16, 44, 0.24);
+  --badge-live-ink: #FCE8B2;
+
+  --badge-recent-audit-bg: #EDE4E0;
+  --badge-recent-bg: linear-gradient(145deg, #F3ECE8 0%, #E7DCD7 100%);
+  --badge-recent-border: rgba(148, 116, 104, 0.34);
+  --badge-recent-inner: rgba(148, 116, 104, 0.16);
+  --badge-recent-ink: #471C34;
+
+  --card-title-ink: #27101E;
+  --card-meta-ink: #5A4350;
+  --card-score-ink: #594350;
+  --card-lead-ink: #5B193D;
+  --chev-ink: #8A5C2E;
+  --mult-bg: #541739;
+  --mult-ink: #FCE7B2;
+
+  --bar-bg: #FCF9F7;
+  --bar-border: rgba(172, 130, 78, 0.3);
+  --bar-shadow: 0 -8px 24px rgba(58, 16, 40, 0.06);
+  --tab-on-audit-bg: #4A1533;
+  --tab-on-bg: linear-gradient(145deg, #631E45 0%, #380F26 100%);
+  --tab-on-border: rgba(224, 184, 108, 0.58);
+  --tab-on-ink: #FCE8B2;
+  --tab-on-shadow: 0 4px 12px rgba(62, 16, 42, 0.24);
+  --tab-off-bg: #F3ECE8;
+  --tab-off-border: rgba(158, 124, 96, 0.28);
+  --avatar-bg: linear-gradient(145deg, #5C1B40 0%, #370E25 100%);
+  --avatar-audit-bg: #471431;
+  --avatar-border: #D2A24C;
+  --avatar-ink: #FAF0E4;
+  --gesture-bg: rgba(58, 22, 44, 0.24);
+}
+
+/* ==========================================================================
+ * 5. SESHACHALAM EMBER — from 1-pushpa-poster.png
+ * Deep Seshachalam forest pine + petrol plaid teal + fiery ember saffron-amber
+ * ========================================================================== */
+.d-seshachalam-ember.dark {
+  --bg: #0A130F;
+  --ink: #F5F2E8;
+  --status-ink: #F4EFE2;
+  --scroll-fade: linear-gradient(180deg, rgba(10, 19, 15, 0) 0%, rgba(10, 19, 15, 0.94) 100%);
+
+  --hero-pb: 14px;
+  --hero-bg: #0A130F;
+  --hero-audit-bg: #11241E;
+  --hero-image:
+    linear-gradient(180deg, rgba(10, 22, 18, 0.2) 0%, rgba(10, 20, 16, 0.62) 72%, rgba(10, 19, 15, 1) 100%),
+    radial-gradient(ellipse 58% 58% at 24% 38%, rgba(10, 24, 19, 0.72) 0%, rgba(10, 24, 19, 0.06) 76%),
+    url('../assets/r2-ember-hero.jpg');
+  --hero-img-pos: 74% top;
+  --hero-text-shadow: 0 2px 14px rgba(2, 10, 6, 0.68);
+
+  --emblem-ring: linear-gradient(145deg, #F8CA74 0%, #D47A22 55%, #7A3D0C 100%);
+  --emblem-inner: #0C1E18;
+  --emblem-shadow: 0 3px 12px rgba(0, 0, 0, 0.52);
+  --brand-ink: #F6EFE0;
+  --greet-ink: #FAF6EC;
+  --help-ink: #F5C272;
+  --help-bg: rgba(245, 194, 114, 0.1);
+  --help-border: rgba(245, 194, 114, 0.36);
+  --orn-line-l: linear-gradient(90deg, rgba(240, 166, 74, 0.9), rgba(240, 166, 74, 0.36));
+  --orn-gem: #EE7A22;
+  --orn-gem-glow: 0 0 8px rgba(238, 122, 34, 0.6);
+  --orn-line-r: linear-gradient(90deg, rgba(240, 166, 74, 0.65), rgba(240, 166, 74, 0));
+
+  /* Fiery ember saffron-amber CTA from Pushpa title */
+  --cta-audit-bg: #D47B20;
+  --cta-bg: linear-gradient(180deg, #F6B348 0%, #E08222 55%, #C46414 100%);
+  --cta-ink: #0B1510;
+  --cta-border: rgba(255, 232, 184, 0.74);
+  --cta-inner-rim: rgba(14, 24, 18, 0.16);
+  --cta-shadow: inset 0 1px 0 rgba(255, 244, 214, 0.82), 0 10px 26px rgba(0, 0, 0, 0.5);
+  --cta-plus-bg: rgba(11, 21, 16, 0.14);
+  --cta-plus-border: rgba(11, 21, 16, 0.25);
+  --cta-plus-ink: #0B1510;
+
+  --tile-audit-bg: #11201A;
+  --tile-bg: linear-gradient(180deg, #162B23 0%, #0E1C17 100%);
+  --tile-border: rgba(226, 158, 76, 0.28);
+  --tile-shadow: inset 0 1px 0 rgba(236, 244, 230, 0.08), 0 6px 18px rgba(0, 0, 0, 0.44);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(238, 162, 72, 0.4), transparent);
+  --ticon-bg: linear-gradient(145deg, #1A443E 0%, #0E2623 100%);
+  --ticon-border: rgba(236, 166, 76, 0.46);
+  --ticon-ink: #F6C36E;
+  --tcount-ink: #F6BF64;
+  --tlabel-ink: #F5F2E8;
+  --tchev-ink: #D49B4E;
+
+  --sechead-ink: #F5F2E8;
+  --sechead-count: #F2A544;
+  --rule-gem: #E38B32;
+  --rule-bg: linear-gradient(90deg, rgba(227, 139, 50, 0.44) 0%, rgba(227, 139, 50, 0.04) 100%);
+  --info-ink: #B4C4BA;
+
+  --card-live-audit-bg: #12221C;
+  --card-live-bg: linear-gradient(180deg, #172C24 0%, #101E19 100%);
+  --card-live-border: rgba(228, 156, 72, 0.3);
+  --card-live-shadow: inset 0 1px 0 rgba(242, 246, 234, 0.08), 0 8px 22px rgba(0, 0, 0, 0.46);
+  --card-live-bar: linear-gradient(180deg, #F2A642 0%, #247872 100%);
+  --card-recent-bg: #0D1914;
+  --card-recent-border: rgba(176, 188, 164, 0.16);
+  --card-text-audit-bg: #13251E;
+
+  --badge-live-audit-bg: #D27D24;
+  --badge-live-bg: linear-gradient(145deg, #F5B54E 0%, #CB6E1A 100%);
+  --badge-live-border: rgba(255, 232, 186, 0.66);
+  --badge-live-inner: rgba(14, 24, 18, 0.22);
+  --badge-live-shadow: 0 4px 14px rgba(0, 0, 0, 0.46);
+  --badge-live-ink: #0B1510;
+
+  --badge-recent-audit-bg: #182C25;
+  --badge-recent-bg: linear-gradient(145deg, #1E362E 0%, #14251F 100%);
+  --badge-recent-border: rgba(214, 158, 86, 0.28);
+  --badge-recent-inner: rgba(214, 158, 86, 0.12);
+  --badge-recent-ink: #F2C278;
+
+  --card-title-ink: #F5F2E8;
+  --card-meta-ink: #B8C7BE;
+  --card-score-ink: #B7C6BC;
+  --card-lead-ink: #F4BA64;
+  --chev-ink: #D49B4E;
+  --mult-bg: #A6341E;
+  --mult-ink: #FFF4E4;
+
+  --bar-bg: #0D1813;
+  --bar-border: rgba(226, 158, 76, 0.26);
+  --bar-shadow: 0 -10px 28px rgba(0, 0, 0, 0.56);
+  --tab-on-audit-bg: #D27D24;
+  --tab-on-bg: linear-gradient(180deg, #F5B54E 0%, #CE721C 100%);
+  --tab-on-border: rgba(255, 232, 186, 0.64);
+  --tab-on-ink: #0B1510;
+  --tab-on-shadow: 0 4px 14px rgba(0, 0, 0, 0.46);
+  --tab-off-bg: #15261F;
+  --tab-off-border: rgba(214, 158, 86, 0.22);
+  --avatar-bg: linear-gradient(145deg, #1D4B44 0%, #0E2925 100%);
+  --avatar-audit-bg: #143732;
+  --avatar-border: #E39842;
+  --avatar-ink: #F7F1E2;
+  --gesture-bg: rgba(240, 224, 194, 0.34);
+}
+
+.d-seshachalam-ember.light {
+  --bg: #F5F2EA;
+  --ink: #11241C;
+  --status-ink: #F6F0E2;
+  --scroll-fade: linear-gradient(180deg, rgba(245, 242, 234, 0) 0%, rgba(245, 242, 234, 0.94) 100%);
+
+  --hero-pb: 22px;
+  --hero-radius: 26px;
+  --hero-bg: #112B24;
+  --hero-audit-bg: #14322A;
+  --hero-image:
+    linear-gradient(180deg, rgba(16, 44, 36, 0.22) 0%, rgba(12, 34, 28, 0.68) 100%),
+    radial-gradient(ellipse 58% 58% at 24% 38%, rgba(14, 38, 31, 0.72) 0%, rgba(14, 38, 31, 0.06) 76%),
+    url('../assets/r2-ember-hero.jpg');
+  --hero-img-pos: 74% top;
+  --hero-shadow: 0 14px 30px rgba(14, 38, 30, 0.22), 0 2px 6px rgba(14, 38, 30, 0.12);
+  --hero-rim: 1.5px solid rgba(232, 166, 82, 0.76);
+  --hero-rim-inner: inset 0 -4px 0 -2.5px rgba(248, 206, 134, 0.24);
+  --hero-text-shadow: 0 2px 12px rgba(4, 16, 12, 0.6);
+
+  --emblem-ring: linear-gradient(145deg, #F8CA74 0%, #D47A22 55%, #7A3D0C 100%);
+  --emblem-inner: #0D221C;
+  --emblem-shadow: 0 3px 12px rgba(0, 0, 0, 0.44);
+  --brand-ink: #FAF2E2;
+  --greet-ink: #FFF9EE;
+  --help-ink: #F6C87C;
+  --help-bg: rgba(246, 200, 124, 0.12);
+  --help-border: rgba(246, 200, 124, 0.38);
+  --orn-line-l: linear-gradient(90deg, rgba(242, 174, 84, 0.9), rgba(242, 174, 84, 0.4));
+  --orn-gem: #F0842A;
+  --orn-line-r: linear-gradient(90deg, rgba(242, 174, 84, 0.65), rgba(242, 174, 84, 0));
+
+  --cta-audit-bg: #D47B20;
+  --cta-bg: linear-gradient(180deg, #F6B348 0%, #E08222 55%, #C46414 100%);
+  --cta-ink: #0B1510;
+  --cta-border: rgba(255, 234, 188, 0.78);
+  --cta-inner-rim: rgba(14, 24, 18, 0.16);
+  --cta-shadow: inset 0 1px 0 rgba(255, 246, 218, 0.84), 0 10px 24px rgba(6, 20, 15, 0.44);
+  --cta-plus-bg: rgba(11, 21, 16, 0.14);
+  --cta-plus-border: rgba(11, 21, 16, 0.25);
+  --cta-plus-ink: #0B1510;
+
+  --tile-audit-bg: #FCFBF6;
+  --tile-bg: linear-gradient(180deg, #FFFFFF 0%, #FAF8F0 100%);
+  --tile-border: rgba(154, 124, 72, 0.3);
+  --tile-shadow: 0 6px 18px rgba(16, 40, 32, 0.06), 0 1px 2px rgba(16, 40, 32, 0.04);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(214, 134, 48, 0.44), transparent);
+  --ticon-bg: linear-gradient(145deg, #18443C 0%, #0D2823 100%);
+  --ticon-border: rgba(226, 158, 72, 0.56);
+  --ticon-ink: #F8CA7A;
+  --ticon-shadow: 0 3px 9px rgba(14, 40, 34, 0.22);
+  --tcount-ink: #9A4612;
+  --tlabel-ink: #12261E;
+  --tchev-ink: #8C5824;
+
+  --sechead-ink: #12261E;
+  --sechead-count: #A34A12;
+  --rule-gem: #CC7626;
+  --rule-bg: linear-gradient(90deg, rgba(204, 118, 38, 0.44) 0%, rgba(204, 118, 38, 0.06) 100%);
+  --info-ink: #465C52;
+
+  --card-live-audit-bg: #FDFCF8;
+  --card-live-bg: linear-gradient(180deg, #FFFFFF 0%, #FBF9F1 100%);
+  --card-live-border: rgba(158, 128, 74, 0.32);
+  --card-live-shadow: 0 6px 20px rgba(16, 40, 32, 0.06), 0 1px 3px rgba(16, 40, 32, 0.035);
+  --card-live-bar: linear-gradient(180deg, #DC761E 0%, #154A42 100%);
+  --card-recent-bg: #F9F5EB;
+  --card-recent-border: rgba(138, 128, 98, 0.22);
+  --card-recent-shadow: 0 2px 8px rgba(16, 40, 32, 0.03);
+  --card-text-audit-bg: #F9F5EB;
+
+  --badge-live-audit-bg: #143B34;
+  --badge-live-bg: linear-gradient(145deg, #1C5047 0%, #0E2B26 100%);
+  --badge-live-border: rgba(232, 166, 82, 0.66);
+  --badge-live-inner: rgba(248, 206, 134, 0.32);
+  --badge-live-shadow: 0 4px 12px rgba(14, 42, 36, 0.24);
+  --badge-live-ink: #FCE4B2;
+
+  --badge-recent-audit-bg: #EAE5D6;
+  --badge-recent-bg: linear-gradient(145deg, #F2EEE2 0%, #E4DEC9 100%);
+  --badge-recent-border: rgba(136, 132, 98, 0.34);
+  --badge-recent-inner: rgba(136, 132, 98, 0.16);
+  --badge-recent-ink: #18382F;
+
+  --card-title-ink: #11241C;
+  --card-meta-ink: #43574E;
+  --card-score-ink: #44574E;
+  --card-lead-ink: #964310;
+  --chev-ink: #8C5824;
+  --mult-bg: #8C2B18;
+  --mult-ink: #FFF5E6;
+
+  --bar-bg: #FCFBF6;
+  --bar-border: rgba(162, 132, 78, 0.3);
+  --bar-shadow: 0 -8px 24px rgba(14, 38, 30, 0.06);
+  --tab-on-audit-bg: #143B34;
+  --tab-on-bg: linear-gradient(145deg, #1C5047 0%, #0E2B26 100%);
+  --tab-on-border: rgba(232, 166, 82, 0.6);
+  --tab-on-ink: #FCE4B2;
+  --tab-on-shadow: 0 4px 12px rgba(14, 40, 34, 0.24);
+  --tab-off-bg: #F1EDE2;
+  --tab-off-border: rgba(148, 132, 96, 0.28);
+  --avatar-bg: linear-gradient(145deg, #1C4F46 0%, #0E2B26 100%);
+  --avatar-audit-bg: #143C35;
+  --avatar-border: #D98C36;
+  --avatar-ink: #FAF2E2;
+  --gesture-bg: rgba(18, 42, 34, 0.24);
+}
+
+/* ==========================================================================
+ * 6. JATARA ROYAL — from 3-pushpa2-jatara.png
+ * Midnight sapphire-indigo silk + radiant temple gold + ceremonial kumkum
+ * ========================================================================== */
+.d-jatara-indigo.dark {
+  --bg: #070D1F;
+  --ink: #F6F2E8;
+  --status-ink: #F6EFE0;
+  --scroll-fade: linear-gradient(180deg, rgba(7, 13, 31, 0) 0%, rgba(7, 13, 31, 0.94) 100%);
+
+  --hero-pb: 14px;
+  --hero-bg: #070D1F;
+  --hero-audit-bg: #101D47;
+  --hero-image:
+    linear-gradient(180deg, rgba(9, 17, 42, 0.14) 0%, rgba(8, 14, 34, 0.62) 72%, rgba(7, 13, 31, 1) 100%),
+    radial-gradient(ellipse 52% 58% at 22% 46%, rgba(10, 18, 46, 0.64) 0%, rgba(10, 18, 46, 0.04) 78%),
+    url('../assets/r2-jatara-hero.jpg');
+  --hero-img-pos: center top;
+  --hero-text-shadow: 0 2px 14px rgba(3, 6, 18, 0.68);
+
+  --emblem-ring: linear-gradient(145deg, #FCE7A6 0%, #D29E34 54%, #7E5610 100%);
+  --emblem-inner: #0C1636;
+  --emblem-shadow: 0 3px 12px rgba(0, 0, 0, 0.55);
+  --brand-ink: #FAF1DC;
+  --greet-ink: #FFF8EB;
+  --help-ink: #F6DA8C;
+  --help-bg: rgba(246, 218, 140, 0.1);
+  --help-border: rgba(246, 218, 140, 0.38);
+  --orn-line-l: linear-gradient(90deg, rgba(244, 206, 114, 0.9), rgba(244, 206, 114, 0.38));
+  --orn-gem: #E02C2A;
+  --orn-gem-glow: 0 0 8px rgba(224, 44, 42, 0.62);
+  --orn-line-r: linear-gradient(90deg, rgba(244, 206, 114, 0.68), rgba(244, 206, 114, 0));
+
+  /* Radiant temple gold CTA */
+  --cta-audit-bg: #CC982E;
+  --cta-bg: linear-gradient(180deg, #F6D578 0%, #DFAD40 52%, #BE8922 100%);
+  --cta-ink: #081028;
+  --cta-border: rgba(255, 246, 208, 0.78);
+  --cta-inner-rim: rgba(8, 16, 40, 0.16);
+  --cta-shadow: inset 0 1px 0 rgba(255, 252, 236, 0.86), 0 10px 26px rgba(0, 4, 16, 0.55);
+  --cta-plus-bg: rgba(8, 16, 40, 0.14);
+  --cta-plus-border: rgba(8, 16, 40, 0.25);
+  --cta-plus-ink: #081028;
+
+  --tile-audit-bg: #0E1834;
+  --tile-bg: linear-gradient(180deg, #142248 0%, #0C152E 100%);
+  --tile-border: rgba(230, 186, 86, 0.3);
+  --tile-shadow: inset 0 1px 0 rgba(255, 236, 178, 0.1), 0 6px 18px rgba(0, 4, 18, 0.48);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(238, 194, 92, 0.42), transparent);
+  --ticon-bg: linear-gradient(145deg, #1D336B 0%, #0F1D42 100%);
+  --ticon-border: rgba(236, 192, 92, 0.48);
+  --ticon-ink: #F6DA88;
+  --tcount-ink: #F6DC8E;
+  --tlabel-ink: #F6F2E8;
+  --tchev-ink: #D8AE52;
+
+  --sechead-ink: #F6F2E8;
+  --sechead-count: #F4CD6C;
+  --rule-gem: #E02C2A;
+  --rule-bg: linear-gradient(90deg, rgba(232, 184, 78, 0.45) 0%, rgba(232, 184, 78, 0.04) 100%);
+  --info-ink: #B4C0D8;
+
+  --card-live-audit-bg: #101A38;
+  --card-live-bg: linear-gradient(180deg, #16244A 0%, #0E1732 100%);
+  --card-live-border: rgba(232, 188, 88, 0.32);
+  --card-live-shadow: inset 0 1px 0 rgba(255, 236, 178, 0.09), 0 8px 22px rgba(0, 4, 18, 0.5);
+  --card-live-bar: linear-gradient(180deg, #F2CB68 0%, #CC2628 100%);
+  --card-recent-bg: #0B132A;
+  --card-recent-border: rgba(180, 172, 134, 0.18);
+  --card-text-audit-bg: #121E3E;
+
+  --badge-live-audit-bg: #CA952C;
+  --badge-live-bg: linear-gradient(145deg, #F5D376 0%, #C28C24 100%);
+  --badge-live-border: rgba(255, 244, 200, 0.68);
+  --badge-live-inner: rgba(8, 16, 40, 0.22);
+  --badge-live-shadow: 0 4px 14px rgba(0, 4, 18, 0.5);
+  --badge-live-ink: #081028;
+
+  --badge-recent-audit-bg: #152246;
+  --badge-recent-bg: linear-gradient(145deg, #1B2C58 0%, #111C3B 100%);
+  --badge-recent-border: rgba(222, 180, 88, 0.3);
+  --badge-recent-inner: rgba(222, 180, 88, 0.13);
+  --badge-recent-ink: #F2D282;
+
+  --card-title-ink: #F6F2E8;
+  --card-meta-ink: #BAC6DC;
+  --card-score-ink: #B9C5DB;
+  --card-lead-ink: #F4D27C;
+  --chev-ink: #D8AE52;
+  --mult-bg: #C42226;
+  --mult-ink: #FFF5E6;
+
+  --bar-bg: #0A1126;
+  --bar-border: rgba(230, 186, 86, 0.28);
+  --bar-shadow: 0 -10px 28px rgba(0, 4, 18, 0.58);
+  --tab-on-audit-bg: #CA952C;
+  --tab-on-bg: linear-gradient(180deg, #F5D376 0%, #C28C24 100%);
+  --tab-on-border: rgba(255, 244, 200, 0.66);
+  --tab-on-ink: #081028;
+  --tab-on-shadow: 0 4px 14px rgba(0, 4, 18, 0.5);
+  --tab-off-bg: #132042;
+  --tab-off-border: rgba(222, 180, 88, 0.24);
+  --avatar-bg: linear-gradient(145deg, #203774 0%, #101E46 100%);
+  --avatar-audit-bg: #172959;
+  --avatar-border: #E3B44A;
+  --avatar-ink: #FAF1DC;
+  --gesture-bg: rgba(242, 224, 182, 0.34);
+}
+
+.d-jatara-indigo.light {
+  --bg: #F6F3EB;
+  --ink: #0E1938;
+  --status-ink: #FAF1DC;
+  --scroll-fade: linear-gradient(180deg, rgba(246, 243, 235, 0) 0%, rgba(246, 243, 235, 0.94) 100%);
+
+  --hero-pb: 22px;
+  --hero-radius: 26px;
+  --hero-bg: #101E4A;
+  --hero-audit-bg: #142559;
+  --hero-image:
+    linear-gradient(180deg, rgba(16, 30, 74, 0.2) 0%, rgba(12, 22, 56, 0.66) 100%),
+    radial-gradient(ellipse 52% 58% at 22% 46%, rgba(12, 22, 56, 0.64) 0%, rgba(12, 22, 56, 0.04) 78%),
+    url('../assets/r2-jatara-hero.jpg');
+  --hero-img-pos: center top;
+  --hero-shadow: 0 14px 32px rgba(14, 24, 62, 0.24), 0 2px 6px rgba(14, 24, 62, 0.14);
+  --hero-rim: 1.5px solid rgba(234, 190, 90, 0.8);
+  --hero-rim-inner: inset 0 -4px 0 -2.5px rgba(248, 226, 152, 0.26);
+  --hero-text-shadow: 0 2px 12px rgba(4, 8, 26, 0.62);
+
+  --emblem-ring: linear-gradient(145deg, #FCE7A6 0%, #D29E34 54%, #7E5610 100%);
+  --emblem-inner: #0C1636;
+  --emblem-shadow: 0 3px 12px rgba(0, 0, 0, 0.48);
+  --brand-ink: #FAF1DC;
+  --greet-ink: #FFF9EC;
+  --help-ink: #F6DA8C;
+  --help-bg: rgba(246, 218, 140, 0.12);
+  --help-border: rgba(246, 218, 140, 0.4);
+  --orn-line-l: linear-gradient(90deg, rgba(244, 206, 114, 0.9), rgba(244, 206, 114, 0.4));
+  --orn-gem: #E02C2A;
+  --orn-line-r: linear-gradient(90deg, rgba(244, 206, 114, 0.68), rgba(244, 206, 114, 0));
+
+  --cta-audit-bg: #CC982E;
+  --cta-bg: linear-gradient(180deg, #F6D578 0%, #DFAD40 52%, #BE8922 100%);
+  --cta-ink: #081028;
+  --cta-border: rgba(255, 246, 208, 0.78);
+  --cta-inner-rim: rgba(8, 16, 40, 0.16);
+  --cta-shadow: inset 0 1px 0 rgba(255, 252, 236, 0.86), 0 10px 24px rgba(6, 12, 34, 0.48);
+  --cta-plus-bg: rgba(8, 16, 40, 0.14);
+  --cta-plus-border: rgba(8, 16, 40, 0.25);
+  --cta-plus-ink: #081028;
+
+  --tile-audit-bg: #FDFBF6;
+  --tile-bg: linear-gradient(180deg, #FFFFFF 0%, #FBF8F0 100%);
+  --tile-border: rgba(168, 130, 56, 0.32);
+  --tile-shadow: 0 6px 18px rgba(14, 24, 58, 0.06), 0 1px 2px rgba(14, 24, 58, 0.04);
+  --tile-top-gleam: linear-gradient(90deg, transparent, rgba(208, 160, 56, 0.48), transparent);
+  --ticon-bg: linear-gradient(145deg, #1A2F6E 0%, #0E1B42 100%);
+  --ticon-border: rgba(224, 180, 84, 0.6);
+  --ticon-ink: #F8DF96;
+  --ticon-shadow: 0 3px 9px rgba(14, 26, 66, 0.24);
+  --tcount-ink: #724708;
+  --tlabel-ink: #0F1A3B;
+  --tchev-ink: #8A6020;
+
+  --sechead-ink: #0F1A3B;
+  --sechead-count: #AD1D22;
+  --rule-gem: #B81F24;
+  --rule-bg: linear-gradient(90deg, rgba(190, 140, 44, 0.48) 0%, rgba(190, 140, 44, 0.06) 100%);
+  --info-ink: #465068;
+
+  --card-live-audit-bg: #FDFBF7;
+  --card-live-bg: linear-gradient(180deg, #FFFFFF 0%, #FCF9F0 100%);
+  --card-live-border: rgba(172, 134, 58, 0.34);
+  --card-live-shadow: 0 6px 20px rgba(14, 24, 58, 0.065), 0 1px 3px rgba(14, 24, 58, 0.04);
+  --card-live-bar: linear-gradient(180deg, #D9A536 0%, #B31F24 100%);
+  --card-recent-bg: #FAF6EC;
+  --card-recent-border: rgba(136, 126, 98, 0.22);
+  --card-recent-shadow: 0 2px 8px rgba(14, 24, 58, 0.03);
+  --card-text-audit-bg: #FAF6EC;
+
+  --badge-live-audit-bg: #132354;
+  --badge-live-bg: linear-gradient(145deg, #1C3375 0%, #0E1A40 100%);
+  --badge-live-border: rgba(226, 182, 86, 0.68);
+  --badge-live-inner: rgba(248, 220, 138, 0.34);
+  --badge-live-shadow: 0 4px 12px rgba(14, 26, 66, 0.24);
+  --badge-live-ink: #FCE7A8;
+
+  --badge-recent-audit-bg: #EAE4D8;
+  --badge-recent-bg: linear-gradient(145deg, #F3EFE4 0%, #E5DEC9 100%);
+  --badge-recent-border: rgba(144, 124, 80, 0.34);
+  --badge-recent-inner: rgba(144, 124, 80, 0.16);
+  --badge-recent-ink: #16244F;
+
+  --card-title-ink: #0E1938;
+  --card-meta-ink: #434E68;
+  --card-score-ink: #444F68;
+  --card-lead-ink: #162B66;
+  --chev-ink: #8A6020;
+  --mult-bg: #AD1D22;
+  --mult-ink: #FFF5E6;
+
+  --bar-bg: #FCF9F2;
+  --bar-border: rgba(176, 136, 58, 0.32);
+  --bar-shadow: 0 -8px 24px rgba(14, 24, 58, 0.06);
+  --tab-on-audit-bg: #132354;
+  --tab-on-bg: linear-gradient(145deg, #1C3375 0%, #0E1A40 100%);
+  --tab-on-border: rgba(226, 182, 86, 0.6);
+  --tab-on-ink: #FCE7A8;
+  --tab-on-shadow: 0 4px 12px rgba(14, 26, 66, 0.24);
+  --tab-off-bg: #F1ECE0;
+  --tab-off-border: rgba(154, 130, 82, 0.28);
+  --avatar-bg: linear-gradient(145deg, #1B3170 0%, #0E1A40 100%);
+  --avatar-audit-bg: #142556;
+  --avatar-border: #D4A13B;
+  --avatar-ink: #FAF1DC;
+  --gesture-bg: rgba(16, 28, 66, 0.24);
+}

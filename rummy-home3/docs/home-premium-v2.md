@@ -1,4 +1,4 @@
-# Premium Home, redrawn (Q60, second round)
+# Premium Home, redrawn (Q60, rounds 2 and 3)
 
 Sree, Nov 27, 1:06 PM PT, on the first set (#181): "Hey, these are not good … They are very average or actually
 horrible. I want to know which model did it, and maybe we'll try a different model."
@@ -46,7 +46,63 @@ Joker icon's green.
 | --- | --- |
 | ![](home-premium-v2/gemini/mayur-palace-light.png) | ![](home-premium-v2/gemini/mayur-palace-dark.png) |
 
-## Recommendation
+## Round 3: Gemini, six more, from Sree's pictures (D140)
+
+Sree, Nov 27, 2:23 PM PT: "I think Gemini has been the best. Can you have Gemini do at least six more options? I don't
+see the light option from that picture that I gave you … I like how everything is very clear in the Gemini themes. What
+we can probably do is maybe offer these themes in the background, and everybody can choose which theme they want,
+right? Two light themes and maybe two dark themes."
+
+Drawn by the same Gemini 4 Neon helper from the four pictures in `theme-refs/`. The light one is taken to be the truck
+painting. Each theme changes only colours, materials and ornament, so any of them can be one of the choices under
+Appearance. Text contrast is at least 5.29 : 1 on every picture.
+
+**Gemini's pick for the four choices:** light: **Deccan Breeze** and **Royal Darbar** (or Jaipur Sandstone); dark:
+**Navaratna Gold** and **Jatara Royal** (or Seshachalam Ember, to match the green Joker icon).
+
+**Deccan Breeze** (from the truck painting (light)): pale sky-cream, washed-denim scrollwork, porcelain cards, a rust-terracotta New game button. No dark band at the top.
+
+| Light | Dark |
+| --- | --- |
+| ![](home-premium-v2/gemini/round2/deccan-breeze-light.png) | ![](home-premium-v2/gemini/round2/deccan-breeze-dark.png) |
+
+**Jaipur Sandstone** (from the truck painting (light)): sun-baked terracotta scrollwork over the header, a dusty slate-teal New game button, ivory cards.
+
+| Light | Dark |
+| --- | --- |
+| ![](home-premium-v2/gemini/round2/jaipur-sandstone-light.png) | ![](home-premium-v2/gemini/round2/jaipur-sandstone-dark.png) |
+
+**Navaratna Gold** (from Pushpa 2, the hand with rings): smoked espresso-bronze, a carved temple-gold arch, a molten-gold New game button, ruby and emerald accents.
+
+| Light | Dark |
+| --- | --- |
+| ![](home-premium-v2/gemini/round2/navaratna-gold-light.png) | ![](home-premium-v2/gemini/round2/navaratna-gold-dark.png) |
+
+**Jatara Royal** (from Pushpa 2, the jatara): midnight sapphire-indigo, golden lotus arches, temple gold, small kumkum-red and emerald touches.
+
+| Light | Dark |
+| --- | --- |
+| ![](home-premium-v2/gemini/round2/jatara-indigo-light.png) | ![](home-premium-v2/gemini/round2/jatara-indigo-dark.png) |
+
+**Mulberry Zari** (from Pushpa 2, the hand with rings): deep mulberry silk with gold zari, a gold New game button.
+
+| Light | Dark |
+| --- | --- |
+| ![](home-premium-v2/gemini/round2/mulberry-zari-light.png) | ![](home-premium-v2/gemini/round2/mulberry-zari-dark.png) |
+
+**Seshachalam Ember** (from the Pushpa poster): deep forest green and teal with an ember-orange New game button; closest to today's green Joker icon.
+
+| Light | Dark |
+| --- | --- |
+| ![](home-premium-v2/gemini/round2/seshachalam-ember-light.png) | ![](home-premium-v2/gemini/round2/seshachalam-ember-dark.png) |
+
+On the small phone (360 dp, text 1.3):
+
+| Deccan Breeze, light | Navaratna Gold, dark |
+| --- | --- |
+| ![](home-premium-v2/gemini/round2/deccan-breeze-light-small.png) | ![](home-premium-v2/gemini/round2/navaratna-gold-dark-small.png) |
+
+## Recommendation (round 2, before D140)
 
 **Royal Darbar.** It is the calmest to read at the table and keeps the most of today's Home in view on the small
 phone, while still looking rich. Mahal Reserve is the most dramatic of the four, if drama is what is wanted.
