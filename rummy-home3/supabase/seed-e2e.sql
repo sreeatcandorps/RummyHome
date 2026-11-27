@@ -21,7 +21,7 @@
 --                                                     -> smoke/20-pool-13p-reentry (PR 24: layout, grey-above rule, ↺ score)
 --   U  10000000-0000-4000-8000-000000000014  GAMEU1  pool 101, active, 12 seats x 3 rounds, sree creator and seated; Test Golf..Test
 --                                                     Kilo out in round 1, Test Alpha..Test Charlie at 80 (the next round of drops
---                                                     puts them out), round 4 dealt by Test Charlie
+--                                                     puts them out), round 4 dealt by Test Charlie; the oldest live game (last on Home)
 --                                                     -> smoke/16b-pool-round-saved-12p (D139: Round saved sheet, two re-entries)
 -- Placeholders Test Alpha..Test Uniform (E2EP01..E2EP19) are unregistered players managed by sree, in his My players.
 
@@ -269,7 +269,8 @@ end $$;
 -- out; Alpha, Bravo, Charlie 30; Delta, Echo, Foxtrot 5. Rounds 2 and 3: Alpha..Charlie 30 then 20, Delta..
 -- Foxtrot 5. After 3 rounds Alpha..Charlie are at 80 and Delta..Foxtrot at 15, so a round of drops (25) puts
 -- three out at 105 with 40 the highest still in (re-entry at 41). Dealers Sree, Alpha, Bravo; Charlie deals
--- round 4, Delta round 5.
+-- round 4, Delta round 5. Started three days ago, older than game A, so it is the last Live card on Home and
+-- every card the other flows open from Home stays where it was.
 -- ---------------------------------------------------------------------------
 do $$
 declare
@@ -287,7 +288,7 @@ begin
   insert into public.games (id, created_by, status, game_type, settings, share_code, created_at, current_round)
   values (v_game, v_sree, 'active', 'pool',
           '{"gameType":"pool","expenseEnabled":false,"stakeDrop":25,"stakeMiddleDrop":50,"dropAmount":25,"mdAmount":50,"maxCount":130,"poolLimit":101,"reentry":true,"reentryPlus":1,"lateEntryPlus":1,"seatingPrompted":true}',
-          'GAMEU1', now() - interval '40 minutes', 4);
+          'GAMEU1', now() - interval '3 days', 4);
 
   for v_i in 1..12 loop
     insert into public.game_players (game_id, profile_id, player_order, role, seated)
