@@ -197,7 +197,7 @@ NAV_SIDE = NAV.replace('class="nav"', 'class="nav side"')
 def _rows(*rows): return [(n, i, st, str(sc), str(put), str(gets), f'+{gets - put}' if gets > put else str(gets - put)) for n, i, st, sc, put, gets in rows]
 
 # `today` is the game in the CI frame (pool 101, drop 25, entry 100, five entries: Zed came back in once).
-# The proposed chips are D128's four: By drops left (the default) · Split evenly · By points left · Custom.
+# The proposed chips are D128's four: By drops left (the default) · Split evenly · By score left · Custom.
 # In the CI game the others have 4 + 3 + 2 drops left, nine entries against a pool of five, so D23's rule
 # turns By drops left off: D128 then says why under the chips and picks Split evenly (`even`).
 # `drops` is the same table one round on, where the others have one drop each and By drops left applies.
@@ -208,12 +208,12 @@ AWARDS = {
         rows=_rows(('Sree Test', 'ST', '101 left · 5 drops', 0, 100, 500), ('Harish Test', 'HT', '76 left · 4 drops', 25, 100, 0),
                    ('Priya Test', 'PT', '51 left · 3 drops', 50, 100, 0), ('Zed Zero', 'ZZ', '50 left · 2 drops', 51, 200, 0))),
     'drops': dict(
-        chips=[('By drops left', 'on'), ('Split evenly', 'off'), ('By points left', 'off'), ('Custom', 'off')],
+        chips=[('By drops left', 'on'), ('Split evenly', 'off'), ('By score left', 'off'), ('Custom', 'off')],
         line='Each player still in gets one entry per drop they have left; <b>Sree</b>, lowest score, gets the rest. One player left → they take it all.',
         rows=_rows(('Sree Test', 'ST', '101 left · 5 drops', 0, 100, 200), ('Harish Test', 'HT', '24 left · 1 drop', 77, 100, 100),
                    ('Priya Test', 'PT', '21 left · 1 drop', 80, 100, 100), ('Zed Zero', 'ZZ', '11 left · 1 drop', 90, 200, 100))),
     'even': dict(
-        chips=[('By drops left', 'off dim'), ('Split evenly', 'on'), ('By points left', 'off'), ('Custom', 'off')],
+        chips=[('By drops left', 'off dim'), ('Split evenly', 'on'), ('By score left', 'off'), ('Custom', 'off')],
         anchor='.chips',                                     # the reason is a line longer: start at the chips so the last row shows
         line='<b>By drops left is off here</b>: Harish\'s 4 drops (400), Priya\'s 3 (300) and Zed\'s 2 (200) would leave Sree, the winner, nothing. '
              'Picked for you: <b>Split evenly</b> — the 4 players still in share 500.',

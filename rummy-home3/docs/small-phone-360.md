@@ -89,7 +89,7 @@ the same columns, and the name gets about 125 dp (12 letters). In Custom, the bo
 line where the Gets number is.
 
 **Chips.** The proposed pictures show the four chips Sree asked for (D128: By drops left, the default · Split
-evenly · By points left · Custom), not today's five; at 360 dp × 1.3 the four do not fit one row and take two rows
+evenly · By score left · Custom), not today's five; at 360 dp × 1.3 the four do not fit one row and take two rows
 of two (today's five take three), and by the same drawing the Pixel 6 gets three and Custom on a second row. In
 the game CI photographs, By drops left is off by D128's own rule (the others' nine drops are more than the pool
 of five entries), so the picture has two proposed halves: a table where By drops left applies and is picked, and
