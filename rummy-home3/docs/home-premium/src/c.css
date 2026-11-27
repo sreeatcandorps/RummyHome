@@ -1,0 +1,87 @@
+/* C · Ivory & Indigo. Modern and quiet: ivory paper, indigo ink, one saffron accent, a block-print border used once.
+   Headings and numbers in Poppins. */
+
+.d-c { --display: "Poppins", sans-serif; }
+.d-c.light {
+  --bg: #FAF7F0; --surface: #FFFFFF; --ink: #1B1F3B; --muted: #5B6078; --hair: #E6E2D6; --status: #1B1F3B;
+  --bar: #FFFFFF; --bar-line: #E6E2D6; --gesture: #1B1F3B; --indigo: #1F2F6B; --accent: #E8871E; --accent-ink: #A85400;
+}
+.d-c.dark {
+  --bg: #0C0F24; --surface: #151936; --ink: #F4F0E6; --muted: #B7BBD4; --hair: #2A2F5C; --status: #F4F0E6;
+  --bar: #101430; --bar-line: #2A2F5C; --gesture: #F4F0E6; --indigo: #C2C9FF; --accent: #F2A33A; --accent-ink: #F2A33A;
+}
+
+.d-c .hero { padding: 28px 16px 0; overflow: hidden; }
+/* a rangoli roundel, mostly off the corner of the page */
+.d-c .kolam { position: absolute; right: -96px; top: -70px; width: 290px; height: 290px; background: var(--rangoli) center / contain no-repeat; opacity: 0.13; }
+.d-c.dark .kolam { opacity: 0.2; }
+
+.d-c .emblem.mono { position: relative; width: 38px; height: 38px; border: 1.5px solid var(--indigo); overflow: visible; }
+.d-c .emblem.mono::after { content: ""; position: absolute; inset: 2px; background: var(--indigo); -webkit-mask: url("../../../assets/adaptive-icon-mono.png") center / 205% no-repeat; }
+.d-c .brand { font: 600 calc(18px * var(--fs)) / 1.2 var(--display); letter-spacing: -0.2px; color: var(--indigo); }
+.d-c .help { color: var(--ink); }
+.d-c .greet { margin: 10px 0 0; font: 600 calc(38px * var(--fs)) / 1.08 var(--display); letter-spacing: -1.1px; }
+.d-c .tilak { width: 30px; height: 4px; margin: 10px 0 20px; border-radius: 2px; background: var(--accent); }
+
+.d-c .newgame { border-radius: 16px; background-color: #1F2F6B; color: #FFFFFF; box-shadow: 0 4px 0 #131D4A, 0 14px 24px rgba(31, 47, 107, 0.24); }
+.d-c .newgame span { font: 600 calc(17px * var(--fs)) / 1.2 var(--display); letter-spacing: 0; }
+.d-c .newgame .plus { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 19px !important; background: #E8871E; color: #FFFFFF; }
+.d-c.dark .newgame { background-color: #EE9A2B; background-image: linear-gradient(180deg, #F8B858, #EE9A2B); color: #1A1440; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 4px 0 #A8650F, 0 14px 24px rgba(0, 0, 0, 0.45); }
+.d-c.dark .newgame .plus { background: #1A1440; color: #F8B858; }
+
+.d-c .tiles { margin-top: 16px; }
+.d-c .tile { background-color: var(--surface); border: 1px solid var(--hair); border-radius: 16px; }
+.d-c .ticon { color: var(--accent-ink); }
+.d-c .tcount { font: 600 calc(22px * var(--fs)) / 1 var(--display); color: var(--indigo); letter-spacing: -0.5px; }
+.d-c .tlabel { font: 600 calc(16px * var(--fs)) / 1.25 var(--display); }
+
+/* the block-print border: one row, edge to edge, between the actions and the games */
+.d-c .blockprint { height: 30px; margin: 22px -16px 0; background: var(--strip) center / 40px 16px repeat-x; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); }
+.d-c.light .blockprint { background-color: #F4EFE3; }
+.d-c.dark .blockprint { background-color: #101430; }
+
+.d-c .sec { margin-top: 18px; }
+.d-c .sechead h2 { font: 600 calc(14px * var(--fs)) / 1.2 var(--display); letter-spacing: 1.7px; text-transform: uppercase; color: var(--indigo); }
+.d-c .sechead .rule { height: 1px; background: var(--hair); }
+
+.d-c .card { box-shadow: 0 1px 2px rgba(27, 31, 59, 0.04); }
+.d-c .badge { font: 600 calc(17px * var(--fs)) / 1 var(--display); letter-spacing: -0.2px; }
+.d-c .live .badge { background-color: #1F2F6B; color: #FFFFFF; }
+.d-c .live .badge::after { content: ""; position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); }
+.d-c .recent .badge { border: 1.5px solid #C5C9DE; color: #1F2F6B; }
+.d-c.dark .live .badge { background-color: #F2A33A; color: #1A1440; }
+.d-c.dark .live .badge::after { background: #FFFFFF; }
+.d-c.dark .recent .badge { border-color: #474E8C; color: #C2C9FF; }
+
+.d-c .t-active { background-color: #FCE9D2; color: #7A3D00; }
+.d-c .t-active .dot { background: #E8871E; }
+.d-c .t-creator, .d-c .t-admin { background-color: #E8EBF8; color: #1F2F6B; }
+.d-c .t-done, .d-c .t-awarded { background-color: #E1F0EA; color: #14523F; }
+.d-c .t-closed { background-color: #EFECE4; color: #5B6078; }
+.d-c .t-deleted { background-color: #FBE1DF; color: #8E1B1B; }
+.d-c.dark .t-active { background-color: #4A2E0A; color: #FFD9A3; }
+.d-c.dark .t-active .dot { background: #F2A33A; }
+.d-c.dark .t-creator, .d-c.dark .t-admin { background-color: #272D61; color: #D2D7FF; }
+.d-c.dark .t-done, .d-c.dark .t-awarded { background-color: #123A2E; color: #BFE8D4; }
+.d-c.dark .t-closed { background-color: #24284C; color: #B7BBD4; }
+.d-c.dark .t-deleted { background-color: #5A1420; color: #FFD2D2; }
+.d-c .more { color: var(--indigo); font-family: var(--display); font-weight: 600; }
+
+.d-c .halo { width: 176px; height: 176px; margin: -88px 0 0 -88px; background: var(--rangoli-art) center / contain no-repeat; opacity: 0.55; }
+.d-c .etitle { font: 600 calc(20px * var(--fs)) / 1.2 var(--display); letter-spacing: -0.3px; }
+
+.d-c .banner::before { background: var(--accent); }
+.d-c .bicon { color: var(--accent-ink); }
+.d-c .btn { font-family: var(--display); font-weight: 600; }
+.d-c .btn.solid { background-color: #1F2F6B; color: #FFFFFF; box-shadow: 0 3px 0 #131D4A; }
+.d-c .btn.ghost { border: 1.5px solid #1F2F6B; color: #1F2F6B; }
+.d-c .btn.text { color: #1F2F6B; padding: 4px 10px; }
+.d-c.dark .btn.solid { background-color: #EE9A2B; color: #1A1440; box-shadow: 0 3px 0 #A8650F; }
+.d-c.dark .btn.ghost { border-color: #C2C9FF; color: #C2C9FF; }
+.d-c.dark .btn.text { color: #C2C9FF; }
+
+.d-c .tab { border-radius: 16px; }
+.d-c .tab.on { background-color: #1F2F6B; color: #FFFFFF; box-shadow: 0 4px 0 #131D4A; margin-bottom: 4px; height: 48px; }
+.d-c .tab.off { background-color: #F3F0E8; border: 1px solid var(--hair); }
+.d-c.dark .tab.on { background-color: #2B3684; box-shadow: inset 0 0 0 1px #4C58B8, 0 4px 0 #070A1C; }
+.d-c.dark .tab.off { background-color: #151936; }
