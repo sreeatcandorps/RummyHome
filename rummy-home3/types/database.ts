@@ -203,7 +203,7 @@ export type Database = {
         Returns: Json;
       };
       reenter_player: {
-        Args: { p_game_id: string; p_profile_id: string };
+        Args: { p_game_id: string; p_profile_id: string; p_seat?: number | null };
         Returns: Json;
       };
       set_pool_awards: {

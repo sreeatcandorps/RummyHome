@@ -134,39 +134,71 @@ tags: [smoke]
 - assertVisible: "Zed Zero, score 135, then 135, out"
 - takeScreenshot: 16g-pool-round-ready
 - tapOn: "Save round"
+# Round saved is a bottom sheet (D139, design-review-2 §10.6): title, who deals next and one summary line
+# pinned on top, one row per player who is out with Re-enter on the row, Close pinned at the bottom.
 - extendedWaitUntil:
-    visible: "Round saved"
+    visible:
+      id: "round-saved-sheet"
     timeout: 20000
-- assertVisible: "Zed Zero is out at 135 (limit 101)."
-- assertVisible: "Re-enter Zed"
+- assertVisible:
+    id: "after-title"
+    text: "Round 1 saved"
+- assertVisible:
+    id: "after-next"
+    text: "Next: round 2 · Harish deals"
+- assertVisible:
+    id: "after-summary"
+    text: "1 out this round · 3 still in · re-entry at 51"
+- assertVisible:
+    id: "after-row-00000000-0000-4000-8000-000000000008"
+- assertVisible: "Out at 135"
 - takeScreenshot: 16h-pool-after-save-out
+# Re-enter opens the row in place. A new pool's Re-entry score is Highest score + 1 (PR 24): 51. Harish deals
+# round 2, so Zed's default seat is on Harish's left, seat 2 between Sree and Harish (056: "always sit to the
+# left side of the person that is dealing").
+- tapOn:
+    id: "after-reenter-00000000-0000-4000-8000-000000000008"
+- extendedWaitUntil:
+    visible:
+      id: "after-seat-line"
+    timeout: 5000
+- assertVisible:
+    id: "after-seat-line"
+    text: "Zed sits at seat 2, between Sree and Harish — left of the dealer."
+- assertVisible: "Re-enter at 51"
+- takeScreenshot: 16h2-pool-after-save-reenter-seat
+- tapOn:
+    id: "after-reenter-confirm"
+# The sheet stays open: the row reads back in, the next player could be re-entered from here too.
+- extendedWaitUntil:
+    visible:
+      id: "after-back-00000000-0000-4000-8000-000000000008"
+    timeout: 15000
+- assertVisible:
+    id: "after-back-00000000-0000-4000-8000-000000000008"
+    text: "↺ Back in at 51 · seat 2, left of Harish"
+- assertVisible:
+    id: "after-next"
+    text: "Next: round 2 · Harish deals"
+- takeScreenshot: 16h3-pool-after-save-back-in
 # Nov 18: the Round saved sheet closes with Close (Done means Home on a finished game).
 - tapOn:
     id: "after-done"
 - extendedWaitUntil:
     visible: "Scorecard( · .*)?"
     timeout: 15000
-- assertVisible: "OUT R1"
-- takeScreenshot: 16i-pool-scorecard-out
-
-# Re-enter Zed from Standings: a new pool's Re-entry score is Highest score + 1 (PR 24), so he comes
-# back at 51 (the highest still in is 50) and reads blue. The Re-enter button sits in the standings
-# pane under the players still in, so swipe that pane up first (the table pane above scrolls on its own).
+- assertNotVisible: "OUT R1"
+# Zed's column moved to seat 2, beside Sree.
+- assertVisible:
+    id: "score-header-initials-2"
+    text: "ZZ"
 - swipe:
     from:
       id: "pool-standings-pane"
     direction: UP
 - extendedWaitUntil:
-    visible:
-      id: "reenter-00000000-0000-4000-8000-000000000008"
+    visible: "ZZ Zed Zero, 51, 50 left, 2 drops, re-entered"
     timeout: 5000
-- takeScreenshot: 16i2-pool-standings-pane-reenter
-- tapOn:
-    id: "reenter-00000000-0000-4000-8000-000000000008"
-- extendedWaitUntil:
-    notVisible: "OUT R1"
-    timeout: 15000
-- assertVisible: "ZZ Zed Zero, 51, 50 left, 2 drops, re-entered"
 - takeScreenshot: 16j-pool-reentered
 
 # Complete the pool (early split): one dialog on the scorecard, then straight on to Awards (Nov 18).

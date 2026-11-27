@@ -19,6 +19,10 @@
 --                                                     rule "Highest score" at the time), Test Bravo out in round 4 and back
 --                                                     for round 5 at the highest + 1 (41, rule "Highest score + 1")
 --                                                     -> smoke/20-pool-13p-reentry (PR 24: layout, grey-above rule, ↺ score)
+--   U  10000000-0000-4000-8000-000000000014  GAMEU1  pool 101, active, 12 seats x 3 rounds, sree creator and seated; Test Golf..Test
+--                                                     Kilo out in round 1, Test Alpha..Test Charlie at 80 (the next round of drops
+--                                                     puts them out), round 4 dealt by Test Charlie
+--                                                     -> smoke/16b-pool-round-saved-12p (D139: Round saved sheet, two re-entries)
 -- Placeholders Test Alpha..Test Uniform (E2EP01..E2EP19) are unregistered players managed by sree, in his My players.
 
 -- ---------------------------------------------------------------------------
@@ -257,4 +261,56 @@ begin
    where game_id = v_game and profile_id = v_players[2];
   update public.game_players set out_round = null, reentered_round = 5, reentry_score = 41, entries = 2
    where game_id = v_game and profile_id = v_players[3];
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- Game U (D139, design-review-2 §10.6): a live 12-seat pool for the Round saved sheet. Sree plus Test Alpha..
+-- Test Kilo (seats 2-12). Sree wins every round (Rummy 0). Round 1: Golf..Kilo (seats 8-12) take 130 and are
+-- out; Alpha, Bravo, Charlie 30; Delta, Echo, Foxtrot 5. Rounds 2 and 3: Alpha..Charlie 30 then 20, Delta..
+-- Foxtrot 5. After 3 rounds Alpha..Charlie are at 80 and Delta..Foxtrot at 15, so a round of drops (25) puts
+-- three out at 105 with 40 the highest still in (re-entry at 41). Dealers Sree, Alpha, Bravo; Charlie deals
+-- round 4, Delta round 5.
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_game uuid := '10000000-0000-4000-8000-000000000014';
+  v_sree uuid := '00000000-0000-4000-8000-000000000001';
+  v_players uuid[] := array[v_sree];
+  v_round uuid;
+  v_n integer;
+  v_i integer;
+begin
+  for v_i in 1..11 loop
+    v_players := v_players || ('00000000-0000-4000-8000-0000000000' || lpad(to_hex(224 + v_i), 2, '0'))::uuid;
+  end loop;
+
+  insert into public.games (id, created_by, status, game_type, settings, share_code, created_at, current_round)
+  values (v_game, v_sree, 'active', 'pool',
+          '{"gameType":"pool","expenseEnabled":false,"stakeDrop":25,"stakeMiddleDrop":50,"dropAmount":25,"mdAmount":50,"maxCount":130,"poolLimit":101,"reentry":true,"reentryPlus":1,"lateEntryPlus":1,"seatingPrompted":true}',
+          'GAMEU1', now() - interval '40 minutes', 4);
+
+  for v_i in 1..12 loop
+    insert into public.game_players (game_id, profile_id, player_order, role, seated)
+    values (v_game, v_players[v_i], v_i - 1, case when v_i = 1 then 'game_admin' else 'player' end::public.game_member_role, true);
+  end loop;
+
+  for v_n in 1..3 loop
+    insert into public.rounds (game_id, round_number, dealer_profile_id, created_by)
+    values (v_game, v_n, v_players[v_n], v_sree)
+    returning id into v_round;
+    for v_i in 1..12 loop
+      -- Seats 8-12 are out after round 1 and score nothing after it.
+      continue when v_i >= 8 and v_n > 1;
+      insert into public.scores (round_id, game_id, profile_id, score_type, value)
+      values (v_round, v_game, v_players[v_i],
+              case when v_i = 1 then 'rummy'::public.score_type else 'count'::public.score_type end,
+              case
+                when v_i = 1 then 0
+                when v_i >= 8 then 130
+                when v_i <= 4 then case when v_n = 3 then 20 else 30 end
+                else 5 end);
+    end loop;
+  end loop;
+
+  perform public.pool_recompute(v_game);
 end $$;
