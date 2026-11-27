@@ -188,7 +188,7 @@ test('A05: Cancel on every confirm, the confirming verb repeats the title, notic
   assert.match(complete, /accessibilityLabel="Confirm complete game"[^>]*testID="complete-confirm">\s*Complete\s*<\/Button>/, 'the verb repeats the title');
   assert.doesNotMatch(complete, /Back to scorecard/);
   assert.match(src('components/game/MultiplierStrip.tsx'), />Close<\/Button>/, 'the Exact sheet is an info sheet: Close');
-  assert.match(src('app/(screens)/score-entry.tsx'), /testID="after-done">\s*Close\s*<\/Button>/, 'Round saved returns to the scorecard: Close, so Done always means Home on a finished game');
+  assert.match(src('components/game/RoundSavedSheet.tsx'), /testID="after-done">\s*Close\s*<\/Button>/, 'Round saved (a sheet since D139) returns to the scorecard: Close, so Done always means Home on a finished game');
   const players = src('app/(screens)/games/players.tsx');
   assert.doesNotMatch(players, /Back to scorecard/, 'Players · Admins: the header arrow is the way back');
   assert.match(players, /testID="players-add-new">\s*Add new player\s*<\/Button>/);
