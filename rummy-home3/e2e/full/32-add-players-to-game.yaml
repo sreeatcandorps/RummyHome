@@ -54,10 +54,11 @@ tags: [nightly]
     direction: UP
     timeout: 15000
 - assertVisible: "Added now: 2 (yellow ring)"
-# D70 (054): round 1 is played and Harish (seat 2) deals round 2, so both newcomers sit to his left.
+# D70 (054, 057): round 1 is played and the deal moves anticlockwise, so seat 3 deals round 2; both newcomers
+# sit to that dealer's left, after him: seats 4–5, between seat 3 and seat 1.
 - assertVisible:
     id: "join-seat-notice"
-    text: "R K and C D sit at seats 2–3, between .+ and .+ — left of the dealer\\."
+    text: "R K and C D sit at seats 4–5, between .+ and .+ — left of the dealer\\."
 - takeScreenshot: 32c-add-players-total-5
 - tapOn: "Return to game"
 - extendedWaitUntil:

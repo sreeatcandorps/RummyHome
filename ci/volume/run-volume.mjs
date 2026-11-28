@@ -301,8 +301,10 @@ async function adminsAtOnce() {
 
   // 3. the dealer chain stayed consistent under the race (031)
   const dealers = (await main.query('select round_number, dealer_profile_id from public.rounds where game_id = $1 and undone_at is null order by round_number', [gameId])).rows;
-  const consistent = dealers.every((d, i) => i === 0 || d.dealer_profile_id === seats[(seats.indexOf(dealers[i - 1].dealer_profile_id) + 1) % seats.length]);
-  record({ area: 'Dealer rotation under concurrent saves', size: '9 rounds', expected: 'each dealer is the seat after the previous', actual: consistent ? 'rotation intact' : `broken: ${dealers.map((d) => seats.indexOf(d.dealer_profile_id)).join(',')}`, pass: consistent, ms: null });
+  // 057 deals to the seat before the previous dealer; a server without 057 still deals to the seat after.
+  const chain = (step) => dealers.every((d, i) => i === 0 || d.dealer_profile_id === seats[(seats.indexOf(dealers[i - 1].dealer_profile_id) + step + seats.length) % seats.length]);
+  const consistent = chain(-1) || chain(1);
+  record({ area: 'Dealer rotation under concurrent saves', size: '9 rounds', expected: 'each dealer is the seat before the previous (057; the seat after before 057)', actual: consistent ? 'rotation intact' : `broken: ${dealers.map((d) => seats.indexOf(d.dealer_profile_id)).join(',')}`, pass: consistent, ms: null });
 
   await Promise.all(clients.map((c) => c.end()));
   await main.end();
