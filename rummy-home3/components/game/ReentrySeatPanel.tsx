@@ -66,7 +66,7 @@ export function ReentrySeatPanel({ game, playerId, nameOf, labelOf, onConfirm, i
     <View style={styles.panel} testID={`${idPrefix}-seat-panel`}>
       <Text variant="bodyMedium" style={[styles.line, { color: colors.onSurface }]} testID={`${idPrefix}-seat-line`}>{line}</Text>
       <View style={[styles.stripBox, { borderColor: colors.outlineVariant, backgroundColor: colors.surface }]} onLayout={(event) => setStripWidth(event.nativeEvent.layout.width)}>
-        <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={plan.players.length * SEAT_WIDTH > stripWidth} contentContainerStyle={styles.strip}>
+        <ScrollView ref={strip} horizontal showsHorizontalScrollIndicator={plan.players.length * SEAT_WIDTH > stripWidth} contentContainerStyle={styles.strip} testID={`${idPrefix}-seat-strip`}>
           {plan.players.map((id, index) => {
             const him = id === playerId;
             const dealer = id === plan.dealer;

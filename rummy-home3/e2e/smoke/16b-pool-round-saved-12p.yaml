@@ -146,6 +146,27 @@ tags: [smoke]
 # A tap on a name in the strip sits him on that person's left, with a warning (never a refusal, D50);
 # Keep seat 8 is today's behaviour. The strip shows the seats as planned (Golf at 2, Echo at 7): a tap on
 # Echo puts Golf at seat 7, then Sree (seat 1) brings him back to the default.
+# The strip scrolls sideways and starts on the player; bring seat 7 into view either way.
+- repeat:
+    while:
+      notVisible:
+        id: "after-seat-7"
+    times: 3
+    commands:
+      - swipe:
+          from:
+            id: "after-seat-strip"
+          direction: RIGHT
+- repeat:
+    while:
+      notVisible:
+        id: "after-seat-7"
+    times: 4
+    commands:
+      - swipe:
+          from:
+            id: "after-seat-strip"
+          direction: LEFT
 - tapOn:
     id: "after-seat-7"
 - extendedWaitUntil:
@@ -156,6 +177,27 @@ tags: [smoke]
     id: "after-seat-line"
     text: "Test Golf sits at seat 7, between Test Echo and Test Foxtrot."
 - takeScreenshot: 16b5-round-saved-reenter-other-seat
+# The strip scrolls sideways and starts on the player; bring seat 1 into view either way.
+- repeat:
+    while:
+      notVisible:
+        id: "after-seat-1"
+    times: 3
+    commands:
+      - swipe:
+          from:
+            id: "after-seat-strip"
+          direction: RIGHT
+- repeat:
+    while:
+      notVisible:
+        id: "after-seat-1"
+    times: 4
+    commands:
+      - swipe:
+          from:
+            id: "after-seat-strip"
+          direction: LEFT
 - tapOn:
     id: "after-seat-1"
 - assertVisible:
@@ -211,11 +253,22 @@ tags: [smoke]
 
 # The second door: Re-enter in Standings opens the same seat line. Hotel sits on Sree's left, seat 2,
 # between Sree and Golf.
+# The pane keeps its scroll position, so Hotel's row can be above or below; look up first, then down.
 - repeat:
     while:
       notVisible:
         id: "reenter-00000000-0000-4000-8000-0000000000e8"
-    times: 6
+    times: 4
+    commands:
+      - swipe:
+          from:
+            id: "pool-standings-pane"
+          direction: DOWN
+- repeat:
+    while:
+      notVisible:
+        id: "reenter-00000000-0000-4000-8000-0000000000e8"
+    times: 8
     commands:
       - swipe:
           from:
