@@ -503,8 +503,8 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     icon: 'trophy-outline',
     purpose: 'Who gets what from a completed pool.',
     needToKnow: [
-      'The pool is worth one entry per entry made (a re-entry counts twice). Tap a preset to see who gets what; players are sorted by points left.',
-      '**Winner takes all** · **By points left** · **50/50** · **Entry per drop left** · **Custom** (type each player\u2019s share).',
+      'The pool is worth one entry per entry made (a re-entry counts twice). Tap a preset to see who gets what; players are sorted by score left.',
+      '**By drops left** (picked first) · **Split evenly** · **By score left** · **Custom** (type each player\u2019s share).',
       '**Award** = what a player gets minus their entries. The awards are what this pool counts for if it is ever added to Results.',
       '**Save** works even when the pool is not fully given out; the app asks \u201cSave awards anyway?\u201d first. Awards can be edited until the pool is in a saved result.',
     ],
@@ -516,8 +516,9 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       {
         title: 'The presets',
         bullets: [
-          '**Winner takes all**: the last player in gets the whole pool. **By points left**: the players still in share it in proportion to the points they have left.',
-          '**50/50**: the two best share it evenly — a deliberate exception to \u201cby points\u201d. **Entry per drop left**: one entry per drop a player still had; greyed when the pool does not cover it.',
+          '**By drops left**: every player still in gets one entry per drop they have left; the winner gets the rest. With one player left, that player takes the whole pool.',
+          '**Split evenly**: the players still in share the pool equally (two left: half each). The app picks it for you when By drops left would not leave the winner the most, and says why under the presets.',
+          '**By score left**: the players still in share it in proportion to the score they have left before the limit.',
           '**Custom**: type any shares. The line under the list shows what is still not given out.',
         ],
       },
@@ -538,10 +539,11 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     tricky: [
       { id: 'give-first', q: 'Results says \u201cGive awards first\u201d.', a: 'A pool adds its awards to a result, not its scores. Open the pool\u2019s scorecard and tap **Give awards**; then tick it in Results.' },
       { id: 'save-anyway', q: '\u201cSave awards anyway?\u201d — is something wrong?', a: 'Part of the pool is not given to anyone. That is allowed (a part kept back on purpose, for example); the dialog only makes sure you meant it.' },
-      { id: 'not-viable', q: 'Why is Entry per drop left grey?', a: 'The players still in have more drops left than the pool has entries, so one entry per drop is not possible. Pick another preset or Custom.' },
+      { id: 'not-viable', q: 'Why is By drops left grey?', a: 'The others\u2019 drop entries would leave the winner with no more than them, so the app picks Split evenly instead and says why under the presets. Pick another preset or Custom if you prefer.' },
+      { id: 'top-two', q: 'How do I pay only the top two?', a: 'Pick **Custom** and type what each player gets; the line under the list shows what is still not given out.' },
     ],
     alsoSee: ['after-last-round', 'results', 'scorecard'],
-    aliases: ['give awards', 'pool awards', 'winner takes all', 'custom'],
+    aliases: ['give awards', 'pool awards', 'winner takes all', 'split evenly', 'by drops left', 'custom'],
   },
 
   'game-log': {

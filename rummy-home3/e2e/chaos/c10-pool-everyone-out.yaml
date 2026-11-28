@@ -1,7 +1,7 @@
 appId: com.mindweavetech.rummyhome
 tags: [chaos]
 # Pool edge: BREAKQ2 (limit 201, 20 seats) has 19 players OUT and one left. The scorecard must offer
-# Complete, the Awards page must list all 20 with Winner takes all, and awards must save.
+# Complete, the Awards page must list all 20 with By drops left (the last player in takes the pool), and awards must save.
 ---
 - runFlow:
     file: ../lib/sign-in-as.yaml
@@ -23,10 +23,10 @@ tags: [chaos]
 - tapOn: "Confirm complete game"
 # Nov 18: Complete goes straight on to Awards.
 - extendedWaitUntil:
-    visible: "Winner takes all"
+    visible: "By drops left"
     timeout: 20000
 - tapOn:
-    id: "award-preset-winner"
+    id: "award-preset-drops"
 - takeScreenshot: c10-awards-20-rows
 - scrollUntilVisible:
     element: "Player Nineteen"

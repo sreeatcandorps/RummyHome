@@ -5,7 +5,7 @@
   "scorecard": {"source": "02-scorecard-4p", "badges": [[60, 295], [60, 490], [540, 2075], [930, 130], [1050, 130], [1000, 1850]]},
   "add-round": {"source": "04-add-round-empty", "badges": [[1000, 330], [60, 1415], [60, 1650], [60, 2035], [1050, 130]]},
   "final-scores": {"source": "05c-final-screen", "badges": [[60, 700], [1000, 1230], [540, 2075]]},
-  "awards": {"source": "16m-awards-winner-takes-all", "badges": [[1000, 630], [60, 1030], [1000, 2065]]},
+  "awards": {"source": "16m-awards-split-evenly-picked", "badges": [[1025, 815], [60, 1305], [1000, 2065]]},
   "game-log": {"source": "04d-game-log-round-3", "badges": [[1000, 210], [60, 520], [1000, 930]]},
   "results": {"source": "06-results-picker", "badges": [[1000, 310], [1000, 700], [540, 1665], [1000, 1840]]},
   "my-players": {"source": "08-my-players", "badges": [[1000, 300], [60, 580], [1000, 580], [1000, 1840], [60, 1840]]},

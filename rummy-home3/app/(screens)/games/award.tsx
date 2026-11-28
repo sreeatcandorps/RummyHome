@@ -16,7 +16,7 @@ import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { DEFAULT_POOL_ENTRY, DEFAULT_POOL_VALUES, isPoolGame, poolLimitOf, poolStandings } from '@/utils/pool';
-import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsPayload, buildAwardSheet, getsFromAwards, givenOutText, presetGets, saveAnywayText, signedPoints, viablePresets, winnerGetsMost } from '@/utils/poolAwards';
+import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsGameLine, awardsPayload, buildAwardSheet, chipForSaved, defaultPreset, getsFromAwards, givenOutText, presetGets, presetViability, saveAnywayText, signedPoints, viablePresets, winnerGetsMost, winnersOf } from '@/utils/poolAwards';
 import { afterAwardsRoute } from '@/utils/endFlow';
 import { seatLabels } from '@/utils/initials';
 import { screenTitle } from '@/utils/gameLabel';
@@ -30,7 +30,7 @@ import { screenTitle } from '@/utils/gameLabel';
  * Save or Not now; opened from the scorecard or the Results picker it returns to its caller. No
  * Results button here — Results is its own errand from Home.
  */
-/** Mini help (PR 11): the five presets and the formula, once beside the chips instead of under them. */
+/** Mini help (PR 11): the four presets and the formula, once beside the chips instead of under them. */
 export const SPLIT_TIP = [
   ...AWARD_PRESETS.map((p) => `**${p.label}**: ${p.hint}`),
   'Award = Gets − Put in. The awards are what this pool counts for if it is ever added to Results.',
@@ -46,7 +46,7 @@ export default function AwardScreen() {
   const { insets } = useLayout();
   const { game, setGame, players, canScore, loading, error, reload } = useGameRoster(typeof id === 'string' ? id : undefined);
 
-  const [preset, setPreset] = useState<AwardPreset>('winner');
+  const [preset, setPreset] = useState<AwardPreset>('drops');
   const [entryText, setEntryText] = useState(String(DEFAULT_POOL_ENTRY));
   const [gets, setGets] = useState<Record<string, number>>({});
   const [customText, setCustomText] = useState<Record<string, string>>({});
@@ -63,20 +63,22 @@ export default function AwardScreen() {
     [standings, entry, game?.settings],
   );
 
-  // Reopen with the saved awards when editing; otherwise start on Winner takes all.
+  // Reopen with the saved awards when editing; otherwise start on By drops left, or Split evenly when drops is not fair (D128).
   useEffect(() => {
     if (!game || seededFrom === game.id) return;
     setSeededFrom(game.id);
     if (game.awardedAt && game.prizeShares) {
       const savedEntry = game.awardNote?.entry ?? DEFAULT_POOL_ENTRY;
-      const savedPreset = (game.awardNote?.preset as AwardPreset | undefined) ?? 'custom';
       setEntryText(String(savedEntry));
-      setPreset(savedPreset);
+      setPreset(chipForSaved(game.awardNote?.preset));
       const saved = getsFromAwards(game.prizeShares, standings, savedEntry);
       setGets(saved);
       setCustomText(Object.fromEntries(Object.entries(saved).map(([k, v]) => [k, String(v)])));
     } else {
-      setGets(presetGets('winner', { ...inputs, entry: DEFAULT_POOL_ENTRY }));
+      const first = { ...inputs, entry: DEFAULT_POOL_ENTRY };
+      const pick = defaultPreset(first);
+      setPreset(pick);
+      setGets(presetGets(pick, first));
     }
   }, [game, seededFrom, standings, inputs]);
 
@@ -92,6 +94,7 @@ export default function AwardScreen() {
   // refused with a pop-up; Custom is the admin's own numbers, so it only warns.
   const viable = useMemo(() => viablePresets(inputs), [inputs]);
   const customCheck = preset === 'custom' ? winnerGetsMost(gets, standings) : null;
+  const dropsCheck = viable.drops ? null : presetViability('drops', inputs);
 
   const pickPreset = (next: AwardPreset) => {
     if (!viable[next]) {
@@ -178,6 +181,9 @@ export default function AwardScreen() {
         contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}
         keyboardShouldPersistTaps="handled"
       >
+        <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="award-game-line">
+          {awardsGameLine({ limit: inputs.limit, drop: inputs.drop, players: standings.length, when: game.date })}
+        </Text>
         <View style={styles.headerRow}>
           <Tag label={game.awardedAt ? 'Awarded' : 'Completed'} tone="info" icon={game.awardedAt ? 'trophy-outline' : 'flag-checkered'} />
           <View style={styles.entryBox}>
@@ -217,6 +223,11 @@ export default function AwardScreen() {
             </Button>
           ))}
         </View>
+        {dropsCheck && !blocked ? (
+          <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }} testID="award-drops-off">
+            {`By drops left is off here: ${nameOf(dropsCheck.rival ?? '')} would get ${dropsCheck.rivalGets}, the winner ${nameOf(winnersOf(standings)[0] ?? '')} ${dropsCheck.winnerGets}.${preset === 'even' && !game.awardedAt ? ' Picked for you: Split evenly.' : ''}`}
+          </Text>
+        ) : null}
         {customCheck && !customCheck.ok ? (
           <View style={styles.warnRow}>
             <Icon source="alert-outline" size={16} color={colors.loss} />
