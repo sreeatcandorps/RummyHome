@@ -37,29 +37,6 @@ export function screenTitle(screen: string, game: LabelledGame | null | undefine
   return label ? `${screen} · ${label}` : screen;
 }
 
-/** Header title type (`app/(screens)/_layout.tsx`: 20 sp, bold); a bold Roboto glyph averages about 0.55 em. */
-const HEADER_TITLE_SP = 20;
-const HEADER_GLYPH_EM = 0.55;
-/** Android's header: the title starts 72 dp in, after the back arrow; each icon on the right takes 48 dp. */
-const HEADER_START_DP = 72;
-const HEADER_ACTION_DP = 48;
-const HEADER_END_DP = 4;
-
-/** The width a header title gets beside the back arrow and `rightActions` icons. */
-export function headerTitleRoom(windowWidth: number, rightActions: number): number {
-  return windowWidth - HEADER_START_DP - rightActions * HEADER_ACTION_DP - HEADER_END_DP;
-}
-
-/**
- * The first title that fits the header without an ellipsis, else the last one. At 360 dp × 1.3 "Scorecard · P2"
- * was cut to "Scorecar…" and "Players · Admins · P2" lost its label (batch rows 12k, 12j), so a screen offers a
- * shorter form after the full one.
- */
-export function fitHeaderTitle(candidates: readonly string[], room: number, fontScale: number): string {
-  const glyph = HEADER_TITLE_SP * HEADER_GLYPH_EM * fontScale;
-  return candidates.find((title) => title.length * glyph <= room) ?? candidates[candidates.length - 1];
-}
-
 /** Labels for a list of games as shown in link requests: "(S3, P1)". */
 export function gameLabelList(labels: readonly string[] | null | undefined): string {
   return labels && labels.length ? ` (${labels.join(', ')})` : '';

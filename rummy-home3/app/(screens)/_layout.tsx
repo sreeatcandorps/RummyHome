@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { HelpButton } from '@/components/ui/HelpButton';
+import { HeaderTitle } from '@/components/ui/HeaderTitle';
 import { useAppTheme } from '@/constants/theme';
 
 export default function ScreensLayout() {
@@ -12,6 +13,7 @@ export default function ScreensLayout() {
         headerStyle: { backgroundColor: theme.colors.background },
         headerTintColor: theme.colors.onSurface,
         headerTitleStyle: { fontSize: 20, fontWeight: '700' },
+        headerTitle: ({ children, tintColor }) => <HeaderTitle tintColor={tintColor}>{children}</HeaderTitle>,
         headerShadowVisible: false,
         contentStyle: { backgroundColor: theme.colors.background },
         animation: 'slide_from_right',

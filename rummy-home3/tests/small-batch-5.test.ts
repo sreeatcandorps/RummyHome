@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pickerWhileTyping } from '../utils/addPlayers';
-import { fitHeaderTitle, headerTitleRoom } from '../utils/gameLabel';
-import { MY_PLAYERS_SHORT, myPlayersLabel } from '../utils/homeButtons';
-import { playersAdminsTitle } from '../utils/gameAdmins';
+import { screenTitle } from '../utils/gameLabel';
+import { PLAYERS_ADMINS_TITLE } from '../utils/gameAdmins';
+import { FIT_MIN_FONT_SCALE } from '../utils/fitText';
 import { visibleRoleTag } from '../utils/gameAccess';
 import { HELP_TOPICS, helpIndex, searchHelp } from '../constants/helpTopics';
 import { leftAndDrops } from '../utils/poolAwards';
@@ -80,29 +80,55 @@ test('12o: full/52 picks all twelve with the keyboard up', () => {
   assert.match(src('e2e/chaos/c03-bad-input.yaml'), /hideKeyboard/, 'c03 keeps its own');
 });
 
-// ---- Header titles that fit (shared by 12k and 12j) ----
+// ---- One layout for every phone (Q64): no text or layout picked by width or font scale ----
 
-test('header titles: the model matches the CI frame ("Scorecar…" at 360 dp × 1.3 beside three header buttons)', () => {
-  // The ⋮ was a compact text button (~64 dp), so the title had about 124 dp: "Scorecar" and the ellipsis.
-  assert.equal(fitHeaderTitle(['Scorecard · P2'], 124, 1.3), 'Scorecard · P2', 'the last candidate when none fits');
-  assert.ok('Scorecard'.length * 20 * 0.55 * 1.3 > 124, 'the model says "Scorecard" did not fit either, as seen');
-  assert.equal(headerTitleRoom(360, 3), 140);
-  assert.equal(fitHeaderTitle(['Scorecard · P2', 'Scorecard'], headerTitleRoom(360, 3), 1.3), 'Scorecard');
-  assert.equal(fitHeaderTitle(['Scorecard · P2', 'Scorecard'], headerTitleRoom(412, 3), 1), 'Scorecard · P2', 'the Pixel 6 keeps the full title');
+const SIZE_SWITCH = /fontScale|useWindowDimensions|onLayout=\{\(e\) => set\w*\(e\.nativeEvent\.layout\.width\)|fitHeaderTitle|headerTitleRoom|myPlayersLabel|MY_PLAYERS_SHORT|playersAdminsTitle/;
+
+test('Q64: the files 12k / 12j touched pick no text or layout by screen width or font scale', () => {
+  for (const file of [
+    'app/(tabs)/index.tsx',
+    'app/(screens)/_layout.tsx',
+    'app/(screens)/games/[id].tsx',
+    'app/(screens)/games/players.tsx',
+    'components/ui/HeaderTitle.tsx',
+    'components/home/HomeTile.tsx',
+    'components/ui/GameListItem.tsx',
+    'utils/gameLabel.ts',
+    'utils/gameAdmins.ts',
+    'utils/homeButtons.ts',
+  ]) {
+    assert.doesNotMatch(src(file), SIZE_SWITCH, `${file} switches on the screen's size`);
+  }
 });
 
-// ---- 12k: five cut-off labels, wrapped or shortened ----
+test('header titles: one shared title, always the full text, one line that shrinks to 75% before it is cut', () => {
+  const title = src('components/ui/HeaderTitle.tsx');
+  const text = title.match(/<Text[\s\S]*?>/)?.[0] ?? '';
+  assert.match(text, /numberOfLines=\{1\}/);
+  assert.match(text, /adjustsFontSizeToFit/);
+  assert.match(text, /minimumFontScale=\{FIT_MIN_FONT_SCALE\}/);
+  assert.equal(FIT_MIN_FONT_SCALE, 0.75);
+  assert.match(title, /\{children\}/, 'it shows the screen\'s title as given');
+  const layout = src('app/(screens)/_layout.tsx');
+  assert.match(layout, /headerTitle: \(\{ children, tintColor \}\) => <HeaderTitle tintColor=\{tintColor\}>\{children\}<\/HeaderTitle>,/, 'set once in the stack defaults');
+  assert.equal((layout.match(/headerTitle:/g) ?? []).length, 1, 'no screen overrides it');
+});
 
-test('12k: Home — "My players" shortens to "Players" only where it would be cut; the two tiles are equal halves', () => {
-  assert.equal(myPlayersLabel((360 - 32 - 8) / 2, 1.3), MY_PLAYERS_SHORT, '360 dp × 1.3 read "My pla…"');
-  assert.equal(myPlayersLabel((412 - 32 - 8) / 2, 1), 'My players', 'Pixel 6');
-  assert.equal(myPlayersLabel((412 - 32 - 8) / 2, 1.3), 'My players', 'Pixel 7 Pro at 1.3');
-  assert.equal(myPlayersLabel((360 - 32 - 8) / 2, 1), 'My players', '360 dp at 1.0');
+// ---- 12k: five cut-off labels, wrapped or shrunk ----
+
+test('12k: Home — always "My players", shrinking a little on a tight tile; the two tiles are equal halves', () => {
   const home = src('app/(tabs)/index.tsx');
-  assert.match(home, /\{myPlayersLabel\(\(\(tileRow \?\? width - gutterLeft - gutterRight\) - spacing\.sm\) \/ 2, fontScale\)\}/);
-  assert.match(home, /<View style=\{styles\.results\}>\s*<Button[\s\S]*?icon="podium"/, 'Results sits in the same half-width box as My players');
+  assert.match(home, /<HomeTile\s+icon="account-group"\s+label="My players"/);
+  assert.match(home, /<HomeTile icon="podium" label="Results"/, 'Results is the same tile');
+  assert.match(home, /<View style=\{styles\.actionRow\}>/, 'no width tracking on the row');
   assert.match(home, /results: \{\s*flex: 1,\s*flexBasis: 0,/);
   assert.match(home, /accessibilityLabel=\{myPlayersAccessibilityLabel\(playerCount\)\}/, 'the spoken label still says My players');
+  const tile = src('components/home/HomeTile.tsx');
+  const text = tile.match(/<Text[\s\S]*?>/)?.[0] ?? '';
+  assert.match(text, /numberOfLines=\{1\}/);
+  assert.match(text, /adjustsFontSizeToFit/);
+  assert.match(text, /minimumFontScale=\{FIT_MIN_FONT_SCALE\}/);
+  assert.match(tile, /\{label\}/);
 });
 
 test('12k: the locked Results card note wraps instead of "Give award…"', () => {
@@ -112,9 +138,9 @@ test('12k: the locked Results card note wraps instead of "Give award…"', () =>
   assert.doesNotMatch(note, /numberOfLines/, 'no line cap');
 });
 
-test('12k: the Scorecard title fits beside a 48-dp ⋮ (it read "Scorecar…")', () => {
+test('12k: the Scorecard title is the full "Scorecard · P2" through the shared title, beside a 48-dp ⋮ (it read "Scorecar…")', () => {
   const screen = src('app/(screens)/games/[id].tsx');
-  assert.match(screen, /title: fitHeaderTitle\(\[screenTitle\('Scorecard', game\), 'Scorecard'\], headerTitleRoom\(width, deleted \? 2 : 3\), fontScale\)/);
+  assert.match(screen, /title: screenTitle\('Scorecard', game\),/);
   assert.match(screen, /anchor=\{<IconButton icon="dots-vertical" size=\{22\} onPress=\{\(\) => setMenuOpen\(true\)\} accessibilityLabel="Scorecard menu"/, 'the ⋮ is an icon, not a compact text button');
 });
 
@@ -140,12 +166,9 @@ test('12k: tablet smoke/22 turns really sideways and stands up again', () => {
 
 // ---- 12j: Players · Admins title and help; D103's text ----
 
-test('12j (a): the Players · Admins title keeps the game label at 360 dp × 1.3', () => {
-  const game = { gameLabel: 'S3' };
-  assert.equal(playersAdminsTitle(game, headerTitleRoom(360, 1), 1.3), 'Players · S3', 'it was cut before the label');
-  assert.equal(playersAdminsTitle(game, headerTitleRoom(412, 1), 1), 'Players · Admins · S3', 'the Pixel 6 keeps the full title');
-  assert.equal(playersAdminsTitle(null, headerTitleRoom(360, 1), 1.3), 'Players · Admins');
-  assert.match(src('app/(screens)/games/players.tsx'), /title: playersAdminsTitle\(game, headerTitleRoom\(width, 1\), fontScale\)/);
+test('12j (a): the Players · Admins title is always the full "Players · Admins · S3", shrinking through the shared title', () => {
+  assert.equal(screenTitle(PLAYERS_ADMINS_TITLE, { gameLabel: 'S3' }), 'Players · Admins · S3');
+  assert.match(src('app/(screens)/games/players.tsx'), /title: screenTitle\(PLAYERS_ADMINS_TITLE, game\),/);
 });
 
 test('12j (b): the help names only the roles the screen shows (Creator, Admin; no Player or View only tag)', () => {
