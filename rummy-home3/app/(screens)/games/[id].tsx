@@ -52,6 +52,7 @@ import { reopenClosedLines, type ResultForGame } from '@/utils/results';
 import { resultsService } from '@/services/results';
 import { formatWhen } from '@/utils/formatWhen';
 import { PoolStandings, PoolStandingRow } from '@/components/game/PoolStandings';
+import { ReentrySheet } from '@/components/game/ReentrySeatPanel';
 import { PoolAwardsCard } from '@/components/game/PoolAwardsCard';
 import { CompleteGameDialog } from '@/components/game/CompleteGameDialog';
 import { afterCompleteRoute, AWARD_ROUTE } from '@/utils/endFlow';
@@ -102,6 +103,7 @@ export default function GameScreen() {
   const [editRoundOpen, setEditRoundOpen] = useState(false);
   const [linkNote, setLinkNote] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** Standings' Re-enter: whose seat sheet is open. */
   const [reentering, setReentering] = useState<string | null>(null);
   // PR 14: the multiplier view toggle (per phone) and the Exact points sheet.
   const [showActual, setShowActual] = useActualToggle();
@@ -191,17 +193,17 @@ export default function GameScreen() {
     return Object.values(game.scores[playerId] || []).reduce((sum, score) => sum + score, 0);
   };
 
-  const reenter = async (playerId: string) => {
+  // 056 (D139): Re-enter in Standings opens the seat line first; the seats reload after it (his column may move).
+  const reenter = async (playerId: string, seat?: number) => {
     if (!game) return;
-    setReentering(playerId);
     try {
-      const next = await gamesService.reenterPlayer(game.id, playerId);
+      const next = await gamesService.reenterPlayer(game.id, playerId, seat);
       if (next) setGame(next);
     } catch (error) {
-      setActionError(formatSupabaseError(error));
-    } finally {
-      setReentering(null);
+      throw new Error(formatSupabaseError(error));
     }
+    setReentering(null);
+    await loadGameData();
   };
 
   const getRoundTotal = (roundIndex: number): number => {
@@ -549,8 +551,7 @@ export default function GameScreen() {
         rows={poolRows}
         limit={poolLimitOf(game.settings)}
         compact={isShort}
-        onReenter={game.isComplete || deleted ? undefined : reenter}
-        busyId={reentering}
+        onReenter={game.isComplete || deleted ? undefined : setReentering}
         scroll={false}
       />
     </>
@@ -914,6 +915,16 @@ export default function GameScreen() {
           onCompleted={onCompleted}
         />
       ) : null}
+      {pool && canScoreNow && !game.isComplete ? (
+        <ReentrySheet
+          game={game}
+          playerId={reentering}
+          nameOf={(playerId) => players.find((p) => p.id === playerId)?.name ?? '?'}
+          labelOf={initialsFor}
+          onConfirm={reenter}
+          onDismiss={() => setReentering(null)}
+        />
+      ) : null}
       <ExactPointsSheet
         visible={exactOpen}
         multiplier={multiplier}
@@ -941,6 +952,7 @@ export default function GameScreen() {
         players={seats.map((seat) => ({ id: seat.id, name: seat.name, label: initialsFor(seat.id), playerCode: seat.playerCode, out: pool && Boolean(seatOf(game, seat.id)?.outRound), reentered: pool && Boolean(seatOf(game, seat.id)?.reenteredRound) }))}
         pool={pool}
         dealerIds={game.dealerIds}
+        nextDealerOverride={game.nextDealerOverride}
         roundCount={maxRounds}
         onDismiss={() => setSeating(false)}
         onSave={async (order) => {

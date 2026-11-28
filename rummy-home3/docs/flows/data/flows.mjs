@@ -258,7 +258,7 @@ export const FLOWS = [
     ],
     scenarios: [
       { id: 'F09-1', kind: 'happy', text: 'Pool round: player crosses the limit → Round saved sheet says who is out → OUT chip', tests: [e2e('smoke/16-pool-game'), unit('pool-pr13'), pg('32_pool_041')] },
-      { id: 'F09-2', kind: 'happy', text: 'Re-enter (Unlimited) at the highest live total', tests: [e2e('smoke/16-pool-game'), pg('33_pool_reentries_042'), unit('pool-pr13')] },
+      { id: 'F09-2', kind: 'happy', text: 'Re-enter (Unlimited) at the highest live total, on the dealer\'s left (D139)', tests: [e2e('smoke/16-pool-game'), e2e('smoke/16b-pool-round-saved-12p'), unit('round-saved-reentry'), pg('45_reentry_left_of_dealer_056'), pg('33_pool_reentries_042'), unit('pool-pr13')] },
       { id: 'F09-3', kind: 'edge', text: 'Limited re-entries: N used → Re-enter gone, message (F3 fix)', tests: [pg('33_pool_reentries_042'), unit('test-findings-pr19')] },
       { id: 'F09-4', kind: 'edge', text: 'Everyone out / one left → Complete offered; Give awards', tests: [e2e('chaos/c10-pool-everyone-out'), pg('32_pool_041')] },
       { id: 'F09-5', kind: 'misuse', text: 'Pool settings locked after round 1 (PT423); spectator cannot re-enter anyone', tests: [pg('33_pool_reentries_042'), e2e('roles/r02-spectator-pool')] },

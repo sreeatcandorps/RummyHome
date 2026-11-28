@@ -65,6 +65,8 @@ import { overMaxConfirm, poolOverFullConfirm, rummyShareConfirm } from '../../ut
 import { afterRound, AfterRound, isPoolGame, limitChangePreview, overFullCount, playersIn, poolTotal, seatOf } from '../../utils/pool';
 import { gameSettingsMenuTitle } from '@/utils/gameSettings';
 import { CompleteGameDialog } from '../../components/game/CompleteGameDialog';
+import { RoundSavedSheet } from '../../components/game/RoundSavedSheet';
+import { seatLabels } from '@/utils/initials';
 import { afterCompleteRoute } from '@/utils/endFlow';
 
 type Participant = {
@@ -111,12 +113,13 @@ export default function ScoreEntryScreen() {
   /** Every seated player, including those out of a pool, for names in the after-save sheet. */
   const [seatNames, setSeatNames] = useState<Record<string, string>>(() => Object.fromEntries((seededSeats ?? []).map((p) => [p.id, p.name])));
   const nameOf = (id: string) => seatNames[id] ?? participants.find((p) => p.id === id)?.name ?? 'a player';
-  /** Pool: shown once after a save — who went out, who may re-enter (D4). */
+  const [seatLabelMap, setSeatLabelMap] = useState<Map<string, string>>(() => seatLabels(seededSeats ?? []));
+  const labelOf = (id: string) => seatLabelMap.get(id) ?? '?';
+  /** Pool: the Round saved sheet after a save — who went out, who may re-enter (D4, D139). */
   const [afterSave, setAfterSave] = useState<AfterRound | null>(null);
   // Nov 18 end flow: the after-save sheet's Complete opens the one Complete dialog here, then replaces this
   // screen with the Awards page (the scorecard stays under it).
   const [completeOpen, setCompleteOpen] = useState(false);
-  const [reentering, setReentering] = useState<string | null>(null);
   const [scorerName, setScorerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(!seeded);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -189,6 +192,7 @@ export default function ScoreEntryScreen() {
 
       setParticipants(participantsFrom(gamePlayers, currentGame));
       setSeatNames(Object.fromEntries(gamePlayers.map((p) => [p.id, p.name])));
+      setSeatLabelMap(seatLabels(gamePlayers.filter((p) => p.seatRole !== 'spectator' && p.seated !== false)));
       setScorerName(scorer?.name ?? null);
     } catch (error) {
       setNotice({ title: 'Could not load game', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
@@ -296,9 +300,9 @@ export default function ScoreEntryScreen() {
           createdBy,
           pool,
         });
-        // Pool (D4): after every round, who is out and who may re-enter, before going back.
+        // Pool (D4, D139): after every round, the Round saved sheet — who is out, Re-enter on each row — before going back.
         if (pool && saved) {
-          const summary = afterRound(game, saved);
+          const summary = afterRound(game, saved, nextRoundNumber(game));
           if (summary.newlyOut.length || summary.eligible.length || summary.lastStanding) {
             setGame(saved);
             setAfterSave(summary);
@@ -706,62 +710,6 @@ export default function ScoreEntryScreen() {
             </Button>
           </Dialog.Actions>
         </Dialog>
-        <Dialog visible={!!afterSave} dismissable={false} style={[styles.dialog, { backgroundColor: colors.surface }]}>
-          <Dialog.Icon icon={afterSave?.lastStanding ? 'flag-checkered' : afterSave?.newlyOut.length ? 'account-off-outline' : 'restore'} />
-          <Dialog.Title style={styles.dialogTitle}>Round saved</Dialog.Title>
-          <Dialog.Content style={{ gap: spacing.sm }}>
-            {afterSave?.newlyOut.map((o) => (
-              <Text key={o.playerId} variant="bodyMedium" style={{ color: colors.loss, fontWeight: '700' }} testID="after-out">
-                {`${nameOf(o.playerId)} is out at ${o.total} (limit ${game.settings.poolLimit ?? 101}).`}
-              </Text>
-            ))}
-            {afterSave?.lastStanding ? (
-              <Text variant="bodyMedium" style={{ color: colors.onSurface }}>
-                One player is left in the pool. Complete the pool, or re-enter someone to keep playing.
-              </Text>
-            ) : null}
-            {afterSave?.eligible.length ? (
-              <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} testID="after-eligible">
-                {`May re-enter at ${afterSave.reentryAt}: ${afterSave.eligible.map(nameOf).join(', ')}`}
-              </Text>
-            ) : null}
-          </Dialog.Content>
-          <Dialog.Actions style={[styles.dialogActions, { flexWrap: 'wrap' }]}>
-            {afterSave?.eligible.map((id) => (
-              <Button
-                key={id}
-                mode="outlined"
-                icon="restore"
-                loading={reentering === id}
-                disabled={Boolean(reentering)}
-                onPress={async () => {
-                  setReentering(id);
-                  try {
-                    await gamesService.reenterPlayer(game.id, id);
-                    router.back();
-                  } catch (error) {
-                    setAfterSave(null);
-                    setNotice({ title: 'Could not re-enter', body: formatSupabaseError(error), icon: 'alert-circle-outline' });
-                  } finally {
-                    setReentering(null);
-                  }
-                }}
-                testID={`after-reenter-${id}`}
-              >
-                {`Re-enter ${nameOf(id).split(/\s+/)[0]}`}
-              </Button>
-            ))}
-            {afterSave?.lastStanding ? (
-              <Button mode="outlined" icon="flag-checkered" disabled={Boolean(reentering)} onPress={() => { setAfterSave(null); setCompleteOpen(true); }} testID="after-complete">
-                Complete
-              </Button>
-            ) : null}
-            {/* A05 / Nov 18: this returns to the scorecard, so it is Close. Done is kept for ending a game (it goes Home). */}
-            <Button mode="contained" disabled={Boolean(reentering)} onPress={() => { setAfterSave(null); router.back(); }} contentStyle={styles.dialogButtonContent} testID="after-done">
-              Close
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
         <Dialog visible={!!rummyConfirm} onDismiss={() => setRummyConfirm(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
           <Dialog.Icon icon="cards-playing-outline" />
           <Dialog.Title style={styles.dialogTitle}>Rummy share is not a win</Dialog.Title>
@@ -797,6 +745,22 @@ export default function ScoreEntryScreen() {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      {afterSave ? (
+        <RoundSavedSheet
+          visible
+          game={game}
+          summary={afterSave}
+          nameOf={nameOf}
+          labelOf={labelOf}
+          onReenter={async (id, seat) => {
+            const next = await gamesService.reenterPlayer(game.id, id, seat);
+            if (next) setGame(next);
+          }}
+          onClose={() => { setAfterSave(null); router.back(); }}
+          onComplete={() => { setAfterSave(null); setCompleteOpen(true); }}
+        />
+      ) : null}
 
       <CompleteGameDialog
         visible={completeOpen}

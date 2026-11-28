@@ -19,9 +19,9 @@ select has_column('public', 'game_players', 'out_round', 'game_players.out_round
 select has_column('public', 'game_players', 'reentered_round', 'game_players.reentered_round');
 select has_column('public', 'game_players', 'reentry_score', 'game_players.reentry_score');
 select has_column('public', 'game_players', 'entries', 'game_players.entries');
-select has_function('public', 'reenter_player', array['uuid', 'uuid']);
+select has_function('public', 'reenter_player', array['uuid', 'uuid', 'integer']);
 select has_function('public', 'set_pool_awards', array['uuid', 'jsonb', 'jsonb']);
-select ok(has_function_privilege('authenticated', 'public.reenter_player(uuid, uuid)', 'execute'), 'signed-in users may call reenter_player');
+select ok(has_function_privilege('authenticated', 'public.reenter_player(uuid, uuid, integer)', 'execute'), 'signed-in users may call reenter_player (056: with an optional seat)');
 select ok(not has_function_privilege('anon', 'public.set_pool_awards(uuid, jsonb, jsonb)', 'execute'), 'anon may not give awards');
 select has_trigger('public', 'scores', 'scores_pool_sign', 'pool sign trigger on scores');
 select hasnt_trigger('public', 'games', 'games_pool_settings_lock', 'settings lock trigger on games (gone since 051)');

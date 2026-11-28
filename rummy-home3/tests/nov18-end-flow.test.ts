@@ -46,7 +46,8 @@ test('the scorecard and Add round share the one Complete dialog; the Complete pa
   assert.doesNotMatch(src('app/(screens)/_layout.tsx'), /games\/complete/);
   assert.doesNotMatch(src('constants/help.ts'), /^\s+complete: bullets/m);
   const entry = src('app/(screens)/score-entry.tsx');
-  assert.match(entry, /testID="after-complete"/);
+  assert.match(src('components/game/RoundSavedSheet.tsx'), /testID="after-complete"/, 'Round saved (a sheet since D139) offers Complete');
+  assert.match(entry, /onComplete=\{\(\) => \{ setAfterSave\(null\); setCompleteOpen\(true\); \}\}/);
   assert.doesNotMatch(entry, /games\/complete/);
 });
 
