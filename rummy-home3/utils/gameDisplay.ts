@@ -7,7 +7,7 @@ import { formatWhen } from '@/utils/formatWhen';
 
 export { isLocalToday, isWithinLast24Hours };
 
-/** "Mon, Jul 27 · 6:27 PM" — the primary way players recognise a game (A06: the one `formatWhen`). */
+/** "Jul 27 · 6:27 PM" — the primary way players recognise a game (A06: the one `formatWhen`). */
 export function formatGameDateTime(value: string): string {
   return formatWhen(value);
 }

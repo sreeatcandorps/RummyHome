@@ -147,16 +147,6 @@ export const clearOrder = (draft: OrderDraft): OrderDraft => ({ ...draft, number
 /** Whether Done would change anything (mid-game: Done stays off until it would). */
 export const orderChanged = (draft: OrderDraft) => !sameOrder(draft.base, displayOrder(draft));
 
-/**
- * The player ID (#42) joins the row only where it fits: a row 330 dp wide or more (a phone row inside the
- * card is ~347 dp), measured in text-size units — at font 1.3 a 347-dp row holds what a 267-dp row holds
- * (Pixel 7 Pro nightly, Nov 23: the name collapsed to nothing beside the ID, the tag and the arrows).
- */
-export const showsPlayerCode = (rowWidth: number, fontScale = 1) => rowWidth / Math.max(fontScale, 1) >= 330;
-
-/** The "highest card" tag in full on a wide row; "highest" where the name would otherwise be squeezed. */
-export const highestCardTag = (rowWidth: number, fontScale = 1) => (showsPlayerCode(rowWidth, fontScale) ? HIGHEST_CARD_TAG : HIGHEST_CARD_TAG_SHORT);
-
 /** The sheet's menu item and Done exist only while the game is Active (Q21.7). */
 export const canChangeSeating = (game: { isComplete: boolean; closedAt?: string | null; deletedAt?: string | null } | null | undefined, canScore: boolean) =>
   Boolean(game) && canScore && !game!.isComplete && !game!.closedAt && !game!.deletedAt;
@@ -166,11 +156,12 @@ export const SEATING_TITLE = 'Order of players';
 export const SEATING_MENU_ITEM = 'Order of players';
 export const SEATING_DONE = 'Done';
 export const SEATING_CLEAR = 'Clear';
+/** The Order of players button when no co-admin step follows: one word on every phone (#171 fix 2); it is still read as "Start game". */
+export const ORDER_START = 'Start';
 export const SEATING_MENU_SUBLINE = 'Mid-game · admins only · logged';
 // The three-line how-to of Nov 19 moved into the step-by-step tutorial (utils/tutorials.ts, D61); the screen keeps one line.
 /** Small tag on the first tap's row while the order is being built. */
 export const HIGHEST_CARD_TAG = 'highest card';
-export const HIGHEST_CARD_TAG_SHORT = 'highest';
 export const EVERY_PLAYER_NEEDS_A_SEAT = 'Every player needs a seat.';
 /** The line under the circle (D138: "The default for dealing is counterclockwise"). */
 export const DEAL_DIRECTION = 'The deal goes anticlockwise';

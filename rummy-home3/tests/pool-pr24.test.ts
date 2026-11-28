@@ -9,7 +9,7 @@ import {
 } from '../utils/pool';
 import { draftFromRules, parseReentryLimit, rulesFromDraft } from '../utils/rulesDraft';
 import {
-  clearOrder, displayOrder, displayRows, isFirstNumbered, isLastNumbered, numberedCounter, orderChanged, orderComplete, seatNumberOf, showsPlayerCode, startOrder, stepNumbered, stepsFor, tapPlayer,
+  clearOrder, displayOrder, displayRows, isFirstNumbered, isLastNumbered, numberedCounter, orderChanged, orderComplete, seatNumberOf, startOrder, stepNumbered, stepsFor, tapPlayer,
 } from '../utils/seating';
 
 // PR 24 (Sree's feedback on v11, Nov 17) — item 7: where a player who comes back starts.
@@ -211,8 +211,6 @@ test('X24-10c mid-game: the page opens prefilled (select, then ▲ or ▼); Done
   // Clear then renumber highest card first (seat 4 down to seat 1): complete, unchanged, Done off.
   const same = [...four].reverse().reduce((acc, id) => tapPlayer(acc, id), clearOrder(d));
   assert.ok(orderComplete(same) && !orderChanged(same));
-  assert.ok(showsPlayerCode(347) && !showsPlayerCode(300), 'the player ID shows only when the row is wide enough (a Pixel 6 row inside the card is ~347 dp)');
-  assert.ok(!showsPlayerCode(347, 1.3), 'at font 1.3 the same row is too narrow for the ID (Pixel 7 Pro nightly: the name collapsed)');
 });
 
 test('X24-10d the component and sheet: no chips panel, no "Keep this order", arrows only on numbered rows, Clear and Done', () => {

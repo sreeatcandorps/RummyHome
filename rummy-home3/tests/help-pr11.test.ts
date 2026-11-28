@@ -20,6 +20,7 @@ import { SEAT_MENU_LABEL } from '../utils/gamePlayers';
 import { PLAYERS_ADMINS_TITLE } from '../utils/gameAdmins';
 import { SEATING_MENU_ITEM } from '../utils/seating';
 import { DEALER_MENU_ITEM } from '../utils/dealerSheet';
+import { UNDO_MENU_ITEM } from '../utils/roundSavedNote';
 import { GIVE_AWARDS_FIRST } from '../utils/pool';
 
 const root = path.resolve(__dirname, '..');
@@ -88,7 +89,8 @@ test('HL11-2 the ⋮ tables in help list the Menu.Item titles the code renders, 
   // PR 24 (#82) renames the ⋮ item to "Order of players"; the help text already says so, so the
   // table is checked against the renamed label until #82 lands and SEATING_MENU_ITEM catches up.
   const PR24_MENU_LABEL: Record<string, string> = { 'Seating order': 'Order of players' };
-  assert.deepEqual(scorecard.rows.map((r) => r.item), ['Game settings', PLAYERS_ADMINS_TITLE, PR24_MENU_LABEL[SEATING_MENU_ITEM] ?? SEATING_MENU_ITEM, DEALER_MENU_ITEM, 'Edit round', 'Reopen game', 'Log', 'Hide game', 'Delete game']);
+  assert.deepEqual(scorecard.rows.map((r) => r.item), ['Game settings', PLAYERS_ADMINS_TITLE, PR24_MENU_LABEL[SEATING_MENU_ITEM] ?? SEATING_MENU_ITEM, DEALER_MENU_ITEM, UNDO_MENU_ITEM, 'Edit round', 'Reopen game', 'Log', 'Hide game', 'Delete game']);
+  assert.match(src('app/(screens)/games/[id].tsx'), /title=\{UNDO_MENU_ITEM\}/, 'D137: Undo in the ⋮');
   const code = src('app/(screens)/games/[id].tsx');
   for (const item of ['Edit round', 'Reopen game', 'Log', 'Hide game', 'Delete game']) assert.match(code, new RegExp(`title="${item}"`), `scorecard ⋮ renders ${item}`);
   assert.match(code, /title=\{gameSettingsMenuTitle\(pool, maxRounds\)\}/);
@@ -240,10 +242,10 @@ test('HL11-7 mini helps on every screen: each section keeps its title plus a ⓘ
 
 test('HL11-8 help copy matches PR 24 (#82): four-step New game, Order of players, ↺ re-entry rows, footer inside the scorecard', () => {
   const newGame = plainHelpText(helpTopicText('new-game'));
-  assert.match(newGame, /Then Order of players .* and, when a registered player was added, a co-admin\. Only the last step says Start game\./);
+  assert.match(newGame, /Then Order of players .* and, when a registered player was added, a co-admin\. Only the last step starts the game: Start on Order of players, Start game on the co-admin step\./);
   assert.match(newGame, /\nOrder of players\n/);
   assert.match(newGame, /Draw a card each for the seating position\.[\s\S]*Tap players from the highest card to the lowest.*the last tap is seat 1, one step right of the top\.[\s\S]*Seat 1 deals round 1 and is marked Dealer\. The deal goes anticlockwise: the highest seat gets the first open card[\s\S]*Wrong tap\? Tap the latest player again to take the number back/);
-  assert.match(newGame, /▲ ▼ arrows.*the lowest seat has no ▼[\s\S]*Clear removes every number.*Every player needs a seat before Next \(or Start game/);
+  assert.match(newGame, /▲ ▼ arrows.*the lowest seat has no ▼[\s\S]*Clear removes every number.*Every player needs a seat before Next \(or Start when no co-admin/);
   assert.match(newGame, /\nCo-admin and Start\n/);
   assert.match(newGame, /There is no pop-up after Start/);
   assert.doesNotMatch(newGame, /asks who sits where|\bSkip\b|two-step/);

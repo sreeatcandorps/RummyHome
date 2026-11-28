@@ -16,7 +16,7 @@ import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { DEFAULT_POOL_ENTRY, DEFAULT_POOL_VALUES, isPoolGame, poolLimitOf, poolStandings } from '@/utils/pool';
-import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsGameLine, awardsPayload, buildAwardSheet, chipForSaved, defaultPreset, getsFromAwards, givenOutText, presetGets, presetViability, saveAnywayText, signedPoints, viablePresets, winnerGetsMost, winnersOf } from '@/utils/poolAwards';
+import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsGameLine, awardsPayload, buildAwardSheet, chipForSaved, defaultPreset, getsFromAwards, givenOutText, leftAndDrops, presetGets, presetViability, saveAnywayText, signedPoints, viablePresets, winnerGetsMost, winnersOf } from '@/utils/poolAwards';
 import { afterAwardsRoute } from '@/utils/endFlow';
 import { seatLabels } from '@/utils/initials';
 import { screenTitle } from '@/utils/gameLabel';
@@ -249,35 +249,38 @@ export default function AwardScreen() {
           </View>
           {sheet.rows.map((r) => (
             <View key={r.playerId} style={[styles.row, { borderBottomColor: colors.hairline }]} testID={`award-row-${r.playerId}`}>
-              <View style={styles.nameCell}>
-                <SeatAvatar name={nameOf(r.playerId)} label={labelOf(r.playerId)} color={colorOf(r.playerId)} size={32} />
-                <View style={styles.flex}>
-                  <Text variant="bodyMedium" numberOfLines={1} style={[{ fontWeight: '600' }, r.out && styles.struck]}>{nameOf(r.playerId)}</Text>
-                  <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
-                    {r.out ? `out R${standings.find((s) => s.playerId === r.playerId)?.outRound ?? ''}` : `${inputs.limit - r.total} left · ${dropsText(standings.find((s) => s.playerId === r.playerId)?.drops ?? 0)}`}
+              <SeatAvatar name={nameOf(r.playerId)} label={labelOf(r.playerId)} color={colorOf(r.playerId)} size={32} />
+              {/* #171 fix 1: two lines on every phone, the name and what is left, then the four numbers under their headings. */}
+              <View style={styles.flex}>
+                <View style={styles.nameLine} testID={`award-name-line-${r.playerId}`}>
+                  <Text variant="bodyMedium" numberOfLines={1} style={[styles.playerName, r.out && styles.struck]}>{nameOf(r.playerId)}</Text>
+                  <Text variant="labelSmall" numberOfLines={1} style={[styles.left, { color: colors.onSurfaceVariant }]} testID={`award-left-${r.playerId}`}>
+                    {r.out ? `out R${standings.find((s) => s.playerId === r.playerId)?.outRound ?? ''}` : leftAndDrops(inputs.limit - r.total, standings.find((s) => s.playerId === r.playerId)?.drops ?? 0)}
+                  </Text>
+                </View>
+                <View style={styles.numbersLine} testID={`award-numbers-${r.playerId}`}>
+                  <Text style={[styles.num, tabularNums, { color: colors.onSurface }]}>{r.total}</Text>
+                  <Text style={[styles.num, tabularNums, { color: colors.onSurfaceVariant }]}>{r.entries * entry}</Text>
+                  {preset === 'custom' && !blocked ? (
+                    <TextInput
+                      mode="outlined"
+                      dense
+                      value={customText[r.playerId] ?? String(r.gets)}
+                      onChangeText={(t) => editCustom(r.playerId, t)}
+                      keyboardType="number-pad"
+                      selectTextOnFocus
+                      style={[styles.numWide, styles.getsInput]}
+                      accessibilityLabel={`${nameOf(r.playerId)} gets`}
+                      testID={`award-gets-${r.playerId}`}
+                    />
+                  ) : (
+                    <Text style={[styles.numWide, tabularNums, { color: colors.onSurface, fontWeight: '700' }]} testID={`award-gets-text-${r.playerId}`}>{r.gets}</Text>
+                  )}
+                  <Text style={[styles.num, tabularNums, { color: r.award > 0 ? colors.win : r.award < 0 ? colors.loss : colors.onSurface, fontWeight: '800' }]} testID={`award-value-${r.playerId}`}>
+                    {signedPoints(r.award)}
                   </Text>
                 </View>
               </View>
-              <Text style={[styles.num, tabularNums, { color: colors.onSurface }]}>{r.total}</Text>
-              <Text style={[styles.num, tabularNums, { color: colors.onSurfaceVariant }]}>{r.entries * entry}</Text>
-              {preset === 'custom' && !blocked ? (
-                <TextInput
-                  mode="outlined"
-                  dense
-                  value={customText[r.playerId] ?? String(r.gets)}
-                  onChangeText={(t) => editCustom(r.playerId, t)}
-                  keyboardType="number-pad"
-                  selectTextOnFocus
-                  style={[styles.numWide, styles.getsInput]}
-                  accessibilityLabel={`${nameOf(r.playerId)} gets`}
-                  testID={`award-gets-${r.playerId}`}
-                />
-              ) : (
-                <Text style={[styles.numWide, tabularNums, { color: colors.onSurface, fontWeight: '700' }]} testID={`award-gets-text-${r.playerId}`}>{r.gets}</Text>
-              )}
-              <Text style={[styles.num, tabularNums, { color: r.award > 0 ? colors.win : r.award < 0 ? colors.loss : colors.onSurface, fontWeight: '800' }]} testID={`award-value-${r.playerId}`}>
-                {signedPoints(r.award)}
-              </Text>
             </View>
           ))}
           <View style={styles.checkRow}>
@@ -343,7 +346,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.xs, borderBottomWidth: StyleSheet.hairlineWidth },
   headRow: { paddingVertical: 2 },
   colHead: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
-  nameCell: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minWidth: 0 },
+  nameLine: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
+  playerName: { flexShrink: 1, fontWeight: '600' },
+  left: { flexShrink: 0 },
+  numbersLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: spacing.xs },
   name: { flex: 1 },
   struck: { textDecorationLine: 'line-through', opacity: 0.7 },
   num: { width: 48, textAlign: 'right', fontWeight: '600' },

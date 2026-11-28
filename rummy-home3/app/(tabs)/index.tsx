@@ -9,6 +9,7 @@ import { gamesService } from '@/services/games';
 import { homeService } from '@/services/home';
 import { playersService } from '@/services/players';
 import { myPlayersAccessibilityLabel, myPlayersBadge } from '@/utils/homeButtons';
+import { HomeTile } from '@/components/home/HomeTile';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { HOME_GAME_LIMIT } from '@/services/home';
 import { RECENT_PAGE, recentPaging, splitHomeGames } from '@/utils/homeGames';
@@ -178,33 +179,17 @@ export default function Dashboard() {
   const badge = myPlayersBadge(playerCount);
   const resultsButton = (
     <View style={styles.actionRow}>
-      <Button
-        mode="contained"
-        icon="podium"
-        buttonColor={colors.secondaryContainer}
-        textColor={colors.onSecondaryContainer}
-        onPress={() => router.push('/(screens)/results')}
-        style={styles.results}
-        contentStyle={styles.resultsContent}
-        labelStyle={styles.resultsLabel}
-        accessibilityLabel="Results"
-      >
-        Results
-      </Button>
       <View style={styles.results}>
-        <Button
-          mode="contained"
+        <HomeTile icon="podium" label="Results" onPress={() => router.push('/(screens)/results')} accessibilityLabel="Results" testID="home-results" />
+      </View>
+      <View style={styles.results}>
+        <HomeTile
           icon="account-group"
-          buttonColor={colors.secondaryContainer}
-          textColor={colors.onSecondaryContainer}
+          label="My players"
           onPress={() => router.push('/(tabs)/players')}
-          contentStyle={styles.resultsContent}
-          labelStyle={styles.resultsLabel}
           accessibilityLabel={myPlayersAccessibilityLabel(playerCount)}
           testID="home-my-players"
-        >
-          My players
-        </Button>
+        />
         {badge ? (
           <View style={[styles.badge, { backgroundColor: colors.leaderContainer, borderColor: colors.background }]} pointerEvents="none" testID="home-my-players-badge">
             <Text variant="labelMedium" style={[styles.badgeText, { color: colors.onLeaderContainer }]}>{badge}</Text>
@@ -412,8 +397,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
+  // Two equal halves on every phone (Sree, Nov 27: "the results and my players should probably just be equal size").
   results: {
     flex: 1,
+    flexBasis: 0,
     marginBottom: spacing.lg,
   },
   badge: {
@@ -431,14 +418,6 @@ const styles = StyleSheet.create({
   badgeText: {
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-  },
-  resultsContent: {
-    minHeight: 56,
-  },
-  resultsLabel: {
-    fontSize: 17,
-    fontWeight: '800',
-    letterSpacing: 0.2,
   },
   gameGap: {
     marginBottom: spacing.sm,

@@ -1,0 +1,14 @@
+appId: com.mindweavetech.rummyhome
+# D137: Undo is out of the Scorecard's bottom bar. ⋮ › Undo last round asks "Remove the last round?" as the bar's
+# Undo did; Remove takes the last round (or a pool re-entry made after it) back. Run it on the upright Scorecard.
+---
+- tapOn: "Scorecard menu"
+- tapOn:
+    id: "game-menu-undo"
+- extendedWaitUntil:
+    visible: "Remove the last round?"
+    timeout: 5000
+- tapOn: "Remove"
+- extendedWaitUntil:
+    notVisible: "Remove the last round?"
+    timeout: 15000

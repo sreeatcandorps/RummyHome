@@ -84,6 +84,15 @@ export function nextLabel(seatedCount: number): string {
   return `Next · ${seatedCount} players`;
 }
 
+/**
+ * Batch row 12o, option A: while the keyboard is up on the players step, the picked chips take one sideways row
+ * (so the search results sit right under the search) and the bar above the keyboard holds Next alone; the two
+ * tiles and the wrapped chips come back when it closes.
+ */
+export function pickerWhileTyping(keyboardUp: boolean): { stripOneRow: boolean; barTiles: boolean } {
+  return { stripOneRow: keyboardUp, barTiles: !keyboardUp };
+}
+
 /** D108: the dismissible card at the top of My players, the two ways to add someone. */
 export const HOW_TO_ADD_LINES = [
   'Has the app? Ask for their Player ID and search it.',

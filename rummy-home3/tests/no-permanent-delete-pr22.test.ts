@@ -75,7 +75,7 @@ test('X22-6 no screen, dialog, Help line or email promises erasure', () => {
   assert.match(DELETED_GAMES_SUPPORTING, /hidden for good after 30 days — nothing is erased/);
   assert.match(SUPPORT_CARD_BODY, /Nothing is ever erased/);
   assert.match(HELP.hiddenDeleted, /hidden for good — nothing is ever erased/);
-  assert.equal(hiddenForGoodLabel('2026-12-14T12:00:00Z', new Date('2026-11-12T12:00:00Z')), 'hidden for good on Mon, Dec 14');
+  assert.equal(hiddenForGoodLabel('2026-12-14T12:00:00Z', new Date('2026-11-12T12:00:00Z')), 'hidden for good on Dec 14');
 });
 
 test('X22-6 the Log labels the nightly step "Hidden for good"; the 045 kind keeps its label for old rows', () => {

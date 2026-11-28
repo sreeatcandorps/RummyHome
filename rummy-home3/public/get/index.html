@@ -15,6 +15,7 @@
   <main>
     <h1>EZ Score: Rummy</h1>
     <p id="message">Loading…</p>
+    <p id="play" hidden><a href="https://play.google.com/store/apps/details?id=com.mindweavetech.rummyhome">Get the EZ Score Android app on Google Play</a></p>
     <p id="claim" hidden>Already have the app? <a id="open">Open your sign-up link in the app</a>. Install the app first, then come back and tap it.</p>
   </main>
   <script>
@@ -29,11 +30,13 @@
     const android = /Android/i.test(ua);
     const message = document.getElementById('message');
     if (iphone) {
-      message.textContent = 'The iPhone app is not up yet. There is no TestFlight or App Store listing. Ask the person who invited you for the Android build, or check back later.';
+      message.textContent = 'The iPhone app is not up yet. There is no TestFlight or App Store listing. On Android it is on Google Play; check back later for the iPhone.';
     } else if (android) {
-      message.textContent = 'The Android app is shared as a preview APK until it is on the Play Store. Ask the person who invited you for that file. This page does not collect an email or a phone number.';
+      message.textContent = 'EZ Score: Rummy is on Google Play. Install it, then come back to this page if you have a sign-up link. This page does not collect an email or a phone number.';
+      document.getElementById('play').hidden = false;
     } else {
-      message.textContent = 'EZ Score: Rummy is a phone app. On an iPhone it is not available yet. On Android it is shared as a preview APK until the Play Store listing exists.';
+      message.textContent = 'EZ Score: Rummy is a phone app. On Android it is on Google Play; on an iPhone it is not available yet.';
+      document.getElementById('play').hidden = false;
     }
   </script>
 </body>

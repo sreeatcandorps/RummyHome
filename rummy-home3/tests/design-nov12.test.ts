@@ -76,12 +76,10 @@ test('design: bottom-bar and tab pills — outlined by default, the one main act
   assert.match(action, /borderRadius: radius\.full/);
   assert.match(action, /borderBottomWidth: disabled \? 0 : BUTTON_EDGE/);
   const scorecard = src('app/(screens)/games/[id].tsx');
-  const bar = scorecard.match(/<StackedAction[\s\S]*?icon="undo-variant"[\s\S]*?<\/View>/)?.[0] ?? '';
+  const bar = scorecard.match(/<StackedAction[\s\S]*?icon="flag-checkered"[\s\S]*?<\/View>/)?.[0] ?? '';
   const actions = bar.split('<StackedAction').slice(1);
-  assert.equal(actions.length, 3, 'Undo, Complete, Add round');
-  const [undo, complete, addRound] = actions;
-  assert.match(undo, /label="Undo"/);
-  assert.ok(!/\bfilled\b/.test(undo), 'Undo is outlined');
+  assert.equal(actions.length, 2, 'Complete, Add round (Undo left the bar, D137)');
+  const [complete, addRound] = actions;
   assert.match(complete, /icon="flag-checkered"[\s\S]*?label="Complete"/, 'Complete carries the flag');
   assert.ok(!/\bfilled\b(?!=\{poolOver\})/.test(complete), 'Complete is outlined (filled only when a pool is down to one player, PR 13)');
   assert.match(addRound, /label="Add round"[\s\S]*?\bfilled\b/, 'Add round is the filled button');

@@ -48,6 +48,7 @@ export const HELP_TOPIC_KEYS = [
   'new-game',
   'game-type',
   'scorecard',
+  'watch-a-game',
   'add-round',
   'final-scores',
   'complete',
@@ -145,7 +146,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       'Recent partners come first, then everyone else by how often you play together. Up to 20 players.',
       '**Add by initials**: new people by initials, seated as you save them. **Find in database**: a registered player, seated here and added to My players at once.',
       'Scorecard columns show each player\u2019s initials from your My players. If two would match, a **Fix initials** step appears before the game starts.',
-      '**Next** opens Game type: Points or Pool, with the numbers prefilled from your Settings. Then **Order of players** (tap players from the highest card to the lowest) and, when a registered player was added, a co-admin. Only the last step says **Start game**.',
+      '**Next** opens Game type: Points or Pool, with the numbers prefilled from your Settings. Then **Order of players** (tap players from the highest card to the lowest) and, when a registered player was added, a co-admin. Only the last step starts the game: **Start** on Order of players, **Start game** on the co-admin step.',
     ],
     screenshot: {
       file: 'new-game',
@@ -194,7 +195,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
           'Seat 1 deals round 1 and is marked **Dealer**. The deal goes anticlockwise: the highest seat gets the first open card. Every round the deal moves up one seat, and the open card goes to the seat before the dealer. The scorecard columns follow the seats, seat 1 first.',
           'Wrong tap? Tap the latest player again to take the number back.',
           'Once everyone is numbered, tap a player and use the ▲ ▼ arrows to move them one seat; tap them again to deselect. The arrows show in the middle of the circle, for the selected player only; the top seat has no ▲ and the lowest seat has no ▼.',
-          '**Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
+          '**Clear** removes every number. Every player needs a seat before **Next** (or **Start** when no co-admin step follows).',
           'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens as a full page, prefilled, with **Dealer** on whoever deals next; **Done** saves it, the Log records it, played rounds keep their dealer and the next deal follows the new order.',
           'Someone joins mid-game: they sit to the dealer\'s left, so they deal last. The dealer still deals this round, and nobody else\'s turn moves. Move them from Order of players if the table sat them elsewhere. A pool player who is out keeps the seat; the deal and the open card skip it.',
         ],
@@ -278,20 +279,20 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     icon: 'table-large',
     purpose: 'Every round, every player, the totals, and the ⋮ menu for the game.',
     needToKnow: [
-      '[View only] means you can watch but not change scores. Admins see **Add round**, **Undo** and **Complete**.',
+      '[View only] means you can watch but not change scores. Admins see **Add round** and **Complete**, and **Undo last round** in the ⋮ menu.',
       'Totals sit in the header next to each name. With a multiplier, big numbers read short (8K, 1.2M); the **×N** chip opens the exact points.',
       'Pool: the header reads like a Points header (initials and score; Player IDs live on **My players** and **Players · Admins**); out is struck through. A re-entered player shows the re-entry score with ↺ in that round, and their cells above it turn grey. **Standings** below show points and drops left.',
       '**Order of players**: set before Start by tapping players from the highest card to the lowest; the last tap is seat 1 and deals first, and the deal goes round by seat. Admins change the order any time from ⋮; played rounds keep their dealer.',
-      '**Undo** asks before removing the last round. **Complete** shows the final totals and asks once more before locking.',
+      'After a round is saved, a note reads **Round N saved · Undo** for 5 seconds; ⋮ › **Undo last round** does the same at any time. Both ask before removing the last round. **Complete** shows the final totals and asks once more before locking.',
     ],
     screenshot: {
       file: 'scorecard',
       legend: [
         'Header: each player\u2019s initials and total; DEALS on the seat that deals next, OPENS on the seat that gets the first open card.',
         'The rounds, newest at the bottom. Tap a cell to see the exact points.',
-        '**Add round** (admins) opens the round sheet; **Undo** removes the last round.',
+        '**Add round** (admins) opens the round sheet; **Complete** ends the game. Undo is in the ⋮ menu and in the note after a save.',
         'Share icon: the live link, and once complete **Share final scores** (the picture, or the full details as a PDF).',
-        '⋮ menu: Game settings, Players · Admins, Order of players, Dealer, Edit round, Log, Columns, Hide, Delete.',
+        '⋮ menu: Game settings, Players · Admins, Order of players, Dealer, Undo last round, Edit round, Log, Columns, Hide, Delete.',
         'Foot, inside the card under the last round: creator, admins and the Unique game ID (tap to copy). It scrolls with the rounds.',
       ],
     },
@@ -343,6 +344,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
         { item: 'Players · Admins', does: 'Who plays, who is admin, invite, link, initials, remove.', who: 'Everyone (admins can change)', hidden: 'Deleted game' },
         { item: 'Order of players', does: 'Rearrange who sits where (tap to number, arrows to nudge); the deal follows the new order from the next round.', who: 'Admins', hidden: 'Completed game' },
         { item: 'Dealer', does: 'Pick any round — a played one or the one being played — and tap who really deals. **Follow from here** re-deals every later round from them; **This round only** leaves the sequence as the card had it. Scores never change; the Log records it. Tapping the DEALS badge on the scorecard opens the same sheet.', who: 'Admins', hidden: 'Completed game' },
+        { item: 'Undo last round', does: 'Asks, then removes the last round; the Log keeps it. The note after a save offers the same Undo for 5 seconds.', who: 'Admins', hidden: 'Completed game, or no rounds yet (grey)' },
         { item: 'Edit round', does: 'Pick a round and change its scores; the Log keeps the old ones.', who: 'Admins', hidden: 'Completed game, or no rounds yet (grey)' },
         { item: 'Reopen game', does: 'Unlocks a Completed game so rounds can be added again. On a Closed game the saved result stays as saved and shows Out of date. A pool that already has awards loses them; give them again after the next Complete.', who: 'Admins', hidden: 'Active game' },
         { item: 'Log', does: 'Every change to this game, written by the server.', who: 'Everyone' },
@@ -361,6 +363,32 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     aliases: ['game', 'rounds', 'undo', 'share', 'live link', 'dealer', 'seating', 'order of players', 'footer', 'unique game id', 'game settings', 'hide', 'delete'],
   },
 
+  'watch-a-game': {
+    title: 'Watch a game',
+    group: 'Playing',
+    family: 'games',
+    icon: 'eye-outline',
+    purpose: 'Follow a game live from its link: no app, no account.',
+    needToKnow: [
+      'An admin opens the scorecard, taps the share icon and sends the **Live scorecard link** (WhatsApp, a text, anything).',
+      'Whoever opens it sees every round and the totals as they are entered. The page updates by itself every few seconds; nobody needs the app or a sign-in.',
+      'Watchers cannot change scores. A pool link also shows the standings: points left, drops left, re-entries and who is out.',
+      'The link keeps working after the game is complete and shows the final totals. If the game is deleted, the page says so.',
+    ],
+    sections: [
+      {
+        title: 'Watching in the app',
+        bullets: [
+          'People in the game who are not playing are listed under **Watching** on Players · Admins. They see the scorecard as [View only].',
+        ],
+      },
+    ],
+    tricky: [
+      { id: 'no-app', q: 'Does the person watching need EZ Score?', a: 'No. The link opens in any browser. The page ends with a link to EZ Score on Google Play for anyone who wants to keep score the same way.' },
+    ],
+    alsoSee: ['scorecard', 'players-admins', 'final-scores'],
+    aliases: ['live link', 'share link', 'spectator', 'follow', 'web page', 'watch'],
+  },
   'add-round': {
     title: 'Add round',
     group: 'Playing',
@@ -584,7 +612,8 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     icon: 'account-cog-outline',
     purpose: 'Who is in this game, who may change scores, and the row actions.',
     needToKnow: [
-      'Each row shows the name, Player ID and role (Creator, Admin, Player, View only). Only players who have not finished signing up carry a tag ([Unregistered], [Pending registration]).',
+      'Three lists: **Playing**, **Admins not playing** and **Watching**. Each row shows the name and Player ID.',
+      'A **Creator** tag marks who started the game; creators and admins also see an **Admin** tag on the admins. Everyone else has no role tag. Only players who have not finished signing up carry a tag ([Unregistered], [Pending registration]).',
       'Admins can change scores. The creator is always an admin. Admins can be set after the game is over too.',
       '**Remove from game** asks first and works only while the player has no scores or every round score they have is 0. Otherwise edit the rounds and clear their scores first.',
       '**Add new player** picks from My players (0 for rounds already played). **Add non-playing admin**: someone who keeps score but does not play, by Player ID; no column.',
@@ -592,7 +621,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     screenshot: {
       file: 'players-admins',
       legend: [
-        'A row: name, **#ID** and role (Creator, Admin, Player). Only players still signing up carry a tag.',
+        'A row: name and **#ID**; **Creator** on who started the game, **Admin** on the admins (shown to admins). Only players still signing up carry a tag.',
         'The arrows move a seat up or down the order of players; Seat 1 deals first. Played rounds keep their dealer.',
         'The row ⋮: Invite, Link to Player ID, Edit initials, Edit name, Make admin, Remove from game.',
         '**Add non-playing admin** by Player ID: keeps score, gets no column.',

@@ -120,7 +120,8 @@
     function fmt(n) { return n > 0 ? '+' + n.toLocaleString('en-US') : n.toLocaleString('en-US'); }
     function tone(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero'; }
     function shortId(id) { return String(id).replace(/[^a-z0-9]/gi, '').slice(-6).toUpperCase(); }
-    function when(iso) { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); }
+    // The app's one date format (utils/formatWhen.ts): "Nov 26 · 3:55 PM", the year only when it is not this year, no weekday.
+    function when(iso) { const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : dayOf(iso) + ' · ' + clock(iso); }
     function clock(iso) {
       const d = new Date(iso); if (Number.isNaN(d.getTime())) return '';
       const h = d.getHours() % 12 || 12; return h + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + (d.getHours() < 12 ? 'AM' : 'PM');
@@ -128,7 +129,7 @@
     function dayOf(iso) {
       const d = new Date(iso); if (Number.isNaN(d.getTime())) return '';
       const sameYear = d.getFullYear() === new Date().getFullYear();
-      return d.toLocaleDateString('en-US', Object.assign({ weekday: 'long', month: 'long', day: 'numeric' }, sameYear ? {} : { year: 'numeric' }));
+      return d.toLocaleDateString('en-US', Object.assign({ month: 'short', day: 'numeric' }, sameYear ? {} : { year: 'numeric' }));
     }
     function baseInitials(name) {
       const w = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -246,7 +247,7 @@
         const counts = (n === 1 ? '1 player' : n + ' players') + (g.roundCount != null ? ' · ' + (g.roundCount === 1 ? '1 round' : g.roundCount + ' rounds') : '') + (multOf(g) ? ' ·' + multOf(g) : '');
         const admins = Array.isArray(g.adminNames) ? g.adminNames.filter((a) => a && a !== g.creatorName) : [];
         const people = [g.creatorName ? 'Creator ' + g.creatorName : '', admins.length ? (admins.length === 1 ? 'Admin ' : 'Admins ') + admins.join(', ') : ''].filter(Boolean).join(' · ');
-        return '<div class="gm"><div class="g1"><span class="lab">' + esc(g.label || g.code || '') + '</span><span class="when"><b>' + esc(clock(g.date)) + '</b> ' + esc(dayOf(g.date)) + '</span></div>'
+        return '<div class="gm"><div class="g1"><span class="lab">' + esc(g.label || g.code || '') + '</span><span class="when">' + esc(dayOf(g.date)) + ' · <b>' + esc(clock(g.date)) + '</b></span></div>'
           + '<div class="g2">' + esc(counts) + ' · <i class="gid">Game ID ' + esc(g.code || g.label || '') + '</i></div>'
           + (people ? '<div class="g2">' + esc(people) + '</div>' : '')
           + (g.reused ? '<div class="g2 warn">Already counted in an earlier result</div>' : '') + '</div>';

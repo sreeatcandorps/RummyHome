@@ -52,11 +52,7 @@ tags: [nightly]
 - extendedWaitUntil:
     visible: "Add round"
     timeout: 20000
-- tapOn: "Undo round"
-- extendedWaitUntil:
-    visible: "Remove the last round?"
-    timeout: 5000
-- tapOn: "Remove"
+- runFlow: ../lib/undo-last-round.yaml
 - extendedWaitUntil:
     visible: "Round 2"
     timeout: 15000

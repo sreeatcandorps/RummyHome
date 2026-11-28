@@ -110,7 +110,8 @@ export function GameListItem({ game, onPress, viewerId, checked, locked = false,
           {locked && lockedNote ? (
             <View style={styles.lockedNote}>
               <Icon source="trophy-outline" size={18} color={theme.colors.onSurfaceVariant} />
-              <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }} numberOfLines={2}>{lockedNote}</Text>
+              {/* No line cap: at 360 dp × 1.3 a two-line cap cut it to "Give award…" (12k). */}
+              <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }} testID="game-card-locked-note">{lockedNote}</Text>
             </View>
           ) : locked ? (
             <Icon source="lock-outline" size={22} color={theme.colors.onSurfaceVariant} />

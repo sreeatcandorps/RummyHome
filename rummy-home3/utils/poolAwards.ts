@@ -179,7 +179,7 @@ export function buildAwardSheet(preset: AwardPreset, inputs: Inputs, gets: Recor
   return { preset, entry: inputs.entry, poolTotal, givenOut: sum(rows.map((r) => r.gets)), rows };
 }
 
-/** The line above the Awards table, so the screen says which game it is: "101 pool · drop 25 · 5 players · Fri, Nov 27 · 4:58 PM".
+/** The line above the Awards table, so the screen says which game it is: "101 pool · drop 25 · 5 players · Nov 27 · 4:58 PM".
  * The limit leads ("101 pool", as players say it) so it is not read as the pool total of the line under the table. */
 export function awardsGameLine(game: { limit: number; drop: number; players: number; when?: string | null }): string {
   const parts = [`${game.limit} pool`, `drop ${game.drop}`, `${game.players} ${game.players === 1 ? 'player' : 'players'}`];
@@ -229,4 +229,12 @@ export function sameAwards(sheet: AwardSheet, saved: Record<string, number> | nu
   const ids = new Set([...Object.keys(current), ...Object.keys(saved)]);
   for (const id of ids) if ((current[id] ?? 0) !== (saved[id] ?? 0)) return false;
   return true;
+}
+
+/**
+ * "101 left · 5 drops" under a name on Awards. Each half holds together (non-breaking spaces), so a narrow name
+ * column breaks it at the dot only; on the Pixel 6 it broke as "101 left · 5 / drops" (12k).
+ */
+export function leftAndDrops(left: number, drops: number): string {
+  return `${left}\u00A0left · ${drops}\u00A0${drops === 1 ? 'drop' : 'drops'}`;
 }

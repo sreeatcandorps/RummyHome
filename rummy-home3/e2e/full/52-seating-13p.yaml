@@ -17,9 +17,9 @@ tags: [nightly]
 - tapOn: "Add Sree Test (you)"
 # Each pick: clear the field first (the keyboard can keep the last word and join it to the next, small phone
 # Nov 27: "Test HotelG"); wait for the one result, row 1, by its id and label (the search box's own text is
-# "Test X", never "Add Test X"). Close the keyboard: it covers the page instead of shrinking it, and after seven
-# chips on the small phone the result sits under it (Nov 27, the tap landed on the keys). Just after typing the
-# keyboard is up, so hideKeyboard cannot be a Back press. The pick is confirmed by the row leaving the list.
+# "Test X", never "Add Test X"). The keyboard stays up for every pick: since batch row 12o the page shrinks above
+# it and the chips take one sideways row while it is up, so the result sits right under the search (before, after
+# seven chips on the small phone it sat under the keys, Nov 27). The pick is confirmed by the row leaving the list.
 # A pick leaves the picker animating for ~10 s, so the tap waits 1 s for the screen to settle.
 - tapOn:
     id: "picker-search"
@@ -30,13 +30,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Alpha"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Alpha"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Alpha"
@@ -55,13 +48,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Bravo"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Bravo"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Bravo"
@@ -80,13 +66,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Charlie"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Charlie"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Charlie"
@@ -105,13 +84,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Delta"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Delta"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Delta"
@@ -130,13 +102,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Echo"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Echo"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Echo"
@@ -155,13 +120,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Foxtrot"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Foxtrot"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Foxtrot"
@@ -171,6 +129,9 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Foxtrot"
     timeout: 15000
+# Seven picked with the keyboard up: one sideways row of chips, not three wrapped rows (12o, option A).
+- assertVisible:
+    id: "selected-strip-one-row"
 - tapOn:
     id: "picker-search"
 - eraseText: 15
@@ -180,13 +141,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Golf"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Golf"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Golf"
@@ -205,13 +159,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Hotel"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Hotel"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Hotel"
@@ -230,13 +177,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test India"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test India"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test India"
@@ -255,13 +195,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Juliet"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Juliet"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Juliet"
@@ -280,13 +213,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Kilo"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Kilo"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Kilo"
@@ -305,13 +231,6 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Lima"
     timeout: 15000
-- hideKeyboard
-- scrollUntilVisible:
-    element:
-      id: "picker-row-1"
-      text: "Add Test Lima"
-    direction: DOWN
-    timeout: 30000
 - tapOn:
     id: "picker-row-1"
     text: "Add Test Lima"
@@ -321,14 +240,10 @@ tags: [nightly]
       id: "picker-row-1"
       text: "Add Test Lima"
     timeout: 15000
-# If the keyboard came back after the last pick it covers the Next bar (Pixel 6, Nov 27). Close it only when Next
-# is hidden: with no keyboard up, hideKeyboard is a Back press and leaves New game.
-- runFlow:
-    when:
-      notVisible:
-        id: "new-game-next"
-    commands:
-      - hideKeyboard
+# 12o: Next rides on top of the keyboard (it sat under it on the Pixel 6, Nov 27), alone: the two tiles come back
+# when the keyboard closes.
+- assertVisible:
+    id: "new-game-next"
 - extendedWaitUntil:
     visible: "Next · 13 players"
     timeout: 15000

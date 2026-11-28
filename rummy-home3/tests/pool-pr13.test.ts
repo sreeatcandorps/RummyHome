@@ -601,8 +601,7 @@ test('13.12 log labels for the pool kinds; help explains Complete → Award → 
 
 test('13.5d Awards names the game above the table (Sree, Nov 21: "show the game name and how much it was played for")', () => {
   const when = new Date(new Date().getFullYear(), 10, 27, 16, 58);
-  const day = when.toLocaleDateString('en-US', { weekday: 'short' });
-  assert.equal(awardsGameLine({ limit: 101, drop: 25, players: 5, when: when.toISOString() }), `101 pool · drop 25 · 5 players · ${day}, Nov 27 · 4:58 PM`);
+  assert.equal(awardsGameLine({ limit: 101, drop: 25, players: 5, when: when.toISOString() }), '101 pool · drop 25 · 5 players · Nov 27 · 4:58 PM');
   assert.equal(awardsGameLine({ limit: 201, drop: 20, players: 1 }), '201 pool · drop 20 · 1 player');
   const award = src('app/(screens)/games/award.tsx');
   assert.match(award, /testID="award-game-line"/);

@@ -52,6 +52,8 @@
     .changes .more { color: var(--muted); font-size: 12px; margin-top: 6px; }
     .legend b { color: var(--ink); }
     .msg { padding: 24px; color: var(--muted); }
+    footer.get { margin: 20px 16px 32px; text-align: center; font-size: 14px; color: var(--muted); }
+    footer.get a { color: var(--green); font-weight: 800; }
     @media (min-width: 900px) { main { max-width: 1100px; } .blocks { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; } .block { flex: 1 1 420px; margin-bottom: 0; } }
   </style>
 </head>
@@ -71,6 +73,8 @@
   </details>
   <main id="board"></main>
   <section id="changes"></section>
+  <!-- Small fixes batch row 8: every shared link is an invitation, so the page ends by pointing at the app. -->
+  <footer class="get" id="get-app"><a href="https://play.google.com/store/apps/details?id=com.mindweavetech.rummyhome" target="_blank" rel="noopener">Keep score like this — Get the EZ Score Android app</a><br />on Google Play</footer>
   <script>
     // Filled in at deploy. The repo keeps these tokens. Never commit a real key.
     const PROJECT = '__SUPABASE_URL__';
@@ -80,6 +84,12 @@
 
     function injected(value) {
       return typeof value === 'string' && value.length > 0 && value.indexOf('__') === -1;
+    }
+    // The app's one date format (utils/formatWhen.ts): "Nov 26 · 3:55 PM", the year only when it is not this year, no weekday.
+    function whenText(date) {
+      if (Number.isNaN(date.getTime())) return '';
+      const sameYear = date.getFullYear() === new Date().getFullYear();
+      return date.toLocaleDateString('en-US', Object.assign({ month: 'short', day: 'numeric' }, sameYear ? {} : { year: 'numeric' })) + ' · ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     }
     function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
@@ -129,7 +139,7 @@
       });
       const limit = pool ? Number(card.poolLimit) || 101 : null;
       const started = new Date(card.startedAt);
-      const when = Number.isNaN(started.getTime()) ? card.startedAt : started.toLocaleString();
+      const when = Number.isNaN(started.getTime()) ? card.startedAt : whenText(started);
       // 028: the game label (S3 / P1) comes with the card; older links carried a bare number.
       const fromCard = typeof card.gameLabel === 'string' && /^[SPG]\d+$/.test(card.gameLabel) ? 'Game ' + card.gameLabel : '';
       const linkParam = params.get('g') || '';
@@ -220,7 +230,7 @@
       if (!Array.isArray(rows) || rows.length === 0) { box.innerHTML = ''; return; }
       const lines = rows.map((row) => {
         const at = new Date(row.at);
-        const time = Number.isNaN(at.getTime()) ? '' : at.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        const time = whenText(at);
         return '<p><span class="t">' + esc(time) + '</span><b>' + esc(row.actorName || 'System') + '</b> · ' + esc(row.summary) + '</p>';
       }).join('');
       box.innerHTML = '<div class="changes"><h2>Changes</h2>' + lines + '<p class="more">Last ' + rows.length + ' important changes · full log in the app</p></div>';

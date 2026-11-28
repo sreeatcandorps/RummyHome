@@ -9,11 +9,11 @@ import { MAX_CONTENT_WIDTH, spacing, useAppTheme } from '@/constants/theme';
 import { useLayout } from '@/hooks/useLayout';
 import { useTutorial } from '@/hooks/useTutorial';
 import { lightTap } from '@/utils/haptics';
-import { clearOrder, displayOrder, nextDealerFor, OrderDraft, orderComplete, SEATING_CLEAR } from '@/utils/seating';
+import { clearOrder, displayOrder, nextDealerFor, OrderDraft, ORDER_START, orderComplete, SEATING_CLEAR } from '@/utils/seating';
 
 /**
  * New game, step 3 (PR 24; the circle since D138): Order of players. Nobody is numbered to begin with; tap the
- * players from the highest card to the lowest. Back / Clear / Next — or Start game when no co-admin step
+ * players from the highest card to the lowest. Back / Clear / Next — or Start when no co-admin step
  * follows. Pure presentation: the New game screen owns the draft and the create call.
  */
 export function OrderStep({ players, draft, onChange, onBack, onNext, nextIsStart, creating, error, meId }: {
@@ -75,7 +75,7 @@ export function OrderStep({ players, draft, onChange, onBack, onNext, nextIsStar
         </Button>
         {nextIsStart ? (
           <Button mode="contained" onPress={onNext} loading={creating} disabled={creating || !complete} icon="play" contentStyle={styles.barContent} labelStyle={styles.nextLabel} style={styles.next} accessibilityLabel="Start game" testID="start-game">
-            Start game
+            {ORDER_START}
           </Button>
         ) : (
           <Button mode="contained" onPress={onNext} loading={creating} disabled={creating || !complete} icon="arrow-right" contentStyle={styles.barContent} labelStyle={styles.nextLabel} style={styles.next} accessibilityLabel="Next: co-admin" testID="new-game-order-next">
