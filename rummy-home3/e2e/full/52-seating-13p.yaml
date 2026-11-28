@@ -1,0 +1,474 @@
+appId: com.mindweavetech.rummyhome
+tags: [nightly]
+# D138 at 13 players (Sree, Nov 27: "Make your design work for up to 13"). New game with Sree and twelve of
+# game F's placeholders (Test Alpha … Test Lima, in sree's My players from seed-e2e.sql), picked through the
+# search box so the list's sort order does not matter → Game type → Next → Order of players: thirteen grey
+# discs. Tapping ring position 13 (one step right of the top) thirteen times numbers them from the last
+# picked down: Test Lima seat 13 at 12 o'clock … Test Alpha seat 2, Sree seat 1 — one step right of the top,
+# the Dealer ("You deal round 1"). Then Test Foxtrot (seat 7) is selected: ▲ ▼ in the middle for him alone.
+# Last, the same screen turned sideways (D89: no design of its own, the ring scrolls). No game is started:
+# leaving New game forgets the draft, so nothing is left behind for other flows.
+---
+- runFlow: ../lib/ensure-signed-in.yaml
+- tapOn: "New game"
+- extendedWaitUntil:
+    visible: "Add by initials"
+    timeout: 15000
+- tapOn: "Add Sree Test (you)"
+# Each pick: clear the field first (the keyboard can keep the last word and join it to the next, small phone
+# Nov 27: "Test HotelG"); wait for the one result, row 1, by its id and label (the search box's own text is
+# "Test X", never "Add Test X"). Close the keyboard: it covers the page instead of shrinking it, and after seven
+# chips on the small phone the result sits under it (Nov 27, the tap landed on the keys). Just after typing the
+# keyboard is up, so hideKeyboard cannot be a Back press. The pick is confirmed by the row leaving the list.
+# A pick leaves the picker animating for ~10 s, so the tap waits 1 s for the screen to settle.
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Alpha"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Alpha"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Alpha"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Alpha"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Alpha"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Bravo"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Bravo"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Bravo"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Bravo"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Bravo"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Charlie"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Charlie"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Charlie"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Charlie"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Charlie"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Delta"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Delta"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Delta"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Delta"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Delta"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Echo"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Echo"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Echo"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Echo"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Echo"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Foxtrot"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Foxtrot"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Foxtrot"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Foxtrot"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Foxtrot"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Golf"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Golf"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Golf"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Golf"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Golf"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Hotel"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Hotel"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Hotel"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Hotel"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Hotel"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test India"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test India"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test India"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test India"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test India"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Juliet"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Juliet"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Juliet"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Juliet"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Juliet"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Kilo"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Kilo"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Kilo"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Kilo"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Kilo"
+    timeout: 15000
+- tapOn:
+    id: "picker-search"
+- eraseText: 15
+- inputText: "Test Lima"
+- extendedWaitUntil:
+    visible:
+      id: "picker-row-1"
+      text: "Add Test Lima"
+    timeout: 15000
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "picker-row-1"
+      text: "Add Test Lima"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "picker-row-1"
+    text: "Add Test Lima"
+    waitToSettleTimeoutMs: 1000
+- extendedWaitUntil:
+    notVisible:
+      id: "picker-row-1"
+      text: "Add Test Lima"
+    timeout: 15000
+# If the keyboard came back after the last pick it covers the Next bar (Pixel 6, Nov 27). Close it only when Next
+# is hidden: with no keyboard up, hideKeyboard is a Back press and leaves New game.
+- runFlow:
+    when:
+      notVisible:
+        id: "new-game-next"
+    commands:
+      - hideKeyboard
+- extendedWaitUntil:
+    visible: "Next · 13 players"
+    timeout: 15000
+- tapOn:
+    id: "new-game-next"
+- extendedWaitUntil:
+    visible: "Game type"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "new-game-type-next"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "new-game-type-next"
+# Order of players: thirteen grey discs in pick order from the top (Sree at 12 o'clock, Test Lima one step right).
+- extendedWaitUntil:
+    visible:
+      id: "seat-row-13"
+    timeout: 20000
+- assertVisible:
+    id: "order-counter"
+    text: "0 of 13 numbered"
+- assertVisible:
+    id: "seat-row-1"
+    text: "Not numbered, Sree Test"
+- assertVisible:
+    id: "seat-row-13"
+    text: "Not numbered, Test Lima"
+# Position 13 always holds the last picked player still waiting: thirteen taps there number everyone, highest first.
+# The position stays put while the players move, so each tap waits only 1 s for the glide.
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- assertVisible:
+    id: "order-counter"
+    text: "12 of 13 numbered"
+- tapOn:
+    id: "seat-row-13"
+    waitToSettleTimeoutMs: 1000
+- assertVisible:
+    id: "order-counter"
+    text: "Everyone numbered"
+- assertVisible:
+    id: "seat-row-1"
+    text: "Seat 13, Test Lima"
+- assertVisible:
+    id: "seat-row-2"
+    text: "Seat 12, Test Kilo"
+- assertVisible:
+    id: "seat-row-13"
+    text: "Seat 1, Sree Test, deals next"
+- assertVisible:
+    id: "seat-label-13"
+    text: "ST"
+- assertVisible:
+    id: "seat-number-13"
+    text: "1"
+- assertVisible:
+    id: "seat-deals-next"
+    text: "Dealer"
+- assertVisible:
+    id: "seat-deal-direction"
+- extendedWaitUntil:
+    visible:
+      id: "seat-deals-line"
+      text: "You deal round 1"
+    timeout: 10000
+- assertNotVisible:
+    id: "seat-selected"
+- takeScreenshot: 13p-order-everyone-numbered
+# Select Test Foxtrot (position 7, seat 7): his name and ▲ ▼ in the middle, the others dimmed; nobody else has arrows.
+- tapOn:
+    id: "seat-row-7"
+- extendedWaitUntil:
+    visible:
+      id: "seat-selected-name"
+      text: "Test Foxtrot"
+    timeout: 10000
+- assertVisible:
+    id: "seat-up-7"
+- assertVisible:
+    id: "seat-down-7"
+- assertNotVisible:
+    id: "seat-up-6"
+- takeScreenshot: 13p-order-selected-arrows
+- tapOn:
+    id: "seat-row-7"
+- assertNotVisible:
+    id: "seat-selected"
+# Sideways (D89: no design of its own): the ring keeps its discs whole and the page scrolls.
+- setOrientation: LANDSCAPE_LEFT
+- extendedWaitUntil:
+    visible:
+      id: "seat-row-1"
+    timeout: 15000
+- takeScreenshot: 13p-order-landscape
+- setOrientation: PORTRAIT
+- runFlow: ../lib/stand-upright.yaml
+# Leave without starting: Back to Game type, Back to the players, Back out of New game (the draft is forgotten).
+- back
+- extendedWaitUntil:
+    visible: "Game type"
+    timeout: 15000
+- back
+- extendedWaitUntil:
+    visible: "Add by initials"
+    timeout: 15000
+- back
+- runFlow: ../lib/home-top.yaml

@@ -9,7 +9,7 @@ import {
 } from '../utils/pool';
 import { draftFromRules, parseReentryLimit, rulesFromDraft } from '../utils/rulesDraft';
 import {
-  clearOrder, displayOrder, displayRows, isFirstNumbered, isLastNumbered, numberedCounter, orderChanged, orderComplete, seatNumberOf, showsPlayerCode, startOrder, stepNumbered, tapPlayer,
+  clearOrder, displayOrder, displayRows, isFirstNumbered, isLastNumbered, numberedCounter, orderChanged, orderComplete, seatNumberOf, showsPlayerCode, startOrder, stepNumbered, stepsFor, tapPlayer,
 } from '../utils/seating';
 
 // PR 24 (Sree's feedback on v11, Nov 17) — item 7: where a player who comes back starts.
@@ -197,7 +197,7 @@ test('X24-10b arrows move numbered players one seat at once and never touch the 
   assert.deepEqual(cleared.base, four, 'Clear keeps the players');
 });
 
-test('X24-10c mid-game: the sheet opens prefilled so one move is one tap; Done stays off until the order changes', () => {
+test('X24-10c mid-game: the page opens prefilled (select, then ▲ or ▼); Done stays off until the order changes', () => {
   const d = startOrder(four, true);
   assert.deepEqual(d.numbered, four, 'seat order as played');
   assert.deepEqual(displayRows(d), ['zed', 'priya', 'harish', 'sree'], 'shown seat 4 down to seat 1');
@@ -217,15 +217,16 @@ test('X24-10c mid-game: the sheet opens prefilled so one move is one tap; Done s
 
 test('X24-10d the component and sheet: no chips panel, no "Keep this order", arrows only on numbered rows, Clear and Done', () => {
   const list = read('components/game/OrderOfPlayers.tsx');
-  assert.match(list, /\{numbered && showsArrows\(draft, id\) \? \(\s*<View style=\{styles\.arrows\}>/, 'arrows render for numbered rows only (D74: and only the selected row while one is selected)');
-  assert.match(list, /onPress=\{\(\) => onChange\(tapPlayer\(draft, id\)\)\}/, 'a row tap goes through tapPlayer');
-  assert.match(list, /showsPlayerCode\(rowWidth, fontScale\)/, 'the player ID shows when it fits, in text-size units');
+  // D138: the list became a circle; ▲ ▼ live in the middle card, for the one selected player only.
+  assert.match(list, /if \(centrePlayer && selected\) \{[\s\S]*?const steps = stepsFor\(draft, selected\);/, 'arrows only for the selected player');
+  assert.match(list, /const next = tapRing\(draft, id\);/, 'a disc tap goes through tapRing');
+  assert.match(list, /onPress=\{\(\) => onChange\(deselect\(draft\)\)\}/, 'a tap on the table lets go');
   assert.ok(!list.includes('Keep this order') && !list.includes('Picked up'));
   const sheet = read('components/game/SeatingSheet.tsx');
   assert.match(sheet, /startOrder\(base, true\)/, 'mid-game opens prefilled');
   assert.match(sheet, /testID="seating-clear"/);
   // Small fixes batch (Nov 21): Done is never grey once everyone is numbered — unchanged order → it closes.
-  assert.match(sheet, /onPress=\{changed \? save : onDismiss\} loading=\{saving\} disabled=\{saving \|\| !complete\} testID="seating-done"/);
+  assert.match(sheet, /onPress=\{changed \? save : onDismiss\} loading=\{saving\} disabled=\{saving \|\| !complete\}[^\n]*testID="seating-done"/);
   assert.match(sheet, /unchanged=\{complete && !changed\}/, 'the counter line says why Done only closes');
   assert.equal(numberedCounter(4, 4, true), 'Everyone numbered · order unchanged — Done closes');
   assert.equal(numberedCounter(3, 4, true), '3 of 4 numbered');
@@ -292,10 +293,11 @@ test('X24-1 no "stake" in user-facing copy', () => {
   }
 });
 
-test('D59 + D74: the lowest numbered seat renders no down arrow; the top row no up arrow', () => {
+test('D59 + D74 (D138 ring): the lowest numbered seat has no ▼, the highest no ▲ — an empty slot, never a grey chevron', () => {
   const list = read('components/game/OrderOfPlayers.tsx');
-  assert.match(list, /seat === draft\.base\.length - draft\.numbered\.length \+ 1 \? \(\s*<View style=\{styles\.arrowSlot\} \/>/);
-  assert.match(list, /icon="chevron-down"[^\n]*disabled=\{disabled\} onPress/);
-  assert.match(list, /seat === draft\.base\.length \? \(\s*<View style=\{styles\.arrowSlot\} \/>/, 'D74: the top row has no ▲ (was a disabled grey chevron)');
-  assert.match(list, /icon="chevron-up"[^\n]*disabled=\{disabled\} onPress/);
+  assert.match(list, /\{steps\.up \? \([\s\S]*?chevron-up[\s\S]*?\) : <View style=\{styles\.moveSlot\} \/>\}/);
+  assert.match(list, /\{steps\.down \? \([\s\S]*?chevron-down[\s\S]*?\) : <View style=\{styles\.moveSlot\} \/>\}/);
+  const d = ['a', 'b', 'c', 'd'].reduce((acc, id) => tapPlayer(acc, id), startOrder(['a', 'b', 'c', 'd']));
+  assert.deepEqual(stepsFor(d, 'a'), { up: false, down: true }, 'seat 4: no ▲');
+  assert.deepEqual(stepsFor(d, 'd'), { up: true, down: false }, 'seat 1: no ▼');
 });

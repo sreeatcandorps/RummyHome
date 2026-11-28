@@ -4,9 +4,11 @@ tags: [smoke]
 # with Ravi and three of his placeholders → Game type → Next → Order of players: nothing opens by
 # itself (D74 — Sree: "I don't want it to pop up as a default anymore"); the screen shows the one-line
 # how-to with Show me. Show me opens the three steps, dismissable: "Everyone draws a card" → Next →
-# "Tap the highest card first" → Next → "Wrong tap? Fix it" → Got it; Back works. Tapping the four rows
-# highest to lowest ends with the toast "Lowest card — <name> deals round 1" on the last tap; the
-# selected row alone shows ▲ ▼, a second tap deselects and every row's arrows return. Help › New game ›
+# "Tap the highest card first" → Next → "Wrong tap? Fix it" → Got it; Back works. Tapping the four discs
+# highest to lowest ends, on the last tap, with the middle of the circle naming the dealer (D61 → D138:
+# "Dealer · you deal round 1", then "You deal round 1" at rest) and the Dealer tag on Ravi. No arrows at
+# rest (D138); tapping a numbered player selects him — ▲ ▼ in the middle for him alone — and a second tap
+# lets go. Help › New game ›
 # Order of players has Watch how. No game is started; the flow signs Sree back in at the end. Runs after smoke/23.
 ---
 - runFlow:
@@ -102,8 +104,8 @@ tags: [smoke]
     notVisible:
       id: "seating-tutorial"
     timeout: 10000
-# Seat the table: the rows are Ravi, Anil, Kiran, Meena in pick order. Highest card first (Meena, row 4),
-# then Kiran, then Anil, then Ravi last — the lowest card. The last tap brings the toast.
+# Seat the table: the discs are Ravi, Anil, Kiran, Meena in pick order from the top. Highest card first
+# (Meena, position 4), then Kiran, then Anil, then Ravi last — the lowest card, seat 1, the dealer.
 - tapOn:
     id: "seat-row-4"
 - tapOn:
@@ -116,13 +118,38 @@ tags: [smoke]
 - tapOn:
     id: "seat-row-4"
 - assertVisible:
+    id: "seat-flash-deals"
+    text: "Dealer · you deal round 1"
+    optional: true
+- takeScreenshot: 24e-order-last-tap-dealer
+- assertVisible:
     id: "order-counter"
     text: "Everyone numbered"
-- assertVisible: "Lowest card — you deal round 1"
-- takeScreenshot: 24e-order-last-tap-toast
+- assertVisible:
+    id: "seat-row-4"
+    text: "Seat 1, Ravi Kumar, deals next"
 - assertVisible:
     id: "seat-deals-next"
-# D74: Ravi (row 4, seat 1, the last tap) is selected — his ▲ shows and nobody else's; seat 1 has no ▼.
+- extendedWaitUntil:
+    visible:
+      id: "seat-deals-line"
+      text: "You deal round 1"
+    timeout: 10000
+# D138: numbering selects nobody, so there are no arrows at rest.
+- assertNotVisible:
+    id: "seat-selected"
+- assertNotVisible:
+    id: "seat-up-4"
+- assertNotVisible:
+    id: "seat-up-2"
+# Tap Ravi (position 4, seat 1): selected — his ▲ shows and nobody else's; seat 1 has no ▼.
+- tapOn:
+    id: "seat-row-4"
+- extendedWaitUntil:
+    visible:
+      id: "seat-selected-name"
+      text: "Ravi Kumar"
+    timeout: 10000
 - assertVisible:
     id: "seat-up-4"
 - assertNotVisible:
@@ -131,27 +158,27 @@ tags: [smoke]
     id: "seat-up-2"
 - assertNotVisible:
     id: "seat-up-3"
-- takeScreenshot: 24f-order-selected-row-arrows-only
-# Tap him again: nobody selected, every numbered row shows its arrows (the top row has no ▲).
+- takeScreenshot: 24f-order-selected-arrows-only
+# Tap him again: nobody selected, no arrows anywhere.
 - tapOn:
     id: "seat-row-4"
-- assertVisible:
-    id: "seat-up-2"
-- assertVisible:
-    id: "seat-up-3"
-- assertVisible:
-    id: "seat-down-1"
 - assertNotVisible:
-    id: "seat-up-1"
+    id: "seat-selected"
+- assertNotVisible:
+    id: "seat-up-4"
+- assertNotVisible:
+    id: "seat-down-1"
 - assertVisible:
     id: "order-counter"
     text: "Everyone numbered"
-- takeScreenshot: 24g-order-deselected-all-arrows
-# Select Anil (row 3): only his arrows.
+- takeScreenshot: 24g-order-deselected-no-arrows
+# Select Anil (position 3, seat 2): only his arrows, both of them.
 - tapOn:
     id: "seat-row-3"
 - assertVisible:
     id: "seat-up-3"
+- assertVisible:
+    id: "seat-down-3"
 - assertNotVisible:
     id: "seat-up-2"
 - assertNotVisible:

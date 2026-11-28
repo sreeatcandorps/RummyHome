@@ -233,9 +233,11 @@ re-pointed `moveSeat`, one Help bullet, smoke 19 + a nightly flow. Roughly PR 9-
 
 None of these change the data path above: they all end in the same `set_seating_order` call.
 
-## 11. Order of players as a circle (Sree, Nov 27 2026; D138) — approved, being built
+## 11. Order of players as a circle (Sree, Nov 27 2026; D138) — approved, built
 
-Status: **approved by Sree on Nov 27 (Q58 → D138); a build helper is building it from the geometry below.** Redraws
+Status: **approved by Sree on Nov 27 (Q58 → D138); built from the geometry below (branch
+`cursor/seating-circle-build-259f`). 11.7 is measured on the build; 11.8 lists where the build differs from the
+pictures.** Redraws
 `design-review-2/mockups/table-mockup.png` (Nov 21, §8.5 of `design-review-2.md`), which predates Palette B (D65), the
 Size-S look (D66), D74 and D113. The rules of §3–§5 and D56 / D58 / D59 / D64 / D70 do not change: this is a new
 picture of the same order, not a new order. The first round of these pictures (Nov 27 morning) put seat 1 at the
@@ -378,9 +380,15 @@ the dealer rules, Realtime.
 - Device flows: `e2e/smoke/19-seating-order.yaml` (row ids → disc ids by seat, assertions on the flash text and the
   DEALER label, ▲ ▼ through the middle buttons, frames 19 … 19j re-taken), `e2e/smoke/24-seating-tutorial.yaml` (24e
   toast → flash, 24f / 24g selected-only arrows), `e2e/smoke/16-pool-game.yaml` (its Order of players step),
-  `e2e/full/51-seating-20p.yaml` (20 discs on one screen, WWW / MMM never cut, Pixel 6 and small phone), plus the help
-  frames in `e2e/smoke/21-help-frames.yaml`. New test ids: `seat-disc-<seat>`, `seat-dealer-label`, `seat-flash`,
-  `seat-move-up`, `seat-move-down`.
+  `e2e/full/51-seating-20p.yaml` (20 discs on one screen, WWW / MMM never cut, Pixel 6 and small phone),
+  `e2e/full/52-seating-13p.yaml` (Sree: "Make your design work for up to 13" — New game with 13, all numbered, one
+  selected, then sideways: `13p-order-everyone-numbered`, `13p-order-selected-arrows`, `13p-order-landscape`), plus
+  the help frames in `e2e/smoke/21-help-frames.yaml`. As built the ids keep their old meaning where they can:
+  `seat-row-<p>` is ring position p (1 = 12 o'clock = seat N, counted anticlockwise, so it is the old list's row p) and
+  its accessibility label reads "Seat 4, Priya Test"; `seat-label-<p>` the initials; `seat-no-<p>` / `seat-number-<p>`
+  the badge; `seat-deals-next` the Dealer tag; `seat-up-<p>` / `seat-down-<p>` the middle card's ▲ ▼ for the selected
+  player; new: `seat-selected` (+ `-name`, `-seat`), `seat-flash` (+ `-name`, `-seat`, `-deals`), `seat-highest-card`
+  (the first tap's pill), `seat-deals-line` (the middle at rest), `seat-deal-direction`, `seat-ring`.
 - The UI PR carries the screenshot matrix (0 / 1 / 5 rounds × 4 / 13 players, D45) in light and dark, plus the 20-player
   small-phone frame.
 
@@ -392,34 +400,59 @@ one step to its right (D138).**
 
 ### 11.7 Where it fails
 
-Measured with the generator's layout (`make-seating-circle.py --fit`), which is the algorithm the build uses. In plain
-words: **a disc never gets smaller than 48 dp and initials are never cut, on any screen, at any number of players.**
-Instead, as players are added the oval first grows taller until it fills the space between the title and the buttons;
-past that the page scrolls, with the title and the buttons staying put. So "fails" below means "no longer fits on one
-screen without scrolling".
+Measured on the build (`utils/seatRing.ts`, the numbers pinned by `tests/seat-ring.test.ts`). **A disc is never under
+48 dp and initials are never cut, on any screen, at any count.** When the players do not fit, the oval grows taller
+until it fills the space between the title and the buttons; past that **the page scrolls** (the title and the buttons
+stay). Space for the ring is the screen less the title, the bottom bar and the two lines under the ring; mid-game the
+subline and the yellow note take more (about 540 dp on the Pixel 6, about 390 dp on the small phone once a round is
+saved). New game counts have the dealer at seat 1; mid-game counts try the Dealer mark on every seat.
 
-| Screen | Looks right (at least half a disc of space between neighbours) | Scrolls from (normal two-letter initials) | Scrolls from (every player three letters, e.g. WWW) | What the app does then |
+| Screen | One screen, two-letter initials | Some three-letter (every fifth: WWW, MMM, HG2) | All three letters | Then |
 | --- | --- | --- | --- | --- |
-| Pixel 6 (412 dp, text 1.0) | 4–20 | 28 players | 23 players | Page scrolls; discs and letters stay full size |
-| 360 dp small phone, text 1.0 | 4–16 | 23 players | 19 players | Same |
-| 360 dp small phone, text 1.3 (CI's small phone) | 4–15 | 22 players | 15 players | Same; from 14 the ring is crowded but every disc and letter is whole |
-| 360 dp, text 1.5 | 4–15 | 22 players | 13 players | Same |
-| 360 dp, text 2.0 (largest) | 4–12 | 17 players | 7 players | Same; the middle is only about 115 dp wide, so the flash's name wraps to two or three lines |
-| 360 dp × 1.3, mid-game page (yellow note above the ring) | 4–13 | 19 players | 13 players | Same |
-| Tablet (800 × 1280 dp) | 4–30 | over 30 | over 30 | Never scrolls; the ring simply spreads wider |
-
-"Looks right" is measured with two-letter initials: at least 24 dp of felt between any two neighbouring discs.
-How to read it: a real table is mostly two-letter initials with perhaps one or two three-letter ones, so the real limit
-sits between the last two columns. Sree's range (up to 13 looks right, 14–20 works) holds on every phone up to text 1.5
-when the initials are the usual two letters; at the largest text (2.0) it looks right up to 12 and scrolls from 17. The one case that scrolls early is a whole table of three-letter initials
-at the largest text sizes; there the page scrolls rather than shrinking anything.
+| Pixel 6, New game | 2–20 | 2–20 | 2–20 | — |
+| Pixel 6, mid-game page | 2–20 | 2–18 | 2–18 | 19–20 scroll by under 90 dp |
+| Pixel 6, text 1.3 | 2–20 | 2–20 | 2–16 | scrolls by up to 175 dp at 20 |
+| 360 dp, text 1.0 | 2–20 | 2–20 | 2–16 | scrolls by up to 116 dp at 20 |
+| 360 dp × 1.3, New game (CI's small phone) | 2–18 | 2–16 | 2–12 | 20 scrolls about 100 dp (two letters), 310 dp (all three) |
+| 360 dp × 1.3, mid-game with the note | 2–12 | 2–9 | 2–9 | 13–14 scroll by under one disc; 20 by about 240 dp (half a screen) |
+| 360 dp, text 2.0 | none | none | none | always scrolls: 2–8 players by under 60 dp, 20 by 300–700 dp |
+| Landscape phone (D89, no design) | none | none | none | the ring is taller than the short side: scrolls 80–180 dp |
+| Tablet (800 × 1280) | 2–20 | 2–20 | 2–20 | — |
 
 Other places it gets tight, and what the build does:
 
-- *The middle at 20 players on a small phone.* Narrow (about 165 dp); a long name wraps to two lines and the flash
-  covers the "first open card" label for its 2 seconds. Accepted (Sree: "14 onwards, it's okay if it doesn't look that
-  great").
-- *Landscape* (D89, no design). The ring is limited by the short side, so more players scroll sooner; it still never
-  shrinks below 48 dp or cuts letters.
-- *A disc's pill wider than a quarter of the ring* (very long initials such as a four-letter label at text 2.0). The ring
-  still places it without overlap; the page scrolls sooner.
+- *The middle card is narrower than its two buttons* (about 118 dp) on the small phone at text 1.3 for some counts
+  (3, 6, 9 players), mid-game there from 3, and at text 2.0 always. The selected card then covers the nearest badge or
+  the edge of a side disc **while it is open** (it closes with a tap anywhere). The oval grows to widen it only while
+  it still fits on one screen; it never scrolls just to widen the card.
+- *The Dealer tag on a crowded side.* It sits above the dealer's disc in the top half, below it in the bottom half;
+  if a neighbour is in the way it tries the other side, then slides sideways away from his own badge, then sits on
+  his disc's rim like a ribbon (half on the disc, under the initials). Only if all of that fails does the oval grow.
+- *Two badges facing each other across a narrow ring* (big text, many players) move to the middle-line side of their
+  discs; a badge that would sit on a neighbour tries the other sides of its own disc first.
+- *Long names in the middle.* Two lines, then cut with "…"; the screen reader still reads the full name, seat and
+  "deals next" of every disc.
+
+### 11.8 As built: where it differs from the pictures
+
+- **The counter stays under the ring**, with "The deal goes anticlockwise ⟲" under it, not in the middle: the middle is
+  the flash and the selected player's card, and the counter (D64's "order unchanged — Done closes") must stay readable
+  while they show.
+- **The deal arrow has no "first open card" label**: a dotted arrow leaves the dealer anticlockwise, and the line under
+  the ring says which way the deal goes. The label had no room at 13+ players.
+- **The middle at rest** says the one line (building) or "Tap anyone to move them." (everyone numbered), then
+  "Ravi deals round 1" / "You deal round 6" and Show me. The pictures' "Round 6 · Kiran deals next" reads as
+  "Kiran deals round 6".
+- **The flash pill** on the dealer's tap reads "Dealer · deals round 1" ("Dealer · you deal round 1" for the signed-in
+  player); the first tap's pill is "highest card". A tap that takes a number back flashes "Number taken back".
+- **Out players stay movable** (as in today's sheet and flow 51): grey, struck through, "out" in the label; the deal
+  and the first open card skip them.
+- **The Show me steps are the circle**, with the same three titles and lines: four players, the K at the top, the 2 one
+  step right of it with the Dealer tag, the finger tapping each disc and the middle naming him; step 3 takes the
+  latest tap back, then selects Chitra and taps her ▲. It is the screen's own layout, drawn at most 220 dp tall
+  inside the dialog (a picture, nothing to tap); seen on the Pixel 6 in run 46076237027 (frames 24b–24d, and Help
+  › Watch how in 24h). **No Help picture shows Order of players**: the section is words plus Watch how (the steps
+  above), and none of the 17 annotated pictures in `assets/help` is of this screen, so nothing needed redrawing; the
+  Help words are updated. A picture of its own (like D98's Find in database) would be new: next-up row 12p.
+- **The dealer's job still moves to seat 2** (D58): on the ring the Dealer mark steps one disc clockwise each round,
+  while the first card goes anticlockwise. That is Q63, unchanged until Sree answers.
