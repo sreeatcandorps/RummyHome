@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, AppState, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,7 +12,7 @@ import { playerIdentityService } from '@/services/playerIdentity';
 import { playersService } from '@/services/players';
 import { Player } from '@/types/player';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
-import { addAdminBlockedReason, addAdminPreview, addAdminProblem, PLAYERS_ADMINS_TITLE } from '@/utils/gameAdmins';
+import { addAdminBlockedReason, addAdminPreview, addAdminProblem, playersAdminsTitle } from '@/utils/gameAdmins';
 import { parsePlayerNo, PendingLink } from '@/utils/playerIdentity';
 import { seatRemovalProblem } from '@/utils/seatRemoval';
 import { playerIdBadge, registrationLabel, seatMenu, SeatMenuItem, seatRoleLabel } from '@/utils/gamePlayers';
@@ -33,7 +33,7 @@ import { LinkPlayerDialog } from '@/components/players/LinkPlayerDialog';
 import { LinkRequestSentDialog } from '@/components/players/LinkRequestSentDialog';
 import { shareInvite } from '@/utils/invite';
 import { seatLabels } from '@/utils/initials';
-import { screenTitle } from '@/utils/gameLabel';
+import { headerTitleRoom } from '@/utils/gameLabel';
 
 type Sheet =
   | { kind: 'edit'; seat: Player }
@@ -59,7 +59,8 @@ export default function GamePlayersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useAppTheme();
-  const { insets } = useLayout();
+  const { insets, width } = useLayout();
+  const { fontScale } = useWindowDimensions();
   const { game, roster, canScore, loading, error, reload } = useGameRoster(typeof id === 'string' ? id : undefined);
   const [viewer, setViewer] = useState<Player | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -182,7 +183,7 @@ export default function GamePlayersScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ title: screenTitle(PLAYERS_ADMINS_TITLE, game), headerRight: () => <HelpButton topic="players-admins" /> }} />
+      <Stack.Screen options={{ title: playersAdminsTitle(game, headerTitleRoom(width, 1), fontScale), headerRight: () => <HelpButton topic="players-admins" /> }} />
       <ScrollView contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}>
         <View style={[styles.section, styles.sectionRow]}>
           <Text variant="titleSmall">Playing · {playing.length}</Text>

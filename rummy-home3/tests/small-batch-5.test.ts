@@ -5,6 +5,9 @@ import path from 'node:path';
 import { pickerWhileTyping } from '../utils/addPlayers';
 import { fitHeaderTitle, headerTitleRoom } from '../utils/gameLabel';
 import { MY_PLAYERS_SHORT, myPlayersLabel } from '../utils/homeButtons';
+import { playersAdminsTitle } from '../utils/gameAdmins';
+import { visibleRoleTag } from '../utils/gameAccess';
+import { HELP_TOPICS } from '../constants/helpTopics';
 import { leftAndDrops } from '../utils/poolAwards';
 import { ROUND_SAVED_NOTE_MS, roundSavedMark, roundSavedNote, UNDO_MENU_ITEM } from '../utils/roundSavedNote';
 
@@ -133,4 +136,31 @@ test('12k: tablet smoke/22 turns really sideways and stands up again', () => {
   assert.match(lib, /- setOrientation: LANDSCAPE_LEFT[\s\S]*?when:\n\s+notVisible:\n\s+id: "landscape-table-only"\n\s+commands:\n\s+- setOrientation: PORTRAIT/);
   assert.ok(flow.indexOf('- runFlow: ../lib/turn-sideways.yaml') < flow.indexOf('- takeScreenshot: 22c-points-10p-landscape'));
   assert.match(flow, /- takeScreenshot: 22c-points-10p-landscape\n- setOrientation: PORTRAIT\n- runFlow: \.\.\/lib\/stand-upright\.yaml/);
+});
+
+// ---- 12j: Players · Admins title and help; D103's text ----
+
+test('12j (a): the Players · Admins title keeps the game label at 360 dp × 1.3', () => {
+  const game = { gameLabel: 'S3' };
+  assert.equal(playersAdminsTitle(game, headerTitleRoom(360, 1), 1.3), 'Players · S3', 'it was cut before the label');
+  assert.equal(playersAdminsTitle(game, headerTitleRoom(412, 1), 1), 'Players · Admins · S3', 'the Pixel 6 keeps the full title');
+  assert.equal(playersAdminsTitle(null, headerTitleRoom(360, 1), 1.3), 'Players · Admins');
+  assert.match(src('app/(screens)/games/players.tsx'), /title: playersAdminsTitle\(game, headerTitleRoom\(width, 1\), fontScale\)/);
+});
+
+test('12j (b): the help names only the roles the screen shows (Creator, Admin; no Player or View only tag)', () => {
+  const topic = HELP_TOPICS['players-admins'];
+  const text = [...topic.needToKnow, ...(topic.screenshot?.legend ?? [])].join('\n');
+  assert.doesNotMatch(text, /Player, View only|\(Creator, Admin, Player/);
+  assert.match(text, /\*\*Playing\*\*, \*\*Admins not playing\*\* and \*\*Watching\*\*/);
+  assert.match(text, /A \*\*Creator\*\* tag marks who started the game; creators and admins also see an \*\*Admin\*\* tag/);
+  assert.equal(visibleRoleTag('Player', true), null, 'the screen never tags a plain player');
+  assert.equal(visibleRoleTag('View only', true), null);
+});
+
+test('12j (c): D103 no longer says the Profile cards are built', () => {
+  const d103 = src('docs/decisions.md').split('\n').find((line) => line.startsWith('| D103 ')) ?? '';
+  assert.doesNotMatch(d103, /built · cards and initials/);
+  assert.match(d103, /The white cards were not built:\*\* Profile is flat grouped rows \(`SettingsGroup`/);
+  assert.match(src('components/ui/SettingsGroup.tsx'), /no card, no icon square/);
 });

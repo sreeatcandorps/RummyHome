@@ -585,7 +585,8 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     icon: 'account-cog-outline',
     purpose: 'Who is in this game, who may change scores, and the row actions.',
     needToKnow: [
-      'Each row shows the name, Player ID and role (Creator, Admin, Player, View only). Only players who have not finished signing up carry a tag ([Unregistered], [Pending registration]).',
+      'Three lists: **Playing**, **Admins not playing** and **Watching**. Each row shows the name and Player ID.',
+      'A **Creator** tag marks who started the game; creators and admins also see an **Admin** tag on the admins. Everyone else has no role tag. Only players who have not finished signing up carry a tag ([Unregistered], [Pending registration]).',
       'Admins can change scores. The creator is always an admin. Admins can be set after the game is over too.',
       '**Remove from game** asks first and works only while the player has no scores or every round score they have is 0. Otherwise edit the rounds and clear their scores first.',
       '**Add new player** picks from My players (0 for rounds already played). **Add non-playing admin**: someone who keeps score but does not play, by Player ID; no column.',
@@ -593,7 +594,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     screenshot: {
       file: 'players-admins',
       legend: [
-        'A row: name, **#ID** and role (Creator, Admin, Player). Only players still signing up carry a tag.',
+        'A row: name and **#ID**; **Creator** on who started the game, **Admin** on the admins (shown to admins). Only players still signing up carry a tag.',
         'The arrows move a seat up or down the order of players; Seat 1 deals first. Played rounds keep their dealer.',
         'The row ⋮: Invite, Link to Player ID, Edit initials, Edit name, Make admin, Remove from game.',
         '**Add non-playing admin** by Player ID: keeps score, gets no column.',

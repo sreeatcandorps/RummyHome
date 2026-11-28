@@ -1,5 +1,6 @@
 import { GameLike, isSeatAdmin, playerIdBadge, SeatLike } from '@/utils/gamePlayers';
 import { PlayerStatus } from '@/utils/playerIdentity';
+import { fitHeaderTitle, LabelledGame, screenTitle } from '@/utils/gameLabel';
 
 /**
  * Nov 10: a game can have admins who do not play. They are added by Player ID from the
@@ -8,6 +9,14 @@ import { PlayerStatus } from '@/utils/playerIdentity';
  */
 
 export const PLAYERS_ADMINS_TITLE = 'Players · Admins';
+
+/**
+ * The page's header title. At 360 dp × 1.3 "Players · Admins · S3" lost its game label to the ellipsis (12j);
+ * where the full title does not fit, "Admins" goes and the label stays: "Players · S3".
+ */
+export function playersAdminsTitle(game: LabelledGame | null | undefined, room: number, fontScale: number): string {
+  return fitHeaderTitle([screenTitle(PLAYERS_ADMINS_TITLE, game), screenTitle('Players', game)], room, fontScale);
+}
 
 type GameForAdmins = GameLike & { closedAt?: string | null; isComplete?: boolean };
 

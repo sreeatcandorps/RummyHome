@@ -54,7 +54,8 @@ test('DC15-2: the screens use screenTitle, none sets headerTitleAlign, and the s
   assert.match(src('app/(screens)/games/[id].tsx'), /title: screenTitle\('Scorecard', game\)/);
   assert.match(src('app/(screens)/games/award.tsx'), /screenTitle\('Awards', game\)/);
   assert.match(src('app/(screens)/games/log.tsx'), /screenTitle\('Log', game\)/);
-  assert.match(src('app/(screens)/games/players.tsx'), /screenTitle\(PLAYERS_ADMINS_TITLE, game\)/);
+  assert.match(src('app/(screens)/games/players.tsx'), /title: playersAdminsTitle\(game, /, '12j: Players · S3 where the full title does not fit');
+  assert.match(src('utils/gameAdmins.ts'), /screenTitle\(PLAYERS_ADMINS_TITLE, game\)/);
   assert.match(src('app/(screens)/games/final-scores.tsx'), /title: sheet \? sheet\.card\.title : 'Final scores'/, 'Nov 18: the Final screen is titled by its card (Final scores · S3, or Awards · P1)');
   for (const file of screenFiles()) {
     assert.doesNotMatch(src(file), /headerTitleAlign/, `${file} sets headerTitleAlign (A02: every title centred, the default)`);

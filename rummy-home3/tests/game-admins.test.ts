@@ -85,7 +85,7 @@ test('nov 10: the menu and page are called Players · Admins (A02); a load failu
   assert.match(scorecard, /title=\{PLAYERS_ADMINS_TITLE\}/);
   assert.doesNotMatch(scorecard, /title="Players"/);
   const page = readFileSync(path.join(__dirname, '..', 'app', '(screens)', 'games', 'players.tsx'), 'utf8');
-  assert.match(page, /title: screenTitle\(PLAYERS_ADMINS_TITLE, game\)/, 'the page title is "Players · Admins · S3" (A02)');
+  assert.match(page, /title: playersAdminsTitle\(game, /, 'the page title is "Players · Admins · S3" (A02), or "Players · S3" where that does not fit (12j)');
   assert.match(page, /actionLabel="Retry"/);
   assert.match(page, /onAction=\{reload\}/);
   assert.match(page, /addNonPlayerAdmin\(game\.id, target\.id\)/);
