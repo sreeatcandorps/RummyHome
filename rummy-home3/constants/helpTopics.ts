@@ -146,7 +146,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
       'Recent partners come first, then everyone else by how often you play together. Up to 20 players.',
       '**Add by initials**: new people by initials, seated as you save them. **Find in database**: a registered player, seated here and added to My players at once.',
       'Scorecard columns show each player\u2019s initials from your My players. If two would match, a **Fix initials** step appears before the game starts.',
-      '**Next** opens Game type: Points or Pool, with the numbers prefilled from your Settings. Then **Order of players** (tap players from the highest card to the lowest) and, when a registered player was added, a co-admin. Only the last step says **Start game**.',
+      '**Next** opens Game type: Points or Pool, with the numbers prefilled from your Settings. Then **Order of players** (tap players from the highest card to the lowest) and, when a registered player was added, a co-admin. Only the last step starts the game: **Start** on Order of players, **Start game** on the co-admin step.',
     ],
     screenshot: {
       file: 'new-game',
@@ -195,7 +195,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
           'Seat 1 deals round 1 and is marked **Dealer**. The deal goes anticlockwise: the highest seat gets the first open card. Every round the deal moves up one seat, and the open card goes to the seat before the dealer. The scorecard columns follow the seats, seat 1 first.',
           'Wrong tap? Tap the latest player again to take the number back.',
           'Once everyone is numbered, tap a player and use the ▲ ▼ arrows to move them one seat; tap them again to deselect. The arrows show in the middle of the circle, for the selected player only; the top seat has no ▲ and the lowest seat has no ▼.',
-          '**Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
+          '**Clear** removes every number. Every player needs a seat before **Next** (or **Start** when no co-admin step follows).',
           'Mid-game, admins open the same screen from the scorecard ⋮ › **Order of players**. It opens as a full page, prefilled, with **Dealer** on whoever deals next; **Done** saves it, the Log records it, played rounds keep their dealer and the next deal follows the new order.',
           'Someone joins mid-game: they sit to the dealer\'s left, so they deal last. The dealer still deals this round, and nobody else\'s turn moves. Move them from Order of players if the table sat them elsewhere. A pool player who is out keeps the seat; the deal and the open card skip it.',
         ],

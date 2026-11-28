@@ -9,6 +9,7 @@ import { FIT_MIN_FONT_SCALE } from '../utils/fitText';
 import { visibleRoleTag } from '../utils/gameAccess';
 import { HELP_TOPICS, helpIndex, searchHelp } from '../constants/helpTopics';
 import { leftAndDrops } from '../utils/poolAwards';
+import { ORDER_START } from '../utils/seating';
 import { ROUND_SAVED_NOTE_MS, roundSavedMark, roundSavedNote, UNDO_MENU_ITEM } from '../utils/roundSavedNote';
 
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
@@ -252,4 +253,16 @@ test('#171 fix 1: Awards — every player on two lines: name and what is left, t
   assert.doesNotMatch(row, /nameCell/, 'the old one-line name column is gone');
   assert.match(award, /numbersLine: \{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',/, 'right-aligned under Score · Put in · Gets · Award');
   assert.doesNotMatch(award, /fontScale|useWindowDimensions|isWide|isNarrow/, 'one layout on every phone');
+});
+
+test('#171 fix 2: Order of players — the green button reads "Start" on every phone; the unused Player ID width switch is gone', () => {
+  assert.equal(ORDER_START, 'Start');
+  const step = src('components/game/OrderStep.tsx');
+  assert.match(step, /accessibilityLabel="Start game" testID="start-game">\s*\{ORDER_START\}\s*<\/Button>/, 'still read out as "Start game"');
+  assert.doesNotMatch(step, />\s*Start game\s*</);
+  const seating = src('utils/seating.ts');
+  assert.doesNotMatch(seating, /showsPlayerCode|highestCardTag|HIGHEST_CARD_TAG_SHORT|fontScale/, 'no width or text-size switch left in seating');
+  for (const file of ['components/game/OrderOfPlayers.tsx', 'components/tutorial/SeatingTutorial.tsx', 'app/(screens)/games/new.tsx']) {
+    assert.doesNotMatch(src(file), /showsPlayerCode|highestCardTag/, file);
+  }
 });
