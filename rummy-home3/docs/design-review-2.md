@@ -745,6 +745,129 @@ copied. Keep it that way in the build — no "Bicycle" string, no rider, no thei
 `login-passcode`, the eye tap and `login-submit`. Screenshot matrix: Sign in light / dark × portrait / landscape,
 passcode revealed, the Supabase-missing line.
 
+### 10.5 Players · Admins (proposed Nov 27 — **not approved, nothing built**)
+
+Asked for (next-up, Next row 15): the Players · Admins screen in the Size S look — a grouped list with hairlines, no
+card inside a card (B05), no pale icon squares (B12), from the pieces Profile and Settings already use. The rule for
+this section: **nothing the screen can do today is lost; anything that moved says where it went.**
+
+**Pictures** (raw links on the branch; the files sit in `design-review-2/mockups/`, made by `make-players-admins-s.py`):
+
+- [Pixel 6, 4 players: today · proposed · dark](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/players-admins-size-s-9da6/rummy-home3/docs/design-review-2/mockups/players-admins-s.png)
+- [Small phone (360 dp, text 1.3): today · A · B](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/players-admins-size-s-9da6/rummy-home3/docs/design-review-2/mockups/players-admins-s-360.png)
+- [13 players, both phones: first screen and end of list](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/players-admins-size-s-9da6/rummy-home3/docs/design-review-2/mockups/players-admins-s-13.png)
+- [Every kind of row: admin view, the ⋮ open, a plain player, a Closed game](https://raw.githubusercontent.com/sreeatcandorps/RummyHome/cursor/players-admins-size-s-9da6/rummy-home3/docs/design-review-2/mockups/players-admins-s-states.png)
+
+**How far to trust the pictures.** "Today" at 4 players is the real screen: frame `21-players-admins` of CI run
+46035664063 (Nov 27, all green, Pixel 6 and the small phone). That is the last PR run of #170 (small batch 4), not a
+run of `main`: pushes to `main` skip the phones. #170 merged right after as `main` @ `738df7d6` and the app code
+of the two is identical (they differ in CI scripts, flows, tests and docs only). The last nightly on `main`
+(45878556049, Nov 26) is red overall and four merges older (#150, #151, #156, #170); its Pixel 6 full suite passed,
+and frame `32f` from it is used for the one thing run 46035664063 does not show: unregistered players and an admin
+who is not playing (the layout of the screen has not changed since that commit). CI has no 13-player frame of this screen, so "today, 13 players" is **drawn**, from the sizes in
+the code; the same drawing code was first checked against the three CI frames (`--check`) and lands within a few dp
+of them. Everything "proposed" is drawn: Roboto, the app's icon font, 1 dp = 1 px, Android's own table for text size
+1.3. No screen in the pictures has been built.
+
+**Today** (`app/(screens)/games/players.tsx`; reached from the scorecard ⋮):
+
+| Part | What it is today | Who sees it |
+| --- | --- | --- |
+| Top bar | Back arrow, "Players · Admins · S2" (the game's label), Help button | everyone |
+| "Playing · N" + ⓘ | Heading; the ⓘ opens three lines (a player added now sits left of the dealer; Remove works only at 0; what the ⋮ holds) | heading everyone, ⓘ admins |
+| A player row, inside a white bordered card | Initials disc, name, then tags: Player ID (`#3`), **Creator** (gold) or **Admin** (blue), and **Unregistered** / **Pending registration** / **Link pending** | everyone; the Admin tag only admins |
+| ▲ ▼ on each row | Moves that seat one place; saves and writes a Log line on every tap; first ▲ and last ▼ are grey. Gone once the game is completed or Closed | admins |
+| ⋮ on each row | Invite to EZ Score · Link to Player ID · Edit initials · Edit name · Make admin / Remove admin · Remove from game (which items depends on the row; some grey with a reason; Invite opens the phone's share sheet) | admins |
+| "Admins not playing" card | Same rows for admins with no seat; ⋮ has Remove admin. Only when there is one | everyone |
+| "Watching" card | Same rows with a grey disc, no ⋮. Only when someone watches | everyone |
+| **Add non-playing admin** | Outlined pill, with three centred lines under it. Closed game: greyed, and the lines become "This game is Closed (it is part of a saved result). Admins can no longer be added." | admins |
+| **Add new player** | The filled button in the bottom bar; opens the picker | admins |
+| Dialogs | Edit name · Edit initials · Link to Player ID · Link request sent · Add non-playing admin (Player ID → Look up → Add admin) · "Remove {name}?" · Remove refused (has scores) · Something went wrong | admins |
+| Other states | Loading spinner · "Couldn't load the players" with Retry · "Game not available" | everyone |
+
+What the frames show is wrong with it: a bordered card on the paper background with tag pills inside (B05; this
+screen is one of the six counted in §4); a second pill-shaped button above the real one (B01); at 360 dp the tags
+and the three buttons leave the name **106 dp**, so "Creator" reads "Creat…" and the lines under the outlined button
+run under the bar. A row is 77 dp, or 113 dp when the tags wrap (every unregistered player): **7 of 13** players
+on the first screen of a Pixel 6, **5 of 13** on the small phone.
+
+**Proposed — option A (recommended)**, top to bottom, same `SettingsGroup` as Profile:
+
+| Group | Rows |
+| --- | --- |
+| Playing · N ⓘ | One `ListRow` per player: the initials disc (36 dp, same seat colours), the name, **one grey line** — `#1 · Creator`, `#2 · Admin`, `#11 · Unregistered`, `#15 · Link pending`, or just `#3` — and the ⋮ at the right. Last row, while the order can still change: **Order of players** · "Move a player to another seat" › |
+| Admins not playing ⓘ | The same row for each admin with no seat. Last row: **Add non-playing admin** · "Keeps score, does not play. By Player ID." › The group is there for admins even when it is empty, so the row has a home |
+| Watching | The same row, grey disc, no ⋮ (as today). Only when someone watches |
+
+Bottom bar: the filled **Add new player**, unchanged — the one button on the screen.
+
+**Where everything went** (nothing is removed):
+
+| Today | In A |
+| --- | --- |
+| Player ID tag `#3` | First thing on the grey line (D48: the number stays on this screen) |
+| Creator / Admin tag | A word on the grey line. The same rule decides who sees "Admin" |
+| Unregistered / Pending registration / Link pending tag | A word on the grey line |
+| ⋮ and its six actions | Same place, same items, same order, same dialogs |
+| ▲ ▼ on every row | **One row, "Order of players"**, which opens the sheet the scorecard ⋮ already opens (tap a player, ▲ ▼ on that player only, Done saves once — D56, D74). Shown exactly when the scorecard shows its menu item |
+| Outlined **Add non-playing admin** pill | A row with the same name at the end of "Admins not playing"; opens the same dialog |
+| The three lines under that pill | Short form on the row; the full sentence, word for word, behind the ⓘ of "Admins not playing" |
+| Closed-game reason under a greyed pill | The grey line under the "Admins not playing" heading; the row that cannot work is not shown |
+| ⓘ beside "Playing" | Same place, same three lines |
+| Add new player, top bar, Help, loading / error states, a plain player's view | Unchanged |
+
+Why the arrows are the one thing that moves: the app has **two ways to reorder with opposite arrows**. Here the list
+starts at seat 1 and ▲ moves a player toward seat 1; in Order of players the list starts at the highest seat and ▲
+means a higher seat (D56). Here every tap saves and logs; there nothing is saved until Done. Sree, Nov 23 (D74), on
+that sheet: *"I don't want to show arrows for everyone … only that person's arrows appear."* This screen still shows
+arrows for everyone. One row to the sheet he approved leaves one way to do it, and frees 92 dp of every row.
+
+**Option B — the arrows stay on every row** (third panel of the 360 dp picture). Same look otherwise; no Order of
+players row. Costs: the name has 136 dp on the small phone instead of 246 (a name like "Venkateswara Rao" is cut),
+three small buttons a row, and the two meanings of ▲ remain. Take B only if reordering from this list, one tap at a
+time, is something the table really uses.
+
+**Not offered**: the Player ID as a value at the right of the row (it would fight the name for width at 360 dp — the
+problem D95 fixed on Profile); coloured role tags kept inside rows (that is the B05 / B03 finding itself).
+
+**What it buys** (measured on the drawings): every player row is 60 dp. First screen with 13 players: Pixel 6
+7 → **11**, small phone 5 → **8**. Nothing is cut at 360 dp × 1.3 on any drawn row (the screen title still loses the
+game label there, as today — see below). 4 players: the whole screen, both action rows and the button fit without
+scrolling on both phones.
+
+**Pieces**: `SettingsGroup` (title, `tip`, `note`), `ListRow` (`left` = `SeatAvatar`, `title`, `description`,
+`right` = the existing `PlayerActionMenu`; the two action rows use `left` for a bare 24 dp icon — `seat-outline`,
+`plus` — with no square), `SeatingSheet` as the scorecard mounts it (same props, same `setSeatingOrder` on Done).
+**No new component.** `SegmentedChoice` is not needed: nothing here is a choice between two or three values.
+`Tag` and the bordered card leave this file; `moveSeat` loses its only caller.
+
+**What does not change**: who may do what (`seatMenu`, `visibleRoleTag`, `addAdminBlockedReason`), every dialog and
+its copy, seat removal rules, linking, the picker behind Add new player and "sits left of the dealer" (D70), the
+help topic id, the refresh on return from the share sheet. Both game types use this screen the same way; in Pool the
+sheet already marks who is out. Landscape: the list scrolls as today, nothing designed for it (D89). A completed
+game: no Order of players row (today: no arrows), Add non-playing admin stays (admins can be set after the game is
+over). A plain player: names and Player IDs only, as today.
+
+**Conflicts**: none overturned. D48 (the number stays here) and D113 (Player ID only) are kept; D56 / D74 are
+applied to one more screen instead of contradicted by it. One thing for the Main agent: D103 reads "white grouped
+cards … built", but `SettingsGroup` and Profile on `main` are rows on the paper background with no card. A follows
+`SettingsGroup` as it is, so if cards come to that component this screen gets them with no further work.
+
+**Tests / flows for the build** (not in this PR): the Add non-playing admin row keeps `testID="add-admin"` and
+`accessibilityLabel="Add admin by Player ID"`, the ⋮ keeps `player-menu-<name>`, the button keeps
+`players-add-new`, the ⓘ keeps `players-playing-tip` — so flows smoke 21 and full 30 / 31 / 32 run unchanged; no flow
+taps the row arrows. One new step in full 30: tap "Order of players", see the sheet, close it.
+`design-review-2-s.test.ts` adds: 0 `<Tag`, 0 `styles.card` and 0 outlined `Button` in `games/players.tsx`; the
+groups in order; `SeatingSheet` mounted under `canChangeSeating`. Pins that move with the screen:
+`add-players-pr7.test.ts` (the 2 px pill border and the note under it). Help: the legend line "The arrows move a
+seat up or down…" becomes "Order of players opens the seating sheet"; the help picture is re-cut from frame 21.
+Screenshot matrix: 4 / 13 players × Pixel 6 / small phone, light and dark, the ⋮ open, a plain player, a Closed game.
+
+**Seen on the way, not part of this**: (1) at 360 dp × 1.3 the title "Players · Admins · S2" loses the game label
+("Players · Admins ·…"); (2) the help topic says a row shows the roles "Player, View only" — the screen shows only
+Creator and Admin; (3) the three-line `PLAYING_TIP` names "Invite, Link, Edit initials, Edit name and Make admin" —
+still true in A.
+
 ### 10.6 Round saved (pool) with the re-entry seat (Sree, Nov 27: "show me more"; pictures only, nothing built)
 
 **Sree's words, and how they are read**
