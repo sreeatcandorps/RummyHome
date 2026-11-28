@@ -1,0 +1,694 @@
+/* Shared typography, layout structure, and accessibility scaling for EZ Score Home v2 mockups.
+ * Preserves D136 layout order and D137 bottom bar (Home + Profile initials) across both directions. */
+
+@font-face {
+  font-family: 'MaterialCommunityIcons';
+  src: url('../.cache/fonts/MaterialCommunityIcons.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('../.cache/fonts/PlayfairDisplay.ttf') format('truetype');
+  font-weight: 400 800;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('../.cache/fonts/CormorantGaramond.ttf') format('truetype');
+  font-weight: 400 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Cinzel';
+  src: url('../.cache/fonts/Cinzel.ttf') format('truetype');
+  font-weight: 500 800;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('../.cache/fonts/PlusJakartaSans.ttf') format('truetype');
+  font-weight: 400 800;
+  font-style: normal;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background: #000;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.mi {
+  font-family: 'MaterialCommunityIcons';
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.phone {
+  --w: 412px;
+  --h: 915px;
+  --fs: 1;
+  position: relative;
+  width: var(--w);
+  height: var(--h);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1, "tnum" 1;
+  color: var(--ink);
+  background-color: var(--bg);
+}
+
+/* Status bar overlaid seamlessly over the top edge of the hero (zero horizontal seam) */
+.status {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  height: 32px;
+  padding: 6px 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--status-ink);
+  pointer-events: none;
+}
+.status .sicons {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.status .batt {
+  transform: rotate(90deg);
+}
+
+/* Main scroll area above the docked bottom bar */
+.content {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Subtle bottom scroll fade so partially visible cards glide smoothly behind the bottom bar */
+.scroll-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  z-index: 8;
+  pointer-events: none;
+}
+
+/* Top hero zone (starts at y=0 behind the overlaid status bar) */
+.hero {
+  position: relative;
+  padding: 42px 18px 18px;
+  flex-shrink: 0;
+}
+
+.hero-arch {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.brandrow {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.brandleft {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.emblem {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5px;
+}
+.emblem-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  padding: 1.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.emblem img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.brand {
+  font-family: 'Cinzel', serif;
+  font-size: calc(15.5px * var(--fs));
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.help {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.greet-wrap {
+  position: relative;
+  z-index: 2;
+  margin-top: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.greet {
+  font-size: calc(33px * var(--fs));
+  line-height: 1.06;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+}
+
+.greet-orn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 78px;
+}
+.greet-orn .line-l {
+  height: 1px;
+  flex: 1;
+}
+.greet-orn .gem {
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.greet-orn .line-r {
+  height: 1px;
+  flex: 2.2;
+}
+
+/* Primary CTA: + New game */
+.newgame {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: 54px;
+  padding: 12px 20px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: calc(16px * var(--fs));
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  overflow: hidden;
+}
+.newgame::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 12px;
+  pointer-events: none;
+}
+.newgame .plus-ring {
+  position: relative;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.newgame > span:last-child {
+  position: relative;
+  z-index: 2;
+}
+
+/* Secondary actions: Results & My players */
+.tiles {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+  padding: 13px 18px 2px;
+  flex-shrink: 0;
+}
+
+.tile {
+  position: relative;
+  border-radius: 15px;
+  padding: 12px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ttop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ticon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tcount {
+  font-size: calc(23px * var(--fs));
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1, "tnum" 1;
+}
+
+.tbottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.tlabel {
+  font-size: calc(14.5px * var(--fs));
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+}
+
+/* Main list body */
+.body {
+  position: relative;
+  z-index: 2;
+  padding: 13px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.sec {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sechead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sechead h2 {
+  font-size: calc(21px * var(--fs));
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-shrink: 0;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1, "tnum" 1;
+}
+.sechead .mid {
+  opacity: 0.55;
+  font-weight: 500;
+}
+.sechead .count {
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: "lnum" 1, "tnum" 1;
+}
+
+.sechead .rule-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 16px;
+}
+.sechead .rule-gem {
+  width: 4px;
+  height: 4px;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.sechead .rule {
+  flex: 1;
+  height: 1px;
+}
+
+.sechead .info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Game cards */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.card {
+  position: relative;
+  border-radius: 16px;
+  padding: 12px 11px 12px 13px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.card.live::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+}
+
+.badge {
+  position: relative;
+  width: 48px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.badge::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 9px;
+  pointer-events: none;
+}
+.badge span {
+  position: relative;
+  z-index: 2;
+  font-size: calc(19px * var(--fs));
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  line-height: 1;
+}
+
+.cbody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5.5px;
+}
+
+.ctop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+
+.ctitle {
+  font-size: calc(14.5px * var(--fs));
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 4px;
+}
+.ctitle .sep {
+  opacity: 0.45;
+}
+
+.cright-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(12px * var(--fs));
+  font-weight: 600;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+.cright-meta .pc {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cmeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 6px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2.5px 7.5px;
+  border-radius: 6px;
+  font-size: calc(11.5px * var(--fs));
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.005em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.tag .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.mult {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5px 6.5px;
+  border-radius: 6px;
+  font-size: calc(11.5px * var(--fs));
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.cscores {
+  font-size: calc(12px * var(--fs));
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1px 5px;
+}
+.cscores .rd {
+  font-weight: 700;
+}
+.cscores .ssep {
+  opacity: 0.45;
+}
+
+.chev {
+  flex-shrink: 0;
+  opacity: 0.78;
+}
+
+/* Docked two-button bottom bar (D137: Home + Profile initials) */
+.tabbar {
+  position: relative;
+  z-index: 15;
+  padding: 10px 18px 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.tab {
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.gesture {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 108px;
+  height: 4px;
+  border-radius: 99px;
+}
+
+/* Small-phone (360dp, font-scale 1.3) graceful compaction & zero truncation */
+.phone.compact .hero {
+  padding: 36px 14px 14px;
+}
+.phone.compact .emblem {
+  width: 36px;
+  height: 36px;
+}
+.phone.compact .brand {
+  font-size: calc(13.5px * var(--fs));
+  letter-spacing: 0.02em;
+}
+.phone.compact .greet-wrap {
+  margin-top: 9px;
+  margin-bottom: 11px;
+  gap: 5px;
+}
+.phone.compact .greet {
+  font-size: calc(25px * var(--fs));
+}
+.phone.compact .newgame {
+  min-height: 48px;
+  padding: 9px 14px;
+  font-size: calc(14px * var(--fs));
+}
+.phone.compact .tiles {
+  padding: 10px 14px 2px;
+  gap: 9px;
+}
+.phone.compact .tile {
+  padding: 9px 11px 10px;
+  gap: 6px;
+}
+.phone.compact .tcount {
+  font-size: calc(18.5px * var(--fs));
+}
+.phone.compact .tlabel {
+  font-size: calc(12.5px * var(--fs));
+}
+.phone.compact .body {
+  padding: 10px 14px 10px;
+  gap: 12px;
+}
+.phone.compact .sechead h2 {
+  font-size: calc(17.5px * var(--fs));
+}
+.phone.compact .cards {
+  gap: 8px;
+}
+.phone.compact .card {
+  padding: 9px 9px 9px 11px;
+  gap: 9px;
+}
+.phone.compact .badge {
+  width: 42px;
+  height: 44px;
+}
+.phone.compact .badge span {
+  font-size: calc(15.5px * var(--fs));
+}
+.phone.compact .ctitle {
+  font-size: calc(12.5px * var(--fs));
+}
+.phone.compact .cright-meta {
+  font-size: calc(10.5px * var(--fs));
+}
+.phone.compact .tag,
+.phone.compact .mult {
+  font-size: calc(10.5px * var(--fs));
+  padding: 2px 6px;
+}
+.phone.compact .cscores {
+  font-size: calc(10.8px * var(--fs));
+}
+.phone.compact .tabbar {
+  padding: 8px 14px 18px;
+}
+.phone.compact .tab {
+  height: 44px;
+}

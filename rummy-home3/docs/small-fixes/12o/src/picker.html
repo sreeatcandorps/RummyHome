@@ -1,0 +1,189 @@
+<!doctype html>
+<!--
+  Row 12o: New game, players step, with the keyboard up. Mockup only, not app code.
+  ?dev=small|pixel6  &s=today|a|b|closed
+  Chip names are 16 sp, not the strip's 13: BoldName's segments carry the labelLarge variant, which wins.
+  Sizes are the app's own dp (app/(screens)/games/new.tsx, components/players/SelectedPlayersStrip.tsx,
+  PlayerPickerRow.tsx, ui/SearchField.tsx, ui/BottomBar.tsx, ui/Screen.tsx), checked against the CI frame
+  32-seating-13p--FAILED.png (run 46065162206); text sizes are multiplied by the font scale like React Native does.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Roboto; src: url('../.cache/fonts/Roboto.ttf'); font-weight: 100 900; }
+  @font-face { font-family: MCI; src: url('../.cache/fonts/MaterialCommunityIcons.ttf'); }
+  :root {
+    --primary: #0E4D2A; --onPrimary: #FFFFFF; --primaryContainer: #D8ECDD; --onPrimaryContainer: #0B3B1F;
+    --secondaryContainer: #F0DFAE; --onSecondaryContainer: #3E2E07;
+    --background: #F5F2E8; --surface: #FFFFFF; --onSurface: #1A1F1B; --surfaceVariant: #ECE7DA;
+    --onSurfaceVariant: #5A615B; --outline: #8E928A; --outlineVariant: #E6E1D3; --error: #B4231B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #000; }
+  body { font-family: Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  .phone { position: relative; overflow: hidden; background: var(--background); color: var(--onSurface); }
+  .i { font-family: MCI; font-style: normal; font-weight: normal; line-height: 1; display: inline-block; }
+
+  .status { position: absolute; left: 0; right: 0; top: 0; height: 24px; display: flex; align-items: center; padding: 0 16px 0 20px; color: #5f625f; }
+  .status .time { font-weight: 500; }
+  .status .grow { flex: 1; }
+  .header { position: absolute; left: 0; right: 0; top: 24px; height: 56px; display: flex; align-items: center; }
+  .header .back { position: absolute; left: 16px; color: var(--onSurface); }
+  .header .title { position: absolute; left: 72px; font-weight: 700; color: var(--onSurface); }
+  .header .help { position: absolute; color: var(--onSurface); }
+
+  .content { position: absolute; left: 0; right: 0; top: 80px; padding: 16px 16px 0; display: flex; flex-direction: column; gap: 8px; }
+  .playing { display: flex; align-items: center; gap: 8px; min-height: 60px; }
+  .playing .word { font-weight: 800; }
+  .countWrap { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .bubble { width: 68px; height: 68px; border-radius: 34px; border: 2.5px solid var(--primary); background: var(--secondaryContainer);
+    display: flex; align-items: center; justify-content: center; color: var(--onSecondaryContainer); font-weight: 900; }
+  .hint { flex: 1; color: var(--onSurfaceVariant); }
+  .tip { width: 28px; display: flex; justify-content: center; color: var(--onSurfaceVariant); flex: none; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips.one { flex-wrap: nowrap; justify-content: flex-end; overflow: hidden; position: relative; }
+  .chips.one::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 36px; z-index: 1;
+    background: linear-gradient(to right, var(--background) 20%, rgba(245,242,232,0)); }
+  .chip { display: flex; align-items: center; gap: 4px; border-radius: 999px; border: 1.5px solid transparent; padding: 0 4px 0 3px;
+    min-height: 36px; background: var(--primaryContainer); color: var(--onPrimaryContainer); flex: none; }
+  .av { border-radius: 999px; color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; letter-spacing: .3px; }
+  .chip .name { font-weight: 600; white-space: nowrap; }
+  .chip .name b { font-weight: 900; }
+  .chip .x { padding: 0 4px; font-weight: 700; }
+
+  .picked { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+  .picked .count { font-weight: 700; color: var(--onSurfaceVariant); }
+  .picked .show { font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 2px; }
+
+  .searchRow { display: flex; align-items: center; gap: 4px; }
+  .search { flex: 1; margin: 2px 0; height: 54px; background: var(--surface); border: 1px solid var(--outline); border-radius: 8px;
+    display: flex; align-items: center; padding: 0 4px 0 14px; color: var(--onSurfaceVariant); min-width: 0; }
+  .search .q { flex: 1; margin-left: 14px; white-space: nowrap; overflow: hidden; color: var(--onSurfaceVariant); position: relative; }
+  .caret { display: inline-block; width: 2px; background: var(--primary); vertical-align: middle; margin-left: 1px; }
+  .search .clear { width: 40px; display: flex; justify-content: center; }
+  .seg { width: 104px; height: 42px; border: 1px solid var(--outline); border-radius: 999px; display: flex; overflow: hidden; flex: none; }
+  .seg > div { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--onSurface); }
+  .seg > div:first-child { background: var(--secondaryContainer); border-right: 1px solid var(--outline); color: var(--onSecondaryContainer); }
+
+  .list { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+  .row { display: flex; align-items: center; gap: 8px; border: 1.5px solid var(--outlineVariant); border-radius: 12px; background: var(--surface);
+    padding: 8px 10px; min-height: 60px; }
+  .row .text { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .row .name b { font-weight: 900; }
+  .row .meta { display: flex; gap: 6px; }
+  .tag { border-radius: 999px; background: var(--surfaceVariant); color: var(--onSurfaceVariant); font-weight: 700; padding: 0 10px;
+    display: flex; align-items: center; }
+  .row .plus { color: var(--primary); font-weight: 700; padding: 0 4px; }
+
+  .bar { position: absolute; left: 0; right: 0; background: var(--surface); border-top: 0.5px solid var(--outlineVariant);
+    padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .tiles { display: flex; gap: 8px; }
+  .tile { flex: 1; min-width: 0; min-height: 48px; border: 1.7px solid var(--outline); border-radius: 999px; display: flex; align-items: center;
+    justify-content: center; gap: 8px; padding: 0 12px; color: var(--primary); font-weight: 700; }
+  .tile span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .next { min-height: 52px; border-radius: 999px; background: var(--primary); color: var(--onPrimary); font-weight: 800; display: flex;
+    align-items: center; justify-content: center; gap: 8px; }
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; height: 48px; display: flex; align-items: center; justify-content: space-around;
+    padding: 0 18%; color: #666; background: var(--surface); }
+  .kb { position: absolute; left: 0; bottom: 0; display: block; box-shadow: 0 -2px 4px rgba(0,0,0,.08); }
+
+  .note { position: absolute; left: 16px; right: 16px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px;
+    background: #FFE1DD; color: #5C0F0A; border: 2px dashed var(--error); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="phone" id="phone"></div>
+<script src="icons.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+const DEV = q.get('dev') || 'small';
+const S = q.get('s') || 'a';
+const D = DEV === 'small'
+  ? { w: 360, h: 780, fs: 1.3, kb: 'keyboard-small.png', kbH: 934 * 360 / 1080 }
+  : { w: 412, h: 915, fs: 1.0, kb: 'keyboard-pixel6.png', kbH: 900 * 412 / 1080 };
+const fs = (n) => `${(n * D.fs).toFixed(2)}px`;
+const icon = (name, size, extra = '') => {
+  const cp = window.ICONS[name];
+  if (cp == null) throw new Error(`icon ${name}`);
+  return `<i class="i" style="font-size:${size}px;${extra}">${String.fromCodePoint(cp)}</i>`;
+};
+const SEATS = ['#0F766E', '#C2410C', '#1D4ED8', '#A21CAF', '#6D28D9', '#0E7490', '#92400E', '#BE123C', '#3F6212', '#475569'];
+const PICKED = ['Sree Test', 'Test Alpha', 'Test Bravo', 'Test Charlie', 'Test Delta', 'Test Echo', 'Test Foxtrot'];
+const initials = (n) => n.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+const bold = (n) => n.split(' ').map((w, i, a) => (i === 0 || i === a.length - 1) ? `<b>${w[0]}</b>${w.slice(1)}` : w).join(' ');
+const avatar = (n, i, size) => {
+  const f = Math.round(size * 0.4) * D.fs;
+  return `<div class="av" style="width:${size}px;height:${size}px;background:${SEATS[i % 10]};font-size:${f}px;line-height:${f * 1.2}px">${initials(n)}</div>`;
+};
+const chip = (n, i) => `<div class="chip">${avatar(n, i, 28)}<span class="name" style="font-size:${fs(16)};line-height:${fs(20)}">${bold(n)}</span>`
+  + `<span class="x" style="font-size:${fs(18)};line-height:${fs(20)}">×</span></div>`;
+
+const keyboardUp = S !== 'closed';
+const typing = 'Test Golf';
+
+const status = `<div class="status" style="font-size:${fs(14)}"><span class="time">9:15</span><span class="grow"></span>`
+  + `${icon('wifi', 16 * D.fs)}${icon('signal', 16 * D.fs, 'margin-left:2px')}${icon('battery-charging-high', 16 * D.fs, 'margin-left:2px')}</div>`;
+const header = `<div class="header"><span class="back">${icon('arrow-left', 24)}</span>`
+  + `<span class="title" style="font-size:${fs(20)}">New game</span>`
+  + `<span class="help" style="left:${D.w - 41 - 12}px">${icon('help-circle-outline', 24)}</span></div>`;
+
+const playing = `<div class="playing"><span class="word" style="font-size:${fs(22)};line-height:${fs(28)}">Playing</span>`
+  + `<div class="countWrap"><div class="bubble" style="font-size:${fs(30)};line-height:${fs(36)}">7</div></div>`
+  + `<span class="hint" style="font-size:${fs(16)};line-height:${fs(24)}">players</span>`
+  + `<span class="tip">${icon('information-outline', 20)}</span></div>`;
+
+let strip;
+if (S === 'a') strip = `<div class="chips one" data-testid="chips-one-row">${PICKED.map(chip).join('')}</div>`;
+else if (S === 'b') strip = `<div class="picked"><span class="count" style="font-size:${fs(16)};line-height:${fs(20)}">7 picked</span>`
+  + `<span style="color:var(--onSurfaceVariant);font-size:${fs(16)}">·</span>`
+  + `<span class="show" style="font-size:${fs(16)};line-height:${fs(20)}">Show${icon('chevron-down', 20 * D.fs)}</span></div>`;
+else strip = `<div class="chips">${PICKED.map(chip).join('')}</div>`;
+
+const caret = keyboardUp ? `<span class="caret" style="height:${fs(22)}"></span>` : '';
+const search = `<div class="searchRow"><div class="search">${icon('magnify', 24)}`
+  + `<span class="q" style="font-size:${fs(15)}">${typing}${caret}</span><span class="clear">${icon('close', 24)}</span></div>`
+  + `<div class="seg"><div>${icon('fire', 18)}</div><div>${icon('sort-alphabetical-ascending', 18)}</div></div>`
+  + `<span class="tip">${icon('information-outline', 20)}</span></div>`;
+
+const tag = (t) => `<span class="tag" style="font-size:${fs(14)};line-height:${fs(18)}">${t}</span>`;
+const row = `<div class="row">${avatar('Test Golf', 0, 36)}<div class="text">`
+  + `<span class="name" style="font-size:${fs(16)};line-height:${fs(24)}">${bold('Test Golf')}</span>`
+  + `<div class="meta">${tag('#18')}${tag('Unregistered')}</div></div>`
+  + `<span class="plus" style="font-size:${fs(24)}">+</span></div>`;
+
+const content = `<div class="content">${playing}${strip}${search}<div class="list">${row}</div></div>`;
+
+const next = `<div class="next" style="font-size:${fs(16)}">Next · 7 players${icon('arrow-right', 20)}</div>`;
+const tiles = `<div class="tiles"><div class="tile" style="font-size:${fs(14)}">${icon('account-plus-outline', 18)}<span>Add by initials</span></div>`
+  + `<div class="tile" style="font-size:${fs(14)}">${icon('database-search', 18)}<span>Find in database</span></div></div>`;
+
+let bottom = '';
+let note = '';
+const kbTop = D.h - D.kbH;
+if (S === 'closed') {
+  bottom = `<div class="bar" style="bottom:48px">${tiles}${next}</div>`
+    + `<div class="nav">${icon('triangle', 18, 'transform:rotate(-90deg)')}${icon('circle', 18)}${icon('square-rounded', 16)}</div>`;
+} else if (S === 'today') {
+  // Today the bar stays where it is, under the keyboard (the page is not resized and has no inset).
+  bottom = `<div class="bar" style="bottom:48px">${tiles}${next}</div>`;
+  note = `<div class="note" style="top:${kbTop - 16 - 44 * D.fs}px;font-size:${fs(14)}">${icon('arrow-down', 20)}<span>Next · 7 players is under the keyboard</span></div>`;
+} else {
+  // Options A and B: the page is padded by the keyboard's height, so the bar rides on top of it, Next alone.
+  bottom = `<div class="bar" style="bottom:${D.kbH}px">${next}</div>`;
+}
+const keyboard = keyboardUp ? `<img class="kb" src="${D.kb}" style="width:${D.w}px;height:${D.kbH}px">` : '';
+
+const phone = document.getElementById('phone');
+phone.style.width = `${D.w}px`;
+phone.style.height = `${D.h}px`;
+phone.innerHTML = status + header + content + bottom + keyboard + note;
+
+window.measure = () => {
+  const r = (sel) => { const e = phone.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { top: +b.top.toFixed(1), bottom: +b.bottom.toFixed(1), left: +b.left.toFixed(1), right: +b.right.toFixed(1) }; };
+  return { playing: r('.playing'), strip: r('.chips, .picked'), search: r('.search'), row: r('.row'), bar: r('.bar'), next: r('.next'), kbTop: keyboardUp ? +kbTop.toFixed(1) : null };
+};
+</script>
+</body>
+</html>
