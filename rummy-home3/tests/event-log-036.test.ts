@@ -100,7 +100,7 @@ test('log line: day grouping keeps arrival order and names Today / Yesterday', (
     entry({ id: 2, at: '2026-11-01T10:00:00' }),
   ];
   const groups = groupByDay(rows, now);
-  assert.deepEqual(groups.map((g) => [g.day, g.entries.length]), [['Today', 2], ['Yesterday', 1], ['Sun, Nov 1', 1]]);
+  assert.deepEqual(groups.map((g) => [g.day, g.entries.length]), [['Today', 2], ['Yesterday', 1], ['Nov 1', 1]]);
   assert.equal(formatLogDay('not a date', now), '');
 });
 
@@ -128,7 +128,7 @@ test('changed note: one line, same words on the page, the picture, the PDF and t
   assert.equal(changedNoteLine(null), null);
   assert.equal(changedNoteLine({ summary: '', actorName: 'Sree Test', at: '2026-11-13T22:31:00' }), null);
   const line = changedNoteLine({ summary: 'Round 3 of S1 edited · Totals changed', actorName: 'Sree Test', at: '2026-11-13T22:31:00', count: 1 });
-  assert.ok(line?.startsWith(`${CHANGED_AFTER_SHARING}: Round 3 of S1 edited · Totals changed · Sree Test · Fri, Nov 13 · `), line ?? undefined);
+  assert.ok(line?.startsWith(`${CHANGED_AFTER_SHARING}: Round 3 of S1 edited · Totals changed · Sree Test · Nov 13 · `), line ?? undefined);
   assert.doesNotMatch(line ?? '', /earlier/);
   const many = changedNoteLine({ summary: 'Round 4 of S1 undone · Totals changed', actorName: 'Sree Test', at: '2026-11-13T22:31:00', count: 3 });
   assert.match(many ?? '', /\(\+2 earlier\)$/);

@@ -226,7 +226,7 @@ export function legendText(entry: LegendEntry): string {
   return [entry.initials, entry.playerNo != null ? `#${entry.playerNo}` : null, entry.name].filter(Boolean).join(' ');
 }
 
-/** "7:45 PM" and "Thu, Nov 5" (with the year when it is not this year) — the one date format (A06). */
+/** "7:45 PM" and "Nov 5" (with the year when it is not this year) — the one date format (A06). */
 export function startParts(iso: string | undefined, now: Date = new Date()): { time: string; date: string } {
   if (!iso) return { time: '', date: '' };
   const date = new Date(iso);
@@ -310,7 +310,7 @@ export function resultLinkText(resultId: string): string {
   return resultPageUrl(resultId).replace(/^https?:\/\//, '');
 }
 
-/** "Games S12, S13, S14 · saved Fri, Nov 13 · 9:58 PM" for the bottom of the share image. */
+/** "Games S12, S13, S14 · saved Nov 13 · 9:58 PM" for the bottom of the share image. */
 export function gamesLine(labels: string[], dateWord: 'saved' | 'shown', when: string): string {
   const list = labels.length === 0 ? 'No games' : labels.length === 1 ? `Game ${labels[0]}` : `Games ${labels.join(', ')}`;
   return `${list} · ${dateWord} ${when}`;

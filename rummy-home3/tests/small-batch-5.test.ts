@@ -10,6 +10,7 @@ import { visibleRoleTag } from '../utils/gameAccess';
 import { HELP_TOPICS, helpIndex, searchHelp } from '../constants/helpTopics';
 import { leftAndDrops } from '../utils/poolAwards';
 import { ORDER_START } from '../utils/seating';
+import { formatWhen } from '../utils/formatWhen';
 import { ROUND_SAVED_NOTE_MS, roundSavedMark, roundSavedNote, UNDO_MENU_ITEM } from '../utils/roundSavedNote';
 
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
@@ -264,5 +265,22 @@ test('#171 fix 2: Order of players — the green button reads "Start" on every p
   assert.doesNotMatch(seating, /showsPlayerCode|highestCardTag|HIGHEST_CARD_TAG_SHORT|fontScale/, 'no width or text-size switch left in seating');
   for (const file of ['components/game/OrderOfPlayers.tsx', 'components/tutorial/SeatingTutorial.tsx', 'app/(screens)/games/new.tsx']) {
     assert.doesNotMatch(src(file), /showsPlayerCode|highestCardTag/, file);
+  }
+});
+
+test('#171 fix 3: one date format with no weekday, in the app and on both web pages: "Nov 26 · 3:55 PM"', () => {
+  const now = new Date(2026, 10, 28, 12, 0);
+  assert.equal(formatWhen(new Date(2026, 10, 26, 15, 55), now), 'Nov 26 · 3:55 PM');
+  assert.equal(formatWhen(new Date(2025, 10, 26, 22, 5), now), 'Nov 26, 2025 · 10:05 PM', 'the year only when it is not this year');
+  assert.doesNotMatch(src('utils/formatWhen.ts'), /weekday:/);
+  const live = src('public/scorecard.html');
+  assert.match(live, /'Started ' \+ when/);
+  assert.match(live, /const when = Number\.isNaN\(started\.getTime\(\)\) \? card\.startedAt : whenText\(started\);/);
+  assert.match(live, /const time = whenText\(at\);/);
+  const result = src('public/r/index.html');
+  assert.match(result, /function when\(iso\) \{[^}]*dayOf\(iso\) \+ ' · ' \+ clock\(iso\)/);
+  assert.match(result, /<span class="when">' \+ esc\(dayOf\(g\.date\)\) \+ ' · <b>' \+ esc\(clock\(g\.date\)\) \+ '<\/b><\/span>/, 'the date, then the time in bold, as in the app');
+  for (const page of [live, result]) {
+    assert.doesNotMatch(page, /weekday:|dateStyle|toLocaleString\(\)/, 'no weekday and no browser-default date');
   }
 });

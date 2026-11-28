@@ -41,7 +41,7 @@ test('X20-6 hidden-for-good date math: deletedAt + 30 days, whole days left, nev
 });
 
 test('X20-6 "hidden for good on …" (046) and "… ago" labels', () => {
-  assert.equal(hiddenForGoodLabel('2026-12-14T12:00:00Z', NOW), 'hidden for good on Mon, Dec 14');
+  assert.equal(hiddenForGoodLabel('2026-12-14T12:00:00Z', NOW), 'hidden for good on Dec 14');
     assert.equal(hiddenForGoodLabel('2026-11-15T12:00:00Z', NOW), 'hidden for good today');
   assert.equal(hiddenForGoodLabel(null, NOW), '');
   assert.equal(agoLabel(DELETED, NOW), '2 days ago');
@@ -51,15 +51,15 @@ test('X20-6 "hidden for good on …" (046) and "… ago" labels', () => {
 
 test('X20-6 the card line and the banner line (G03 / G04)', () => {
   const deletion = deletionFromRow(row())!;
-  assert.equal(deletedCardLine(deletion, NOW), 'Deleted by Harish · 2 days ago · hidden for good on Mon, Dec 14');
-  assert.equal(deletedCardLine({ ...deletion, deletedByMe: true }, NOW), 'Deleted by you · 2 days ago · hidden for good on Mon, Dec 14');
-  assert.equal(deletedBannerLine(deletion, NOW), 'This game was deleted by Harish 2 days ago · hidden for good on Mon, Dec 14');
+  assert.equal(deletedCardLine(deletion, NOW), 'Deleted by Harish · 2 days ago · hidden for good on Dec 14');
+  assert.equal(deletedCardLine({ ...deletion, deletedByMe: true }, NOW), 'Deleted by you · 2 days ago · hidden for good on Dec 14');
+  assert.equal(deletedBannerLine(deletion, NOW), 'This game was deleted by Harish 2 days ago · hidden for good on Dec 14');
 });
 
 test('X20-6 Ask button states: ask once, then "Asked · date"', () => {
   assert.deepEqual(askButton(null, NOW), { label: ASK_RESTORE_LABEL, disabled: false });
   assert.equal(ASK_RESTORE_LABEL, 'Ask an admin to restore');
-  assert.deepEqual(askButton('2026-11-10T12:00:00Z', NOW), { label: 'Asked · Tue, Nov 10', disabled: true });
+  assert.deepEqual(askButton('2026-11-10T12:00:00Z', NOW), { label: 'Asked · Nov 10', disabled: true });
   assert.equal(RESTORE_GAME_LABEL, 'Restore game');
 });
 

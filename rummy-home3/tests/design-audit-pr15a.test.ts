@@ -68,14 +68,14 @@ test('DC15-2: the screens use screenTitle, none sets headerTitleAlign, and the s
 
 // ---- A06: one date format (DC15-3) ----
 
-test('DC15-3: formatWhen is "Sat, Nov 14 · 7:49 PM", the year only when it is not this year, and every formatter resolves to it', () => {
+test('DC15-3: formatWhen is "Nov 14 · 7:49 PM", the year only when it is not this year, and every formatter resolves to it', () => {
   const now = new Date(2026, 10, 15, 12, 0);
   const thisYear = new Date(2026, 10, 14, 19, 49);
   const lastYear = new Date(2025, 10, 14, 19, 49);
-  assert.equal(formatWhen(thisYear, now), 'Sat, Nov 14 · 7:49 PM');
-  assert.equal(formatWhen(lastYear, now), 'Fri, Nov 14, 2025 · 7:49 PM');
-  assert.equal(formatWhen(thisYear.toISOString(), now), 'Sat, Nov 14 · 7:49 PM', 'ISO strings too');
-  assert.equal(formatWhenDay(lastYear, now), 'Fri, Nov 14, 2025');
+  assert.equal(formatWhen(thisYear, now), 'Nov 14 · 7:49 PM');
+  assert.equal(formatWhen(lastYear, now), 'Nov 14, 2025 · 7:49 PM');
+  assert.equal(formatWhen(thisYear.toISOString(), now), 'Nov 14 · 7:49 PM', 'ISO strings too');
+  assert.equal(formatWhenDay(lastYear, now), 'Nov 14, 2025');
   assert.equal(formatWhenTime(new Date(2026, 0, 1, 0, 7)), '12:07 AM');
   assert.equal(formatWhen('nonsense'), 'Unknown date');
   assert.equal(formatWhen(undefined), 'Unknown date');
@@ -87,7 +87,7 @@ test('DC15-3: formatWhen is "Sat, Nov 14 · 7:49 PM", the year only when it is n
   assert.equal(sheetFormatWhen(iso), formatWhen(iso), 'final scores / saved results');
   assert.equal(formatLogWhen(iso), formatWhen(iso), 'result History');
   const parts = startParts(iso, now);
-  assert.equal(parts.date, 'Sat, Nov 14', 'Games in this result: the same short weekday + month');
+  assert.equal(parts.date, 'Nov 14', 'Games in this result: the same month and day, no weekday (#171 fix 3)');
   assert.equal(parts.time, '7:49 PM');
 });
 

@@ -141,7 +141,7 @@ export function formatLogTime(value: string): string {
   return formatWhenTime(date);
 }
 
-/** "Today", "Yesterday" or "Wed, Nov 12" */
+/** "Today", "Yesterday" or "Nov 12" */
 export function formatLogDay(value: string, now: Date = new Date()): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
@@ -152,7 +152,7 @@ export function formatLogDay(value: string, now: Date = new Date()): string {
   return formatWhenDay(date, now);
 }
 
-/** "Thu, Nov 13 · 10:31 PM" — absolute, for the result History (it spans days); the one date format (A06). */
+/** "Nov 13 · 10:31 PM" — absolute, for the result History (it spans days); the one date format (A06). */
 export function formatLogWhen(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';

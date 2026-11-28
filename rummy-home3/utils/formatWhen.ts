@@ -1,6 +1,7 @@
 /**
- * The one date format (design audit A06): "Sat, Nov 14 · 7:49 PM" — weekday, month, day · time; the
- * year only when it is not this year ("Sat, Nov 14, 2025 · 7:49 PM"). Home cards, the Results picker,
+ * The one date format (design audit A06): "Nov 14 · 7:49 PM" — month, day · time; the year only when it is
+ * not this year ("Nov 14, 2025 · 7:49 PM"). No weekday (#171 fix 3): on a small phone it pushed the time, the
+ * part that tells two games of one evening apart, off the card. Home cards, the Results picker,
  * the Complete header, saved results ("Saved " + this), Games in this result, share images, PDFs, the
  * live page and Log entries all use it. Pure copy so it runs under node.
  */
@@ -11,12 +12,12 @@ export function formatWhen(value: string | Date | undefined | null, now: Date = 
   return `${formatWhenDay(date, now)} · ${formatWhenTime(date)}`;
 }
 
-/** "Sat, Nov 14" (with the year when it is not this year). */
+/** "Nov 14" (with the year when it is not this year). */
 export function formatWhenDay(value: string | Date, now: Date = new Date()): string {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   const sameYear = date.getFullYear() === now.getFullYear();
-  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
 /** "7:49 PM" */
