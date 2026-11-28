@@ -208,8 +208,14 @@ export const overFullCount = (value: number | undefined, fullCount: number | nul
   value !== undefined && Math.abs(Number(fullCount) || 0) > 0 && value > Math.abs(Number(fullCount) || 0);
 
 export type AfterRound = {
+  /** The round just saved. */
+  round: number;
   /** Players this round put out, with their total. */
   newlyOut: { playerId: string; total: number }[];
+  /** 056 (D139): the Round saved sheet's rows — out in this round (out_round = the round), every one of them. */
+  outThisRound: string[];
+  /** Out in an earlier round and allowed back now, the latest out first. */
+  outEarlier: string[];
   /** Players who may re-enter now (includes earlier outs still eligible). */
   eligible: string[];
   /** Score a re-entering player would start at. */
@@ -221,13 +227,24 @@ export type AfterRound = {
  * What to show right after a round is saved (D4): who went out, who may come back and at what
  * score. `before` is the game as it was; `after` the reloaded one.
  */
-export function afterRound(before: Pick<Game, 'players' | 'poolSeats'>, after: Pick<Game, 'players' | 'scores' | 'poolSeats' | 'settings' | 'isComplete'>): AfterRound {
+export function afterRound(
+  before: Pick<Game, 'players' | 'poolSeats'>,
+  after: Pick<Game, 'players' | 'scores' | 'poolSeats' | 'settings' | 'isComplete'>,
+  round: number = Math.max(0, ...after.players.map((id) => after.scores[id]?.length ?? 0)),
+): AfterRound {
   const wasIn = new Set(playersIn(before));
   const newlyOut = playersOut(after)
     .filter((id) => wasIn.has(id))
     .map((id) => ({ playerId: id, total: poolTotal(after.scores[id], seatOf(after, id)) }));
+  const out = playersOut(after);
+  const outEarlier = out
+    .filter((id) => (seatOf(after, id).outRound ?? 0) < round && reentryBlock(after, id) === null)
+    .sort((a, b) => (seatOf(after, b).outRound ?? 0) - (seatOf(after, a).outRound ?? 0));
   return {
+    round,
     newlyOut,
+    outThisRound: out.filter((id) => seatOf(after, id).outRound === round),
+    outEarlier,
     eligible: eligibleForReentry(after),
     reentryAt: reentryScore(after),
     lastStanding: lastPlayerStanding(after),

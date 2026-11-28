@@ -105,3 +105,7 @@ test('D108: the dismissible how-to-add card at the top of My players', () => {
   assert.match(read('app/(tabs)/players.tsx'), /<Screen>\s*<HowToAddCard \/>/);
   assert.match(read('components/players/HowToAddCard.tsx'), /AsyncStorage\.setItem\(HOW_TO_ADD_DISMISSED_KEY, '1'\)/);
 });
+
+test('search fields never autocorrect: the keyboard kept "Golf" after a pick cleared the field and typed "Test HotelG" (smoke 32, small phone, Nov 27)', () => {
+  assert.match(read('components/ui/SearchField.tsx'), /<Searchbar[\s\S]*autoCorrect=\{false\}[\s\S]*\/>/);
+});

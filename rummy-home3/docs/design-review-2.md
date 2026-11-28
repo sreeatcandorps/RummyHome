@@ -166,7 +166,7 @@ for recommendations, industry standards and better suggestions, "don't just take
 
 | # | Sree's idea | What the better apps do | Recommendation |
 | --- | --- | --- | --- |
-| 7.1 | **Light / dark toggle on the Home top bar** ("there's space on the top … instead of going all the way into Settings") | Material 3 and Apple HIG both put appearance under Settings and default to **following the phone**. No major app (Spotify, Robinhood, Duolingo, WhatsApp, Google apps) has a theme switch in a content screen's top bar; the top bar carries actions about *that* screen. Our app already follows the phone, and the Phone / Light / Dark choice is on **Profile** — one tap from Home, no settings page to dig into. | **Keep it on Profile, not on Home.** In the S redesign it becomes the *Appearance* row (mockup `small-profile.png`). A top-bar toggle is one more control on the one screen that must stay calm, used once and then never. If he still wants a faster route: long-press the Me tab → "Dark / Light" — zero visual cost. Picture: `competitor-mockups.png`, first two phones. |
+| 7.1 | **Light / dark toggle on the Home top bar** ("there's space on the top … instead of going all the way into Settings") | Material 3 and Apple HIG both put appearance under Settings and default to **following the phone**. No major app (Spotify, Robinhood, Duolingo, WhatsApp, Google apps) has a theme switch in a content screen's top bar; the top bar carries actions about *that* screen. Our app starts a new install on Light (D137: "keep starting on Light"), and the Phone / Light / Dark choice is on **Profile** — one tap from Home, no settings page to dig into. | **Keep it on Profile, not on Home.** In the S redesign it becomes the *Appearance* row (mockup `small-profile.png`). A top-bar toggle is one more control on the one screen that must stay calm, used once and then never. If he still wants a faster route: long-press the Me tab → "Dark / Light" — zero visual cost. Picture: `competitor-mockups.png`, first two phones. |
 | 7.2 | **Sounds** ("there's sounds when I'm adding stuff … see if we even need it or not") | Score-keeping happens at a table with people talking; phones are usually silent; a tick on every keypress is what the competitor does and what makes it feel like a toy. Industry practice (Material "sound" guidance, Apple HIG feedback): sound only when it carries information the eye may miss, always optional, and **haptics before sound** — the phone in the hand feels it, the table does not hear it. We already use `expo-haptics` once (the seating toast, D61). | **No key sounds. Haptics for the three moments that matter, sound off by default with a switch.** (a) *Round saved* — light tap; (b) *someone is out / last player standing* — warning buzz; (c) *awards saved / pool completed* — success double-tap. Then one **Sounds** switch under Appearance, default **off**, with three short clips for the same three moments only (card-slap, soft chime, applause under a second). No sound on keypad digits, ever. Cost: `utils/haptics.ts` already exists; sounds need `expo-av` and three assets (~60 KB). |
 | 7.3 | **Winner animation** ("like a slot machine … subtle … maybe only for viewers, not for the admin") | Good instinct, and the standard form is a **toast / banner**, not a full-screen effect: slides in, lives 2 s, never blocks, respects "reduce motion". Viewers are the right audience — the admin is typing the next round. | **Yes, for viewers and for the web link.** After a round saves, non-admin phones on the scorecard and the live web page show a dark banner at the bottom: winner's initials on a yellow disc, "Player 3 wins round 4", the sub-line "Rummy · the table put in 133", and the points roll up like a counter (that is the slot-machine feel, in 600 ms). Gone after 2 s or on tap. Big moments get one more beat: a player goes **out** → the banner turns red; **last player standing** → the banner is the winner's name and the confetti burst is a single 1-second particle pass, once. The admin's phone shows nothing new — the existing green flash on the winning cell stays. Points games: "SK wins round 4 · +85". Picture: `competitor-mockups.png`, third phone. Not in S; it is the first item of M. |
 | 7.4 | **The web link must show as much as the app, including pool standings** | — | **Checked.** The page in the repo has had Standings for pool games since Nov 14 (PR 13: in / out, points left, drops left, re-entries, the awarded status) and the multiplier line since Nov 15. **The live page is the Nov 12 build** (byte-compared `ezscore.mindweavetech.com/scorecard.html` against every commit of `public/scorecard.html`; it matches `427c5a0b` exactly). So Sree's pool links show the old page with no Standings — a **publishing gap, not a code gap: Q6**, open since Nov 19, unblocked by #113's fix. It needs Build Bot to republish, nothing to build. Remaining parity after that (small, for the batch): the page does not mark **who dealt** each round (the app shows DEALS / OPENS; the payload already carries `dealers`), does not list the **awards** once given (only says "Awarded"), and does not show **entries** per player. |
@@ -200,6 +200,10 @@ Edge case to verify on CI before building: six "is out" lines in one round is su
 winner on 0 who cannot go out, so at most *n − 1* can go out together. The dialog may be listing **every** out
 player, not only this round's (the `before` snapshot it compares against comes from the scorecard's cache and may not
 carry pool seats). If so, that is a bug for the batch, found by his screenshot. Picture: `round-saved-mockup.png`.
+
+**Checked Nov 27 (§10.6):** the red lines are this round's outs only; the grey line and the Re-enter pills are everyone
+who may come back, earlier rounds included. Six out at once is possible in a pool of seven or more. Redrawn in palette
+B and the Size S look, together with the re-entry seat, in §10.6.
 
 ### 8.2 Awards — "I don't see the pool count … show the game name and how much it was played for"
 
@@ -386,6 +390,12 @@ newcomer takes the last seat with no notice, as today.
 
 Picture: `table-mockup.png`. Generator: `make-table-mockup.py`. Batch item 10; the direction is Q13.
 
+**Redrawn Nov 27** after Sree's "just show initials … flash his name, his player ID … in the middle of the circle":
+the table now replaces the list instead of sitting above it, in Palette B and the Size-S look, with the D56
+count-down and D74's selected-only arrows. Approved the same day as D138 (highest card at the top, the dealer one
+step to its right). Spec and pictures: [`seating-order-design.md` §11](seating-order-design.md#11-order-of-players-as-a-circle-sree-nov-27-2026-d138--approved-being-built)
+(`seating-circle-*.png`, generator `make-seating-circle.py`). `table-mockup.png` above is kept for history.
+
 ### 8.6 Awards: the split chips (Sree, Nov 21, 1:16 AM)
 
 **Sree's words**: "'Winner takes all' is weird, because obviously, if there's only one person left, it's 'winner takes
@@ -419,6 +429,8 @@ when viable, else *Split evenly*; the line says "Picked for you: Split evenly".
 distribution", reads as a verb like the others), "By points left", "Custom". The hint line under the chips explains the
 selected one in one sentence; the Gets column shows the result. Four chips fit one row on a Pixel; the fifth today
 wrapped.
+
+**Nov 27 (D128, D129):** approved and built. The third chip is **By score left** (Sree: "what we give out is points"), not By points left.
 
 Picture: `awards-chips-mockup.png` (today · proposed with drops · proposed when drops is off). Generator:
 `make-awards-chips-mockup.py`. Batch item 11.
@@ -732,3 +744,203 @@ copied. Keep it that way in the build — no "Bicycle" string, no rider, no thei
 "Secure sign-in enabled" is gone. Flow `01-sign-in.yaml` (or whichever flow signs in first) keeps `login-email`,
 `login-passcode`, the eye tap and `login-submit`. Screenshot matrix: Sign in light / dark × portrait / landscape,
 passcode revealed, the Supabase-missing line.
+
+### 10.6 Round saved (pool) with the re-entry seat (Sree, Nov 27: "show me more"; pictures only, nothing built)
+
+**Sree's words, and how they are read**
+
+| Sree said | Read as |
+| --- | --- |
+| Nov 27: *"the reentry should be done with the round save popup. I kind of don't understand, but you can show me more."* | Build the re-entry seat together with the new Round saved sheet, in one PR, and show it first. Re-enter on a row is where the seat is chosen. |
+| Nov 21: *"the buttons and the text are all over the place … what if there are more players, will it scroll?"* | One row per player, nothing said twice, a sheet whose list scrolls while the title and the buttons stay (§8.1). |
+| Nov 21, 1:11 AM: *"they have to always sit to the left side of the person that is dealing. Even if someone re-enters … warn and say … his seat is going to be so-and-so number … in between these two people … the admin can move the players around … implement this as a default"* | A re-entering player moves to the dealer's left by default (the rule migration 054 uses for a newcomer, D70). Before it happens, one line names the seat and the two neighbours. The admin can pick another seat or keep the old one. |
+
+**Pictures** (light palette B, Size S look, phones at their real dp size; the Noto Sans in the mockups runs about 5 %
+wider than the phone's Roboto, so whatever fits here fits on the phone):
+
+- `mockups/round-saved-reentry-1.png`: today as CI shows it (run
+  [46035664063](https://github.com/sreeatcandorps/RummyHome/actions/runs/46035664063), the green run of #170 on
+  Nov 27, Pixel 6, flow 16 frame `16h-pool-after-save-out`); today with 5 players and 2 out, redrawn at the sizes
+  measured on that frame (21 dp side margins, 28 dp corners, 22 dp title, body 16 sp Roboto); and the proposed sheet.
+- `mockups/round-saved-reentry-2.png`: tap Re-enter (the seat line and strip), tap another name, and after Re-enter.
+- `mockups/round-saved-reentry-3.png`: today on the small phone (same run, 360 dp, text × 1.3); 12 players with 6 out
+  on the small phone; only one player left; dark.
+- Generator: `mockups/make-round-saved-reentry.py`. Today's CI frames are kept beside it as
+  `round-saved-today-ci-pixel6.png` / `round-saved-today-ci-small.png`, because the CI artifacts expire.
+
+#### Today, in code (main @ `4f640ff`)
+
+| What | Where | Behaviour |
+| --- | --- | --- |
+| When the dialog appears | `app/(screens)/score-entry.tsx:299-306` | After **Add round** in a pool (not Edit round) when someone went out, someone may re-enter, or one player is left. |
+| The dialog | `score-entry.tsx:709-764` | A Paper `Dialog` (not dismissable). Red sentence per player out (713-717), the one-left sentence (718-722), grey "May re-enter at N: names" (723-727), one outlined pill per name with the first name only (730-753), outlined Complete when one is left (754-758), filled Close (760-762). Nothing scrolls. |
+| Who the red lines are | `utils/pool.ts:224-235` `afterRound` | `newlyOut` = out after the save **and** in before it. `before` is the game the screen loaded (`score-entry.tsx:108-109`, `:185`); its pool seats come from `get_game_bundle` → `seat_rows_json` (041), so `out_round` is there. **This round's outs only.** |
+| Who the pills are | `utils/pool.ts:174-175`, `:213-214`, `:231` | `eligible` = **every** out player still allowed back, earlier rounds included. Pinned by `tests/pool-pr13.test.ts:159-169` (eligible C, D, F where only C went out this round). |
+| Re-enter in the dialog | `score-entry.tsx:737-748` | Calls `reenterPlayer` and then `router.back()` (741): one re-entry closes the screen; a second one has to go through Standings. No word about the seat. |
+| Re-enter in Standings | `components/game/PoolStandings.tsx:91-94` → `app/(screens)/games/[id].tsx:194-205` | Same call, no question, no word about the seat. |
+| The server | `services/games.ts:678-700` → RPC `reenter_player`, latest body `supabase/migrations/047_reentry_and_late_entry_score.sql:49-109` | Sets the re-entry round, score and entry count and clears `out_round` (97-100). **Never touches `player_order`.** 054 says so (`054_join_left_of_dealer.sql:15`) and its test pins it (`supabase/tests/44_join_left_of_dealer_054.sql:121-122`, "re-entry keeps the seat (054 changes joining only)"). |
+| Who deals after a re-entry | `052_dealer.sql:40-52` (`dealer_rotation`), `:57-83` (`next_in_rotation`), `:88-112` (`current_dealer`) | Out seats are skipped. Once back in, his old seat is in the rotation again, so if it comes right after the dealer he **deals the very next round**. In the pictures: Harish (seat 5) re-enters while Priya (seat 3) deals round 8 and Venkat (seat 4) is out, so Harish deals round 9. |
+| His scorecard column | `services/games.ts:101-103` | Columns follow `player_order`, so his column stays where it was. |
+
+**The next-up row 6 note, checked.** The red lines are right: only this round. The grey line and the pills are
+everyone who may come back. "Six *is out* lines in one round is impossible" holds only for pools of six or fewer: the
+round's winner is on 0, so at most *n − 1* go out together. If his v17 pool had seven or more seats, six at once was
+possible, and his screenshot was correct, not a bug. One way it could go wrong: if the screen's copy of the game is older than
+the server's (another phone saved a round in between), earlier outs would count as "this round". The build takes "this
+round" from `out_round = the saved round` (`pool_recompute`, 041:113), which is exact.
+
+#### Recommendation
+
+1. Replace the dialog with a Size S bottom sheet: one row per player who is out (this round first, then earlier ones),
+   Re-enter on the row, title + next dealer + one summary line pinned on top, Close pinned at the bottom, the list
+   scrolls. When one player is left, **Complete the pool** is the filled button and Close is outlined.
+2. Tap Re-enter: the row opens in place (no second dialog). One line names the seat, a strip shows it in seat order,
+   and **Re-enter at 96** confirms. The default is the dealer's left. **Keep seat 5** or a tap on a name picks another
+   seat. The sheet stays open for the next re-entry. Standings' Re-enter opens the same line.
+3. Server: migration **056** gives `reenter_player` a seat (by default the dealer's left), keeps the dealer of the
+   round being played the same way 054 does, and writes the seat into the Log.
+
+What changes against §8.1 and §8.5, and why: the three chips become **one summary line** ("2 out this round · 3 still
+in · re-entry at 96"), because Size S takes pills off the screens (B01). §8.5's notice was a separate confirm dialog with
+*Pick a seat*; here it is the opened row, and *Pick a seat* is a tap on a name in the strip ("he sits on that person's
+left"). That is one dialog fewer (D50) and still shows the seat before he sits there.
+
+#### The sheet (build spec)
+
+- **Header, pinned:** "Round 7 saved" (the round number replaces today's bare "Round saved"); "Next: round 8 · Priya
+  deals" (`nextDealer`); one line "**2 out** this round · **3** still in · re-entry at **96**". With one player left the
+  second line says "Only Priya is left. Complete the pool, or re-enter someone to keep playing."
+- **List, scrolls** (`ScrollView`, at most 90 % of the screen): groups *Still in* (only when one is left: the leader row,
+  "88 · wins if you complete now"), *Out this round*, *Out earlier*. A row has the initials disc, the full name (wraps,
+  never cut, D95), a sub-line "Out at 112" or "Out in round 6", and **Re-enter** as a text action with a 48 dp target.
+  A player who used every re-entry the pool allows gets "no re-entries left" and no action (`REENTRY_BLOCK_TEXT.used`).
+- **Footer, pinned:** Close (filled; D34). With one player left: Close (outlined) and **Complete the pool** (filled),
+  which opens the existing `CompleteGameDialog` (D39).
+- **The opened row** (`ReentrySeatPanel`): line 1 bold, in the words Add players uses since 054 (`joinSeatNotice`):
+  "Harish sits at seat 3, between Anil and Priya — left of the dealer." The strip shows the seats in order with numbers;
+  the new seat is dashed brass with "was 5", the dealer has a green ring and "deals", out seats are grey. A grey line says
+  what it means: "He comes back at 96, opens round 8 and deals last, after Anil." Actions: **Keep seat 5** (text) and
+  **Re-enter at 96** (filled). A tap on a name in the strip moves him to that person's left. If that is not the dealer's
+  left, the line loses "— left of the dealer" and a brass warning says what changes ("Not the dealer's left: Anil opens
+  round 8, Harish deals round 10"). That is a warning, not a refusal (D50).
+- **After Re-enter:** the row turns blue (the re-entry colour) and reads "↺ Back in at 96 · seat 3, left of Priya"; the
+  summary line counts again; the sheet stays open. Close goes back to the scorecard, where his column now sits left of
+  Priya's.
+- **13–20 seats:** the strip shows the new seat with two seats on each side, "…" at the ends, and scrolls sideways.
+  Seat numbers always show.
+- "Between X and Y" names the **neighbours still in** (out seats are skipped), so the line never names someone who is
+  not at the table.
+
+#### What it does to the deal, the open card and the columns (5-player example)
+
+Seats 1 Sree · 2 Anil · 3 Priya · 4 Venkat (out) · 5 Harish (out). Round 7 was dealt by Anil; Priya deals round 8.
+
+| | Today / Keep seat 5 | Default: dealer's left (seat 3) | Tap Anil (seat 2) |
+| --- | --- | --- | --- |
+| Seat order after | Sree, Anil, Priya, Venkat, Harish | Sree, Anil, **Harish**, Priya, Venkat | Sree, **Harish**, Anil, Priya, Venkat |
+| Deals round 8 | Priya | Priya (kept by the 054-style pin, see below) | Priya |
+| Opens round 8 (the seat before the dealer, D58) | Anil | **Harish**. Anil opens next when Harish deals. | Anil |
+| Harish first deals | round 9, straight after coming back | round 11, last in the cycle, after Anil | round 10, after Sree |
+| Scorecard columns | SK AS PK VR HG | SK AS **HG** PK VR | SK **HG** AS PK VR |
+
+His old rounds move with his column (cells are keyed by player, not position); the dealer of each played round is
+stored on the round, so history does not change (052). Undo last round undoes the re-entry (041 `pool_undo_reentry`)
+but leaves the seat where it is; the admin can move him with Order of players (D50: no seat history).
+
+#### Server change: `056_reentry_left_of_dealer.sql` (not written in this PR)
+
+The highest migration on `main` is 054, so the next free number would be **055**, but open PR #153 already uses
+`055_sign_in_methods.sql`. This one is **056**; renumber it if #153 lands later.
+
+- `drop function public.reenter_player(uuid, uuid)`; `create function public.reenter_player(p_game_id uuid,
+  p_profile_id uuid, p_seat integer default null) returns jsonb`, with 047's checks and re-entry fields unchanged.
+- Under the game lock, before changing anything: `v_live`, `v_dealing := current_dealer(...)` (he is out, so not in
+  the rotation) and `v_planned`, exactly as 054.
+- Target seat: `p_seat` null → the seat before `v_dealing`, worked out after taking him out of his old seat. If the
+  dealer is now the lowest seat, he takes the last seat (054's rule). If his seat is already the seat before the dealer
+  among players still in, he does not move. `p_seat` 1…N → that seat; anything else raises "Seat must be 1 to N."
+- Move: park his row (`player_order + 10000`), close the gap above his old seat, open one at the target, put him in it
+  (the same two-step offset 044 and 054 use against the order constraint).
+- Pin: work out the planned dealer again; if it changed, set the 052 override for round `v_live + 1` to `v_dealing`.
+  The dealer of the round being played keeps it, as 054 does for a newcomer.
+- Log (`player_reentered`): "Harish re-entered at 96 · Before round 8 · Entry 2 · Seat 5 → 3 (left of Priya)"; the
+  payload and the return value gain `seatFrom` / `seat`.
+- Rollback `supabase/rollback/rollback_056_reentry_left_of_dealer.sql` = 047's body and two-argument signature.
+- **Older builds** (Play 1.1.0, the staging APK) call it with two arguments, so they get the new default without the
+  line, exactly as 054 did for joins. Live gets 056 only on Sree's yes to that migration (AGENTS.md).
+
+**App side of the build:** `utils/dealerRotation.ts` `planReentry(game, roundCount, playerId, seat?)` works the seat
+out the same way as the server (as `planJoin` mirrors 054). `utils/pool.ts` gets `reentrySeatLine` (the copy above),
+and `afterRound` gains `outThisRound` / `outEarlier` from `outRound`. `services/games.ts reenterPlayer(gameId,
+profileId, seat?)` sends `p_seat`; games stored on the phone apply `planReentry`. New `components/game/RoundSavedSheet.tsx`
+and `ReentrySeatPanel.tsx`. In `score-entry.tsx` the dialog goes, and Re-enter no longer calls `router.back()`. In
+`games/[id].tsx`, Standings' Re-enter opens the panel in a small sheet. Help copy in `constants/help.ts` (pool out /
+re-entry) gets one sentence: "A player who re-enters sits on the dealer's left unless you pick another seat." Model for
+the build (D92): Claude Fable, because it is a migration plus changes across several screens.
+
+#### Edge cases (checklist item 4)
+
+- **Points**: no outs, no sheet, nothing changes (checklist item 2; D99 keeps "left the table" out).
+- **The dealer is the lowest seat still in**: he takes the last seat, the same place in the circle.
+- **Already on the dealer's left** (or only out seats between him and the dealer): no move. The line reads "Harish
+  keeps seat 4 — already left of the dealer.", with no Keep seat button.
+- **Two re-entries in a row**: each sits on the dealer's left, so the second sits between the first and the dealer
+  (054 seats several newcomers the same way).
+- **A Dealer-sheet override for the round being played** (D60): that dealer is "the dealer"; the override stays.
+- **One player left / nobody left**: Re-enter still works on every row while one player is in; with nobody in,
+  `reentryBlock` says "Nobody is still in the pool" (unchanged).
+- **Non-admin viewer**: never sees the sheet (only an admin saves rounds); Standings hides Re-enter (unchanged).
+- **Offline or a refused call**: the row shows the error under the line and the sheet stays open (today the dialog
+  closes and a notice opens).
+- **Reopened or completed pool**: Re-enter is refused by the server as today; the sheet is never shown on a completed game.
+- **Landscape and tablets**: Add round in landscape gets the same sheet (about two rows visible, the list scrolls).
+  On a tablet the sheet is at most 560 dp wide, centred.
+- **13–20 players**: the list scrolls; the strip shows the neighbourhood (above).
+
+#### Tests and device flows the build changes
+
+- **Unit, new** `tests/round-saved-reentry.test.ts`: `planReentry` (default before the dealer; dealer at the lowest
+  seat → last seat; already left → no move; a picked seat; keep; out seats in between; the pin when the plan changes;
+  two re-entries side by side; who opens and who deals next); `reentrySeatLine` (default, picked + warning, already
+  left); `afterRound` this round vs earlier by `outRound`; source checks: no `Dialog` titled "Round saved" in
+  `score-entry.tsx`, Re-enter does not call `router.back()`, test IDs `after-row-<id>`, `after-reenter-<id>`,
+  `after-reenter-confirm`, `after-keep-seat`, `after-seat-<n>`, `after-complete` (filled when one is left),
+  `after-done` (Close).
+- **Unit, changed**: `tests/pool-pr13.test.ts:159-169` (the new split) and `:469-470` (the screen regex moves to
+  `RoundSavedSheet`); `tests/design-audit-pr15a.test.ts:191` (Close's test ID, now in the sheet file);
+  `tests/design-tokens.test.ts:185` (Complete still opens `CompleteGameDialog`); `tests/test-selection-pr17.test.ts:152-153`
+  (the two-device flow's text).
+- **Database, new** `supabase/tests/45_reentry_left_of_dealer_056.sql`: the default seat before the current dealer
+  and the others shifted; the dealer keeps the round (the override is set, `current_dealer` unchanged); dealer at the
+  lowest seat → last seat; already left → no move and no override; `p_seat` keep / other / out of range; 047's score,
+  round and entries unchanged; the Log text has "Seat 5 → 3"; a two-argument call still works; a non-admin is refused;
+  Undo last round after a re-entry keeps the seat.
+- **Database, changed**: `supabase/tests/44_join_left_of_dealer_054.sql:121-122` (re-entry now moves: assert the new
+  seat); `supabase/tests/32_pool_041.sql:22,24` (the signature gains `integer`). 33 and 38 call with two arguments and
+  stay as they are.
+- **Maestro**: `e2e/smoke/16-pool-game.yaml:136-170`: "Round saved" → "Round 1 saved"; the red sentence → the row
+  "Zed Zero" + "Out at 135"; tap `after-reenter-<Zed>`; assert "Zed sits at seat 2, between Sree and Harish — left of
+  the dealer." (Sree 1, Harish 2, Priya 3, Zed 4; Harish deals round 2); new frames 16h2 (the line) and 16h3 (back in);
+  then Close and the scorecard's column 2 reads ZZ. The Standings re-entry steps (16i2, 16j) move to a new flow. **New**
+  `e2e/smoke/16b-pool-round-saved-12p.yaml` on a new seed game W (12 seats, the next round puts three out,
+  `supabase/seed-e2e.sql`): it saves the round, takes the sheet on the Pixel 6 and the small phone, scrolls the list,
+  re-enters one player from Standings (the second door), then Undo last round twice so W stays as seeded.
+  `e2e/two-device/b-save-now.yaml:8`: "Round saved" → `Round \d+ saved` ("Close" stays). `e2e/smoke/20-pool-13p-reentry.yaml`
+  is unchanged (its re-entries are seeded, not made through the RPC).
+- **Screenshot matrix for the build PR:** the sheet with 4 and 13 players, after round 1 and round 5, portrait and
+  landscape, light and dark, plus the small phone (D45, D95).
+
+#### Conflicts (checklist item 6)
+
+- **D70** says "054 does the join only unless he says both". This picture is the "both"; his yes to it is the yes.
+- `seating-order-design.md` §5 and S07: "a re-entry comes back to the same column". That line becomes "a re-entry sits
+  on the dealer's left unless the admin keeps the seat".
+- `pool-design.md` §4 (`reenter_player`): gains the seat.
+- §8.1 above: the chips become one summary line (Size S). §8.5: the notice becomes the opened row.
+- Not changed: D34 (Close), D39 (Complete is one dialog), D28 (the ↺ re-entry display), D58 (the open card goes to the
+  seat before the dealer; that is why the re-entering player opens the next round).
+
+#### The question for Sree
+
+**Build re-entry this way: tap Re-enter, see the seat on the dealer's left, tap Re-enter at 96 (or tap a name, or Keep
+seat 5, to sit elsewhere)?** Default: yes, as drawn, in one PR with migration 056. Nothing is built until he says so.

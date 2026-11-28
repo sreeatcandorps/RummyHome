@@ -64,12 +64,13 @@ const INFRA = [/^ci\//, /^\.github\//, /^rummy-home3\/e2e\//, /^rummy-home3\/sup
  *   E and H         smoke/13 (E back to round 1) → 14 (H round 1) → 18 (E ×10 then ×1) → 21 (E Players frame, H hidden) →
  *                   23 (Dealer, "runs after 13"); full/30, 31, 70 (E, "runs after smoke/13"), 32, 80 (H, round 1 from 14)
  *   F               smoke/10, 11, 25 (read only); full/20, 21, 50, 51 (F ×10,000 and Order of players, both put back)
- *   independent     smoke/17 (W), 20 (V), 22 (Ravi's games), 24 (Ravi, tutorial), 30 (adds QX, ZQ, VK to My players;
- *                   no game), 31 (looks up #5); full/60 (dark mode, back to Phone)
+ *   independent     smoke/16b (U, its round and re-entries undone), 17 (W), 20 (V), 22 (Ravi's games), 24 (Ravi, tutorial), 30 (adds QX, ZQ, VK to My players;
+ *                   no game), 31 (looks up #5); full/52 (New game to Order of players with 13, never starts), 60 (dark mode, back to Phone)
  *   clearState      smoke/26 and 27 wipe the phone and sign back in; what follows them in shard b reads only F
  *
  * Lists are in run order. The sizes are the measured times of run 45912691807 (#156, Nov 26, all 31 flows on one
- * Pixel 6): a = 1132 s, b = 1094 s of smoke. `full` lists the full flows that follow the shard's smoke on the same emulator; every full flow on disk is in
+ * Pixel 6): a = 1132 s, b = 1094 s of smoke; smoke/16b (Nov 27) brought b to 1306 s. The 13-player circle (full/52,
+ * ~380 s) is a full flow because in smoke it would push a shard past 1400 s. `full` lists the full flows that follow the shard's smoke on the same emulator; every full flow on disk is in
  * exactly one list (tests/test-selection-pr-shards.test.ts), a full flow that is not falls to shard b.
  */
 export const SMOKE_SHARDS = {
@@ -77,11 +78,11 @@ export const SMOKE_SHARDS = {
     smoke: ['01-home', '02-scorecard', '03-scorecard-landscape', '04-add-round', '05-complete-game', '06-results', '07-profile', '08-my-players', '09-new-game',
       '12-results-zero-players', '15-delete-shared-result-confirm', '16-pool-game', '17-pool-wide-initials-20p', '19-seating-order', '20-pool-13p-reentry',
       '30-add-by-initials-save'],
-    full: ['10-sign-out-bad-passcode', '40-results-save-and-past', '41-share-images', '42-reopen-closed-game', '61-first-launch-light-night-phone'],
+    full: ['10-sign-out-bad-passcode', '40-results-save-and-past', '41-share-images', '42-reopen-closed-game', '52-seating-13p', '61-first-launch-light-night-phone'],
   },
   b: {
     smoke: ['10-scorecard-20-players', '11-scorecard-20-players-landscape', '13-undo-then-add-round', '14-rummy-positive-pot',
-      '18-multiplier-change', '21-help-frames', '22-play-listing-frames', '23-dealer', '24-seating-tutorial', '25-scorecard-fast-fling',
+      '16b-pool-round-saved-12p', '18-multiplier-change', '21-help-frames', '22-play-listing-frames', '23-dealer', '24-seating-tutorial', '25-scorecard-fast-fling',
       '26-create-account-keyboard', '27-create-account-code', '28-scorecard-columns', '29-scorecard-names-swipe', '31-player-id-search'],
     full: ['20-scorecard-20-players-swipe', '21-scorecard-font-scale', '30-players-admins-and-settings', '31-edit-initials-mid-game', '32-add-players-to-game',
       '50-help-notes', '50-multiplier-20p', '51-seating-20p', '60-dark-mode', '70-game-log', '80-add-round-count-warnings'],
@@ -117,8 +118,8 @@ export const AREA_FLOWS = [
     flows: { full: ['70-game-log'] } },
   { area: 'auth', match: [/\(auth\)\//, /services\/auth/, /utils\/authErrors/, /login/i, /\(tabs\)\/me\.tsx$/, /utils\/supabaseErrors/],
     flows: { full: ['10-sign-out-bad-passcode'] } },
-  { area: 'seating', match: [/utils\/seating/, /components\/game\/(SeatingSheet|OrderOfPlayers|OrderStep)/, /migrations\/.*seating/, /utils\/dealerRotation/],
-    flows: { full: ['51-seating-20p', '70-game-log'] } },
+  { area: 'seating', match: [/utils\/seat(ing|Ring)/, /components\/game\/(SeatingSheet|OrderOfPlayers|OrderStep|OrderHowTo)/, /migrations\/.*seating/, /utils\/dealerRotation/],
+    flows: { full: ['51-seating-20p', '52-seating-13p', '70-game-log'] } },
   { area: 'deleted-games', match: [/utils\/deletedGames/, /components\/home\/DeletedGames/, /components\/game\/DeletedGameBanner/, /hidden-deleted\.tsx$/, /utils\/archive/, /services\/archive/, /migrations\/.*going_rogue/, /migrations\/.*no_permanent_delete/, /tests\/no-permanent-delete/],
     flows: { full: ['70-game-log'] } },
 ];

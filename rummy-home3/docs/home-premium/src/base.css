@@ -1,0 +1,109 @@
+/* Shared structure. Each direction (a.css, b.css, c.css) sets the colours, the display face and its own details.
+   Sizes are dp at 1x; text sizes are multiplied by --fs (the phone's text size setting) and are never under 13. */
+
+@font-face { font-family: "Roboto"; src: url("../.cache/fonts/Roboto.ttf"); font-weight: 100 900; font-stretch: 75% 100%; }
+@font-face { font-family: "DM Serif Display"; src: url("../.cache/fonts/DMSerifDisplay-Regular.ttf"); }
+@font-face { font-family: "Yeseva One"; src: url("../.cache/fonts/YesevaOne-Regular.ttf"); }
+@font-face { font-family: "Poppins"; src: url("../.cache/fonts/Poppins-SemiBold.ttf"); font-weight: 600; }
+@font-face { font-family: "MDI"; src: url("../.cache/fonts/MaterialCommunityIcons.ttf"); }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #77787c; }
+body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+.phone {
+  --w: 412px; --h: 915px; --fs: 1;
+  --ui: "Roboto", sans-serif;
+  position: relative; width: var(--w); height: var(--h); overflow: hidden;
+  background-color: var(--bg); color: var(--ink);
+  font: 400 calc(16px * var(--fs)) / 1.4 var(--ui);
+}
+.phone.tall { height: auto; min-height: var(--h); }
+.mi { font-family: "MDI"; font-style: normal; font-weight: 400; line-height: 1; display: inline-block; flex: none; }
+
+/* status bar and the system gesture pill */
+.status { position: absolute; top: 0; left: 0; right: 0; height: 28px; z-index: 5; display: flex; align-items: center; justify-content: space-between; padding: 2px 14px 0 20px; color: var(--status); }
+.status .time { font: 500 14px/1 var(--ui); letter-spacing: 0.2px; }
+.status .sicons { display: flex; align-items: center; gap: 4px; }
+.status .batt { margin-left: -2px; }
+
+/* header */
+.hero { position: relative; padding: 28px 16px 0; }
+.brandrow { position: relative; display: flex; align-items: center; gap: 10px; min-height: 56px; }
+.brand { flex: 1; min-width: 0; }
+.emblem { flex: none; width: 40px; height: 40px; border-radius: 50%; overflow: hidden; }
+.emblem img { width: 100%; height: 100%; display: block; }
+.help { position: relative; flex: none; width: 44px; height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; }
+.greet { position: relative; font-weight: 400; overflow-wrap: anywhere; }
+.newgame { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; padding: 8px 16px; }
+.newgame span { font: 700 calc(17px * var(--fs)) / 1.2 var(--ui); letter-spacing: 0.2px; }
+
+/* Results and My players */
+.tiles { position: relative; display: flex; gap: 12px; }
+.tile { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 12px; text-align: left; }
+.ttop { display: flex; align-items: center; justify-content: space-between; min-height: 28px; }
+.tlabel { font: 700 calc(16px * var(--fs)) / 1.25 var(--ui); }
+.tcount { font-variant-numeric: lining-nums tabular-nums; }
+
+/* lists */
+.body { position: relative; padding: 0 16px 28px; }
+.phone:not(.tall) .body { padding-bottom: 120px; }
+.sec { margin-top: 20px; }
+.sechead { display: flex; align-items: center; gap: 12px; min-height: 40px; margin-bottom: 6px; }
+.sechead h2 { font-weight: 400; white-space: nowrap; }
+.sechead .rule { flex: 1; }
+.sechead .info { flex: none; width: 36px; height: 36px; margin-right: -8px; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.cards { display: flex; flex-direction: column; gap: 10px; }
+
+.card { position: relative; display: flex; align-items: center; gap: 12px; min-height: 80px; padding: 12px 8px 12px 12px; background-color: var(--surface); border: 1px solid var(--hair); border-radius: 16px; }
+.badge { position: relative; flex: none; width: 50px; height: 50px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-variant-numeric: lining-nums; }
+.cbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+/* The date and the time are two words that never break inside: on a narrow phone the time drops to its own line. */
+.ctitle { display: flex; flex-wrap: wrap; font: 700 calc(17px * var(--fs)) / 1.25 var(--ui); letter-spacing: 0.1px; }
+.ctitle span { white-space: pre; }
+.cmeta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.tag { display: inline-flex; align-items: center; gap: 4px; min-height: 26px; padding: 2px 9px 2px 7px; border-radius: 8px; font: 700 calc(13.5px * var(--fs)) / 1.1 var(--ui); white-space: nowrap; }
+.tag .dot { width: 7px; height: 7px; margin: 0 2px 0 3px; border-radius: 50%; background: currentColor; }
+.mult { display: inline-flex; align-items: center; min-height: 24px; padding: 0 7px; border-radius: 7px; background-color: var(--ink); color: var(--surface); font: 700 calc(13.5px * var(--fs)) / 1 var(--ui); font-variant-numeric: tabular-nums; }
+.type, .pc { font: 400 calc(14px * var(--fs)) / 1.2 var(--ui); color: var(--muted); }
+.pc { display: inline-flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
+.chev { color: var(--muted); }
+.more { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 48px; margin-top: 4px; font: 700 calc(15px * var(--fs)) / 1 var(--ui); }
+
+/* empty state */
+.empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 18px 16px 22px; background-color: var(--surface); border: 1px solid var(--hair); border-radius: 18px; }
+.etitle { margin-top: 12px; }
+.etext { margin-top: 4px; font: 400 calc(15px * var(--fs)) / 1.35 var(--ui); color: var(--muted); }
+.quiet { font: 400 calc(15px * var(--fs)) / 1.35 var(--ui); color: var(--muted); padding: 2px 0 6px; }
+.art { position: relative; width: 190px; height: 150px; }
+.halo { position: absolute; left: 50%; top: 50%; width: 150px; height: 150px; margin: -75px 0 0 -75px; border-radius: 50%; }
+.pcard { position: absolute; left: 50%; top: 24px; width: 68px; height: 100px; margin-left: -34px; border-radius: 8px; background-color: #FFFEFA; border: 1px solid rgba(0, 0, 0, 0.18); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18); display: flex; align-items: center; justify-content: center; }
+.pcard em { position: absolute; left: 6px; top: 4px; font: 700 14px/1 var(--ui); font-style: normal; }
+.pcard.l { transform: translate(-40px, 8px) rotate(-16deg); color: #B4231B; }
+.pcard.r { transform: translate(40px, 8px) rotate(16deg); color: #1A1F1B; }
+.pcard.r em { left: auto; right: 6px; }
+.pcard.m { top: 14px; overflow: hidden; }
+.pcard.m img { height: 88px; display: block; }
+
+/* request banners, the player update, deleted games */
+.banners { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.banner { position: relative; padding: 12px 14px 12px 16px; border-radius: 14px; background-color: var(--surface); border: 1px solid var(--hair); overflow: hidden; }
+.banner::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.bhead { display: flex; gap: 8px; align-items: flex-start; }
+.bicon { margin-top: 1px; }
+.btitle { font: 700 calc(15px * var(--fs)) / 1.3 var(--ui); }
+.btext { margin-top: 4px; font: 400 calc(14px * var(--fs)) / 1.4 var(--ui); color: var(--muted); }
+.bact, .dact { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 4px 18px; border-radius: 12px; font: 700 calc(15px * var(--fs)) / 1.1 var(--ui); }
+.dcard { padding: 12px 14px; border-radius: 14px; background-color: var(--surface); border: 1px solid var(--hair); }
+.drow { display: flex; align-items: center; gap: 8px; }
+.dtitle { flex: 1; min-width: 0; font: 700 calc(16px * var(--fs)) / 1.3 var(--ui); color: var(--muted); }
+.dline { margin-top: 4px; font: 400 calc(14px * var(--fs)) / 1.4 var(--ui); color: var(--muted); }
+
+/* bottom bar: Home and Profile, as today */
+.tabbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; gap: 10px; padding: 9px 14px 34px; background-color: var(--bar); border-top: 1px solid var(--bar-line); }
+.tall .tabbar { position: sticky; }
+.tab { flex: 1; height: 52px; display: flex; align-items: center; justify-content: center; }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background-color: #0F766E; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font: 700 14px/1 var(--ui); letter-spacing: 0.3px; }
+.dark .avatar { background-color: #2DD4BF; color: #06231F; }
+.gesture { position: absolute; left: 50%; bottom: 9px; width: 112px; height: 4px; margin-left: -56px; border-radius: 2px; background: var(--gesture); }

@@ -466,8 +466,9 @@ test('13.8c Add round screen: the pool keeps one confirm ("Are you sure?") and d
   assert.match(screen, /if \(!pool && !rummyConfirmed\.current && rummyShareNeedsConfirm\(shares\)\)/);
   assert.match(screen, /const pendingWarning = !pool && /, 'no half / full warnings in a pool (D7)');
   assert.match(screen, /\{pool \? 'Scored' : 'Balance'\}/);
-  assert.match(screen, /const summary = afterRound\(game, saved\);/, 'after a save, who is out and who may re-enter');
-  assert.match(screen, /testID=\{`after-reenter-\$\{id\}`\}/);
+  assert.match(screen, /const summary = afterRound\(game, saved, nextRoundNumber\(game\)\);/, 'after a save, who is out and who may re-enter');
+  assert.match(screen, /<RoundSavedSheet/);
+  assert.match(src('components/game/RoundSavedSheet.tsx'), /testID=\{`after-reenter-\$\{id\}`\}/);
   assert.match(screen, /openHelp\('add-round', pool \? 'pool' : 'points'\)/, 'the pool Add round opens the Pool part of its help page');
   assert.match(screen, /pool,\n\s*\}\);/, 'addRound is told it is a pool round');
 });
@@ -485,7 +486,7 @@ test('13.9 scorecard: header shows initials / score (no player number since Nov 
   assert.doesNotMatch(scorecard, /number: player\??\.playerNo \?\? null/, 'the scorecard passes no player number');
   assert.doesNotMatch(src('components/game/PoolStandings.tsx'), /#\$\{r\.number\}/, 'Standings rows carry no #number');
   assert.match(scorecard, /<PoolStandings\s+rows=\{poolRows\}/);
-  assert.match(scorecard, /onReenter=\{game\.isComplete \|\| deleted \? undefined : reenter\}/); // PR 20: read-only when deleted
+  assert.match(scorecard, /onReenter=\{game\.isComplete \|\| deleted \? undefined : setReentering\}/); // PR 20: read-only when deleted; D139: opens the seat sheet
   assert.match(scorecard, /poolLimitPreview=\{pool \? \(limit\) => limitChangePreview\(game, limit,/, 'D53: the limit confirm names who changes');
   assert.match(scorecard, /\(pool \? a\.total - b\.total : b\.total - a\.total\)/, 'the leader of a pool is the lowest score still in');
   assert.match(scorecard, /<PoolAwardsCard/);

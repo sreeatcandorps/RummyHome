@@ -133,7 +133,7 @@ test('createGame seats players in the Order of players, and the RPC path is set_
   assert.ok(!/from\('game_players'\)\s*\.update\(\{\s*player_order/.test(games), 'no client-side player_order writes remain');
 });
 
-test('the scorecard: the ⋮ item and the sheet, no pop-up; Players · Admins arrows mid-game', () => {
+test('the scorecard: the ⋮ item and the full-page circle (D138), no pop-up; Players · Admins arrows mid-game', () => {
   const scorecard = read('app/(screens)/games/[id].tsx');
   assert.ok(!scorecard.includes('shouldPromptSeating'), 'PR 24: no pop-up');
   assert.match(scorecard, /testID="game-menu-seating"/);
@@ -146,7 +146,8 @@ test('the scorecard: the ⋮ item and the sheet, no pop-up; Players · Admins ar
   assert.ok(!sheet.includes('seating-chips') && !sheet.includes('seat-chip-'), 'PR 24: the Players chip column is gone');
   assert.ok(!sheet.includes('Keep this order'));
   const list = read('components/game/OrderOfPlayers.tsx');
-  for (const id of ['-row-', '-name-', '-no-', '-up-', '-down-', '-label-', '-code-']) assert.match(list, new RegExp(`testID={\`\\$\\{testIDPrefix\\}${id}`), id);
+  // D138: the circle. Discs keep -row- / -label- / -no-; name and #ID moved into the middle card (-selected-, -flash-).
+  for (const id of ['-row-', '-no-', '-number-', '-up-', '-down-', '-label-', '-selected', '-flash', '-flash-name', '-flash-seat', '-flash-deals', '-highest-card', '-deal-direction']) assert.match(list, new RegExp(`testID=\\{\`\\$\\{testIDPrefix\\}${id}`), id);
   assert.match(list, /testID=\{`\$\{testIDPrefix\}-deals-next`\}/);
 });
 

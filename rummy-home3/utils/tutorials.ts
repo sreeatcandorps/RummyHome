@@ -1,9 +1,9 @@
-import { OrderDraft, startOrder, tapPlayer, stepNumbered } from '@/utils/seating';
+import { deselect, OrderDraft, startOrder, stepNumbered, tapRing } from '@/utils/seating';
 
 /**
  * Short step-by-step tutorials (D61, Sree Nov 19–20: "show each step clearly, maybe a small video …
  * a 3-step, 4-step, and they click Next, Next, Next"). One sheet, N steps, each step a looping demo of
- * the real rows plus one line of text. The first one is the Order of players; the strings and the demo
+ * the real circle (D138) plus one line of text. The first one is the Order of players; the strings and the demo
  * script live here so the sheet and the tests agree. D74 (Nov 23): three steps, never opens by itself,
  * no card pictures ("in some places even Joker is highest").
  */
@@ -52,8 +52,10 @@ export const DEMO_TAP_ORDER = ['anu', 'bala', 'chitra', 'dev'] as const;
 
 export type DemoFrame = {
   draft: OrderDraft;
-  /** The row the finger is on (a player id), if any. */
+  /** Where the finger is: a player's disc (his id), or his ▲ in the middle (`'up'`). */
   finger?: string;
+  /** The player the middle names after a tap, as on the screen (two seconds there, one frame here). */
+  flash?: string;
 };
 
 /** Every frame shows for about this long; a step's frames then loop. */
@@ -62,36 +64,41 @@ export const DEMO_FRAME_MS = 900;
 const empty = () => startOrder(DEMO_IDS);
 function tapped(count: number): OrderDraft {
   let draft = empty();
-  for (const id of DEMO_TAP_ORDER.slice(0, count)) draft = tapPlayer(draft, id);
+  for (const id of DEMO_TAP_ORDER.slice(0, count)) draft = tapRing(draft, id);
   return draft;
 }
 
-/** The frames for one step of the Order of players tutorial. */
+/** The frames for one step of the Order of players tutorial, on the circle's own tap rules (`tapRing`). */
 export function seatingDemoFrames(step: number): DemoFrame[] {
   switch (step) {
     case 0:
-      // Four players, nobody numbered yet: the table before the first tap.
+      // Four players round the table, nobody numbered yet.
       return [{ draft: empty() }, { draft: empty() }, { draft: empty() }];
     case 1: {
-      // Highest card first: K, then 7, then 4, then the 2 — the last tap lands at the bottom and deals.
+      // Highest card first: K, then 7, then 4, then the 2. Each disc goes to its seat — the K at the top, the
+      // rest anticlockwise — and the last tap, one step right of the top, deals.
       const frames: DemoFrame[] = [{ draft: empty() }];
       DEMO_TAP_ORDER.forEach((id, i) => {
-        frames.push({ draft: tapped(i + 1), finger: id }, { draft: tapped(i + 1) });
+        frames.push({ draft: tapped(i), finger: id }, { draft: tapped(i + 1), flash: id });
       });
       frames.push({ draft: tapped(4) });
       return frames;
     }
     default: {
-      // Take the latest tap back; then, everyone numbered, select a player and move them with ▲.
+      // Take the latest tap back; then, everyone numbered, select a player, move them with ▲, let go.
       const full = tapped(4);
+      const selected = tapRing(full, 'chitra');
+      const moved = stepNumbered(selected, 'chitra', 1);
       return [
         { draft: tapped(3) },
         { draft: tapped(3), finger: 'chitra' },
-        { draft: tapped(2) },
+        { draft: tapped(2), flash: 'chitra' },
         { draft: full },
-        { draft: tapPlayer(full, 'chitra'), finger: 'chitra' },
-        { draft: stepNumbered(full, 'chitra', 1) },
-        { draft: stepNumbered(full, 'chitra', 1) },
+        { draft: full, finger: 'chitra' },
+        { draft: selected, finger: 'up' },
+        { draft: moved },
+        { draft: moved, finger: 'chitra' },
+        { draft: deselect(moved) },
       ];
     }
   }

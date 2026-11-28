@@ -1,0 +1,104 @@
+/* B · Maroon & Marigold. A Bombay cinema poster: a spotlit maroon stage, gold title lettering, games as tickets.
+   Headings and numbers in Yeseva One. */
+
+.d-b { --display: "Yeseva One", serif; --status: #FBEEDC; --gesture: #FBEEDC; }
+.d-b.light { --bg: #FBF3E4; --surface: #FFFBF3; --ink: #2A0E12; --muted: #6B4A4E; --hair: #EBD9BD; --bar: #3A0712; --bar-line: #5E0F1F; }
+.d-b.dark { --bg: #14060A; --surface: #24090F; --ink: #FBEEDC; --muted: #D4B8B0; --hair: #45161F; --bar: #1C070B; --bar-line: #45161F; }
+
+/* the stage */
+.d-b .hero {
+  padding: 28px 22px 26px; text-align: center; overflow: hidden;
+  background-color: #8B272F;
+  background-image: radial-gradient(64% 40% at 50% 37%, rgba(255, 205, 110, 0.1), transparent 72%), radial-gradient(125% 95% at 50% 18%, #7E1528 0%, #5E1020 48%, #33060F 100%);
+  box-shadow: 0 10px 26px rgba(58, 7, 18, 0.3);
+}
+.d-b.dark .hero { box-shadow: 0 1px 0 rgba(245, 192, 74, 0.25), 0 14px 30px rgba(0, 0, 0, 0.55); }
+/* rays behind the title, as on a deco cinema front */
+.d-b .rays { position: absolute; inset: 0; background: repeating-conic-gradient(from -3deg at 50% 37%, rgba(255, 205, 110, 0.07) 0deg 6deg, transparent 6deg 12deg); -webkit-mask-image: radial-gradient(75% 52% at 50% 37%, #000 0%, transparent 76%); }
+/* the poster's thin gold rule */
+.d-b .frame { position: absolute; left: 9px; right: 9px; top: 34px; bottom: 9px; border: 1px solid rgba(245, 192, 74, 0.5); border-radius: 16px; }
+.d-b .frame::after { content: ""; position: absolute; inset: 3px; border: 1px solid rgba(245, 192, 74, 0.2); border-radius: 13px; }
+
+.d-b .brandrow { justify-content: center; gap: 8px; min-height: 0; padding: 20px 44px 0; }
+.d-b .emblem.mono { width: 24px; height: 24px; border-radius: 0; background: linear-gradient(#FFE9A8, #E0A93A); -webkit-mask: url("../../../assets/adaptive-icon-mono.png") center / 190% no-repeat; }
+.d-b .brand { flex: none; font: 700 calc(13px * var(--fs)) / 1.2 var(--ui); letter-spacing: 2.4px; text-transform: uppercase; color: #F5C04A; }
+.d-b .help { position: absolute; right: 12px; top: 38px; margin: 0; color: #F5C04A; }
+.d-b .greet { margin: 8px 0 0; font: 400 calc(46px * var(--fs)) / 1.08 var(--display); letter-spacing: 0.3px; }
+.d-b .greet span {
+  --fg-audit: rgb(237, 181, 72);
+  background: linear-gradient(180deg, #FFF6D6 8%, #F9D777 50%, #EDB548 94%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(58, 7, 18, 0.6)) drop-shadow(0 10px 16px rgba(0, 0, 0, 0.35));
+}
+.d-b .orn { position: relative; display: flex; align-items: center; justify-content: center; gap: 5px; margin: 8px 0 16px; color: #F5C04A; }
+.d-b .orn span { width: 54px; height: 1px; background: linear-gradient(90deg, transparent, rgba(245, 192, 74, 0.8)); }
+.d-b .orn span:last-child { transform: scaleX(-1); }
+
+.d-b .newgame {
+  border-radius: 999px; color: #3D0A14;
+  background-color: #E79E0B;
+  background-image: linear-gradient(180deg, #FFD466 0%, #F5B323 56%, #E79E0B 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 4px 0 #A86A00, 0 14px 24px rgba(0, 0, 0, 0.35);
+}
+.d-b .newgame span { font: 400 calc(20px * var(--fs)) / 1.2 var(--display); letter-spacing: 0.3px; }
+
+.d-b .tiles { margin-top: 18px; }
+.d-b .tile { background-color: #5E1020; border: 1px solid rgba(245, 192, 74, 0.55); border-radius: 14px; color: #FBEEDC; box-shadow: inset 0 1px 0 rgba(255, 236, 200, 0.08); }
+.d-b .ticon { color: #F5C04A; }
+.d-b .tcount { font: 400 calc(23px * var(--fs)) / 1 var(--display); color: #F5C04A; }
+
+.d-b .sechead h2 { font: 400 calc(24px * var(--fs)) / 1.2 var(--display); color: #5E0F1F; letter-spacing: 0.2px; }
+.d-b.dark .sechead h2 { color: #F5C04A; }
+.d-b .sechead .mid { color: #8A5200; }
+.d-b .sechead .count { color: #8A5200; }
+.d-b.dark .sechead .mid, .d-b.dark .sechead .count { color: #FBEEDC; }
+/* a row of marquee bulbs */
+.d-b .sechead .rule { height: 3px; background: radial-gradient(circle, #D9A441 0 1.2px, transparent 1.5px) 0 0 / 9px 3px repeat-x; opacity: 0.8; }
+
+/* a game is a ticket: the number on the stub, the show time on the body */
+.d-b .card { padding: 0 8px 0 0; align-items: stretch; min-height: 82px; border-radius: 14px; box-shadow: 0 5px 14px rgba(94, 15, 31, 0.07); }
+.d-b.dark .card { box-shadow: none; }
+.d-b .badge { width: 66px; height: auto; border-radius: 13px 0 0 13px; font: 400 calc(23px * var(--fs)) / 1 var(--display); border-right: 1.5px dashed; }
+.d-b .live .badge { background-color: #F5B323; background-image: linear-gradient(180deg, #FFD466, #F5B323); color: #5E0F1F; border-right-color: rgba(94, 15, 31, 0.4); }
+.d-b .recent .badge { background-color: #F8E9C8; color: #6E3F0C; border-right-color: rgba(110, 63, 12, 0.35); }
+.d-b.dark .recent .badge { background-color: #3A1119; color: #F5C04A; border-right-color: rgba(245, 192, 74, 0.35); }
+.d-b .card::before, .d-b .card::after { content: ""; position: absolute; left: 58px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); border: 1px solid var(--hair); }
+.d-b .card::before { top: -8px; clip-path: inset(50% 0 0 0); }
+.d-b .card::after { bottom: -8px; clip-path: inset(0 0 50% 0); }
+.d-b .cbody { padding: 12px 0; justify-content: center; }
+.d-b .chev { align-self: center; color: #B8863A; }
+
+.d-b .t-active, .d-b .t-awarded { background-color: #E3F1DC; color: #1F4D1B; }
+.d-b .t-active .dot { background: #2E9E3F; }
+.d-b .t-creator { background-color: #FBE3A8; color: #5E3A00; }
+.d-b .t-admin, .d-b .t-done { background-color: #D8ECEA; color: #0E4F4A; }
+.d-b .t-closed { background-color: #EFE4D6; color: #6B4A4E; }
+.d-b .t-deleted { background-color: #FADCD9; color: #8A1226; }
+.d-b.dark .t-active, .d-b.dark .t-awarded { background-color: #1F3A1C; color: #C9EBC2; }
+.d-b.dark .t-active .dot { background: #5BD66B; }
+.d-b.dark .t-creator { background-color: #4A3206; color: #FFDF9A; }
+.d-b.dark .t-admin, .d-b.dark .t-done { background-color: #103B38; color: #BDE7E2; }
+.d-b.dark .t-closed { background-color: #3A1A20; color: #D4B8B0; }
+.d-b.dark .t-deleted { background-color: #6A1220; color: #FFD6D6; }
+.d-b .more { color: #8A1226; }
+.d-b.dark .more { color: #F5C04A; }
+
+.d-b .halo { background: repeating-conic-gradient(from 0deg, rgba(245, 179, 35, 0.3) 0deg 7.5deg, transparent 7.5deg 15deg); -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 70%); width: 190px; height: 190px; margin: -95px 0 0 -95px; }
+.d-b .etitle { font: 400 calc(23px * var(--fs)) / 1.2 var(--display); color: #5E0F1F; }
+.d-b.dark .etitle { color: #F5C04A; }
+
+.d-b .banner::before { background: linear-gradient(#FFD466, #E79E0B); }
+.d-b .bicon { color: #8A1226; }
+.d-b.dark .bicon { color: #F5C04A; }
+.d-b .btn { border-radius: 999px; }
+.d-b .btn.solid { background-color: #7A1226; color: #FFFFFF; box-shadow: 0 3px 0 #3A0712; }
+.d-b .btn.ghost { border: 1.5px solid #7A1226; color: #7A1226; }
+.d-b .btn.text { color: #7A1226; padding: 4px 10px; }
+.d-b.dark .btn.solid { background-color: #F5B323; color: #3D0A14; box-shadow: 0 3px 0 #A86A00; }
+.d-b.dark .btn.ghost { border-color: #F5C04A; color: #F5C04A; }
+.d-b.dark .btn.text { color: #F5C04A; }
+
+.d-b .tabbar { border-top-color: rgba(245, 192, 74, 0.45); }
+.d-b .tab { border-radius: 999px; }
+.d-b .tab.on { background-color: #F5B323; background-image: linear-gradient(180deg, #FFD466, #F5B323); color: #3D0A14; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 4px 0 #A86A00; margin-bottom: 4px; height: 48px; }
+.d-b .tab.off { background-color: #4A0B18; border: 1.5px solid rgba(245, 192, 74, 0.55); }
+.d-b.dark .tab.off { background-color: #26090F; }
