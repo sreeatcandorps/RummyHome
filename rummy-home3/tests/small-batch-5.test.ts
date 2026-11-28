@@ -235,3 +235,21 @@ test('Home: Results and My players are one component in two identical halves; th
   assert.doesNotMatch(tile, /style\?:|minHeight/, 'no per-tile style prop; a fixed height');
   assert.match(tile, /tile: \{ borderRadius: radius\.full, overflow: 'hidden', height: 56,/);
 });
+
+// ---- #171 small-phone fixes, one layout for every phone ----
+
+test('#171 fix 1: Awards — every player on two lines: name and what is left, then the four numbers under their headings', () => {
+  const award = src('app/(screens)/games/award.tsx');
+  const row = award.slice(award.indexOf('testID={`award-row-${r.playerId}`}'), award.indexOf('<View style={styles.checkRow}>'));
+  const nameLine = row.slice(row.indexOf('styles.nameLine'), row.indexOf('styles.numbersLine'));
+  assert.match(nameLine, /\{nameOf\(r\.playerId\)\}/);
+  assert.match(nameLine, /leftAndDrops\(/, '"101 left · 5 drops" sits beside the name');
+  assert.match(nameLine, /out R\$\{/, 'an out player reads "out R3" in the same place');
+  const numbers = row.slice(row.indexOf('styles.numbersLine'));
+  for (const cell of ['{r.total}', '{r.entries * entry}', 'award-gets-${r.playerId}', 'award-gets-text-${r.playerId}', 'award-value-${r.playerId}']) {
+    assert.ok(numbers.includes(cell), `${cell} is on line 2`);
+  }
+  assert.doesNotMatch(row, /nameCell/, 'the old one-line name column is gone');
+  assert.match(award, /numbersLine: \{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',/, 'right-aligned under Score · Put in · Gets · Award');
+  assert.doesNotMatch(award, /fontScale|useWindowDimensions|isWide|isNarrow/, 'one layout on every phone');
+});
