@@ -41,6 +41,7 @@ import { emailsService } from '@/services/emails';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FIND_IN_DATABASE, FROM_DATABASE_ACCESSIBILITY, joinSeatNotice, nextLabel, returnButtonLabel, totalLabel } from '@/utils/addPlayers';
 import { playedRounds } from '@/utils/editRound';
+import { joinOrder } from '@/utils/dealerRotation';
 import { isPoolGame, playersOut } from '@/utils/pool';
 
 type Pick = DraftPick;
@@ -431,8 +432,7 @@ export default function NewGame() {
     if (!game) return;
     setCreating(true);
     try {
-      for (const pickRow of staged) {
-        if (savedIds.has(pickRow.id)) continue;
+      for (const pickRow of joinOrder(staged.filter((p) => !savedIds.has(p.id)), playedRounds(game.scores))) {
         await gamesService.addSeatedPlayer(game.id, pickRow.id, labels.get(pickRow.id));
       }
       newGameDraft.clear();

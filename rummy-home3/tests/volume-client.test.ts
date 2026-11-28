@@ -140,7 +140,7 @@ test('volume: 500 rounds of dealer rotation with players joining mid-game', () =
     }
   }, 100);
   const starts = rotationStarts(g, 500);
-  assert.equal(starts[0], 10, 'the tenth player joined after round 9, so the first rotation is 10 rounds');
+  assert.equal(starts[0], 9, 'the tenth player took seat 10 after round 9; seat 10 deals straight after seat 1 (057), so the first rotation is 9 rounds');
   assert.ok(starts.every((s, i) => i === 0 || s - starts[i - 1] >= 10), 'no rotation is shorter than the table');
 });
 

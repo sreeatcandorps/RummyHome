@@ -2,87 +2,88 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
-import { nextDealer, opensFor, planDealerChange, plannedDealer, rotationOf, seatAfter } from '../utils/dealerRotation';
+import { dealsAfter, nextDealer, opensFor, planDealerChange, plannedDealer, rotationOf } from '../utils/dealerRotation';
 import { cardSays, consequenceLine, dealerUnchanged, nextRoundChip } from '../utils/dealerSheet';
 import { dotTone, kindLabel } from '../utils/eventLog';
 
 const read = (p: string) => readFileSync(path.join(process.cwd(), p), 'utf8');
 
-// Sree's table: A B C D in seats 1..4; the deal moves up one seat, the open card goes to the seat before.
+// Sree's table: A B C D in seats 1..4; since 057 (Q63) the deal moves anticlockwise — to the seat before the
+// dealer, the player who got the first open card: A D C B A …
 const ini = (id: string | undefined) => id ?? '—';
 const game = (dealerIds: string[], extra: Record<string, unknown> = {}) => ({ players: ['A', 'B', 'C', 'D'], dealerIds, ...extra });
 
-test('052 D58: the deal moves up one seat; the open card is the seat before the dealer; an out seat is skipped both ways', () => {
-  const g = game(['A', 'B', 'C', 'D', 'A']);
-  assert.equal(nextDealer(g, 5), 'B');
-  assert.equal(opensFor(g, 'B'), 'A');
+test('052 D58 / 057: the deal goes to the seat before the dealer, who got the open card; an out seat is skipped both ways', () => {
+  const g = game(['A', 'D', 'C', 'B', 'A']);
+  assert.equal(nextDealer(g, 5), 'D');
+  assert.equal(opensFor(g, 'D'), 'C');
   assert.equal(opensFor(g, 'A'), 'D', 'seat 1 opens for seat 4 — the circle wraps');
-  const pool = { ...g, outIds: new Set(['B']) };
-  assert.deepEqual(rotationOf(pool), ['A', 'C', 'D']);
-  assert.equal(nextDealer(pool, 5), 'C', 'B is out: the seat after A still in');
-  assert.equal(opensFor(pool, 'C'), 'A', 'and the open card skips B too');
-  assert.equal(seatAfter(pool, 'B'), 'C', 'the seat after an out dealer is the next one in');
-  assert.equal(nextDealer({ ...g, dealerIds: ['A', 'B', 'C', 'D', 'B'], outIds: new Set(['B']) }, 5), 'C', 'the last dealer went out: the next seat in');
+  const pool = { ...game(['A', 'D', 'C', 'B', 'A', 'D']), outIds: new Set(['C']) };
+  assert.deepEqual(rotationOf(pool), ['A', 'B', 'D']);
+  assert.equal(nextDealer(pool, 6), 'B', 'C is out: the seat before D still in');
+  assert.equal(opensFor(pool, 'D'), 'B', 'and the open card skips C too');
+  assert.equal(dealsAfter(pool, 'C'), 'B', 'after an out dealer, the next seat down that is in');
+  assert.equal(nextDealer({ ...pool, dealerIds: ['A', 'D', 'C', 'B', 'A', 'C'] }, 6), 'B', 'the last dealer went out: the next seat down still in');
 });
 
 test('052 D60: the override names who deals the round being played, for that round only', () => {
-  const g = game(['A', 'B', 'C', 'D', 'A'], { nextDealerOverride: { playerId: 'D', round: 6, keepsSequence: false } });
-  assert.equal(plannedDealer(g, 5), 'B');
-  assert.equal(nextDealer(g, 5), 'D');
-  assert.equal(nextDealer({ ...g, nextDealerOverride: { playerId: 'D', round: 7, keepsSequence: false } }, 5), 'B', 'an override for another round is ignored');
-  assert.equal(nextDealer({ ...g, outIds: new Set(['D']) }, 5), 'B', 'an override naming an out seat is ignored');
+  const g = game(['A', 'D', 'C', 'B', 'A'], { nextDealerOverride: { playerId: 'C', round: 6, keepsSequence: false } });
+  assert.equal(plannedDealer(g, 5), 'D');
+  assert.equal(nextDealer(g, 5), 'C');
+  assert.equal(nextDealer({ ...g, nextDealerOverride: { playerId: 'C', round: 7, keepsSequence: false } }, 5), 'D', 'an override for another round is ignored');
+  assert.equal(nextDealer({ ...g, outIds: new Set(['C']) }, 5), 'D', 'an override naming an out seat is ignored');
 });
 
 test('052 planDealerChange: the next round, follow vs this round only', () => {
-  const g = game(['A', 'B', 'C', 'D', 'A']); // round 6 planned: B deals, A opens
-  const follow = planDealerChange(g, 5, { round: 6, dealerId: 'D', follow: true });
-  assert.deepEqual(follow.nextDealerOverride, { playerId: 'D', round: 6, keepsSequence: false });
-  assert.deepEqual(follow.after, { round: 7, dealer: 'A', opens: 'D' }, 'round 7 follows from D');
-  const keep = planDealerChange(g, 5, { round: 6, dealerId: 'D', follow: false });
-  assert.deepEqual(keep.nextDealerOverride, { playerId: 'D', round: 6, keepsSequence: true });
-  assert.deepEqual(keep.after, { round: 7, dealer: 'C', opens: 'B' }, 'round 7 goes on as if B had dealt 6');
-  const same = planDealerChange(g, 5, { round: 6, dealerId: 'B', follow: true });
+  const g = game(['A', 'D', 'C', 'B', 'A']); // round 6 planned: D deals, C opens
+  const follow = planDealerChange(g, 5, { round: 6, dealerId: 'B', follow: true });
+  assert.deepEqual(follow.nextDealerOverride, { playerId: 'B', round: 6, keepsSequence: false });
+  assert.deepEqual(follow.after, { round: 7, dealer: 'A', opens: 'D' }, 'round 7 follows from B');
+  const keep = planDealerChange(g, 5, { round: 6, dealerId: 'B', follow: false });
+  assert.deepEqual(keep.nextDealerOverride, { playerId: 'B', round: 6, keepsSequence: true });
+  assert.deepEqual(keep.after, { round: 7, dealer: 'C', opens: 'B' }, 'round 7 goes on as if D had dealt 6');
+  const same = planDealerChange(g, 5, { round: 6, dealerId: 'D', follow: true });
   assert.equal(same.nextDealerOverride, null, 'the planned dealer with follow clears any override');
 });
 
 test('052 planDealerChange: a played round, follow re-deals the later rounds; this round only touches one', () => {
-  const g = game(['A', 'B', 'C', 'D', 'A']);
+  const g = game(['A', 'D', 'C', 'B', 'A']);
   const follow = planDealerChange(g, 5, { round: 2, dealerId: 'C', follow: true });
-  assert.deepEqual(follow.dealerIds, ['A', 'C', 'D', 'A', 'B']);
+  assert.deepEqual(follow.dealerIds, ['A', 'C', 'B', 'A', 'D']);
   assert.deepEqual(follow.after, { round: 6, dealer: 'C', opens: 'B' });
   assert.equal(follow.nextDealerOverride, null);
   const keep = planDealerChange(g, 5, { round: 2, dealerId: 'C', follow: false });
-  assert.deepEqual(keep.dealerIds, ['A', 'C', 'C', 'D', 'A']);
-  assert.deepEqual(keep.after, { round: 6, dealer: 'B', opens: 'A' }, 'the next round is untouched');
+  assert.deepEqual(keep.dealerIds, ['A', 'C', 'C', 'B', 'A']);
+  assert.deepEqual(keep.after, { round: 6, dealer: 'D', opens: 'C' }, 'the next round is untouched');
 });
 
 test('052 planDealerChange: the last round, this round only, carries the card\u2019s sequence into the next round', () => {
-  const g = game(['A', 'B', 'C', 'D', 'A']);
+  const g = game(['A', 'D', 'C', 'B', 'A']);
   const keep = planDealerChange(g, 5, { round: 5, dealerId: 'C', follow: false });
-  assert.deepEqual(keep.dealerIds, ['A', 'B', 'C', 'D', 'C']);
-  assert.deepEqual(keep.nextDealerOverride, { playerId: 'B', round: 6, keepsSequence: false }, 'round 6 stays B, the seat after the A the card had');
-  assert.deepEqual(keep.after, { round: 6, dealer: 'B', opens: 'A' });
+  assert.deepEqual(keep.dealerIds, ['A', 'D', 'C', 'B', 'C']);
+  assert.deepEqual(keep.nextDealerOverride, { playerId: 'D', round: 6, keepsSequence: false }, 'round 6 stays D, the seat before the A the card had');
+  assert.deepEqual(keep.after, { round: 6, dealer: 'D', opens: 'C' });
   const follow = planDealerChange(g, 5, { round: 5, dealerId: 'C', follow: true });
-  assert.deepEqual(follow.after, { round: 6, dealer: 'D', opens: 'C' });
+  assert.deepEqual(follow.after, { round: 6, dealer: 'B', opens: 'A' });
 });
 
 test('052 the sheet\u2019s lines: card says, consequences, nothing-to-save', () => {
-  const g = game(['A', 'B', 'C', 'D', 'A']);
+  const g = game(['A', 'D', 'C', 'B', 'A']);
   assert.equal(nextRoundChip(6), 'Next · 6');
-  assert.equal(cardSays(g, 5, 6, ini), 'Card says: Round 6 · B deals · A opens');
-  assert.equal(cardSays(g, 5, 2, ini), 'Card says: Round 2 · B deals · A opens');
-  assert.equal(consequenceLine(g, 5, { round: 6, dealerId: 'D', follow: true }, ini), 'Round 7: A deals, D opens');
-  assert.equal(consequenceLine(g, 5, { round: 6, dealerId: 'D', follow: false }, ini), 'Round 7: C deals, B opens · only round 6 changes');
+  assert.equal(cardSays(g, 5, 6, ini), 'Card says: Round 6 · D deals · C opens');
+  assert.equal(cardSays(g, 5, 2, ini), 'Card says: Round 2 · D deals · C opens');
+  assert.equal(consequenceLine(g, 5, { round: 6, dealerId: 'B', follow: true }, ini), 'Round 7: A deals, D opens');
+  assert.equal(consequenceLine(g, 5, { round: 6, dealerId: 'B', follow: false }, ini), 'Round 7: C deals, B opens · only round 6 changes');
   assert.equal(consequenceLine(g, 5, { round: 2, dealerId: 'C', follow: true }, ini), 'Round 6: C deals, B opens · rounds 3–5 re-dealt');
-  assert.equal(consequenceLine(g, 5, { round: 5, dealerId: 'C', follow: false }, ini), 'Round 6: B deals, A opens · only round 5 changes');
-  assert.equal(dealerUnchanged(g, 5, { round: 6, dealerId: 'B', follow: true }), true, 'the planned dealer, follow: nothing to save');
-  assert.equal(dealerUnchanged(g, 5, { round: 6, dealerId: 'B', follow: false }), false, 'the planned dealer, this round only: B deals 6 and 7 — a change');
-  assert.equal(dealerUnchanged(g, 5, { round: 6, dealerId: 'D', follow: true }), false);
-  assert.equal(dealerUnchanged(g, 5, { round: 2, dealerId: 'B', follow: false }), true, 'a played round, same dealer, this round only');
-  assert.equal(dealerUnchanged(g, 5, { round: 2, dealerId: 'B', follow: true }), true, 'same dealer, follow, nothing drifted');
-  assert.equal(dealerUnchanged(game(['A', 'B', 'A', 'A', 'A']), 5, { round: 2, dealerId: 'B', follow: true }), false, 'same dealer, follow, later rounds drifted: re-deals them');
-  const withOverride = game(['A', 'B', 'C', 'D', 'A'], { nextDealerOverride: { playerId: 'D', round: 6, keepsSequence: false } });
-  assert.equal(dealerUnchanged(withOverride, 5, { round: 6, dealerId: 'D', follow: true }), true);
+  assert.equal(consequenceLine(g, 5, { round: 5, dealerId: 'C', follow: false }, ini), 'Round 6: D deals, C opens · only round 5 changes');
+  assert.equal(dealerUnchanged(g, 5, { round: 6, dealerId: 'D', follow: true }), true, 'the planned dealer, follow: nothing to save');
+  assert.equal(dealerUnchanged(g, 5, { round: 6, dealerId: 'D', follow: false }), false, 'the planned dealer, this round only: saved as a change');
+  assert.equal(dealerUnchanged(g, 5, { round: 6, dealerId: 'B', follow: true }), false);
+  assert.equal(dealerUnchanged(g, 5, { round: 2, dealerId: 'D', follow: false }), true, 'a played round, same dealer, this round only');
+  assert.equal(dealerUnchanged(g, 5, { round: 2, dealerId: 'D', follow: true }), true, 'same dealer, follow, nothing drifted');
+  assert.equal(dealerUnchanged(game(['A', 'D', 'A', 'A', 'A']), 5, { round: 2, dealerId: 'D', follow: true }), false, 'same dealer, follow, later rounds drifted: re-deals them');
+  const withOverride = game(['A', 'D', 'C', 'B', 'A'], { nextDealerOverride: { playerId: 'C', round: 6, keepsSequence: false } });
+  assert.equal(dealerUnchanged(withOverride, 5, { round: 6, dealerId: 'C', follow: true }), true);
 });
 
 test('052 the pieces are wired: menu item, DEALS badge opens the sheet, OPENS tag, Log kind, migration, help', () => {

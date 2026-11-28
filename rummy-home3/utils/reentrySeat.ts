@@ -23,11 +23,9 @@ export const reentryTable = (game: SeatGame) => ({
 export const planGameReentry = (game: SeatGame, playerId: string, seat?: number): ReentryPlan =>
   planReentry(reentryTable(game), playedRounds(game.scores), playerId, seat);
 
-/** "Sit on that person's left" (a tap on a name in the strip): the seat they hold now, once he is out of his; seat 1 → the last seat. */
+/** "Sit on that person's left" (a tap on a name in the strip): the seat straight after theirs, once he is out of his (057). */
 export function seatLeftOf(players: readonly string[], playerId: string, otherId: string): number {
-  const rest = players.filter((id) => id !== playerId);
-  const at = rest.indexOf(otherId);
-  return at > 0 ? at : rest.length;
+  return players.filter((id) => id !== playerId).indexOf(otherId) + 1;
 }
 
 /** First names, unless two players at the table share one: then the full name for those two (v17: three "Player"s). */
@@ -58,28 +56,29 @@ export function reentrySeatLine(plan: ReentryPlan, playerId: string, outIds: Rea
   return `${who} ${verb} seat ${seat}${between}${plan.dealersLeft ? ' — left of the dealer' : ''}.`;
 }
 
-/** The grey line under the strip when he sits on the dealer's left. */
+/** The grey line under the strip when he sits on the dealer's left: cards last this round, and he deals last (057). */
 export function reentrySeatHint(plan: ReentryPlan, playerId: string, outIds: ReadonlySet<string>, score: number, name: (id: string) => string): string | null {
   if (!plan.dealersLeft || !plan.dealer) return null;
-  const { before } = afterOf(plan, playerId, outIds);
-  const after = before && before !== plan.dealer ? `, after ${name(before)}` : '';
-  return `${name(playerId)} comes back at ${score}, opens round ${plan.round} and deals last${after}. Tap a name to sit on that person's left instead.`;
+  const { after } = afterOf(plan, playerId, outIds);
+  const dealsAfter = after && after !== plan.dealer ? `, after ${name(after)}` : '';
+  return `${name(playerId)} comes back at ${score}, gets cards last in round ${plan.round} and deals last${dealsAfter}. Tap a name to sit on that person's left instead.`;
 }
 
 /** The brass warning for any other seat: what changes, never a refusal (D50). */
 export function reentrySeatWarning(plan: ReentryPlan, playerId: string, name: (id: string) => string): string | null {
   if (plan.dealersLeft || !plan.dealer) return null;
   const opens = plan.opens ? `${name(plan.opens)} opens round ${plan.round}` : null;
-  const deals = plan.firstDeal ? `${name(playerId)} deals round ${plan.firstDeal}` : null;
-  const parts = [opens, deals].filter(Boolean).join(', ');
+  const himFirst = plan.opens === playerId;
+  const deals = plan.firstDeal ? `${himFirst ? '' : `${name(playerId)} `}deals round ${plan.firstDeal}` : null;
+  const parts = himFirst && opens && deals ? `${opens} and ${deals}` : [opens, deals].filter(Boolean).join(', ');
   return `Not the dealer's left${parts ? `: ${parts}` : ''}.`;
 }
 
-/** The row once he is back: "↺ Back in at 96 · seat 3, left of Priya". */
+/** The row once he is back: "↺ Back in at 96 · seat 3, left of Priya" (Priya is the seat before his still in). */
 export function backInLine(game: SeatGame, playerId: string, name: (id: string) => string): string {
   const seat = game.poolSeats?.[playerId];
-  const { after } = neighboursIn({ players: game.players, outIds: new Set(playersOut(game)) }, playerId);
-  const where = `seat ${game.players.indexOf(playerId) + 1}${after ? `, left of ${name(after)}` : ''}`;
+  const { before } = neighboursIn({ players: game.players, outIds: new Set(playersOut(game)) }, playerId);
+  const where = `seat ${game.players.indexOf(playerId) + 1}${before ? `, left of ${name(before)}` : ''}`;
   return `↺ Back in at ${seat?.reentryScore ?? '?'} · ${where}`;
 }
 

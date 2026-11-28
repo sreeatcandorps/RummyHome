@@ -2,52 +2,47 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { dealerForRound, nextDealer, rotationStarts, withDealer } from '../utils/dealerRotation';
+import { dealerForRound, nextDealer, roundRuleDealer, rotationStarts, withDealer } from '../utils/dealerRotation';
 import { dealerIdsFrom } from '../utils/bundles';
 
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
 
-test('031: the deal follows the actual rotation; a player added mid-game makes the next rotation longer', () => {
-  // Three seats, dealers stored A B C A B C; D joins after round 6.
+test('031 / 057: the deal follows the actual rotation, anticlockwise; a player added mid-game makes the next rotation longer', () => {
+  // Three seats, dealers stored A C B A C B (057: the seat before the last dealer); D takes seat 4 after round 6.
   const abc = ['a', 'b', 'c'];
-  const dealers = ['a', 'b', 'c', 'a', 'b', 'c'];
+  const dealers = ['a', 'c', 'b', 'a', 'c', 'b'];
   assert.equal(nextDealer({ players: abc, dealerIds: dealers }, 6), 'a');
   const withD = [...abc, 'd'];
-  assert.equal(nextDealer({ players: withD, dealerIds: dealers }, 6), 'd', 'D sits after C, so D deals round 7');
-  const dealers7 = [...dealers, 'd'];
-  assert.equal(nextDealer({ players: withD, dealerIds: dealers7 }, 7), 'a', 'then A again: that rotation was 4 rounds');
-  const dealers11 = [...dealers7, 'a', 'b', 'c', 'd'];
-  assert.equal(nextDealer({ players: withD, dealerIds: dealers11 }, 11), 'a');
-  assert.deepEqual(rotationStarts({ players: withD, dealerIds: [...dealers11, 'a'] }, 12), [3, 7, 11], 'dividers above rounds 4, 8 and 12: 3, 4, then 4 rounds');
+  assert.equal(nextDealer({ players: withD, dealerIds: dealers }, 6), 'a', 'A is still the seat before B');
+  const dealers7 = [...dealers, 'a'];
+  assert.equal(nextDealer({ players: withD, dealerIds: dealers7 }, 7), 'd', 'then D: the seat before A, round the circle');
+  const dealers10 = [...dealers7, 'd', 'c', 'b'];
+  assert.equal(nextDealer({ players: withD, dealerIds: dealers10 }, 10), 'a');
+  assert.deepEqual(rotationStarts({ players: withD, dealerIds: [...dealers10, 'a'] }, 11), [3, 6, 10], 'dividers above rounds 4, 7 and 11: 3, 3, then 4 rounds');
 
-  // The brief's example: 9 players; a tenth joins after round 9 (the ninth player just dealt).
-  // The tenth sits last, so they deal round 10 and the first rotation is 10 rounds; the next is 10 too.
+  // The brief's example: 9 players; a tenth takes seat 10 after round 9. Seat 10 deals straight after seat 1,
+  // so the first rotation is 9 rounds and the next is 10.
   const nine = Array.from({ length: 9 }, (_, i) => `p${i}`);
   let game: { players: string[]; dealerIds: (string | null)[] } = { players: nine, dealerIds: [] };
   for (let round = 0; round < 9; round += 1) game = { ...game, dealerIds: withDealer(game.dealerIds, round, nextDealer(game, round)) };
-  assert.deepEqual(game.dealerIds, nine);
+  assert.deepEqual(game.dealerIds, ['p0', 'p8', 'p7', 'p6', 'p5', 'p4', 'p3', 'p2', 'p1']);
   game = { ...game, players: [...nine, 'p9'] };
-  assert.equal(nextDealer(game, 9), 'p9', 'the new player deals round 10');
-  for (let round = 9; round < 20; round += 1) game = { ...game, dealerIds: withDealer(game.dealerIds, round, nextDealer(game, round)) };
-  assert.equal(game.dealerIds[10], 'p0', 'p0 deals round 11: the second rotation starts there');
-  assert.equal(game.dealerIds[19], 'p9');
-  assert.deepEqual(rotationStarts({ ...game, dealerIds: withDealer(game.dealerIds, 20, nextDealer(game, 20)) }, 21), [10, 20], '10 rounds, then 10');
-
-  // Added just after the first dealer dealt instead: 9 rounds, then 10.
-  let late: { players: string[]; dealerIds: (string | null)[] } = { players: nine, dealerIds: [] };
-  for (let round = 0; round < 10; round += 1) late = { ...late, dealerIds: withDealer(late.dealerIds, round, nextDealer(late, round)) };
-  late = { ...late, players: [...nine, 'p9'] };
-  for (let round = 10; round < 19; round += 1) late = { ...late, dealerIds: withDealer(late.dealerIds, round, nextDealer(late, round)) };
-  assert.equal(late.dealerIds[18], 'p9', 'the tenth player deals round 19');
-  assert.equal(nextDealer(late, 19), 'p0');
-  assert.deepEqual(rotationStarts({ ...late, dealerIds: withDealer(late.dealerIds, 19, 'p0') }, 20), [9, 19], '9 rounds, then 10');
+  assert.equal(nextDealer(game, 9), 'p0', 'p0 deals round 10: the second rotation starts there');
+  for (let round = 9; round < 19; round += 1) game = { ...game, dealerIds: withDealer(game.dealerIds, round, nextDealer(game, round)) };
+  assert.equal(game.dealerIds[10], 'p9', 'the new player deals round 11, straight after p0');
+  assert.equal(game.dealerIds[18], 'p1');
+  assert.deepEqual(rotationStarts({ ...game, dealerIds: withDealer(game.dealerIds, 19, nextDealer(game, 19)) }, 20), [9, 19], '9 rounds, then 10');
 });
 
-test('031: a dealer who left falls back to the seat-order rule; games before 031 behave as before', () => {
+test('031 / 057: a dealer who left falls back to the round rule; saved rounds before 031 keep the seat-order rule', () => {
   const abc = ['a', 'b', 'c'];
-  assert.equal(nextDealer({ players: abc, dealerIds: ['a', 'b', 'x'] }, 3), 'a', '(3 mod 3) = seat 0');
-  assert.equal(nextDealer({ players: abc }, 4), 'b', 'no stored dealers: seat-order rule');
-  assert.equal(dealerForRound({ players: abc }, 5), 'c');
+  assert.equal(nextDealer({ players: abc, dealerIds: ['a', 'c', 'x'] }, 3), 'a', 'round 4 of 3 seats by the round rule: seat 1');
+  assert.equal(nextDealer({ players: abc }, 4), 'c', 'no stored dealers: the round rule, seat 1 then 3 2 1 3 …');
+  assert.equal(roundRuleDealer(abc, 0), 'a');
+  assert.equal(roundRuleDealer(abc, 1), 'c');
+  assert.equal(roundRuleDealer(abc, 2), 'b');
+  assert.equal(roundRuleDealer([], 2), undefined);
+  assert.equal(dealerForRound({ players: abc }, 5), 'c', 'a saved round with no stored dealer: who dealt it then');
   assert.equal(dealerForRound({ players: abc, dealerIds: [null, 'c'] }, 0), 'a', 'an unknown round uses the seat-order rule');
   assert.deepEqual(rotationStarts({ players: abc }, 7), [3, 6], 'a pre-031 game draws the line every N rounds');
   assert.deepEqual(rotationStarts({ players: abc }, 1), []);

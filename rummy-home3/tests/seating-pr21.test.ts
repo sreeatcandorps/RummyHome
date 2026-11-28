@@ -100,20 +100,20 @@ test('copy: sublines, the mid-game note, row labels', () => {
 });
 
 // ---------- X21-3: who deals next under the new order ----------
-test('nextDealerFor: seat 1 with no rounds, the seat after the last dealer otherwise', () => {
+test('nextDealerFor: seat 1 with no rounds, the seat before the last dealer otherwise (057, anticlockwise)', () => {
   assert.equal(nextDealerFor(four, [], 0), 'sree');
   assert.equal(nextDealerFor(['zed', ...four.slice(0, 3)], [], 0), 'zed', 'moving someone to seat 1 makes them deal round 1');
-  assert.equal(nextDealerFor(four, ['sree', 'harish'], 2), 'priya', 'round 3: the seat after round 2 dealer');
-  assert.equal(nextDealerFor(['sree', 'priya', 'harish', 'zed'], ['sree', 'harish'], 2), 'zed', 'under the new order Harish sits at 3, so Zed deals next');
-  assert.equal(nextDealerFor(four, ['sree', 'harish', 'priya', 'zed'], 4), 'sree', 'wraps around');
+  assert.equal(nextDealerFor(four, ['sree', 'zed'], 2), 'priya', 'round 3: the seat before the round 2 dealer');
+  assert.equal(nextDealerFor(['sree', 'priya', 'harish', 'zed'], ['sree', 'zed'], 2), 'harish', 'under the new order Harish sits at 3, so he deals next');
+  assert.equal(nextDealerFor(four, ['sree', 'zed', 'priya', 'harish'], 4), 'sree', 'wraps around');
   assert.equal(nextDealerFor([], [], 0), undefined);
 });
 
 test('nextDealerFor in a pool skips players who are out (041 save_round)', () => {
   const out = new Set(['priya']);
-  assert.equal(nextDealerFor(four, ['sree', 'harish'], 2, out), 'zed', 'Priya is out, so the deal skips to Zed');
-  assert.equal(nextDealerFor(four, ['sree', 'harish', 'priya'], 3, out), 'zed', 'the last dealer went out this round: the next seat still in');
-  assert.equal(nextDealerFor(['zed', 'sree', 'harish', 'priya'], ['sree', 'harish', 'priya'], 3, out), 'zed', 'wrapping past an out seat');
+  assert.equal(nextDealerFor(four, ['sree', 'zed'], 2, out), 'harish', 'Priya is out, so the deal skips to Harish');
+  assert.equal(nextDealerFor(four, ['sree', 'zed', 'priya'], 3, out), 'harish', 'the last dealer went out this round: the next seat down still in');
+  assert.equal(nextDealerFor(['priya', 'sree', 'harish', 'zed'], ['zed', 'harish', 'sree'], 3, out), 'zed', 'wrapping past an out seat');
   assert.equal(nextDealerFor(four, [], 0, new Set(four)), undefined, 'everyone out: nobody deals');
 });
 

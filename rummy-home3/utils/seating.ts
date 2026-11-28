@@ -210,23 +210,11 @@ export function seatRowLabel(input: { seat: number | null; name: string; dealsNe
 }
 
 /**
- * Who deals next under the order being built: the seat after the last saved round's dealer in that
- * order (no rounds → seat 1). A pool skips players who are out, as `save_round` does. A Dealer-sheet
- * override for the round being played wins while it names a seat still in (052 `current_dealer`), so the
- * mark on the circle is the dealer the scorecard shows.
+ * Who deals next under the order being built: the seat before the last saved round's dealer in that
+ * order (057, anticlockwise; no rounds → seat 1). A pool skips players who are out, as `save_round` does.
+ * A Dealer-sheet override for the round being played wins while it names a seat still in (052
+ * `current_dealer`), so the mark on the circle is the dealer the scorecard shows.
  */
 export function nextDealerFor(order: readonly string[], dealerIds: (string | null | undefined)[] | null | undefined, roundCount: number, outIds: ReadonlySet<string> = new Set(), override?: DealerOverride | null): string | undefined {
-  const rotation = order.filter((id) => !outIds.has(id));
-  if (!rotation.length) return undefined;
-  if (override && override.round === roundCount + 1 && rotation.includes(override.playerId)) return override.playerId;
-  const last = roundCount > 0 ? dealerIds?.[roundCount - 1] : null;
-  if (last && outIds.has(last) && order.includes(last)) {
-    // The last dealer is out (pool): the next seat still in after them, in the full order (041 save_round).
-    const at = order.indexOf(last);
-    for (let step = 1; step <= order.length; step += 1) {
-      const candidate = order[(at + step) % order.length];
-      if (!outIds.has(candidate)) return candidate;
-    }
-  }
-  return nextDealer({ players: rotation, dealerIds }, roundCount);
+  return nextDealer({ players: [...order], dealerIds, outIds, nextDealerOverride: override ?? null }, roundCount);
 }
