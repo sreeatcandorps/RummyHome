@@ -63,7 +63,7 @@ test('12o: the page pads for the keyboard and the strip has its one-row mode', (
   assert.match(screen, /const typing = pickerWhileTyping\(keyboardUp\);/);
   const kav = screen.slice(screen.indexOf('<KeyboardAvoidingView'), screen.indexOf('</KeyboardAvoidingView>'));
   assert.match(kav, /behavior=\{Platform\.OS === 'ios' \? 'padding' : 'height'\} keyboardVerticalOffset=\{keyboardOffset\}/, 'the Add by initials pattern (D112)');
-  assert.match(kav, /keyboardOffset = Platform\.OS === 'android' \? topY - navInset : topY/, 'edge-to-edge Android: the navigation bar under the keys counts too');
+  assert.match(screen, /keyboardOffset = Platform\.OS === 'android' \? topY - navInset : topY/, 'edge-to-edge Android: the navigation bar under the keys counts too');
   assert.match(kav, /<Screen contentStyle=\{styles\.content\}/, 'the page is inside it');
   assert.match(kav, /<BottomBar style=\{styles\.bottom\} insetBottom=\{!keyboardUp\}>\s*\{typing\.barTiles \? tiles : null\}/, 'the Next bar rides on the keyboard, tiles hidden');
   assert.match(kav, /oneRow=\{typing\.stripOneRow\}/);
