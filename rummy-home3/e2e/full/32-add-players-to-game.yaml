@@ -50,10 +50,10 @@ tags: [nightly]
     timeout: 15000
 - tapOn: "Add C D"
 - scrollUntilVisible:
-    element: "Total, 5 players"
+    element: "Added now: 2 (yellow ring)"
     direction: UP
     timeout: 15000
-- assertVisible: "Added now: 2 (yellow ring)"
+- assertVisible: "Total, 5 players"
 # D70 (054): round 1 is played and Harish (seat 2) deals round 2, so both newcomers sit to his left.
 - assertVisible:
     id: "join-seat-notice"
