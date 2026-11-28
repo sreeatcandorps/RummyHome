@@ -5,7 +5,8 @@ tags: [nightly]
 # 20 = seat 1, just right of the top; each disc's label reads "Seat 20, Test Uniform"). Game F (20 players
 # × 30 rounds, Sree creator) → ⋮ → Order of players (the full page): twenty discs, prefilled, no arrows at
 # rest; selecting the top one shows ▼ only; the "30 rounds played" note; the Dealer mark on the scorecard's
-# next dealer (round 30's dealer was seat 10, so seat 11 Test Juliet, position 10, deals round 31). Clear,
+# next dealer (round 30's dealer was seat 10; the deal moves anticlockwise (057), so seat 9 Test Hotel, position
+# 12, deals round 31). Clear,
 # then tap Test Romeo first (seat 20, straight to the top), the rest downwards, Sree second to last (seat 2)
 # and Test Uniform last (seat 1) → Done → column 1 reads TU and the Log has an important Seating row
 # listing all twenty seats. The flow then puts the order back (TU seat 20, Sree seat 1) so game F reads as
@@ -57,20 +58,21 @@ tags: [nightly]
 - takeScreenshot: 51-order-20p-top
 - tapOn:
     id: "seat-row-1"
-# Seat 11 (Test Juliet) deals round 31: round 30's dealer sat at 10. Seat 11 is position 10 (21 - 11).
+# Seat 9 (Test Hotel) deals round 31: round 30's dealer sat at 10 and the deal moves to the seat before (057).
+# Seat 9 is position 12 (21 - 9).
 - scrollUntilVisible:
     element:
-      id: "seat-row-10"
+      id: "seat-row-12"
     direction: DOWN
     timeout: 45000
 - assertVisible:
-    id: "seat-row-10"
-    text: "Seat 11, Test Juliet, deals next"
+    id: "seat-row-12"
+    text: "Seat 9, Test Hotel, deals next"
 - assertVisible:
     id: "seat-deals-next"
 - assertVisible:
     id: "seat-deals-line"
-    text: "Test Juliet deals round 31"
+    text: "Test Hotel deals round 31"
 - takeScreenshot: 51b-order-20p-deals-next
 - scrollUntilVisible:
     element:
@@ -161,7 +163,7 @@ tags: [nightly]
 - tapOn:
     id: "seat-row-20"
 # Mid-game the Dealer mark is the scorecard's next dealer, not seat 1: round 30's dealer (Test India) is now
-# seat 11, so seat 12 (Test Juliet) deals round 31 — the next deal follows the new order.
+# seat 11, so seat 10 (Test Hotel, position 11) deals round 31 — the next deal follows the new order.
 - assertVisible:
     id: "seat-row-20"
     text: "Seat 1, Test Uniform"
@@ -171,13 +173,13 @@ tags: [nightly]
 - scrollUntilVisible:
     element:
       id: "seat-deals-line"
-      text: "Test Juliet deals round 31"
+      text: "Test Hotel deals round 31"
     direction: DOWN
     timeout: 45000
 - scrollUntilVisible:
     element:
-      id: "seat-row-9"
-      text: "Seat 12, Test Juliet, deals next"
+      id: "seat-row-11"
+      text: "Seat 10, Test Hotel, deals next"
     direction: DOWN
     timeout: 45000
 - scrollUntilVisible:
@@ -279,7 +281,7 @@ tags: [nightly]
     id: "seat-row-20"
 - tapOn:
     id: "seat-row-20"
-# Back in the old order Test India is seat 10 again, so seat 11 (Test Juliet) still deals round 31.
+# Back in the old order Test India is seat 10 again, so seat 9 (Test Hotel) still deals round 31.
 - assertVisible:
     id: "seat-row-20"
     text: "Seat 1, Sree Test"
@@ -289,7 +291,7 @@ tags: [nightly]
 - scrollUntilVisible:
     element:
       id: "seat-deals-line"
-      text: "Test Juliet deals round 31"
+      text: "Test Hotel deals round 31"
     direction: DOWN
     timeout: 45000
 - scrollUntilVisible:

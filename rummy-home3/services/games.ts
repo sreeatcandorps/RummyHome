@@ -26,7 +26,7 @@ import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
 import { localGameGuard, localRoundsGuard } from '@/utils/guardrails';
 import { BundleSeatRow, dealerIdsFrom, GameBundle, isGameBundle, legacyScoreRows, ResultCandidate, totalsAsScoreRows } from '@/utils/bundles';
-import { DealerChange, nextDealer, planDealerChange, planJoin, plannedDealer, rotationOf, seatAfter, withDealer } from '@/utils/dealerRotation';
+import { DealerChange, dealsAfter, nextDealer, planDealerChange, planJoin, plannedDealer, rotationOf, withDealer } from '@/utils/dealerRotation';
 import { planGameReentry } from '@/utils/reentrySeat';
 import { deletionFromRow } from '@/utils/deletedGames';
 import { queryCache } from '@/utils/queryCache';
@@ -875,7 +875,7 @@ export const gamesService = {
         updatedScores[key][roundIndex] = score.value;
       });
 
-      // A new round is dealt by the seat after the last dealer; an edited round keeps its dealer.
+      // A new round is dealt by the seat before the last dealer (057, anticlockwise); an edited round keeps its dealer.
       const newRound = roundIndex >= liveRounds || !game.dealerIds?.[roundIndex];
       const rotation = { ...game, outIds: isPoolGame(game) ? new Set(playersOut(game)) : null };
       const dealerIds = newRound ? withDealer(game.dealerIds, roundIndex, nextDealer(rotation, roundIndex)) : game.dealerIds;
@@ -884,7 +884,7 @@ export const gamesService = {
       if (newRound && nextDealerOverride && nextDealerOverride.round <= input.roundNumber) {
         const planned = plannedDealer(rotation, roundIndex);
         const used = nextDealerOverride.round === input.roundNumber && rotationOf(rotation).includes(nextDealerOverride.playerId);
-        const chained = used && nextDealerOverride.keepsSequence ? seatAfter(rotation, planned) : undefined;
+        const chained = used && nextDealerOverride.keepsSequence ? dealsAfter(rotation, planned) : undefined;
         nextDealerOverride = chained ? { playerId: chained, round: input.roundNumber + 1, keepsSequence: false } : null;
       }
       const updatedGame = { ...game, scores: updatedScores, currentRound: input.roundNumber + 1, dealerIds, nextDealerOverride };
@@ -1163,7 +1163,7 @@ export const gamesService = {
     }
 
     if (!isSupabaseConfigured) {
-      // 054 (D70): the dealer's left once rounds exist, as add_seated_player does.
+      // 054 (D70), 057: the dealer's left (the seat after the dealer) once rounds exist, as add_seated_player does.
       const rotation = { ...game, outIds: isPoolGame(game) ? new Set(playersOut(game)) : null };
       const join = planJoin(rotation, playedRounds(game.scores), profileId);
       const updated: Game = { ...game, players: join.players, nextDealerOverride: join.nextDealerOverride };

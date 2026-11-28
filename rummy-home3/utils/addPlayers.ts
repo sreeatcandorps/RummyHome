@@ -1,4 +1,4 @@
-import { planJoin } from '@/utils/dealerRotation';
+import { joinOrder, planJoin } from '@/utils/dealerRotation';
 
 /**
  * Add players to this game (PR 7): the words around the picker in add mode.
@@ -41,8 +41,8 @@ const listNames = (names: string[]) => (names.length < 2 ? names.join('') : `${n
  * 054 (D70) — the notice above Return to game once rounds have been played, naming the seat before
  * it is taken (Sree, Nov 21: "his seat is going to be so-and-so number … in between these two
  * people"): "Ravi sits at seat 4, between Anu and Bala — left of the dealer." Several newcomers sit
- * side by side in the order they were picked. Null before round 1 (they take the last seat) or when
- * nobody new is picked.
+ * side by side straight after the dealer in the order they were picked (seated in `joinOrder`). Null
+ * before round 1 (they take the last seat) or when nobody new is picked.
  */
 export function joinSeatNotice(
   game: Parameters<typeof planJoin>[0],
@@ -52,17 +52,18 @@ export function joinSeatNotice(
 ): string | null {
   if (roundCount <= 0 || joiners.length === 0) return null;
   let table = game;
-  let first: ReturnType<typeof planJoin> | null = null;
-  for (const joiner of joiners) {
+  let dealer: string | undefined;
+  for (const joiner of joinOrder(joiners, roundCount)) {
     const plan = planJoin(table, roundCount, joiner.id);
-    first = first ?? plan;
+    dealer = plan.dealer;
     table = { ...table, players: plan.players, nextDealerOverride: plan.nextDealerOverride };
   }
-  if (!first?.dealer) return null;
+  if (!dealer) return null;
   const ring = table.players;
-  const seat = first.seat + 1;
-  const left = ring[(first.seat - 1 + ring.length) % ring.length];
-  const right = ring[(first.seat + joiners.length) % ring.length];
+  const at = ring.indexOf(joiners[0].id);
+  const seat = at + 1;
+  const left = ring[(at - 1 + ring.length) % ring.length];
+  const right = ring[(at + joiners.length) % ring.length];
   const who = listNames(joiners.map((joiner) => joiner.name));
   const where = joiners.length === 1 ? `${who} sits at seat ${seat}` : `${who} sit at seats ${seat}–${seat + joiners.length - 1}`;
   const between = left === right ? '' : `, between ${nameOf(left)} and ${nameOf(right)}`;

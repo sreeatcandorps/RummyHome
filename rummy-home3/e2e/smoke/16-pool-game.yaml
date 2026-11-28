@@ -145,7 +145,7 @@ tags: [smoke]
     text: "Round 1 saved"
 - assertVisible:
     id: "after-next"
-    text: "Next: round 2 · Harish deals"
+    text: "Next: round 2 · Priya deals"
 - assertVisible:
     id: "after-summary"
     text: "1 out this round · 3 still in · re-entry at 51"
@@ -153,9 +153,9 @@ tags: [smoke]
     id: "after-row-00000000-0000-4000-8000-000000000008"
 - assertVisible: "Out at 135"
 - takeScreenshot: 16h-pool-after-save-out
-# Re-enter opens the row in place. A new pool's Re-entry score is Highest score + 1 (PR 24): 51. Harish deals
-# round 2, so Zed's default seat is on Harish's left, seat 2 between Sree and Harish (056: "always sit to the
-# left side of the person that is dealing").
+# Re-enter opens the row in place. A new pool's Re-entry score is Highest score + 1 (PR 24): 51. The deal moves
+# anticlockwise (057): Zed, the seat before Sree, is out, so Priya deals round 2. Zed's seat 4 is already on
+# Priya's left (056: "always sit to the left side of the person that is dealing"), so he keeps it.
 - tapOn:
     id: "after-reenter-00000000-0000-4000-8000-000000000008"
 - extendedWaitUntil:
@@ -164,7 +164,7 @@ tags: [smoke]
     timeout: 5000
 - assertVisible:
     id: "after-seat-line"
-    text: "Zed sits at seat 2, between Sree and Harish — left of the dealer."
+    text: "Zed keeps seat 4 — already left of the dealer."
 - assertVisible: "Re-enter at 51"
 - takeScreenshot: 16h2-pool-after-save-reenter-seat
 - tapOn:
@@ -176,10 +176,10 @@ tags: [smoke]
     timeout: 15000
 - assertVisible:
     id: "after-back-00000000-0000-4000-8000-000000000008"
-    text: "↺ Back in at 51 · seat 2, left of Harish"
+    text: "↺ Back in at 51 · seat 4, left of Priya"
 - assertVisible:
     id: "after-next"
-    text: "Next: round 2 · Harish deals"
+    text: "Next: round 2 · Priya deals"
 - takeScreenshot: 16h3-pool-after-save-back-in
 # Nov 18: the Round saved sheet closes with Close (Done means Home on a finished game).
 - tapOn:
@@ -188,9 +188,9 @@ tags: [smoke]
     visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertNotVisible: "OUT R1"
-# Zed's column moved to seat 2, beside Sree.
+# Zed's column stays at seat 4.
 - assertVisible:
-    id: "score-header-initials-2"
+    id: "score-header-initials-4"
     text: "ZZ"
 - swipe:
     from:

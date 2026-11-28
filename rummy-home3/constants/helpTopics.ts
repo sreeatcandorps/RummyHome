@@ -191,7 +191,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
           'Draw a card each for the seating position.',
           'Tap players from the highest card to the lowest, in that order. The first tap goes to the top with the highest seat number, the next sits to its left, and so on round; the last tap is **seat 1**, one step right of the top.',
           'The table is a circle of initials. Each tap shows the full name and Player ID in the middle for a moment.',
-          'Seat 1 deals round 1 and is marked **Dealer**. The deal goes anticlockwise: the highest seat gets the first open card. Every round the deal moves up one seat, and the open card goes to the seat before the dealer. The scorecard columns follow the seats, seat 1 first.',
+          'Seat 1 deals round 1 and is marked **Dealer**. The deal goes anticlockwise: the highest seat gets the first open card and deals round 2, then the seat below it, and so on round. Every round the open card goes to the seat before the dealer, and that player deals next. The scorecard columns follow the seats, seat 1 first.',
           'Wrong tap? Tap the latest player again to take the number back.',
           'Once everyone is numbered, tap a player and use the ▲ ▼ arrows to move them one seat; tap them again to deselect. The arrows show in the middle of the circle, for the selected player only; the top seat has no ▲ and the lowest seat has no ▼.',
           '**Clear** removes every number. Every player needs a seat before **Next** (or **Start game** when no co-admin step follows).',
@@ -209,7 +209,7 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     ],
     tricky: [
       { id: 'not-in-list', q: 'The person I want is not in the list.', a: 'They are not in your My players yet. **Find in database** if they have an account (by their Player ID), **Add by initials** if they do not. Both seat them in this game at once.' },
-      { id: 'who-deals', q: 'Who deals first?', a: 'Seat 1 in the **Order of players** you set before Start: the lowest card, the last player you tapped. Every round the deal moves up one seat and the open card goes to the seat before the dealer; played rounds keep their dealer.' },
+      { id: 'who-deals', q: 'Who deals first?', a: 'Seat 1 in the **Order of players** you set before Start: the lowest card, the last player you tapped. After each round the deal moves anticlockwise to the player who got the first open card, the seat before the dealer; played rounds keep their dealer.' },
       { id: 'twenty', q: 'Why can I not add a 21st player?', a: 'A game holds up to 20 players. Start a second game for the rest.' },
     ],
     alsoSee: ['game-type', 'add-players', 'my-players', 'scorecard'],

@@ -4,7 +4,8 @@ tags: [smoke]
 # Fixture: game U (GAMEU1, supabase/seed-e2e.sql), 3 rounds saved. Seats: Sree 1, Test Alpha 2, Bravo 3,
 # Charlie 4, Delta 5, Echo 6, Foxtrot 7, Golf..Kilo 8-12 (out in round 1). Alpha..Charlie are at 80, so
 # round 4 (Sree Rummy, everyone else Drop 25) puts three out at 105; 40 is the highest still in.
-# Charlie deals round 4, so Delta deals round 5 and the dealer's left is seat 4.
+# The seed's rounds keep their dealers (Sree, Alpha, Bravo); since 057 the deal moves anticlockwise, so Alpha
+# deals round 4 and, with Alpha out, Sree deals round 5: the dealer's left is the seat after Sree.
 # Sree (Nov 21): "what if there are more players, will it scroll?" — eight rows: only the list scrolls,
 # the title, the summary and Close stay in view. Two players re-enter from one sheet (it stays open);
 # a third from Standings (the second door, the same seat line). Undo takes all of it back at the end.
@@ -65,7 +66,7 @@ tags: [smoke]
     text: "Round 4 saved"
 - assertVisible:
     id: "after-next"
-    text: "Next: round 5 · Test Delta deals"
+    text: "Next: round 5 · Sree deals"
 - assertVisible:
     id: "after-summary"
     text: "3 out this round · 4 still in · re-entry at 41"
@@ -93,7 +94,7 @@ tags: [smoke]
     direction: UP
     timeout: 30000
 
-# First re-entry: Charlie already sits on Delta's left (the out seat between them is skipped) and keeps seat 4.
+# First re-entry: Charlie already sits on Sree's left (the out seats between them are skipped) and keeps seat 4.
 - tapOn:
     id: "after-reenter-00000000-0000-4000-8000-0000000000e3"
 # The opened row scrolls itself fully into view (CI #183, Pixel 4a font 1.3: Re-enter at 41 was below the
@@ -119,63 +120,111 @@ tags: [smoke]
     id: "after-summary"
     text: "2 out this round · 5 still in · re-entry at 42"
 
-# Second re-entry from the same sheet: Bravo moves from seat 3 to Delta's left, seat 4, between Charlie and
-# Delta. Delta still deals round 5 (056 keeps the dealer on a re-entry).
-# On the 360-dp phone the list scrolled down to show Charlie's panel and stays there after his re-entry
-# (his row in view), so Bravo's row is above the fold: scroll back up to it, as a user would.
+# Second re-entry from the same sheet: Golf (out in round 1) moves from seat 8 to Sree's left, seat 2, between
+# Sree and Charlie. Sree still deals round 5 (056 keeps the dealer on a re-entry). Bravo would keep seat 3
+# (already on Sree's left), so Golf is the one that shows a move.
+# Golf's row is in OUT EARLIER, below Charlie's: scroll down to it.
 - scrollUntilVisible:
     element:
-      id: "after-reenter-00000000-0000-4000-8000-0000000000e2"
-    direction: UP
+      id: "after-reenter-00000000-0000-4000-8000-0000000000e7"
+    direction: DOWN
     timeout: 30000
 - tapOn:
-    id: "after-reenter-00000000-0000-4000-8000-0000000000e2"
+    id: "after-reenter-00000000-0000-4000-8000-0000000000e7"
 - extendedWaitUntil:
     visible: "Re-enter at 42"
     timeout: 5000
 - takeScreenshot: 16b4a-round-saved-second-row-opened
 - assertVisible:
     id: "after-seat-line"
-    text: "Test Bravo sits at seat 4, between Test Charlie and Test Delta — left of the dealer."
+    text: "Test Golf sits at seat 2, between Sree and Test Charlie — left of the dealer."
 - assertVisible:
     id: "after-keep-seat"
+- assertVisible: "Keep seat 8"
 - assertVisible: "Re-enter at 42"
 - takeScreenshot: 16b4-round-saved-reenter-seat-strip
 # A tap on a name in the strip sits him on that person's left, with a warning (never a refusal, D50);
-# Keep seat 3 is today's behaviour. The strip shows the seats as planned (Bravo at 4, Echo at 6): a tap on
-# Echo puts Bravo at seat 5, then Delta (now seat 4) brings him back to the default.
+# Keep seat 8 is today's behaviour. The strip shows the seats as planned (Golf at 2, Echo at 7): a tap on
+# Echo puts Golf at seat 7, then Sree (seat 1) brings him back to the default.
+# The strip scrolls sideways and starts on the player; bring seat 7 into view either way.
+- repeat:
+    while:
+      notVisible:
+        id: "after-seat-7"
+    times: 3
+    commands:
+      - swipe:
+          from:
+            id: "after-seat-strip"
+          direction: RIGHT
+- repeat:
+    while:
+      notVisible:
+        id: "after-seat-7"
+    times: 4
+    commands:
+      - swipe:
+          from:
+            id: "after-seat-strip"
+          direction: LEFT
 - tapOn:
-    id: "after-seat-6"
+    id: "after-seat-7"
 - extendedWaitUntil:
     visible:
       id: "after-seat-warning"
     timeout: 5000
 - assertVisible:
     id: "after-seat-line"
-    text: "Test Bravo sits at seat 5, between Test Delta and Test Echo."
+    text: "Test Golf sits at seat 7, between Test Echo and Test Foxtrot."
 - takeScreenshot: 16b5-round-saved-reenter-other-seat
+# The strip scrolls sideways and starts on the player; bring seat 1 into view either way.
+- repeat:
+    while:
+      notVisible:
+        id: "after-seat-1"
+    times: 3
+    commands:
+      - swipe:
+          from:
+            id: "after-seat-strip"
+          direction: RIGHT
+- repeat:
+    while:
+      notVisible:
+        id: "after-seat-1"
+    times: 4
+    commands:
+      - swipe:
+          from:
+            id: "after-seat-strip"
+          direction: LEFT
 - tapOn:
-    id: "after-seat-4"
+    id: "after-seat-1"
 - assertVisible:
     id: "after-seat-line"
-    text: "Test Bravo sits at seat 4, between Test Charlie and Test Delta — left of the dealer."
+    text: "Test Golf sits at seat 2, between Sree and Test Charlie — left of the dealer."
 - assertNotVisible:
     id: "after-seat-warning"
 - tapOn:
     id: "after-reenter-confirm"
 - extendedWaitUntil:
     visible:
-      id: "after-back-00000000-0000-4000-8000-0000000000e2"
+      id: "after-back-00000000-0000-4000-8000-0000000000e7"
     timeout: 15000
 - assertVisible:
-    id: "after-back-00000000-0000-4000-8000-0000000000e2"
-    text: "↺ Back in at 42 · seat 4, left of Test Delta"
+    id: "after-back-00000000-0000-4000-8000-0000000000e7"
+    text: "↺ Back in at 42 · seat 2, left of Sree"
+- scrollUntilVisible:
+    element:
+      id: "after-back-00000000-0000-4000-8000-0000000000e3"
+    direction: UP
+    timeout: 30000
 - assertVisible:
     id: "after-back-00000000-0000-4000-8000-0000000000e3"
-    text: "↺ Back in at 41 · seat 3, left of Test Bravo"
+    text: "↺ Back in at 41 · seat 5, left of Test Golf"
 - assertVisible:
     id: "after-next"
-    text: "Next: round 5 · Test Delta deals"
+    text: "Next: round 5 · Sree deals"
 - takeScreenshot: 16b6-round-saved-two-back-in
 # Landscape: the same sheet, the list still scrolls under the pinned header and Close.
 - setOrientation: LANDSCAPE_LEFT
@@ -196,24 +245,37 @@ tags: [smoke]
     timeout: 15000
 - runFlow: ../lib/stand-upright.yaml
 - assertVisible:
-    id: "score-header-initials-3"
-    text: "TC"
+    id: "score-header-initials-2"
+    text: "TG"
 - assertVisible:
-    id: "score-header-initials-4"
-    text: "TB"
+    id: "score-header-initials-5"
+    text: "TC"
 
-# The second door: Re-enter in Standings opens the same seat line. Hotel sits on Delta's left, seat 5,
-# right after Bravo.
+# The second door: Re-enter in Standings opens the same seat line. Hotel sits on Sree's left, seat 2,
+# between Sree and Golf.
+# The pane keeps its scroll position, so Hotel's row can be above or below; look up first, then down.
 - repeat:
     while:
       notVisible:
         id: "reenter-00000000-0000-4000-8000-0000000000e8"
-    times: 6
+    times: 4
     commands:
       - swipe:
           from:
             id: "pool-standings-pane"
-          direction: UP
+          direction: DOWN
+# Short, slow swipes inside the pane (about one row each): on the small phone the pane shows three rows and a
+# full-length swipe flings straight past Hotel to the end of the list.
+- repeat:
+    while:
+      notVisible:
+        id: "reenter-00000000-0000-4000-8000-0000000000e8"
+    times: 12
+    commands:
+      - swipe:
+          start: 50%, 79%
+          end: 50%, 73%
+          duration: 700
 - tapOn:
     id: "reenter-00000000-0000-4000-8000-0000000000e8"
 - extendedWaitUntil:
@@ -223,7 +285,7 @@ tags: [smoke]
 - assertVisible: "Re-enter Test Hotel"
 - assertVisible:
     id: "standings-seat-line"
-    text: "Test Hotel sits at seat 5, between Test Bravo and Test Delta — left of the dealer."
+    text: "Test Hotel sits at seat 2, between Sree and Test Golf — left of the dealer."
 - assertVisible: "Re-enter at 43"
 - takeScreenshot: 16b8-standings-reenter-seat
 - tapOn:
@@ -233,7 +295,7 @@ tags: [smoke]
       id: "reentry-sheet"
     timeout: 15000
 - assertVisible:
-    id: "score-header-initials-5"
+    id: "score-header-initials-2"
     text: "TH"
 - takeScreenshot: 16b9-standings-reentered
 

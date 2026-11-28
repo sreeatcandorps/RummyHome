@@ -75,7 +75,7 @@ select lives_ok($$ select public.save_round('10000000-0000-4000-8000-00000000000
     {"playerId":"00000000-0000-4000-8000-000000000008","scoreType":"rummy","value":30}]'::jsonb, false) $$, '13.5 round 3 saved');
 select is((select count(*)::int from pg_temp.since('r3')), 1, '13.5 one row');
 select is((select kind || '/' || level::text from pg_temp.since('r3')), 'round_added/routine', '13.5 round_added is routine');
-select is((select summary from pg_temp.since('r3')), 'Round 3 added · Dealer RK · Zed Zero +30', '13.5 summary names the dealer and the winner');
+select is((select summary from pg_temp.since('r3')), 'Round 3 added · Dealer HT · Zed Zero +30', '13.5 summary names the dealer and the winner (057: harish, the seat before round 2''s dealer)');
 select is((select jsonb_array_length(details->'scores') from pg_temp.since('r3')), 4, '13.5 details.scores has the payload');
 
 select pg_temp.mark('edit');

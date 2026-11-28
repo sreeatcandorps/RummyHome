@@ -41,7 +41,7 @@ select is((select count(*) from public.scores s join public.rounds r on r.id = s
 select is((select current_round from public.games where id = '10000000-0000-4000-8000-00000000000a'), 4, 'current_round advanced to 4');
 select is(
   (select dealer_profile_id from public.rounds where game_id = '10000000-0000-4000-8000-00000000000a' and round_number = 3 and undone_at is null),
-  '00000000-0000-4000-8000-0000000000a1'::uuid, 'dealer for round 3 is the third seat in order (rk)');
+  '00000000-0000-4000-8000-000000000002'::uuid, 'dealer for round 3 is the seat before round 2''s dealer (harish; 057 anticlockwise)');
 
 -- duplicate submit of round 3 with the SAME payload (double tap / retry): no error, no second set of scores
 select lives_ok(

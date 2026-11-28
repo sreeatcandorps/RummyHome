@@ -30,7 +30,7 @@ export const WATCH_HOW = 'Watch how (20 s)';
 export const SEATING_TUTORIAL_TITLE = 'How to seat the table';
 
 export const SEATING_STEPS: readonly TutorialStep[] = [
-  { title: 'Everyone draws a card', line: 'One card each. The highest card gets the first open card; the lowest card deals.' },
+  { title: 'Everyone draws a card', line: 'One card each. The lowest card deals; the highest card gets the first open card and deals next.' },
   { title: 'Tap the highest card first', line: 'Tap the highest card first, then the next one down… the last tap is the lowest card and deals round 1.' },
   { title: 'Wrong tap? Fix it', line: 'Tap the latest player again to take it back. Once everyone is numbered, tap a player and use ▲ ▼ to move them.' },
 ];

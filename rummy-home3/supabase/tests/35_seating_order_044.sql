@@ -93,7 +93,7 @@ select is((select details->>'rounds' from public.event_log where game_id = :T an
 select is((select details->>'nextDealer' from public.event_log where game_id = :T and kind = 'seating_changed' order by id desc limit 1), '00000000-0000-4000-8000-000000000001', 'seat 1 deals round 1');
 select is((select details->'from'->>1 from public.event_log where game_id = :T and kind = 'seating_changed' order by id desc limit 1), '00000000-0000-4000-8000-000000000002', 'details.from is the old order');
 
--- two rounds, then a mid-game change: important, and the next deal is the seat after the last dealer in the NEW order
+-- two rounds, then a mid-game change: important, and the next deal is the seat before the last dealer in the NEW order (057)
 select lives_ok($$ select public.save_round('10000000-0000-4000-8000-0000000000f5', 1,
   '[{"playerId":"00000000-0000-4000-8000-000000000001","scoreType":"rummy","value":30},
     {"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"count","value":-10},
@@ -103,10 +103,10 @@ select lives_ok($$ select public.save_round('10000000-0000-4000-8000-0000000000f
   '[{"playerId":"00000000-0000-4000-8000-000000000001","scoreType":"count","value":-10},
     {"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"rummy","value":30},
     {"playerId":"00000000-0000-4000-8000-000000000002","scoreType":"count","value":-10},
-    {"playerId":"00000000-0000-4000-8000-000000000008","scoreType":"count","value":-10}]'::jsonb, false) $$, 'round 2 (priya deals)');
-select is((select dealer_profile_id from public.rounds where game_id = :T and round_number = 2), :PRIYA::uuid, 'round 2 dealer is seat 2 = priya');
--- swap harish and zero: order S P Z H; the seat after priya is now zero
-select is((public.set_seating_order(:T, array[:SREE, :PRIYA, :ZERO, :HARISH]::uuid[]))->>'nextDealer', '00000000-0000-4000-8000-000000000008', 'the next deal follows the new order');
+    {"playerId":"00000000-0000-4000-8000-000000000008","scoreType":"count","value":-10}]'::jsonb, false) $$, 'round 2 (zero deals)');
+select is((select dealer_profile_id from public.rounds where game_id = :T and round_number = 2), :ZERO::uuid, 'round 2 dealer is the seat before seat 1 = the last seat, zero (057)');
+-- swap harish and zero: order S P Z H; the seat before zero is now priya (it was harish)
+select is((public.set_seating_order(:T, array[:SREE, :PRIYA, :ZERO, :HARISH]::uuid[]))->>'nextDealer', '00000000-0000-4000-8000-000000000003', 'the next deal follows the new order');
 select is((select level::text from public.event_log where game_id = :T and kind = 'seating_changed' order by id desc limit 1), 'important', 'important once rounds exist');
 select is((select dealer_profile_id from public.rounds where game_id = :T and round_number = 1), :SREE::uuid, 'saved rounds keep their dealer');
 select lives_ok($$ select public.save_round('10000000-0000-4000-8000-0000000000f5', 3,
@@ -114,7 +114,7 @@ select lives_ok($$ select public.save_round('10000000-0000-4000-8000-0000000000f
     {"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"count","value":-10},
     {"playerId":"00000000-0000-4000-8000-000000000002","scoreType":"count","value":-10},
     {"playerId":"00000000-0000-4000-8000-000000000008","scoreType":"rummy","value":30}]'::jsonb, false) $$, 'round 3');
-select is((select dealer_profile_id from public.rounds where game_id = :T and round_number = 3), :ZERO::uuid, 'save_round picks the same next dealer');
+select is((select dealer_profile_id from public.rounds where game_id = :T and round_number = 3), :PRIYA::uuid, 'save_round picks the same next dealer');
 
 -- completed: refused
 update public.games set status = 'completed', completed_at = now() where id = :T;
@@ -135,10 +135,11 @@ select lives_ok($$ select public.save_round('10000000-0000-4000-8000-0000000000f
     {"playerId":"00000000-0000-4000-8000-000000000002","scoreType":"count","value":10},
     {"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"count","value":20},
     {"playerId":"00000000-0000-4000-8000-000000000008","scoreType":"count","value":70}]'::jsonb, false) $$, 'pool round 1: zero out');
--- move zero (out) to seat 2: S Z H P; sree dealt round 1, the seat after him still in is harish
-select is((public.set_seating_order(:Q, array[:SREE, :ZERO, :HARISH, :PRIYA]::uuid[]))->>'nextDealer', '00000000-0000-4000-8000-000000000002', 'the deal skips the out player in the new order');
+-- move zero (out) to seat 1: Z S H P; sree dealt round 1, the seat before him is zero (out), so the deal wraps to the
+-- highest seat still in, priya (057)
+select is((public.set_seating_order(:Q, array[:ZERO, :SREE, :HARISH, :PRIYA]::uuid[]))->>'nextDealer', '00000000-0000-4000-8000-000000000003', 'the deal skips the out player in the new order');
 select is((select out_round from public.game_players where game_id = :Q and profile_id = :ZERO), 1, 'the out player keeps out_round after the move');
-select is((select player_order from public.game_players where game_id = :Q and profile_id = :ZERO), 1, 'and sits in seat 2');
+select is((select player_order from public.game_players where game_id = :Q and profile_id = :ZERO), 0, 'and sits in seat 1');
 
 -- ---------- game W: 20 seats reversed in one call (the unique key is never violated) ----------
 select tests.logout();

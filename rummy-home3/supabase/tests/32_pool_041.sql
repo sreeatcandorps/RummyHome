@@ -110,7 +110,7 @@ select lives_ok($$ select public.save_round('10000000-0000-4000-8000-0000000000d
     {"playerId":"00000000-0000-4000-8000-000000000002","scoreType":"rummy","value":0},
     {"playerId":"00000000-0000-4000-8000-000000000003","scoreType":"count","value":25}]'::jsonb, false) $$, '13.7 round 3 with the three players in');
 select is((select dealer_profile_id from public.rounds where game_id = :P and round_number = 3 and undone_at is null), :PRIYA::uuid,
-  '13.7 the deal skips nobody yet (round 2 dealer harish → priya)');
+  '13.7 the deal skips the seat that is out (057: round 2 dealer zero, out → priya, the next seat down still in)');
 
 -- 13.8 re-entry: off → refused; on → once, at the highest score still in
 select throws_ok($$ select public.reenter_player('10000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-000000000008') $$,
@@ -152,7 +152,8 @@ select lives_ok($$ select public.save_round('10000000-0000-4000-8000-0000000000d
 select is((select out_round from public.game_players where game_id = :P and profile_id = :ZERO), 3, 'out in round 3 (second time)');
 select throws_ok($$ select public.reenter_player('10000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-000000000008') $$,
   'P0001', 'They have already re-entered once.', '13.8 re-entry limited to 1 is once per player');
-select is((select dealer_profile_id from public.rounds where game_id = :P and round_number = 3 and undone_at is null), :PRIYA::uuid, 'round 3 dealer priya');
+select is((select dealer_profile_id from public.rounds where game_id = :P and round_number = 3 and undone_at is null), :HARISH::uuid,
+  'round 3 dealer harish (057: zero came back on his left, so he keeps the round he was dealing)');
 
 -- 13.10 a late joiner starts at the highest score still in, no zero rows
 select lives_ok($$ select public.add_seated_player('10000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000a1', 'RK') $$, '13.10 RK joins mid-pool');

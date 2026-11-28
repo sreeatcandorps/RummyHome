@@ -230,10 +230,10 @@ test('D138 taps: the last tap is seat 1 and deals; once everyone is numbered eve
   assert.equal(tapRing(mid, 'anil').focus, 'anil');
 });
 
-test('mid-game: the Dealer mark is the scorecard\'s next dealer — the seat after the last round\'s dealer, or the Dealer sheet\'s pick', () => {
+test('mid-game: the Dealer mark is the scorecard\'s next dealer — the seat before the last round\'s dealer (057), or the Dealer sheet\'s pick', () => {
   const order = ['ravi', 'anil', 'kiran', 'meena'];
-  assert.equal(nextDealerFor(order, ['ravi', 'anil'], 2), 'kiran', 'seat 1, 2 dealt; seat 3 deals round 3');
-  assert.equal(nextDealerFor(order, ['ravi', 'anil'], 2, new Set(), { playerId: 'meena', round: 3, keepsSequence: false }), 'meena', 'the Dealer sheet named Meena for round 3');
-  assert.equal(nextDealerFor(order, ['ravi', 'anil'], 2, new Set(), { playerId: 'meena', round: 2, keepsSequence: false }), 'kiran', 'an override for another round does not count');
-  assert.equal(nextDealerFor(order, ['ravi', 'anil'], 2, new Set(['meena']), { playerId: 'meena', round: 3, keepsSequence: false }), 'kiran', 'nor one for a player who is out');
+  assert.equal(nextDealerFor(order, ['ravi', 'meena'], 2), 'kiran', 'seat 1, then seat 4 dealt; seat 3 deals round 3');
+  assert.equal(nextDealerFor(order, ['ravi', 'meena'], 2, new Set(), { playerId: 'anil', round: 3, keepsSequence: false }), 'anil', 'the Dealer sheet named Anil for round 3');
+  assert.equal(nextDealerFor(order, ['ravi', 'meena'], 2, new Set(), { playerId: 'anil', round: 2, keepsSequence: false }), 'kiran', 'an override for another round does not count');
+  assert.equal(nextDealerFor(order, ['ravi', 'meena'], 2, new Set(['anil']), { playerId: 'anil', round: 3, keepsSequence: false }), 'kiran', 'nor one for a player who is out');
 });

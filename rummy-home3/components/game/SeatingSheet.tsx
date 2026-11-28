@@ -30,7 +30,7 @@ export type { SeatingPlayer } from '@/components/game/OrderOfPlayers';
  * Order of players, mid-game (⋮ menu, admins, Active games): a full page since the circle (D138), over the
  * scorecard. The same circle as the New game step, opened with today's order already numbered so one move is one
  * tap and one arrow. The Dealer mark is who deals the round being played under the order on screen — the
- * scorecard's own rule (the seat after the last round's dealer, or the Dealer sheet's pick). Nothing is written
+ * scorecard's own rule (the seat before the last round's dealer, or the Dealer sheet's pick). Nothing is written
  * until Done; Clear takes every number back; Cancel (or the phone's Back) saves nothing.
  */
 export function SeatingSheet({ visible, players, pool, dealerIds, nextDealerOverride, roundCount, meId, onDismiss, onSave }: {

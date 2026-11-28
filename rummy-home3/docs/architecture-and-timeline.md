@@ -746,6 +746,16 @@ When you change **tooling, hosting, SDK major/minor, backend provider, store pat
   The claim RPCs stay on the server so links already sent still open until they expire. Link to Player ID (025)
   is now the one way to move an initials player's games to an account. D70's seat change becomes migration 054.
 
+### 2026-11-28 — Migration 057: the dealer moves anticlockwise (Q63), written, not applied
+- Sree (Nov 27): "the dealer always moves counterclockwise … whoever gets the open card gets to deal". `057_dealer_anticlockwise.sql`
+  mirrors the rotation on the server (`next_in_rotation`, `save_round`, `set_seating_order`, new internal
+  `round_rule_dealer`): after each round the seat before the last dealer still in deals, the player who got the first
+  open card. "The dealer's left" for joins (054) and re-entries (056) becomes the seat after the dealer, which still
+  deals last. No signature changes, so old APKs keep working; their own "deals next" label is wrong until updated.
+  Rollback restores the 052 / 044 / 054 / 056 bodies; CI's rollback replay, pgTAP `46` and the moved older files cover
+  it. The app's one rule stays `utils/dealerRotation.ts` (`dealsAfter` replaces `seatAfter`). Not applied anywhere;
+  analysis in `docs/dealer-anticlockwise.md`.
+
 ### 2026-11-27 — The staging APK waits for the awards chips (D129)
 - Sree paused the APK until the Awards screen has the four chips he asked for on Nov 21 (D128: By drops left
   first, Split evenly, By score left, Custom). The order is now: awards chips merged and staging's e-mail sender
