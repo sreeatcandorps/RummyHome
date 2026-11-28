@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { BoldName } from '@/components/ui/BoldName';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
@@ -27,15 +27,39 @@ type Props = {
   newIds?: ReadonlySet<string>;
   /** A chip being removed on the server; it dims and ignores taps. */
   busyId?: string | null;
+  /**
+   * Batch row 12o: one row that scrolls sideways instead of wrapping (New game with the keyboard up), kept
+   * scrolled to the end so the newest pick and its × show; a fade at the left says there are more.
+   */
+  oneRow?: boolean;
 };
+
+/** Steps of the left-edge fade on the one-row strip (no gradient package in the app). */
+const FADE_STEPS = [0.85, 0.6, 0.35, 0.15];
 
 /**
  * One compact chip per seated player: a small coloured avatar (tap it to send
  * the person back to the list), the name, and the × that takes them out.
  * Shared by New game, Add players to game, and the screens they open.
  */
-export function SelectedPlayersStrip({ picks, onRemove, onReturn, title, emptyText, savedIds, newIds, busyId }: Props) {
+export function SelectedPlayersStrip({ picks, onRemove, onReturn, title, emptyText, savedIds, newIds, busyId, oneRow = false }: Props) {
   const { colors } = useAppTheme();
+  const rowRef = useRef<ScrollView>(null);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    if (oneRow) rowRef.current?.scrollToEnd({ animated: true });
+  }, [oneRow, picks.length]);
+  const chips = picks.map((pick, index) => (
+    <Chip
+      key={pick.id}
+      pick={pick}
+      color={seatColor(index)}
+      look={chipLook(pick.id, savedIds, newIds)}
+      busy={busyId === pick.id}
+      onRemove={() => onRemove(pick.id)}
+      onReturn={() => (onReturn ?? onRemove)(pick.id)}
+    />
+  ));
   return (
     <View style={styles.root}>
       {title ? (
@@ -46,19 +70,30 @@ export function SelectedPlayersStrip({ picks, onRemove, onReturn, title, emptyTe
       {picks.length === 0 && emptyText ? (
         <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant }}>{emptyText}</Text>
       ) : null}
-      <View style={styles.chips}>
-        {picks.map((pick, index) => (
-          <Chip
-            key={pick.id}
-            pick={pick}
-            color={seatColor(index)}
-            look={chipLook(pick.id, savedIds, newIds)}
-            busy={busyId === pick.id}
-            onRemove={() => onRemove(pick.id)}
-            onReturn={() => (onReturn ?? onRemove)(pick.id)}
-          />
-        ))}
-      </View>
+      {oneRow ? (
+        <View>
+          <ScrollView
+            ref={rowRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.oneRow}
+            onContentSizeChange={() => rowRef.current?.scrollToEnd({ animated: false })}
+            onScroll={(e) => setScrolled(e.nativeEvent.contentOffset.x > 4)}
+            scrollEventThrottle={64}
+            testID="selected-strip-one-row"
+          >
+            {chips}
+          </ScrollView>
+          {scrolled ? (
+            <View pointerEvents="none" style={styles.fade} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+              {FADE_STEPS.map((opacity) => <View key={opacity} style={[styles.fadeStep, { backgroundColor: colors.background, opacity }]} />)}
+            </View>
+          ) : null}
+        </View>
+      ) : (
+        <View style={styles.chips}>{chips}</View>
+      )}
     </View>
   );
 }
@@ -113,6 +148,9 @@ function Chip({ pick, color, look, busy, onRemove, onReturn }: {
 const styles = StyleSheet.create({
   root: { gap: spacing.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  oneRow: { flexDirection: 'row', gap: 6 },
+  fade: { position: 'absolute', left: 0, top: 0, bottom: 0, flexDirection: 'row' },
+  fadeStep: { width: 6 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',

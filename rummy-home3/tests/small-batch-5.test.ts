@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { pickerWhileTyping } from '../utils/addPlayers';
 import { ROUND_SAVED_NOTE_MS, roundSavedMark, roundSavedNote, UNDO_MENU_ITEM } from '../utils/roundSavedNote';
 
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
@@ -40,4 +41,35 @@ test('12l: the bar has no Undo; the ⋮ menu and the note do, with the same conf
   assert.match(screen, /<Toast\s+message=\{linkNote \? null : savedNote\}[\s\S]*?onPress: handleUndoLastRound[\s\S]*?durationMs=\{ROUND_SAVED_NOTE_MS\}/);
   assert.match(screen, /const handleUndoLastRound = \(\) => \{[\s\S]*?setShowUndoConfirm\(true\);/, 'both open "Remove the last round?"');
   assert.match(screen, /const round = roundSavedMark\.take\(id\);/);
+});
+
+// ---- 12o (option A): New game's players step with the keyboard up ----
+
+test('12o: while typing, the chips take one row and the bar holds Next alone; both come back when the keyboard closes', () => {
+  assert.deepEqual(pickerWhileTyping(true), { stripOneRow: true, barTiles: false });
+  assert.deepEqual(pickerWhileTyping(false), { stripOneRow: false, barTiles: true });
+});
+
+test('12o: the page pads for the keyboard and the strip has its one-row mode', () => {
+  const screen = src('app/(screens)/games/new.tsx');
+  assert.match(screen, /const typing = pickerWhileTyping\(keyboardUp\);/);
+  const kav = screen.slice(screen.indexOf('<KeyboardAvoidingView'), screen.indexOf('</KeyboardAvoidingView>'));
+  assert.match(kav, /behavior=\{Platform\.OS === 'ios' \? 'padding' : 'height'\} keyboardVerticalOffset=\{topY\}/, 'the Add by initials pattern (D112)');
+  assert.match(kav, /<Screen contentStyle=\{styles\.content\}/, 'the page is inside it');
+  assert.match(kav, /<BottomBar style=\{styles\.bottom\} insetBottom=\{!keyboardUp\}>\s*\{typing\.barTiles \? tiles : null\}/, 'the Next bar rides on the keyboard, tiles hidden');
+  assert.match(kav, /oneRow=\{typing\.stripOneRow\}/);
+  const strip = src('components/players/SelectedPlayersStrip.tsx');
+  assert.match(strip, /oneRow \? \([\s\S]*?<ScrollView[\s\S]*?horizontal[\s\S]*?testID="selected-strip-one-row"/);
+  assert.match(strip, /if \(oneRow\) rowRef\.current\?\.scrollToEnd\(\{ animated: true \}\);/, 'the newest pick and its × stay in view');
+  assert.match(strip, /<View style=\{styles\.chips\}>\{chips\}<\/View>/, 'wrapped as before when the keyboard is down');
+  const keyboard = src('hooks/useKeyboardUp.ts');
+  assert.match(keyboard, /keyboardDidShow/);
+  assert.match(keyboard, /keyboardDidHide/);
+});
+
+test('12o: full/52 picks all twelve with the keyboard up', () => {
+  const flow = src('e2e/full/52-seating-13p.yaml');
+  assert.doesNotMatch(flow, /^- hideKeyboard$/m, 'no pick closes the keyboard first');
+  assert.match(flow, /id: "selected-strip-one-row"/);
+  assert.match(src('e2e/chaos/c03-bad-input.yaml'), /hideKeyboard/, 'c03 keeps its own');
 });

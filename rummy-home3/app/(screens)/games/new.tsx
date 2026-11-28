@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, BackHandler, Easing, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
+import { Animated, BackHandler, Easing, KeyboardAvoidingView, LayoutAnimation, Platform, StyleSheet, UIManager, View } from 'react-native';
 import { Dialog, Portal, SegmentedButtons, Text } from 'react-native-paper';
 import { SearchField } from '@/components/ui/SearchField';
 import { Button } from '@/components/ui/AppButton';
@@ -39,7 +39,8 @@ import { OrderStep } from '@/components/game/OrderStep';
 import { displayOrder, OrderDraft, startOrder } from '@/utils/seating';
 import { emailsService } from '@/services/emails';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
-import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FIND_IN_DATABASE, FROM_DATABASE_ACCESSIBILITY, joinSeatNotice, nextLabel, returnButtonLabel, totalLabel } from '@/utils/addPlayers';
+import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FIND_IN_DATABASE, FROM_DATABASE_ACCESSIBILITY, joinSeatNotice, nextLabel, pickerWhileTyping, returnButtonLabel, totalLabel } from '@/utils/addPlayers';
+import { useKeyboardUp } from '@/hooks/useKeyboardUp';
 import { playedRounds } from '@/utils/editRound';
 import { isPoolGame, playersOut } from '@/utils/pool';
 
@@ -181,6 +182,12 @@ export default function NewGame() {
   const [blocked, setBlocked] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // 12o (option A): with the keyboard up the page shrinks above it (edge-to-edge SDK 54 no longer resizes the
+  // window), the chips take one row and Next rides on the keyboard alone, as Add by initials does (D112).
+  const keyboardUp = useKeyboardUp();
+  const typing = pickerWhileTyping(keyboardUp);
+  const rootRef = useRef<View>(null);
+  const [topY, setTopY] = useState(0);
 
   const loadGame = useCallback(async (id: string) => {
     const [current, seats] = await Promise.all([gamesService.getGame(id), gamesService.listGamePlayers(id)]);
@@ -589,7 +596,11 @@ export default function NewGame() {
   );
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View
+      ref={rootRef}
+      onLayout={() => rootRef.current?.measureInWindow((_x, y) => setTopY(y))}
+      style={[styles.root, { backgroundColor: colors.background }]}
+    >
       <Stack.Screen
         options={{
           title: addMode ? ADD_PLAYERS_TITLE : 'New game',
@@ -601,54 +612,56 @@ export default function NewGame() {
         }}
       />
 
-      <Screen contentStyle={styles.content} safeBottom={false}>
-        {addMode ? <TotalCircle total={seatedCount} added={newCount} /> : <PlayingCount count={seatedCount} hint={hint} />}
-        <SelectedPlayersStrip picks={selected} meId={me?.id} onRemove={unpick} onReturn={unpick} savedIds={addMode ? savedIds : undefined} busyId={removing} />
-        {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
-        {/* Add mode: Return to game and the two ways in sit right under the strip (PR 7 mockup); New game keeps them in the bottom bar. */}
-        {addMode && seatNotice ? (
-          <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} accessibilityLiveRegion="polite" testID="join-seat-notice">{seatNotice}</Text>
-        ) : null}
-        {addMode ? returnButton : null}
-        {addMode ? tiles : null}
+      <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={topY}>
+        <Screen contentStyle={styles.content} safeBottom={false}>
+          {addMode ? <TotalCircle total={seatedCount} added={newCount} /> : <PlayingCount count={seatedCount} hint={hint} />}
+          <SelectedPlayersStrip picks={selected} meId={me?.id} onRemove={unpick} onReturn={unpick} savedIds={addMode ? savedIds : undefined} busyId={removing} oneRow={typing.stripOneRow} />
+          {atCap ? <Text style={{ color: colors.error }}>{SEATED_PLAYER_LIMIT}</Text> : null}
+          {/* Add mode: Return to game and the two ways in sit right under the strip (PR 7 mockup); New game keeps them in the bottom bar. */}
+          {addMode && seatNotice ? (
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }} accessibilityLiveRegion="polite" testID="join-seat-notice">{seatNotice}</Text>
+          ) : null}
+          {addMode ? returnButton : null}
+          {addMode ? tiles : null}
 
-        <View style={styles.searchRow}>
-          <SearchField value={query} onChangeText={setQuery} style={[styles.search, styles.flex]} testID="picker-search" />
-          <SegmentedButtons
-            value={sort}
-            onValueChange={(value) => setSort(value as CandidateSort)}
-            density="small"
-            style={styles.sortControl}
-            buttons={[
-              { value: 'frequent', icon: 'fire', accessibilityLabel: 'Sort by Frequent', style: styles.sortButton },
-              { value: 'name', icon: 'sort-alphabetical-ascending', accessibilityLabel: 'Sort alphabetically', style: styles.sortButton },
-            ]}
-          />
-          <InfoTip title="The list" text={LIST_TIP} topic="new-game" anchor="picking-players" testID="new-game-list-tip" />
-        </View>
-        {error ? <Text style={{ color: isNotReadyMessage(error) ? colors.onSurfaceVariant : colors.error }}>{error}</Text> : null}
-        {loading && candidates.length === 0 ? <LoadingRows /> : null}
+          <View style={styles.searchRow}>
+            <SearchField value={query} onChangeText={setQuery} style={[styles.search, styles.flex]} testID="picker-search" />
+            <SegmentedButtons
+              value={sort}
+              onValueChange={(value) => setSort(value as CandidateSort)}
+              density="small"
+              style={styles.sortControl}
+              buttons={[
+                { value: 'frequent', icon: 'fire', accessibilityLabel: 'Sort by Frequent', style: styles.sortButton },
+                { value: 'name', icon: 'sort-alphabetical-ascending', accessibilityLabel: 'Sort alphabetically', style: styles.sortButton },
+              ]}
+            />
+            <InfoTip title="The list" text={LIST_TIP} topic="new-game" anchor="picking-players" testID="new-game-list-tip" />
+          </View>
+          {error ? <Text style={{ color: isNotReadyMessage(error) ? colors.onSurfaceVariant : colors.error }}>{error}</Text> : null}
+          {loading && candidates.length === 0 ? <LoadingRows /> : null}
 
-        <View style={styles.list} accessibilityLabel="Players to add">
-          {list.map((c, index) => (
-            <PlayerPickerRow key={c.id} candidate={c} index={index} disabled={atCap} isMe={c.id === me?.id} onPress={() => pick(c)} />
-          ))}
-        </View>
-        {!loading && list.length === 0 ? (
-          <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
-            {query ? 'No one in My players matches. Try Add player from database.' : 'No more players in My players. Add players below.'}
-          </Text>
-        ) : null}
-      </Screen>
+          <View style={styles.list} accessibilityLabel="Players to add">
+            {list.map((c, index) => (
+              <PlayerPickerRow key={c.id} candidate={c} index={index} disabled={atCap} isMe={c.id === me?.id} onPress={() => pick(c)} />
+            ))}
+          </View>
+          {!loading && list.length === 0 ? (
+            <Text variant="bodyMedium" style={{ color: colors.onSurfaceVariant }}>
+              {query ? 'No one in My players matches. Try Add player from database.' : 'No more players in My players. Add players below.'}
+            </Text>
+          ) : null}
+        </Screen>
 
-      {addMode ? null : (
-        <BottomBar style={styles.bottom}>
-          {tiles}
-          <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} icon="arrow-right" contentStyle={[styles.startContent, styles.nextContent]} labelStyle={styles.startLabel} accessibilityLabel="Next: game type" testID="new-game-next">
-            {nextLabel(seatedCount)}
-          </Button>
-        </BottomBar>
-      )}
+        {addMode ? null : (
+          <BottomBar style={styles.bottom} insetBottom={!keyboardUp}>
+            {typing.barTiles ? tiles : null}
+            <Button mode="contained" onPress={startGame} loading={creating} disabled={seatedCount < 2 || creating} icon="arrow-right" contentStyle={[styles.startContent, styles.nextContent]} labelStyle={styles.startLabel} accessibilityLabel="Next: game type" testID="new-game-next">
+              {nextLabel(seatedCount)}
+            </Button>
+          </BottomBar>
+        )}
+      </KeyboardAvoidingView>
 
       <Portal>
         <Dialog visible={Boolean(blocked)} onDismiss={() => setBlocked(null)} style={[styles.dialog, { backgroundColor: colors.surface }]}>
