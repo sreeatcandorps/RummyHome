@@ -1,0 +1,2 @@
+// Written by make.mjs from @expo/vector-icons' MaterialCommunityIcons glyph map.
+window.ICONS = {"arrow-left":983117,"help-circle-outline":984613,"information-outline":983805,"magnify":983881,"close":983382,"fire":983608,"sort-alphabetical-ascending":984509,"account-plus-outline":985089,"database-search":985190,"arrow-right":983124,"arrow-down":983109,"chevron-down":983360,"wifi":984489,"signal":984226,"battery-charging-high":987814,"triangle":984374,"circle":984933,"square-rounded":988411};
