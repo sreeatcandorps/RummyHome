@@ -1,0 +1,786 @@
+[
+ {
+  "id": "46115593780",
+  "number": "1231",
+  "when": "2026-11-28 06:58 UTC",
+  "branch": "cursor/small-batch-5-f877",
+  "pr": "187",
+  "sha": "dfe800f",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46115593780",
+  "passed": 93,
+  "total": 93,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": "46111825486",
+  "number": "1227",
+  "when": "2026-11-28 06:20 UTC",
+  "branch": "cursor/dealer-anticlockwise-f877",
+  "pr": "189",
+  "sha": "762b6d6",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46111825486",
+  "passed": 93,
+  "total": 93,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": "46111823435",
+  "number": "1226",
+  "when": "2026-11-28 06:11 UTC",
+  "branch": "cursor/small-batch-5-f877",
+  "pr": "187",
+  "sha": "c3dbbc5",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46111823435",
+  "passed": 92,
+  "total": 93,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": false
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": "46111821590",
+  "number": "1225",
+  "when": "2026-11-28 06:01 UTC",
+  "branch": "cursor/players-admins-build-f877",
+  "pr": "188",
+  "sha": "508e98d",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46111821590",
+  "passed": 93,
+  "total": 93,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": "46108864783",
+  "number": "1219",
+  "when": "2026-11-28 05:28 UTC",
+  "branch": "cursor/small-batch-5-f877",
+  "pr": "187",
+  "sha": "0b367fa",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46108864783",
+  "passed": 89,
+  "total": 89,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": "46108955993",
+  "number": "1221",
+  "when": "2026-11-28 05:25 UTC",
+  "branch": "cursor/dealer-anticlockwise-f877",
+  "pr": "189",
+  "sha": "f7c8bb3",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46108955993",
+  "passed": 89,
+  "total": 91,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": "46108340059",
+  "number": "1215",
+  "when": "2026-11-28 05:19 UTC",
+  "branch": "cursor/players-admins-build-f877",
+  "pr": "188",
+  "sha": "0a7c7ee",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46108340059",
+  "passed": 92,
+  "total": 93,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": false
+   }
+  ]
+ },
+ {
+  "id": "46105141191",
+  "number": "1207",
+  "when": "2026-11-28 04:42 UTC",
+  "branch": "cursor/dealer-anticlockwise-f877",
+  "pr": "189",
+  "sha": "8a2bc06",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46105141191",
+  "passed": 91,
+  "total": 93,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": false
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": false
+   }
+  ]
+ },
+ {
+  "id": "46105134125",
+  "number": "1206",
+  "when": "2026-11-28 04:40 UTC",
+  "branch": "cursor/small-batch-5-f877",
+  "pr": "187",
+  "sha": "cbb9c96",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46105134125",
+  "passed": 91,
+  "total": 93,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": false
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": false
+   }
+  ]
+ },
+ {
+  "id": "46104919964",
+  "number": "1201",
+  "when": "2026-11-28 04:33 UTC",
+  "branch": "cursor/players-admins-build-f877",
+  "pr": "188",
+  "sha": "e4f69ed",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46104919964",
+  "passed": 91,
+  "total": 93,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": false
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": false
+   }
+  ]
+ },
+ {
+  "id": "46104561701",
+  "number": "1194",
+  "when": "2026-11-28 03:56 UTC",
+  "branch": "cursor/small-batch-5-f877",
+  "pr": "187",
+  "sha": "81e073a",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46104561701",
+  "passed": 0,
+  "total": 0,
+  "crashes": 0,
+  "jobs": []
+ },
+ {
+  "id": "46076237027",
+  "number": "1143",
+  "when": "2026-11-27 23:08 UTC",
+  "branch": "cursor/seating-circle-build-f877",
+  "pr": "184",
+  "sha": "f03e2a9",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46076237027",
+  "passed": 93,
+  "total": 93,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": "46071841067",
+  "number": "1140",
+  "when": "2026-11-27 22:23 UTC",
+  "branch": "cursor/seating-circle-build-f877",
+  "pr": "184",
+  "sha": "948d169",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46071841067",
+  "passed": 90,
+  "total": 91,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": false
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": true
+   }
+  ]
+ },
+ {
+  "id": "46065162206",
+  "number": "1124",
+  "when": "2026-11-27 21:33 UTC",
+  "branch": "cursor/seating-circle-build-f877",
+  "pr": "184",
+  "sha": "edc49d8",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46065162206",
+  "passed": 91,
+  "total": 92,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": false
+   }
+  ]
+ },
+ {
+  "id": "46065753594",
+  "number": "1127",
+  "when": "2026-11-27 21:26 UTC",
+  "branch": "cursor/reentry-build-f877",
+  "pr": "183",
+  "sha": "fdc9665",
+  "tier": "pr",
+  "url": "https://github.com/sreeatcandorps/RummyHome/actions/runs/46065753594",
+  "passed": 91,
+  "total": 91,
+  "crashes": 0,
+  "jobs": [
+   {
+    "device": "pixel6",
+    "suite": "chaos",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "monkey",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "roles",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "smoke-b",
+    "ok": true
+   },
+   {
+    "device": "pixel6",
+    "suite": "two-device",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-a",
+    "ok": true
+   },
+   {
+    "device": "small",
+    "suite": "smoke-b",
+    "ok": true
+   }
+  ]
+ }
+]
