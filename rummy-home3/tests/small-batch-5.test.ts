@@ -210,3 +210,9 @@ test('row 8: Help has a "Watch a game" page in Playing, found by "live link" and
   assert.match(topic.needToKnow.join('\n'), /\*\*Live scorecard link\*\*/);
   assert.match(src('public/scorecard.html'), /setInterval\(load, 8000\)/, '"updates by itself every few seconds"');
 });
+
+test('12q: the download page points to Google Play and no longer mentions a preview APK', () => {
+  const page = readFileSync(path.join(__dirname, '..', 'public', 'get', 'index.html'), 'utf8');
+  assert.doesNotMatch(page, /preview APK|until it is on the Play Store|listing exists/i);
+  assert.match(page, /https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.mindweavetech\.rummyhome/);
+});
