@@ -215,16 +215,18 @@ tags: [smoke]
           from:
             id: "pool-standings-pane"
           direction: DOWN
+# Short, slow swipes inside the pane (about one row each): on the small phone the pane shows three rows and a
+# full-length swipe flings straight past Hotel to the end of the list.
 - repeat:
     while:
       notVisible:
         id: "reenter-00000000-0000-4000-8000-0000000000e8"
-    times: 8
+    times: 12
     commands:
       - swipe:
-          from:
-            id: "pool-standings-pane"
-          direction: UP
+          start: 50%, 79%
+          end: 50%, 73%
+          duration: 700
 - tapOn:
     id: "reenter-00000000-0000-4000-8000-0000000000e8"
 - extendedWaitUntil:
