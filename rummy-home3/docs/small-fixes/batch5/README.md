@@ -9,7 +9,7 @@ CI frame except the live page (rendered from today's `public/scorecard.html` wit
 - `12j-players-admins-title.png` — The Players · Admins title keeps the game name (S2) on a small phone, and its help names only the roles the screen shows (Creator, Admin, player).
 - `8-live-page-footer.png` — The live score page people open from a shared link gets one line at the bottom, "Keep score like this — get EZ Score", which opens the Play Store.
 - `176-players-admins.png` — Players · Admins becomes one plain list like Profile, and the arrows on every row become one "Order of players" row.
-- `171-small-phone.png` — Four screens on a small phone with large text (Awards, Order of players, Home cards, Home sideways), each today next to the proposal.
+- `171-small-phone.png` — Four screens on a small phone with large text (Awards, Order of players, Home cards, Home sideways), each today next to the proposal (reused as drawn on that branch, so no red circles).
 - `12o-keyboard.png` — New game: today the search result hides under the keyboard; after, the picked names fold into one row so the result sits under the search.
 
 Sources: CI run 45878556049 (`main`, Nov 26: small phone and Pixel 6 frames), `docs/small-phone-360/` on
