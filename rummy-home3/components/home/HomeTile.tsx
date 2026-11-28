@@ -43,7 +43,8 @@ export function HomeTile({ icon, label, onPress, accessibilityLabel, testID }: H
 }
 
 const styles = StyleSheet.create({
-  tile: { borderRadius: radius.full, overflow: 'hidden', minHeight: 56, justifyContent: 'center' },
+  // A fixed height, not a minimum: the label is one line that shrinks, so the two tiles are always the same shape.
+  tile: { borderRadius: radius.full, overflow: 'hidden', height: 56, justifyContent: 'center' },
   content: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.md },
   label: { flexShrink: 1, fontSize: 17, lineHeight: 22, fontWeight: '800', letterSpacing: 0.2 },
 });

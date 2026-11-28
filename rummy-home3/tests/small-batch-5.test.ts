@@ -216,3 +216,22 @@ test('12q: the download page points to Google Play and no longer mentions a prev
   assert.doesNotMatch(page, /preview APK|until it is on the Play Store|listing exists/i);
   assert.match(page, /https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.mindweavetech\.rummyhome">Get the EZ Score Android app on Google Play<\/a>/);
 });
+
+// ---- Home: Results and My players are the same size (Sree, Nov 27) ----
+
+test('Home: Results and My players are one component in two identical halves; the count badge floats and sizes nothing', () => {
+  const home = src('app/(tabs)/index.tsx');
+  const row = home.slice(home.indexOf('<View style={styles.actionRow}>'), home.indexOf('const liveCard'));
+  const halves = [...row.matchAll(/<View style=\{styles\.results\}>\s*<HomeTile([\s\S]*?)\/>/g)].map((m) => m[1]);
+  assert.equal(halves.length, 2, 'two halves, each a HomeTile');
+  assert.match(halves[0], /label="Results"/);
+  assert.match(halves[1], /label="My players"/);
+  for (const props of halves) assert.doesNotMatch(props, /style=/, 'neither tile is styled on its own');
+  assert.equal((row.match(/<HomeTile/g) ?? []).length, 2);
+  assert.match(home, /results: \{\s*flex: 1,\s*flexBasis: 0,\s*marginBottom: spacing\.lg,\s*\}/, 'equal shares of the row, whatever the labels');
+  assert.match(home, /badge: \{\s*position: 'absolute',/, 'the 43 sits on the corner, outside the layout');
+  assert.match(row, /styles\.badge[\s\S]*?pointerEvents="none"/);
+  const tile = src('components/home/HomeTile.tsx');
+  assert.doesNotMatch(tile, /style\?:|minHeight/, 'no per-tile style prop; a fixed height');
+  assert.match(tile, /tile: \{ borderRadius: radius\.full, overflow: 'hidden', height: 56,/);
+});

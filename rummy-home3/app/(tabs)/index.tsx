@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  // Two equal halves: Results used to take more than half and squeeze My players (12k).
+  // Two equal halves on every phone (Sree, Nov 27: "the results and my players should probably just be equal size").
   results: {
     flex: 1,
     flexBasis: 0,
