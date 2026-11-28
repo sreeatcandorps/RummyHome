@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Replay every rollback file in rummy-home3/supabase/rollback against a database that
-# has every migration (001–056) applied, check the function state after each, then re-apply the forward
+# has every migration (001–057) applied, check the function state after each, then re-apply the forward
 # migration and check again. Prints TAP so the report can pick it up.
 #
 # Env: DB_PSQL  — a psql command with connection args, e.g. "psql postgresql://..." or "sudo -u postgres psql -d ezscore_test"
@@ -25,6 +25,20 @@ fn_has() { q "select exists(select 1 from pg_proc where proname='$1' and proname
 echo "TAP version 13"
 
 fn_args() { q "select exists(select 1 from pg_proc where proname='$1' and pronamespace='public'::regnamespace and pg_get_function_identity_arguments(oid) = '$2')"; }
+
+# 057 (Q63: the dealer moves anticlockwise — next_in_rotation, save_round, set_seating_order, add_seated_player,
+# reenter_player bodies, round_rule_dealer; rolled back first)
+HAS_057=f
+if [ -f "$RB/rollback_057_dealer_anticlockwise.sql" ]; then
+  HAS_057=t
+  if apply "$RB/rollback_057_dealer_anticlockwise.sql"; then tap ok "rollback_057 applies"; else tap fail "rollback_057 applies: $(head -c 300 "$OUTERR")"; fi
+  [ "$(fn_exists round_rule_dealer)" = f ] && [ "$(fn_has next_in_rotation 'player_order desc')" = f ] \
+    && [ "$(fn_has save_round round_rule_dealer)" = f ] && [ "$(fn_has set_seating_order round_rule_dealer)" = f ] \
+    && [ "$(fn_has add_seated_player v_planned_after)" = t ] && [ "$(fn_has add_seated_player 'v_dealer_order + 1')" = f ] \
+    && [ "$(fn_has reenter_player v_planned_after)" = t ] && [ "$(fn_has reenter_player v_left_of)" = f ] \
+    && tap ok "after rollback_057 the deal moves up one seat again (052 / 044 bodies) and joins / re-entries sit before the dealer (054 / 056)" \
+    || tap fail "after rollback_057 next_in_rotation / save_round / set_seating_order should be 052 / 044 and add_seated_player / reenter_player 054 / 056"
+fi
 
 # 056 (D139: a re-entry sits to the dealer's left — reenter_player gains p_seat; rolled back first)
 HAS_056=f
@@ -564,6 +578,7 @@ FORWARD="013_results_privacy 014_save_round_atomic 015_link_seat_to_player 016_r
 [ "$HAS_053" = t ] && FORWARD="$FORWARD 053_player_id_search_only"
 [ "$HAS_054" = t ] && FORWARD="$FORWARD 054_join_left_of_dealer"
 [ "$HAS_056" = t ] && FORWARD="$FORWARD 056_reentry_left_of_dealer"
+[ "$HAS_057" = t ] && FORWARD="$FORWARD 057_dealer_anticlockwise"
 for m in $FORWARD; do
   if apply "$MIG/$m.sql"; then tap ok "re-apply $m"; else tap fail "re-apply $m: $(head -c 300 "$OUTERR")"; fi
 done
@@ -761,6 +776,13 @@ if [ "$HAS_056" = t ]; then
   [ "$(fn_args reenter_player 'p_game_id uuid, p_profile_id uuid, p_seat integer')" = t ] && [ "$(fn_args reenter_player 'p_game_id uuid, p_profile_id uuid')" = f ] \
     && [ "$(fn_has reenter_player v_planned_after)" = t ] \
     && tap ok "056 restored (reenter_player takes a seat; one function, no two-argument overload)" || tap fail "056 restored"
+fi
+if [ "$HAS_057" = t ]; then
+  [ "$(fn_exists round_rule_dealer)" = t ] && [ "$(fn_has next_in_rotation 'player_order desc')" = t ] \
+    && [ "$(fn_has save_round round_rule_dealer)" = t ] && [ "$(fn_has set_seating_order round_rule_dealer)" = t ] \
+    && [ "$(fn_has add_seated_player 'v_dealer_order + 1')" = t ] && [ "$(fn_has reenter_player v_left_of)" = t ] \
+    && [ "$(fn_args reenter_player 'p_game_id uuid, p_profile_id uuid, p_seat integer')" = t ] && [ "$(fn_args reenter_player 'p_game_id uuid, p_profile_id uuid')" = f ] \
+    && tap ok "057 restored (the deal moves anticlockwise; joins and re-entries sit after the dealer)" || tap fail "057 restored"
 fi
 if [ "$HAS_053" = t ]; then
   [ "$(fn_exists short_player_name)" = t ] && [ "$(fn_has search_players short_player_name)" = t ] && [ "$(fn_has search_players ilike)" = f ] \

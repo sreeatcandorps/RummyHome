@@ -66,7 +66,7 @@ select is((select out_round from public.game_players where game_id = :S and prof
 select is((public.reenter_player(:S, :ZERO))->>'score', '41', 'X24-7 Highest + 1: re-enters at 41 (priya 40 + 1)');
 select is((select reentry_score from public.game_players where game_id = :S and profile_id = :ZERO), 41, '… and the seat carries 41');
 select is((select summary from public.event_log where game_id = :S and kind = 'player_reentered' order by id desc limit 1),
-  'Zed Zero re-entered at 41 · Before round 3 · Entry 3 · Seat 2 → 3 (left of Priya Test)', 'X24-7 the Log says the start score, not the typed one (and since 056 the seat)');
+  'Zed Zero re-entered at 41 · Before round 3 · Entry 3 · Seat 4 → 3 (left of Harish Test)', 'X24-7 the Log says the start score, not the typed one (and since 056 / 057 the seat: harish deals round 3)');
 
 -- lateEntryPlus 1: RK joins before round 3 at the highest score still in + 1 (zero 41 → 42)
 select lives_ok($$ select public.add_seated_player('10000000-0000-4000-8000-0000000000e7', '00000000-0000-4000-8000-0000000000a1', 'RK') $$, 'X24-7 RK joins mid-pool');
