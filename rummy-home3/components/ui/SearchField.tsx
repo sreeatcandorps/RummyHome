@@ -32,6 +32,7 @@ export function SearchField({ value, onChangeText, placeholder = SEARCH_PLACEHOL
       iconColor={colors.onSurfaceVariant}
       placeholderTextColor={colors.onSurfaceVariant}
       accessibilityLabel={accessibilityLabel ?? placeholder}
+      autoCorrect={false}
       autoFocus={autoFocus}
       testID={testID}
     />

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { helpShotSize, HELP_SHOT_RATIO } from '../utils/helpShot';
 import { seatRowHeight, SEAT_ROW_MIN_HEIGHT } from '../utils/seating';
+import { discSize } from '../utils/seatRing';
 
 const src = (file: string) => readFileSync(path.join(process.cwd(), file), 'utf8');
 
@@ -37,12 +38,13 @@ test('v12 #4 + D112: Add by initials — no sample letters; one Save bar above t
   assert.match(screen, /onPress=\{leave\}[\s\S]{0,400}testID="add-players-done"/, 'Done leaves with no further dialog');
 });
 
-test('v12 #6: Order of players rows never below the 48 dp touch target', () => {
+test('v12 #6 (D138 circle): every disc and both arrows are at least the 48 dp touch target', () => {
   assert.equal(SEAT_ROW_MIN_HEIGHT, 48);
   for (const n of [1, 4, 8, 13, 20]) assert.equal(seatRowHeight(n), 48);
-  const rows = src('components/game/OrderOfPlayers.tsx');
-  assert.match(rows, /const compact = false;/);
-  assert.match(rows, /const ARROWS_WIDTH = 96;/, 'two 48-wide arrow targets side by side');
+  for (const n of [2, 10, 11, 20]) assert.ok(discSize(n) >= 48, `${n} players`);
+  const ring = src('components/game/OrderOfPlayers.tsx');
+  assert.match(ring, /move: \{ width: 48, height: 48,/, 'the ▲ ▼ in the middle card');
+  assert.match(ring, /moveSlot: \{ width: 48, height: 48 \}/);
 });
 
 test('v12 #8: no tick on a scored tile; #9: the grid clears the "N more" pill; #10: the header scrolls sideways', () => {

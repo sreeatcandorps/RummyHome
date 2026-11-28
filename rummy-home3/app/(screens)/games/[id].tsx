@@ -952,6 +952,7 @@ export default function GameScreen() {
         players={seats.map((seat) => ({ id: seat.id, name: seat.name, label: initialsFor(seat.id), playerCode: seat.playerCode, out: pool && Boolean(seatOf(game, seat.id)?.outRound), reentered: pool && Boolean(seatOf(game, seat.id)?.reenteredRound) }))}
         pool={pool}
         dealerIds={game.dealerIds}
+        nextDealerOverride={game.nextDealerOverride}
         roundCount={maxRounds}
         onDismiss={() => setSeating(false)}
         onSave={async (order) => {

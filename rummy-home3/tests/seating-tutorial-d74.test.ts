@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
-import { displayRows, orderComplete, seatNumberOf, showsArrows, startOrder, stepNumbered, tapPlayer } from '../utils/seating';
+import { dealerPill, dealsLine, displayRows, orderComplete, seatNumberOf, stepsFor } from '../utils/seating';
 import {
   DEMO_FRAME_MS,
   DEMO_PLAYERS,
@@ -67,36 +67,40 @@ test('D74: the demo loop is scripted from the real seating model, highest card f
   assert.equal(seatNumberOf(moved, 'bala'), 2);
 });
 
-test('D74: arrows — all at rest, only the selected row while one is selected, deselect by tapping again', () => {
-  const four = ['sree', 'harish', 'priya', 'zed'];
-  let d = startOrder(four);
-  for (const id of four) assert.equal(showsArrows(d, id), false, 'unnumbered rows have no arrows');
-  d = tapPlayer(d, 'zed');
-  assert.ok(showsArrows(d, 'zed') && !showsArrows(d, 'sree'), 'while numbering the latest tap is the selected row');
-  d = tapPlayer(tapPlayer(tapPlayer(d, 'sree'), 'harish'), 'priya');
-  assert.ok(orderComplete(d));
-  assert.equal(d.focus, 'priya');
-  assert.deepEqual(four.map((id) => showsArrows(d, id)), [false, false, true, false], 'everyone numbered, Priya selected: only her arrows');
-  d = tapPlayer(d, 'priya');
-  assert.equal(d.focus, null, 'the same tap again deselects (it no longer takes the number back once everyone is numbered)');
-  assert.ok(orderComplete(d), 'nothing was un-numbered');
-  assert.deepEqual(four.map((id) => showsArrows(d, id)), [true, true, true, true], 'nobody selected: every numbered row shows its arrows');
-  d = tapPlayer(d, 'harish');
-  assert.deepEqual(four.map((id) => showsArrows(d, id)), [false, true, false, false], 'selection moves');
-  d = stepNumbered(d, 'harish', 1);
-  assert.equal(d.focus, 'harish', 'an arrow keeps the selection on the player, so three taps move three seats');
-  // A prefilled mid-game sheet starts with nobody selected: all arrows, so one move is one tap (flow 19 / 51).
-  assert.deepEqual(four.map((id) => showsArrows(startOrder(four, true), id)), [true, true, true, true]);
+test('D138: the Show me demo is the circle — highest at the top, the dealer one step right, ▲ ▼ only for the selected player', () => {
+  // Ring position 1 is 12 o'clock, then anticlockwise; position 4 of 4 is one step right of the top.
+  const step2 = seatingDemoFrames(1);
+  const end = displayRows(step2[step2.length - 1].draft);
+  assert.equal(end[0], 'anu', 'the K (seat 4) at the top');
+  assert.equal(end[3], 'dev', 'the 2 (seat 1, the dealer) one step right of the top');
+  assert.ok(step2.every((f) => f.draft.focus == null), 'numbering never selects anyone (tapRing): no arrows while tapping');
+  for (const id of DEMO_TAP_ORDER) assert.ok(step2.some((f) => f.flash === id && seatNumberOf(f.draft, id) != null), `the middle names ${id} after the tap`);
+  const step3 = seatingDemoFrames(2);
+  const taken = step3.findIndex((f) => f.flash === 'chitra');
+  assert.equal(step3[taken - 1].finger, 'chitra', 'the latest player tapped again…');
+  assert.equal(seatNumberOf(step3[taken].draft, 'chitra'), null, '…gives his number back');
+  const up = step3.find((f) => f.finger === 'up');
+  assert.ok(up && up.draft.focus === 'chitra' && stepsFor(up.draft, 'chitra').up, 'the finger is on the selected player\'s ▲');
+  assert.equal(step3[step3.length - 1].draft.focus, null, 'the loop ends with nobody selected');
+  const demo = read('components/tutorial/SeatingTutorial.tsx');
+  assert.match(demo, /layoutRing\(\{ labels, width: Math\.max\(width, DEMO_MIN_WIDTH\), height: DEMO_HEIGHT, fontScale: fs, dealerIndex: tagAt \}\)/, 'the screen\'s own geometry');
+  assert.match(demo, /if \(selected\) \{\s*const steps = stepsFor\(draft, selected\)/, 'arrows only in the middle, for the selected player');
+  assert.match(demo, /\{DEALER_TAG\}/);
+  assert.doesNotMatch(demo, /SEAT_ROW_MIN_HEIGHT|demo-row-/, 'no list rows left');
 });
 
-test('D61: the real last tap names the dealer — "you" for the signed-in player', () => {
-  assert.equal(lowestCardToast('Sree Test', true), 'Lowest card — you deal round 1');
-  assert.equal(lowestCardToast('Harish Test', false), 'Lowest card — Harish Test deals round 1');
+test('D61 → D138: the last tap names the dealer in the middle of the circle — "you" for the signed-in player', () => {
+  assert.equal(lowestCardToast('Sree Test', true), 'Lowest card — you deal round 1', 'the demo keeps its words');
+  assert.equal(dealerPill(1, true), 'Dealer · you deal round 1');
+  assert.equal(dealerPill(1, false), 'Dealer · deals round 1');
+  assert.equal(dealsLine('Harish Test', 1, false), 'Harish Test deals round 1');
+  assert.equal(dealsLine('Sree Test', 6, true), 'You deal round 6');
+  const ring = read('components/game/OrderOfPlayers.tsx');
+  assert.match(ring, /testID=\{`\$\{testIDPrefix\}-flash-deals`\}>\{dealerPill\(dealRound, shown\.id === meId\)\}/, 'the flash on the dealer\'s tap');
+  assert.match(ring, /dealsLine\(dealerName, dealRound, dealsNext === meId\)/, 'and the middle at rest');
   const step = read('components/game/OrderStep.tsx');
-  assert.match(step, /lowestCardToast\(dealer\.name, dealer\.id === meId\)/);
-  assert.match(step, /!orderComplete\(draft\) && orderComplete\(next\)/, 'fires on the tap that completes the order, not on Clear or a reload');
-  assert.match(step, /void lightTap\(\)/, 'with a light tap of the phone');
-  assert.match(step, /<Toast message=\{toast\}.*aboveBar/, 'the toast sits above the Back · Clear · Next bar');
+  assert.match(step, /!orderComplete\(draft\) && orderComplete\(next\)\) void lightTap\(\)/, 'a light tap of the phone on the tap that completes the order, not on Clear or a reload');
+  assert.doesNotMatch(step, /<Toast/, 'the toast went: the middle card says it');
   assert.match(read('utils/haptics.ts'), /impactAsync\(Haptics\.ImpactFeedbackStyle\.Light\)/);
   assert.match(read('package.json'), /"expo-haptics"/);
 });
@@ -112,11 +116,13 @@ test('D74: never opens by itself — Show me on the screen, Watch how in Help; t
   // The screen: one line + Show me, on the New game step and the mid-game sheet alike.
   assert.equal(ORDER_ONE_LINE, 'Tap players from the highest card to the lowest.');
   assert.equal(SHOW_ME, 'Show me');
-  const howTo = read('components/game/OrderHowTo.tsx');
-  assert.match(howTo, /ORDER_ONE_LINE/);
-  assert.match(howTo, /testID=\{`\$\{testID\}-show-me`\}/);
-  assert.match(read('components/game/OrderStep.tsx'), /<OrderHowTo onShowMe=\{tutorial\.show\} testID="order-how-to" \/>/);
-  assert.match(read('components/game/SeatingSheet.tsx'), /<OrderHowTo onShowMe=\{tutorial\.show\} testID="seating-how-to" \/>/);
+  // D138: the line and Show me sit in the middle of the circle.
+  const ring = read('components/game/OrderOfPlayers.tsx');
+  assert.match(ring, /\{building \? ORDER_ONE_LINE : RING_REST_DONE\}/);
+  assert.match(ring, /testID=\{`\$\{howToTestID\}-show-me`\}/);
+  assert.ok(!existsSync(path.join(process.cwd(), 'components/game/OrderHowTo.tsx')));
+  assert.match(read('components/game/OrderStep.tsx'), /onShowMe=\{tutorial\.show\}\s*howToTestID="order-how-to"/);
+  assert.match(read('components/game/SeatingSheet.tsx'), /onShowMe=\{tutorial\.show\}\s*howToTestID="seating-how-to"/);
   // Help › New game › Order of players: the Watch how button and the arrow rule in words.
   assert.equal(WATCH_HOW, 'Watch how (20 s)');
   const topics = read('constants/helpTopics.ts');
@@ -132,9 +138,11 @@ test('D74: never opens by itself — Show me on the screen, Watch how in Help; t
   assert.doesNotMatch(flow, /1 of 4|forced/);
 });
 
-test('D74 mockup: the selected row lifts out — primary outline, a gap above and below, filled arrows', () => {
-  const src = readFileSync(path.join(__dirname, '..', 'components', 'game', 'OrderOfPlayers.tsx'), 'utf8');
-  assert.match(src, /rowFocused: \{ borderWidth: 2, borderBottomWidth: 2, borderRadius: radius\.md, marginVertical: spacing\.xs \}/);
-  assert.match(src, /focused && \[styles\.rowFocused, \{ backgroundColor: colors\.primaryContainer, borderColor: colors\.primary \}\]/);
-  assert.equal((src.match(/mode=\{focused \? 'contained' : undefined\} containerColor=\{focused \? colors\.primary : undefined\} iconColor=\{focused \? colors\.onPrimary/g) ?? []).length, 2);
+test('D138: the selected player lifts out — a primary ring, a little larger, the others dimmed; his name and ▲ ▼ in the middle', () => {
+  const src = read('components/game/OrderOfPlayers.tsx');
+  assert.match(src, /selected === id && \{ borderWidth: 3, borderColor: colors\.primary, transform: \[\{ scale: 1\.08 \}\] \}/);
+  assert.match(src, /const dim = Boolean\(selected && selected !== id\);/);
+  assert.match(src, /opacity: dim \? 0\.4 : 1/);
+  assert.match(src, /style=\{\[styles\.move, \{ backgroundColor: colors\.primary \}\]\}/, 'filled arrows');
+  assert.match(src, /onLongPress=\{\(\) => \{\}\}/, 'a long tap does nothing');
 });

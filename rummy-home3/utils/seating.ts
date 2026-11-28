@@ -1,3 +1,4 @@
+import type { DealerOverride } from '@/types/game';
 import { nextDealer } from '@/utils/dealerRotation';
 
 /**
@@ -109,10 +110,27 @@ export function tapPlayer(draft: OrderDraft, id: string): OrderDraft {
 }
 
 /**
- * D74 (Sree, Nov 21 / 23): at rest every numbered row shows its ▲ ▼; once a row is selected only that row's
- * arrows show — the selection is the sign. The top row has no ▲ and the lowest seat no ▼.
+ * A tap on the circle (D138). The numbering is `tapPlayer`'s (D56): an unnumbered player takes the next seat
+ * down, the latest one tapped again gives his number back. Neither selects anyone (the middle flashes his name
+ * instead); tapping any other numbered player selects him, and tapping the selected player again lets go.
  */
-export const showsArrows = (draft: OrderDraft, id: string) => draft.numbered.includes(id) && (draft.focus == null || draft.focus === id);
+export function tapRing(draft: OrderDraft, id: string): OrderDraft {
+  if (!draft.base.includes(id)) return draft;
+  if (!draft.numbered.includes(id)) return { ...draft, numbered: [id, ...draft.numbered], focus: null };
+  if (draft.focus === id) return { ...draft, focus: null };
+  if (!orderComplete(draft) && isLastNumbered(draft, id)) return { ...draft, numbered: draft.numbered.slice(1), focus: null };
+  return { ...draft, focus: id };
+}
+
+/** Let go of the selected player (a tap on the empty table). */
+export const deselect = (draft: OrderDraft): OrderDraft => (draft.focus == null ? draft : { ...draft, focus: null });
+
+/** Which of ▲ ▼ the selected player gets: none above the highest seat, none below the lowest numbered seat (D59). */
+export function stepsFor(draft: OrderDraft, id: string): { up: boolean; down: boolean } {
+  const seat = seatNumberOf(draft, id);
+  if (seat == null) return { up: false, down: false };
+  return { up: seat < draft.base.length, down: seat > draft.base.length - draft.numbered.length + 1 };
+}
 
 /**
  * ▲ / ▼ on a numbered player; unnumbered players have no arrows. `direction` is the seat change:
@@ -154,6 +172,16 @@ export const SEATING_MENU_SUBLINE = 'Mid-game · admins only · logged';
 export const HIGHEST_CARD_TAG = 'highest card';
 export const HIGHEST_CARD_TAG_SHORT = 'highest';
 export const EVERY_PLAYER_NEEDS_A_SEAT = 'Every player needs a seat.';
+/** The line under the circle (D138: "The default for dealing is counterclockwise"). */
+export const DEAL_DIRECTION = 'The deal goes anticlockwise';
+/** The middle of the circle once everyone is numbered. */
+export const RING_REST_DONE = 'Tap anyone to move them.';
+/** How long the middle shows the name of the player just tapped. */
+export const SEAT_FLASH_MS = 2000;
+/** The flash on the dealer's tap: "Dealer · deals round 1" (D61's toast named "you" for the signed-in player). */
+export const dealerPill = (round: number, isYou = false) => (isYou ? `Dealer · you deal round ${round}` : `Dealer · deals round ${round}`);
+/** "Ravi deals round 1" in the middle at rest. */
+export const dealsLine = (name: string, round: number, isYou = false) => (isYou ? `You deal round ${round}` : `${name} deals round ${round}`);
 
 /** "Pool · 6 seats · 1 out" for a pool; the mid-game subline otherwise. */
 export function seatingSubline(input: { pool: boolean; seatCount: number; outCount: number }): string {
@@ -183,11 +211,14 @@ export function seatRowLabel(input: { seat: number | null; name: string; dealsNe
 
 /**
  * Who deals next under the order being built: the seat after the last saved round's dealer in that
- * order (no rounds → seat 1). A pool skips players who are out, as `save_round` does.
+ * order (no rounds → seat 1). A pool skips players who are out, as `save_round` does. A Dealer-sheet
+ * override for the round being played wins while it names a seat still in (052 `current_dealer`), so the
+ * mark on the circle is the dealer the scorecard shows.
  */
-export function nextDealerFor(order: readonly string[], dealerIds: (string | null | undefined)[] | null | undefined, roundCount: number, outIds: ReadonlySet<string> = new Set()): string | undefined {
+export function nextDealerFor(order: readonly string[], dealerIds: (string | null | undefined)[] | null | undefined, roundCount: number, outIds: ReadonlySet<string> = new Set(), override?: DealerOverride | null): string | undefined {
   const rotation = order.filter((id) => !outIds.has(id));
   if (!rotation.length) return undefined;
+  if (override && override.round === roundCount + 1 && rotation.includes(override.playerId)) return override.playerId;
   const last = roundCount > 0 ? dealerIds?.[roundCount - 1] : null;
   if (last && outIds.has(last) && order.includes(last)) {
     // The last dealer is out (pool): the next seat still in after them, in the full order (041 save_round).
