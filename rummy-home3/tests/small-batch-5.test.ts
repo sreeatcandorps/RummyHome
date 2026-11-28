@@ -190,11 +190,11 @@ test('12j (c): D103 no longer says the Profile cards are built', () => {
 
 // ---- Row 8: the live page points at the app; Help has "Watch a game" ----
 
-test('row 8: the live scorecard page ends with "Keep score like this — get EZ Score", linking to the Play listing', () => {
+test('row 8: the live scorecard page ends with "Keep score like this — Get the EZ Score Android app", linking to the Play listing', () => {
   const page = src('public/scorecard.html');
   const footer = page.match(/<footer class="get" id="get-app">([\s\S]*?)<\/footer>/);
   assert.ok(footer, 'the page has the get-the-app footer');
-  assert.match(footer[1], /<a href="https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.mindweavetech\.rummyhome"[^>]*>Keep score like this — get EZ Score<\/a>/);
+  assert.match(footer[1], /<a href="https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.mindweavetech\.rummyhome"[^>]*>Keep score like this — Get the EZ Score Android app<\/a>/, 'Sree: "Just say Get the EZ Score Android app clearly"');
   assert.match(src('app.json'), /"package": "com\.mindweavetech\.rummyhome"/, 'the link names the package Play publishes');
   assert.ok(page.indexOf('id="get-app"') > page.indexOf('<section id="changes">'), 'the footer is the last thing on the page');
   assert.ok(page.indexOf('id="get-app"') < page.indexOf('<script>'), 'static HTML, so it also shows on an invalid or deleted link');
@@ -214,5 +214,5 @@ test('row 8: Help has a "Watch a game" page in Playing, found by "live link" and
 test('12q: the download page points to Google Play and no longer mentions a preview APK', () => {
   const page = readFileSync(path.join(__dirname, '..', 'public', 'get', 'index.html'), 'utf8');
   assert.doesNotMatch(page, /preview APK|until it is on the Play Store|listing exists/i);
-  assert.match(page, /https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.mindweavetech\.rummyhome/);
+  assert.match(page, /https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.mindweavetech\.rummyhome">Get the EZ Score Android app on Google Play<\/a>/);
 });
