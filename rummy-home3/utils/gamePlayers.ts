@@ -49,6 +49,15 @@ export function playerIdBadge(seat: Pick<SeatLike, 'playerNo' | 'playerCode'>): 
   return seat.playerCode ?? null;
 }
 
+/**
+ * The one grey line under a name on Players · Admins (design-review-2 §10.5): "#1 · Creator", "#11 · Unregistered",
+ * "#15 · Link pending" or just "#3". Callers pass what the viewer may see (visibleRoleTag, visibleRegistration).
+ */
+export function seatSubline(badge: string | null | undefined, role: string | null | undefined, registration: string | null | undefined): string | undefined {
+  const parts = [badge, role, registration].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join(' · ') : undefined;
+}
+
 export function isSeatAdmin(seat: SeatLike, game: GameLike): boolean {
   return seat.seatRole === 'game_admin' || Boolean(game.adminIds?.includes(seat.id)) || Boolean(game.unseatedAdminIds?.includes(seat.id));
 }

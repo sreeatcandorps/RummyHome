@@ -87,10 +87,15 @@ tags: [nightly]
     timeout: 15000
 - takeScreenshot: 32e-non-playing-admin-preview
 - tapOn: "Confirm add admin"
+# §10.5: the "Admins not playing" group is there for admins even when empty, so wait for Otto's row.
 - extendedWaitUntil:
-    visible: "Admins not playing"
+    notVisible: "Confirm add admin"
     timeout: 15000
-- assertVisible: "Otto O(utsider|\\.)"
+- extendedWaitUntil:
+    visible: "Otto O(utsider|\\.)"
+    timeout: 15000
+- assertVisible:
+    id: "players-admins-not-playing"
 - takeScreenshot: 32f-admins-not-playing
 # Cleanup: remove the two added players (scores all 0) so the game H fixture is 3 columns again.
 - tapOn: "Options for R K"

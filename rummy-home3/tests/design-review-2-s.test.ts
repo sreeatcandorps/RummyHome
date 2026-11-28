@@ -3,6 +3,8 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { emailPrefsSummary } from '../utils/emailPrefs';
+import { seatSubline } from '../utils/gamePlayers';
+import { SEATING_ROW_DESCRIPTION } from '../utils/seating';
 
 /**
  * Design review 2, Size S (docs/design-review-2.md §10; D65–D69, Nov 23): Palette B tokens and the
@@ -134,4 +136,30 @@ test('§10.4 Sign in: the Joker card hero, the eye kept, no mail icon, no Create
   const shell = src('components/ui/AuthShell.tsx');
   assert.match(shell, /hero\?: React\.ReactNode/);
   assert.match(shell, /hero \? <View style=\{styles\.hero\}>\{hero\}<\/View> : badge/, 'the tile stays the default for Register and Forgot passcode');
+});
+
+test('§10.5 Players · Admins (Sree, Nov 27: "only one order of players thing, which is the oval"): grouped rows, one grey line, no arrows', () => {
+  const page = src('app/(screens)/games/players.tsx');
+  assert.equal(count(page, /<Tag\b/g), 0, 'no tag pills inside rows');
+  assert.equal(count(page, /styles\.card/g), 0, 'no bordered card');
+  assert.doesNotMatch(page, /chevron-up|chevron-down|\bmoveSeat\b|Move \$\{seat\.name\} (up|down)/, 'the ▲ ▼ on every row are gone');
+  assert.doesNotMatch(page, /fontScale|useWindowDimensions|width\s*[<>]=?/, 'Q64: one layout for every phone');
+  inOrder(page, ['title={`Playing · ${playing.length}`}', 'title={SEATING_MENU_ITEM}', 'title="Admins not playing"', 'title={NON_PLAYING_ADMIN_BUTTON}', 'title="Watching"'], 'Players · Admins groups');
+  assert.match(page, /description=\{seatSubline\(playerIdBadge\(seat\), roleTag, registration\)\}/, 'one grey line under the name');
+  assert.match(page, /right=\{\s*<PlayerActionMenu/, 'the ⋮ at the right of the row');
+  assert.match(page, /\{canSeat \? \(\s*<ListRow[\s\S]*?description=\{SEATING_ROW_DESCRIPTION\}\s*onPress=\{\(\) => setSeating\(true\)\}\s*testID="players-order"/, 'Order of players is the last Playing row while the order can change');
+  assert.match(page, /testID: 'players-playing-tip'/);
+  assert.match(page, /testID="players-add-new"/);
+  assert.equal(count(src('services/games.ts'), /\bmoveSeat\b/g), 0, 'moveSeat lost its only caller');
+});
+
+test('§10.5 the grey line: Player ID, then the role the viewer may see, then a registration word', () => {
+  assert.equal(seatSubline('#1', 'Creator', null), '#1 · Creator');
+  assert.equal(seatSubline('#2', 'Admin', null), '#2 · Admin');
+  assert.equal(seatSubline('#11', null, 'Unregistered'), '#11 · Unregistered');
+  assert.equal(seatSubline('#15', null, 'Link pending'), '#15 · Link pending');
+  assert.equal(seatSubline('#3', null, null), '#3');
+  assert.equal(seatSubline(null, null, 'Unregistered'), 'Unregistered');
+  assert.equal(seatSubline(null, null, null), undefined);
+  assert.equal(SEATING_ROW_DESCRIPTION, 'Move a player to another seat');
 });

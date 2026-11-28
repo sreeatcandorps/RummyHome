@@ -167,6 +167,8 @@ export const SEATING_MENU_ITEM = 'Order of players';
 export const SEATING_DONE = 'Done';
 export const SEATING_CLEAR = 'Clear';
 export const SEATING_MENU_SUBLINE = 'Mid-game · admins only · logged';
+/** The last Playing row on Players · Admins, which opens the same circle as the scorecard ⋮. */
+export const SEATING_ROW_DESCRIPTION = 'Move a player to another seat';
 // The three-line how-to of Nov 19 moved into the step-by-step tutorial (utils/tutorials.ts, D61); the screen keeps one line.
 /** Small tag on the first tap's row while the order is being built. */
 export const HIGHEST_CARD_TAG = 'highest card';

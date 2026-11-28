@@ -133,14 +133,17 @@ test('createGame seats players in the Order of players, and the RPC path is set_
   assert.ok(!/from\('game_players'\)\s*\.update\(\{\s*player_order/.test(games), 'no client-side player_order writes remain');
 });
 
-test('the scorecard: the ⋮ item and the full-page circle (D138), no pop-up; Players · Admins arrows mid-game', () => {
+test('the scorecard: the ⋮ item and the full-page circle (D138), no pop-up; Players · Admins opens the same circle mid-game', () => {
   const scorecard = read('app/(screens)/games/[id].tsx');
   assert.ok(!scorecard.includes('shouldPromptSeating'), 'PR 24: no pop-up');
   assert.match(scorecard, /testID="game-menu-seating"/);
   assert.match(scorecard, /<SeatingSheet/);
   assert.ok(!scorecard.includes('markSeatingPrompted'));
   const players = read('app/(screens)/games/players.tsx');
-  assert.ok(!/every\(\(column\) => \(column\?\.length \?\? 0\) === 0\)/.test(players), 'the arrows no longer need zero rounds');
+  assert.ok(!/every\(\(column\) => \(column\?\.length \?\? 0\) === 0\)/.test(players), 'reordering never needs zero rounds');
+  assert.match(players, /const canSeat = canChangeSeating\(game, canScore\)/, 'the same rule as the scorecard ⋮ item');
+  assert.match(players, /<SeatingSheet\s+visible=\{seating && canSeat\}/);
+  assert.match(players, /await gamesService\.setSeatingOrder\(game\.id, order\)/, 'saved through set_seating_order (logged), like the scorecard');
   const sheet = read('components/game/SeatingSheet.tsx');
   for (const id of ['seating-sheet', 'seating-done', 'seating-cancel', 'seating-clear']) assert.match(sheet, new RegExp(`testID="${id}"`), id);
   assert.ok(!sheet.includes('seating-chips') && !sheet.includes('seat-chip-'), 'PR 24: the Players chip column is gone');

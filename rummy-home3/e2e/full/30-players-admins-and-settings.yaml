@@ -1,7 +1,8 @@
 appId: com.mindweavetech.rummyhome
 tags: [nightly]
-# From the scorecard menu of game E: Players/Admins (seats, roles, Add admin by Player ID) and
-# the Game settings dialog. Nothing is changed.
+# From the scorecard menu of game E: Players/Admins (seats, roles, Add admin by Player ID), its
+# Order of players row (§10.5: no arrows on the rows; the row opens the same circle as the scorecard ⋮,
+# D138) and the Game settings dialog. Nothing is changed: the circle is closed with Cancel.
 ---
 - runFlow: ../lib/ensure-signed-in.yaml
 - tapOn:
@@ -21,6 +22,20 @@ tags: [nightly]
 - assertVisible: "Harish Test"
 - assertVisible: "Add new player"
 - takeScreenshot: 30b-players-admins
+- assertNotVisible: "Move Harish Test up"
+- tapOn:
+    id: "players-order"
+- extendedWaitUntil:
+    visible:
+      id: "seating-sheet"
+    timeout: 15000
+- assertVisible: "Order of players"
+- takeScreenshot: 30b2-players-order-circle
+- tapOn:
+    id: "seating-cancel"
+- extendedWaitUntil:
+    visible: "Add admin by Player ID"
+    timeout: 5000
 - back
 - extendedWaitUntil:
     visible: "Add round"

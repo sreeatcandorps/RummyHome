@@ -20,7 +20,7 @@ import { gameLabelOf } from '@/utils/gameLabel';
 import { createViewToken } from '@/utils/shareLink';
 import { calculateDealerId, legacySettingsForGameType, RoundScoreInput, settingsForGameType, validatePoolRoundScores, validateRoundScores } from '@/utils/scoring';
 import { storage } from '@/utils/storage';
-import { EVERY_PLAYER_NEEDS_A_SEAT, isPermutation, sameOrder, stepSeat } from '@/utils/seating';
+import { EVERY_PLAYER_NEEDS_A_SEAT, isPermutation, sameOrder } from '@/utils/seating';
 import { createUuid, isUuid } from '@/utils/uuid';
 import { REQUEST_TIMEOUT_MS, withTimeout } from '@/utils/withTimeout';
 import { GAME_SIZE_MESSAGE, MAX_SEATED_PLAYERS, SEATED_PLAYER_LIMIT } from '@/constants/limits';
@@ -1365,14 +1365,5 @@ export const gamesService = {
     const { error } = await supabase.rpc('set_round_dealer', { p_game_id: gameId, p_round_number: change.round, p_dealer: change.dealerId, p_follow: change.follow });
     if (error) throw error;
     return this.getGame(gameId);
-  },
-
-  /** Players · Admins ▲ ▼: one seat up or down, through the same logged RPC as the Seating sheet (Q21.5). */
-  async moveSeat(gameId: string, profileId: string, direction: -1 | 1) {
-    const game = await this.getGame(gameId);
-    if (!game) throw new Error('Game not found.');
-    const next = stepSeat(game.players, profileId, direction);
-    if (sameOrder(game.players, next)) return game;
-    return this.setSeatingOrder(gameId, next);
   },
 };

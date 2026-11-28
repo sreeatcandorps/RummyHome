@@ -24,6 +24,8 @@ export const ADD_TO_GAME = 'Add to game';
 export const ADD_TO_MY_PLAYERS = 'Add to My players';
 export const NON_PLAYING_ADMIN_BUTTON = 'Add non-playing admin';
 export const NON_PLAYING_ADMIN_NOTE = 'Someone who keeps score but does not play. Enter their Player ID (#NN). They can add and edit rounds; they get no column.';
+/** The short form on the Players · Admins row; the full note sits behind the group's ⓘ. */
+export const NON_PLAYING_ADMIN_ROW = 'Keeps score, does not play. By Player ID.';
 
 /** The big yellow circle: "N" over "TOTAL". */
 export function totalLabel(total: number): { number: string; caption: string; spoken: string } {

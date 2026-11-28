@@ -584,16 +584,17 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     icon: 'account-cog-outline',
     purpose: 'Who is in this game, who may change scores, and the row actions.',
     needToKnow: [
-      'Each row shows the name, Player ID and role (Creator, Admin, Player, View only). Only players who have not finished signing up carry a tag ([Unregistered], [Pending registration]).',
+      'Each row shows the name and one grey line: the Player ID, then Creator or Admin. Only players who have not finished signing up get a word there too (Unregistered, Pending registration, Link pending).',
       'Admins can change scores. The creator is always an admin. Admins can be set after the game is over too.',
+      '**Order of players**, the last row under Playing, opens the same circle as the scorecard ⋮, mid-game too. Done saves the new order once and writes it in the Log.',
       '**Remove from game** asks first and works only while the player has no scores or every round score they have is 0. Otherwise edit the rounds and clear their scores first.',
       '**Add new player** picks from My players (0 for rounds already played). **Add non-playing admin**: someone who keeps score but does not play, by Player ID; no column.',
     ],
     screenshot: {
       file: 'players-admins',
       legend: [
-        'A row: name, **#ID** and role (Creator, Admin, Player). Only players still signing up carry a tag.',
-        'The arrows move a seat up or down the order of players; Seat 1 deals first. Played rounds keep their dealer.',
+        'A row: the name, then **#ID** and Creator or Admin on one grey line. Only players still signing up get a word more.',
+        '**Order of players** opens the circle to move a player to another seat; Seat 1 deals first. Played rounds keep their dealer.',
         'The row ⋮: Invite, Link to Player ID, Edit initials, Edit name, Make admin, Remove from game.',
         '**Add non-playing admin** by Player ID: keeps score, gets no column.',
         '**Add new player** from My players; 0 for the rounds already played.',
