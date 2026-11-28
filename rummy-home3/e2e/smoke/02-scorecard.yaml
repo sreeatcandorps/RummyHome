@@ -17,7 +17,8 @@ tags: [smoke]
 - assertVisible:
     text: "Round \\d+"
 - assertVisible: "Add round"
-- assertVisible: "Undo round"
+# D137: Undo left the bar; it is in the ⋮ menu and in the note after a save.
+- assertNotVisible: "Undo round"
 - assertVisible: "Complete game"
 - assertVisible: "DEALS"
 # PR 4: initials and DEALS fit in the header; the strip counts the seats; the footer names the creator

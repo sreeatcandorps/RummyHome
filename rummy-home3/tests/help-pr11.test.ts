@@ -20,6 +20,7 @@ import { SEAT_MENU_LABEL } from '../utils/gamePlayers';
 import { PLAYERS_ADMINS_TITLE } from '../utils/gameAdmins';
 import { SEATING_MENU_ITEM } from '../utils/seating';
 import { DEALER_MENU_ITEM } from '../utils/dealerSheet';
+import { UNDO_MENU_ITEM } from '../utils/roundSavedNote';
 import { GIVE_AWARDS_FIRST } from '../utils/pool';
 
 const root = path.resolve(__dirname, '..');
@@ -88,7 +89,8 @@ test('HL11-2 the ⋮ tables in help list the Menu.Item titles the code renders, 
   // PR 24 (#82) renames the ⋮ item to "Order of players"; the help text already says so, so the
   // table is checked against the renamed label until #82 lands and SEATING_MENU_ITEM catches up.
   const PR24_MENU_LABEL: Record<string, string> = { 'Seating order': 'Order of players' };
-  assert.deepEqual(scorecard.rows.map((r) => r.item), ['Game settings', PLAYERS_ADMINS_TITLE, PR24_MENU_LABEL[SEATING_MENU_ITEM] ?? SEATING_MENU_ITEM, DEALER_MENU_ITEM, 'Edit round', 'Reopen game', 'Log', 'Hide game', 'Delete game']);
+  assert.deepEqual(scorecard.rows.map((r) => r.item), ['Game settings', PLAYERS_ADMINS_TITLE, PR24_MENU_LABEL[SEATING_MENU_ITEM] ?? SEATING_MENU_ITEM, DEALER_MENU_ITEM, UNDO_MENU_ITEM, 'Edit round', 'Reopen game', 'Log', 'Hide game', 'Delete game']);
+  assert.match(src('app/(screens)/games/[id].tsx'), /title=\{UNDO_MENU_ITEM\}/, 'D137: Undo in the ⋮');
   const code = src('app/(screens)/games/[id].tsx');
   for (const item of ['Edit round', 'Reopen game', 'Log', 'Hide game', 'Delete game']) assert.match(code, new RegExp(`title="${item}"`), `scorecard ⋮ renders ${item}`);
   assert.match(code, /title=\{gameSettingsMenuTitle\(pool, maxRounds\)\}/);

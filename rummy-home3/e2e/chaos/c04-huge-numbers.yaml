@@ -59,13 +59,16 @@ tags: [chaos]
 - assertVisible: "Balance 0"
 - takeScreenshot: c04-huge-round-balanced
 - tapOn: "Save round"
+# D137: back on the Scorecard, a 5-second note "Round 5 saved" carries Undo; it asks the same
+# "Remove the last round?". Wait for the note itself and tap Undo before it goes.
 - extendedWaitUntil:
-    visible: "Scorecard( · .*)?"
+    visible:
+      id: "round-saved-note"
     timeout: 20000
-- assertNotVisible: "Something went wrong"
-- assertNotVisible: "Could not save round"
+- assertVisible: "Scorecard( · .*)?"
 - takeScreenshot: c04-scorecard-huge-totals
-- tapOn: "Undo round"
+- tapOn:
+    id: "round-saved-undo"
 - extendedWaitUntil:
     visible: "Remove the last round?"
     timeout: 5000
@@ -73,4 +76,6 @@ tags: [chaos]
 - extendedWaitUntil:
     visible: "Round 5"
     timeout: 15000
+- assertNotVisible: "Something went wrong"
+- assertNotVisible: "Could not save round"
 - takeScreenshot: c04-after-undo

@@ -66,6 +66,7 @@ import { afterRound, AfterRound, isPoolGame, limitChangePreview, overFullCount, 
 import { gameSettingsMenuTitle } from '@/utils/gameSettings';
 import { CompleteGameDialog } from '../../components/game/CompleteGameDialog';
 import { RoundSavedSheet } from '../../components/game/RoundSavedSheet';
+import { roundSavedMark } from '../../utils/roundSavedNote';
 import { seatLabels } from '@/utils/initials';
 import { afterCompleteRoute } from '@/utils/endFlow';
 
@@ -300,6 +301,7 @@ export default function ScoreEntryScreen() {
           createdBy,
           pool,
         });
+        roundSavedMark.mark(game.id, nextRoundNumber(game));
         // Pool (D4, D139): after every round, the Round saved sheet — who is out, Re-enter on each row — before going back.
         if (pool && saved) {
           const summary = afterRound(game, saved, nextRoundNumber(game));

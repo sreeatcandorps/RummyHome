@@ -242,14 +242,7 @@ tags: [smoke]
 - repeat:
     times: 4
     commands:
-      - tapOn: "Undo round"
-      - extendedWaitUntil:
-          visible: "Remove the last round?"
-          timeout: 5000
-      - tapOn: "Remove"
-      - extendedWaitUntil:
-          notVisible: "Remove the last round?"
-          timeout: 15000
+      - runFlow: ../lib/undo-last-round.yaml
 - extendedWaitUntil:
     visible: "Round 4"
     timeout: 15000

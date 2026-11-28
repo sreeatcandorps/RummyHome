@@ -30,6 +30,12 @@ tags: [chaos]
       visible: "Save round"
     commands:
       - back
+# D137: the mash can land on the 5-second note's Undo above the bar.
+- runFlow:
+    when:
+      visible: "Remove the last round?"
+    commands:
+      - tapOn: "Cancel"
 - runFlow:
     when:
       visible: "Complete this game?"

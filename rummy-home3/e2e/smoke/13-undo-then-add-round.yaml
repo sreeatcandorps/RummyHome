@@ -17,11 +17,9 @@ tags: [smoke]
     visible: "Scorecard( · .*)?"
     timeout: 15000
 - assertVisible: "Round 2"
-- tapOn: "Undo round"
-- extendedWaitUntil:
-    visible: "Remove the last round?"
-    timeout: 5000
-- tapOn: "Remove"
+# D137: Undo is in the ⋮ menu (and in the note after a save), not in the bottom bar.
+- assertNotVisible: "Undo round"
+- runFlow: ../lib/undo-last-round.yaml
 - extendedWaitUntil:
     visible: "Round 1"
     timeout: 15000

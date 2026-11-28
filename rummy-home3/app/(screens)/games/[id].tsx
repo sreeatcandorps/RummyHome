@@ -60,6 +60,7 @@ import { MultiplierChip, ActualToggle, ExactPointsSheet } from '@/components/gam
 import { useActualToggle } from '@/hooks/useActualToggle';
 import { actual, anyShortened, exactLines, pointsGameMultiplier } from '@/utils/multiplier';
 import { newGameDraft } from '@/utils/newGameDraft';
+import { ROUND_SAVED_NOTE_MS, roundSavedMark, roundSavedNote, UNDO_MENU_ITEM } from '@/utils/roundSavedNote';
 import { PointsRules } from '@/utils/gameSettings';
 import { isPoolGame, lastPlayerStanding, limitChangePreview, playersIn, poolLimitOf, poolStandings, poolStatusLabel, poolTotal, reentryBlock, REENTRY_BLOCK_TEXT, seatOf } from '@/utils/pool';
 
@@ -114,6 +115,8 @@ export default function GameScreen() {
   const [dealerSheet, setDealerSheet] = useState(false);
   // Nov 18 end flow: Complete is a dialog here, not a page.
   const [completeOpen, setCompleteOpen] = useState(false);
+  // D137: the round Add round just saved, for the 5-second "Round N saved · Undo" note.
+  const [savedRound, setSavedRound] = useState<number | null>(null);
 
   // The ⋮ menu hangs off the header; turning sideways takes the header away, so the menu goes with it.
   useEffect(() => {
@@ -149,7 +152,12 @@ export default function GameScreen() {
   // Reload game data when screen comes into focus (e.g., after adding scores)
   useFocusEffect(
     React.useCallback(() => {
+      if (typeof id === 'string') {
+        const round = roundSavedMark.take(id);
+        if (round !== null) setSavedRound(round);
+      }
       loadGameData();
+      return () => setSavedRound(null);
     }, [id])
   );
 
@@ -220,6 +228,8 @@ export default function GameScreen() {
   };
 
   const handleUndoLastRound = () => {
+    setMenuOpen(false);
+    setSavedRound(null);
     if (!game || getMaxRounds() === 0) return;
     setShowUndoConfirm(true);
   };
@@ -604,19 +614,17 @@ export default function GameScreen() {
 
   const barHeight = isShort ? 44 : 52;
 
-  // Undo and Complete are outlined; Add round is the everyday tap, so it is the one filled green
-  // button in the bar and the widest. Complete keeps its flag so it still reads as "end the game".
-  const undoButton = (
-    <StackedAction
-      icon="undo-variant"
-      label="Undo"
-      onPress={handleUndoLastRound}
-      disabled={maxRounds === 0}
-      height={barHeight}
-      accessibilityLabel="Undo round"
-    />
-  );
+  // D137: Undo lives in the ⋮ menu and in the note after a save, not in the bar.
+  const savedNote = roundSavedNote({
+    savedRound,
+    roundCount: maxRounds,
+    isComplete: game.isComplete,
+    canScore: canScoreNow,
+    reentryPending: pool && players.some((player) => seatOf(game, player.id)?.reenteredRound === maxRounds + 1),
+  });
 
+  // Complete is outlined; Add round is the everyday tap, so it is the one filled green
+  // button in the bar and the widest. Complete keeps its flag so it still reads as "end the game".
   const completeButton = (
     <StackedAction
       icon="flag-checkered"
@@ -668,6 +676,9 @@ export default function GameScreen() {
                 ) : null}
                 {canChangeSeating(game, canScoreNow) ? (
                   <Menu.Item leadingIcon="cards-playing-outline" title={DEALER_MENU_ITEM} onPress={() => { setMenuOpen(false); setDealerSheet(true); }} testID="game-menu-dealer" />
+                ) : null}
+                {canScoreNow && !game.isComplete ? (
+                  <Menu.Item leadingIcon="undo-variant" title={UNDO_MENU_ITEM} disabled={maxRounds === 0} onPress={handleUndoLastRound} testID="game-menu-undo" />
                 ) : null}
                 {canScoreNow && !game.isComplete ? (
                   <Menu.Item leadingIcon="pencil-outline" title="Edit round" disabled={maxRounds === 0} onPress={() => { setMenuOpen(false); setEditRoundOpen(true); }} />
@@ -766,7 +777,6 @@ export default function GameScreen() {
       )}
       {chrome.bottomBar && !game.isComplete && canScoreNow ? (
         <BottomBar fullWidth>
-          {undoButton}
           {addRoundButton}
           {completeButton}
         </BottomBar>
@@ -894,6 +904,14 @@ export default function GameScreen() {
         </Dialog>
 
         <Toast message={linkNote} onDismiss={() => setLinkNote(null)} aboveBar />
+        <Toast
+          message={linkNote ? null : savedNote}
+          onDismiss={() => setSavedRound(null)}
+          action={{ label: 'Undo', onPress: handleUndoLastRound, accessibilityLabel: 'Undo round', testID: 'round-saved-undo' }}
+          durationMs={ROUND_SAVED_NOTE_MS}
+          aboveBar
+          testID="round-saved-note"
+        />
         <ShareSheet
           visible={shareOpen}
           onDismiss={() => setShareOpen(false)}

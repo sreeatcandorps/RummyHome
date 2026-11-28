@@ -13,7 +13,7 @@ type ToastProps = {
   message: string | null;
   onDismiss: () => void;
   /** Undo (or another single action). Lengthens the stay to 4 s unless `durationMs` says otherwise. */
-  action?: { label?: string; onPress: () => void; accessibilityLabel?: string };
+  action?: { label?: string; onPress: () => void; accessibilityLabel?: string; testID?: string };
   /**
    * Only for a toast that stands in for a confirm dialog (Delete result keeps its 10 s Undo, D9.1).
    * Everything else takes the standard 3 s / 4 s.
@@ -35,7 +35,7 @@ export function Toast({ message, onDismiss, action, durationMs, aboveBar = false
       visible={Boolean(message)}
       onDismiss={onDismiss}
       duration={duration}
-      action={action ? { label: action.label ?? 'Undo', onPress: action.onPress, accessibilityLabel: action.accessibilityLabel ?? action.label ?? 'Undo' } : undefined}
+      action={action ? { label: action.label ?? 'Undo', onPress: action.onPress, accessibilityLabel: action.accessibilityLabel ?? action.label ?? 'Undo', testID: action.testID } : undefined}
       style={aboveBar ? { marginBottom: BOTTOM_BAR_CLEARANCE } : undefined}
       testID={testID}
     >
