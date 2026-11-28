@@ -41,6 +41,7 @@ import { emailsService } from '@/services/emails';
 import { radius, spacing, useAppTheme } from '@/constants/theme';
 import { ADD_NEW_PLAYERS, ADD_PLAYERS_TITLE, addedNowLine, FIND_IN_DATABASE, FROM_DATABASE_ACCESSIBILITY, joinSeatNotice, nextLabel, pickerWhileTyping, returnButtonLabel, totalLabel } from '@/utils/addPlayers';
 import { useKeyboardUp } from '@/hooks/useKeyboardUp';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { playedRounds } from '@/utils/editRound';
 import { isPoolGame, playersOut } from '@/utils/pool';
 
@@ -188,6 +189,10 @@ export default function NewGame() {
   const typing = pickerWhileTyping(keyboardUp);
   const rootRef = useRef<View>(null);
   const [topY, setTopY] = useState(0);
+  // Edge-to-edge Android: the keyboard's reported top leaves out the navigation bar under it, so the view would
+  // stop that much short and Next would sit behind the keys (Pixel 6 CI, Nov 27).
+  const { bottom: navInset } = useSafeAreaInsets();
+  const keyboardOffset = Platform.OS === 'android' ? topY - navInset : topY;
 
   const loadGame = useCallback(async (id: string) => {
     const [current, seats] = await Promise.all([gamesService.getGame(id), gamesService.listGamePlayers(id)]);
@@ -612,7 +617,7 @@ export default function NewGame() {
         }}
       />
 
-      <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={topY}>
+      <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={keyboardOffset}>
         <Screen contentStyle={styles.content} safeBottom={false}>
           {addMode ? <TotalCircle total={seatedCount} added={newCount} /> : <PlayingCount count={seatedCount} hint={hint} />}
           <SelectedPlayersStrip picks={selected} meId={me?.id} onRemove={unpick} onReturn={unpick} savedIds={addMode ? savedIds : undefined} busyId={removing} oneRow={typing.stripOneRow} />
