@@ -286,6 +286,9 @@ frames are CI's own, from run [46035664063](https://github.com/sreeatcandorps/Ru
    green outline and his flash says "just joined"; the note above the ring keeps D70's wording ("Tara sits at seat 7,
    between Meena and Ravi — left of the dealer. She is the new highest seat, so she sits at the top."). With any other
    dealer, he lands one step anticlockwise from that dealer, where the first open card goes.
+   **Superseded by 057 (Q63, Nov 27):** the deal now follows the open card, so the seat before the dealer deals next;
+   a newcomer takes the seat *after* the dealer (one disc clockwise, the dealer's own left hand), gets his cards last
+   and deals last. See `dealer-anticlockwise.md` §4.
 4. **Mid-game the seats stay put; the dealer label moves.** Seat numbers are the table, so mid-game the ring is drawn
    the same way (highest seat at the top) and the gold ring and label sit on whoever deals next ("DEALS NEXT"), with the
    first-open-card arrow from him to the seat before him that is still in. So after round 1 the dealer is no longer one
@@ -322,6 +325,9 @@ differ; nothing here changes what is drawn):
   and the dealer label walks clockwise down the right side, then across the bottom and up the left. That is how the app
   already rotates the deal; the build does not change it. If Sree wants the dealer's job to move anticlockwise too, that
   is a change to D58 (who deals and who opens each round), not to the picture.
+  **Answered (Q63, Nov 27): "the dealer always moves counterclockwise … whoever gets the open card gets to deal".**
+  Migration 057 and the app now deal round 2 to the top player and walk the Dealer mark anticlockwise with the cards
+  (`dealer-anticlockwise.md`).
 - *"Left of the dealer."* On the screen the newcomer appears to the dealer's left (between him and the top player). For
   someone sitting in the dealer's chair facing the table, that seat is on his right hand. The copy keeps D70's words
   ("left of the dealer") because they describe the picture.
@@ -455,4 +461,5 @@ Other places it gets tight, and what the build does:
   above), and none of the 17 annotated pictures in `assets/help` is of this screen, so nothing needed redrawing; the
   Help words are updated. A picture of its own (like D98's Find in database) would be new: next-up row 12p.
 - **The dealer's job still moves to seat 2** (D58): on the ring the Dealer mark steps one disc clockwise each round,
-  while the first card goes anticlockwise. That is Q63, unchanged until Sree answers.
+  while the first card goes anticlockwise. That is Q63, unchanged until Sree answers. **Answered Nov 27; built with
+  057** (`dealer-anticlockwise.md`): the Dealer mark now steps anticlockwise, to the player who got the open card.
