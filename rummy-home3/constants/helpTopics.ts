@@ -48,6 +48,7 @@ export const HELP_TOPIC_KEYS = [
   'new-game',
   'game-type',
   'scorecard',
+  'watch-a-game',
   'add-round',
   'final-scores',
   'complete',
@@ -362,6 +363,32 @@ const topics: Record<HelpTopicKey, Omit<HelpTopic, 'key'>> = {
     aliases: ['game', 'rounds', 'undo', 'share', 'live link', 'dealer', 'seating', 'order of players', 'footer', 'unique game id', 'game settings', 'hide', 'delete'],
   },
 
+  'watch-a-game': {
+    title: 'Watch a game',
+    group: 'Playing',
+    family: 'games',
+    icon: 'eye-outline',
+    purpose: 'Follow a game live from its link: no app, no account.',
+    needToKnow: [
+      'An admin opens the scorecard, taps the share icon and sends the **Live scorecard link** (WhatsApp, a text, anything).',
+      'Whoever opens it sees every round and the totals as they are entered. The page updates by itself every few seconds; nobody needs the app or a sign-in.',
+      'Watchers cannot change scores. A pool link also shows the standings: points left, drops left, re-entries and who is out.',
+      'The link keeps working after the game is complete and shows the final totals. If the game is deleted, the page says so.',
+    ],
+    sections: [
+      {
+        title: 'Watching in the app',
+        bullets: [
+          'People in the game who are not playing are listed under **Watching** on Players · Admins. They see the scorecard as [View only].',
+        ],
+      },
+    ],
+    tricky: [
+      { id: 'no-app', q: 'Does the person watching need EZ Score?', a: 'No. The link opens in any browser. The page ends with a link to EZ Score on Google Play for anyone who wants to keep score the same way.' },
+    ],
+    alsoSee: ['scorecard', 'players-admins', 'final-scores'],
+    aliases: ['live link', 'share link', 'spectator', 'follow', 'web page', 'watch'],
+  },
   'add-round': {
     title: 'Add round',
     group: 'Playing',

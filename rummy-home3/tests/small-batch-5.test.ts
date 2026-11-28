@@ -7,7 +7,7 @@ import { fitHeaderTitle, headerTitleRoom } from '../utils/gameLabel';
 import { MY_PLAYERS_SHORT, myPlayersLabel } from '../utils/homeButtons';
 import { playersAdminsTitle } from '../utils/gameAdmins';
 import { visibleRoleTag } from '../utils/gameAccess';
-import { HELP_TOPICS } from '../constants/helpTopics';
+import { HELP_TOPICS, helpIndex, searchHelp } from '../constants/helpTopics';
 import { leftAndDrops } from '../utils/poolAwards';
 import { ROUND_SAVED_NOTE_MS, roundSavedMark, roundSavedNote, UNDO_MENU_ITEM } from '../utils/roundSavedNote';
 
@@ -163,4 +163,27 @@ test('12j (c): D103 no longer says the Profile cards are built', () => {
   assert.doesNotMatch(d103, /built · cards and initials/);
   assert.match(d103, /The white cards were not built:\*\* Profile is flat grouped rows \(`SettingsGroup`/);
   assert.match(src('components/ui/SettingsGroup.tsx'), /no card, no icon square/);
+});
+
+// ---- Row 8: the live page points at the app; Help has "Watch a game" ----
+
+test('row 8: the live scorecard page ends with "Keep score like this — get EZ Score", linking to the Play listing', () => {
+  const page = src('public/scorecard.html');
+  const footer = page.match(/<footer class="get" id="get-app">([\s\S]*?)<\/footer>/);
+  assert.ok(footer, 'the page has the get-the-app footer');
+  assert.match(footer[1], /<a href="https:\/\/play\.google\.com\/store\/apps\/details\?id=com\.mindweavetech\.rummyhome"[^>]*>Keep score like this — get EZ Score<\/a>/);
+  assert.match(src('app.json'), /"package": "com\.mindweavetech\.rummyhome"/, 'the link names the package Play publishes');
+  assert.ok(page.indexOf('id="get-app"') > page.indexOf('<section id="changes">'), 'the footer is the last thing on the page');
+  assert.ok(page.indexOf('id="get-app"') < page.indexOf('<script>'), 'static HTML, so it also shows on an invalid or deleted link');
+});
+
+test('row 8: Help has a "Watch a game" page in Playing, found by "live link" and "spectator"', () => {
+  const topic = HELP_TOPICS['watch-a-game'];
+  assert.equal(topic.title, 'Watch a game');
+  assert.equal(topic.group, 'Playing');
+  assert.ok(helpIndex().find((g) => g.group === 'Playing')?.topics.some((t) => t.key === 'watch-a-game'));
+  assert.ok(searchHelp('spectator').some((t) => t.key === 'watch-a-game'));
+  assert.ok(searchHelp('live link').some((t) => t.key === 'watch-a-game'));
+  assert.match(topic.needToKnow.join('\n'), /\*\*Live scorecard link\*\*/);
+  assert.match(src('public/scorecard.html'), /setInterval\(load, 8000\)/, '"updates by itself every few seconds"');
 });
