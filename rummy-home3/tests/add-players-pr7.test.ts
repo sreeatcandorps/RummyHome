@@ -11,6 +11,7 @@ import {
   FROM_DATABASE_ACCESSIBILITY,
   NON_PLAYING_ADMIN_BUTTON,
   NON_PLAYING_ADMIN_NOTE,
+  NON_PLAYING_ADMIN_ROW,
   returnButtonLabel,
   SEARCH_PLACEHOLDER,
   totalLabel,
@@ -50,13 +51,16 @@ test('7.2 labels: Add by initials / Find in database (A21), the long spoken sent
   assert.equal((theme.match(/leaderContainer: '#/g) ?? []).length, 2, 'light and dark palettes both define leaderContainer');
 });
 
-test('7.3 Players · Admins: a big outlined "Add non-playing admin" button with one explanatory line', () => {
+test('7.3 Players · Admins: "Add non-playing admin" is a row of its group; the full note behind the ⓘ (§10.5)', () => {
   assert.equal(NON_PLAYING_ADMIN_BUTTON, 'Add non-playing admin');
   assert.equal(NON_PLAYING_ADMIN_NOTE, 'Someone who keeps score but does not play. Enter their Player ID (#NN). They can add and edit rounds; they get no column.');
+  assert.equal(NON_PLAYING_ADMIN_ROW, 'Keeps score, does not play. By Player ID.');
   const players = read('app/(screens)/games/players.tsx');
-  assert.match(players, /accessibilityLabel="Add admin by Player ID"[\s\S]*?\{NON_PLAYING_ADMIN_BUTTON\}/, 'the flows keep tapping "Add admin by Player ID"');
-  assert.match(players, /\{addAdminBlocked \?\? NON_PLAYING_ADMIN_NOTE\}/);
-  assert.match(players, /adminAddButton: \{ borderWidth: 2, borderRadius: radius\.full \}/);
+  assert.match(players, /title=\{NON_PLAYING_ADMIN_BUTTON\}\s*description=\{NON_PLAYING_ADMIN_ROW\}[\s\S]*?accessibilityLabel="Add admin by Player ID"\s*testID="add-admin"/, 'the flows keep tapping "Add admin by Player ID"');
+  assert.match(players, /tip=\{canScore \? \{ text: NON_PLAYING_ADMIN_NOTE, topic: 'players-admins', testID: 'players-admins-tip' \}/, 'the note word for word behind the ⓘ');
+  assert.match(players, /note=\{canScore && addAdminBlocked \? addAdminBlocked : undefined\}/, 'a Closed game says why under the heading');
+  assert.match(players, /\{canScore && !addAdminBlocked \? \(\s*<ListRow/, 'the row that cannot work is not shown');
+  assert.doesNotMatch(players, /adminAddButton|<Button[^>]*mode="outlined"/, 'no second pill-shaped button');
   assert.match(players, /<Dialog\.Title>\{NON_PLAYING_ADMIN_BUTTON\}<\/Dialog\.Title>/);
 });
 
@@ -104,5 +108,5 @@ test('7.6 the three tag sites go through visibleRegistration and the four text s
   ];
   for (const [file, pattern] of textSites) assert.doesNotMatch(read(file), pattern, `${file} prints no Registered text`);
   const help = read('constants/helpTopics.ts');
-  assert.match(help, /Only players who have not finished signing up carry a tag \(\[Unregistered\], \[Pending registration\]\)/);
+  assert.match(help, /Only players who have not finished signing up get a word there too \(Unregistered, Pending registration, Link pending\)/);
 });

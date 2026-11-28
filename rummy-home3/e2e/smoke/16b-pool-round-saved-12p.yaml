@@ -204,16 +204,29 @@ tags: [smoke]
 
 # The second door: Re-enter in Standings opens the same seat line. Hotel sits on Delta's left, seat 5,
 # right after Bravo.
+# The pane keeps its scroll position, so Hotel's row can be above or below; look up first, then down.
 - repeat:
     while:
       notVisible:
         id: "reenter-00000000-0000-4000-8000-0000000000e8"
-    times: 6
+    times: 4
     commands:
       - swipe:
           from:
             id: "pool-standings-pane"
-          direction: UP
+          direction: DOWN
+# Short, slow swipes inside the pane (about one row each): on the small phone the pane shows three rows and a
+# full-length swipe flings straight past Hotel to the end of the list.
+- repeat:
+    while:
+      notVisible:
+        id: "reenter-00000000-0000-4000-8000-0000000000e8"
+    times: 12
+    commands:
+      - swipe:
+          start: 50%, 79%
+          end: 50%, 73%
+          duration: 700
 - tapOn:
     id: "reenter-00000000-0000-4000-8000-0000000000e8"
 - extendedWaitUntil:

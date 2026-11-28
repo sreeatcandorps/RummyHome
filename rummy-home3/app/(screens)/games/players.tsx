@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, AppState, ScrollView, StyleSheet, View } from 'react-native';
-import { Dialog, IconButton, Portal, Text, TextInput } from 'react-native-paper';
+import { Dialog, Icon, Portal, Text, TextInput } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { radius, seatColor, spacing, useAppTheme } from '@/constants/theme';
@@ -15,17 +15,21 @@ import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { addAdminBlockedReason, addAdminPreview, addAdminProblem, PLAYERS_ADMINS_TITLE } from '@/utils/gameAdmins';
 import { parsePlayerNo, PendingLink } from '@/utils/playerIdentity';
 import { seatRemovalProblem } from '@/utils/seatRemoval';
-import { playerIdBadge, registrationLabel, seatMenu, SeatMenuItem, seatRoleLabel } from '@/utils/gamePlayers';
-import { ACCESS_ICON, ACCESS_TONE, visibleRoleTag } from '@/utils/gameAccess';
-import { REGISTRATION_ICON, REGISTRATION_TONE, visibleRegistration } from '@/utils/myPlayersList';
-import { NON_PLAYING_ADMIN_BUTTON, NON_PLAYING_ADMIN_NOTE } from '@/utils/addPlayers';
+import { playerIdBadge, registrationLabel, seatMenu, SeatMenuItem, seatRoleLabel, seatSubline } from '@/utils/gamePlayers';
+import { visibleRoleTag } from '@/utils/gameAccess';
+import { visibleRegistration } from '@/utils/myPlayersList';
+import { NON_PLAYING_ADMIN_BUTTON, NON_PLAYING_ADMIN_NOTE, NON_PLAYING_ADMIN_ROW } from '@/utils/addPlayers';
 import { LinkRequestOutcome } from '@/utils/linkPlayer';
+import { canChangeSeating, SEATING_MENU_ITEM, SEATING_ROW_DESCRIPTION } from '@/utils/seating';
+import { isPoolGame, seatOf } from '@/utils/pool';
+import { playedRounds } from '@/utils/editRound';
 import { BottomBar } from '@/components/ui/BottomBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpButton } from '@/components/ui/HelpButton';
-import { InfoTip } from '@/components/ui/InfoTip';
+import { ListRow } from '@/components/ui/ListRow';
 import { SeatAvatar } from '@/components/ui/SeatAvatar';
-import { Tag } from '@/components/ui/Tag';
+import { SettingsGroup } from '@/components/ui/SettingsGroup';
+import { SeatingSheet } from '@/components/game/SeatingSheet';
 import { InitialsDialog } from '@/components/players/InitialsDialog';
 import { EditNameDialog } from '@/components/players/EditNameDialog';
 import { PlayerActionMenu } from '@/components/players/PlayerActionMenu';
@@ -46,10 +50,11 @@ type Sheet =
   | null;
 
 /**
- * Players in this game as a full page (no stacked popups). Each seat shows the
- * name, Player ID, role and registration, and the unified ⋮ menu for admins (Invite to
- * EZ Score · Link to Player ID · Edit initials · Make/Remove admin · Remove from game).
- * Adding happens on the picker screen; Remove from game is confirmed first and works only
+ * Players in this game as a full page, in the Size-S grouped list (design-review-2 §10.5): Playing, Admins not
+ * playing, Watching. Each seat is one row — the initials disc, the name, one grey line (Player ID, role,
+ * registration) — and the unified ⋮ menu for admins (Invite to EZ Score · Link to Player ID · Edit initials ·
+ * Make/Remove admin · Remove from game). The order of players changes only in the circle (D138), opened from the
+ * last Playing row. Adding happens on the picker screen; Remove from game is confirmed first and works only
  * while every round score the player has is 0.
  */
 /** Mini help (PR 11) beside Playing, for admins. */
@@ -64,6 +69,7 @@ export default function GamePlayersScreen() {
   const [viewer, setViewer] = useState<Player | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
+  const [seating, setSeating] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   // Open Link to Player ID requests (025) for seats in this game, so those rows read Link pending.
@@ -91,8 +97,6 @@ export default function GamePlayersScreen() {
   const labels = useMemo(() => seatLabels(playing), [playing]);
   const unseated = useMemo(() => roster.filter((seat) => seat.seated === false && seat.seatRole === 'game_admin'), [roster]);
   const watching = useMemo(() => roster.filter((seat) => seat.seatRole === 'spectator'), [roster]);
-  // PR 21: ▲ ▼ go through set_seating_order (logged, atomic), so they work mid-game too; only a completed game locks them.
-  const canReorder = Boolean(game) && !game?.isComplete && !game?.closedAt;
 
   const run = async (work: () => Promise<unknown>, after?: () => void) => {
     setBusy(true);
@@ -143,89 +147,83 @@ export default function GamePlayersScreen() {
     );
   }
   const addAdminBlocked = addAdminBlockedReason(game, canScore);
+  // Exactly when the scorecard ⋮ shows Order of players: an admin, an Active game (mid-game included).
+  const canSeat = canChangeSeating(game, canScore);
+  const pool = isPoolGame(game);
 
-  const row = (seat: Player, index: number, list: Player[]) => {
+  const row = (seat: Player, index: number) => {
     const menu = seatMenu(seat, game, viewer?.id, canScore);
     const roleTag = visibleRoleTag(seatRoleLabel(seat, game), canScore);
     const linkRequest = linkRequests.find((l) => l.playerId === seat.id) ?? null;
     const registration = visibleRegistration(registrationLabel(seat, Boolean(linkRequest)));
-    const badge = playerIdBadge(seat);
     return (
-      <View key={seat.id} style={[styles.row, { borderBottomColor: colors.hairline }]}>
-        <SeatAvatar name={seat.name} label={labels.get(seat.id)} color={seatColor(index)} size={36} muted={seat.seatRole === 'spectator'} />
-        <View style={styles.text}>
-          <Text variant="bodyLarge" style={styles.name} numberOfLines={1}>{seat.name}</Text>
-          <View style={styles.tags}>
-            {badge ? <Tag small label={badge} /> : null}
-            {roleTag ? <Tag label={roleTag} tone={ACCESS_TONE[roleTag]} icon={ACCESS_ICON[roleTag]} /> : null}
-            {registration ? <Tag label={registration} tone={REGISTRATION_TONE[registration]} icon={REGISTRATION_ICON[registration]} /> : null}
-          </View>
-        </View>
-        {canScore && canReorder && seat.seatRole !== 'spectator' && seat.seated !== false ? (
-          <View style={styles.reorder}>
-            <IconButton icon="chevron-up" size={18} disabled={busy || index === 0} onPress={() => run(() => gamesService.moveSeat(game.id, seat.id, -1))} accessibilityLabel={`Move ${seat.name} up`} />
-            <IconButton icon="chevron-down" size={18} disabled={busy || index === list.length - 1} onPress={() => run(() => gamesService.moveSeat(game.id, seat.id, 1))} accessibilityLabel={`Move ${seat.name} down`} />
-          </View>
-        ) : null}
-        <PlayerActionMenu
-          name={seat.name}
-          items={menu}
-          visible={menuFor === seat.id}
-          disabled={busy}
-          onOpen={() => setMenuFor(seat.id)}
-          onDismiss={() => setMenuFor(null)}
-          onSelect={(item) => act(item, seat)}
-        />
-      </View>
+      <ListRow
+        key={seat.id}
+        left={<SeatAvatar name={seat.name} label={labels.get(seat.id)} color={seatColor(index)} size={36} muted={seat.seatRole === 'spectator'} />}
+        title={seat.name}
+        description={seatSubline(playerIdBadge(seat), roleTag, registration)}
+        right={
+          <PlayerActionMenu
+            name={seat.name}
+            items={menu}
+            visible={menuFor === seat.id}
+            disabled={busy}
+            onOpen={() => setMenuFor(seat.id)}
+            onDismiss={() => setMenuFor(null)}
+            onSelect={(item) => act(item, seat)}
+          />
+        }
+      />
     );
   };
+  const rowIcon = (source: string) => (
+    <View style={styles.rowIcon}><Icon source={source} size={24} color={colors.onSurfaceVariant} /></View>
+  );
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ title: screenTitle(PLAYERS_ADMINS_TITLE, game), headerRight: () => <HelpButton topic="players-admins" /> }} />
       <ScrollView contentContainerStyle={[styles.content, { paddingLeft: insets.left + spacing.lg, paddingRight: insets.right + spacing.lg }]}>
-        <View style={[styles.section, styles.sectionRow]}>
-          <Text variant="titleSmall">Playing · {playing.length}</Text>
-          {canScore ? <InfoTip title="Playing" text={PLAYING_TIP} topic="players-admins" testID="players-playing-tip" /> : null}
-        </View>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
-          {playing.map((seat, index) => row(seat, index, playing))}
-        </View>
-        {unseated.length > 0 ? (
-          <>
-            <Text variant="titleSmall" style={styles.section}>Admins not playing</Text>
-            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
-              {unseated.map((seat, index) => row(seat, playing.length + index, unseated))}
-            </View>
-          </>
+        <SettingsGroup
+          title={`Playing · ${playing.length}`}
+          tip={canScore ? { title: 'Playing', text: PLAYING_TIP, topic: 'players-admins', testID: 'players-playing-tip' } : undefined}
+          testID="players-playing"
+        >
+          {playing.map((seat, index) => row(seat, index))}
+          {canSeat ? (
+            <ListRow
+              left={rowIcon('seat-outline')}
+              title={SEATING_MENU_ITEM}
+              description={SEATING_ROW_DESCRIPTION}
+              onPress={() => setSeating(true)}
+              testID="players-order"
+            />
+          ) : null}
+        </SettingsGroup>
+        {canScore || unseated.length > 0 ? (
+          <SettingsGroup
+            title="Admins not playing"
+            tip={canScore ? { text: NON_PLAYING_ADMIN_NOTE, topic: 'players-admins', testID: 'players-admins-tip' } : undefined}
+            note={canScore && addAdminBlocked ? addAdminBlocked : undefined}
+            testID="players-admins-not-playing"
+          >
+            {unseated.map((seat, index) => row(seat, playing.length + index))}
+            {canScore && !addAdminBlocked ? (
+              <ListRow
+                left={rowIcon('plus')}
+                title={NON_PLAYING_ADMIN_BUTTON}
+                description={NON_PLAYING_ADMIN_ROW}
+                onPress={() => setSheet({ kind: 'add_admin' })}
+                accessibilityLabel="Add admin by Player ID"
+                testID="add-admin"
+              />
+            ) : null}
+          </SettingsGroup>
         ) : null}
         {watching.length > 0 ? (
-          <>
-            <Text variant="titleSmall" style={styles.section}>Watching</Text>
-            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
-              {watching.map((seat, index) => row(seat, playing.length + unseated.length + index, watching))}
-            </View>
-          </>
-        ) : null}
-        {canScore ? (
-          <View style={styles.adminAdd}>
-            <Button
-              mode="outlined"
-              icon="plus"
-              onPress={() => setSheet({ kind: 'add_admin' })}
-              disabled={busy || Boolean(addAdminBlocked)}
-              accessibilityLabel="Add admin by Player ID"
-              testID="add-admin"
-              contentStyle={styles.adminAddContent}
-              labelStyle={styles.adminAddLabel}
-              style={styles.adminAddButton}
-            >
-              {NON_PLAYING_ADMIN_BUTTON}
-            </Button>
-            <Text variant="bodySmall" style={{ color: colors.onSurfaceVariant, textAlign: 'center' }}>
-              {addAdminBlocked ?? NON_PLAYING_ADMIN_NOTE}
-            </Text>
-          </View>
+          <SettingsGroup title="Watching" testID="players-watching">
+            {watching.map((seat, index) => row(seat, playing.length + unseated.length + index))}
+          </SettingsGroup>
         ) : null}
       </ScrollView>
       {/* A05: the page returns through the header arrow; the bar holds the one action admins have here. */}
@@ -236,6 +234,20 @@ export default function GamePlayersScreen() {
           </Button>
         </BottomBar>
       ) : null}
+
+      <SeatingSheet
+        visible={seating && canSeat}
+        players={playing.map((seat) => ({ id: seat.id, name: seat.name, label: labels.get(seat.id) ?? '?', playerCode: seat.playerCode, out: pool && Boolean(seatOf(game, seat.id).outRound), reentered: pool && Boolean(seatOf(game, seat.id).reenteredRound) }))}
+        pool={pool}
+        dealerIds={game.dealerIds}
+        nextDealerOverride={game.nextDealerOverride}
+        roundCount={playedRounds(game.scores)}
+        onDismiss={() => setSeating(false)}
+        onSave={async (order) => {
+          await gamesService.setSeatingOrder(game.id, order);
+          await reload();
+        }}
+      />
 
       <Portal>
         {sheet?.kind === 'edit' ? (
@@ -397,24 +409,13 @@ function AddAdminDialog({ game, busy, onDismiss, onConfirm }: {
 }
 
 const styles = StyleSheet.create({
-  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   screen: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { paddingTop: spacing.md, paddingBottom: spacing.xl, gap: spacing.sm },
-  section: { fontWeight: '700', marginTop: spacing.sm },
-  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, paddingHorizontal: spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
-  text: { flex: 1, gap: spacing.xs },
-  name: { fontWeight: '600' },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  reorder: { flexDirection: 'row' },
+  content: { paddingTop: spacing.xs, paddingBottom: spacing.xl },
+  rowIcon: { width: 36, alignItems: 'center' },
   dialog: { borderRadius: radius.xl, maxWidth: 520, width: '94%', alignSelf: 'center' },
   gap: { gap: spacing.sm },
   preview: { borderRadius: radius.md, padding: spacing.md, gap: spacing.xxs },
   lookupRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  adminAdd: { alignItems: 'stretch', gap: spacing.xs, marginTop: spacing.sm },
-  adminAddButton: { borderWidth: 2, borderRadius: radius.full },
-  adminAddContent: { minHeight: 56 },
-  adminAddLabel: { fontSize: 17, fontWeight: '800' },
   flex: { flex: 1 },
 });

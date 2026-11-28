@@ -50,10 +50,13 @@ tags: [nightly]
     timeout: 15000
 - tapOn: "Add C D"
 - scrollUntilVisible:
+    element: "Added now: 2 (yellow ring)"
+    direction: UP
+    timeout: 15000
+- scrollUntilVisible:
     element: "Total, 5 players"
     direction: UP
     timeout: 15000
-- assertVisible: "Added now: 2 (yellow ring)"
 # D70 (054): round 1 is played and Harish (seat 2) deals round 2, so both newcomers sit to his left.
 - assertVisible:
     id: "join-seat-notice"
@@ -87,10 +90,15 @@ tags: [nightly]
     timeout: 15000
 - takeScreenshot: 32e-non-playing-admin-preview
 - tapOn: "Confirm add admin"
+# §10.5: the "Admins not playing" group is there for admins even when empty, so wait for Otto's row.
 - extendedWaitUntil:
-    visible: "Admins not playing"
+    notVisible: "Confirm add admin"
     timeout: 15000
-- assertVisible: "Otto O(utsider|\\.)"
+- extendedWaitUntil:
+    visible: "Otto O(utsider|\\.)"
+    timeout: 15000
+- assertVisible:
+    id: "players-admins-not-playing"
 - takeScreenshot: 32f-admins-not-playing
 # Cleanup: remove the two added players (scores all 0) so the game H fixture is 3 columns again.
 - tapOn: "Options for R K"
