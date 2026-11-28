@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pickerWhileTyping } from '../utils/addPlayers';
+import { fitHeaderTitle, headerTitleRoom } from '../utils/gameLabel';
 import { ROUND_SAVED_NOTE_MS, roundSavedMark, roundSavedNote, UNDO_MENU_ITEM } from '../utils/roundSavedNote';
 
 const src = (rel: string) => readFileSync(path.join(process.cwd(), rel), 'utf8');
@@ -72,4 +73,15 @@ test('12o: full/52 picks all twelve with the keyboard up', () => {
   assert.doesNotMatch(flow, /^- hideKeyboard$/m, 'no pick closes the keyboard first');
   assert.match(flow, /id: "selected-strip-one-row"/);
   assert.match(src('e2e/chaos/c03-bad-input.yaml'), /hideKeyboard/, 'c03 keeps its own');
+});
+
+// ---- Header titles that fit (shared by 12k and 12j) ----
+
+test('header titles: the model matches the CI frame ("Scorecar…" at 360 dp × 1.3 beside three header buttons)', () => {
+  // The ⋮ was a compact text button (~64 dp), so the title had about 124 dp: "Scorecar" and the ellipsis.
+  assert.equal(fitHeaderTitle(['Scorecard · P2'], 124, 1.3), 'Scorecard · P2', 'the last candidate when none fits');
+  assert.ok('Scorecard'.length * 20 * 0.55 * 1.3 > 124, 'the model says "Scorecard" did not fit either, as seen');
+  assert.equal(headerTitleRoom(360, 3), 140);
+  assert.equal(fitHeaderTitle(['Scorecard · P2', 'Scorecard'], headerTitleRoom(360, 3), 1.3), 'Scorecard');
+  assert.equal(fitHeaderTitle(['Scorecard · P2', 'Scorecard'], headerTitleRoom(412, 3), 1), 'Scorecard · P2', 'the Pixel 6 keeps the full title');
 });
