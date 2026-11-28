@@ -35,7 +35,7 @@ test('H5-2 the bottom bar draws Home and Profile only; the players route stays r
 
 test('H5-3 Home: Results and My players side by side where Results was; cards, list and header untouched', () => {
   const home = src('app/(tabs)/index.tsx');
-  assert.match(home, /<View style=\{styles\.actionRow\}>/);
+  assert.match(home, /<View style=\{styles\.actionRow\} onLayout=/);
   assert.match(home, /accessibilityLabel="Results"/);
   assert.match(home, /onPress=\{\(\) => router\.push\('\/\(tabs\)\/players'\)\}/);
   assert.match(home, /accessibilityLabel=\{myPlayersAccessibilityLabel\(playerCount\)\}/);

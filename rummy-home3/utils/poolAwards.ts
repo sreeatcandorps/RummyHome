@@ -230,3 +230,11 @@ export function sameAwards(sheet: AwardSheet, saved: Record<string, number> | nu
   for (const id of ids) if ((current[id] ?? 0) !== (saved[id] ?? 0)) return false;
   return true;
 }
+
+/**
+ * "101 left · 5 drops" under a name on Awards. Each half holds together (non-breaking spaces), so a narrow name
+ * column breaks it at the dot only; on the Pixel 6 it broke as "101 left · 5 / drops" (12k).
+ */
+export function leftAndDrops(left: number, drops: number): string {
+  return `${left}\u00A0left · ${drops}\u00A0${drops === 1 ? 'drop' : 'drops'}`;
+}

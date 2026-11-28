@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { RefreshControl, StyleSheet, View } from 'react-native';
+import { RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Portal, ProgressBar, Text } from 'react-native-paper';
 import { Button } from '@/components/ui/AppButton';
 import { router, useFocusEffect } from 'expo-router';
@@ -8,7 +8,7 @@ import { Game } from '@/types/game';
 import { gamesService } from '@/services/games';
 import { homeService } from '@/services/home';
 import { playersService } from '@/services/players';
-import { myPlayersAccessibilityLabel, myPlayersBadge } from '@/utils/homeButtons';
+import { myPlayersAccessibilityLabel, myPlayersBadge, myPlayersLabel } from '@/utils/homeButtons';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { HOME_GAME_LIMIT } from '@/services/home';
 import { RECENT_PAGE, recentPaging, splitHomeGames } from '@/utils/homeGames';
@@ -48,7 +48,10 @@ export const RECENT_TIP = 'The yellow square carries the game number; the tag sh
 
 export default function Dashboard() {
   const { colors } = useAppTheme();
-  const { isWide } = useLayout();
+  const { isWide, width, gutterLeft, gutterRight } = useLayout();
+  const { fontScale } = useWindowDimensions();
+  // 12k: the Results / My players row's width, for the My players label (until it lays out: the page's width).
+  const [tileRow, setTileRow] = useState<number | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [recentGames, setRecentGames] = useState<Game[]>([]);
   // PR 10b (Q10.4): Recent draws RECENT_PAGE games, then more per "Show more" tap; a short page from the server ends it.
@@ -177,20 +180,21 @@ export default function Dashboard() {
   // PR 5: Results and My players side by side where Results was; the bottom bar is Home and Profile.
   const badge = myPlayersBadge(playerCount);
   const resultsButton = (
-    <View style={styles.actionRow}>
-      <Button
-        mode="contained"
-        icon="podium"
-        buttonColor={colors.secondaryContainer}
-        textColor={colors.onSecondaryContainer}
-        onPress={() => router.push('/(screens)/results')}
-        style={styles.results}
-        contentStyle={styles.resultsContent}
-        labelStyle={styles.resultsLabel}
-        accessibilityLabel="Results"
-      >
-        Results
-      </Button>
+    <View style={styles.actionRow} onLayout={(e) => setTileRow(e.nativeEvent.layout.width)}>
+      <View style={styles.results}>
+        <Button
+          mode="contained"
+          icon="podium"
+          buttonColor={colors.secondaryContainer}
+          textColor={colors.onSecondaryContainer}
+          onPress={() => router.push('/(screens)/results')}
+          contentStyle={styles.resultsContent}
+          labelStyle={styles.resultsLabel}
+          accessibilityLabel="Results"
+        >
+          Results
+        </Button>
+      </View>
       <View style={styles.results}>
         <Button
           mode="contained"
@@ -203,7 +207,7 @@ export default function Dashboard() {
           accessibilityLabel={myPlayersAccessibilityLabel(playerCount)}
           testID="home-my-players"
         >
-          My players
+          {myPlayersLabel(((tileRow ?? width - gutterLeft - gutterRight) - spacing.sm) / 2, fontScale)}
         </Button>
         {badge ? (
           <View style={[styles.badge, { backgroundColor: colors.leaderContainer, borderColor: colors.background }]} pointerEvents="none" testID="home-my-players-badge">
@@ -412,8 +416,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
+  // Two equal halves: Results used to take more than half and squeeze My players (12k).
   results: {
     flex: 1,
+    flexBasis: 0,
     marginBottom: spacing.lg,
   },
   badge: {

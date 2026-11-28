@@ -1,0 +1,22 @@
+appId: com.mindweavetech.rummyhome
+# Turn the Scorecard sideways on every device. A phone is sideways after LANDSCAPE_LEFT. The Pixel Tablet's natural
+# orientation is landscape, so its LANDSCAPE_LEFT is upright and its PORTRAIT is the sideways one (#174: flow 22's
+# "sideways" tablet frame came out upright, the same as the upright one). The table-alone marker (D89) tells them
+# apart: when it has not come after LANDSCAPE_LEFT, PORTRAIT turns the tablet. Undo it with PORTRAIT + stand-upright.
+---
+- setOrientation: LANDSCAPE_LEFT
+- extendedWaitUntil:
+    visible:
+      id: "landscape-table-only"
+    timeout: 10000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: "landscape-table-only"
+    commands:
+      - setOrientation: PORTRAIT
+- extendedWaitUntil:
+    visible:
+      id: "landscape-table-only"
+    timeout: 15000

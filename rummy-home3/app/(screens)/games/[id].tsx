@@ -1,8 +1,8 @@
-import { gameLabelOf, screenTitle } from '@/utils/gameLabel';
+import { fitHeaderTitle, gameLabelOf, headerTitleRoom, screenTitle } from '@/utils/gameLabel';
 import { dealerForRound, nextDealer, opensFor, rotationStarts } from '@/utils/dealerRotation';
 import { DEALER_MENU_ITEM } from '@/utils/dealerSheet';
 import React from 'react';
-import { AppState, View, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { AppState, View, StyleSheet, ActivityIndicator, ScrollView, useWindowDimensions } from 'react-native';
 import { Text, Dialog, IconButton, Menu, Portal } from 'react-native-paper';
 import { ShareSheet } from '@/components/share/ShareSheet';
 import { Toast } from '@/components/ui/Toast';
@@ -70,6 +70,7 @@ export default function GameScreen() {
   const theme = useAppTheme();
   const { colors } = theme;
   const { width, isShort, isLandscape, insets, gutterLeft, gutterRight } = useLayout();
+  const { fontScale } = useWindowDimensions();
   // D47 B (Sree, Nov 18): "sideways" is wider than tall, on every device. A phone turned sideways is also
   // short (compact chrome); a tablet turned sideways is not, but it still gets the table alone.
   const sideways = isLandscape;
@@ -657,7 +658,8 @@ export default function GameScreen() {
       <Stack.Screen
         options={{
           headerShown: chrome.header,
-          title: screenTitle('Scorecard', game),
+          // 12k: "Scorecard · P2" was cut to "Scorecar…" at 360 dp × 1.3; the strip's badge already shows P2.
+          title: fitHeaderTitle([screenTitle('Scorecard', game), 'Scorecard'], headerTitleRoom(width, deleted ? 2 : 3), fontScale),
           headerStyle: { backgroundColor: colors.background },
           headerRight: () => (
             <View style={styles.headerActions}>
@@ -667,7 +669,7 @@ export default function GameScreen() {
                 key={menuKey}
                 visible={menuOpen}
                 onDismiss={() => setMenuOpen(false)}
-                anchor={<Button compact icon="dots-vertical" onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu"> </Button>}
+                anchor={<IconButton icon="dots-vertical" size={22} onPress={() => setMenuOpen(true)} accessibilityLabel="Scorecard menu" testID="scorecard-menu" />}
               >
                 <Menu.Item leadingIcon="cog-outline" onPress={() => { setMenuOpen(false); setGameSettingsOpen(true); }} title={gameSettingsMenuTitle(pool, maxRounds)} testID="game-menu-settings" />
                 {deleted ? null : <Menu.Item leadingIcon="account-group-outline" onPress={openPlayers} title={PLAYERS_ADMINS_TITLE} />}

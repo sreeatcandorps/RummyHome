@@ -16,7 +16,7 @@ import { SeatAvatar } from '@/components/ui/SeatAvatar';
 import { Tag } from '@/components/ui/Tag';
 import { formatSupabaseError } from '@/utils/supabaseErrors';
 import { DEFAULT_POOL_ENTRY, DEFAULT_POOL_VALUES, isPoolGame, poolLimitOf, poolStandings } from '@/utils/pool';
-import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsGameLine, awardsPayload, buildAwardSheet, chipForSaved, defaultPreset, getsFromAwards, givenOutText, presetGets, presetViability, saveAnywayText, signedPoints, viablePresets, winnerGetsMost, winnersOf } from '@/utils/poolAwards';
+import { AWARD_PRESETS, AwardPreset, NOT_VIABLE_TEXT, awardsGameLine, awardsPayload, buildAwardSheet, chipForSaved, defaultPreset, getsFromAwards, givenOutText, leftAndDrops, presetGets, presetViability, saveAnywayText, signedPoints, viablePresets, winnerGetsMost, winnersOf } from '@/utils/poolAwards';
 import { afterAwardsRoute } from '@/utils/endFlow';
 import { seatLabels } from '@/utils/initials';
 import { screenTitle } from '@/utils/gameLabel';
@@ -254,7 +254,7 @@ export default function AwardScreen() {
                 <View style={styles.flex}>
                   <Text variant="bodyMedium" numberOfLines={1} style={[{ fontWeight: '600' }, r.out && styles.struck]}>{nameOf(r.playerId)}</Text>
                   <Text variant="labelSmall" style={{ color: colors.onSurfaceVariant }}>
-                    {r.out ? `out R${standings.find((s) => s.playerId === r.playerId)?.outRound ?? ''}` : `${inputs.limit - r.total} left · ${dropsText(standings.find((s) => s.playerId === r.playerId)?.drops ?? 0)}`}
+                    {r.out ? `out R${standings.find((s) => s.playerId === r.playerId)?.outRound ?? ''}` : leftAndDrops(inputs.limit - r.total, standings.find((s) => s.playerId === r.playerId)?.drops ?? 0)}
                   </Text>
                 </View>
               </View>
