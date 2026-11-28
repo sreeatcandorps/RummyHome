@@ -189,10 +189,10 @@ export default function NewGame() {
   const typing = pickerWhileTyping(keyboardUp);
   const rootRef = useRef<View>(null);
   const [topY, setTopY] = useState(0);
-  // Edge-to-edge Android: the keyboard's reported top leaves out the navigation bar under it, so the view would
-  // stop that much short and Next would sit behind the keys (Pixel 6 CI, Nov 27).
+  // Edge-to-edge Android: the keyboard's reported top leaves out the navigation bar under it, so without it the view
+  // shrinks that much too little and Next sits behind the keys (Pixel 6 CI, Nov 27).
   const { bottom: navInset } = useSafeAreaInsets();
-  const keyboardOffset = Platform.OS === 'android' ? topY - navInset : topY;
+  const keyboardOffset = Platform.OS === 'android' ? topY + navInset : topY;
 
   const loadGame = useCallback(async (id: string) => {
     const [current, seats] = await Promise.all([gamesService.getGame(id), gamesService.listGamePlayers(id)]);
